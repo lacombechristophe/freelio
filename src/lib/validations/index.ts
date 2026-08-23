@@ -112,15 +112,26 @@ export const ProjectAcceptanceSchema = z.object({
 })
 
 export const ProjectTechnicalProfileSchema = z.object({
-  repositoryUrl: z.string().trim().url().optional().or(z.literal("")),
-  productionUrl: z.string().trim().url().optional().or(z.literal("")),
-  stagingUrl: z.string().trim().url().optional().or(z.literal("")),
-  documentationUrl: z.string().trim().url().optional().or(z.literal("")),
-  hostingProvider: z.string().trim().max(120).optional().or(z.literal("")),
-  stack: z.string().trim().max(500).optional().or(z.literal("")),
-  domainName: z.string().trim().max(250).optional().or(z.literal("")),
-  domainExpiresAt: z.string().optional().or(z.literal("")),
-  notes: z.string().trim().max(5000).optional().or(z.literal("")),
+  surveyStatus: z.enum(["DRAFT", "SURVEYED", "VALIDATED"]).default("DRAFT"),
+  surveyedAt: z.string().optional().or(z.literal("")),
+  surveyedBy: z.string().trim().max(160).optional().or(z.literal("")),
+  poolShape: z.string().trim().max(80).optional().or(z.literal("")),
+  poolLengthMm: z.coerce.number().int().min(0).max(100_000).optional().or(z.literal("")),
+  poolWidthMm: z.coerce.number().int().min(0).max(100_000).optional().or(z.literal("")),
+  poolDepthMm: z.coerce.number().int().min(0).max(20_000).optional().or(z.literal("")),
+  diagonal1Mm: z.coerce.number().int().min(0).max(150_000).optional().or(z.literal("")),
+  diagonal2Mm: z.coerce.number().int().min(0).max(150_000).optional().or(z.literal("")),
+  copingType: z.string().trim().max(160).optional().or(z.literal("")),
+  deckMaterial: z.string().trim().max(160).optional().or(z.literal("")),
+  accessWidthMm: z.coerce.number().int().min(0).max(20_000).optional().or(z.literal("")),
+  powerSupply: z.string().trim().max(160).optional().or(z.literal("")),
+  obstacles: z.string().trim().max(3_000).optional().or(z.literal("")),
+  installationConstraints: z.string().trim().max(3_000).optional().or(z.literal("")),
+  recommendedProduct: z.string().trim().max(250).optional().or(z.literal("")),
+  coverModel: z.string().trim().max(250).optional().or(z.literal("")),
+  coverColor: z.string().trim().max(120).optional().or(z.literal("")),
+  measurementNotes: z.string().trim().max(5_000).optional().or(z.literal("")),
+  validationNotes: z.string().trim().max(5_000).optional().or(z.literal("")),
 })
 
 export const QuoteLineSchema = z.object({

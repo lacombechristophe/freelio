@@ -1,11 +1,14 @@
 "use server"
 
+import { createHash } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
+import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance } from "@/lib/operations/stock"
+import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import prisma from "@/lib/prisma"
 
 const id = z.string().cuid()
@@ -87,6 +90,27 @@ const interventionSchema = z.object({
   scheduledEnd: z.string().datetime().optional().nullable(),
 })
 
+const interventionCompletionSchema = z.object({
+  interventionId: id,
+  report: z.string().trim().min(3, "Le compte rendu est requis").max(10_000),
+  laborMinutes: z.coerce.number().int().min(0).max(7 * 24 * 60),
+  customerName: z.string().trim().min(2, "Le nom du client est requis").max(160),
+  customerApproval: z.literal(true, { error: "L’accord du client doit être confirmé" }),
+})
+
+const maintenanceContractSchema = z.object({
+  clientId: id,
+  siteId: id,
+  label: z.string().trim().min(3).max(180),
+  startDate: z.string().trim().min(1).refine((value) => !Number.isNaN(Date.parse(value)), "Date de début invalide"),
+  endDate: dateInput,
+  frequency: z.enum(["MONTHLY", "QUARTERLY", "BIANNUAL", "ANNUAL"]).default("ANNUAL"),
+  nextVisitAt: dateInput,
+  priceCents: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
+  equipmentIds: z.array(id).max(100).default([]),
+  notes: optionalText,
+})
+
 const purchaseOrderSchema = z.object({
   supplierId: id,
   projectId: optionalId,
@@ -116,7 +140,7 @@ const customerOrderSchema = z.object({
   notes: optionalText,
   productId: optionalId,
   label: z.string().trim().min(2).max(200),
-  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  quantity: z.coerce.number().positive().max(1_000_000),
   unitPriceCents: z.coerce.number().int().min(0).max(2_000_000_000),
   tvaRate: z.coerce.number().min(0).max(100).default(20),
   depositCents: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
@@ -143,9 +167,15 @@ const reservationSchema = z.object({
 const deliveryNoteSchema = z.object({
   customerOrderId: id,
   customerOrderLineId: id,
-  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  quantity: z.coerce.number().positive().max(1_000_000),
   recipientName: z.string().trim().max(160).optional().transform((value) => value || null),
   notes: optionalText,
+})
+
+const customerOrderInvoiceSchema = z.object({
+  customerOrderId: id,
+  mode: z.enum(["DEPOSIT", "BALANCE"]).default("BALANCE"),
+  dueDays: z.coerce.number().int().min(0).max(365).default(30),
 })
 
 function revalidateOperations() {
@@ -169,7 +199,7 @@ export async function getOperationsDashboard() {
       prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, _count: { select: { equipments: true } } }, orderBy: { nextVisitAt: "asc" }, take: 100 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
-      prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
+      prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, invoices: { select: { id: true, type: true, status: true } }, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
       prisma.goodsReceipt.findMany({ where: { companyId }, include: { purchaseOrder: { include: { supplier: { select: { name: true } } } }, warehouse: { select: { name: true } }, lines: { include: { product: { select: { sku: true, label: true } } } } }, orderBy: { receivedAt: "desc" }, take: 100 }),
       prisma.stockReservation.findMany({ where: { companyId, status: "ACTIVE" }, include: { warehouse: { select: { name: true } }, product: { select: { sku: true, label: true } }, project: { select: { name: true } }, customerOrder: { select: { number: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
       prisma.deliveryNote.findMany({ where: { companyId }, include: { customerOrder: { include: { client: { select: { name: true } } } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
@@ -268,6 +298,44 @@ export async function createFieldIntervention(input: unknown) {
   }, "operations.write")
 }
 
+export async function createMaintenanceContract(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = maintenanceContractSchema.parse(input)
+    const [client, site, equipmentCount] = await Promise.all([
+      prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
+      prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } }),
+      data.equipmentIds.length ? prisma.equipment.count({ where: { id: { in: data.equipmentIds }, companyId, siteId: data.siteId } }) : 0,
+    ])
+    if (!client) throw new Error("Client introuvable")
+    if (!site) throw new Error("Le site n’appartient pas à ce client")
+    if (equipmentCount !== data.equipmentIds.length) throw new Error("Un équipement ne correspond pas au site sélectionné")
+
+    const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
+    const contract = await withDocumentNumberRetry(async () => {
+      const last = await prisma.maintenanceContract.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      return prisma.maintenanceContract.create({
+        data: {
+          companyId,
+          clientId: data.clientId,
+          siteId: data.siteId,
+          number: nextDocumentNumber(last?.number, prefix),
+          label: data.label,
+          startDate: new Date(data.startDate),
+          endDate: data.endDate,
+          frequency: data.frequency,
+          nextVisitAt: data.nextVisitAt,
+          priceCents: data.priceCents,
+          notes: data.notes,
+          equipments: data.equipmentIds.length ? { create: data.equipmentIds.map((equipmentId) => ({ equipmentId })) } : undefined,
+        },
+      })
+    }, { label: "le contrat d’entretien" })
+    await logAction({ userId, action: "CREATE_MAINTENANCE_CONTRACT", resource: "MAINTENANCE_CONTRACT", resourceId: contract.id, payload: { number: contract.number, clientId: contract.clientId, siteId: contract.siteId } })
+    revalidateOperations()
+    return { success: true as const, id: contract.id, number: contract.number }
+  }, "service.write")
+}
+
 export async function createPurchaseOrder(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = purchaseOrderSchema.parse(input)
@@ -334,6 +402,139 @@ export async function createCustomerOrder(input: unknown) {
     revalidateOperations()
     return { success: true as const, id: order.id, number: order.number }
   }, "operations.write")
+}
+
+export async function convertQuoteToCustomerOrder(quoteId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedQuoteId = id.parse(quoteId)
+    const quote = await prisma.quote.findFirst({
+      where: { id: parsedQuoteId, companyId },
+      include: {
+        customerOrder: { select: { id: true, number: true } },
+        versions: {
+          orderBy: { version: "desc" },
+          take: 1,
+          include: { sections: { orderBy: { order: "asc" }, include: { lines: { orderBy: { order: "asc" } } } } },
+        },
+      },
+    })
+    if (!quote) throw new Error("Devis introuvable")
+    if (quote.customerOrder) return { success: true as const, id: quote.customerOrder.id, number: quote.customerOrder.number, existing: true as const }
+    if (!['SENT', 'ACCEPTED'].includes(quote.status)) throw new Error("Envoyez ou acceptez le devis avant de créer la commande")
+    const version = quote.versions[0]
+    if (!version) throw new Error("Le devis ne contient aucune version")
+    const lines = version.sections.flatMap((section) => section.lines)
+    if (!lines.length) throw new Error("Le devis ne contient aucune ligne")
+
+    const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
+    const order = await withDocumentNumberRetry(async () => {
+      const last = await prisma.customerOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      return prisma.$transaction(async (tx) => {
+        const projectId = quote.projectId ?? (await tx.project.create({
+          data: {
+            companyId,
+            clientId: quote.clientId,
+            name: `Chantier · ${quote.object}`,
+            description: `Créé depuis le devis ${quote.number}`,
+            worksiteType: "INSTALLATION",
+            worksiteStage: "COMMANDE_CONFIRMEE",
+            budgetCents: version.totalHtCents,
+            startDate: new Date(),
+          },
+          select: { id: true },
+        })).id
+        const created = await tx.customerOrder.create({
+          data: {
+            companyId,
+            clientId: quote.clientId,
+            projectId,
+            quoteId: quote.id,
+            number: nextDocumentNumber(last?.number, prefix),
+            status: "CONFIRMED",
+            acceptedAt: new Date(),
+            totalHtCents: version.totalHtCents,
+            totalTvaCents: version.totalTvaCents,
+            totalTtcCents: version.totalTtcCents,
+            lines: {
+              create: lines.map((line, index) => ({
+                label: line.label,
+                description: line.description,
+                quantity: line.quantity,
+                unitPriceCents: line.unitPriceCents,
+                tvaRate: line.tvaRate,
+                order: index,
+              })),
+            },
+          },
+        })
+        await tx.quote.update({ where: { id: quote.id }, data: { status: "ACCEPTED", projectId } })
+        return created
+      })
+    }, { label: "la commande issue du devis" })
+    await logAction({ userId, action: "CREATE_CUSTOMER_ORDER", resource: "CUSTOMER_ORDER", resourceId: order.id, payload: { quoteId: quote.id, number: order.number } })
+    revalidateOperations()
+    revalidatePath("/dashboard/devis")
+    revalidatePath(`/dashboard/devis/${quote.id}`)
+    return { success: true as const, id: order.id, number: order.number, existing: false as const }
+  }, "sales.write")
+}
+
+export async function createInvoiceFromCustomerOrder(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = customerOrderInvoiceSchema.parse(input)
+    const order = await prisma.customerOrder.findFirst({
+      where: { id: data.customerOrderId, companyId },
+      include: { invoices: { select: { id: true, number: true, type: true, status: true, totalTtcCents: true } } },
+    })
+    if (!order) throw new Error("Commande client introuvable")
+    if (order.status === "CANCELLED") throw new Error("Une commande annulée ne peut pas être facturée")
+    if (data.mode === "DEPOSIT") {
+      const existingDeposit = order.invoices.find((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED")
+      if (existingDeposit) return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      if (order.depositCents <= 0) throw new Error("Aucun acompte n’est défini sur cette commande")
+    }
+    const remaining = remainingOrderAmount(order.totalTtcCents, order.invoices)
+    const amountTtcCents = data.mode === "DEPOSIT" ? Math.min(order.depositCents, remaining) : remaining
+    if (amountTtcCents <= 0) throw new Error("Cette commande est déjà entièrement facturée")
+    const totals = computeInvoiceSlice({ orderHtCents: order.totalHtCents, orderTvaCents: order.totalTvaCents, orderTtcCents: order.totalTtcCents, amountTtcCents })
+    const company = await prisma.company.findFirst({ where: { id: companyId }, select: { invoicePrefix: true } })
+    if (!company) throw new Error("Entreprise introuvable")
+    const prefix = buildYearlyDocumentPrefix(company.invoicePrefix, "FACT-")
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + data.dueDays)
+    const type = data.mode === "DEPOSIT" ? "DEPOSIT" : "STANDARD"
+    const label = data.mode === "DEPOSIT" ? `Acompte sur commande ${order.number}` : `Solde de la commande ${order.number}`
+
+    const invoice = await withDocumentNumberRetry(async () => {
+      const last = await prisma.invoice.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      return prisma.$transaction(async (tx) => {
+        const created = await tx.invoice.create({
+          data: {
+            companyId,
+            clientId: order.clientId,
+            projectId: order.projectId,
+            customerOrderId: order.id,
+            number: nextDocumentNumber(last?.number, prefix),
+            object: label,
+            type,
+            status: "DRAFT",
+            dueDate,
+            totalHtCents: totals.totalHtCents,
+            totalTvaCents: totals.totalTvaCents,
+            totalTtcCents: totals.totalTtcCents,
+            lines: { create: { label, quantity: 1, unitPriceCents: totals.totalHtCents, tvaRate: totals.tvaRate } },
+          },
+        })
+        const nextRemaining = remaining - amountTtcCents
+        await tx.customerOrder.update({ where: { id: order.id }, data: { billingStatus: nextRemaining <= 0 ? "INVOICED" : "PARTIALLY_INVOICED" } })
+        return created
+      })
+    }, { label: data.mode === "DEPOSIT" ? "la facture d’acompte" : "la facture de solde" })
+    await logAction({ userId, action: "CREATE_INVOICE_FROM_ORDER", resource: "INVOICE", resourceId: invoice.id, payload: { customerOrderId: order.id, mode: data.mode, amountTtcCents } })
+    revalidateOperations()
+    revalidatePath("/dashboard/factures")
+    return { success: true as const, id: invoice.id, number: invoice.number, existing: false as const }
+  }, "finance.write")
 }
 
 export async function receivePurchaseOrder(input: unknown) {
@@ -432,6 +633,43 @@ export async function releaseStockReservation(reservationId: string) {
   }, "operations.write")
 }
 
+export async function consumeStockReservation(reservationId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(reservationId)
+    const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
+    if (!reservation) throw new Error("Réservation active introuvable")
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: reservation.warehouseId, productId: reservation.productId } } })
+      if (!current) throw new Error("Stock de la réservation introuvable")
+      const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "CONSUME", movementQuantity: reservation.quantity })
+      await tx.inventoryItem.update({ where: { id: current.id }, data: next })
+      await tx.stockReservation.update({ where: { id: reservation.id }, data: { status: "CONSUMED", releasedAt: new Date() } })
+      await tx.stockMovement.create({
+        data: {
+          companyId,
+          warehouseId: reservation.warehouseId,
+          productId: reservation.productId,
+          projectId: reservation.projectId,
+          reservationId: reservation.id,
+          type: "CONSUME",
+          quantity: -reservation.quantity,
+          reference: reservation.customerOrderId ? `Commande ${reservation.customerOrderId}` : `Réservation ${reservation.id}`,
+          notes: reservation.notes,
+        },
+      })
+      if (reservation.customerOrderId) {
+        await tx.customerOrder.updateMany({
+          where: { id: reservation.customerOrderId, companyId, status: "CONFIRMED" },
+          data: { status: "IN_PREPARATION" },
+        })
+      }
+    })
+    await logAction({ userId, action: "CONSUME_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: reservation.id, payload: { quantity: reservation.quantity, productId: reservation.productId } })
+    revalidateOperations()
+    return { success: true as const }
+  }, "operations.write")
+}
+
 export async function createDeliveryNote(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = deliveryNoteSchema.parse(input)
@@ -509,9 +747,9 @@ export async function updateServiceTicketStatus(ticketId: string, status: "OPEN"
   }, "service.write")
 }
 
-export async function updateInterventionStatus(interventionId: string, status: "PLANNED" | "EN_ROUTE" | "IN_PROGRESS" | "COMPLETED" | "CANCELED") {
+export async function updateInterventionStatus(interventionId: string, status: "PLANNED" | "EN_ROUTE" | "IN_PROGRESS" | "CANCELED") {
   return withAuth(async ({ companyId }) => {
-    const parsed = z.object({ interventionId: id, status: z.enum(["PLANNED", "EN_ROUTE", "IN_PROGRESS", "COMPLETED", "CANCELED"]) }).parse({ interventionId, status })
+    const parsed = z.object({ interventionId: id, status: z.enum(["PLANNED", "EN_ROUTE", "IN_PROGRESS", "CANCELED"]) }).parse({ interventionId, status })
     const intervention = await prisma.fieldIntervention.findFirst({ where: { id: parsed.interventionId, companyId }, select: { id: true } })
     if (!intervention) throw new Error("Intervention introuvable")
     await prisma.fieldIntervention.update({
@@ -519,10 +757,49 @@ export async function updateInterventionStatus(interventionId: string, status: "
       data: {
         status: parsed.status,
         startedAt: parsed.status === "IN_PROGRESS" ? new Date() : undefined,
-        completedAt: parsed.status === "COMPLETED" ? new Date() : undefined,
       },
     })
     revalidateOperations()
     return { success: true as const }
+  }, "operations.write")
+}
+
+export async function completeFieldIntervention(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = interventionCompletionSchema.parse(input)
+    const intervention = await prisma.fieldIntervention.findFirst({
+      where: { id: data.interventionId, companyId },
+      select: { id: true, status: true, ticketId: true },
+    })
+    if (!intervention) throw new Error("Intervention introuvable")
+    if (intervention.status === "CANCELED") throw new Error("Une intervention annulée ne peut pas être clôturée")
+    if (intervention.status === "COMPLETED") return { success: true as const, alreadyCompleted: true }
+
+    const signedAt = new Date()
+    const signatureSha256 = createHash("sha256")
+      .update(JSON.stringify({ interventionId: intervention.id, customerName: data.customerName, signedAt: signedAt.toISOString(), report: data.report }))
+      .digest("hex")
+
+    await prisma.$transaction(async (tx) => {
+      await tx.fieldIntervention.update({
+        where: { id: intervention.id },
+        data: {
+          status: "COMPLETED",
+          startedAt: intervention.status === "PLANNED" ? signedAt : undefined,
+          completedAt: signedAt,
+          report: data.report,
+          laborMinutes: data.laborMinutes,
+          customerName: data.customerName,
+          signedAt,
+          signatureSha256,
+        },
+      })
+      if (intervention.ticketId) {
+        await tx.serviceTicket.update({ where: { id: intervention.ticketId }, data: { status: "RESOLVED" } })
+      }
+    })
+    await logAction({ userId, action: "COMPLETE_FIELD_INTERVENTION", resource: "FIELD_INTERVENTION", resourceId: intervention.id, payload: { laborMinutes: data.laborMinutes, customerName: data.customerName, signatureSha256 } })
+    revalidateOperations()
+    return { success: true as const, signatureSha256 }
   }, "operations.write")
 }

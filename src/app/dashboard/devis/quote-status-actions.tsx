@@ -3,13 +3,14 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Send, CheckCircle2, XCircle, FileText, Trash2, ScrollText } from "lucide-react"
+import { Send, CheckCircle2, XCircle, FileText, Trash2, ScrollText, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { convertQuoteToInvoice, createContractFromQuote, deleteQuote, updateQuoteStatus } from "@/actions/devis"
+import { convertQuoteToCustomerOrder } from "@/actions/operations"
 import { useConfirm } from "@/components/shared/confirm-provider"
 
 export function QuoteStatusActions({ quoteId, status }: { quoteId: string; status: string }) {
@@ -38,6 +39,19 @@ export function QuoteStatusActions({ quoteId, status }: { quoteId: string; statu
       router.push(`/dashboard/factures/${invoice.id}`)
     } catch (err: any) {
       toast.error(err?.message ?? "Erreur.")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function createOrder() {
+    setPending(true)
+    try {
+      const order = await convertQuoteToCustomerOrder(quoteId)
+      toast.success(order.existing ? `Commande ${order.number} déjà créée.` : `Commande ${order.number} créée avec son chantier.`)
+      router.push("/dashboard/operations?tab=orders")
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur.")
     } finally {
       setPending(false)
     }
@@ -75,7 +89,9 @@ export function QuoteStatusActions({ quoteId, status }: { quoteId: string; statu
   }
 
   return (
-    <DropdownMenu>
+    <div className="flex items-center gap-2">
+      {(status === "ACCEPTED" || status === "SENT") ? <Button variant="outline" disabled={pending} onClick={createOrder}><ShoppingCart />Créer la commande</Button> : null}
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button disabled={pending}>Actions</Button>
       </DropdownMenuTrigger>
@@ -96,6 +112,11 @@ export function QuoteStatusActions({ quoteId, status }: { quoteId: string; statu
           </>
         )}
         {(status === "ACCEPTED" || status === "SENT") && (
+          <DropdownMenuItem onClick={createOrder} className="gap-2">
+            <ShoppingCart className="h-4 w-4" /> Créer la commande client
+          </DropdownMenuItem>
+        )}
+        {(status === "ACCEPTED" || status === "SENT") && (
           <DropdownMenuItem onClick={convert} className="gap-2">
             <FileText className="h-4 w-4" /> Convertir en facture
           </DropdownMenuItem>
@@ -114,6 +135,7 @@ export function QuoteStatusActions({ quoteId, status }: { quoteId: string; statu
           </>
         )}
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </div>
   )
 }

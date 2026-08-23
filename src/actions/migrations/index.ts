@@ -1380,7 +1380,7 @@ export async function importMigrationRun(runId: string) {
           if (customerOrderId) {
             const order = await prisma.customerOrder.findFirst({ where: { id: customerOrderId, companyId }, select: { id: true } })
             if (order) {
-              const quantity = Math.max(1, Math.round(candidate.quantity))
+              const quantity = Math.max(0.01, candidate.quantity)
               const line = await prisma.customerOrderLine.upsert({
                 where: { customerOrderId_sourceKey: { customerOrderId, sourceKey } },
                 update: { productId, label: candidate.label, description: candidate.description, quantity, unitPriceCents: candidate.unitPriceCents, tvaRate: candidate.tvaRate, order: candidate.order },

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   Plus, Search, MoreHorizontal, FileText, Clock,
-  CheckCircle2, XCircle, Trash2, Send, FileDown,
+  CheckCircle2, XCircle, Trash2, Send, FileDown, ShoppingCart,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { convertQuoteToInvoice, deleteQuote, updateQuoteStatus } from "@/actions/devis"
+import { convertQuoteToCustomerOrder } from "@/actions/operations"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { EmptyState } from "@/components/shared/empty-state"
 
@@ -76,6 +77,14 @@ export function DevisTable({ quotes }: { quotes: Quote[] }) {
       toast.success("Facture créée.")
       router.push(`/dashboard/factures/${inv.id}`)
     } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
+  }
+
+  async function handleCreateOrder(id: string) {
+    try {
+      const order = await convertQuoteToCustomerOrder(id)
+      toast.success(order.existing ? `Commande ${order.number} déjà créée.` : `Commande ${order.number} créée.`)
+      router.push("/dashboard/operations?tab=orders")
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Erreur.") }
   }
 
   async function handleDelete(id: string, number: string) {
@@ -214,6 +223,11 @@ export function DevisTable({ quotes }: { quotes: Quote[] }) {
                                 <XCircle className="h-4 w-4" /> Refuser
                               </DropdownMenuItem>
                             </>
+                          )}
+                          {(quote.status === "SENT" || quote.status === "ACCEPTED") && (
+                            <DropdownMenuItem className="gap-2" onClick={() => handleCreateOrder(quote.id)}>
+                              <ShoppingCart className="h-4 w-4 text-muted-foreground" /> Créer la commande
+                            </DropdownMenuItem>
                           )}
                           {(quote.status === "SENT" || quote.status === "ACCEPTED") && (
                             <DropdownMenuItem className="gap-2" onClick={() => handleConvert(quote.id)}>

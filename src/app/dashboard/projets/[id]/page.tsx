@@ -76,15 +76,27 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         acceptanceItems={project.acceptanceItems.map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.dueDate?.toISOString() ?? null }))}
         files={project.files.map((file) => ({ id: file.id, name: file.name, size: file.size, type: file.type, createdAt: file.createdAt.toISOString() }))}
         profile={project.technicalProfile ? {
-          repositoryUrl: project.technicalProfile.repositoryUrl,
-          productionUrl: project.technicalProfile.productionUrl,
-          stagingUrl: project.technicalProfile.stagingUrl,
-          documentationUrl: project.technicalProfile.documentationUrl,
-          hostingProvider: project.technicalProfile.hostingProvider,
-          stack: project.technicalProfile.stack,
-          domainName: project.technicalProfile.domainName,
-          domainExpiresAt: project.technicalProfile.domainExpiresAt?.toISOString() ?? null,
-          notes: project.technicalProfile.notes,
+          surveyStatus: project.technicalProfile.surveyStatus as "DRAFT" | "SURVEYED" | "VALIDATED",
+          surveyedAt: project.technicalProfile.surveyedAt?.toISOString() ?? null,
+          surveyedBy: project.technicalProfile.surveyedBy,
+          poolShape: project.technicalProfile.poolShape,
+          poolLengthMm: project.technicalProfile.poolLengthMm,
+          poolWidthMm: project.technicalProfile.poolWidthMm,
+          poolDepthMm: project.technicalProfile.poolDepthMm,
+          diagonal1Mm: project.technicalProfile.diagonal1Mm,
+          diagonal2Mm: project.technicalProfile.diagonal2Mm,
+          copingType: project.technicalProfile.copingType,
+          deckMaterial: project.technicalProfile.deckMaterial,
+          accessWidthMm: project.technicalProfile.accessWidthMm,
+          powerSupply: project.technicalProfile.powerSupply,
+          obstacles: project.technicalProfile.obstacles,
+          installationConstraints: project.technicalProfile.installationConstraints,
+          recommendedProduct: project.technicalProfile.recommendedProduct,
+          coverModel: project.technicalProfile.coverModel,
+          coverColor: project.technicalProfile.coverColor,
+          measurementNotes: project.technicalProfile.measurementNotes,
+          validationNotes: project.technicalProfile.validationNotes,
+          validatedAt: project.technicalProfile.validatedAt?.toISOString() ?? null,
         } : null}
       />
 

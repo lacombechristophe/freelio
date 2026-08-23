@@ -64,3 +64,4 @@ build_log.txt
 /tmp/
 
 .vercel
+.env*.local
