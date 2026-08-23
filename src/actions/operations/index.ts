@@ -109,6 +109,45 @@ const movementSchema = z.object({
   notes: optionalText,
 })
 
+const customerOrderSchema = z.object({
+  clientId: id,
+  projectId: optionalId,
+  expectedInstallationAt: dateInput,
+  notes: optionalText,
+  productId: optionalId,
+  label: z.string().trim().min(2).max(200),
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  unitPriceCents: z.coerce.number().int().min(0).max(2_000_000_000),
+  tvaRate: z.coerce.number().min(0).max(100).default(20),
+  depositCents: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
+})
+
+const goodsReceiptSchema = z.object({
+  purchaseOrderId: id,
+  purchaseOrderLineId: id,
+  warehouseId: id,
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  supplierReference: z.string().trim().max(120).optional().transform((value) => value || null),
+  notes: optionalText,
+})
+
+const reservationSchema = z.object({
+  warehouseId: id,
+  productId: id,
+  projectId: optionalId,
+  customerOrderId: optionalId,
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  notes: optionalText,
+})
+
+const deliveryNoteSchema = z.object({
+  customerOrderId: id,
+  customerOrderLineId: id,
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  recipientName: z.string().trim().max(160).optional().transform((value) => value || null),
+  notes: optionalText,
+})
+
 function revalidateOperations() {
   revalidatePath("/dashboard/operations")
   revalidatePath("/dashboard/clients")
@@ -117,7 +156,7 @@ function revalidateOperations() {
 
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId }) => {
-    const [clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members] = await Promise.all([
+    const [clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes] = await Promise.all([
       prisma.client.findMany({ where: { companyId }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 500 }),
       prisma.customerSite.findMany({ where: { companyId }, include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
@@ -130,8 +169,12 @@ export async function getOperationsDashboard() {
       prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, _count: { select: { equipments: true } } }, orderBy: { nextVisitAt: "asc" }, take: 100 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
+      prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
+      prisma.goodsReceipt.findMany({ where: { companyId }, include: { purchaseOrder: { include: { supplier: { select: { name: true } } } }, warehouse: { select: { name: true } }, lines: { include: { product: { select: { sku: true, label: true } } } } }, orderBy: { receivedAt: "desc" }, take: 100 }),
+      prisma.stockReservation.findMany({ where: { companyId, status: "ACTIVE" }, include: { warehouse: { select: { name: true } }, product: { select: { sku: true, label: true } }, project: { select: { name: true } }, customerOrder: { select: { number: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
+      prisma.deliveryNote.findMany({ where: { companyId }, include: { customerOrder: { include: { client: { select: { name: true } } } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
     ])
-    return { clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members }
+    return { clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes }
   }, "operations.read")
 }
 
@@ -250,6 +293,181 @@ export async function createPurchaseOrder(input: unknown) {
     }, { label: "la commande fournisseur" })
     revalidateOperations()
     return { success: true as const, id: order.id, number: order.number }
+  }, "operations.write")
+}
+
+export async function createCustomerOrder(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = customerOrderSchema.parse(input)
+    const [client, project, product] = await Promise.all([
+      prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
+      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId, clientId: data.clientId }, select: { id: true } }) : null,
+      data.productId ? prisma.product.findFirst({ where: { id: data.productId, companyId }, select: { id: true } }) : null,
+    ])
+    if (!client) throw new Error("Client introuvable")
+    if (data.projectId && !project) throw new Error("Le chantier n'appartient pas à ce client")
+    if (data.productId && !product) throw new Error("Produit introuvable")
+
+    const totalHtCents = data.quantity * data.unitPriceCents
+    const totalTvaCents = Math.round(totalHtCents * data.tvaRate / 100)
+    if (data.depositCents > totalHtCents + totalTvaCents) throw new Error("L'acompte dépasse le total de la commande")
+    const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
+    const order = await withDocumentNumberRetry(async () => {
+      const last = await prisma.customerOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      return prisma.customerOrder.create({
+        data: {
+          companyId,
+          clientId: data.clientId,
+          projectId: data.projectId,
+          number: nextDocumentNumber(last?.number, prefix),
+          acceptedAt: new Date(),
+          expectedInstallationAt: data.expectedInstallationAt,
+          notes: data.notes,
+          totalHtCents,
+          totalTvaCents,
+          totalTtcCents: totalHtCents + totalTvaCents,
+          depositCents: data.depositCents,
+          lines: { create: { productId: data.productId, label: data.label, quantity: data.quantity, unitPriceCents: data.unitPriceCents, tvaRate: data.tvaRate } },
+        },
+      })
+    }, { label: "la commande client" })
+    revalidateOperations()
+    return { success: true as const, id: order.id, number: order.number }
+  }, "operations.write")
+}
+
+export async function receivePurchaseOrder(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = goodsReceiptSchema.parse(input)
+    const [warehouse, line] = await Promise.all([
+      prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
+      prisma.purchaseOrderLine.findFirst({
+        where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } },
+        include: { purchaseOrder: { select: { id: true, number: true } }, product: { select: { id: true } } },
+      }),
+    ])
+    if (!warehouse) throw new Error("Dépôt introuvable")
+    if (!line) throw new Error("Ligne de commande fournisseur introuvable")
+    if (!line.product) throw new Error("Associez un produit catalogue à la ligne avant réception")
+    const productId = line.product.id
+    const remaining = line.quantity - line.receivedQuantity
+    if (data.quantity > remaining) throw new Error(`La quantité dépasse le reliquat de ${remaining}`)
+
+    const prefix = buildYearlyDocumentPrefix("REC-", "REC-")
+    const receipt = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
+      const last = await tx.goodsReceipt.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      const created = await tx.goodsReceipt.create({
+        data: {
+          companyId,
+          purchaseOrderId: data.purchaseOrderId,
+          warehouseId: data.warehouseId,
+          number: nextDocumentNumber(last?.number, prefix),
+          supplierReference: data.supplierReference,
+          notes: data.notes,
+          lines: { create: { purchaseOrderLineId: line.id, productId, quantity: data.quantity, unitCostCents: line.unitPriceCents } },
+        },
+      })
+      await tx.purchaseOrderLine.update({ where: { id: line.id }, data: { receivedQuantity: { increment: data.quantity } } })
+      const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId } } })
+      const next = calculateStockBalance({ quantity: current?.quantity ?? 0, reservedQuantity: current?.reservedQuantity ?? 0, type: "IN", movementQuantity: data.quantity })
+      await tx.inventoryItem.upsert({
+        where: { warehouseId_productId: { warehouseId: data.warehouseId, productId } },
+        update: next,
+        create: { companyId, warehouseId: data.warehouseId, productId, ...next },
+      })
+      await tx.stockMovement.create({ data: { companyId, warehouseId: data.warehouseId, productId, projectId: null, type: "IN", quantity: data.quantity, unitCostCents: line.unitPriceCents, reference: created.number, notes: `Réception ${line.purchaseOrder.number}` } })
+      const orderLines = await tx.purchaseOrderLine.findMany({ where: { purchaseOrderId: data.purchaseOrderId }, select: { quantity: true, receivedQuantity: true } })
+      const complete = orderLines.every((orderLine) => orderLine.receivedQuantity >= orderLine.quantity)
+      await tx.purchaseOrder.update({ where: { id: data.purchaseOrderId }, data: { status: complete ? "RECEIVED" : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null } })
+      return created
+    }), { label: "la réception fournisseur" })
+    revalidateOperations()
+    return { success: true as const, id: receipt.id, number: receipt.number }
+  }, "operations.write")
+}
+
+export async function reserveStock(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = reservationSchema.parse(input)
+    const [warehouse, product, project, customerOrder] = await Promise.all([
+      prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
+      prisma.product.findFirst({ where: { id: data.productId, companyId, active: true }, select: { id: true } }),
+      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }) : null,
+      data.customerOrderId ? prisma.customerOrder.findFirst({ where: { id: data.customerOrderId, companyId }, select: { id: true } }) : null,
+    ])
+    if (!warehouse || !product) throw new Error("Dépôt ou produit introuvable")
+    if (data.projectId && !project) throw new Error("Chantier introuvable")
+    if (data.customerOrderId && !customerOrder) throw new Error("Commande client introuvable")
+    if (!data.projectId && !data.customerOrderId) throw new Error("Rattachez la réservation à un chantier ou une commande client")
+
+    const reservation = await prisma.$transaction(async (tx) => {
+      const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId: data.productId } } })
+      if (!current) throw new Error("Aucun stock disponible pour ce produit")
+      const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "RESERVE", movementQuantity: data.quantity })
+      const created = await tx.stockReservation.create({ data: { companyId, ...data } })
+      await tx.inventoryItem.update({ where: { id: current.id }, data: next })
+      await tx.stockMovement.create({ data: { companyId, warehouseId: data.warehouseId, productId: data.productId, projectId: data.projectId, reservationId: created.id, type: "RESERVE", quantity: data.quantity, reference: data.customerOrderId ? `Commande ${data.customerOrderId}` : null, notes: data.notes } })
+      return created
+    })
+    revalidateOperations()
+    return { success: true as const, id: reservation.id }
+  }, "operations.write")
+}
+
+export async function releaseStockReservation(reservationId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = id.parse(reservationId)
+    const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
+    if (!reservation) throw new Error("Réservation active introuvable")
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: reservation.warehouseId, productId: reservation.productId } } })
+      if (!current) throw new Error("Stock de la réservation introuvable")
+      const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "RELEASE", movementQuantity: reservation.quantity })
+      await tx.inventoryItem.update({ where: { id: current.id }, data: next })
+      await tx.stockReservation.update({ where: { id: reservation.id }, data: { status: "RELEASED", releasedAt: new Date() } })
+      await tx.stockMovement.create({ data: { companyId, warehouseId: reservation.warehouseId, productId: reservation.productId, projectId: reservation.projectId, reservationId: reservation.id, type: "RELEASE", quantity: reservation.quantity, reference: `Libération ${reservation.id}`, notes: reservation.notes } })
+    })
+    revalidateOperations()
+    return { success: true as const }
+  }, "operations.write")
+}
+
+export async function createDeliveryNote(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = deliveryNoteSchema.parse(input)
+    const line = await prisma.customerOrderLine.findFirst({
+      where: { id: data.customerOrderLineId, customerOrderId: data.customerOrderId, customerOrder: { companyId } },
+      include: { customerOrder: { select: { id: true, projectId: true } } },
+    })
+    if (!line) throw new Error("Ligne de commande client introuvable")
+    const remaining = line.quantity - line.deliveredQuantity
+    if (data.quantity > remaining) throw new Error(`La quantité dépasse le reliquat de ${remaining}`)
+
+    const prefix = buildYearlyDocumentPrefix("BL-", "BL-")
+    const note = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
+      const last = await tx.deliveryNote.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      const created = await tx.deliveryNote.create({
+        data: {
+          companyId,
+          customerOrderId: data.customerOrderId,
+          projectId: line.customerOrder.projectId,
+          number: nextDocumentNumber(last?.number, prefix),
+          status: "DELIVERED",
+          deliveredAt: new Date(),
+          recipientName: data.recipientName,
+          notes: data.notes,
+          lines: { create: { customerOrderLineId: line.id, productId: line.productId, label: line.label, quantity: data.quantity } },
+        },
+      })
+      await tx.customerOrderLine.update({ where: { id: line.id }, data: { deliveredQuantity: { increment: data.quantity } } })
+      const orderLines = await tx.customerOrderLine.findMany({ where: { customerOrderId: data.customerOrderId }, select: { quantity: true, deliveredQuantity: true } })
+      if (orderLines.every((orderLine) => orderLine.deliveredQuantity >= orderLine.quantity)) {
+        await tx.customerOrder.update({ where: { id: data.customerOrderId }, data: { status: "DELIVERED" } })
+      }
+      return created
+    }), { label: "le bon de livraison" })
+    revalidateOperations()
+    return { success: true as const, id: note.id, number: note.number }
   }, "operations.write")
 }
 

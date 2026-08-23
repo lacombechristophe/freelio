@@ -164,7 +164,7 @@ const ASSOCIATIONS: Record<string, string[]> = {
   tasks: ["contacts", "companies", "deals", "tickets"],
   communications: ["contacts", "companies", "deals", "tickets"],
   appointments: ["contacts", "companies", "deals", "tickets"],
-  line_items: ["deals", "quotes"],
+  line_items: ["deals", "quotes", "invoices", "orders"],
   quotes: ["deals", "line_items"],
   orders: ["contacts", "companies", "deals", "line_items"],
   invoices: ["contacts", "companies", "deals", "line_items"],

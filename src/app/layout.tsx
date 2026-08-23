@@ -21,11 +21,11 @@ const instrumentSans = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Freelio - Cockpit freelance",
-    template: "%s | Freelio",
+    default: "Entreprise Pilote — CRM & opérations",
+    template: "%s | Entreprise Pilote",
   },
   description:
-    "Cockpit freelance pour devis, factures Factur-X, contrats, projets, temps, relances et pilotage TVA.",
+    "CRM et gestion opérationnelle Entreprise Pilote pour les ventes, chantiers, équipements, stocks, interventions et facturation.",
 };
 
 export default function RootLayout({

@@ -15,9 +15,14 @@ export type MigrationTargetKind =
   | "INTERVENTION"
   | "MAINTENANCE_CONTRACT"
   | "PURCHASE_ORDER"
+  | "CUSTOMER_ORDER"
+  | "DELIVERY_NOTE"
+  | "GOODS_RECEIPT"
+  | "STOCK_RESERVATION"
   | "STOCK_MOVEMENT"
   | "QUOTE"
   | "INVOICE"
+  | "LINE_ITEM"
   | "PAYMENT"
   | "ACTIVITY"
   | "UNSUPPORTED"
@@ -59,8 +64,13 @@ function joinedName(payload: SourcePayload) {
 
 export function classifySourceObject(objectType: string): MigrationTargetKind {
   const type = keyName(objectType)
+  if (/(^|_)(line_items?|lignes?_documents?|lignes?_devis|lignes?_factures?|discounts?|remises?|fees?|frais|taxes?)(_|$)/.test(type)) return "LINE_ITEM"
   if (/(contrats?|contracts?).*(maintenance|entretien|service)|(maintenance|entretien|service).*(contrats?|contracts?)/.test(type)) return "MAINTENANCE_CONTRACT"
+  if (/(^|_)(delivery_notes?|bons?_de_livraison|bons?_livraison|bordereaux?_livraison)(_|$)/.test(type)) return "DELIVERY_NOTE"
+  if (/(^|_)(goods_receipts?|receptions?_fournisseurs?|receptions?_achats?)(_|$)/.test(type)) return "GOODS_RECEIPT"
   if (/(^|_)(purchase_orders?|supplier_orders?|commandes?_fournisseurs?|commandes?_achat)(_|$)/.test(type)) return "PURCHASE_ORDER"
+  if (/(^|_)(customer_orders?|sales_orders?|orders?|commandes?_clients?|commandes?_ventes?)(_|$)/.test(type)) return "CUSTOMER_ORDER"
+  if (/(^|_)(stock_reservations?|reservations?_stock)(_|$)/.test(type)) return "STOCK_RESERVATION"
   if (/(^|_)(stock_movements?|mouvements?_stock|inventory_movements?)(_|$)/.test(type)) return "STOCK_MOVEMENT"
   if (/(^|_)(quotes?|devis|estimations?)(_|$)/.test(type)) return "QUOTE"
   if (/(^|_)(invoices?|factures?)(_|$)/.test(type)) return "INVOICE"
@@ -303,6 +313,58 @@ export function purchaseOrderCandidate(payload: SourcePayload, fallbackNumber: s
   }
 }
 
+export function customerOrderCandidate(payload: SourcePayload, fallbackNumber: string) {
+  const totalHtCents = Math.round(numericValue(sourceValue(payload, ["total_ht", "subtotal", "hs_subtotal", "amount", "montant_ht"])) * 100)
+  const totalTvaCents = Math.round(numericValue(sourceValue(payload, ["total_tva", "tax", "taxes", "montant_tva"])) * 100)
+  const explicitTtc = Math.round(numericValue(sourceValue(payload, ["total_ttc", "total", "hs_total", "montant_ttc"])) * 100)
+  return {
+    number: sourceValue(payload, ["number", "numero", "order_number", "hs_order_name", "reference"]) || fallbackNumber,
+    status: sourceValue(payload, ["status", "statut", "hs_status", "etat"]) || "CONFIRMED",
+    orderDate: dateValue(payload, ["order_date", "date_commande", "date", "hs_createdate"]) || new Date(),
+    acceptedAt: dateValue(payload, ["accepted_at", "date_acceptation", "date_signature"]),
+    expectedInstallationAt: dateValue(payload, ["expected_installation_at", "date_pose_prevue", "date_installation_prevue"]),
+    notes: sourceValue(payload, ["notes", "description", "commentaire", "hs_description"]) || null,
+    totalHtCents,
+    totalTvaCents,
+    totalTtcCents: explicitTtc || totalHtCents + totalTvaCents,
+    depositCents: Math.round(numericValue(sourceValue(payload, ["deposit", "acompte", "deposit_amount", "montant_acompte"])) * 100),
+    customFields: payload,
+  }
+}
+
+export function deliveryNoteCandidate(payload: SourcePayload, fallbackNumber: string) {
+  return {
+    number: sourceValue(payload, ["number", "numero", "delivery_number", "numero_bl", "reference"]) || fallbackNumber,
+    status: sourceValue(payload, ["status", "statut", "etat"]) || "DELIVERED",
+    deliveredAt: dateValue(payload, ["delivered_at", "delivery_date", "date_livraison", "date"]),
+    recipientName: sourceValue(payload, ["recipient_name", "receptionnaire", "nom_receptionnaire", "signataire"]) || null,
+    signedAt: dateValue(payload, ["signed_at", "date_signature"]),
+    signatureSha256: sourceValue(payload, ["signature_sha256", "hash_signature", "empreinte_signature"]) || null,
+    notes: sourceValue(payload, ["notes", "description", "commentaire"]) || null,
+    quantity: Math.max(1, integerValue(payload, ["quantity", "quantite", "qty"], 1)),
+  }
+}
+
+export function goodsReceiptCandidate(payload: SourcePayload, fallbackNumber: string) {
+  return {
+    number: sourceValue(payload, ["number", "numero", "receipt_number", "numero_reception", "reference"]) || fallbackNumber,
+    receivedAt: dateValue(payload, ["received_at", "receipt_date", "date_reception", "date"]) || new Date(),
+    supplierReference: sourceValue(payload, ["supplier_reference", "reference_fournisseur", "numero_bl_fournisseur"]) || null,
+    notes: sourceValue(payload, ["notes", "description", "commentaire"]) || null,
+    quantity: Math.max(1, integerValue(payload, ["quantity", "quantite", "qty"], 1)),
+    unitCostCents: Math.round(numericValue(sourceValue(payload, ["unit_cost", "cout_unitaire", "prix_achat"])) * 100) || null,
+  }
+}
+
+export function stockReservationCandidate(payload: SourcePayload) {
+  return {
+    quantity: Math.max(1, integerValue(payload, ["quantity", "quantite", "qty"], 1)),
+    status: sourceValue(payload, ["status", "statut", "etat"]) || "ACTIVE",
+    notes: sourceValue(payload, ["notes", "description", "commentaire"]) || null,
+    releasedAt: dateValue(payload, ["released_at", "date_liberation", "date_fin"]),
+  }
+}
+
 export function stockMovementCandidate(payload: SourcePayload) {
   const rawType = keyName(sourceValue(payload, ["type", "movement_type", "type_mouvement", "sens"]))
   const type = /(out|sortie|consomm|debit)/.test(rawType) ? "OUT"
@@ -364,6 +426,25 @@ export function invoiceCandidate(payload: SourcePayload, fallbackNumber: string)
     totalTtcCents: explicitTtc || totalHtCents + totalTvaCents,
     paidAmountCents: Math.round(numericValue(sourceValue(payload, ["paid_amount", "montant_paye", "amount_paid", "hs_amount_paid"])) * 100),
     lockedAt: status === "DRAFT" ? null : date,
+  }
+}
+
+export function lineItemCandidate(objectType: string, payload: SourcePayload) {
+  const normalizedType = keyName(objectType)
+  const quantity = numericValue(sourceValue(payload, ["quantity", "qty", "quantite", "hs_quantity"])) || 1
+  const explicitUnitPrice = numericValue(sourceValue(payload, ["unit_price", "price", "prix_unitaire", "hs_price", "amount", "montant"]))
+  const total = numericValue(sourceValue(payload, ["line_total", "total", "montant_total", "hs_total_discount", "hs_amount"]))
+  const isDiscount = /(discount|remise)/.test(normalizedType)
+  const amount = explicitUnitPrice || (quantity ? total / quantity : total)
+  const unitPriceCents = Math.round(Math.abs(amount) * 100) * (isDiscount ? -1 : 1)
+  const fallbackLabel = isDiscount ? "Remise" : /(tax)/.test(normalizedType) ? "Taxe" : /(fee|frais)/.test(normalizedType) ? "Frais" : "Article importé"
+  return {
+    label: sourceValue(payload, ["name", "label", "libelle", "designation", "hs_name", "description"]) || fallbackLabel,
+    description: sourceValue(payload, ["description", "details", "notes", "hs_description"]) || null,
+    quantity,
+    unitPriceCents,
+    tvaRate: numericValue(sourceValue(payload, ["tva_rate", "taux_tva", "vat_rate", "tax_rate", "hs_tax_rate"])) || 0,
+    order: Math.max(0, integerValue(payload, ["order", "position", "sort_order", "hs_position_on_quote"], 0)),
   }
 }
 
@@ -435,7 +516,7 @@ function splitIds(value: MigrationPayload): string[] {
 
 export function associationIds(
   payload: SourcePayload,
-  target: "company" | "contact" | "deal" | "site" | "supplier" | "product" | "project" | "equipment" | "ticket" | "warehouse" | "quote" | "invoice",
+  target: "company" | "contact" | "deal" | "site" | "supplier" | "product" | "project" | "equipment" | "ticket" | "warehouse" | "quote" | "invoice" | "customerOrder" | "purchaseOrder",
 ) {
   const aliases: Record<typeof target, string[]> = {
     company: ["company", "companies", "societe", "entreprise"],
@@ -450,6 +531,8 @@ export function associationIds(
     warehouse: ["warehouse", "warehouses", "depot", "depots", "stock_location"],
     quote: ["quote", "quotes", "devis", "estimation"],
     invoice: ["invoice", "invoices", "facture", "factures"],
+    customerOrder: ["customer_order", "customer_orders", "sales_order", "sales_orders", "order", "orders", "commande_client"],
+    purchaseOrder: ["purchase_order", "purchase_orders", "supplier_order", "supplier_orders", "commande_fournisseur"],
   }
   const results = new Set<string>()
   function visit(value: MigrationPayload, parentPath = "") {
