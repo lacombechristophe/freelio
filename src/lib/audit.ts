@@ -15,6 +15,7 @@ type AuditAction =
   | "DELETE_QUOTE"
   | "CREATE_INVOICE"
   | "CREATE_INVOICE_FROM_TIME"
+  | "CREATE_INVOICE_FROM_ORDER"
   | "UPDATE_INVOICE"
   | "UPDATE_INVOICE_STATUS"
   | "DELETE_INVOICE"
@@ -29,13 +30,18 @@ type AuditAction =
   | "GENERATE_PDF"
   | "OCR_EXPENSE"
   | "UPDATE_SETTINGS"
+  | "CREATE_CUSTOMER_ORDER"
+  | "CONSUME_STOCK_RESERVATION"
+  | "UPDATE_PROJECT_TECHNICAL_PROFILE"
+  | "COMPLETE_FIELD_INTERVENTION"
+  | "CREATE_MAINTENANCE_CONTRACT"
 
 interface AuditParams {
   userId: string
   action: AuditAction
   resource: string
   resourceId?: string
-  payload?: any
+  payload?: unknown
   ipAddress?: string
 }
 

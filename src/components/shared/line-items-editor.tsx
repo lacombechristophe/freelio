@@ -81,7 +81,7 @@ export function LineItemsEditor({
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Bases freelance
+                Bases de prestations
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 Ajoutez une structure de prestation adaptée à un devis ou une facture.

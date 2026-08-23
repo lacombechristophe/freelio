@@ -466,6 +466,31 @@ model ProjectTechnicalProfile {
   domainExpiresAt  DateTime?
   notes            String?
 
+  // Relevé technique Diskoov. Les champs ci-dessus restent disponibles pour
+  // préserver les anciennes données lors d'une reprise, mais ne sont plus
+  // exposés dans l'interface métier.
+  surveyStatus            String    @default("DRAFT") // DRAFT, SURVEYED, VALIDATED
+  surveyedAt              DateTime?
+  surveyedBy              String?
+  poolShape               String?
+  poolLengthMm            Int?
+  poolWidthMm             Int?
+  poolDepthMm             Int?
+  diagonal1Mm             Int?
+  diagonal2Mm             Int?
+  copingType              String?
+  deckMaterial            String?
+  accessWidthMm           Int?
+  powerSupply             String?
+  obstacles               String?
+  installationConstraints String?
+  recommendedProduct      String?
+  coverModel              String?
+  coverColor              String?
+  measurementNotes        String?
+  validatedAt             DateTime?
+  validationNotes         String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -865,6 +890,7 @@ model CustomerOrder {
 
   number                 String
   status                 String    @default("CONFIRMED")
+  billingStatus          String    @default("NOT_INVOICED")
   orderDate              DateTime  @default(now())
   acceptedAt             DateTime?
   expectedInstallationAt DateTime?
@@ -898,8 +924,8 @@ model CustomerOrderLine {
 
   label             String
   description       String?
-  quantity          Int
-  deliveredQuantity Int     @default(0)
+  quantity          Float
+  deliveredQuantity Float   @default(0)
   unitPriceCents    Int
   tvaRate           Float   @default(20)
   order             Int     @default(0)
@@ -949,7 +975,7 @@ model DeliveryNoteLine {
   productId           String?
   product             Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
   label               String
-  quantity            Int
+  quantity            Float
 
   @@index([deliveryNoteId])
   @@index([customerOrderLineId])

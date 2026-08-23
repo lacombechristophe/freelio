@@ -21,9 +21,13 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-        command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
-        url: "http://localhost:3000/auth/login",
-        reuseExistingServer: true,
+      command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
+      url: "http://localhost:3000/auth/login",
+      env: {
+        ...process.env,
+        DISKOOV_COMPANY_ID: process.env.DISKOOV_COMPANY_ID ?? "diskoov-e2e-company",
+      },
+      reuseExistingServer: true,
         timeout: 120_000,
       },
 })

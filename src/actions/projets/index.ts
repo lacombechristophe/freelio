@@ -211,25 +211,46 @@ export async function deleteProjectAcceptanceItem(id: string) {
 }
 
 export async function upsertProjectTechnicalProfile(projectId: string, data: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const validated = ProjectTechnicalProfileSchema.parse(data)
     const project = await prisma.project.findFirst({ where: { id: projectId, companyId } })
     if (!project) throw new Error("Projet introuvable")
+    const measuredNumber = (value: number | "" | undefined) => value === "" || value === undefined ? null : value
+    const isValidated = validated.surveyStatus === "VALIDATED"
     const payload = {
-      repositoryUrl: validated.repositoryUrl || null,
-      productionUrl: validated.productionUrl || null,
-      stagingUrl: validated.stagingUrl || null,
-      documentationUrl: validated.documentationUrl || null,
-      hostingProvider: validated.hostingProvider || null,
-      stack: validated.stack || null,
-      domainName: validated.domainName || null,
-      domainExpiresAt: validated.domainExpiresAt ? new Date(`${validated.domainExpiresAt}T12:00:00`) : null,
-      notes: validated.notes || null,
+      surveyStatus: validated.surveyStatus,
+      surveyedAt: validated.surveyedAt ? new Date(`${validated.surveyedAt}T12:00:00`) : null,
+      surveyedBy: validated.surveyedBy || null,
+      poolShape: validated.poolShape || null,
+      poolLengthMm: measuredNumber(validated.poolLengthMm),
+      poolWidthMm: measuredNumber(validated.poolWidthMm),
+      poolDepthMm: measuredNumber(validated.poolDepthMm),
+      diagonal1Mm: measuredNumber(validated.diagonal1Mm),
+      diagonal2Mm: measuredNumber(validated.diagonal2Mm),
+      copingType: validated.copingType || null,
+      deckMaterial: validated.deckMaterial || null,
+      accessWidthMm: measuredNumber(validated.accessWidthMm),
+      powerSupply: validated.powerSupply || null,
+      obstacles: validated.obstacles || null,
+      installationConstraints: validated.installationConstraints || null,
+      recommendedProduct: validated.recommendedProduct || null,
+      coverModel: validated.coverModel || null,
+      coverColor: validated.coverColor || null,
+      measurementNotes: validated.measurementNotes || null,
+      validationNotes: validated.validationNotes || null,
+      validatedAt: isValidated ? new Date() : null,
     }
     const profile = await prisma.projectTechnicalProfile.upsert({
       where: { projectId },
       create: { projectId, ...payload },
       update: payload,
+    })
+    await logAction({
+      userId,
+      action: "UPDATE_PROJECT_TECHNICAL_PROFILE",
+      resource: "PROJECT",
+      resourceId: projectId,
+      payload: { surveyStatus: profile.surveyStatus, surveyedAt: profile.surveyedAt },
     })
     revalidatePath(`/dashboard/projets/${projectId}`)
     return profile
