@@ -1,0 +1,111 @@
+import { Ratelimit } from "@upstash/ratelimit"
+import { Redis } from "@upstash/redis"
+
+type RateLimiter = {
+  limit: (identifier: string) => Promise<{
+    success: boolean
+    limit: number
+    remaining: number
+    reset: number
+  }>
+}
+
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
+
+const hasUpstashConfig =
+  !!upstashUrl &&
+  !!upstashToken &&
+  !upstashUrl.includes("your-url") &&
+  !upstashToken.includes("your-token")
+
+const memoryBuckets = new Map<string, { count: number; reset: number }>()
+
+function createMemoryRateLimit(limit: number, windowMs: number, prefix: string): RateLimiter {
+  return {
+    async limit(identifier: string) {
+      const now = Date.now()
+      const key = `${prefix}:${identifier}`
+      let bucket = memoryBuckets.get(key)
+
+      if (!bucket || bucket.reset <= now) {
+        bucket = { count: 0, reset: now + windowMs }
+        memoryBuckets.set(key, bucket)
+      }
+
+      bucket.count += 1
+
+      return {
+        success: bucket.count <= limit,
+        limit,
+        remaining: Math.max(limit - bucket.count, 0),
+        reset: bucket.reset,
+      }
+    },
+  }
+}
+
+function createRateLimit({
+  limit,
+  window,
+  windowMs,
+  prefix,
+}: {
+  limit: number
+  window: `${number} ${"m" | "h"}`
+  windowMs: number
+  prefix: string
+}): RateLimiter {
+  if (!hasUpstashConfig) {
+    return createMemoryRateLimit(limit, windowMs, prefix)
+  }
+
+  return new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(limit, window),
+    analytics: true,
+    prefix,
+  })
+}
+
+// Create a new ratelimiter, that allows 30 requests per hour
+// for the AI assistant
+export const aiRateLimit = createRateLimit({
+  limit: 30,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@freelio/ai",
+})
+
+// Strict limit for login attempts: 5 per 15 minutes
+export const authRateLimit = createRateLimit({
+  limit: 5,
+  window: "15 m",
+  windowMs: 15 * 60 * 1000,
+  prefix: "@freelio/auth",
+})
+
+// Standard public API limit: 100 per minute
+export const apiRateLimit = createRateLimit({
+  limit: 100,
+  window: "1 m",
+  windowMs: 60 * 1000,
+  prefix: "@freelio/api",
+})
+
+// A signing link is a bearer credential. Limit repeated attempts per link and IP.
+export const signatureRateLimit = createRateLimit({
+  limit: 10,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@freelio/signature",
+})
+
+// Public lead forms receive traffic from diskoov.fr and need a tighter,
+// dedicated bucket so abusive submissions do not affect authenticated APIs.
+export const leadRateLimit = createRateLimit({
+  limit: 12,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@diskoov/leads",
+})
