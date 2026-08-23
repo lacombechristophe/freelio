@@ -21,10 +21,10 @@ interface MagicLinkEmailProps {
 export const MagicLinkEmail = ({ url, host }: MagicLinkEmailProps) => (
   <Html>
     <Head />
-    <Preview>Connectez-vous à votre espace Freelio</Preview>
+    <Preview>Connectez-vous à votre espace Diskoov</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Freelio</Heading>
+        <Heading style={h1}>Diskoov</Heading>
         <Text style={text}>
           Bonjour,
         </Text>
@@ -40,8 +40,8 @@ export const MagicLinkEmail = ({ url, host }: MagicLinkEmailProps) => (
           Ce lien est valable 10 minutes. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.
         </Text>
         <Hr style={hr} />
-        <Link href="https://freelio.fr" style={footerLink}>
-          Freelio — La gestion simplifiée pour auto-entrepreneurs.
+        <Link href="https://diskoov.fr" style={footerLink}>
+          Diskoov — Votre espace ventes, chantiers et service client.
         </Link>
       </Container>
     </Body>

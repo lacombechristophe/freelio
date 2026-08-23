@@ -34,7 +34,7 @@ import { toast } from "sonner"
 
 import { createTimeEntry } from "@/actions/temps"
 import { getProjects } from "@/actions/projets"
-import { FreelioBrand } from "@/components/shared/freelio-brand"
+import { DiskoovBrand } from "@/components/shared/diskoov-brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useTimerStore } from "@/store/timer-store"
@@ -157,7 +157,7 @@ export function Sidebar() {
       )}
     >
       <div className={cn("flex h-16 shrink-0 items-center border-b border-sidebar-border", isCollapsed ? "justify-center px-2" : "px-5")}>
-        <FreelioBrand compact={isCollapsed} />
+        <DiskoovBrand compact={isCollapsed} />
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-3 py-5">

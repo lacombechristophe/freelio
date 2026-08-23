@@ -7,6 +7,7 @@ import {
   contactCandidate,
   equipmentCandidate,
   invoiceCandidate,
+  lineItemCandidate,
   opportunityCandidate,
   paymentCandidate,
   productCandidate,
@@ -28,8 +29,14 @@ describe("migration normalization", () => {
     expect(classifySourceObject("dossiers_sav")).toBe("TICKET")
     expect(classifySourceObject("articles_installes")).toBe("EQUIPMENT")
     expect(classifySourceObject("commandes_fournisseurs")).toBe("PURCHASE_ORDER")
+    expect(classifySourceObject("orders")).toBe("CUSTOMER_ORDER")
+    expect(classifySourceObject("bons_de_livraison")).toBe("DELIVERY_NOTE")
+    expect(classifySourceObject("receptions_fournisseurs")).toBe("GOODS_RECEIPT")
+    expect(classifySourceObject("reservations_stock")).toBe("STOCK_RESERVATION")
     expect(classifySourceObject("mouvements_stock")).toBe("STOCK_MOVEMENT")
     expect(classifySourceObject("factures")).toBe("INVOICE")
+    expect(classifySourceObject("line_items")).toBe("LINE_ITEM")
+    expect(classifySourceObject("remises")).toBe("LINE_ITEM")
     expect(classifySourceObject("reglements_clients")).toBe("PAYMENT")
   })
 
@@ -50,6 +57,14 @@ describe("migration normalization", () => {
 
     expect(invoice).toMatchObject({ number: "FA-42", totalHtCents: 1_000_000, totalTvaCents: 200_000, totalTtcCents: 1_200_000, status: "PAID" })
     expect(payment).toMatchObject({ amountCents: 1_200_000, method: "Virement", reference: "VIR-42" })
+  })
+
+  it("normalizes HubSpot document lines and negative discounts", () => {
+    const item = lineItemCandidate("line_items", { hs_name: "Couverture Coverseal", quantity: "2", price: "1 250,50", taux_tva: "20" })
+    const discount = lineItemCandidate("discounts", { name: "Remise commerciale", amount: "150" })
+
+    expect(item).toMatchObject({ label: "Couverture Coverseal", quantity: 2, unitPriceCents: 125_050, tvaRate: 20 })
+    expect(discount).toMatchObject({ label: "Remise commerciale", quantity: 1, unitPriceCents: -15_000 })
   })
 
   it("maps common French client and contact fields without dropping the source", () => {

@@ -22,9 +22,13 @@ import {
   classifySourceObject,
   clientCandidate,
   contactCandidate,
+  customerOrderCandidate,
+  deliveryNoteCandidate,
   equipmentCandidate,
+  goodsReceiptCandidate,
   invoiceCandidate,
   interventionCandidate,
+  lineItemCandidate,
   maintenanceContractCandidate,
   opportunityCandidate,
   paymentCandidate,
@@ -36,6 +40,7 @@ import {
   sourceDisplayName,
   sourceValue,
   stockMovementCandidate,
+  stockReservationCandidate,
   supplierCandidate,
   ticketCandidate,
   type SourcePayload,
@@ -434,17 +439,22 @@ const IMPORT_ORDER = {
   INTERVENTION: 11,
   MAINTENANCE_CONTRACT: 12,
   PURCHASE_ORDER: 13,
-  STOCK_MOVEMENT: 14,
-  QUOTE: 15,
+  QUOTE: 14,
+  CUSTOMER_ORDER: 15,
   INVOICE: 16,
-  PAYMENT: 17,
-  ACTIVITY: 18,
-  UNSUPPORTED: 19,
+  LINE_ITEM: 17,
+  DELIVERY_NOTE: 18,
+  GOODS_RECEIPT: 19,
+  STOCK_RESERVATION: 20,
+  STOCK_MOVEMENT: 21,
+  PAYMENT: 22,
+  ACTIVITY: 23,
+  UNSUPPORTED: 24,
 } as const
 
-async function findMappedTarget(companyId: string, provider: string, sourceRecordId: string, targetModel: string) {
+async function findMappedTarget(companyId: string, provider: string, sourceRecordId: string, targetModel: string, sourceObjectType?: string) {
   return prisma.externalIdMap.findFirst({
-    where: { companyId, provider, sourceRecordId, targetModel },
+    where: { companyId, provider, sourceRecordId, targetModel, ...(sourceObjectType ? { sourceObjectType } : {}) },
     select: { id: true, targetRecordId: true },
   })
 }
@@ -500,7 +510,7 @@ async function mappedTargetFromAssociations(
   companyId: string,
   provider: string,
   payload: SourcePayload,
-  association: "site" | "supplier" | "product" | "project" | "equipment" | "ticket" | "warehouse" | "quote" | "invoice",
+  association: "site" | "supplier" | "product" | "project" | "equipment" | "ticket" | "warehouse" | "quote" | "invoice" | "customerOrder" | "purchaseOrder",
   targetModel: string,
 ) {
   for (const sourceId of associationIds(payload, association)) {
@@ -513,6 +523,11 @@ async function mappedTargetFromAssociations(
 function migrationReference(prefix: string, sourceId: string) {
   const normalized = sourceId.trim().replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "record"
   return `${prefix}-${normalized}`.slice(0, 100)
+}
+
+function migrationCollisionNumber(base: string, provider: string, objectType: string, sourceId: string) {
+  const suffix = createHash("sha256").update(`${provider}\u0000${objectType}\u0000${sourceId}`).digest("hex").slice(0, 8).toUpperCase()
+  return `${base}-${provider}-${suffix}`.slice(0, 180)
 }
 
 async function ensureMigrationPipeline(companyId: string) {
@@ -787,9 +802,14 @@ export async function simulateMigrationRun(runId: string) {
       INTERVENTION: 0,
       MAINTENANCE_CONTRACT: 0,
       PURCHASE_ORDER: 0,
+      CUSTOMER_ORDER: 0,
+      DELIVERY_NOTE: 0,
+      GOODS_RECEIPT: 0,
+      STOCK_RESERVATION: 0,
       STOCK_MOVEMENT: 0,
       QUOTE: 0,
       INVOICE: 0,
+      LINE_ITEM: 0,
       PAYMENT: 0,
       ACTIVITY: 0,
       UNSUPPORTED: 0,
@@ -881,7 +901,7 @@ export async function importMigrationRun(runId: string) {
 
         if (kind === "CLIENT") {
           const candidate = clientCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Client")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Client", record.objectType)
           const existing = mapping ? await prisma.client.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
           const client = existing
             ? await prisma.client.update({ where: { id: existing.id }, data: candidate })
@@ -904,7 +924,7 @@ export async function importMigrationRun(runId: string) {
           }
         } else if (kind === "CONTACT") {
           const candidate = contactCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Contact")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Contact", record.objectType)
           const existing = mapping ? await prisma.contact.findFirst({ where: { id: mapping.targetRecordId, client: { companyId } }, select: { id: true, clientId: true } }) : null
           let clientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
           if (!clientId) {
@@ -920,7 +940,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = contact.id
         } else if (kind === "SITE") {
           const candidate = siteCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "CustomerSite")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "CustomerSite", record.objectType)
           const existing = mapping ? await prisma.customerSite.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true } }) : null
           const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
           const clientId = mappedClientId ?? await ensureFallbackClient()
@@ -932,7 +952,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = site.id
         } else if (kind === "SUPPLIER") {
           const candidate = supplierCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Supplier")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Supplier", record.objectType)
           const existing = mapping ? await prisma.supplier.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
           const supplier = existing
             ? await prisma.supplier.update({ where: { id: existing.id }, data: candidate })
@@ -942,7 +962,7 @@ export async function importMigrationRun(runId: string) {
         } else if (kind === "PRODUCT") {
           const candidate = productCandidate(payload, migrationReference(run.provider, record.sourceId))
           const supplierId = await mappedTargetFromAssociations(companyId, run.provider, payload, "supplier", "Supplier")
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Product")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Product", record.objectType)
           const existing = mapping ? await prisma.product.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
           const product = existing
             ? await prisma.product.update({ where: { id: existing.id }, data: { ...candidate, supplierId } })
@@ -951,7 +971,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = product.id
         } else if (kind === "WAREHOUSE") {
           const candidate = warehouseCandidate(payload, migrationReference("DEPOT", record.sourceId))
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Warehouse")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Warehouse", record.objectType)
           const existing = mapping ? await prisma.warehouse.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
           const warehouse = existing
             ? await prisma.warehouse.update({ where: { id: existing.id }, data: candidate })
@@ -960,7 +980,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = warehouse.id
         } else if (kind === "OPPORTUNITY") {
           const candidate = opportunityCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Opportunity")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Opportunity", record.objectType)
           const existing = mapping ? await prisma.opportunity.findFirst({ where: { id: mapping.targetRecordId, pipeline: { companyId } }, select: { id: true, clientId: true } }) : null
           let clientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
           if (!clientId) {
@@ -976,7 +996,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = opportunity.id
         } else if (kind === "PROJECT") {
           const candidate = projectCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Project")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Project", record.objectType)
           const existing = mapping ? await prisma.project.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true } }) : null
           const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
           const clientId = mappedClientId ?? await ensureFallbackClient()
@@ -989,7 +1009,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = project.id
         } else if (kind === "EQUIPMENT") {
           const candidate = equipmentCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Equipment")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Equipment", record.objectType)
           const existing = mapping ? await prisma.equipment.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true } }) : null
           let siteId = existing?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
           if (!siteId) {
@@ -1010,8 +1030,12 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = equipment.id
         } else if (kind === "TICKET") {
           const candidate = ticketCandidate(payload, migrationReference("SAV", record.sourceId))
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "ServiceTicket")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "ServiceTicket", record.objectType)
           const existing = mapping ? await prisma.serviceTicket.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true, equipmentId: true } }) : null
+          if (!existing && await prisma.serviceTicket.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de ticket déjà utilisé : un suffixe source stable a été ajouté sans écraser la fiche existante." })
+          }
           const equipmentId = existing?.equipmentId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "equipment", "Equipment")
           const equipment = equipmentId ? await prisma.equipment.findFirst({ where: { id: equipmentId, companyId }, select: { siteId: true, site: { select: { clientId: true } } } }) : null
           const siteId = existing?.siteId ?? equipment?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
@@ -1026,7 +1050,7 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = ticket.id
         } else if (kind === "INTERVENTION") {
           const candidate = interventionCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "FieldIntervention")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "FieldIntervention", record.objectType)
           const existing = mapping ? await prisma.fieldIntervention.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true } }) : null
           const ticketId = await mappedTargetFromAssociations(companyId, run.provider, payload, "ticket", "ServiceTicket")
           const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
@@ -1044,8 +1068,12 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = intervention.id
         } else if (kind === "MAINTENANCE_CONTRACT") {
           const candidate = maintenanceContractCandidate(payload, migrationReference("CTR", record.sourceId))
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "MaintenanceContract")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "MaintenanceContract", record.objectType)
           const existing = mapping ? await prisma.maintenanceContract.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true } }) : null
+          if (!existing && await prisma.maintenanceContract.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de contrat déjà utilisé : un suffixe source stable a été ajouté sans écraser la fiche existante." })
+          }
           let siteId = existing?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
           if (!siteId) siteId = await ensureFallbackSite()
           const site = await prisma.customerSite.findFirstOrThrow({ where: { id: siteId, companyId }, select: { clientId: true } })
@@ -1059,17 +1087,170 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = contract.id
         } else if (kind === "PURCHASE_ORDER") {
           const candidate = purchaseOrderCandidate(payload, migrationReference("ACH", record.sourceId))
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "PurchaseOrder")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "PurchaseOrder", record.objectType)
           const existing = mapping ? await prisma.purchaseOrder.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, supplierId: true } }) : null
+          if (!existing && await prisma.purchaseOrder.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de commande fournisseur déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
+          }
           const mappedSupplierId = existing?.supplierId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "supplier", "Supplier")
           const supplierId = mappedSupplierId ?? await ensureFallbackSupplier()
           const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
+          const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
           if (!mappedSupplierId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_PURCHASE_WITHOUT_SUPPLIER", message: "Commande rattachée au fournisseur de contrôle faute d’association source." })
-          const order = existing
-            ? await prisma.purchaseOrder.update({ where: { id: existing.id }, data: { ...candidate, supplierId, projectId } })
-            : await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: candidate.number } }, update: { ...candidate, supplierId, projectId }, create: { companyId, supplierId, projectId, ...candidate } })
+          const order = await prisma.$transaction(async (tx) => {
+            const base = existing
+              ? await tx.purchaseOrder.update({ where: { id: existing.id }, data: { ...candidate, supplierId, projectId } })
+              : await tx.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: candidate.number } }, update: { ...candidate, supplierId, projectId }, create: { companyId, supplierId, projectId, ...candidate } })
+            const sourceKey = `aggregate:${run.provider}:${record.objectType}:${record.sourceId}`
+            await tx.purchaseOrderLine.upsert({
+              where: { purchaseOrderId_sourceKey: { purchaseOrderId: base.id, sourceKey } },
+              update: { productId, label: sourceDisplayName(payload), quantity: 1, unitPriceCents: candidate.totalHtCents },
+              create: { purchaseOrderId: base.id, productId, label: sourceDisplayName(payload), quantity: 1, unitPriceCents: candidate.totalHtCents, sourceKey },
+            })
+            return base
+          })
           targetModel = "PurchaseOrder"
           targetRecordId = order.id
+        } else if (kind === "CUSTOMER_ORDER") {
+          const candidate = customerOrderCandidate(payload, migrationReference("CMD", record.sourceId))
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "CustomerOrder", record.objectType)
+          const existing = mapping ? await prisma.customerOrder.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true } }) : null
+          if (!existing && await prisma.customerOrder.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de commande client déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
+          }
+          const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
+          const clientId = mappedClientId ?? await ensureFallbackClient()
+          const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
+          let quoteId = await mappedTargetFromAssociations(companyId, run.provider, payload, "quote", "Quote")
+          if (quoteId && await prisma.customerOrder.findFirst({ where: { quoteId, ...(existing ? { id: { not: existing.id } } : {}) }, select: { id: true } })) {
+            quoteId = null
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_QUOTE_ALREADY_CONVERTED", message: "Le devis associé est déjà lié à une autre commande ; la commande source a été conservée sans ce lien unique." })
+          }
+          const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
+          if (!mappedClientId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_ORDER_WITHOUT_CLIENT", message: "Commande client rattachée au client de contrôle faute d’association source." })
+          const tvaRate = candidate.totalHtCents ? Math.round(candidate.totalTvaCents / candidate.totalHtCents * 10_000) / 100 : 0
+          const order = await prisma.$transaction(async (tx) => {
+            const data = { ...candidate, clientId, projectId, quoteId }
+            const base = existing
+              ? await tx.customerOrder.update({ where: { id: existing.id }, data })
+              : await tx.customerOrder.create({ data: { companyId, ...data } })
+            const sourceKey = `aggregate:${run.provider}:${record.objectType}:${record.sourceId}`
+            await tx.customerOrderLine.upsert({
+              where: { customerOrderId_sourceKey: { customerOrderId: base.id, sourceKey } },
+              update: { productId, label: sourceDisplayName(payload), description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate },
+              create: { customerOrderId: base.id, productId, label: sourceDisplayName(payload), description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate, sourceKey },
+            })
+            return base
+          })
+          targetModel = "CustomerOrder"
+          targetRecordId = order.id
+        } else if (kind === "DELIVERY_NOTE") {
+          let customerOrderId = await mappedTargetFromAssociations(companyId, run.provider, payload, "customerOrder", "CustomerOrder")
+          if (!customerOrderId) {
+            const orderNumber = sourceValue(payload, ["order_number", "numero_commande", "commande", "customer_order"])
+            if (orderNumber) customerOrderId = (await prisma.customerOrder.findFirst({ where: { companyId, number: orderNumber }, select: { id: true } }))?.id ?? null
+          }
+          if (!customerOrderId) {
+            rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_DELIVERY_WITHOUT_ORDER", message: "Bon de livraison conservé en zone brute mais non importé : commande client source non associée." })
+            continue
+          }
+          const orderLine = await prisma.customerOrderLine.findFirst({ where: { customerOrderId }, orderBy: { order: "asc" } })
+          if (!orderLine) {
+            rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_DELIVERY_WITHOUT_LINE", message: "Bon de livraison conservé en zone brute : la commande cible ne contient aucune ligne." })
+            continue
+          }
+          const candidate = deliveryNoteCandidate(payload, migrationReference("BL", record.sourceId))
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "DeliveryNote", record.objectType)
+          const existing = mapping ? await prisma.deliveryNote.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
+          if (!existing && await prisma.deliveryNote.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de bon de livraison déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
+          }
+          const delivery = await prisma.$transaction(async (tx) => {
+            const { quantity, ...document } = candidate
+            const base = existing
+              ? await tx.deliveryNote.update({ where: { id: existing.id }, data: { ...document, customerOrderId } })
+              : await tx.deliveryNote.create({ data: { companyId, customerOrderId, ...document } })
+            await tx.deliveryNoteLine.deleteMany({ where: { deliveryNoteId: base.id } })
+            await tx.deliveryNoteLine.create({ data: { deliveryNoteId: base.id, customerOrderLineId: orderLine.id, productId: orderLine.productId, label: orderLine.label, quantity } })
+            const delivered = await tx.deliveryNoteLine.aggregate({ where: { customerOrderLineId: orderLine.id }, _sum: { quantity: true } })
+            await tx.customerOrderLine.update({ where: { id: orderLine.id }, data: { deliveredQuantity: delivered._sum.quantity ?? 0 } })
+            return base
+          })
+          targetModel = "DeliveryNote"
+          targetRecordId = delivery.id
+        } else if (kind === "GOODS_RECEIPT") {
+          let purchaseOrderId = await mappedTargetFromAssociations(companyId, run.provider, payload, "purchaseOrder", "PurchaseOrder")
+          if (!purchaseOrderId) {
+            const orderNumber = sourceValue(payload, ["order_number", "numero_commande", "commande_fournisseur", "purchase_order"])
+            if (orderNumber) purchaseOrderId = (await prisma.purchaseOrder.findFirst({ where: { companyId, number: orderNumber }, select: { id: true } }))?.id ?? null
+          }
+          const warehouseId = await mappedTargetFromAssociations(companyId, run.provider, payload, "warehouse", "Warehouse")
+          const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
+          if (!purchaseOrderId || !warehouseId || !productId) {
+            rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_RECEIPT_WITHOUT_REFERENCE", message: "Réception conservée en zone brute mais non importée : commande, dépôt ou produit non associé." })
+            continue
+          }
+          const purchaseLine = await prisma.purchaseOrderLine.findFirst({ where: { purchaseOrderId, OR: [{ productId }, { productId: null }] }, orderBy: { order: "asc" } })
+          if (!purchaseLine) {
+            rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_RECEIPT_WITHOUT_LINE", message: "Réception conservée en zone brute : aucune ligne de commande fournisseur cible." })
+            continue
+          }
+          const candidate = goodsReceiptCandidate(payload, migrationReference("REC", record.sourceId))
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "GoodsReceipt", record.objectType)
+          const existing = mapping ? await prisma.goodsReceipt.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
+          if (!existing && await prisma.goodsReceipt.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de réception déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
+          }
+          const receipt = await prisma.$transaction(async (tx) => {
+            const { quantity, unitCostCents, ...document } = candidate
+            const base = existing
+              ? await tx.goodsReceipt.update({ where: { id: existing.id }, data: { ...document, purchaseOrderId, warehouseId } })
+              : await tx.goodsReceipt.create({ data: { companyId, purchaseOrderId, warehouseId, ...document } })
+            await tx.goodsReceiptLine.deleteMany({ where: { goodsReceiptId: base.id } })
+            await tx.goodsReceiptLine.create({ data: { goodsReceiptId: base.id, purchaseOrderLineId: purchaseLine.id, productId, quantity, unitCostCents } })
+            const received = await tx.goodsReceiptLine.aggregate({ where: { purchaseOrderLineId: purchaseLine.id }, _sum: { quantity: true } })
+            await tx.purchaseOrderLine.update({ where: { id: purchaseLine.id }, data: { receivedQuantity: received._sum.quantity ?? 0 } })
+            const movementReference = `Réception ${base.number}`
+            const movement = await tx.stockMovement.findFirst({ where: { companyId, warehouseId, productId, type: "IN", reference: movementReference }, select: { id: true } })
+            if (movement) await tx.stockMovement.update({ where: { id: movement.id }, data: { quantity, unitCostCents, happenedAt: candidate.receivedAt } })
+            else await tx.stockMovement.create({ data: { companyId, warehouseId, productId, type: "IN", quantity, unitCostCents, happenedAt: candidate.receivedAt, reference: movementReference } })
+            const stock = await tx.stockMovement.aggregate({ where: { companyId, warehouseId, productId }, _sum: { quantity: true } })
+            const quantityOnHand = Math.max(0, stock._sum.quantity ?? 0)
+            const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId, productId } }, select: { reservedQuantity: true } })
+            await tx.inventoryItem.upsert({ where: { warehouseId_productId: { warehouseId, productId } }, update: { quantity: quantityOnHand, reservedQuantity: Math.min(quantityOnHand, current?.reservedQuantity ?? 0) }, create: { companyId, warehouseId, productId, quantity: quantityOnHand } })
+            return base
+          })
+          targetModel = "GoodsReceipt"
+          targetRecordId = receipt.id
+        } else if (kind === "STOCK_RESERVATION") {
+          const warehouseId = await mappedTargetFromAssociations(companyId, run.provider, payload, "warehouse", "Warehouse")
+          const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
+          const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
+          const customerOrderId = await mappedTargetFromAssociations(companyId, run.provider, payload, "customerOrder", "CustomerOrder")
+          if (!warehouseId || !productId || (!projectId && !customerOrderId)) {
+            rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_RESERVATION_WITHOUT_REFERENCE", message: "Réservation conservée en zone brute mais non importée : stock et dossier cible incomplets." })
+            continue
+          }
+          const candidate = stockReservationCandidate(payload)
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "StockReservation", record.objectType)
+          const existing = mapping ? await prisma.stockReservation.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
+          const reservation = existing
+            ? await prisma.stockReservation.update({ where: { id: existing.id }, data: { ...candidate, warehouseId, productId, projectId, customerOrderId } })
+            : await prisma.stockReservation.create({ data: { companyId, warehouseId, productId, projectId, customerOrderId, ...candidate } })
+          const reserved = await prisma.stockReservation.aggregate({ where: { companyId, warehouseId, productId, status: "ACTIVE" }, _sum: { quantity: true } })
+          const inventory = await prisma.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId, productId } }, select: { id: true, quantity: true } })
+          if (inventory) await prisma.inventoryItem.update({ where: { id: inventory.id }, data: { reservedQuantity: Math.min(inventory.quantity, reserved._sum.quantity ?? 0) } })
+          targetModel = "StockReservation"
+          targetRecordId = reservation.id
         } else if (kind === "STOCK_MOVEMENT") {
           const warehouseId = await mappedTargetFromAssociations(companyId, run.provider, payload, "warehouse", "Warehouse")
           const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
@@ -1080,7 +1261,7 @@ export async function importMigrationRun(runId: string) {
           }
           const candidate = stockMovementCandidate(payload)
           const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "StockMovement")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "StockMovement", record.objectType)
           const existing = mapping ? await prisma.stockMovement.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
           const movement = existing
             ? await prisma.stockMovement.update({ where: { id: existing.id }, data: { ...candidate, warehouseId, productId, projectId } })
@@ -1098,9 +1279,12 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = movement.id
         } else if (kind === "QUOTE") {
           const candidate = quoteCandidate(payload, migrationReference("DEV", record.sourceId))
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Quote")
-          let existing = mapping ? await prisma.quote.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, currentVersion: true } }) : null
-          if (!existing) existing = await prisma.quote.findFirst({ where: { companyId, number: candidate.number }, select: { id: true, clientId: true, currentVersion: true } })
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Quote", record.objectType)
+          const existing = mapping ? await prisma.quote.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, currentVersion: true } }) : null
+          if (!existing && await prisma.quote.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de devis déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
+          }
           const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
           const clientId = mappedClientId ?? await ensureFallbackClient()
           if (!mappedClientId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_QUOTE_WITHOUT_CLIENT", message: "Devis rattaché au client de contrôle faute d’association source." })
@@ -1118,7 +1302,7 @@ export async function importMigrationRun(runId: string) {
               data: {
                 versionId,
                 title: "Données reprises de la source",
-                lines: { create: { label: candidate.object, description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate } },
+                lines: { create: { label: candidate.object, description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate, sourceKey: `aggregate:${run.provider}:${record.objectType}:${record.sourceId}` } },
               },
             })
             return base
@@ -1127,9 +1311,12 @@ export async function importMigrationRun(runId: string) {
           targetRecordId = quote.id
         } else if (kind === "INVOICE") {
           const candidate = invoiceCandidate(payload, migrationReference("FACT", record.sourceId))
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Invoice")
-          let existing = mapping ? await prisma.invoice.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true } }) : null
-          if (!existing) existing = await prisma.invoice.findFirst({ where: { companyId, number: candidate.number }, select: { id: true, clientId: true } })
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Invoice", record.objectType)
+          const existing = mapping ? await prisma.invoice.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true } }) : null
+          if (!existing && await prisma.invoice.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
+            candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de facture déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
+          }
           const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
           const clientId = mappedClientId ?? await ensureFallbackClient()
           if (!mappedClientId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_INVOICE_WITHOUT_CLIENT", message: "Facture rattachée au client de contrôle faute d’association source." })
@@ -1139,12 +1326,92 @@ export async function importMigrationRun(runId: string) {
             const base = existing
               ? await tx.invoice.update({ where: { id: existing.id }, data })
               : await tx.invoice.create({ data: { companyId, ...data } })
-            await tx.invoiceLine.deleteMany({ where: { invoiceId: base.id } })
-            await tx.invoiceLine.create({ data: { invoiceId: base.id, label: candidate.object, description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate } })
+            const sourceKey = `aggregate:${run.provider}:${record.objectType}:${record.sourceId}`
+            await tx.invoiceLine.upsert({
+              where: { invoiceId_sourceKey: { invoiceId: base.id, sourceKey } },
+              update: { label: candidate.object, description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate },
+              create: { invoiceId: base.id, label: candidate.object, description: `Référence source ${run.provider} · ${record.sourceId}`, quantity: 1, unitPriceCents: candidate.totalHtCents, tvaRate, sourceKey },
+            })
             return base
           })
           targetModel = "Invoice"
           targetRecordId = invoice.id
+        } else if (kind === "LINE_ITEM") {
+          const candidate = lineItemCandidate(record.objectType, payload)
+          const sourceKey = `${run.provider}:${record.objectType}:${record.sourceId}`
+          const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
+          const quoteId = await mappedTargetFromAssociations(companyId, run.provider, payload, "quote", "Quote")
+          const invoiceId = await mappedTargetFromAssociations(companyId, run.provider, payload, "invoice", "Invoice")
+          const customerOrderId = await mappedTargetFromAssociations(companyId, run.provider, payload, "customerOrder", "CustomerOrder")
+          const purchaseOrderId = await mappedTargetFromAssociations(companyId, run.provider, payload, "purchaseOrder", "PurchaseOrder")
+          const createdTargets: Array<{ model: string; id: string }> = []
+
+          if (quoteId) {
+            const quote = await prisma.quote.findFirst({ where: { id: quoteId, companyId }, select: { currentVersion: true } })
+            if (quote) {
+              const version = await prisma.quoteVersion.findFirst({ where: { quoteId, version: quote.currentVersion }, select: { id: true } })
+              if (version) {
+                const section = await prisma.quoteSection.findFirst({ where: { versionId: version.id, title: "Lignes reprises de la source" }, select: { id: true } })
+                  ?? await prisma.quoteSection.create({ data: { versionId: version.id, title: "Lignes reprises de la source", order: 900 }, select: { id: true } })
+                const line = await prisma.quoteLine.upsert({
+                  where: { sectionId_sourceKey: { sectionId: section.id, sourceKey } },
+                  update: candidate,
+                  create: { sectionId: section.id, sourceKey, ...candidate },
+                })
+                await prisma.quoteLine.deleteMany({ where: { section: { versionId: version.id }, sourceKey: { startsWith: "aggregate:" } } })
+                createdTargets.push({ model: "QuoteLine", id: line.id })
+              }
+            }
+          }
+
+          if (invoiceId) {
+            const invoice = await prisma.invoice.findFirst({ where: { id: invoiceId, companyId }, select: { id: true } })
+            if (invoice) {
+              const line = await prisma.invoiceLine.upsert({
+                where: { invoiceId_sourceKey: { invoiceId, sourceKey } },
+                update: candidate,
+                create: { invoiceId, sourceKey, ...candidate },
+              })
+              await prisma.invoiceLine.deleteMany({ where: { invoiceId, sourceKey: { startsWith: "aggregate:" } } })
+              createdTargets.push({ model: "InvoiceLine", id: line.id })
+            }
+          }
+
+          if (customerOrderId) {
+            const order = await prisma.customerOrder.findFirst({ where: { id: customerOrderId, companyId }, select: { id: true } })
+            if (order) {
+              const quantity = Math.max(1, Math.round(candidate.quantity))
+              const line = await prisma.customerOrderLine.upsert({
+                where: { customerOrderId_sourceKey: { customerOrderId, sourceKey } },
+                update: { productId, label: candidate.label, description: candidate.description, quantity, unitPriceCents: candidate.unitPriceCents, tvaRate: candidate.tvaRate, order: candidate.order },
+                create: { customerOrderId, productId, sourceKey, label: candidate.label, description: candidate.description, quantity, unitPriceCents: candidate.unitPriceCents, tvaRate: candidate.tvaRate, order: candidate.order },
+              })
+              await prisma.customerOrderLine.deleteMany({ where: { customerOrderId, sourceKey: { startsWith: "aggregate:" } } })
+              createdTargets.push({ model: "CustomerOrderLine", id: line.id })
+            }
+          }
+
+          if (purchaseOrderId) {
+            const order = await prisma.purchaseOrder.findFirst({ where: { id: purchaseOrderId, companyId }, select: { id: true } })
+            if (order) {
+              const quantity = Math.max(1, Math.round(candidate.quantity))
+              const line = await prisma.purchaseOrderLine.upsert({
+                where: { purchaseOrderId_sourceKey: { purchaseOrderId, sourceKey } },
+                update: { productId, label: candidate.label, quantity, unitPriceCents: candidate.unitPriceCents, order: candidate.order },
+                create: { purchaseOrderId, productId, sourceKey, label: candidate.label, quantity, unitPriceCents: candidate.unitPriceCents, order: candidate.order },
+              })
+              await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrderId, sourceKey: { startsWith: "aggregate:" } } })
+              createdTargets.push({ model: "PurchaseOrderLine", id: line.id })
+            }
+          }
+
+          if (!createdTargets.length) {
+            rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
+            issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_LINE_WITHOUT_DOCUMENT", message: "Ligne conservée en zone brute mais non matérialisée : aucun devis, commande ou facture source associé." })
+            continue
+          }
+          targetModel = createdTargets[0].model
+          targetRecordId = createdTargets[0].id
         } else if (kind === "PAYMENT") {
           let invoiceId = await mappedTargetFromAssociations(companyId, run.provider, payload, "invoice", "Invoice")
           if (!invoiceId) {
@@ -1157,7 +1424,7 @@ export async function importMigrationRun(runId: string) {
             continue
           }
           const candidate = paymentCandidate(payload)
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "InvoicePayment")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "InvoicePayment", record.objectType)
           const existing = mapping ? await prisma.invoicePayment.findFirst({ where: { id: mapping.targetRecordId, invoice: { companyId } }, select: { id: true } }) : null
           const payment = existing
             ? await prisma.invoicePayment.update({ where: { id: existing.id }, data: { ...candidate, invoiceId } })
@@ -1179,7 +1446,7 @@ export async function importMigrationRun(runId: string) {
           }
           const candidate = activityCandidate(record.objectType, payload)
           const happenedAt = candidate.happenedAt.valueOf() === 0 ? record.sourceCreatedAt ?? record.sourceUpdatedAt ?? new Date() : candidate.happenedAt
-          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "ClientActivity")
+          const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "ClientActivity", record.objectType)
           const existing = mapping ? await prisma.clientActivity.findFirst({ where: { id: mapping.targetRecordId, client: { companyId } }, select: { id: true } }) : null
           const activity = existing
             ? await prisma.clientActivity.update({ where: { id: existing.id }, data: { ...candidate, happenedAt, clientId } })
@@ -1233,6 +1500,127 @@ export async function importMigrationRun(runId: string) {
       revalidatePath("/dashboard/migrations")
       throw error
     }
+  }, "migration.manage")
+}
+
+export async function verifyMigrationRun(runId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = connectionIdSchema.parse(runId)
+    const run = await prisma.migrationRun.findFirst({
+      where: { id: parsedId, companyId, status: { in: ["IMPORTED", "PARTIAL", "VERIFIED", "VERIFICATION_FAILED"] } },
+      include: {
+        metrics: { orderBy: { objectType: "asc" } },
+        documents: { orderBy: { createdAt: "asc" } },
+        records: { select: { objectType: true, sourceId: true, targetModel: true, targetRecordId: true, importedAt: true } },
+      },
+    })
+    if (!run) throw new Error("Import terminé introuvable")
+    const accounted = run.metrics.reduce((sum, metric) => sum + metric.imported + metric.rejected + metric.excluded, 0)
+    if (!accounted && run.records.length) throw new Error("Importez le lot avant de lancer la vérification")
+
+    await prisma.migrationIssue.deleteMany({ where: { runId: run.id, code: { startsWith: "VERIFY_" } } })
+    const verificationIssues: Array<{ severity: "ERROR" | "WARNING"; code: string; message: string; objectType?: string; details?: Prisma.InputJsonValue }> = []
+
+    for (const metric of run.metrics) {
+      const difference = metric.sourceCount - metric.imported - metric.rejected - metric.excluded
+      if (difference !== 0) {
+        verificationIssues.push({
+          severity: "ERROR",
+          code: "VERIFY_RECONCILIATION_MISMATCH",
+          objectType: metric.objectType,
+          message: `${metric.objectType} présente un écart de rapprochement de ${difference}.`,
+          details: { source: metric.sourceCount, imported: metric.imported, rejected: metric.rejected, excluded: metric.excluded, difference },
+        })
+      }
+    }
+
+    const importedRecords = run.records.filter((record) => record.importedAt && record.targetModel && record.targetRecordId)
+    const importedMetricCount = run.metrics.reduce((sum, metric) => sum + metric.imported, 0)
+    if (importedRecords.length !== importedMetricCount) {
+      verificationIssues.push({
+        severity: "ERROR",
+        code: "VERIFY_IMPORTED_RECORD_COUNT_MISMATCH",
+        message: `Les métriques annoncent ${importedMetricCount} imports mais ${importedRecords.length} lignes brutes portent une cible.`,
+      })
+    }
+
+    const missingMappings: Array<{ objectType: string; sourceId: string }> = []
+    for (const group of batches(importedRecords, 200)) {
+      const mappings = await prisma.externalIdMap.findMany({
+        where: {
+          companyId,
+          provider: run.provider,
+          OR: group.map((record) => ({ sourceObjectType: record.objectType, sourceRecordId: record.sourceId })),
+        },
+        select: { sourceObjectType: true, sourceRecordId: true },
+      })
+      const keys = new Set(mappings.map((mapping) => `${mapping.sourceObjectType}\u0000${mapping.sourceRecordId}`))
+      for (const record of group) {
+        if (!keys.has(`${record.objectType}\u0000${record.sourceId}`)) missingMappings.push({ objectType: record.objectType, sourceId: record.sourceId })
+      }
+    }
+    if (missingMappings.length) {
+      verificationIssues.push({
+        severity: "ERROR",
+        code: "VERIFY_EXTERNAL_ID_MAP_MISSING",
+        message: `${missingMappings.length} enregistrement${missingMappings.length > 1 ? "s" : ""} importé${missingMappings.length > 1 ? "s" : ""} n’a pas de correspondance d’identifiant source.`,
+        details: { samples: missingMappings.slice(0, 20) },
+      })
+    }
+
+    let verifiedDocuments = 0
+    for (const document of run.documents) {
+      try {
+        const bytes = await readMigrationArtifact(document.storageKey)
+        const sha256 = createHash("sha256").update(bytes).digest("hex")
+        if (sha256 !== document.sha256 || bytes.byteLength !== document.size) {
+          verificationIssues.push({
+            severity: "ERROR",
+            code: "VERIFY_DOCUMENT_INTEGRITY_MISMATCH",
+            message: `L’archive ${document.fileName} ne correspond plus à son manifeste.`,
+            details: { documentId: document.id, expectedSha256: document.sha256, actualSha256: sha256, expectedSize: document.size, actualSize: bytes.byteLength },
+          })
+        } else verifiedDocuments += 1
+      } catch (error) {
+        verificationIssues.push({
+          severity: "ERROR",
+          code: "VERIFY_DOCUMENT_UNREADABLE",
+          message: `L’archive ${document.fileName} est illisible : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+          details: { documentId: document.id },
+        })
+      }
+    }
+
+    if (verificationIssues.length) {
+      await prisma.migrationIssue.createMany({ data: verificationIssues.map((issue) => ({ runId: run.id, ...issue })) })
+    }
+    const blocking = verificationIssues.filter((issue) => issue.severity === "ERROR").length
+    const verifiedAt = new Date()
+    const evidence = {
+      runId: run.id,
+      provider: run.provider,
+      records: run.records.length,
+      imported: importedMetricCount,
+      rejected: run.metrics.reduce((sum, metric) => sum + metric.rejected, 0),
+      excluded: run.metrics.reduce((sum, metric) => sum + metric.excluded, 0),
+      documents: verifiedDocuments,
+      documentManifestCount: run.documents.length,
+      blocking,
+      verifiedAt: verifiedAt.toISOString(),
+    }
+    const evidenceSha256 = createHash("sha256").update(JSON.stringify(evidence)).digest("hex")
+    const previousSummary = run.summary && typeof run.summary === "object" && !Array.isArray(run.summary) ? run.summary : {}
+    const status = blocking ? "VERIFICATION_FAILED" : "VERIFIED"
+    await prisma.migrationRun.update({
+      where: { id: run.id },
+      data: {
+        status,
+        summary: { ...previousSummary, verification: { ...evidence, evidenceSha256 } } as Prisma.InputJsonValue,
+      },
+    })
+    revalidatePath("/dashboard/migrations")
+    revalidatePath(`/dashboard/migrations/${run.id}`)
+    return { success: blocking === 0, status, ...evidence, evidenceSha256 }
   }, "migration.manage")
 }
 

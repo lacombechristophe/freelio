@@ -7,6 +7,8 @@ import Credentials from "next-auth/providers/credentials"
 import { MagicLinkEmail } from "@/emails/MagicLinkEmail"
 import { render } from "@react-email/render"
 
+const emailFrom = process.env.EMAIL_FROM?.trim() || "Diskoov <noreply@diskoov.fr>"
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
@@ -14,7 +16,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Resend({
       apiKey: process.env.RESEND_API_KEY,
-      from: "Freelio <noreply@accounts.freelio.fr>",
+      from: emailFrom,
       async sendVerificationRequest({ identifier: email, url }) {
         if (process.env.NODE_ENV === "development") {
           console.log(`[Dev] Magic Link: ${url}`)
@@ -30,9 +32,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
           },
           body: JSON.stringify({
-            from: "Freelio <noreply@accounts.freelio.fr>",
+            from: emailFrom,
             to: email,
-            subject: "Connexion à Freelio",
+            subject: "Connexion à Diskoov",
             html: emailHtml,
           }),
         })

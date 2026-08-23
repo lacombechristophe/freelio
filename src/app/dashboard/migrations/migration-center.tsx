@@ -16,6 +16,7 @@ import {
   simulateMigrationRun,
   startHubSpotSnapshot,
   testSourceConnection,
+  verifyMigrationRun,
 } from "@/actions/migrations"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,8 @@ const STATUS_LABELS: Record<string, string> = {
   SIMULATED: "Simulation validée",
   IMPORTING: "Import",
   IMPORTED: "Importé",
+  VERIFIED: "Vérifié",
+  VERIFICATION_FAILED: "Contrôle en échec",
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -208,7 +211,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
             {initialData.runs.map((run) => (
               <div key={run.id} className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2"><Link href={`/dashboard/migrations/${run.id}`} className="font-mono text-xs font-semibold underline-offset-4 hover:underline">{run.id}</Link><Badge variant={["COMPLETE", "ANALYZED", "SIMULATED", "IMPORTED"].includes(run.status) ? "secondary" : run.status === "FAILED" ? "destructive" : "outline"}>{STATUS_LABELS[run.status] ?? run.status}</Badge></div>
+                  <div className="flex flex-wrap items-center gap-2"><Link href={`/dashboard/migrations/${run.id}`} className="font-mono text-xs font-semibold underline-offset-4 hover:underline">{run.id}</Link><Badge variant={["COMPLETE", "ANALYZED", "SIMULATED", "IMPORTED", "VERIFIED"].includes(run.status) ? "secondary" : ["FAILED", "VERIFICATION_FAILED"].includes(run.status) ? "destructive" : "outline"}>{STATUS_LABELS[run.status] ?? run.status}</Badge></div>
                   <p className="mt-1 text-xs text-muted-foreground">{run.provider} · {run.kind} · {run.documents} archive{run.documents > 1 ? "s" : ""} · {run.records} ligne{run.records > 1 ? "s" : ""} · {run.openIssues} anomalie{run.openIssues > 1 ? "s" : ""}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -223,6 +226,12 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                   ) : null}
                   {run.status === "SIMULATED" ? (
                     <Button size="sm" disabled={isPending} onClick={() => execute("Données importées avec leurs identifiants source.", () => importMigrationRun(run.id))}><Import />Importer</Button>
+                  ) : null}
+                  {(["IMPORTED", "VERIFICATION_FAILED"].includes(run.status) || (run.status === "PARTIAL" && run.metrics.some((metric) => metric.imported + metric.rejected > 0))) ? (
+                    <Button size="sm" variant="outline" disabled={isPending} onClick={() => execute("Rapprochement et intégrité des archives vérifiés.", async () => {
+                      const result = await verifyMigrationRun(run.id)
+                      if (!result?.success) throw new Error("Le contrôle a détecté des écarts. Consultez le rapport du lot.")
+                    })}><ShieldCheck />Vérifier</Button>
                   ) : null}
                 </div>
               </div>

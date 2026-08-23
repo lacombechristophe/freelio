@@ -49,6 +49,10 @@ const COMPANY_SCOPED_MODELS = new Set([
   "MaintenanceContract",
   "LeadCapture",
   "MarketingConsent",
+  "CustomerOrder",
+  "DeliveryNote",
+  "GoodsReceipt",
+  "StockReservation",
 ])
 
 function prismaClientConstructor() {

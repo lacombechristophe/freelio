@@ -57,8 +57,8 @@ type TemplateCategoryFilter = "all" | ContractTemplateCategory
 const VARIABLES = [
   { label: "Nom du client", value: "{{client.name}}", desc: "Raison sociale du client" },
   { label: "Email du client", value: "{{client.email}}", desc: "Email du contact principal" },
-  { label: "SIRET Freelio", value: "{{entreprise.siret}}", desc: "SIRET configuré" },
-  { label: "Raison sociale Freelio", value: "{{entreprise.name}}", desc: "Nom légal de votre structure" },
+  { label: "SIRET Diskoov", value: "{{entreprise.siret}}", desc: "SIRET configuré" },
+  { label: "Raison sociale Diskoov", value: "{{entreprise.name}}", desc: "Nom légal de votre structure" },
   { label: "Titre du contrat", value: "{{contract.title}}", desc: "Titre saisi dans l'en-tête" },
   { label: "Date d'effet", value: "{{contract.validFrom}}", desc: "Début du contrat" },
   { label: "Date d'échéance", value: "{{contract.validUntil}}", desc: "Fin prévue du contrat" },

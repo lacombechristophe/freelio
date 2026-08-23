@@ -7,7 +7,7 @@ import { ThemeToggle } from "./theme-toggle"
 import { UserMenu } from "./user-menu"
 import { MobileSidebar } from "./mobile-sidebar"
 import { getNotifications, getUnreadCount } from "@/actions/notifications"
-import { FreelioBrand } from "@/components/shared/freelio-brand"
+import { DiskoovBrand } from "@/components/shared/diskoov-brand"
 import { AppPageTransition } from "./app-page-transition"
 
 interface ShellProps {
@@ -47,7 +47,7 @@ export async function Shell({ children }: ShellProps) {
         <header className="relative z-40 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/95 px-3 backdrop-blur-xl sm:px-5 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <MobileSidebar />
-            <FreelioBrand className="lg:hidden" />
+            <DiskoovBrand className="lg:hidden" />
             <GlobalSearch />
           </div>
 

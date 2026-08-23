@@ -141,6 +141,10 @@ model Company {
   maintenanceContracts MaintenanceContract[]
   leadCaptures         LeadCapture[]
   marketingConsents    MarketingConsent[]
+  customerOrders       CustomerOrder[]
+  deliveryNotes        DeliveryNote[]
+  goodsReceipts        GoodsReceipt[]
+  stockReservations    StockReservation[]
 }
 
 model Membership {
@@ -226,6 +230,7 @@ model Client {
   maintenanceContracts MaintenanceContract[]
   leadCaptures         LeadCapture[]
   marketingConsents    MarketingConsent[]
+  customerOrders       CustomerOrder[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -299,7 +304,7 @@ model LeadCapture {
   projectType String?
   message     String?
 
-  source      String @default("WEBSITE")
+  source      String  @default("WEBSITE")
   landingPage String?
   referrer    String?
   utmSource   String?
@@ -349,7 +354,7 @@ model MarketingConsent {
   noticeUrl   String?
   noticeLabel String?
   proofHash   String
-  capturedAt DateTime @default(now())
+  capturedAt  DateTime  @default(now())
   withdrawnAt DateTime?
   metadata    Json?
 
@@ -409,6 +414,9 @@ model Project {
   purchaseOrders    PurchaseOrder[]
   stockMovements    StockMovement[]
   interventions     FieldIntervention[]
+  customerOrders    CustomerOrder[]
+  deliveryNotes     DeliveryNote[]
+  stockReservations StockReservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -503,7 +511,7 @@ model Opportunity {
   ownerLabel   String?
   customFields Json?
 
-  activities OpportunityActivity[]
+  activities   OpportunityActivity[]
   leadCaptures LeadCapture[]
 
   createdAt DateTime @default(now())
@@ -711,10 +719,14 @@ model Product {
   active             Boolean @default(true)
   customFields       Json?
 
-  inventoryItems InventoryItem[]
-  stockMovements StockMovement[]
-  purchaseLines  PurchaseOrderLine[]
-  equipments     Equipment[]
+  inventoryItems     InventoryItem[]
+  stockMovements     StockMovement[]
+  purchaseLines      PurchaseOrderLine[]
+  equipments         Equipment[]
+  customerOrderLines CustomerOrderLine[]
+  deliveryNoteLines  DeliveryNoteLine[]
+  goodsReceiptLines  GoodsReceiptLine[]
+  stockReservations  StockReservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -736,6 +748,8 @@ model Warehouse {
 
   inventoryItems InventoryItem[]
   movements      StockMovement[]
+  goodsReceipts  GoodsReceipt[]
+  reservations   StockReservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -779,12 +793,15 @@ model StockMovement {
   unitCostCents Int?
   reference     String?
   notes         String?
-  happenedAt    DateTime @default(now())
-  createdAt     DateTime @default(now())
+  happenedAt    DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+  reservationId String?
+  reservation   StockReservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 
   @@index([companyId, happenedAt])
   @@index([warehouseId, productId])
   @@index([projectId])
+  @@index([reservationId])
 }
 
 model PurchaseOrder {
@@ -796,14 +813,15 @@ model PurchaseOrder {
   projectId  String?
   project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  number       String
-  status       String              @default("DRAFT")
-  orderDate    DateTime            @default(now())
-  expectedAt   DateTime?
-  receivedAt   DateTime?
-  notes        String?
-  totalHtCents Int                 @default(0)
-  lines        PurchaseOrderLine[]
+  number        String
+  status        String              @default("DRAFT")
+  orderDate     DateTime            @default(now())
+  expectedAt    DateTime?
+  receivedAt    DateTime?
+  notes         String?
+  totalHtCents  Int                 @default(0)
+  lines         PurchaseOrderLine[]
+  goodsReceipts GoodsReceipt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -823,12 +841,185 @@ model PurchaseOrderLine {
 
   label            String
   quantity         Int
-  receivedQuantity Int    @default(0)
+  receivedQuantity Int                @default(0)
   unitPriceCents   Int
-  order            Int    @default(0)
+  order            Int                @default(0)
+  sourceKey        String?
+  receiptLines     GoodsReceiptLine[]
 
+  @@unique([purchaseOrderId, sourceKey])
   @@index([purchaseOrderId])
   @@index([productId])
+}
+
+model CustomerOrder {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  quoteId   String?  @unique
+  quote     Quote?   @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  number                 String
+  status                 String    @default("CONFIRMED")
+  orderDate              DateTime  @default(now())
+  acceptedAt             DateTime?
+  expectedInstallationAt DateTime?
+  notes                  String?
+  totalHtCents           Int       @default(0)
+  totalTvaCents          Int       @default(0)
+  totalTtcCents          Int       @default(0)
+  depositCents           Int       @default(0)
+  customFields           Json?
+
+  lines             CustomerOrderLine[]
+  deliveryNotes     DeliveryNote[]
+  stockReservations StockReservation[]
+  invoices          Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, number])
+  @@index([companyId, status])
+  @@index([clientId])
+  @@index([projectId])
+}
+
+model CustomerOrderLine {
+  id              String        @id @default(cuid())
+  customerOrderId String
+  customerOrder   CustomerOrder @relation(fields: [customerOrderId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  label             String
+  description       String?
+  quantity          Int
+  deliveredQuantity Int     @default(0)
+  unitPriceCents    Int
+  tvaRate           Float   @default(20)
+  order             Int     @default(0)
+  sourceKey         String?
+
+  deliveryLines DeliveryNoteLine[]
+
+  @@unique([customerOrderId, sourceKey])
+  @@index([customerOrderId])
+  @@index([productId])
+}
+
+model DeliveryNote {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customerOrderId String
+  customerOrder   CustomerOrder @relation(fields: [customerOrderId], references: [id])
+  projectId       String?
+  project         Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  number          String
+  status          String    @default("DRAFT")
+  deliveredAt     DateTime?
+  recipientName   String?
+  signedAt        DateTime?
+  signatureSha256 String?
+  notes           String?
+
+  lines DeliveryNoteLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, number])
+  @@index([companyId, status])
+  @@index([customerOrderId])
+  @@index([projectId])
+}
+
+model DeliveryNoteLine {
+  id                  String             @id @default(cuid())
+  deliveryNoteId      String
+  deliveryNote        DeliveryNote       @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  customerOrderLineId String?
+  customerOrderLine   CustomerOrderLine? @relation(fields: [customerOrderLineId], references: [id], onDelete: SetNull)
+  productId           String?
+  product             Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
+  label               String
+  quantity            Int
+
+  @@index([deliveryNoteId])
+  @@index([customerOrderLineId])
+  @@index([productId])
+}
+
+model GoodsReceipt {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse     @relation(fields: [warehouseId], references: [id])
+
+  number            String
+  receivedAt        DateTime           @default(now())
+  supplierReference String?
+  notes             String?
+  lines             GoodsReceiptLine[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, number])
+  @@index([companyId, receivedAt])
+  @@index([purchaseOrderId])
+  @@index([warehouseId])
+}
+
+model GoodsReceiptLine {
+  id                  String             @id @default(cuid())
+  goodsReceiptId      String
+  goodsReceipt        GoodsReceipt       @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseOrderLineId String?
+  purchaseOrderLine   PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id], onDelete: SetNull)
+  productId           String
+  product             Product            @relation(fields: [productId], references: [id])
+  quantity            Int
+  unitCostCents       Int?
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderLineId])
+  @@index([productId])
+}
+
+model StockReservation {
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  warehouseId     String
+  warehouse       Warehouse      @relation(fields: [warehouseId], references: [id])
+  productId       String
+  product         Product        @relation(fields: [productId], references: [id])
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  customerOrderId String?
+  customerOrder   CustomerOrder? @relation(fields: [customerOrderId], references: [id], onDelete: SetNull)
+
+  quantity   Int
+  status     String          @default("ACTIVE")
+  notes      String?
+  releasedAt DateTime?
+  movements  StockMovement[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([companyId, status])
+  @@index([warehouseId, productId])
+  @@index([projectId])
+  @@index([customerOrderId])
 }
 
 model Equipment {
@@ -1017,6 +1208,7 @@ model Quote {
 
   currentVersion Int            @default(1)
   versions       QuoteVersion[]
+  customerOrder  CustomerOrder?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1060,16 +1252,21 @@ model QuoteLine {
   unitPriceCents Int
   tvaRate        Float   @default(20.0)
   order          Int     @default(0)
+  sourceKey      String?
+
+  @@unique([sectionId, sourceKey])
 }
 
 model Invoice {
-  id        String   @id @default(cuid())
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id])
+  clientId        String
+  client          Client         @relation(fields: [clientId], references: [id])
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id])
+  customerOrderId String?
+  customerOrder   CustomerOrder? @relation(fields: [customerOrderId], references: [id], onDelete: SetNull)
 
   originalInvoiceId String?
   originalInvoice   Invoice?  @relation("InvoiceCredits", fields: [originalInvoiceId], references: [id], onDelete: SetNull)
@@ -1113,6 +1310,7 @@ model Invoice {
   @@index([clientId])
   @@index([number])
   @@index([originalInvoiceId])
+  @@index([customerOrderId])
 }
 
 model InvoiceLine {
@@ -1126,7 +1324,9 @@ model InvoiceLine {
   unitPriceCents Int
   tvaRate        Float   @default(20.0)
   order          Int     @default(0)
+  sourceKey      String?
 
+  @@unique([invoiceId, sourceKey])
   @@index([invoiceId])
 }
 

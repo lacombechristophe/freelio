@@ -32,7 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { completeOnboarding } from "@/actions/onboarding/complete-onboarding"
-import { FreelioBrand } from "@/components/shared/freelio-brand"
+import { DiskoovBrand } from "@/components/shared/diskoov-brand"
 import {
   OnboardingFormSchema,
   type OnboardingFormInput,
@@ -158,7 +158,7 @@ export function OnboardingForm() {
   return (
     <main className="marketing-surface min-h-screen bg-freelio-canvas text-freelio-ink">
       <header className="flex h-16 items-center border-b border-freelio-line bg-white px-5 sm:px-8 lg:px-10">
-        <FreelioBrand href="/" />
+        <DiskoovBrand href="/" />
         <span className="ml-auto rounded-md bg-freelio-accent-soft px-2.5 py-1 text-xs font-semibold text-freelio-accent">Configuration initiale</span>
       </header>
 

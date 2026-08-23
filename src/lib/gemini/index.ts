@@ -16,8 +16,8 @@ export async function askGemini(prompt: string, context?: unknown) {
   const userId = userContext?.userId
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-  const systemPrompt = `Tu es l'assistant de Freelio, un SaaS pour auto-entrepreneurs français.
-  Ton but est d'aider à la rédaction professionnelle.
+  const systemPrompt = `Tu es l'assistant du CRM/ERP interne de Diskoov, spécialiste des couvertures de piscine.
+  Ton but est d'aider à la rédaction commerciale et opérationnelle pour les ventes, installations, équipements et interventions de maintenance.
   Reste concis, précis et institutionnel (ton Linear/Stripe).
   NE cite JAMAIS de montants financiers précis ni de SIRET/IBAN.
 
@@ -39,7 +39,7 @@ export async function askGemini(prompt: string, context?: unknown) {
 export async function analyzeExpense(imageBuffer: Buffer, mimeType: string) {
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-  const prompt = `Analyse ce reçu de dépense pour un auto-entrepreneur.
+  const prompt = `Analyse ce reçu de dépense professionnelle pour Diskoov.
   Extrait uniquement :
   1. Le nom du fournisseur (Merchant)
   2. La date de la dépense

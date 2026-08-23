@@ -53,7 +53,7 @@ export async function GET() {
     ...goals.map((goal) => event({ uid: `goal-${goal.id}`, title: `Objectif : ${goal.title}`, description: goal.description, start: goal.periodStart!, end: goal.periodEnd })),
     ...milestones.map((milestone) => event({ uid: `milestone-${milestone.id}`, title: `${milestone.project.name} : ${milestone.title}`, description: milestone.description, start: milestone.dueDate! })),
   ]
-  const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Freelio//Organisation//FR", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR", ""].join("\r\n")
+  const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Diskoov//Organisation//FR", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR", ""].join("\r\n")
   return new Response(body, {
     headers: {
       "content-type": "text/calendar; charset=utf-8",

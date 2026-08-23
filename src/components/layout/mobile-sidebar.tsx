@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { dashboardNavigationSections } from "./sidebar"
-import { FreelioBrand } from "@/components/shared/freelio-brand"
+import { DiskoovBrand } from "@/components/shared/diskoov-brand"
 
 export function MobileSidebar() {
   const pathname = usePathname()
@@ -59,7 +59,7 @@ export function MobileSidebar() {
             className="relative h-full w-[304px] max-w-[88vw] overscroll-contain border-r border-sidebar-border bg-sidebar shadow-[0_24px_60px_rgba(16,24,40,0.2)]"
           >
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-              <FreelioBrand />
+              <DiskoovBrand />
               <Button
                 type="button"
                 variant="ghost"
