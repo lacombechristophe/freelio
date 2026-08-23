@@ -1,0 +1,65 @@
+import prisma from "./prisma"
+
+type AuditAction =
+  | "LOGIN"
+  | "LOGOUT"
+  | "CREATE_CLIENT"
+  | "UPDATE_CLIENT"
+  | "DELETE_CLIENT"
+  | "CREATE_PROJECT"
+  | "UPDATE_PROJECT"
+  | "DELETE_PROJECT"
+  | "CREATE_QUOTE"
+  | "UPDATE_QUOTE"
+  | "UPDATE_QUOTE_STATUS"
+  | "DELETE_QUOTE"
+  | "CREATE_INVOICE"
+  | "CREATE_INVOICE_FROM_TIME"
+  | "UPDATE_INVOICE"
+  | "UPDATE_INVOICE_STATUS"
+  | "DELETE_INVOICE"
+  | "RECORD_PAYMENT"
+  | "CREATE_CONTRACT"
+  | "UPDATE_CONTRACT"
+  | "SIGN_CONTRACT"
+  | "DELETE_CONTRACT"
+  | "CREATE_EXPENSE"
+  | "UPDATE_EXPENSE"
+  | "DELETE_EXPENSE"
+  | "GENERATE_PDF"
+  | "OCR_EXPENSE"
+  | "UPDATE_SETTINGS"
+
+interface AuditParams {
+  userId: string
+  action: AuditAction
+  resource: string
+  resourceId?: string
+  payload?: any
+  ipAddress?: string
+}
+
+export async function logAction({
+  userId,
+  action,
+  resource,
+  resourceId,
+  payload,
+  ipAddress
+}: AuditParams) {
+  try {
+    return await prisma.auditLog.create({
+      data: {
+        userId: userId as string,
+        action,
+        resource,
+        resourceId,
+        payload: payload ? JSON.parse(JSON.stringify(payload)) : undefined,
+        ipAddress: ipAddress as string | undefined,
+      }
+    })
+  } catch (error) {
+    console.error("Failed to log audit action:", error)
+    // We don't throw here to avoid failing the main action just because logging failed
+  }
+}
