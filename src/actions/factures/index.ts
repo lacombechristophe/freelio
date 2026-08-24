@@ -1,7 +1,6 @@
 "use server"
 
 import { z } from "zod"
-import { addDays } from "date-fns"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
@@ -18,7 +17,8 @@ import {
   nextDocumentNumber,
   withDocumentNumberRetry,
 } from "@/lib/document-numbering"
-import { computeCreditBreakdown, getEInvoiceReadiness, getNextRecurringDate } from "@/lib/workflow-rules"
+import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
+import { processDueRecurringInvoices } from "@/lib/scheduling/business"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
 type PaymentInput = z.input<typeof PaymentSchema>
@@ -54,7 +54,7 @@ type TimeEntryForInvoice = {
 
 export async function getInvoices(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId, userId }) => {
-    await processDueRecurringInvoices(companyId, userId)
+    await processDueRecurringInvoices({ companyId, userId, limit: 20 })
     await prisma.invoice.updateMany({
       where: { companyId, status: "SENT", dueDate: { lt: new Date() } },
       data: { status: "OVERDUE" },
@@ -109,90 +109,6 @@ async function generateCreditNoteNumber(companyId: string) {
     select: { number: true },
   })
   return nextDocumentNumber(last?.number, prefix)
-}
-
-const StoredRecurringTemplateSchema = z.object({
-  object: z.string().min(3),
-  projectId: z.string().nullable().optional(),
-  dueDays: z.number().int().min(0).max(365),
-  lines: z.array(z.object({
-    label: z.string().min(1),
-    description: z.string().nullable().optional(),
-    quantity: z.number().positive(),
-    unitPriceCents: z.number().int().nonnegative(),
-    tvaRate: z.number().min(0).max(100),
-  })).min(1),
-})
-
-async function processDueRecurringInvoices(companyId: string, userId: string) {
-  const due = await prisma.recurringInvoice.findMany({
-    where: { companyId, isActive: true, nextGenDate: { lte: new Date() } },
-    orderBy: { nextGenDate: "asc" },
-    take: 20,
-  })
-  if (!due.length) return
-
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-    select: { isTvaApplicable: true, invoicePrefix: true },
-  })
-  if (!company) return
-
-  for (const recurring of due) {
-    const parsed = StoredRecurringTemplateSchema.safeParse(recurring.template)
-    if (!parsed.success) {
-      await prisma.recurringInvoice.update({ where: { id: recurring.id }, data: { isActive: false } })
-      continue
-    }
-    const template = parsed.data
-    const lines = company.isTvaApplicable
-      ? template.lines
-      : template.lines.map((line) => ({ ...line, tvaRate: 0 }))
-    const totals = computeTotals(lines)
-
-    await withDocumentNumberRetry(async () => {
-      const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
-      await prisma.$transaction(async (tx) => {
-        const invoice = await tx.invoice.create({
-          data: {
-            companyId,
-            clientId: recurring.clientId,
-            projectId: template.projectId || null,
-            number,
-            object: template.object,
-            status: "DRAFT",
-            type: "STANDARD",
-            dueDate: addDays(new Date(), template.dueDays),
-            totalHtCents: totals.totalHtCents,
-            totalTvaCents: totals.totalTvaCents,
-            totalTtcCents: totals.totalTtcCents,
-            lines: {
-              create: lines.map((line, index) => ({ ...line, description: line.description || null, order: index })),
-            },
-          },
-        })
-        await tx.recurringInvoiceOccurrence.create({
-          data: { recurringId: recurring.id, invoiceId: invoice.id },
-        })
-        await tx.recurringInvoice.update({
-          where: { id: recurring.id },
-          data: {
-            lastGenDate: new Date(),
-            nextGenDate: getNextRecurringDate(recurring.nextGenDate, recurring.frequency),
-          },
-        })
-        await tx.auditLog.create({
-          data: {
-            userId,
-            action: "GENERATE_RECURRING_INVOICE",
-            resource: "INVOICE",
-            resourceId: invoice.id,
-            payload: { recurringId: recurring.id, number },
-          },
-        })
-      })
-    }, { label: "la facture récurrente" })
-  }
 }
 
 function computeTotals(lines: Array<{ quantity: number; unitPriceCents: number; tvaRate: number }>) {

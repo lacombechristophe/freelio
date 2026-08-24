@@ -54,7 +54,7 @@ Les résultats exacts de typecheck, lint, tests, build et E2E doivent être rég
 - aucune API Extrabat générique ne peut être finalisée sans documentation et droits propres au compte ;
 - reprise HubSpot des fichiers privés, formulaires, workflows et actifs marketing à compléter selon l'usage réel ;
 - e-mail/calendrier bidirectionnels, campagnes de masse et marketing avancé non reconstruits ; les modèles, séquences simples et règles événementielles sont présents ;
-- PWA hors ligne, photos/pièces d'intervention, planification de capacité et tournées non disponibles ;
+- PWA terrain hors ligne, photos/pièces d'intervention et planification de capacité disponibles ; optimisation de tournée, signature manuscrite et conflits hors ligne complexes non couverts ;
 - plateforme agréée de facturation électronique non choisie/intégrée ;
 - hébergement, supervision, sauvegardes natives et restauration de production non prouvés dans le dépôt ;
 - recette terrain/commerciale/financière et bascules réelles non exécutées.
@@ -131,7 +131,7 @@ Chaque exclusion devra être signée par le gérant après observation des prati
 
 ### 5.1 Principes
 
-État au 24 août : le monolithe modulaire, le double schéma SQLite/PostgreSQL, R2, les rôles, l'audit et les files documentaires sont présents dans le code. La PWA hors ligne, la supervision, l'infrastructure reproductible et les adaptateurs externes de facturation/cartographie ne le sont pas encore.
+État au 24 août : le monolithe modulaire, le double schéma SQLite/PostgreSQL, R2, les rôles, l'audit, les files documentaires, la PWA terrain hors ligne et les sondes de santé sont présents dans le code. La collecte externe de métriques/alertes, l'infrastructure reproductible et les adaptateurs externes de facturation/cartographie ne le sont pas encore.
 
 - monolithe modulaire Next.js au départ, avec domaines séparés et contrats internes clairs ;
 - PostgreSQL managé à la place de SQLite ;
@@ -238,7 +238,7 @@ Chaque export doit être conservé brut, chiffré, horodaté et accompagné d'un
 | Phase 1 — fondations | **Implémentée dans le code** | déploiement PostgreSQL/R2, supervision, sauvegarde/restauration et recette de sécurité en environnement réel |
 | Phase 2 — HubSpot | **Partielle** | capture/CRM/consentement/import présents ; compléter les actifs réellement utilisés, répéter la migration et mener la bascule |
 | Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, achats, réceptions et stock présents ; valider catalogues, prix, planning et données Extrabat réelles |
-| Phase 4 — terrain/SAV | **Partielle** | équipements, tickets, interventions et entretien présents ; hors-ligne, photos/pièces, capacité/tournées et pilote terrain restent à traiter selon besoin |
+| Phase 4 — terrain/SAV | **Partielle** | équipements, tickets, PWA terrain hors ligne, photos/pièces, rapports PDF, capacité et entretien automatisé présents ; tournées, pièces/frais, signature manuscrite et pilote réel restent à traiter selon besoin |
 | Phase 5 — finance/sortie | **Partielle** | factures, paiements, banque, Factur-X et réversibilité présents ; plateforme agréée, portail éventuel, rapprochement final et résiliation restent ouverts |
 
 Les estimations initiales ci-dessous restent des ordres de grandeur de cadrage. Elles ne constituent plus un calendrier d'exécution constaté.
@@ -411,7 +411,7 @@ Références officielles : [DGFiP — facturation électronique et plateformes a
 5. Rejouer deux migrations complètes selon le [runbook de bascule](../docs/migration-cutover-runbook.md).
 6. Faire recetter dix dossiers réels : vente, achat, stock, chantier, intervention, facture et paiement.
 7. Recetter les séquences/règles et décider les écarts HubSpot P0 restants : boîte e-mail, calendrier, campagnes, scoring et branches avancées.
-8. Décider les écarts Extrabat P0 : hors-ligne, photos/pièces, capacité, tournées, catalogues et tarifs.
+8. Décider les écarts Extrabat P0 restants : tournées, signature manuscrite, pièces/frais SAV, conflits hors ligne complexes, catalogues et tarifs.
 9. Choisir la plateforme agréée de facturation et valider l'export avec l'expert-comptable.
 10. Fixer le go/no-go, le rollback, les responsables et les dates de périodes parallèles avant toute résiliation.
 

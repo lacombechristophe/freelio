@@ -50,7 +50,7 @@ Contraintes :
 - PostgreSQL et R2 obligatoires en production ;
 - TLS de bout en bout et bucket non public.
 
-Le dépôt ne fournit pas actuellement de `Dockerfile`, de manifeste d'infrastructure ni de route de santé dédiée. La plateforme choisie doit donc documenter sa commande de démarrage, la disponibilité de Chromium et son contrôle de santé.
+Le dépôt ne fournit pas actuellement de `Dockerfile` ni de manifeste d'infrastructure. Il expose `GET /api/health/live` pour la vie du processus et `GET /api/health/ready` pour la base et la configuration critique ; la plateforme choisie doit documenter sa commande de démarrage, la disponibilité de Chromium et le branchement effectif de ces sondes.
 
 ## 3. Secrets et variables obligatoires
 
@@ -66,6 +66,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `RESEND_API_KEY` et `EMAIL_FROM` ;
 - `PUBLIC_LEAD_COMPANY_ID` : identifiant de la société destinataire des demandes publiques ;
 - `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL` et `AUTOMATION_CRON_SECRET` ;
+- `SCHEDULER_CRON_SECRET` si une clé distincte est souhaitée pour l’ordonnanceur métier ; sinon la route utilise `AUTOMATION_CRON_SECRET` ;
 - `LEAD_HASH_SALT` et `LEAD_INGEST_SECRET` ;
 - `FILE_STORAGE_DRIVER=r2` et `MIGRATION_STORAGE_DRIVER=r2` ;
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
@@ -134,11 +135,14 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
+Le worker traite aussi les séquences e-mail et, toutes les cinq minutes, les visites d’entretien et factures récurrentes dues. À défaut de worker permanent, configurer des appels Bearer à `POST /api/automations/process` et `POST /api/scheduling/process` avec les secrets dédiés.
+
 ### 4.5 Smoke test après déploiement
 
 Effectuer avec un compte de recette non privilégié puis avec chaque rôle critique :
 
 - `/auth/login` répond sans erreur ;
+- `/api/health/live` répond `200` et `/api/health/ready` répond `200` sans exposer de détail de configuration ;
 - connexion par lien magique reçue et utilisable une fois ;
 - dashboard, clients, pipeline, projets, opérations, factures et migrations chargent ;
 - isolation des rôles : un profil sans permission ne peut pas muter le domaine ;
@@ -149,6 +153,7 @@ Effectuer avec un compte de recette non privilégié puis avec chaque rôle crit
 - génération depuis la file prospects d'un lien de désinscription, retrait public puis second appel idempotent ;
 - une requête depuis une origine non autorisée reçoit `403` ;
 - logs application et worker sans boucle d'erreurs ;
+- un passage des deux ordonnanceurs crée les échéances dues et un second passage ne crée aucun doublon ;
 - aucun secret, e-mail complet ou donnée client sensible dans les logs.
 
 Noter le commit, l'heure, les opérateurs et le résultat de chaque contrôle.
@@ -203,7 +208,7 @@ Les durées exactes doivent être validées avec l'expert-comptable et le réfé
 
 Le code journalise côté serveur, mais n'intègre pas à lui seul une plateforme complète d'observabilité. Configurer au minimum :
 
-- disponibilité HTTP et temps de réponse ;
+- disponibilité et temps de réponse de `/api/health/live` et `/api/health/ready` ;
 - taux de réponses `5xx`, `401/403` anormaux et `429` ;
 - saturation et connexions PostgreSQL, réplication et échecs de sauvegarde ;
 - erreurs et latence R2 ;
@@ -211,6 +216,7 @@ Le code journalise côté serveur, mais n'intègre pas à lui seul une plateform
 - échecs Resend et taux de livraison des liens magiques ;
 - volume de leads accepté et chute anormale de capture ;
 - lots de migration en `FAILED`, `PARTIAL` ou `VERIFICATION_FAILED` ;
+- échéances récurrentes en retard, erreurs du planificateur et absence de passage du worker/cron ;
 - espace et coûts anormaux ;
 - erreurs CSP et tentatives répétées sur les liens publics.
 
@@ -255,6 +261,7 @@ Niveaux conseillés :
 - redémarrer un seul worker, observer les doublons et les jobs échoués ;
 - le même processus exécute le worker documentaire et le processeur des séquences e-mail ; après reprise, contrôler les échéances en attente et les envois idempotents ;
 - la route `POST /api/automations/process` protégée par `AUTOMATION_CRON_SECRET` permet un déclenchement de secours par un ordonnanceur approuvé.
+- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites et factures récurrentes ; son rejeu doit rester idempotent.
 
 ### Capture de leads interrompue
 

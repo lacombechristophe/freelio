@@ -13,7 +13,8 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - conversion devis → commande client → facture d'acompte ou de solde ;
 - projets, relevé technique piscine, jalons, documents et réception ;
 - fournisseurs, produits, dépôts, achats, réceptions, mouvements et réservations de stock ;
-- équipements installés, tickets SAV, interventions terrain et contrats d'entretien ;
+- équipements installés, tickets SAV, planning de capacité et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
+- contrats d’entretien avec visites et factures récurrentes idempotentes ;
 - factures, règlements, avoirs, relances, récurrence, dépenses, import bancaire et Factur-X ;
 - équipe multi-utilisateur avec rôles et permissions par domaine ;
 - centre de migration HubSpot/Extrabat : connexion, dépôt d'archives, analyse, simulation, import idempotent, rapprochement et rapport de vérification ;
@@ -100,6 +101,7 @@ Le fichier [.env.example](.env.example) décrit toutes les variables lues par l'
 - secrets indépendants `AUTH_SECRET`, `ENCRYPTION_KEY`, `JWT_SECRET`, `CONSENT_TOKEN_SECRET`, `LEAD_HASH_SALT` et `LEAD_INGEST_SECRET` ;
 - `PUBLIC_LEAD_COMPANY_ID` égal à l'identifiant réel de la société destinataire du formulaire ;
 - `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL` et `AUTOMATION_CRON_SECRET` pour les liens publics et le processeur de séquences ;
+- `SCHEDULER_CRON_SECRET` facultatif pour séparer le déclenchement des visites/factures récurrentes ; sans lui, la route utilise `AUTOMATION_CRON_SECRET` ;
 - `FILE_STORAGE_DRIVER=r2` et `MIGRATION_STORAGE_DRIVER=r2` avec les quatre paramètres R2 ;
 - `RESEND_API_KEY` et `EMAIL_FROM` ;
 - Upstash Redis pour un rate limiting partagé entre instances ;
@@ -160,6 +162,8 @@ Le centre `/dashboard/automatisations` gère les modèles, séquences multi-éta
 
 Le worker traite les échéances chaque minute lorsque `RESEND_API_KEY` est configurée. Une plateforme de cron peut aussi appeler `POST /api/automations/process` avec `Authorization: Bearer <AUTOMATION_CRON_SECRET>`. `EMAIL_FROM` doit utiliser un domaine Resend vérifié ; le nom affiché provient du profil entreprise.
 
+Le même worker planifie toutes les cinq minutes les visites d’entretien et les factures récurrentes arrivées à échéance. Un ordonnanceur externe peut appeler `POST /api/scheduling/process` avec `SCHEDULER_CRON_SECRET`, ou `AUTOMATION_CRON_SECRET` si aucun secret distinct n’est défini. Les occurrences et visites portent une clé métier persistante pour rendre un rejeu sans doublon.
+
 ## Reprise HubSpot et Extrabat
 
 Le centre de migration est réservé aux rôles disposant de `migration.manage` :
@@ -185,6 +189,8 @@ Le [runbook de production](docs/production-runbook.md) couvre le déploiement, l
 - test de restauration périodique ;
 - migrations et imports exécutés par un administrateur identifié ;
 - aucune résiliation HubSpot/Extrabat avant signature des critères de bascule.
+
+La plateforme peut sonder `GET /api/health/live` pour la vie du processus et `GET /api/health/ready` pour la connexion base et la présence d’une configuration de production sûre. Ces réponses n’exposent ni valeur de secret ni détail de connexion.
 
 ## Documentation projet
 

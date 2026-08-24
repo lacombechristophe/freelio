@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CRM opérations">
+  <rect width="512" height="512" rx="104" fill="#0b63f6"/>
+  <path fill="#fff" d="M136 126h240v70H206v60h146v68H206v62h170v70H136z"/>
+  <circle cx="376" cy="126" r="38" fill="#e7f6ee"/>
+  <path fill="#168455" d="m358 126 13 13 25-29 16 14-40 46-30-30z"/>
+</svg>

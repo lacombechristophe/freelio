@@ -73,6 +73,9 @@ test("new local-first surfaces load and their primary controls respond", async (
   await expect(page.getByText("Connecter une source")).toBeVisible()
   await expect(page.getByText("Déposer des exports")).toBeVisible()
 
+  await assertHealthy(page, "/dashboard/terrain", "Terrain hors ligne")
+  await expect(page.getByText("Interventions à exécuter")).toBeVisible()
+
   await assertHealthy(page, "/dashboard/clients", "Clients")
   const clientLink = page.locator('a[href^="/dashboard/clients/"]')
   expect(await clientLink.count()).toBeGreaterThan(0)
@@ -178,6 +181,32 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
 
   await page.getByRole("button", { name: "Afficher les étapes précédentes" }).click()
   await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeLessThan(afterWheel)
+})
+
+test("field workspace installs and reloads from its bounded offline cache", async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop" || process.env.E2E_USE_PRODUCTION_SERVER !== "true", "La coupure réseau est validée sur le serveur de production ; le rendu terrain reste couvert ailleurs.")
+  await assertHealthy(page, "/dashboard/terrain", "Terrain hors ligne")
+  const manifest = await page.request.get("/manifest.webmanifest")
+  expect(manifest.ok()).toBeTruthy()
+  await expect(manifest.json()).resolves.toMatchObject({ name: "CRM & opérations", start_url: "/dashboard/terrain", display: "standalone" })
+  expect((await page.request.get("/sw.js")).ok()).toBeTruthy()
+
+  await page.getByRole("button", { name: "Activer hors ligne" }).click()
+  await expect(page.getByText("Interventions et écran terrain disponibles hors connexion pendant 24 h.")).toBeVisible()
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).includes("crm-field-v1-field"))).toBe(true)
+
+  await context.setOffline(true)
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await expect(page.getByRole("heading", { name: "Terrain hors ligne" })).toBeVisible()
+    await expect(page.getByText("Mode hors ligne", { exact: true })).toBeVisible()
+    await expect(page.getByText("Intervention QA terrain")).toBeVisible()
+  } finally {
+    await context.setOffline(false)
+  }
+  const expectedOfflineErrors = (page as Page & { consoleErrors?: string[] }).consoleErrors ?? []
+  expect(expectedOfflineErrors.every((message) => message.includes("ERR_INTERNET_DISCONNECTED"))).toBe(true)
+  expectedOfflineErrors.length = 0
 })
 
 test("configures an email sequence and a lead automation", async ({ page }, testInfo) => {
@@ -295,6 +324,27 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await expect(page.getByText("Stock consommé pour le dossier.")).toBeVisible()
   await page.getByRole("tab", { name: "Stock & achats" }).click()
   await expect(page.getByText("4 disponibles")).toBeVisible()
+
+  await operationType.click()
+  await page.getByRole("option", { name: "Bon de livraison" }).click()
+  await page.getByLabel("Commande client").selectOption({ index: 1 })
+  await page.getByLabel("Ligne livrée").selectOption({ index: 1 })
+  await page.getByLabel("Quantité").fill("1")
+  await page.getByLabel("Réceptionnaire").fill("Camille Piscine")
+  await page.getByRole("button", { name: "Enregistrer" }).click()
+  await expect(page.getByText("Bon de livraison enregistré.")).toBeVisible()
+  await page.getByRole("tab", { name: "Commandes" }).click()
+  const deliverySection = page.getByText("Derniers bons de livraison").locator("..").locator("..")
+  await deliverySection.getByRole("button", { name: "Faire signer" }).click()
+  await page.getByLabel("Nom du réceptionnaire").fill("Camille Piscine")
+  await page.getByText("Le réceptionnaire confirme les quantités indiquées").click()
+  await page.getByRole("button", { name: "Signer et sceller" }).click()
+  await expect(page.getByText("Bon de livraison signé et scellé.")).toBeVisible()
+  const deliveryPdfHref = await deliverySection.getByRole("link", { name: "PDF" }).getAttribute("href")
+  expect(deliveryPdfHref).toBeTruthy()
+  const deliveryPdf = await page.request.get(deliveryPdfHref!)
+  expect(deliveryPdf.ok()).toBeTruthy()
+  expect((await deliveryPdf.body()).subarray(0, 4).toString("ascii")).toBe("%PDF")
 })
 
 test("field report and maintenance contract flow", async ({ page }, testInfo) => {
@@ -303,8 +353,24 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await assertHealthy(page, "/dashboard/operations", "Opérations")
 
   await page.getByRole("tab", { name: "Planning" }).click()
-  const intervention = page.getByRole("tabpanel", { name: "Planning" }).getByText("Intervention QA terrain").locator("..")
+  await expect(page.getByText("Capacité de la semaine")).toBeVisible()
+  const planningPanel = page.getByRole("tabpanel", { name: "Planning" })
+  await expect(planningPanel.getByText("Utilisateur QA", { exact: true }).first()).toBeVisible()
+  const intervention = planningPanel.locator("article").filter({ hasText: "Intervention QA terrain" })
   await expect(intervention).toBeVisible()
+  await intervention.getByLabel("Ajouter une pièce à Intervention QA terrain").setInputFiles({
+    name: "photo-fin-qa.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQMcAAAAASUVORK5CYII=", "base64"),
+  })
+  await expect(page.getByText("Pièce d’intervention ajoutée et contrôlée.")).toBeVisible()
+  const evidenceLink = intervention.getByRole("link", { name: "photo-fin-qa.png" })
+  await expect(evidenceLink).toBeVisible()
+  const evidenceHref = await evidenceLink.getAttribute("href")
+  expect(evidenceHref).toBeTruthy()
+  const evidenceResponse = await page.request.get(evidenceHref!)
+  expect(evidenceResponse.ok()).toBeTruthy()
+  expect(evidenceResponse.headers()["content-type"]).toContain("image/png")
   await page.getByRole("button", { name: "Clôturer" }).click()
   await page.getByLabel("Compte rendu terrain").fill("Pose contrôlée, essais fonctionnels conformes et zone nettoyée.")
   await page.getByLabel("Temps passé (minutes)").fill("75")
@@ -313,6 +379,11 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await page.getByRole("button", { name: "Valider la clôture" }).click()
   await expect(page.getByText("Intervention clôturée et accord client scellé.")).toBeVisible()
   await expect(page.getByText(/Compte rendu : Pose contrôlée/)).toBeVisible()
+  const reportHref = await intervention.getByRole("link", { name: "Rapport PDF" }).getAttribute("href")
+  expect(reportHref).toBeTruthy()
+  const reportResponse = await page.request.get(reportHref!)
+  expect(reportResponse.ok()).toBeTruthy()
+  expect((await reportResponse.body()).subarray(0, 4).toString("ascii")).toBe("%PDF")
 
   const operationType = page.getByRole("combobox", { name: "Type d’opération" })
   await operationType.click()
@@ -321,12 +392,30 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await page.locator("select#siteId").selectOption({ label: "Client QA Piscine · Bassin QA" })
   await page.getByLabel("Libellé du contrat").fill("Entretien annuel couverture QA")
   await page.getByLabel("Équipement couvert").selectOption({ label: "Client QA Piscine · Couverture QA installée" })
-  await page.getByLabel("Début").fill("2026-09-01")
-  await page.getByLabel("Prochaine visite").fill("2027-09-01")
-  await page.getByLabel("Prix (€)").fill("240")
+  await page.getByLabel("Début").fill("2026-08-20")
+  await page.getByLabel("Prochaine visite").fill("2026-08-20")
+  await page.getByLabel("Prix HT (€)").fill("240")
+  await page.getByText("Facturation automatique").click()
   await page.getByRole("button", { name: "Enregistrer" }).click()
   await expect(page.getByText("Contrat d’entretien enregistré.")).toBeVisible()
   await page.getByRole("tab", { name: "Entretien" }).click()
   await expect(page.getByText("Entretien annuel couverture QA")).toBeVisible()
   await expect(page.getByText(/ENT-2026-/)).toBeVisible()
+  const schedulerSecret = process.env.SCHEDULER_CRON_SECRET
+  if (schedulerSecret) {
+    const firstRun = await page.request.post("/api/scheduling/process", { headers: { authorization: `Bearer ${schedulerSecret}` } })
+    expect(firstRun.ok()).toBeTruthy()
+    await expect(firstRun.json()).resolves.toMatchObject({ recurringInvoices: { generated: 1 }, maintenanceVisits: { scheduled: 1 } })
+    const replay = await page.request.post("/api/scheduling/process", { headers: { authorization: `Bearer ${schedulerSecret}` } })
+    expect(replay.ok()).toBeTruthy()
+    await expect(replay.json()).resolves.toMatchObject({ recurringInvoices: { generated: 0 }, maintenanceVisits: { scheduled: 0 } })
+    await page.goto("/dashboard/operations")
+    await page.getByRole("tab", { name: "Planning" }).click()
+    await expect(page.getByText("Entretien · Entretien annuel couverture QA")).toBeVisible()
+    await page.goto("/dashboard/factures")
+    const maintenanceInvoiceRow = page.getByRole("row").filter({ hasText: "288,00 €" })
+    await expect(maintenanceInvoiceRow).toBeVisible()
+    await maintenanceInvoiceRow.getByRole("link", { name: /FACT-2026-/ }).click()
+    await expect(page.getByText(/Contrat d’entretien ENT-2026-/)).toBeVisible()
+  }
 })

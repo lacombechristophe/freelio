@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, Copy, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
+import { Check, Clock3, Copy, Save, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   cancelTeamInvitation,
   createTeamInvitation,
   deactivateTeamMember,
+  updateTeamMemberCapacity,
   updateTeamMemberRole,
 } from "@/actions/team"
 import { Badge } from "@/components/ui/badge"
@@ -156,6 +157,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
                 ) : (
                   <span className="w-full text-sm text-muted-foreground lg:w-48">{ROLE_LABELS[member.role]}</span>
                 )}
+                <MemberCapacity memberId={member.id} minutes={member.weeklyCapacityMinutes} disabled={isPending || member.status !== "ACTIVE" || !actorCanEdit} onPending={(operation) => startTransition(operation)} />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -203,6 +205,17 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
           </div>
         </section>
       ) : null}
+    </div>
+  )
+}
+
+function MemberCapacity({ memberId, minutes, disabled, onPending }: { memberId: string; minutes: number; disabled: boolean; onPending: (operation: () => Promise<void>) => void }) {
+  const [hours, setHours] = useState((minutes / 60).toString())
+  return (
+    <div className="flex w-full items-center gap-1.5 lg:w-40">
+      <Clock3 className="size-4 shrink-0 text-muted-foreground" />
+      <Input aria-label="Capacité hebdomadaire en heures" type="number" min="1" max="168" step="0.5" value={hours} disabled={disabled} onChange={(event) => setHours(event.target.value)} className="h-9 min-w-0" />
+      <Button type="button" size="icon-sm" variant="ghost" title="Enregistrer la capacité" disabled={disabled || !hours} onClick={() => onPending(async () => { const result = await updateTeamMemberCapacity(memberId, Number(hours)); if (result?.success) toast.success("Capacité hebdomadaire mise à jour."); else toast.error(result?.error || "Modification impossible.") })}><Save /></Button>
     </div>
   )
 }
