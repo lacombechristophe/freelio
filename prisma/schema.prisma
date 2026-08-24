@@ -163,12 +163,14 @@ model Membership {
   status                String  @default("ACTIVE")
   title                 String?
   weeklyCapacityMinutes Int     @default(2100)
+  hourlyCostCents       Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   assignedTickets       ServiceTicket[]     @relation("TicketAssignee")
   assignedInterventions FieldIntervention[] @relation("InterventionAssignee")
+  ownedOpportunities    Opportunity[]       @relation("OpportunityOwner")
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -697,14 +699,17 @@ model Opportunity {
   clientId   String
   client     Client   @relation(fields: [clientId], references: [id])
 
-  title        String
-  status       String // PROSPECT, CONTACTED, QUALIFIED, WON, LOST
-  valueCents   Int       @default(0)
-  probability  Int       @default(10) // Percentage
-  closeDate    DateTime?
-  lostReason   String?
-  ownerLabel   String?
-  customFields Json?
+  title             String
+  status            String // PROSPECT, CONTACTED, QUALIFIED, WON, LOST
+  valueCents        Int         @default(0)
+  probability       Int         @default(10) // Percentage
+  closeDate         DateTime?
+  lostReason        String?
+  ownerLabel        String?
+  ownerMembershipId String?
+  ownerMembership   Membership? @relation("OpportunityOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  closedAt          DateTime?
+  customFields      Json?
 
   activities   OpportunityActivity[]
   leadCaptures LeadCapture[]
@@ -714,6 +719,8 @@ model Opportunity {
 
   @@index([pipelineId])
   @@index([clientId])
+  @@index([ownerMembershipId, status])
+  @@index([pipelineId, status, closeDate])
 }
 
 model OpportunityActivity {
@@ -973,15 +980,17 @@ model InventoryItem {
 }
 
 model StockMovement {
-  id          String    @id @default(cuid())
-  companyId   String
-  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  warehouseId String
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
-  projectId   String?
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id                  String             @id @default(cuid())
+  companyId           String
+  company             Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  warehouseId         String
+  warehouse           Warehouse          @relation(fields: [warehouseId], references: [id])
+  productId           String
+  product             Product            @relation(fields: [productId], references: [id])
+  projectId           String?
+  project             Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  fieldInterventionId String?
+  fieldIntervention   FieldIntervention? @relation(fields: [fieldInterventionId], references: [id], onDelete: SetNull)
 
   type          String
   quantity      Int
@@ -996,6 +1005,7 @@ model StockMovement {
   @@index([companyId, happenedAt])
   @@index([warehouseId, productId])
   @@index([projectId])
+  @@index([fieldInterventionId, happenedAt])
   @@index([reservationId])
 }
 
@@ -1318,7 +1328,8 @@ model FieldIntervention {
   signatureSha256 String?
   customFields    Json?
 
-  files InterventionFile[]
+  files          InterventionFile[]
+  stockMovements StockMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

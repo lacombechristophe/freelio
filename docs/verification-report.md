@@ -15,11 +15,11 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 21 fichiers, 76 tests réussis |
+| `npm run test:unit` | 22 fichiers, 79 tests réussis |
 | `npm run build` | build Next.js de production réussi, 39 pages statiques/dynamiques générées |
 | `npm audit --audit-level=high` | 0 vulnérabilité déclarée |
 | Playwright, base SQLite neuve | 8 scénarios réussis, 4 mutations volontairement ignorées sur mobile après validation desktop |
-| PostgreSQL 18 vierge | 5 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
+| PostgreSQL 18 vierge | 7 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -39,9 +39,11 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - génération du lien de désinscription, retrait public et relecture idempotente ;
 - arrêt de l’inscription et passage du contact en opposition ;
 - devis vers commande, facture de solde, réservation puis consommation du stock ;
+- opportunité attribuée, forecast pondéré, clôture prévue et perte avec motif obligatoire ;
 - création, signature scellée et lecture PDF d’un bon de livraison ;
 - espace terrain installable, rechargement hors ligne depuis un cache borné à 24 heures et file locale de synchronisation ;
 - photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
+- coût horaire, sortie de matériel liée à l’intervention, coût réel et fournitures du rapport client ;
 - capacité hebdomadaire d’équipe, création d’un contrat d’entretien, visite et facture automatiques avec second passage idempotent ;
 - export calendrier, export comptable, export de réversibilité et suppression effective de la landing `/v2` ;
 - surfaces principales et navigation pipeline sur viewport mobile.

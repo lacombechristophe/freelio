@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, Clock3, Copy, Save, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
+import { Check, Clock3, Copy, Euro, Save, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   cancelTeamInvitation,
   createTeamInvitation,
   deactivateTeamMember,
-  updateTeamMemberCapacity,
+  updateTeamMemberWorkSettings,
   updateTeamMemberRole,
 } from "@/actions/team"
 import { Badge } from "@/components/ui/badge"
@@ -157,7 +157,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
                 ) : (
                   <span className="w-full text-sm text-muted-foreground lg:w-48">{ROLE_LABELS[member.role]}</span>
                 )}
-                <MemberCapacity memberId={member.id} minutes={member.weeklyCapacityMinutes} disabled={isPending || member.status !== "ACTIVE" || !actorCanEdit} onPending={(operation) => startTransition(operation)} />
+                <MemberWorkSettings memberId={member.id} minutes={member.weeklyCapacityMinutes} hourlyCostCents={member.hourlyCostCents} disabled={isPending || member.status !== "ACTIVE" || !actorCanEdit} onPending={(operation) => startTransition(operation)} />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -209,13 +209,16 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
   )
 }
 
-function MemberCapacity({ memberId, minutes, disabled, onPending }: { memberId: string; minutes: number; disabled: boolean; onPending: (operation: () => Promise<void>) => void }) {
+function MemberWorkSettings({ memberId, minutes, hourlyCostCents, disabled, onPending }: { memberId: string; minutes: number; hourlyCostCents: number; disabled: boolean; onPending: (operation: () => Promise<void>) => void }) {
   const [hours, setHours] = useState((minutes / 60).toString())
+  const [hourlyCost, setHourlyCost] = useState((hourlyCostCents / 100).toString())
   return (
-    <div className="flex w-full items-center gap-1.5 lg:w-40">
+    <div className="flex w-full items-center gap-1.5 lg:w-[290px]">
       <Clock3 className="size-4 shrink-0 text-muted-foreground" />
-      <Input aria-label="Capacité hebdomadaire en heures" type="number" min="1" max="168" step="0.5" value={hours} disabled={disabled} onChange={(event) => setHours(event.target.value)} className="h-9 min-w-0" />
-      <Button type="button" size="icon-sm" variant="ghost" title="Enregistrer la capacité" disabled={disabled || !hours} onClick={() => onPending(async () => { const result = await updateTeamMemberCapacity(memberId, Number(hours)); if (result?.success) toast.success("Capacité hebdomadaire mise à jour."); else toast.error(result?.error || "Modification impossible.") })}><Save /></Button>
+      <Input aria-label="Capacité hebdomadaire en heures" title="Capacité hebdomadaire" type="number" min="1" max="168" step="0.5" value={hours} disabled={disabled} onChange={(event) => setHours(event.target.value)} className="h-9 min-w-0" />
+      <Euro className="ml-1 size-4 shrink-0 text-muted-foreground" />
+      <Input aria-label="Coût horaire interne en euros" title="Coût horaire interne" type="number" min="0" max="10000" step="0.01" value={hourlyCost} disabled={disabled} onChange={(event) => setHourlyCost(event.target.value)} className="h-9 min-w-0" />
+      <Button type="button" size="icon-sm" variant="ghost" title="Enregistrer capacité et coût" disabled={disabled || !hours || hourlyCost === ""} onClick={() => onPending(async () => { const result = await updateTeamMemberWorkSettings(memberId, Number(hours), Math.round(Number(hourlyCost) * 100)); if (result?.success) toast.success("Capacité et coût horaire mis à jour."); else toast.error(result?.error || "Modification impossible.") })}><Save /></Button>
     </div>
   )
 }

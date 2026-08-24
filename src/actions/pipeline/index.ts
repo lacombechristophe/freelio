@@ -1,8 +1,12 @@
 "use server"
 
-import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
+
+import { withAuth } from "@/lib/auth-wrapper"
+import { logAction } from "@/lib/audit"
+import { resolveOpportunityStage } from "@/lib/pipeline-rules"
+import prisma from "@/lib/prisma"
 
 const DEFAULT_STAGES = [
   { id: "PROSPECT", title: "Prospect" },
@@ -12,40 +16,104 @@ const DEFAULT_STAGES = [
   { id: "WON", title: "Gagné" },
 ]
 
+const id = z.string().cuid()
+const optionalId = z.union([id, z.literal(""), z.null()]).optional().transform((value) => value || null)
+const optionalDate = z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal(""), z.null()]).optional().transform((value) => value || null)
+const opportunitySchema = z.object({
+  title: z.string().trim().min(2, "Le titre est requis").max(180),
+  clientId: id,
+  status: z.string().trim().min(1).max(64),
+  valueCents: z.coerce.number().int().min(0).max(2_000_000_000),
+  probability: z.coerce.number().int().min(0).max(100),
+  ownerMembershipId: optionalId,
+  closeDate: optionalDate,
+  lostReason: z.string().trim().max(500).optional().nullable(),
+})
+
+function pipelineStages(value: unknown) {
+  if (!Array.isArray(value)) return DEFAULT_STAGES
+  const parsed = z.array(z.object({ id: z.string().min(1).max(64), title: z.string().min(1).max(120) })).safeParse(value)
+  return parsed.success ? parsed.data : DEFAULT_STAGES
+}
+
+function assertAllowedStatus(stages: Array<{ id: string }>, status: string) {
+  if (status !== "LOST" && !stages.some((stage) => stage.id === status)) throw new Error("Étape commerciale invalide")
+}
+
+function dateFromInput(value: string | null) {
+  return value ? new Date(`${value}T12:00:00.000Z`) : null
+}
+
 async function ensurePipeline(companyId: string) {
-  let pipeline = await prisma.pipeline.findUnique({ where: { companyId } })
-  if (!pipeline) {
-    pipeline = await prisma.pipeline.create({
-      data: { companyId, name: "Pipeline Commercial", stages: DEFAULT_STAGES },
-    })
-  }
-  return pipeline
+  const existing = await prisma.pipeline.findUnique({ where: { companyId } })
+  if (existing) return existing
+  return prisma.pipeline.create({ data: { companyId, name: "Pipeline Commercial", stages: DEFAULT_STAGES } })
+}
+
+async function assertReferences(companyId: string, clientId: string, ownerMembershipId: string | null) {
+  const [client, owner] = await Promise.all([
+    prisma.client.findFirst({ where: { id: clientId, companyId }, select: { id: true } }),
+    ownerMembershipId
+      ? prisma.membership.findFirst({ where: { id: ownerMembershipId, companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] } }, select: { id: true } })
+      : null,
+  ])
+  if (!client) throw new Error("Client introuvable")
+  if (ownerMembershipId && !owner) throw new Error("Responsable commercial introuvable")
 }
 
 export async function getPipeline() {
-  return await withAuth(async ({ companyId }) => {
-    const pipeline = await ensurePipeline(companyId)
-    return await prisma.pipeline.findUnique({
-      where: { id: pipeline.id },
-      include: {
-        opportunities: {
-          include: { client: { select: { id: true, name: true } } },
-          orderBy: { updatedAt: "desc" },
+  return withAuth(async ({ companyId }) => {
+    const [pipeline, members] = await Promise.all([
+      prisma.pipeline.findUnique({
+        where: { companyId },
+        include: {
+          opportunities: {
+            include: {
+              client: { select: { id: true, name: true } },
+              ownerMembership: { include: { user: { select: { name: true, email: true } } } },
+            },
+            orderBy: { updatedAt: "desc" },
+          },
         },
-      },
-    })
-  })
+      }),
+      prisma.membership.findMany({
+        where: { companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] } },
+        include: { user: { select: { name: true, email: true } } },
+        orderBy: { createdAt: "asc" },
+      }),
+    ])
+
+    return {
+      id: pipeline?.id ?? null,
+      stages: pipelineStages(pipeline?.stages),
+      members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Commercial" })),
+      opportunities: (pipeline?.opportunities ?? []).map((opportunity) => ({
+        id: opportunity.id,
+        title: opportunity.title,
+        status: opportunity.status,
+        valueCents: opportunity.valueCents,
+        probability: opportunity.probability,
+        clientId: opportunity.clientId,
+        client: opportunity.client,
+        closeDate: opportunity.closeDate?.toISOString().slice(0, 10) ?? null,
+        closedAt: opportunity.closedAt?.toISOString() ?? null,
+        lostReason: opportunity.lostReason,
+        ownerMembershipId: opportunity.ownerMembershipId,
+        ownerName: opportunity.ownerMembership?.user.name || opportunity.ownerMembership?.user.email || opportunity.ownerLabel || null,
+        createdAt: opportunity.createdAt.toISOString(),
+      })),
+    }
+  }, "sales.read")
 }
 
-export async function createOpportunity(data: {
-  title: string
-  clientId: string
-  status: string
-  valueCents: number
-  probability: number
-}) {
-  return await withAuth(async ({ companyId }) => {
+export async function createOpportunity(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = opportunitySchema.parse(input)
     const pipeline = await ensurePipeline(companyId)
+    const stages = pipelineStages(pipeline.stages)
+    assertAllowedStatus(stages, data.status)
+    await assertReferences(companyId, data.clientId, data.ownerMembershipId)
+    const stage = resolveOpportunityStage({ status: data.status, probability: data.probability, lostReason: data.lostReason })
     const opportunity = await prisma.opportunity.create({
       data: {
         pipelineId: pipeline.id,
@@ -53,41 +121,68 @@ export async function createOpportunity(data: {
         title: data.title,
         status: data.status,
         valueCents: data.valueCents,
-        probability: data.probability,
+        closeDate: dateFromInput(data.closeDate),
+        ownerMembershipId: data.ownerMembershipId,
+        ...stage,
+      },
+      select: { id: true },
+    })
+    await logAction({ userId, action: "CREATE_OPPORTUNITY", resource: "OPPORTUNITY", resourceId: opportunity.id, payload: { status: data.status, valueCents: data.valueCents, ownerMembershipId: data.ownerMembershipId } })
+    revalidatePath("/dashboard/pipeline")
+    return { success: true as const, id: opportunity.id }
+  }, "sales.write")
+}
+
+export async function updateOpportunity(opportunityId: string, input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(opportunityId)
+    const rawInput = input && typeof input === "object" ? input as Record<string, unknown> : {}
+    const ownerProvided = Object.prototype.hasOwnProperty.call(rawInput, "ownerMembershipId")
+    const closeDateProvided = Object.prototype.hasOwnProperty.call(rawInput, "closeDate")
+    const data = opportunitySchema.partial().parse(input)
+    const existing = await prisma.opportunity.findFirst({
+      where: { id: parsedId, pipeline: { companyId } },
+      include: { pipeline: { select: { stages: true } } },
+    })
+    if (!existing) throw new Error("Opportunité introuvable")
+
+    const status = data.status ?? existing.status
+    assertAllowedStatus(pipelineStages(existing.pipeline.stages), status)
+    const clientId = data.clientId ?? existing.clientId
+    const ownerMembershipId = ownerProvided ? data.ownerMembershipId ?? null : existing.ownerMembershipId
+    await assertReferences(companyId, clientId, ownerMembershipId)
+    const stage = resolveOpportunityStage({
+      status,
+      probability: data.probability ?? existing.probability,
+      lostReason: data.lostReason === undefined ? existing.lostReason : data.lostReason,
+      closedAt: status === existing.status ? existing.closedAt : null,
+    })
+    await prisma.opportunity.update({
+      where: { id: existing.id },
+      data: {
+        ...(data.title !== undefined ? { title: data.title } : {}),
+        ...(data.clientId !== undefined ? { clientId } : {}),
+        ...(data.status !== undefined ? { status } : {}),
+        ...(data.valueCents !== undefined ? { valueCents: data.valueCents } : {}),
+        ...(closeDateProvided ? { closeDate: dateFromInput(data.closeDate ?? null) } : {}),
+        ...(ownerProvided ? { ownerMembershipId, ownerLabel: null } : {}),
+        ...stage,
       },
     })
+    await logAction({ userId, action: "UPDATE_OPPORTUNITY", resource: "OPPORTUNITY", resourceId: existing.id, payload: { fromStatus: existing.status, status, ownerMembershipId } })
     revalidatePath("/dashboard/pipeline")
-    return opportunity
-  })
+    return { success: true as const }
+  }, "sales.write")
 }
 
-export async function updateOpportunity(
-  id: string,
-  data: { title?: string; status?: string; valueCents?: number; probability?: number; clientId?: string }
-) {
-  return await withAuth(async ({ companyId }) => {
-    const existing = await prisma.opportunity.findFirst({
-      where: { id, pipeline: { companyId } },
-    })
+export async function deleteOpportunity(opportunityId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(opportunityId)
+    const existing = await prisma.opportunity.findFirst({ where: { id: parsedId, pipeline: { companyId } }, select: { id: true, status: true } })
     if (!existing) throw new Error("Opportunité introuvable")
-
-    const opp = await prisma.opportunity.update({
-      where: { id },
-      data,
-    })
+    await prisma.opportunity.delete({ where: { id: existing.id } })
+    await logAction({ userId, action: "DELETE_OPPORTUNITY", resource: "OPPORTUNITY", resourceId: existing.id, payload: { status: existing.status } })
     revalidatePath("/dashboard/pipeline")
-    return opp
-  })
-}
-
-export async function deleteOpportunity(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    const existing = await prisma.opportunity.findFirst({
-      where: { id, pipeline: { companyId } },
-    })
-    if (!existing) throw new Error("Opportunité introuvable")
-    await prisma.opportunity.delete({ where: { id } })
-    revalidatePath("/dashboard/pipeline")
-    return { ok: true }
-  })
+    return { success: true as const }
+  }, "sales.write")
 }

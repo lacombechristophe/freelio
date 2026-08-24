@@ -23,12 +23,15 @@ describe("intervention report renderer", () => {
       client: { name: "Famille Martin" },
       site: { label: "Bassin principal", address1: "2 rue du Bassin", postalCode: "44000", city: "Nantes" },
       files: [{ name: "photo-fin.jpg", kind: "PHOTO", size: 1024, sha256: "b".repeat(64) }],
+      materials: [{ label: "Joint <premium>", unit: "unité", quantity: 2 }],
     })
 
     expect(html).toContain("Rapport d’intervention")
     expect(html).toContain("SAV-2026-0042")
     expect(html).toContain("1 h 15 min")
     expect(html).toContain("photo-fin.jpg")
+    expect(html).toContain("Matériel utilisé (1)")
+    expect(html).toContain("Joint &lt;premium&gt;")
     expect(html).toContain("Camille Martin")
     expect(html).toContain("a".repeat(64))
     expect(html).not.toContain("<finals>")

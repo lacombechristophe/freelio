@@ -17,7 +17,7 @@ export default async function PipelinePage() {
         description="Visualisez les opportunités en cours et la valeur pondérée de votre prochain chiffre d’affaires."
         className="shrink-0"
       />
-      <PipelineBoard pipeline={pipeline as any} clients={clients ?? []} />
+      <PipelineBoard pipeline={pipeline} clients={clients ?? []} />
     </div>
   )
 }

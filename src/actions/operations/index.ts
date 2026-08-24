@@ -129,6 +129,13 @@ const movementSchema = z.object({
   notes: optionalText,
 })
 
+const interventionMaterialSchema = z.object({
+  interventionId: id,
+  warehouseId: id,
+  productId: id,
+  quantity: z.coerce.number().int().min(1).max(100_000),
+})
+
 const customerOrderSchema = z.object({
   clientId: id,
   projectId: optionalId,
@@ -197,7 +204,7 @@ export async function getOperationsDashboard() {
       prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
       prisma.equipment.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
       prisma.serviceTicket.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
-      prisma.fieldIntervention.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, ticket: { select: { number: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } } }, orderBy: { scheduledStart: "asc" }, take: 200 }),
+      prisma.fieldIntervention.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, ticket: { select: { number: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } }, stockMovements: { where: { type: "OUT" }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { happenedAt: "asc" } } }, orderBy: { scheduledStart: "asc" }, take: 200 }),
       prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, _count: { select: { equipments: true } } }, orderBy: { nextVisitAt: "asc" }, take: 100 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
@@ -795,6 +802,45 @@ export async function createStockMovement(input: unknown) {
   }, "operations.write")
 }
 
+export async function consumeInterventionMaterial(input: unknown) {
+  return withAuth(async ({ companyId, userId, membershipId, role }) => {
+    const data = interventionMaterialSchema.parse(input)
+    const technicianScope = role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {}
+    const [intervention, warehouse, product] = await Promise.all([
+      prisma.fieldIntervention.findFirst({ where: { id: data.interventionId, companyId, ...technicianScope, status: { not: "CANCELED" } }, select: { id: true, projectId: true } }),
+      prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
+      prisma.product.findFirst({ where: { id: data.productId, companyId, active: true, stockTracked: true }, select: { id: true, purchasePriceCents: true, label: true } }),
+    ])
+    if (!intervention) throw new Error("Intervention introuvable ou annulée")
+    if (!warehouse || !product) throw new Error("Dépôt ou produit suivi en stock introuvable")
+
+    const movement = await prisma.$transaction(async (tx) => {
+      const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: warehouse.id, productId: product.id } } })
+      if (!current) throw new Error("Aucun stock disponible pour ce produit dans ce dépôt")
+      const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "OUT", movementQuantity: data.quantity })
+      await tx.inventoryItem.update({ where: { id: current.id }, data: next })
+      return tx.stockMovement.create({
+        data: {
+          companyId,
+          warehouseId: warehouse.id,
+          productId: product.id,
+          projectId: intervention.projectId,
+          fieldInterventionId: intervention.id,
+          type: "OUT",
+          quantity: -data.quantity,
+          unitCostCents: product.purchasePriceCents,
+          reference: `INT-${intervention.id.slice(-8).toUpperCase()}`,
+          notes: "Matériel consommé en intervention",
+        },
+        select: { id: true },
+      })
+    })
+    await logAction({ userId, action: "CONSUME_INTERVENTION_MATERIAL", resource: "FIELD_INTERVENTION", resourceId: intervention.id, payload: { movementId: movement.id, productId: product.id, warehouseId: warehouse.id, quantity: data.quantity, unitCostCents: product.purchasePriceCents } })
+    revalidateOperations()
+    return { success: true as const, movementId: movement.id }
+  }, "operations.write")
+}
+
 export async function updateServiceTicketStatus(ticketId: string, status: "OPEN" | "QUALIFIED" | "PLANNED" | "WAITING" | "RESOLVED" | "CLOSED") {
   return withAuth(async ({ companyId }) => {
     const parsed = z.object({ ticketId: id, status: z.enum(["OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED"]) }).parse({ ticketId, status })
@@ -824,8 +870,8 @@ export async function updateInterventionStatus(interventionId: string, status: "
 }
 
 export async function completeFieldIntervention(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
-    const result = await completeFieldInterventionForContext(input, { companyId, userId })
+  return withAuth(async (context) => {
+    const result = await completeFieldInterventionForContext(input, context)
     revalidateOperations()
     return result
   }, "operations.write")
