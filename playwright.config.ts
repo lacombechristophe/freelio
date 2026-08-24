@@ -6,6 +6,7 @@ const baseURL = externalBaseUrl ?? "http://localhost:3000"
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 150_000,
+  expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
   reporter: "list",

@@ -42,6 +42,13 @@ test.afterEach(async ({ page }) => {
 test("new local-first surfaces load and their primary controls respond", async ({ page }, testInfo) => {
   await mkdir(evidenceDir, { recursive: true })
 
+  await page.goto("/")
+  await expect(page.getByRole("heading", { name: "Freelio. Tout votre business freelance, enfin relié." })).toBeVisible()
+  await expect(page.locator("#workflow")).toHaveCount(1)
+  await expect(page.getByRole("link", { name: "Essayer gratuitement" }).first()).toBeVisible()
+  await page.goto("/fonctionnalites")
+  await expect(page.getByRole("heading", { name: "Un seul produit pour faire avancer toute la mission." })).toBeVisible()
+
   await assertHealthy(page, "/dashboard/factures/recurrentes", "Facturation récurrente")
   await page.getByRole("button", { name: "Nouvelle récurrence" }).click()
   await expect(page.getByRole("heading", { name: "Nouvelle récurrence" })).toBeVisible()
@@ -70,6 +77,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   const clientLink = page.locator('a[href^="/dashboard/clients/"]')
   expect(await clientLink.count()).toBeGreaterThan(0)
   await clientLink.first().click()
+  await page.waitForURL(/\/dashboard\/clients\/[^/]+$/)
   await expect(page.getByText("Prochaine action")).toBeVisible()
   await page.getByRole("button", { name: "Ajouter" }).first().click()
   await expect(page.getByRole("heading", { name: "Nouveau contact" })).toBeVisible()
@@ -79,6 +87,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   const projectLink = page.locator('a[href^="/dashboard/projets/"]')
   expect(await projectLink.count()).toBeGreaterThan(0)
   await projectLink.first().click()
+  await page.waitForURL(/\/dashboard\/projets\/[^/]+$/)
   await expect(page.getByText("Relevé technique bassin & pose")).toBeVisible()
   await page.getByRole("button", { name: "Modifier" }).click()
   await expect(page.getByRole("heading", { name: "Relevé technique bassin & pose" })).toBeVisible()

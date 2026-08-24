@@ -104,7 +104,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Réversibilité | **Disponible** | export versionné des tables société, fichiers locaux/R2 et manifeste d'intégrité, avec secrets/jetons exclus | la reprise du JSON est logique et contrôlée ; le PRA complet repose sur PostgreSQL/R2 natifs |
 | Sauvegarde/PRA | **Externe** | export applicatif utile à la portabilité | sauvegardes natives PostgreSQL/R2, PITR et tests de restauration à configurer |
 | Supervision | **Non couvert** | logs serveur | choisir et configurer disponibilité, erreurs, métriques et alertes |
-| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 70 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
+| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 71 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
 | E2E | **Disponible** | parcours critiques Playwright desktop/mobile | exécution finale sur préproduction isolée nécessaire |
 | PWA/hors ligne | **Non couvert** | responsive seulement | blocker si les techniciens travaillent sans réseau |
 | Sécurité externe | **Externe** | CSP, contrôles de routes, chiffrement et rate limiting dans le code | revue de configuration, pentest et procédure incident avant données réelles |

@@ -15,7 +15,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 18 fichiers, 70 tests réussis |
+| `npm run test:unit` | 18 fichiers, 71 tests réussis |
 | `npm run build` | build Next.js de production réussi, 34 pages statiques/dynamiques générées |
 | `npm audit --audit-level=high` | 0 vulnérabilité déclarée |
 | Playwright, base SQLite neuve | 7 scénarios réussis, 3 mutations volontairement ignorées sur mobile après validation desktop |
@@ -30,6 +30,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 ## Parcours navigateur couverts
 
 - connexion de développement et chargement sans erreur console ;
+- landing Freelio restaurée, page Produit et section workflow animée, avec `/v2` toujours absente ;
 - facturation récurrente, banque, organisation, migration, clients, projets et relevé technique ;
 - devis et aperçu PDF ;
 - création de modèle e-mail, séquence, étape et règle événementielle ;
