@@ -14,6 +14,11 @@ export type Line = {
   quantity: number
   unitPriceCents: number
   tvaRate: number
+  productId?: string | null
+  configuration?: { optionValueIds: string[] } | null
+  unitCostCents?: number | null
+  listUnitPriceCents?: number | null
+  discountRate?: number
 }
 
 function formatEuro(cents: number) {
@@ -148,6 +153,7 @@ export function LineItemsEditor({
                   type="number"
                   min="0"
                   step="0.01"
+                  disabled={Boolean(line.productId)}
                   value={line.quantity}
                   onChange={(event) => update(index, { quantity: Number(event.target.value) || 0 })}
                 />
@@ -209,6 +215,14 @@ export function LineItemsEditor({
                   placeholder="Précisions visibles sur le PDF..."
                 />
               </div>
+              {line.productId ? (
+                <div className="col-span-12 flex flex-wrap items-center gap-3 rounded-md bg-primary/5 px-3 py-2 text-xs">
+                  <span className="font-medium text-primary">Configuration catalogue</span>
+                  <span className="text-muted-foreground">Tarif {formatEuro(line.listUnitPriceCents ?? line.unitPriceCents)}</span>
+                  <label className="flex items-center gap-1.5 text-muted-foreground">Remise<Input aria-label={`Remise de la ligne ${index + 1}`} type="number" min="0" max="100" step="0.1" value={line.discountRate ?? 0} onChange={(event) => { const discountRate = Math.min(100, Math.max(0, Number(event.target.value) || 0)); const listPrice = line.listUnitPriceCents ?? line.unitPriceCents; update(index, { discountRate, unitPriceCents: Math.round(listPrice * (1 - discountRate / 100)) }) }} className="h-8 w-20" />%</label>
+                  {line.unitCostCents != null ? <span className="ml-auto text-muted-foreground">Marge unitaire {formatEuro(line.unitPriceCents - line.unitCostCents)}</span> : null}
+                </div>
+              ) : null}
             </div>
           )
         })}

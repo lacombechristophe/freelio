@@ -158,6 +158,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{l.label}</span>
+                        {l.productId ? <span className="mt-1 text-xs font-medium text-primary">Configuration catalogue{l.discountRate ? ` · remise ${l.discountRate}%` : ""}</span> : null}
                         {l.description && <span className="text-xs text-muted-foreground">{l.description}</span>}
                       </div>
                     </TableCell>

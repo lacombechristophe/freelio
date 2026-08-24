@@ -150,6 +150,11 @@ export const QuoteLineSchema = z.object({
   quantity: z.number().positive("La quantité doit être > 0"),
   unitPriceCents: z.number().int().nonnegative(),
   tvaRate: z.number().min(0).max(100),
+  productId: z.union([EntityIdSchema, z.literal(""), z.null()]).optional(),
+  configuration: z.object({ optionValueIds: z.array(EntityIdSchema).max(100) }).optional().nullable(),
+  unitCostCents: z.number().int().nonnegative().optional().nullable(),
+  listUnitPriceCents: z.number().int().nonnegative().optional().nullable(),
+  discountRate: z.number().min(0).max(100).optional().default(0),
 })
 
 export const QuoteSchema = z.object({

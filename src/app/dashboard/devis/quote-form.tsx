@@ -14,6 +14,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineItemsEditor, Line } from "@/components/shared/line-items-editor"
 import { createQuote, updateQuote } from "@/actions/devis"
+import { ProductConfigurator } from "./product-configurator"
+
+type ProductCatalog = Awaited<ReturnType<typeof import("@/actions/products").getQuoteProductCatalog>>
 
 type Quote = {
   id: string
@@ -27,11 +30,13 @@ export function QuoteForm({
   quote,
   initialLines,
   clients,
+  productCatalog,
   isTvaApplicable = true,
 }: {
   quote?: Quote
   initialLines?: Line[]
   clients: Array<{ id: string; name: string }>
+  productCatalog: ProductCatalog
   isTvaApplicable?: boolean
 }) {
   const router = useRouter()
@@ -64,6 +69,11 @@ export function QuoteForm({
           quantity: l.quantity,
           unitPriceCents: l.unitPriceCents,
           tvaRate: l.tvaRate,
+          productId: l.productId || undefined,
+          configuration: l.configuration,
+          unitCostCents: l.unitCostCents,
+          listUnitPriceCents: l.listUnitPriceCents,
+          discountRate: l.discountRate ?? 0,
         })),
       }
       if (quote) {
@@ -139,6 +149,12 @@ export function QuoteForm({
           </div>
         </CardContent>
       </Card>
+
+      <ProductConfigurator
+        catalog={productCatalog}
+        isTvaApplicable={isTvaApplicable}
+        onAdd={(line) => setLines((current) => current.length === 1 && !current[0].label.trim() && current[0].unitPriceCents === 0 ? [line] : [...current, line])}
+      />
 
       <Card>
         <CardHeader>

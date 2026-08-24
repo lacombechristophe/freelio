@@ -7,6 +7,7 @@ import { runAutomationEvent } from "@/lib/automations/engine"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
+import { calculateConfiguredProductPrice, resolveProductOptionSelection } from "@/lib/product-pricing"
 import {
   buildYearlyDocumentPrefix,
   nextDocumentNumber,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/document-numbering"
 
 type QuoteInput = z.input<typeof QuoteSchema>
+type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
 
 export async function getQuotes(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
@@ -32,7 +34,7 @@ export async function getQuotes(cursor?: string, limit = 50) {
       },
       orderBy: { createdAt: "desc" },
     })
-  })
+  }, "sales.read")
 }
 
 export async function getQuoteById(id: string) {
@@ -54,7 +56,7 @@ export async function getQuoteById(id: string) {
         },
       },
     })
-  })
+  }, "sales.read")
 }
 
 async function generateQuoteNumber(companyId: string, customPrefix?: string) {
@@ -157,6 +159,44 @@ function computeTotals(lines: Array<{ quantity: number; unitPriceCents: number; 
   return { totalHtCents, totalTvaCents, totalTtcCents: totalHtCents + totalTvaCents }
 }
 
+async function resolveCatalogQuoteLines(companyId: string, inputLines: ValidatedQuoteLine[]) {
+  const productIds = [...new Set(inputLines.flatMap((line) => line.productId ? [line.productId] : []))]
+  const products = productIds.length ? await prisma.product.findMany({
+    where: { companyId, id: { in: productIds }, active: true },
+    include: {
+      optionGroups: { include: { values: { where: { active: true } } } },
+      assemblyComponents: { include: { componentProduct: { select: { purchasePriceCents: true } } } },
+      parentProduct: { include: { optionGroups: { include: { values: { where: { active: true } } } }, assemblyComponents: { include: { componentProduct: { select: { purchasePriceCents: true } } } } } },
+    },
+  }) : []
+  if (products.length !== productIds.length) throw new Error("Une référence catalogue est inactive ou introuvable")
+  const byId = new Map(products.map((product) => [product.id, product]))
+
+  return inputLines.map((line) => {
+    if (!line.productId) return { label: line.label, description: line.description || null, quantity: line.quantity, unitPriceCents: line.unitPriceCents, tvaRate: line.tvaRate, productId: null, configuration: undefined, unitCostCents: null, listUnitPriceCents: null, discountRate: 0 }
+    const product = byId.get(line.productId)
+    if (!product) throw new Error("Référence catalogue introuvable")
+    const optionGroups = [...(product.parentProduct?.optionGroups ?? []), ...product.optionGroups]
+    const optionValueIds = line.configuration?.optionValueIds ?? []
+    const { uniqueIds, selectedValues, selections } = resolveProductOptionSelection(optionGroups, optionValueIds)
+    const components = product.assemblyComponents.length ? product.assemblyComponents : product.parentProduct?.assemblyComponents ?? []
+    const componentCost = components.reduce((sum, component) => sum + Math.round(component.quantity * component.componentProduct.purchasePriceCents * (1 + component.wastePercent / 100)), 0)
+    const pricing = calculateConfiguredProductPrice({ baseSalePriceCents: product.salePriceCents, baseCostCents: components.length ? componentCost : product.purchasePriceCents, optionSaleDeltasCents: selectedValues.map((value) => value.priceDeltaCents), optionCostDeltasCents: selectedValues.map((value) => value.costDeltaCents), discountRate: line.discountRate ?? 0 })
+    return {
+      productId: product.id,
+      label: [product.label, product.variantLabel].filter(Boolean).join(" · "),
+      description: selections.map((selection) => `${selection.groupName} : ${selection.labels.join(", ")}`).join(" · ") || null,
+      quantity: line.quantity,
+      unitPriceCents: pricing.unitPriceCents,
+      tvaRate: product.tvaRate,
+      configuration: { optionValueIds: uniqueIds, selections },
+      unitCostCents: pricing.unitCostCents,
+      listUnitPriceCents: pricing.listUnitPriceCents,
+      discountRate: pricing.discountRate,
+    }
+  })
+}
+
 export async function createQuote(data: QuoteInput) {
   return await withAuth(async ({ companyId, userId }) => {
     const validated = QuoteSchema.parse(data)
@@ -165,10 +205,15 @@ export async function createQuote(data: QuoteInput) {
       select: { isTvaApplicable: true, quotePrefix: true }
     })
     if (!company) throw new Error("Entreprise introuvable")
+    const [client, project] = await Promise.all([
+      prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
+      validated.projectId ? prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId }, select: { id: true } }) : null,
+    ])
+    if (!client) throw new Error("Client introuvable")
+    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client")
 
-    const lines = company.isTvaApplicable
-      ? validated.lines
-      : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
+    const resolvedLines = await resolveCatalogQuoteLines(companyId, validated.lines)
+    const lines = company.isTvaApplicable ? resolvedLines : resolvedLines.map((line) => ({ ...line, tvaRate: 0 }))
 
     const totals = computeTotals(lines)
 
@@ -201,6 +246,11 @@ export async function createQuote(data: QuoteInput) {
                       quantity: l.quantity,
                       unitPriceCents: l.unitPriceCents,
                       tvaRate: l.tvaRate,
+                      productId: l.productId,
+                      configuration: l.configuration,
+                      unitCostCents: l.unitCostCents,
+                      listUnitPriceCents: l.listUnitPriceCents,
+                      discountRate: l.discountRate,
                       order: i,
                     })),
                   },
@@ -223,7 +273,7 @@ export async function createQuote(data: QuoteInput) {
 
     revalidatePath("/dashboard/devis")
     return quote
-  })
+  }, "sales.write")
 }
 
 export async function updateQuote(id: string, data: QuoteInput) {
@@ -241,10 +291,15 @@ export async function updateQuote(id: string, data: QuoteInput) {
       select: { isTvaApplicable: true }
     })
     if (!company) throw new Error("Entreprise introuvable")
+    const [client, project] = await Promise.all([
+      prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
+      validated.projectId ? prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId }, select: { id: true } }) : null,
+    ])
+    if (!client) throw new Error("Client introuvable")
+    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client")
 
-    const lines = company.isTvaApplicable
-      ? validated.lines
-      : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
+    const resolvedLines = await resolveCatalogQuoteLines(companyId, validated.lines)
+    const lines = company.isTvaApplicable ? resolvedLines : resolvedLines.map((line) => ({ ...line, tvaRate: 0 }))
 
     const totals = computeTotals(lines)
     const latestVersion = existing.versions[0]
@@ -269,6 +324,11 @@ export async function updateQuote(id: string, data: QuoteInput) {
                   quantity: l.quantity,
                   unitPriceCents: l.unitPriceCents,
                   tvaRate: l.tvaRate,
+                  productId: l.productId,
+                  configuration: l.configuration,
+                  unitCostCents: l.unitCostCents,
+                  listUnitPriceCents: l.listUnitPriceCents,
+                  discountRate: l.discountRate,
                   order: i,
                 })),
               },
@@ -299,7 +359,7 @@ export async function updateQuote(id: string, data: QuoteInput) {
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${id}`)
     return quote
-  })
+  }, "sales.write")
 }
 
 export async function updateQuoteStatus(

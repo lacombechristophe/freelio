@@ -494,6 +494,7 @@ export async function convertQuoteToCustomerOrder(quoteId: string) {
             totalTtcCents: version.totalTtcCents,
             lines: {
               create: lines.map((line, index) => ({
+                productId: line.productId,
                 label: line.label,
                 description: line.description,
                 quantity: line.quantity,
