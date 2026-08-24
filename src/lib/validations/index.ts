@@ -111,27 +111,37 @@ export const ProjectAcceptanceSchema = z.object({
   dueDate: z.string().optional().or(z.literal("")),
 })
 
+const profileText = (max: number) => z.preprocess(
+  (value) => value == null ? "" : value,
+  z.string().trim().max(max),
+)
+
+const profileMeasurement = (max: number) => z.preprocess(
+  (value) => value == null ? "" : value,
+  z.union([z.literal(""), z.coerce.number().int().min(0).max(max)]),
+)
+
 export const ProjectTechnicalProfileSchema = z.object({
-  surveyStatus: z.enum(["DRAFT", "SURVEYED", "VALIDATED"]).default("DRAFT"),
-  surveyedAt: z.string().optional().or(z.literal("")),
-  surveyedBy: z.string().trim().max(160).optional().or(z.literal("")),
-  poolShape: z.string().trim().max(80).optional().or(z.literal("")),
-  poolLengthMm: z.coerce.number().int().min(0).max(100_000).optional().or(z.literal("")),
-  poolWidthMm: z.coerce.number().int().min(0).max(100_000).optional().or(z.literal("")),
-  poolDepthMm: z.coerce.number().int().min(0).max(20_000).optional().or(z.literal("")),
-  diagonal1Mm: z.coerce.number().int().min(0).max(150_000).optional().or(z.literal("")),
-  diagonal2Mm: z.coerce.number().int().min(0).max(150_000).optional().or(z.literal("")),
-  copingType: z.string().trim().max(160).optional().or(z.literal("")),
-  deckMaterial: z.string().trim().max(160).optional().or(z.literal("")),
-  accessWidthMm: z.coerce.number().int().min(0).max(20_000).optional().or(z.literal("")),
-  powerSupply: z.string().trim().max(160).optional().or(z.literal("")),
-  obstacles: z.string().trim().max(3_000).optional().or(z.literal("")),
-  installationConstraints: z.string().trim().max(3_000).optional().or(z.literal("")),
-  recommendedProduct: z.string().trim().max(250).optional().or(z.literal("")),
-  coverModel: z.string().trim().max(250).optional().or(z.literal("")),
-  coverColor: z.string().trim().max(120).optional().or(z.literal("")),
-  measurementNotes: z.string().trim().max(5_000).optional().or(z.literal("")),
-  validationNotes: z.string().trim().max(5_000).optional().or(z.literal("")),
+  surveyStatus: z.preprocess((value) => value ?? "DRAFT", z.enum(["DRAFT", "SURVEYED", "VALIDATED"])),
+  surveyedAt: profileText(10),
+  surveyedBy: profileText(160),
+  poolShape: profileText(80),
+  poolLengthMm: profileMeasurement(100_000),
+  poolWidthMm: profileMeasurement(100_000),
+  poolDepthMm: profileMeasurement(20_000),
+  diagonal1Mm: profileMeasurement(150_000),
+  diagonal2Mm: profileMeasurement(150_000),
+  copingType: profileText(160),
+  deckMaterial: profileText(160),
+  accessWidthMm: profileMeasurement(20_000),
+  powerSupply: profileText(160),
+  obstacles: profileText(3_000),
+  installationConstraints: profileText(3_000),
+  recommendedProduct: profileText(250),
+  coverModel: profileText(250),
+  coverColor: profileText(120),
+  measurementNotes: profileText(5_000),
+  validationNotes: profileText(5_000),
 })
 
 export const QuoteLineSchema = z.object({
