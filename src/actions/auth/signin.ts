@@ -1,6 +1,6 @@
 "use server"
 
-import { signIn } from "@/auth"
+import { credentialsAuthEnabled, signIn } from "@/auth"
 import { AuthError } from "next-auth"
 import { authRateLimit } from "@/lib/rate-limit"
 import { headers } from "next/headers"
@@ -28,7 +28,7 @@ export async function signInWithEmail(formData: FormData) {
     return { success: false, error: "L'adresse e-mail est requise." }
   }
 
-  const isLocalCredentials = process.env.NODE_ENV === "development"
+  const isLocalCredentials = credentialsAuthEnabled
   if (!isLocalCredentials) {
     // Rate limit by IP to prevent brute-force on the public auth endpoint.
     const headersList = await headers()
@@ -42,7 +42,7 @@ export async function signInWithEmail(formData: FormData) {
 
   try {
     await signIn(
-      process.env.NODE_ENV === "development" ? "credentials" : "resend",
+      credentialsAuthEnabled ? "credentials" : "resend",
       { email, redirectTo }
     )
     return { success: true }
