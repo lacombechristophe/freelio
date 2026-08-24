@@ -20,6 +20,7 @@ type InterventionReportDocument = {
   client: { name: string }
   site: { label: string; address1: string; address2?: string | null; postalCode?: string | null; city?: string | null }
   files: Array<{ name: string; kind: string; size: number; sha256?: string | null }>
+  materials?: Array<{ label: string; unit: string; quantity: number }>
 }
 
 function escapeHtml(value: string | null | undefined) {
@@ -44,6 +45,10 @@ function bytes(value: number) {
   if (value < 1024) return `${value} octets`
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} Ko`
   return `${(value / (1024 * 1024)).toFixed(1).replace(".", ",")} Mo`
+}
+
+function quantity(value: number) {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 }).format(value)
 }
 
 function color(value: string | null | undefined) {
@@ -119,6 +124,7 @@ export function renderInterventionReportHtml(doc: InterventionReportDocument) {
     <div class="fact"><span class="label">Temps passé</span><strong>${escapeHtml(duration(doc.laborMinutes))}</strong></div>
   </div>
   <section><h2>Compte rendu terrain</h2><div class="report">${multiline(doc.report || "Aucun compte rendu renseigné.")}</div></section>
+  ${doc.materials?.length ? `<section><h2>Matériel utilisé (${doc.materials.length})</h2><table><thead><tr><th>Désignation</th><th>Quantité</th></tr></thead><tbody>${doc.materials.map((material) => `<tr><td>${escapeHtml(material.label)}</td><td>${escapeHtml(quantity(material.quantity))} ${escapeHtml(material.unit)}</td></tr>`).join("")}</tbody></table></section>` : ""}
   ${doc.files.length ? `<section><h2>Pièces jointes et photos (${doc.files.length})</h2><table><thead><tr><th>Nom</th><th>Nature</th><th>Taille</th><th>Empreinte SHA-256</th></tr></thead><tbody>${doc.files.map((file) => `<tr><td>${escapeHtml(file.name)}</td><td>${escapeHtml(file.kind === "PHOTO" ? "Photo" : "Document")}</td><td>${escapeHtml(bytes(file.size))}</td><td class="digest">${escapeHtml(file.sha256 || "Non disponible")}</td></tr>`).join("")}</tbody></table></section>` : ""}
   <section><h2>Accord client et intégrité</h2><div class="proof"><div><span class="label">Client présent</span><strong>${escapeHtml(doc.customerName || "Non renseigné")}</strong><p>Accord horodaté le ${escapeHtml(dateTime(doc.signedAt))}</p></div><div><span class="label">Empreinte du rapport</span><strong class="digest">${escapeHtml(doc.signatureSha256 || "Rapport non scellé")}</strong></div></div></section>
   <footer><strong>${escapeHtml(doc.company.name)}</strong> · Rapport généré depuis le dossier d’intervention · Les originaux des pièces restent conservés dans la GED privée.</footer>

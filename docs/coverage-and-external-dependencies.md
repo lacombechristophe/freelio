@@ -23,7 +23,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Consentement | **Disponible** | événements et preuve hashée, retrait interne, lien public signé généré depuis la file prospects, retrait idempotent | pas de centre de préférences multicanal ; durées et texte RGPD à valider |
 | Clients et contacts | **Disponible** | fiches entreprise/particulier, contacts, coordonnées, activités, fichiers et prochaine action | dédoublonnage global/humain encore limité |
 | Sites/adresses multiples | **Disponible** | `CustomerSite` structuré avec accès et coordonnées | géocodage/cartographie non intégrés |
-| Pipeline commercial | **Partiel** | étapes, opportunités, montant, probabilité, client et activités | propriétaires, forecast avancé, motifs/statistiques et automatisations à recetter selon usage réel |
+| Pipeline commercial | **Partiel** | étapes, opportunités, responsable lié à l’équipe, montant, probabilité, clôture prévue/réelle, motif de perte obligatoire et forecast pondéré du mois | prévisions multi-périodes, quotas et statistiques de vélocité à approfondir |
 | Chronologie commerciale | **Partiel** | activités manuelles et activités importées | pas de synchronisation native e-mail/appels/réunions ni boîte partagée |
 | Tâches et agenda | **Partiel** | objectifs, tâches, récurrence et export ICS | pas de synchronisation calendrier bidirectionnelle, invitations ou disponibilité |
 | E-mails individuels | **Partiel** | envoi Resend des séquences, personnalisation, journal et brouillons de relance | pas de boîte de réception CRM, suivi des réponses/ouvertures ni synchronisation e-mail bidirectionnelle |
@@ -32,7 +32,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Marketing automation/campagnes | **Partiel** | séquences ciblées sur prospects consentis, règles CRM et arrêt immédiat lors du retrait | campagnes de masse, segments dynamiques, délivrabilité avancée et reporting marketing à compléter ou externaliser |
 | Scoring/segmentation/listes | **Non couvert** | un score relation historique existe, sans moteur HubSpot équivalent | définir les segments essentiels ou accepter l'abandon |
 | Conversations, publicité, social | **Non couvert** | — | externaliser ou exclure formellement |
-| Rapports commerciaux | **Partiel** | dashboard, pipeline et indicateurs de base | rapports d'attribution, vélocité et activité par commercial à compléter selon le compte réel |
+| Rapports commerciaux | **Partiel** | dashboard, pipeline ouvert, forecast pondéré, échéances, attribution et affaires non attribuées | rapports d'attribution multicanale, vélocité et objectifs par commercial à compléter selon le compte réel |
 | Import historique HubSpot | **Partiel** | découverte, exports CRM asynchrones, objets personnalisés, associations, analyse/import/vérification | fichiers privés, formulaires, workflows, inbox et certains historiques exigent des exports/API complémentaires |
 
 **Conclusion HubSpot :** le cœur CRM/vente, la capture, les séquences simples et les règles événementielles sont couverts. Une résiliation reste bloquée si l’entreprise dépend d’une boîte partagée, de calendriers synchronisés, de campagnes de masse, de scoring avancé ou de workflows à branches non reconstruits.
@@ -58,8 +58,8 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Planning | **Partiel** | tâches, dates, interventions planifiées, affectation membre et charge hebdomadaire comparée à la capacité configurable | pas d’optimisation de tournée, de dépendances avancées ni de prise de rendez-vous client |
 | Terrain mobile | **Partiel** | PWA installable, cache borné à 24 h, missions accessibles hors ligne, brouillons, clôtures et photos mises en attente puis resynchronisées | hors-ligne limité au terrain ; pas de signature manuscrite ni de résolution assistée des conflits complexes |
 | Parc installé | **Disponible** | site, produit, fabricant, modèle, série, pose, garantie et état | notices et historique de pièces non structurés |
-| Tickets SAV | **Disponible** | client/site/équipement, priorité, affectation, échéance, statuts et résolution | SLA, diagnostic guidé, pièces consommées et coûts SAV à enrichir |
-| Interventions SAV | **Partiel** | planification, technicien, progression, rapport, minutes, photos/pièces contrôlées, acquittement hashé, PDF client et clôture hors ligne | pièces détachées consommées, frais et signature manuscrite à enrichir |
+| Tickets SAV | **Disponible** | client/site/équipement, priorité, affectation, échéance, statuts, résolution et interventions rattachées | SLA et diagnostic guidé à enrichir |
+| Interventions SAV | **Partiel** | planification, technicien, progression, rapport, minutes, coût horaire, consommation transactionnelle du stock, coût matériel figé, photos/pièces, acquittement hashé et PDF client | saisie du matériel hors ligne, frais annexes et signature manuscrite à enrichir |
 | Contrats d'entretien | **Partiel** | contrat, site, équipements, fréquence, prochaine visite, prix, création idempotente des visites et factures automatiques | renouvellement contractuel, alertes et cas tarifaires complexes à compléter |
 | GED | **Partiel** | fichiers client/projet/dépense/intervention, stockage R2 privé, hash, contrôle de signature de fichier et accès authentifié | classement, recherche plein texte et politiques de conservation à formaliser |
 | Portail client | **Non couvert** | signature publique de contrat uniquement | documents, rendez-vous, messages et suivi client absents |
@@ -95,7 +95,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Permissions | **Partiel** | lecture/écriture par domaine et isolation `companyId` | pas d'autorisation fine par dossier/équipe ; audit de sécurité nécessaire |
 | Authentification | **Partiel** | lien magique Resend, session JWT, connexion locale limitée au développement | pas de MFA ni interface de révocation de session |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
-| PostgreSQL | **Disponible** | schéma miroir, client dédié et cinq migrations versionnées validées sur une base PostgreSQL vierge | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
+| PostgreSQL | **Disponible** | schéma miroir, client dédié et sept migrations versionnées validées sur une base PostgreSQL vierge | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
 | Stockage objet | **Disponible** | R2 privé obligatoire en production, hash et accès authentifié | versioning/rétention/sauvegarde fournisseur à configurer |
 | Rate limiting | **Disponible** | Upstash distribué ou mémoire locale | Upstash requis en production multi-instance |
 | Files de travaux | **Partiel** | BullMQ pour les documents, processeur persistant des séquences e-mail et ordonnanceur entretien/factures dans le worker, avec routes de cron protégées | supervision, alertes, quotas et procédure de rejeu à configurer |
@@ -104,7 +104,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Réversibilité | **Disponible** | export versionné des tables société, fichiers locaux/R2 et manifeste d'intégrité, avec secrets/jetons exclus | la reprise du JSON est logique et contrôlée ; le PRA complet repose sur PostgreSQL/R2 natifs |
 | Sauvegarde/PRA | **Externe** | export applicatif utile à la portabilité | sauvegardes natives PostgreSQL/R2, PITR et tests de restauration à configurer |
 | Supervision | **Partiel** | logs structurés et routes publiques de vie/aptitude sans exposition de secrets | brancher moniteur, collecte d’erreurs, métriques et alertes humaines |
-| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 76 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
+| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 79 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
 | E2E | **Disponible** | parcours critiques Playwright desktop/mobile | exécution finale sur préproduction isolée nécessaire |
 | PWA/hors ligne | **Partiel** | manifeste, service worker et espace terrain hors ligne borné avec reprise des clôtures/photos | pas de fonctionnement hors ligne du CRM/ERP complet ni de résolution avancée de conflits |
 | Sécurité externe | **Externe** | CSP, contrôles de routes, chiffrement et rate limiting dans le code | revue de configuration, pentest et procédure incident avant données réelles |

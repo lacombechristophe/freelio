@@ -42,6 +42,7 @@ export async function getTeamOverview() {
         status: member.status,
         title: member.title,
         weeklyCapacityMinutes: member.weeklyCapacityMinutes,
+        hourlyCostCents: member.hourlyCostCents,
         createdAt: member.createdAt.toISOString(),
         user: member.user,
       })),
@@ -148,14 +149,14 @@ export async function updateTeamMemberRole(memberId: string, nextRole: CompanyRo
   }, "members.manage")
 }
 
-export async function updateTeamMemberCapacity(memberId: string, weeklyHours: number) {
+export async function updateTeamMemberWorkSettings(memberId: string, weeklyHours: number, hourlyCostCents: number) {
   return withAuth(async ({ companyId, role: actorRole }) => {
-    const parsed = z.object({ memberId: memberIdSchema, weeklyHours: z.coerce.number().min(1).max(168) }).safeParse({ memberId, weeklyHours })
-    if (!parsed.success) return { success: false as const, error: "La capacité doit être comprise entre 1 et 168 heures." }
+    const parsed = z.object({ memberId: memberIdSchema, weeklyHours: z.coerce.number().min(1).max(168), hourlyCostCents: z.coerce.number().int().min(0).max(1_000_000) }).safeParse({ memberId, weeklyHours, hourlyCostCents })
+    if (!parsed.success) return { success: false as const, error: "Capacité ou coût horaire invalide." }
     const member = await prisma.membership.findFirst({ where: { id: parsed.data.memberId, companyId }, select: { id: true, role: true } })
     if (!member) return { success: false as const, error: "Membre introuvable." }
-    if (!canAssignRole(actorRole, normalizeCompanyRole(member.role))) return { success: false as const, error: "Vous ne pouvez pas modifier cette capacité." }
-    await prisma.membership.update({ where: { id: member.id }, data: { weeklyCapacityMinutes: Math.round(parsed.data.weeklyHours * 60) } })
+    if (!canAssignRole(actorRole, normalizeCompanyRole(member.role))) return { success: false as const, error: "Vous ne pouvez pas modifier ces paramètres." }
+    await prisma.membership.update({ where: { id: member.id }, data: { weeklyCapacityMinutes: Math.round(parsed.data.weeklyHours * 60), hourlyCostCents: parsed.data.hourlyCostCents } })
     revalidatePath("/dashboard/equipe")
     revalidatePath("/dashboard/operations")
     return { success: true as const }

@@ -157,11 +157,48 @@ test("new local-first surfaces load and their primary controls respond", async (
   await page.screenshot({ path: path.join(evidenceDir, `${testInfo.project.name}-dashboard.png`), fullPage: false })
 })
 
-test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ page }) => {
+test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ page }, testInfo) => {
   await assertHealthy(page, "/dashboard/pipeline", "Pipeline")
+
+  if (testInfo.project.name === "desktop") {
+    await page.getByRole("button", { name: "Nouvelle Opportunité" }).click()
+    await page.getByLabel("Titre").fill("Prévision commerciale QA")
+    await page.getByLabel("Client").click()
+    await page.getByRole("option", { name: "Client QA Piscine" }).click()
+    await page.getByLabel("Valeur (€)").fill("10000")
+    await page.getByLabel("Probabilité (%)").fill("40")
+    await page.getByLabel("Responsable commercial").click()
+    await page.getByRole("option", { name: "Utilisateur QA" }).click()
+    const forecastDate = `${new Date().toISOString().slice(0, 7)}-28`
+    await page.getByLabel("Clôture prévue").fill(forecastDate)
+    await page.getByRole("button", { name: "Créer", exact: true }).click()
+    await expect(page.getByText("Opportunité créée.")).toBeVisible()
+    const forecastCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
+    await expect(forecastCard).toContainText("Utilisateur QA")
+    await expect(page.getByText("Prévu ce mois").locator("..")).toContainText("4 000 €")
+
+    await forecastCard.getByRole("button", { name: "Ouvrir les actions de l’opportunité" }).click()
+    await page.getByRole("menuitem", { name: "Marquer perdu avec un motif" }).click()
+    await page.getByLabel("Motif de perte").fill("Budget reporté après arbitrage")
+    await page.getByRole("button", { name: "Enregistrer" }).click()
+    await expect(page.getByText("Opportunité mise à jour.")).toBeVisible()
+    const lostCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
+    await expect(lostCard).toContainText("Budget reporté après arbitrage")
+    await lostCard.getByRole("button", { name: "Ouvrir les actions de l’opportunité" }).click()
+    await page.getByRole("menuitem", { name: "Déplacer → Besoin qualifié" }).click()
+    await expect(page.getByText("Étape mise à jour.")).toBeVisible()
+    const reopenedCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
+    await expect(reopenedCard).toContainText("Utilisateur QA")
+    await expect(reopenedCard).not.toContainText("Budget reporté après arbitrage")
+  }
 
   const viewport = page.locator("[data-pipeline-scroll-viewport]")
   await expect(viewport).toHaveCount(1)
+  await viewport.evaluate((element) => {
+    element.scrollLeft = 0
+    element.dispatchEvent(new Event("scroll"))
+  })
+  await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBe(0)
 
   const initialState = await viewport.evaluate((element) => ({
     clientWidth: element.clientWidth,
@@ -350,6 +387,10 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
 test("field report and maintenance contract flow", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Les mutations destructives sont validées une fois ; les surfaces restent testées sur mobile.")
   test.setTimeout(180_000)
+  await assertHealthy(page, "/dashboard/equipe", "Équipe")
+  await page.getByLabel("Coût horaire interne en euros").fill("40")
+  await page.getByTitle("Enregistrer capacité et coût").click()
+  await expect(page.getByText("Capacité et coût horaire mis à jour.")).toBeVisible()
   await assertHealthy(page, "/dashboard/operations", "Opérations")
 
   await page.getByRole("tab", { name: "Planning" }).click()
@@ -358,6 +399,13 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await expect(planningPanel.getByText("Utilisateur QA", { exact: true }).first()).toBeVisible()
   const intervention = planningPanel.locator("article").filter({ hasText: "Intervention QA terrain" })
   await expect(intervention).toBeVisible()
+  await intervention.getByRole("button", { name: "Matériel utilisé" }).click()
+  await page.getByLabel("Dépôt").selectOption({ label: "Dépôt QA" })
+  await page.getByLabel("Produit").selectOption({ label: "QA-COVER · Couverture de test" })
+  await page.getByLabel("Quantité consommée").fill("1")
+  await page.getByRole("button", { name: "Consommer", exact: true }).click()
+  await expect(page.getByText("Matériel consommé et coût réel mis à jour.")).toBeVisible()
+  await expect(intervention.getByText("Matériel 50,00 €")).toBeVisible()
   await intervention.getByLabel("Ajouter une pièce à Intervention QA terrain").setInputFiles({
     name: "photo-fin-qa.png",
     mimeType: "image/png",
@@ -379,11 +427,15 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await page.getByRole("button", { name: "Valider la clôture" }).click()
   await expect(page.getByText("Intervention clôturée et accord client scellé.")).toBeVisible()
   await expect(page.getByText(/Compte rendu : Pose contrôlée/)).toBeVisible()
+  await expect(intervention.getByText("100,00 €", { exact: true })).toBeVisible()
   const reportHref = await intervention.getByRole("link", { name: "Rapport PDF" }).getAttribute("href")
   expect(reportHref).toBeTruthy()
   const reportResponse = await page.request.get(reportHref!)
   expect(reportResponse.ok()).toBeTruthy()
   expect((await reportResponse.body()).subarray(0, 4).toString("ascii")).toBe("%PDF")
+  const reportPreview = await page.request.get(`${reportHref}?screen=1`)
+  expect(reportPreview.ok()).toBeTruthy()
+  expect(await reportPreview.text()).toContain("Couverture de test")
 
   const operationType = page.getByRole("combobox", { name: "Type d’opération" })
   await operationType.click()

@@ -14,10 +14,11 @@ export const interventionCompletionSchema = z.object({
   customerApproval: z.literal(true, { error: "L’accord du client doit être confirmé" }),
 })
 
-export async function completeFieldInterventionForContext(input: unknown, context: { companyId: string; userId: string }) {
+export async function completeFieldInterventionForContext(input: unknown, context: { companyId: string; userId: string; membershipId?: string; role?: string }) {
   const data = interventionCompletionSchema.parse(input)
+  const technicianScope = context.role === "TECHNICIAN" ? { assignedMembershipId: context.membershipId } : {}
   const intervention = await prisma.fieldIntervention.findFirst({
-    where: { id: data.interventionId, companyId: context.companyId },
+    where: { id: data.interventionId, companyId: context.companyId, ...technicianScope },
     select: { id: true, status: true, ticketId: true },
   })
   if (!intervention) throw new Error("Intervention introuvable")
@@ -31,7 +32,7 @@ export async function completeFieldInterventionForContext(input: unknown, contex
 
   await prisma.$transaction(async (tx) => {
     const claimed = await tx.fieldIntervention.updateMany({
-      where: { id: intervention.id, companyId: context.companyId, status: { notIn: ["CANCELED", "COMPLETED"] } },
+      where: { id: intervention.id, companyId: context.companyId, ...technicianScope, status: { notIn: ["CANCELED", "COMPLETED"] } },
       data: {
         status: "COMPLETED",
         startedAt: intervention.status === "PLANNED" ? signedAt : undefined,

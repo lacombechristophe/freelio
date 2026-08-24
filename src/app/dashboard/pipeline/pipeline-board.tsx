@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { ChevronLeft, ChevronRight, Plus, MoreHorizontal, Euro, Target } from "lucide-react"
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Euro, Target, UserRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -24,17 +24,27 @@ type Opportunity = {
   probability: number
   clientId: string
   client: { id: string; name: string }
-  createdAt: Date | string
+  ownerMembershipId: string | null
+  ownerName: string | null
+  closeDate: string | null
+  closedAt: string | null
+  lostReason: string | null
+  createdAt: string
 }
 
 type Pipeline = {
-  id: string
-  stages: unknown
+  id: string | null
+  stages: Array<{ id: string; title: string }>
+  members: Array<{ id: string; name: string }>
   opportunities: Opportunity[]
 } | null
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(cents / 100)
+}
+
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00.000Z`))
 }
 
 const DEFAULT_STAGES = [
@@ -228,7 +238,9 @@ export function PipelineBoard({
   const stages = Array.isArray(pipeline?.stages)
     ? (pipeline.stages as Array<{ id: string; title: string }>)
     : DEFAULT_STAGES
+  const displayStages = stages.some((stage) => stage.id === "LOST") ? stages : [...stages, { id: "LOST", title: "Perdu" }]
   const opportunities = pipeline?.opportunities ?? []
+  const members = pipeline?.members ?? []
 
   const [createOpen, setCreateOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<Opportunity | null>(null)
@@ -240,13 +252,17 @@ export function PipelineBoard({
     canScrollRight,
   } = usePipelineScroll()
 
-  const totalValue = opportunities
-    .filter((o) => o.status !== "LOST")
+  const openOpportunities = opportunities.filter((opportunity) => !["LOST", "WON"].includes(opportunity.status))
+  const totalValue = openOpportunities
     .reduce((sum, o) => sum + o.valueCents, 0)
 
-  const weightedValue = opportunities
-    .filter((o) => o.status !== "LOST")
+  const weightedValue = openOpportunities
     .reduce((sum, o) => sum + (o.valueCents * o.probability) / 100, 0)
+  const monthKey = new Date().toISOString().slice(0, 7)
+  const currentMonthForecast = openOpportunities
+    .filter((opportunity) => opportunity.closeDate?.startsWith(monthKey))
+    .reduce((sum, opportunity) => sum + (opportunity.valueCents * opportunity.probability) / 100, 0)
+  const unassigned = openOpportunities.filter((opportunity) => !opportunity.ownerMembershipId && !opportunity.ownerName).length
 
   async function moveToStage(id: string, status: string) {
     try {
@@ -272,9 +288,11 @@ export function PipelineBoard({
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-4">
       <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
-          <div><span className="text-muted-foreground">Pipeline total</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(totalValue)}</span></div>
-          <div><span className="text-muted-foreground">Valeur pondérée</span><span className="ml-2 font-mono font-semibold tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
+        <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm">
+          <div><span className="text-muted-foreground">Ouvert</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(totalValue)}</span></div>
+          <div><span className="text-muted-foreground">Pondéré</span><span className="ml-2 font-mono font-semibold tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
+          <div><span className="text-muted-foreground">Prévu ce mois</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(currentMonthForecast)}</span></div>
+          <div><span className="text-muted-foreground">Sans responsable</span><span className={`ml-2 font-mono font-semibold tabular-nums ${unassigned ? "text-warning" : ""}`}>{unassigned}</span></div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
           <div
@@ -315,6 +333,7 @@ export function PipelineBoard({
         onOpenChange={setCreateOpen}
         stages={stages}
         clients={clients}
+        members={members}
       />
       {editTarget && (
         <OpportunityFormDialog
@@ -322,6 +341,7 @@ export function PipelineBoard({
           onOpenChange={(o) => !o && setEditTarget(null)}
           stages={stages}
           clients={clients}
+          members={members}
           opportunity={editTarget}
         />
       )}
@@ -335,7 +355,7 @@ export function PipelineBoard({
           aria-label="Étapes du pipeline"
           tabIndex={0}
         >
-          {stages.map((stage) => {
+          {displayStages.map((stage) => {
             const deals = opportunities.filter((o) => o.status === stage.id)
             const stageValue = deals.reduce((sum, o) => sum + o.valueCents, 0)
 
@@ -371,15 +391,13 @@ export function PipelineBoard({
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => setEditTarget(deal)}>Éditer</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {stages.map((s) => s.id !== deal.status && (
+                              {displayStages.map((s) => s.id !== deal.status && (
                                 <DropdownMenuItem key={s.id} onClick={() => moveToStage(deal.id, s.id)}>
                                   Déplacer → {s.title}
                                 </DropdownMenuItem>
                               ))}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-danger" onClick={() => moveToStage(deal.id, "LOST")}>
-                                Marquer perdu
-                              </DropdownMenuItem>
+                              {deal.status !== "LOST" ? <DropdownMenuItem className="text-danger" onClick={() => setEditTarget({ ...deal, status: "LOST" })}>Marquer perdu avec un motif</DropdownMenuItem> : null}
                               <DropdownMenuItem className="text-danger" onClick={() => handleDelete(deal.id)}>
                                 Supprimer
                               </DropdownMenuItem>
@@ -387,6 +405,11 @@ export function PipelineBoard({
                           </DropdownMenu>
                         </div>
                         <p className="text-xs text-muted-foreground">{deal.client.name}</p>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <p className="flex items-center gap-1.5"><UserRound className="size-3.5" />{deal.ownerName || "Non attribué"}</p>
+                          {deal.closeDate ? <p className={`flex items-center gap-1.5 ${deal.status !== "LOST" && deal.status !== "WON" && deal.closeDate < new Date().toISOString().slice(0, 10) ? "font-medium text-danger" : ""}`}><CalendarDays className="size-3.5" />{formatShortDate(deal.closeDate)}</p> : null}
+                          {deal.status === "LOST" && deal.lostReason ? <p className="rounded-md bg-danger/5 px-2 py-1.5 text-danger">{deal.lostReason}</p> : null}
+                        </div>
                         <div className="flex items-center justify-between pt-1 border-t">
                           <div className="flex items-center gap-1 text-xs font-bold">
                             <Euro className="h-3 w-3 text-muted-foreground" />

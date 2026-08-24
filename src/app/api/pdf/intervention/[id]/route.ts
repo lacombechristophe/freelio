@@ -21,6 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ticket: { select: { number: true } },
       assignedMembership: { include: { user: { select: { name: true, email: true } } } },
       files: { orderBy: { createdAt: "asc" } },
+      stockMovements: { where: { type: "OUT" }, include: { product: { select: { label: true, unit: true } } }, orderBy: { happenedAt: "asc" } },
     },
   })
   if (!intervention) return NextResponse.json({ error: "Intervention introuvable" }, { status: 404 })
@@ -46,6 +47,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     client: intervention.site.client,
     site: intervention.site,
     files: intervention.files,
+    materials: intervention.stockMovements.map((movement) => ({ label: movement.product.label, unit: movement.product.unit, quantity: Math.abs(movement.quantity) })),
   })
 
   if (new URL(request.url).searchParams.get("screen") === "1") {

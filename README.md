@@ -9,11 +9,11 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - capture des prospects depuis `diskoov.fr`, sources/UTM, anti-doublon et preuve de consentement ;
 - modèles d’e-mail, séquences multi-étapes, règles CRM, journal d’envoi et désinscription automatique ;
 - clients, contacts, sites d'installation, activités et prochaines actions ;
-- pipeline commercial, opportunités, devis versionnés, contrats et signature publique par jeton ;
+- pipeline commercial avec responsables, échéances, forecast pondéré et motifs de perte, devis versionnés, contrats et signature publique par jeton ;
 - conversion devis → commande client → facture d'acompte ou de solde ;
 - projets, relevé technique piscine, jalons, documents et réception ;
 - fournisseurs, produits, dépôts, achats, réceptions, mouvements et réservations de stock ;
-- équipements installés, tickets SAV, planning de capacité et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
+- équipements installés, tickets SAV, planning de capacité, coûts horaires, matériel consommé et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
 - contrats d’entretien avec visites et factures récurrentes idempotentes ;
 - factures, règlements, avoirs, relances, récurrence, dépenses, import bancaire et Factur-X ;
 - équipe multi-utilisateur avec rôles et permissions par domaine ;
