@@ -168,7 +168,7 @@ export function renderContractHtml(doc: ContractPdfDocument) {
   body {
     background: #ffffff;
     color: #202630;
-    font-family: "Freelio Sans", Arial, sans-serif;
+    font-family: "CRM Sans", Arial, sans-serif;
     font-size: 9.7pt;
     font-variant-numeric: lining-nums tabular-nums;
     line-height: 1.48;
@@ -198,7 +198,7 @@ export function renderContractHtml(doc: ContractPdfDocument) {
   .document-kind { color: ${primary}; font-size: 7.5pt; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   h1 {
     color: #1a2029;
-    font-family: "Freelio Serif", Georgia, serif;
+    font-family: "CRM Serif", Georgia, serif;
     font-size: 21.5pt;
     font-weight: 600;
     letter-spacing: -0.018em;

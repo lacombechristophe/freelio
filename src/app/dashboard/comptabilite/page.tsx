@@ -1,11 +1,9 @@
 import Link from "next/link"
 import {
-  TrendingUp, AlertCircle, Receipt, Calendar, CheckCircle2, Landmark,
+  TrendingUp, AlertCircle, Receipt, Calendar, CheckCircle2, Download, Landmark,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getAccountingSnapshot } from "@/actions/accounting"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
@@ -26,87 +24,63 @@ export default async function ComptabilitePage() {
     return (
       <OnboardingRequired
         title="Configurez votre comptabilité"
-        description="Terminez l’onboarding pour suivre votre chiffre d’affaires, vos cotisations et votre trésorerie."
+        description="Terminez l’onboarding pour suivre votre chiffre d’affaires, votre TVA et votre trésorerie."
       />
     )
   }
 
   const year = new Date().getFullYear()
-  const tvaRemaining = snapshot.tvaThreshold - snapshot.caYearCents
-  const overThreshold = snapshot.caYearCents >= snapshot.tvaThreshold
-
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Pilotage financier"
-        title="Comptabilité & URSSAF"
-        description="Suivez vos encaissements, vos repères de TVA et vos estimations pour préparer les échanges avec votre comptable."
+        title="Finance & comptabilité"
+        description="Pilotez facturation, encaissements, encours, TVA et rentabilité, puis transmettez un export contrôlé au cabinet comptable."
         actions={<>
+          <a href="/api/accounting/export"><Button variant="outline" className="gap-2"><Download className="h-4 w-4" /> Export comptable</Button></a>
           <Link href="/dashboard/comptabilite/banque"><Button variant="outline" className="gap-2"><Landmark className="h-4 w-4" /> Banque</Button></Link>
           <Link href="/dashboard/factures"><Button variant="outline" className="gap-2"><Receipt className="h-4 w-4" /> Voir les factures</Button></Link>
         </>}
       />
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className={overThreshold ? "border-danger/40 relative" : "border-warning/20 relative"}>
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-              Repère de franchise TVA ({year})
+              Facturé HT ({year})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatEuro(snapshot.caYearCents)}</div>
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-tighter">
-                <span>Progression</span>
-                <span>{snapshot.tvaProgressPct}%</span>
-              </div>
-              <Progress value={snapshot.tvaProgressPct} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                Seuil : {formatEuro(snapshot.tvaThreshold)}
-                {tvaRemaining > 0 ? ` — reste ${formatEuro(tvaRemaining)}` : " — DÉPASSÉ"}
-              </p>
-            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{formatEuro(snapshot.billedYearTtcCents)} TTC, avoirs déduits</p>
           </CardContent>
-          {overThreshold && (
-            <div className="absolute top-0 right-0 p-4">
-              <AlertCircle className="h-4 w-4 text-danger" />
-            </div>
-          )}
         </Card>
 
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-primary/70">Cotisations URSSAF (Est.)</CardTitle>
+            <CardTitle className="text-sm font-medium uppercase tracking-widest text-primary/70">Encaissé ({year})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatEuro(snapshot.urssafEstimateCents)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Taux configuré : {snapshot.socialContributionRate.toLocaleString("fr-FR")}%</p>
-            <div className="mt-4 flex items-center gap-2">
-              <Badge className="bg-primary/10 text-primary border-none text-xs uppercase tracking-tighter">
-                CA {year}
-              </Badge>
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-tighter">
-                Estimation annuelle
-              </span>
-            </div>
+            <div className="text-2xl font-bold">{formatEuro(snapshot.paidYearCents)}</div>
+            <p className="mt-2 text-xs text-muted-foreground">Tous règlements enregistrés sur la période</p>
+          </CardContent>
+        </Card>
+
+        <Card className={snapshot.overdueCount ? "border-danger/40" : undefined}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Encours client</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatEuro(snapshot.outstandingCents)}</div>
+            <p className={snapshot.overdueCount ? "mt-2 flex items-center gap-1 text-xs text-danger" : "mt-2 text-xs text-muted-foreground"}>{snapshot.overdueCount ? <AlertCircle className="size-3.5" /> : null}{snapshot.overdueCount} échéance{snapshot.overdueCount > 1 ? "s" : ""} dépassée{snapshot.overdueCount > 1 ? "s" : ""} · {formatEuro(snapshot.overdueCents)}</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Revenu Net Estimé</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">TVA indicative</CardTitle></CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${snapshot.netIncomeCents < 0 ? "text-danger" : ""}`}>
-              {formatEuro(snapshot.netIncomeCents)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">CA HT − URSSAF − dépenses</p>
-            <div className="mt-4 flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs uppercase">
-                Dépenses : {formatEuro(snapshot.expensesYearCents)}
-              </Badge>
-            </div>
+            <div className="text-2xl font-bold">{snapshot.isTvaApplicable ? formatEuro(snapshot.tvaBalanceCents) : "Non applicable"}</div>
+            <p className="mt-2 text-xs text-muted-foreground">Collectée {formatEuro(snapshot.tvaCollectedCents)} · déductible {formatEuro(snapshot.tvaDeductibleCents)}</p>
           </CardContent>
         </Card>
       </div>
@@ -157,10 +131,10 @@ export default async function ComptabilitePage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Encaissé sur l'année</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Marge directe indicative</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatEuro(snapshot.paidYearCents)}</p>
+            <p className="text-2xl font-bold">{formatEuro(snapshot.directMarginCents)}</p><p className="mt-1 text-xs text-muted-foreground">Facturé HT − dépenses HT enregistrées</p>
           </CardContent>
         </Card>
       </div>
@@ -171,7 +145,7 @@ export default async function ComptabilitePage() {
             <Calendar className="h-4 w-4" />
             Livre de recettes — Factures encaissées ({snapshot.recentPaid.length})
           </CardTitle>
-          <CardDescription>20 dernières factures payées — obligatoires pour l'auto-entrepreneur.</CardDescription>
+          <CardDescription>20 dernières factures payées, prêtes pour le suivi comptable.</CardDescription>
         </CardHeader>
         <CardContent>
           {snapshot.recentPaid.length === 0 ? (
@@ -212,9 +186,8 @@ export default async function ComptabilitePage() {
       </Card>
 
       <div className="p-4 rounded-lg bg-muted/20 border-l-4 border-primary text-xs text-muted-foreground">
-        <p className="font-bold text-primary mb-1 uppercase tracking-widest">Note</p>
-        Les montants fiscaux et sociaux sont des estimations basées sur les taux et repères configurés dans Paramètres.
-        Vérifiez-les selon votre statut, votre activité et les textes applicables avant toute déclaration.
+        <p className="font-bold text-primary mb-1 uppercase tracking-widest">Périmètre comptable</p>
+        L’archive téléchargée est un export précomptable équilibré accompagné de ses empreintes. Elle ne constitue pas un FEC réglementaire ni une comptabilité générale certifiée et doit être validée par le cabinet comptable avant import ou déclaration.
       </div>
     </div>
   )

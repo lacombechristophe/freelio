@@ -105,7 +105,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
       <PageHeader
         eyebrow="Charges"
         title="Dépenses"
-        description="Conservez les justificatifs, rattachez les achats aux missions et gardez une vue claire sur vos charges."
+        description="Conservez les justificatifs, rattachez les achats aux chantiers et gardez une vue claire sur vos charges."
         actions={<>
           <Button variant="outline" className="gap-2" onClick={() => setCreateOpen(true)}>
             <Camera className="h-4 w-4" />

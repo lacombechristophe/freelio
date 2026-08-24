@@ -14,7 +14,7 @@ export default async function ProjetsPage() {
       <PageHeader
         eyebrow="Missions"
         title="Projets"
-        description="Pilotez les budgets, le temps consommé et l’avancement de chaque mission active."
+        description="Pilotez les budgets, le temps consommé et l’avancement de chaque chantier actif."
       />
       <ProjetsGrid projects={projects ?? []} clients={clients ?? []} />
     </div>

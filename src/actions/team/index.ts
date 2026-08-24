@@ -192,7 +192,7 @@ export async function getInvitationPreview(token: string) {
       role: true,
       expiresAt: true,
       acceptedAt: true,
-      company: { select: { name: true } },
+      company: { select: { name: true, logo: true, brandColor: true } },
     },
   })
 
@@ -201,6 +201,8 @@ export async function getInvitationPreview(token: string) {
     email: invitation.email,
     role: normalizeCompanyRole(invitation.role),
     companyName: invitation.company.name,
+    companyLogo: invitation.company.logo,
+    companyBrandColor: invitation.company.brandColor,
     expiresAt: invitation.expiresAt.toISOString(),
   }
 }

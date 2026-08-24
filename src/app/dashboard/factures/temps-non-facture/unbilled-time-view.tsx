@@ -386,7 +386,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
                 id="invoice-object"
                 value={object}
                 onChange={(event) => setObject(event.target.value)}
-                placeholder="Ex: Développement application web"
+                placeholder="Ex : Pose, réglages et contrôle de fin de chantier"
               />
             </div>
 

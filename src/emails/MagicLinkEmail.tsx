@@ -16,15 +16,17 @@ import * as React from "react";
 interface MagicLinkEmailProps {
   url: string;
   host: string;
+  appName: string;
+  homeUrl: string;
 }
 
-export const MagicLinkEmail = ({ url, host }: MagicLinkEmailProps) => (
+export const MagicLinkEmail = ({ url, host, appName, homeUrl }: MagicLinkEmailProps) => (
   <Html>
     <Head />
-    <Preview>Connectez-vous à votre espace Entreprise Pilote</Preview>
+    <Preview>Connectez-vous à votre espace {appName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Entreprise Pilote</Heading>
+        <Heading style={h1}>{appName}</Heading>
         <Text style={text}>
           Bonjour,
         </Text>
@@ -40,8 +42,8 @@ export const MagicLinkEmail = ({ url, host }: MagicLinkEmailProps) => (
           Ce lien est valable 10 minutes. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.
         </Text>
         <Hr style={hr} />
-        <Link href="https://domaine-client.fr" style={footerLink}>
-          Entreprise Pilote — Votre espace ventes, chantiers et service client.
+        <Link href={homeUrl} style={footerLink}>
+          {appName} — espace ventes, chantiers et service client.
         </Link>
       </Container>
     </Body>

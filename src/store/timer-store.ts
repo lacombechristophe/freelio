@@ -32,7 +32,7 @@ export const useTimerStore = create<TimerState>()(
       setProject: (projectId: string) => set({ projectId }),
     }),
     {
-      name: "freelio-timer-storage",
+      name: "crm-timer-storage",
       storage: createJSONStorage(() => sessionStorage),
     }
   )

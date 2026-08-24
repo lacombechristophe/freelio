@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
+import { runAutomationEvent } from "@/lib/automations/engine"
+import { createConsentWithdrawalToken } from "@/lib/leads/consent-token"
 import prisma from "@/lib/prisma"
 
 const idSchema = z.string().cuid()
@@ -81,6 +83,21 @@ export async function updateLeadStatus(leadId: string, status: string) {
       }
     })
 
+    if (["SPAM", "ARCHIVED"].includes(parsed.status)) {
+      await prisma.emailSequenceEnrollment.updateMany({
+        where: { leadCaptureId: lead.id, status: "ACTIVE", sequence: { companyId } },
+        data: { status: "STOPPED", stopReason: `LEAD_${parsed.status}`, nextSendAt: null, completedAt: new Date() },
+      })
+    }
+    await runAutomationEvent({
+      companyId,
+      event: "LEAD_STATUS_CHANGED",
+      eventKey: `${lead.id}:status:${parsed.status}`,
+      subjectModel: "LeadCapture",
+      subjectId: lead.id,
+      leadId: lead.id,
+    }).catch((error) => console.error("Lead status automation failed", error))
+
     revalidatePath("/dashboard/leads")
     revalidatePath("/dashboard/pipeline")
     revalidatePath("/dashboard/clients")
@@ -119,9 +136,24 @@ export async function withdrawLeadMarketingConsent(leadId: string) {
       })
       await tx.leadCapture.update({ where: { id: lead.id }, data: { marketingOptIn: false } })
       if (lead.contactId) await tx.contact.update({ where: { id: lead.contactId }, data: { marketingStatus: "OPTED_OUT" } })
+      await tx.emailSequenceEnrollment.updateMany({ where: { leadCaptureId: lead.id, status: "ACTIVE" }, data: { status: "STOPPED", stopReason: "CONSENT_WITHDRAWN", nextSendAt: null, completedAt: capturedAt } })
     })
 
     revalidatePath("/dashboard/leads")
     return { success: true as const }
+  }, "crm.write")
+}
+
+export async function createLeadMarketingWithdrawalLink(leadId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = idSchema.parse(leadId)
+    const lead = await prisma.leadCapture.findFirst({
+      where: { id: parsedId, companyId, marketingOptIn: true },
+      select: { id: true },
+    })
+    if (!lead) throw new Error("Ce prospect n'a pas de consentement marketing actif")
+
+    const token = await createConsentWithdrawalToken({ companyId, leadId: lead.id })
+    return { success: true as const, withdrawalPath: `/consent/withdraw/${token}` }
   }, "crm.write")
 }

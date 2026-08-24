@@ -8,7 +8,7 @@ import {
   computeUnbilledValueCents,
   isInvoiceActionable,
   isQuoteStale,
-} from "@/lib/freelance-cockpit"
+} from "@/lib/operations-cockpit"
 
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null
@@ -42,36 +42,52 @@ function addDays(date: Date, days: number) {
 
 export async function getDashboardStats() {
   return await withAuth(async ({ companyId }) => {
-    const [paidInvoices, pendingInvoices, activeClientsCount, activeProjectsCount] =
+    const currentYear = new Date().getFullYear()
+    const yearStart = new Date(currentYear, 0, 1)
+    const [paidInvoices, pendingInvoices, expenses, activeClientsCount, activeProjectsCount, openOrdersCount, openServiceTicketsCount, upcomingInterventionsCount, inventory] =
       await Promise.all([
         prisma.invoice.aggregate({
-          where: { companyId, status: "PAID" },
+          where: { companyId, status: "PAID", date: { gte: yearStart } },
           _sum: { totalHtCents: true },
         }),
         prisma.invoice.aggregate({
           where: { companyId, status: { in: ["SENT", "OVERDUE"] } },
           _sum: { totalTtcCents: true, paidAmountCents: true },
         }),
+        prisma.expense.aggregate({
+          where: { companyId, date: { gte: yearStart } },
+          _sum: { amountCents: true, tvaCents: true },
+        }),
         prisma.client.count({ where: { companyId } }),
         prisma.project.count({ where: { companyId, status: "ACTIVE" } }),
+        prisma.customerOrder.count({ where: { companyId, status: { in: ["CONFIRMED", "IN_PREPARATION"] } } }),
+        prisma.serviceTicket.count({ where: { companyId, status: { notIn: ["RESOLVED", "CLOSED"] } } }),
+        prisma.fieldIntervention.count({ where: { companyId, status: { in: ["PLANNED", "EN_ROUTE", "IN_PROGRESS"] } } }),
+        prisma.inventoryItem.findMany({ where: { companyId }, select: { quantity: true, reservedQuantity: true, reorderPoint: true } }),
       ])
 
     const encoursTotal =
       (pendingInvoices._sum.totalTtcCents || 0) -
       (pendingInvoices._sum.paidAmountCents || 0)
 
+    const totalRevenueCents = paidInvoices._sum.totalHtCents || 0
+    const expenseHtCents = (expenses._sum.amountCents || 0) - (expenses._sum.tvaCents || 0)
     return {
-      totalRevenueCents: paidInvoices._sum.totalHtCents || 0,
+      currentYear,
+      totalRevenueCents,
       totalEncoursCents: encoursTotal,
       activeClientsCount,
       activeProjectsCount,
-      vatThresholdCents: 3770000, // Seuil Prestation de services 2026
-      vatCurrentCents: paidInvoices._sum.totalHtCents || 0,
+      openOrdersCount,
+      openServiceTicketsCount,
+      upcomingInterventionsCount,
+      lowStockCount: inventory.filter((item) => item.quantity - item.reservedQuantity <= item.reorderPoint).length,
+      directMarginCents: totalRevenueCents - expenseHtCents,
     }
   })
 }
 
-export async function getFreelanceCockpitData() {
+export async function getOperationsCockpitData() {
   return await withAuth(async ({ companyId }) => {
     const now = new Date()
     const todayStart = startOfDay(now)
@@ -269,7 +285,7 @@ export async function getFreelanceCockpitData() {
       projectRisks.length > 0 && {
         id: "project-risk",
         label: "Revoir les projets à risque",
-        detail: `${projectRisks.length} mission(s) à surveiller`,
+        detail: `${projectRisks.length} projet(s) à surveiller`,
         href: "/dashboard/projets",
         tone: "warning" as const,
       },
@@ -350,14 +366,14 @@ export async function getFreelanceCockpitData() {
   })
 }
 
-/** Snapshot comptable annuel (Livre de recettes + estimations URSSAF). */
+/** Snapshot financier annuel de l’espace courant. Les indicateurs restent précomptables. */
 export async function getAccountingSnapshot() {
   return await withAuth(async ({ companyId }) => {
     const now = new Date()
     const yearStart = new Date(now.getFullYear(), 0, 1)
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const [invoicesYear, invoicesMonth, expensesYear, recentPaid, settings, projects, outstanding] = await Promise.all([
+    const [invoicesYear, invoicesMonth, paymentsYear, expensesYear, recentPaid, settings, projects, outstanding] = await Promise.all([
       prisma.invoice.findMany({
         where: {
           companyId,
@@ -366,6 +382,7 @@ export async function getAccountingSnapshot() {
         },
         select: {
           totalHtCents: true,
+          totalTvaCents: true,
           totalTtcCents: true,
           paidAmountCents: true,
           status: true,
@@ -377,11 +394,15 @@ export async function getAccountingSnapshot() {
           status: { in: ["SENT", "PAID", "OVERDUE"] },
           date: { gte: monthStart },
         },
-        select: { totalHtCents: true, paidAmountCents: true, status: true },
+        select: { totalHtCents: true, totalTtcCents: true, paidAmountCents: true, status: true },
+      }),
+      prisma.invoicePayment.findMany({
+        where: { invoice: { companyId }, date: { gte: yearStart } },
+        select: { amountCents: true },
       }),
       prisma.expense.findMany({
         where: { companyId, date: { gte: yearStart } },
-        select: { amountCents: true },
+        select: { amountCents: true, tvaCents: true },
       }),
       prisma.invoice.findMany({
         where: { companyId, status: "PAID" },
@@ -399,9 +420,6 @@ export async function getAccountingSnapshot() {
       prisma.company.findUnique({
         where: { id: companyId },
         select: {
-          socialContributionRate: true,
-          tvaThresholdCents: true,
-          tvaMajorThresholdCents: true,
           isTvaApplicable: true,
         },
       }),
@@ -432,18 +450,18 @@ export async function getAccountingSnapshot() {
     ])
 
     const caYearCents = invoicesYear.reduce((sum, i) => sum + i.totalHtCents, 0)
+    const billedYearTtcCents = invoicesYear.reduce((sum, i) => sum + i.totalTtcCents, 0)
     const caMonthCents = invoicesMonth.reduce((sum, i) => sum + i.totalHtCents, 0)
-    const paidYearCents = invoicesYear
-      .filter((i) => i.status === "PAID")
-      .reduce((sum, i) => sum + i.paidAmountCents, 0)
+    const paidYearCents = paymentsYear.reduce((sum, payment) => sum + payment.amountCents, 0)
     const expensesYearCents = expensesYear.reduce((sum, e) => sum + e.amountCents, 0)
-
-    const TVA_BASE_THRESHOLD = settings?.tvaThresholdCents ?? 3970000
-    const TVA_MAJ_THRESHOLD = settings?.tvaMajorThresholdCents ?? 4770000
-    const URSSAF_RATE = (settings?.socialContributionRate ?? 21.1) / 100
-    const urssafEstimateCents = Math.round(caYearCents * URSSAF_RATE)
-
-    const netIncomeCents = caYearCents - urssafEstimateCents - expensesYearCents
+    const expenseHtCents = expensesYear.reduce((sum, expense) => sum + expense.amountCents - expense.tvaCents, 0)
+    const directMarginCents = caYearCents - expenseHtCents
+    const tvaCollectedCents = invoicesYear.reduce((sum, invoice) => sum + invoice.totalTvaCents, 0)
+    const tvaDeductibleCents = expensesYear.reduce((sum, expense) => sum + expense.tvaCents, 0)
+    const tvaBalanceCents = tvaCollectedCents - tvaDeductibleCents
+    const outstandingCents = outstanding.reduce((sum, invoice) => sum + Math.max(0, invoice.totalTtcCents - invoice.paidAmountCents), 0)
+    const overdue = outstanding.filter((invoice) => invoice.dueDate.getTime() < now.getTime())
+    const overdueCents = overdue.reduce((sum, invoice) => sum + Math.max(0, invoice.totalTtcCents - invoice.paidAmountCents), 0)
     const nowMs = now.getTime()
     const forecast = (days: number) => outstanding
       .filter((invoice) => invoice.dueDate.getTime() <= nowMs + days * 86_400_000)
@@ -471,16 +489,19 @@ export async function getAccountingSnapshot() {
 
     return {
       caYearCents,
+      billedYearTtcCents,
       caMonthCents,
       paidYearCents,
       expensesYearCents,
-      urssafEstimateCents,
-      netIncomeCents,
-      tvaThreshold: TVA_BASE_THRESHOLD,
-      tvaMajThreshold: TVA_MAJ_THRESHOLD,
-      socialContributionRate: settings?.socialContributionRate ?? 21.1,
+      expenseHtCents,
+      directMarginCents,
+      outstandingCents,
+      overdueCents,
+      overdueCount: overdue.length,
+      tvaCollectedCents,
+      tvaDeductibleCents,
+      tvaBalanceCents,
       isTvaApplicable: settings?.isTvaApplicable ?? false,
-      tvaProgressPct: Math.min(100, Math.round((caYearCents / TVA_BASE_THRESHOLD) * 100)),
       cashForecast: {
         days30Cents: forecast(30),
         days60Cents: forecast(60),

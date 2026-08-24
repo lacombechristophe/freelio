@@ -2,7 +2,7 @@ import Link from "next/link"
 import {
   AlertTriangle,
   ArrowRight,
-  Briefcase,
+  Boxes,
   CalendarCheck,
   ChevronRight,
   Clock,
@@ -13,15 +13,14 @@ import {
   Receipt,
   Target,
   Timer,
-  Users,
+  Wrench,
 } from "lucide-react"
 
-import { getDashboardStats, getFreelanceCockpitData } from "@/actions/accounting"
+import { getDashboardStats, getOperationsCockpitData } from "@/actions/accounting"
 import { getNotifications } from "@/actions/notifications"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { formatCentsToEuro } from "@/lib/billing"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/shared/page-header"
@@ -29,7 +28,7 @@ import { EmptyState as GuidedEmptyState } from "@/components/shared/empty-state"
 
 export const revalidate = 60
 
-type CockpitData = NonNullable<Awaited<ReturnType<typeof getFreelanceCockpitData>>>
+type CockpitData = NonNullable<Awaited<ReturnType<typeof getOperationsCockpitData>>>
 
 function formatMinutes(minutes: number) {
   if (minutes <= 0) return "0h"
@@ -72,7 +71,7 @@ export default async function DashboardPage() {
   const [stats, notifications, cockpit] = await Promise.all([
     getDashboardStats(),
     getNotifications(),
-    getFreelanceCockpitData(),
+    getOperationsCockpitData(),
   ])
 
   if (!stats) {
@@ -86,8 +85,6 @@ export default async function DashboardPage() {
       />
     )
   }
-
-  const vatProgress = Math.min(100, (stats.vatCurrentCents / stats.vatThresholdCents) * 100)
 
   return (
     <div className="space-y-8">
@@ -105,7 +102,7 @@ export default async function DashboardPage() {
           </Link>
           <a href="/api/backup/export" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
             <Download className="h-4 w-4" />
-            Backup local
+            Export de réversibilité
           </a>
           </>
         }
@@ -116,7 +113,7 @@ export default async function DashboardPage() {
           icon={Euro}
           label="CA encaissé"
           value={formatCentsToEuro(stats.totalRevenueCents)}
-          detail="Factures payées hors taxe"
+          detail={`Factures payées HT en ${stats.currentYear}`}
           tone="primary"
         />
         <MetricCard
@@ -127,53 +124,49 @@ export default async function DashboardPage() {
           tone={stats.totalEncoursCents > 0 ? "danger" : "neutral"}
         />
         <MetricCard
-          icon={Users}
-          label="Clients"
-          value={stats.activeClientsCount.toString()}
-          detail="Base commerciale active"
-          tone="success"
+          icon={Boxes}
+          label="Commandes à traiter"
+          value={stats.openOrdersCount.toString()}
+          detail="Confirmées ou en préparation"
+          tone={stats.openOrdersCount > 0 ? "warning" : "success"}
         />
         <MetricCard
-          icon={Briefcase}
-          label="Missions"
-          value={stats.activeProjectsCount.toString()}
-          detail="Projets actifs à piloter"
-          tone="warning"
+          icon={Wrench}
+          label="Tickets SAV"
+          value={stats.openServiceTicketsCount.toString()}
+          detail="Ouverts, qualifiés ou planifiés"
+          tone={stats.openServiceTicketsCount > 0 ? "danger" : "success"}
         />
       </div>
 
-      {cockpit && <FreelanceCockpit cockpit={cockpit} />}
+      {cockpit && <OperationsCockpit cockpit={cockpit} />}
 
       <div className="grid gap-6 lg:grid-cols-7">
         <Card className="bg-card lg:col-span-4">
           <CardHeader>
-            <CardTitle>TVA et marge de sécurité</CardTitle>
-            <CardDescription>
-              Suivi de franchise en base de TVA, avec seuil indicatif à {formatCentsToEuro(stats.vatThresholdCents)}.
-            </CardDescription>
+            <CardTitle>Exécution opérationnelle</CardTitle>
+            <CardDescription>Signaux directs issus des commandes, chantiers, stocks et interventions.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 pt-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold">{formatCentsToEuro(stats.vatCurrentCents)}</span>
-                <span className="text-muted-foreground">{Math.round(vatProgress)}% du seuil</span>
-              </div>
-              <Progress value={vatProgress} className="h-2.5 bg-muted" />
-            </div>
-
-            <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+          <CardContent className="pt-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Projection simple</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Interventions à suivre</p>
                 <div className="flex items-center gap-2">
-                  <Gauge className="h-4 w-4 text-success" />
-                  <span className="text-lg font-bold tabular-nums">{formatCentsToEuro(stats.totalRevenueCents * 1.5)}</span>
+                  <Wrench className="h-4 w-4 text-primary" />
+                  <span className="text-lg font-bold tabular-nums">{stats.upcomingInterventionsCount}</span>
                 </div>
               </div>
-              <div className="space-y-1 sm:text-right">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">URSSAF estimé</p>
-                <div className="text-lg font-bold tabular-nums text-danger">
-                  -{formatCentsToEuro(stats.totalRevenueCents * 0.211)}
-                </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Alertes de stock</p>
+                <p className={cn("text-lg font-bold tabular-nums", stats.lowStockCount ? "text-danger" : "text-success")}>{stats.lowStockCount}</p>
+              </div>
+              <div className="space-y-1 border-t pt-4 sm:border-t">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Projets actifs</p>
+                <p className="text-lg font-bold tabular-nums">{stats.activeProjectsCount}</p>
+              </div>
+              <div className="space-y-1 border-t pt-4 sm:text-right">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Marge directe {stats.currentYear}</p>
+                <p className={cn("text-lg font-bold tabular-nums", stats.directMarginCents >= 0 ? "text-success" : "text-danger")}>{formatCentsToEuro(stats.directMarginCents)}</p>
               </div>
             </div>
           </CardContent>
@@ -285,7 +278,7 @@ function MetricCard({
   )
 }
 
-function FreelanceCockpit({ cockpit }: { cockpit: CockpitData }) {
+function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
   const relanceCount = cockpit.relances.invoices.length + cockpit.relances.quotes.length
 
   return (

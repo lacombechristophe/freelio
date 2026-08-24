@@ -13,6 +13,11 @@ const CompanySchema = z.object({
   address: z.string().optional(),
   email: z.email().optional().or(z.literal("")),
   phone: z.string().optional(),
+  logo: z.string().trim().max(2_000).refine(
+    (value) => !value || value.startsWith("/") || /^data:image\/(png|jpeg|webp|gif);base64,/i.test(value) || /^https:\/\//i.test(value),
+    "Le logo doit être une URL HTTPS, une ressource locale ou une image intégrée",
+  ).optional(),
+  brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur attendue au format #RRGGBB").optional(),
   apeCode: z.string().optional(),
   rcsNumber: z.string().optional(),
   isTvaApplicable: z.boolean().optional(),
@@ -36,7 +41,7 @@ export async function updateCompany(data: unknown) {
 
     await prisma.company.update({
       where: { id: companyId },
-      data: validated.data,
+      data: { ...validated.data, logo: validated.data.logo === "" ? null : validated.data.logo },
     })
 
     await logAction({

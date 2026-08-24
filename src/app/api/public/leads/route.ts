@@ -8,7 +8,7 @@ export const runtime = "nodejs"
 
 function allowedOrigins() {
   const configured = process.env.LEAD_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean)
-  return new Set(configured?.length ? configured : ["https://domaine-client.fr", "https://www.domaine-client.fr", "http://localhost:3000"])
+  return new Set(configured?.length ? configured : ["http://localhost:3000"])
 }
 
 function hasValidIntegrationSecret(request: Request) {

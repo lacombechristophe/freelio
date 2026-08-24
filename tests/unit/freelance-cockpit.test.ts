@@ -6,9 +6,9 @@ import {
   daysUntil,
   isInvoiceActionable,
   isQuoteStale,
-} from "@/lib/freelance-cockpit"
+} from "@/lib/operations-cockpit"
 
-describe("freelance cockpit helpers", () => {
+describe("operations cockpit helpers", () => {
   const today = new Date("2026-06-30T10:00:00.000Z")
 
   it("estimates unbilled time value from a fixed hourly rate", () => {

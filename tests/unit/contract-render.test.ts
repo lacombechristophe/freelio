@@ -36,8 +36,8 @@ describe("contract PDF", () => {
   it("uses the shared document typography and translates workflow status", () => {
     const html = renderContractHtml(contract)
 
-    expect(html).toContain("Freelio Sans")
-    expect(html).toContain("Freelio Serif")
+    expect(html).toContain("CRM Sans")
+    expect(html).toContain("CRM Serif")
     expect(html).toContain("source-sans-3-latin.woff2")
     expect(html).toContain("Sign&eacute;")
     expect(html).not.toContain(">SIGNED<")

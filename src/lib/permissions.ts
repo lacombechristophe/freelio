@@ -25,6 +25,8 @@ export const PERMISSIONS = [
   "finance.read",
   "finance.write",
   "migration.manage",
+  "automation.read",
+  "automation.write",
 ] as const
 
 export type Permission = (typeof PERMISSIONS)[number]
@@ -33,10 +35,10 @@ const ALL_PERMISSIONS = new Set<Permission>(PERMISSIONS)
 
 const ROLE_PERMISSIONS: Record<Exclude<CompanyRole, "OWNER">, ReadonlySet<Permission>> = {
   ADMIN: new Set(PERMISSIONS),
-  SALES: new Set(["crm.read", "crm.write", "sales.read", "sales.write", "operations.read"]),
-  OPERATIONS: new Set(["crm.read", "sales.read", "operations.read", "operations.write", "service.read"]),
+  SALES: new Set(["crm.read", "crm.write", "sales.read", "sales.write", "operations.read", "automation.read", "automation.write"]),
+  OPERATIONS: new Set(["crm.read", "sales.read", "operations.read", "operations.write", "service.read", "automation.read"]),
   TECHNICIAN: new Set(["crm.read", "operations.read", "operations.write", "service.read", "service.write"]),
-  SERVICE: new Set(["crm.read", "operations.read", "service.read", "service.write"]),
+  SERVICE: new Set(["crm.read", "operations.read", "service.read", "service.write", "automation.read"]),
   ACCOUNTING: new Set(["crm.read", "sales.read", "finance.read", "finance.write"]),
   VIEWER: new Set(["crm.read", "sales.read", "operations.read", "service.read", "finance.read"]),
 }
@@ -74,6 +76,13 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   MigrationIssue: "migration.manage",
   MigrationMetric: "migration.manage",
   DocumentManifest: "migration.manage",
+  EmailTemplate: "automation.write",
+  EmailSequence: "automation.write",
+  EmailSequenceStep: "automation.write",
+  EmailSequenceEnrollment: "automation.write",
+  EmailDelivery: "automation.write",
+  AutomationWorkflow: "automation.write",
+  AutomationRun: "automation.write",
 
   Client: "crm.write",
   Contact: "crm.write",

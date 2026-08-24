@@ -405,7 +405,7 @@ function paymentPanel(doc: PdfDocument, settings: RenderSettings) {
       ${
         doc.company.iban
           ? `<div class="iban numeric">${escapeHtml(doc.company.iban)}</div>`
-          : '<p class="action-copy">Utilisez le mode de paiement convenu avec le prestataire.</p>'
+          : `<p class="action-copy">Utilisez le mode de paiement convenu avec ${escapeHtml(doc.company.name)}.</p>`
       }
       <div class="payment-details">
         ${settings.showReference ? `<span>R&eacute;f&eacute;rence <strong class="numeric">${escapeHtml(doc.number)}</strong></span>` : ""}
@@ -454,7 +454,7 @@ function baseCss(settings: RenderSettings) {
     body {
       background: #ffffff;
       color: #202630;
-      font-family: "Freelio Sans", Arial, sans-serif;
+      font-family: "CRM Sans", Arial, sans-serif;
       font-size: ${density.fontSize};
       font-variant-numeric: lining-nums tabular-nums;
       font-weight: 400;
@@ -492,7 +492,7 @@ function baseCss(settings: RenderSettings) {
         : ""
     }
     .document-main { min-height: 0; }
-    .editorial { font-family: "Freelio Serif", Georgia, serif; }
+    .editorial { font-family: "CRM Serif", Georgia, serif; }
     .accent { color: ${primary}; }
     .label {
       color: #697386;
@@ -651,7 +651,7 @@ function renderMinimal(doc: PdfDocument, settings: RenderSettings) {
       .minimal-closing { align-items: start; display: grid; gap: 12mm; grid-template-columns: minmax(0, 1fr) 65mm; margin-top: 5.5mm; }
       .minimal-closing .action-panel { border-top: 1px solid #242a33; padding-top: 3mm; }
       .minimal-closing .totals-panel { border-top: 2px solid ${primary}; padding-top: 3mm; }
-      .minimal-closing .totals-grand { font-family: "Freelio Serif", Georgia, serif; font-weight: 560; }
+      .minimal-closing .totals-grand { font-family: "CRM Serif", Georgia, serif; font-weight: 560; }
     </style>
     <div class="page minimal-page" data-template="minimal" data-document-kind="${doc.kind.toLowerCase()}">
       <main class="document-main">
@@ -665,7 +665,7 @@ function renderMinimal(doc: PdfDocument, settings: RenderSettings) {
 
         <section class="minimal-lead keep-together">
           <div>
-            <div class="label accent">Objet de la mission</div>
+            <div class="label accent">Objet du projet</div>
             <h1 class="editorial">${escapeHtml(doc.object)}</h1>
           </div>
           <div class="minimal-amount">
