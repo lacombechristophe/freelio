@@ -8,6 +8,13 @@ import { MagicLinkEmail } from "@/emails/MagicLinkEmail"
 import { render } from "@react-email/render"
 
 const emailFrom = process.env.EMAIL_FROM?.trim() || "CRM <noreply@example.invalid>"
+const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true"
+  && process.env.E2E_ENABLE_CREDENTIALS_AUTH === "true"
+  && Boolean(process.env.E2E_USER_EMAIL)
+
+// The production server is used by CI to avoid flaky cold compilation. This
+// provider is impossible to enable outside CI and only accepts the seeded QA address.
+export const credentialsAuthEnabled = process.env.NODE_ENV === "development" || ciCredentialsAuth
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -50,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
-    ...(process.env.NODE_ENV === "development" ? [
+    ...(credentialsAuthEnabled ? [
       Credentials({
         id: "credentials",
         name: "Local Dev Portal",
@@ -60,6 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         async authorize(credentials) {
           if (!credentials?.email) return null
           const email = credentials.email as string
+          if (ciCredentialsAuth && email.toLowerCase() !== process.env.E2E_USER_EMAIL?.toLowerCase()) return null
 
           try {
             const user = await prisma.user.upsert({

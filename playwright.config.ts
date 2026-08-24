@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test"
 
 const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL
 const baseURL = externalBaseUrl ?? "http://localhost:3000"
+const productionServer = process.env.E2E_USE_PRODUCTION_SERVER === "true"
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -22,7 +23,9 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-      command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
+      command: productionServer
+        ? "npm start -- --hostname 127.0.0.1 --port 3000"
+        : "npm run dev -- --hostname 127.0.0.1 --port 3000",
       url: "http://localhost:3000/auth/login",
       env: {
         ...process.env,
@@ -31,5 +34,5 @@ export default defineConfig({
       },
       reuseExistingServer: true,
       timeout: 180_000,
-      },
+    },
 })
