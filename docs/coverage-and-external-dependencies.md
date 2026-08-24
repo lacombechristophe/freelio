@@ -43,9 +43,9 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 |---|---|---|---|
 | Clients, contacts et sites | **Disponible** | référentiel client et sites d'installation structurés | import réel et contrôle des doublons nécessaires |
 | Relevé technique piscine | **Disponible** | statut, mesures, forme, margelles, terrasse, accès, alimentation, obstacles, produit/modèle/couleur et validation | faire valider le formulaire par les techniciens et les fabricants |
-| Catalogue produits | **Partiel** | SKU, fabricant, famille, fournisseur, achat, vente, TVA et suivi de stock | variantes, nomenclatures, tarifs datés, remises complexes et imports fabricants absents |
+| Catalogue produits | **Partiel** | gammes et variantes, SKU, fabricant/fournisseur, options obligatoires ou multiples, suppléments vente/coût, nomenclatures anti-cycle, pertes, tarifs historisés et stock | règles tarifaires dimensionnelles et imports automatiques des catalogues fabricants à ajouter selon les fichiers obtenus |
 | Fournisseurs | **Disponible** | coordonnées, délais, conditions et rattachement produits/achats | pas d'évaluation fournisseur ni EDI |
-| Devis | **Disponible** | versions, sections, lignes, TVA, statuts et PDF | moteur d'options/remises complexes à recetter |
+| Devis | **Disponible** | versions, sections, lignes libres ou configurées, options contrôlées serveur, nomenclature/coût, remise, marge, TVA, statuts et PDF | formules dimensionnelles propres aux fabricants à paramétrer lorsque leurs barèmes sont disponibles |
 | Signature de contrat | **Disponible** | lien public jetonné, expiration/usage unique, canvas et piste d'audit | niveau de preuve à valider juridiquement ; ce n'est pas une signature qualifiée externe |
 | Commande client | **Disponible** | création directe ou depuis devis, lignes, totaux, chantier lié et état de facturation | amendements/annulations et workflow d'approbation limités |
 | Acompte et solde | **Disponible** | facture d'acompte idempotente et facture du reste à payer | contrôler les règles comptables réelles et cas d'avoirs complexes |
@@ -95,7 +95,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Permissions | **Partiel** | lecture/écriture par domaine et isolation `companyId` | pas d'autorisation fine par dossier/équipe ; audit de sécurité nécessaire |
 | Authentification | **Partiel** | lien magique Resend, session JWT, connexion locale limitée au développement | pas de MFA ni interface de révocation de session |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
-| PostgreSQL | **Disponible** | schéma miroir, client dédié et sept migrations versionnées validées sur une base PostgreSQL vierge | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
+| PostgreSQL | **Disponible** | schéma miroir, client dédié et huit migrations versionnées validées sur une base PostgreSQL vierge | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
 | Stockage objet | **Disponible** | R2 privé obligatoire en production, hash et accès authentifié | versioning/rétention/sauvegarde fournisseur à configurer |
 | Rate limiting | **Disponible** | Upstash distribué ou mémoire locale | Upstash requis en production multi-instance |
 | Files de travaux | **Partiel** | BullMQ pour les documents, processeur persistant des séquences e-mail et ordonnanceur entretien/factures dans le worker, avec routes de cron protégées | supervision, alertes, quotas et procédure de rejeu à configurer |
@@ -104,7 +104,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Réversibilité | **Disponible** | export versionné des tables société, fichiers locaux/R2 et manifeste d'intégrité, avec secrets/jetons exclus | la reprise du JSON est logique et contrôlée ; le PRA complet repose sur PostgreSQL/R2 natifs |
 | Sauvegarde/PRA | **Externe** | export applicatif utile à la portabilité | sauvegardes natives PostgreSQL/R2, PITR et tests de restauration à configurer |
 | Supervision | **Partiel** | logs structurés et routes publiques de vie/aptitude sans exposition de secrets | brancher moniteur, collecte d’erreurs, métriques et alertes humaines |
-| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 79 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
+| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 83 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
 | E2E | **Disponible** | parcours critiques Playwright desktop/mobile | exécution finale sur préproduction isolée nécessaire |
 | PWA/hors ligne | **Partiel** | manifeste, service worker et espace terrain hors ligne borné avec reprise des clôtures/photos | pas de fonctionnement hors ligne du CRM/ERP complet ni de résolution avancée de conflits |
 | Sécurité externe | **Externe** | CSP, contrôles de routes, chiffrement et rate limiting dans le code | revue de configuration, pentest et procédure incident avant données réelles |

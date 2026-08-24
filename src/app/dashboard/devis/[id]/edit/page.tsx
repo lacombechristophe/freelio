@@ -2,15 +2,17 @@ import { notFound } from "next/navigation"
 import { getQuoteById } from "@/actions/devis"
 import { getClientsMinimal } from "@/actions/clients"
 import { getBillingSettings } from "@/actions/settings"
+import { getQuoteProductCatalog } from "@/actions/products"
 import { QuoteForm } from "../../quote-form"
 import { PageHeader } from "@/components/shared/page-header"
 
 export default async function EditQuotePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [quote, clients, billingSettings] = await Promise.all([
+  const [quote, clients, billingSettings, productCatalog] = await Promise.all([
     getQuoteById(id),
     getClientsMinimal(),
     getBillingSettings(),
+    getQuoteProductCatalog(),
   ])
   if (!quote) notFound()
   if (quote.status !== "DRAFT") {
@@ -28,6 +30,11 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
     quantity: l.quantity,
     unitPriceCents: l.unitPriceCents,
     tvaRate: l.tvaRate,
+    productId: l.productId,
+    configuration: l.configuration as { optionValueIds: string[] } | null,
+    unitCostCents: l.unitCostCents,
+    listUnitPriceCents: l.listUnitPriceCents,
+    discountRate: l.discountRate,
   }))
 
   return (
@@ -43,6 +50,7 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
         }}
         initialLines={initialLines}
         clients={clients ?? []}
+        productCatalog={productCatalog}
         isTvaApplicable={billingSettings?.isTvaApplicable ?? true}
       />
     </div>

@@ -15,11 +15,11 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 22 fichiers, 79 tests réussis |
+| `npm run test:unit` | 23 fichiers, 83 tests réussis |
 | `npm run build` | build Next.js de production réussi, 39 pages statiques/dynamiques générées |
 | `npm audit --audit-level=high` | 0 vulnérabilité déclarée |
-| Playwright, base SQLite neuve | 8 scénarios réussis, 4 mutations volontairement ignorées sur mobile après validation desktop |
-| PostgreSQL 18 vierge | 7 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
+| Playwright, base SQLite neuve | 9 scénarios réussis, 5 mutations volontairement ignorées sur mobile après validation desktop |
+| PostgreSQL 18 vierge | 8 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -40,6 +40,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - arrêt de l’inscription et passage du contact en opposition ;
 - devis vers commande, facture de solde, réservation puis consommation du stock ;
 - opportunité attribuée, forecast pondéré, clôture prévue et perte avec motif obligatoire ;
+- gamme configurable, option obligatoire, supplément vente/coût, nomenclature, remise et devis recalculé côté serveur ;
 - création, signature scellée et lecture PDF d’un bon de livraison ;
 - espace terrain installable, rechargement hors ligne depuis un cache borné à 24 heures et file locale de synchronisation ;
 - photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
@@ -60,6 +61,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - journal précomptable équilibré et explicitement non présenté comme FEC ;
 - sauvegarde applicative sans IBAN chiffré, identifiants de connexion, secrets webhook, invitations ou jetons de signature ;
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
+- migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 
 ## Gates externes avant résiliation
 

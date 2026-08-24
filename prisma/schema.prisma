@@ -131,6 +131,10 @@ model Company {
   customerSites        CustomerSite[]
   suppliers            Supplier[]
   products             Product[]
+  productOptionGroups  ProductOptionGroup[]
+  productOptionValues  ProductOptionValue[]
+  productComponents    ProductComponent[]
+  productPrices        ProductPrice[]
   warehouses           Warehouse[]
   inventoryItems       InventoryItem[]
   stockMovements       StockMovement[]
@@ -891,6 +895,7 @@ model Supplier {
 
   products       Product[]
   purchaseOrders PurchaseOrder[]
+  productPrices  ProductPrice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -901,11 +906,13 @@ model Supplier {
 }
 
 model Product {
-  id         String    @id @default(cuid())
-  companyId  String
-  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  supplierId String?
-  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplierId      String?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  parentProductId String?
+  parentProduct   Product?  @relation("ProductVariants", fields: [parentProductId], references: [id], onDelete: SetNull)
 
   sku                String
   label              String
@@ -920,6 +927,7 @@ model Product {
   stockTracked       Boolean @default(true)
   active             Boolean @default(true)
   customFields       Json?
+  variantLabel       String?
 
   inventoryItems     InventoryItem[]
   stockMovements     StockMovement[]
@@ -929,12 +937,98 @@ model Product {
   deliveryNoteLines  DeliveryNoteLine[]
   goodsReceiptLines  GoodsReceiptLine[]
   stockReservations  StockReservation[]
+  variants           Product[]            @relation("ProductVariants")
+  optionGroups       ProductOptionGroup[]
+  assemblyComponents ProductComponent[]   @relation("ProductAssembly")
+  componentOf        ProductComponent[]   @relation("ProductComponent")
+  priceHistory       ProductPrice[]
+  quoteLines         QuoteLine[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([companyId, sku])
   @@index([companyId, family, active])
+  @@index([supplierId])
+  @@index([parentProductId, active])
+}
+
+model ProductOptionGroup {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  required    Boolean              @default(false)
+  minSelect   Int                  @default(0)
+  maxSelect   Int                  @default(1)
+  order       Int                  @default(0)
+  values      ProductOptionValue[]
+
+  @@unique([productId, name])
+  @@index([companyId, productId, order])
+}
+
+model ProductOptionValue {
+  id        String             @id @default(cuid())
+  companyId String
+  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  groupId   String
+  group     ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  code            String?
+  label           String
+  description     String?
+  priceDeltaCents Int     @default(0)
+  costDeltaCents  Int     @default(0)
+  active          Boolean @default(true)
+  order           Int     @default(0)
+  metadata        Json?
+
+  @@unique([groupId, label])
+  @@index([companyId, groupId, active, order])
+}
+
+model ProductComponent {
+  id                 String  @id @default(cuid())
+  companyId          String
+  company            Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product @relation("ProductAssembly", fields: [productId], references: [id], onDelete: Cascade)
+  componentProductId String
+  componentProduct   Product @relation("ProductComponent", fields: [componentProductId], references: [id], onDelete: Restrict)
+
+  quantity     Float
+  wastePercent Float   @default(0)
+  required     Boolean @default(true)
+  notes        String?
+
+  @@unique([productId, componentProductId])
+  @@index([companyId, productId])
+  @@index([componentProductId])
+}
+
+model ProductPrice {
+  id         String    @id @default(cuid())
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  kind        String
+  amountCents Int
+  validFrom   DateTime
+  validUntil  DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([productId, kind, validFrom])
+  @@index([companyId, kind, validFrom])
   @@index([supplierId])
 }
 
@@ -1462,16 +1556,23 @@ model QuoteLine {
   id        String       @id @default(cuid())
   sectionId String
   section   QuoteSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
 
-  label          String
-  description    String?
-  quantity       Float   @default(1)
-  unitPriceCents Int
-  tvaRate        Float   @default(20.0)
-  order          Int     @default(0)
-  sourceKey      String?
+  label              String
+  description        String?
+  quantity           Float   @default(1)
+  unitPriceCents     Int
+  tvaRate            Float   @default(20.0)
+  order              Int     @default(0)
+  sourceKey          String?
+  configuration      Json?
+  unitCostCents      Int?
+  listUnitPriceCents Int?
+  discountRate       Float   @default(0)
 
   @@unique([sectionId, sourceKey])
+  @@index([productId])
 }
 
 model Invoice {

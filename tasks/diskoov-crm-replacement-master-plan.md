@@ -39,7 +39,7 @@ Le dépôt actuel est un CRM/ERP Diskoov fonctionnel en cours de recette. Les li
 ### 2.2 État technique mesuré
 
 - Next.js 16, React 19.2, TypeScript strict et Prisma 6.2 ;
-- SQLite conservé pour le développement ; schéma/client PostgreSQL et sept migrations versionnées validés sur une base PostgreSQL vierge ;
+- SQLite conservé pour le développement ; schéma/client PostgreSQL et huit migrations versionnées validés sur une base PostgreSQL vierge ;
 - 81 modèles Prisma couvrant CRM, vente, opérations, finance et migration ;
 - stockage local de développement et Cloudflare R2 obligatoire en production ;
 - BullMQ/Redis pour la génération documentaire asynchrone ;

@@ -12,7 +12,7 @@ export async function getServices() {
       include: { category: true },
       orderBy: { label: "asc" },
     })
-  })
+  }, "sales.read")
 }
 
 export async function getServiceCategories() {
@@ -21,12 +21,13 @@ export async function getServiceCategories() {
       where: { companyId },
       orderBy: { name: "asc" },
     })
-  })
+  }, "sales.read")
 }
 
-export async function createService(data: any) {
+export async function createService(data: unknown) {
   return await withAuth(async ({ companyId }) => {
     const validated = ServiceSchema.parse(data)
+    if (validated.categoryId && !await prisma.serviceCategory.findFirst({ where: { id: validated.categoryId, companyId }, select: { id: true } })) throw new Error("Catégorie introuvable")
     const service = await prisma.service.create({
       data: {
         companyId,
@@ -40,15 +41,16 @@ export async function createService(data: any) {
       },
     })
     revalidatePath("/dashboard/catalogue")
-    return service
-  })
+    return { success: true as const, id: service.id }
+  }, "sales.write")
 }
 
-export async function updateService(id: string, data: any) {
+export async function updateService(id: string, data: unknown) {
   return await withAuth(async ({ companyId }) => {
     const validated = ServiceSchema.parse(data)
     const existing = await prisma.service.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Service introuvable")
+    if (validated.categoryId && !await prisma.serviceCategory.findFirst({ where: { id: validated.categoryId, companyId }, select: { id: true } })) throw new Error("Catégorie introuvable")
     const service = await prisma.service.update({
       where: { id },
       data: {
@@ -62,8 +64,8 @@ export async function updateService(id: string, data: any) {
       },
     })
     revalidatePath("/dashboard/catalogue")
-    return service
-  })
+    return { success: true as const, id: service.id }
+  }, "sales.write")
 }
 
 export async function deleteService(id: string) {
@@ -72,17 +74,17 @@ export async function deleteService(id: string) {
     if (!existing) throw new Error("Service introuvable")
     await prisma.service.delete({ where: { id } })
     revalidatePath("/dashboard/catalogue")
-    return { ok: true }
-  })
+    return { success: true as const }
+  }, "sales.write")
 }
 
-export async function createServiceCategory(data: any) {
+export async function createServiceCategory(data: unknown) {
   return await withAuth(async ({ companyId }) => {
     const validated = ServiceCategorySchema.parse(data)
     const cat = await prisma.serviceCategory.create({
       data: { companyId, name: validated.name },
     })
     revalidatePath("/dashboard/catalogue")
-    return cat
-  })
+    return { success: true as const, id: cat.id }
+  }, "sales.write")
 }
