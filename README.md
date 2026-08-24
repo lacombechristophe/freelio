@@ -12,7 +12,7 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - pipeline commercial avec responsables, échéances, forecast pondéré et motifs de perte, devis versionnés, contrats et signature publique par jeton ;
 - conversion devis → commande client → facture d'acompte ou de solde ;
 - projets, relevé technique piscine, jalons, documents et réception ;
-- fournisseurs, gammes, variantes, options, nomenclatures, tarifs historisés, dépôts, achats, réceptions, mouvements et réservations de stock ;
+- fournisseurs, gammes, variantes, options, nomenclatures, tarifs historisés, dépôts, achats multi-lignes approuvés, accusés, réceptions, anomalies, retours, mouvements et réservations de stock ;
 - configurateur de devis avec options obligatoires, coût de nomenclature, remises contrôlées et marge unitaire ;
 - équipements installés, tickets SAV, planning de capacité, coûts horaires, matériel consommé et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
 - contrats d’entretien avec visites et factures récurrentes idempotentes ;

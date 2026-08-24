@@ -10,6 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { completeFieldInterventionForContext } from "@/lib/field/interventions"
+import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 
 const id = z.string().cuid()
@@ -107,15 +108,25 @@ const maintenanceContractSchema = z.object({
   notes: optionalText,
 })
 
+const purchaseOrderLineSchema = z.object({
+  productId: optionalId,
+  label: z.string().trim().min(2).max(200),
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  unitPriceCents: z.coerce.number().int().min(0).max(2_000_000_000),
+})
+
 const purchaseOrderSchema = z.object({
   supplierId: id,
   projectId: optionalId,
   expectedAt: dateInput,
   notes: optionalText,
   productId: optionalId,
-  label: z.string().trim().min(2).max(200),
-  quantity: z.coerce.number().int().min(1).max(1_000_000),
-  unitPriceCents: z.coerce.number().int().min(0).max(2_000_000_000),
+  label: z.string().trim().max(200).optional(),
+  quantity: z.coerce.number().int().min(1).max(1_000_000).optional(),
+  unitPriceCents: z.coerce.number().int().min(0).max(2_000_000_000).optional(),
+  lines: z.array(purchaseOrderLineSchema).min(1).max(200).optional(),
+}).superRefine((value, context) => {
+  if (!value.lines?.length && (!value.label || value.quantity == null || value.unitPriceCents == null)) context.addIssue({ code: "custom", message: "Ajoutez au moins une ligne fournisseur" })
 })
 
 const movementSchema = z.object({
@@ -154,7 +165,31 @@ const goodsReceiptSchema = z.object({
   purchaseOrderLineId: id,
   warehouseId: id,
   quantity: z.coerce.number().int().min(1).max(1_000_000),
+  rejectedQuantity: z.coerce.number().int().min(0).max(1_000_000).default(0),
+  issueType: z.enum(["DAMAGED", "MISSING", "WRONG_ITEM", "QUALITY", "OTHER"]).optional().nullable(),
+  issueNotes: optionalText,
   supplierReference: z.string().trim().max(120).optional().transform((value) => value || null),
+  notes: optionalText,
+})
+
+const purchaseAcknowledgementSchema = z.object({
+  purchaseOrderId: id,
+  supplierReference: z.string().trim().min(1).max(120),
+  confirmedExpectedAt: z.string().trim().min(1).refine((value) => !Number.isNaN(Date.parse(value)), "Date fournisseur invalide"),
+})
+
+const purchaseIssueResolutionSchema = z.object({
+  issueId: id,
+  resolution: z.enum(["REPLACEMENT", "CREDIT", "ACCEPTED", "OTHER"]),
+  notes: z.string().trim().min(2).max(2_000),
+})
+
+const supplierReturnSchema = z.object({
+  purchaseOrderId: id,
+  purchaseOrderLineId: id,
+  warehouseId: id,
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  reason: z.string().trim().min(2).max(500),
   notes: optionalText,
 })
 
@@ -194,14 +229,14 @@ function revalidateOperations() {
 }
 
 export async function getOperationsDashboard() {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role }) => {
     const [clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes] = await Promise.all([
       prisma.client.findMany({ where: { companyId }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 500 }),
       prisma.customerSite.findMany({ where: { companyId }, include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
       prisma.product.findMany({ where: { companyId, active: true }, include: { supplier: { select: { name: true } }, inventoryItems: { select: { quantity: true, reservedQuantity: true, reorderPoint: true } } }, orderBy: { label: "asc" }, take: 500 }),
       prisma.warehouse.findMany({ where: { companyId, active: true }, include: { inventoryItems: { include: { product: { select: { label: true, sku: true } } } } }, orderBy: { name: "asc" } }),
-      prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+      prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, approvedByMembership: { include: { user: { select: { name: true, email: true } } } }, lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } }, issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } }, supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true } } }, orderBy: { createdAt: "desc" } } }, orderBy: { createdAt: "desc" }, take: 100 }),
       prisma.equipment.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
       prisma.serviceTicket.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
       prisma.fieldIntervention.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, ticket: { select: { number: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } }, stockMovements: { where: { type: "OUT" }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { happenedAt: "asc" } } }, orderBy: { scheduledStart: "asc" }, take: 200 }),
@@ -209,11 +244,11 @@ export async function getOperationsDashboard() {
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, invoices: { select: { id: true, type: true, status: true } }, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
-      prisma.goodsReceipt.findMany({ where: { companyId }, include: { purchaseOrder: { include: { supplier: { select: { name: true } } } }, warehouse: { select: { name: true } }, lines: { include: { product: { select: { sku: true, label: true } } } } }, orderBy: { receivedAt: "desc" }, take: 100 }),
+      prisma.goodsReceipt.findMany({ where: { companyId }, include: { purchaseOrder: { include: { supplier: { select: { name: true } } } }, warehouse: { select: { name: true } }, lines: { include: { product: { select: { sku: true, label: true } }, issues: true } } }, orderBy: { receivedAt: "desc" }, take: 100 }),
       prisma.stockReservation.findMany({ where: { companyId, status: "ACTIVE" }, include: { warehouse: { select: { name: true } }, product: { select: { sku: true, label: true } }, project: { select: { name: true } }, customerOrder: { select: { number: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
       prisma.deliveryNote.findMany({ where: { companyId }, include: { customerOrder: { include: { client: { select: { name: true } } } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
     ])
-    return { clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes }
+    return { clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, canApprovePurchases: hasPermission(role, "purchases.approve") }
   }, "operations.read")
 }
 
@@ -374,13 +409,15 @@ export async function createMaintenanceContract(input: unknown) {
 }
 
 export async function createPurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const data = purchaseOrderSchema.parse(input)
+    const lines = data.lines?.length ? data.lines : [{ productId: data.productId, label: data.label!, quantity: data.quantity!, unitPriceCents: data.unitPriceCents! }]
     if (!await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } })) throw new Error("Fournisseur introuvable")
     if (data.projectId && !await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } })) throw new Error("Chantier introuvable")
-    if (data.productId && !await prisma.product.findFirst({ where: { id: data.productId, companyId }, select: { id: true } })) throw new Error("Produit introuvable")
+    const productIds = [...new Set(lines.flatMap((line) => line.productId ? [line.productId] : []))]
+    if (productIds.length && await prisma.product.count({ where: { id: { in: productIds }, companyId, active: true } }) !== productIds.length) throw new Error("Un produit fournisseur est introuvable")
     const prefix = buildYearlyDocumentPrefix("ACH-", "ACH-")
-    const totalHtCents = data.quantity * data.unitPriceCents
+    const totalHtCents = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceCents, 0)
     const order = await withDocumentNumberRetry(async () => {
       const last = await prisma.purchaseOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
       return prisma.purchaseOrder.create({
@@ -392,12 +429,65 @@ export async function createPurchaseOrder(input: unknown) {
           notes: data.notes,
           number: nextDocumentNumber(last?.number, prefix),
           totalHtCents,
-          lines: { create: { productId: data.productId, label: data.label, quantity: data.quantity, unitPriceCents: data.unitPriceCents } },
+          lines: { create: lines.map((line, order) => ({ ...line, order })) },
         },
       })
     }, { label: "la commande fournisseur" })
+    await logAction({ userId, action: "CREATE_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number, supplierId: data.supplierId, lineCount: lines.length, totalHtCents } })
     revalidateOperations()
     return { success: true as const, id: order.id, number: order.number }
+  }, "operations.write")
+}
+
+export async function submitPurchaseOrder(purchaseOrderId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(purchaseOrderId)
+    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "DRAFT" }, select: { id: true, number: true, _count: { select: { lines: true } } } })
+    if (!order) throw new Error("Commande brouillon introuvable")
+    if (!order._count.lines) throw new Error("La commande ne contient aucune ligne")
+    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "DRAFT" }, data: { status: "PENDING_APPROVAL", submittedAt: new Date() } })
+    if (claimed.count !== 1) throw new Error("La commande a déjà changé d’état")
+    await logAction({ userId, action: "SUBMIT_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
+    revalidateOperations()
+    return { success: true as const }
+  }, "operations.write")
+}
+
+export async function approvePurchaseOrder(purchaseOrderId: string) {
+  return withAuth(async ({ companyId, userId, membershipId }) => {
+    const parsedId = id.parse(purchaseOrderId)
+    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "PENDING_APPROVAL" }, select: { id: true, number: true, totalHtCents: true } })
+    if (!order) throw new Error("Commande en attente d’approbation introuvable")
+    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "PENDING_APPROVAL" }, data: { status: "APPROVED", approvedAt: new Date(), approvedByMembershipId: membershipId } })
+    if (claimed.count !== 1) throw new Error("La commande a déjà été traitée")
+    await logAction({ userId, action: "APPROVE_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number, totalHtCents: order.totalHtCents } })
+    revalidateOperations()
+    return { success: true as const }
+  }, "purchases.approve")
+}
+
+export async function sendPurchaseOrder(purchaseOrderId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(purchaseOrderId)
+    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "APPROVED" }, select: { id: true, number: true } })
+    if (!order) throw new Error("La commande doit être approuvée avant envoi")
+    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "APPROVED" }, data: { status: "SENT", sentAt: new Date() } })
+    if (claimed.count !== 1) throw new Error("La commande a déjà été envoyée")
+    await logAction({ userId, action: "SEND_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
+    revalidateOperations()
+    return { success: true as const }
+  }, "operations.write")
+}
+
+export async function acknowledgePurchaseOrder(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = purchaseAcknowledgementSchema.parse(input)
+    const order = await prisma.purchaseOrder.findFirst({ where: { id: data.purchaseOrderId, companyId, status: { in: ["SENT", "ACKNOWLEDGED"] } }, select: { id: true, number: true } })
+    if (!order) throw new Error("Commande envoyée introuvable")
+    await prisma.purchaseOrder.update({ where: { id: order.id }, data: { status: "ACKNOWLEDGED", acknowledgedAt: new Date(), supplierReference: data.supplierReference, confirmedExpectedAt: new Date(data.confirmedExpectedAt) } })
+    await logAction({ userId, action: "ACKNOWLEDGE_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number, supplierReference: data.supplierReference, confirmedExpectedAt: data.confirmedExpectedAt } })
+    revalidateOperations()
+    return { success: true as const }
   }, "operations.write")
 }
 
@@ -576,21 +666,26 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
 }
 
 export async function receivePurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const data = goodsReceiptSchema.parse(input)
     const [warehouse, line] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
       prisma.purchaseOrderLine.findFirst({
         where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } },
-        include: { purchaseOrder: { select: { id: true, number: true } }, product: { select: { id: true } } },
+        include: { purchaseOrder: { select: { id: true, number: true, status: true } }, product: { select: { id: true } } },
       }),
     ])
     if (!warehouse) throw new Error("Dépôt introuvable")
     if (!line) throw new Error("Ligne de commande fournisseur introuvable")
-    if (!line.product) throw new Error("Associez un produit catalogue à la ligne avant réception")
-    const productId = line.product.id
-    const remaining = line.quantity - line.receivedQuantity
-    if (data.quantity > remaining) throw new Error(`La quantité dépasse le reliquat de ${remaining}`)
+    if (!(["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES"] as string[]).includes(line.purchaseOrder.status)) {
+      throw new Error("La commande doit être envoyée avant sa réception")
+    }
+    const productId = line.product?.id ?? null
+    if (data.rejectedQuantity > data.quantity) throw new Error("La quantité rejetée dépasse la quantité livrée")
+    if (data.rejectedQuantity && !data.issueType) throw new Error("Précisez le type d’anomalie fournisseur")
+    const acceptedQuantity = data.quantity - data.rejectedQuantity
+    const remaining = line.quantity - line.receivedQuantity - line.creditedQuantity
+    if (data.quantity > remaining) throw new Error(`La quantité livrée dépasse le reliquat de ${remaining}`)
 
     const prefix = buildYearlyDocumentPrefix("REC-", "REC-")
     const receipt = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
@@ -603,25 +698,113 @@ export async function receivePurchaseOrder(input: unknown) {
           number: nextDocumentNumber(last?.number, prefix),
           supplierReference: data.supplierReference,
           notes: data.notes,
-          lines: { create: { purchaseOrderLineId: line.id, productId, quantity: data.quantity, unitCostCents: line.unitPriceCents } },
+          lines: { create: { purchaseOrderLineId: line.id, productId, quantity: data.quantity, acceptedQuantity, rejectedQuantity: data.rejectedQuantity, unitCostCents: line.unitPriceCents } },
         },
+        include: { lines: { select: { id: true } } },
       })
-      await tx.purchaseOrderLine.update({ where: { id: line.id }, data: { receivedQuantity: { increment: data.quantity } } })
-      const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId } } })
-      const next = calculateStockBalance({ quantity: current?.quantity ?? 0, reservedQuantity: current?.reservedQuantity ?? 0, type: "IN", movementQuantity: data.quantity })
-      await tx.inventoryItem.upsert({
-        where: { warehouseId_productId: { warehouseId: data.warehouseId, productId } },
-        update: next,
-        create: { companyId, warehouseId: data.warehouseId, productId, ...next },
-      })
-      await tx.stockMovement.create({ data: { companyId, warehouseId: data.warehouseId, productId, projectId: null, type: "IN", quantity: data.quantity, unitCostCents: line.unitPriceCents, reference: created.number, notes: `Réception ${line.purchaseOrder.number}` } })
-      const orderLines = await tx.purchaseOrderLine.findMany({ where: { purchaseOrderId: data.purchaseOrderId }, select: { quantity: true, receivedQuantity: true } })
-      const complete = orderLines.every((orderLine) => orderLine.receivedQuantity >= orderLine.quantity)
-      await tx.purchaseOrder.update({ where: { id: data.purchaseOrderId }, data: { status: complete ? "RECEIVED" : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null } })
+      if (acceptedQuantity) {
+        await tx.purchaseOrderLine.update({ where: { id: line.id }, data: { receivedQuantity: { increment: acceptedQuantity } } })
+        if (productId) {
+          const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId } } })
+          const next = calculateStockBalance({ quantity: current?.quantity ?? 0, reservedQuantity: current?.reservedQuantity ?? 0, type: "IN", movementQuantity: acceptedQuantity })
+          await tx.inventoryItem.upsert({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId } }, update: next, create: { companyId, warehouseId: data.warehouseId, productId, ...next } })
+          await tx.stockMovement.create({ data: { companyId, warehouseId: data.warehouseId, productId, projectId: null, type: "IN", quantity: acceptedQuantity, unitCostCents: line.unitPriceCents, reference: created.number, notes: `Réception ${line.purchaseOrder.number}` } })
+        }
+      }
+      if (data.rejectedQuantity) {
+        await tx.purchaseIssue.create({ data: { companyId, purchaseOrderId: data.purchaseOrderId, purchaseOrderLineId: line.id, goodsReceiptLineId: created.lines[0].id, productId, type: data.issueType!, quantity: data.rejectedQuantity, notes: data.issueNotes } })
+      }
+      const orderLines = await tx.purchaseOrderLine.findMany({ where: { purchaseOrderId: data.purchaseOrderId }, select: { quantity: true, receivedQuantity: true, creditedQuantity: true } })
+      const complete = orderLines.every((orderLine) => orderLine.receivedQuantity + orderLine.creditedQuantity >= orderLine.quantity)
+      const openIssues = await tx.purchaseIssue.count({ where: { purchaseOrderId: data.purchaseOrderId, status: { not: "RESOLVED" } } })
+      await tx.purchaseOrder.update({ where: { id: data.purchaseOrderId }, data: { status: complete ? openIssues ? "RECEIVED_WITH_ISSUES" : "RECEIVED" : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null } })
       return created
     }), { label: "la réception fournisseur" })
+    await logAction({ userId, action: "RECEIVE_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: data.purchaseOrderId, payload: { receiptId: receipt.id, acceptedQuantity, rejectedQuantity: data.rejectedQuantity, issueType: data.issueType } })
     revalidateOperations()
     return { success: true as const, id: receipt.id, number: receipt.number }
+  }, "operations.write")
+}
+
+export async function resolvePurchaseIssue(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = purchaseIssueResolutionSchema.parse(input)
+    const issue = await prisma.purchaseIssue.findFirst({
+      where: { id: data.issueId, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
+      include: { goodsReceiptLine: { include: { goodsReceipt: { select: { warehouseId: true, number: true } } } }, purchaseOrderLine: { select: { id: true, quantity: true, receivedQuantity: true, creditedQuantity: true, unitPriceCents: true } } },
+    })
+    if (!issue) throw new Error("Anomalie fournisseur introuvable ou déjà résolue")
+    if (data.resolution === "ACCEPTED" && !issue.goodsReceiptLine) throw new Error("Réception source introuvable")
+    const remaining = issue.purchaseOrderLine.quantity - issue.purchaseOrderLine.receivedQuantity - issue.purchaseOrderLine.creditedQuantity
+    if (["CREDIT", "ACCEPTED"].includes(data.resolution) && issue.quantity > remaining) {
+      throw new Error("Le reliquat a déjà été couvert ; clôturez l’anomalie avec une autre résolution")
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const nextStatus = data.resolution === "REPLACEMENT" ? "WAITING_REPLACEMENT" : "RESOLVED"
+      const claimed = await tx.purchaseIssue.updateMany({ where: { id: issue.id, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } }, data: { status: nextStatus, resolution: data.notes, resolvedAt: nextStatus === "RESOLVED" ? new Date() : null } })
+      if (claimed.count !== 1) throw new Error("Anomalie déjà traitée")
+      if (data.resolution === "CREDIT") {
+        await tx.purchaseOrderLine.update({ where: { id: issue.purchaseOrderLineId }, data: { creditedQuantity: { increment: issue.quantity } } })
+      } else if (data.resolution === "ACCEPTED") {
+        const warehouseId = issue.goodsReceiptLine!.goodsReceipt.warehouseId
+        await tx.purchaseOrderLine.update({ where: { id: issue.purchaseOrderLineId }, data: { receivedQuantity: { increment: issue.quantity } } })
+        if (issue.productId) {
+          const productId = issue.productId
+          const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId, productId } } })
+          const next = calculateStockBalance({ quantity: current?.quantity ?? 0, reservedQuantity: current?.reservedQuantity ?? 0, type: "IN", movementQuantity: issue.quantity })
+          await tx.inventoryItem.upsert({ where: { warehouseId_productId: { warehouseId, productId } }, update: next, create: { companyId, warehouseId, productId, ...next } })
+          await tx.stockMovement.create({ data: { companyId, warehouseId, productId, type: "IN", quantity: issue.quantity, unitCostCents: issue.purchaseOrderLine.unitPriceCents, reference: `ISS-${issue.id.slice(-8).toUpperCase()}`, notes: `Anomalie acceptée après contrôle · ${issue.goodsReceiptLine!.goodsReceipt.number}` } })
+        }
+      }
+      const orderLines = await tx.purchaseOrderLine.findMany({ where: { purchaseOrderId: issue.purchaseOrderId }, select: { quantity: true, receivedQuantity: true, creditedQuantity: true } })
+      const complete = orderLines.every((line) => line.receivedQuantity + line.creditedQuantity >= line.quantity)
+      const openIssues = await tx.purchaseIssue.count({ where: { purchaseOrderId: issue.purchaseOrderId, status: { not: "RESOLVED" } } })
+      await tx.purchaseOrder.update({ where: { id: issue.purchaseOrderId }, data: { status: complete ? openIssues ? "RECEIVED_WITH_ISSUES" : "RECEIVED" : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null } })
+    })
+    await logAction({ userId, action: "RESOLVE_PURCHASE_ISSUE", resource: "PURCHASE_ISSUE", resourceId: issue.id, payload: { resolution: data.resolution, purchaseOrderId: issue.purchaseOrderId, quantity: issue.quantity } })
+    revalidateOperations()
+    return { success: true as const }
+  }, "operations.write")
+}
+
+export async function createSupplierReturn(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = supplierReturnSchema.parse(input)
+    const [line, warehouse] = await Promise.all([
+      prisma.purchaseOrderLine.findFirst({ where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } }, include: { purchaseOrder: { select: { supplierId: true, number: true } }, product: { select: { id: true } }, receiptLines: { where: { goodsReceipt: { warehouseId: data.warehouseId } }, select: { acceptedQuantity: true } }, supplierReturns: { where: { warehouseId: data.warehouseId }, select: { quantity: true } } } }),
+      prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
+    ])
+    if (!line?.product || !warehouse) throw new Error("Ligne produit ou dépôt introuvable")
+    const receivedInWarehouse = line.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity, 0)
+    const alreadyReturned = line.supplierReturns.reduce((sum, item) => sum + item.quantity, 0)
+    if (data.quantity > receivedInWarehouse - alreadyReturned) throw new Error("La quantité retournée dépasse la quantité reçue dans ce dépôt")
+    const inventory = await prisma.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: warehouse.id, productId: line.product.id } } })
+    if (!inventory) throw new Error("Stock du produit introuvable dans ce dépôt")
+    const next = calculateStockBalance({ quantity: inventory.quantity, reservedQuantity: inventory.reservedQuantity, type: "OUT", movementQuantity: data.quantity })
+    const prefix = buildYearlyDocumentPrefix("RET-", "RET-")
+    const supplierReturn = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
+      const last = await tx.supplierReturn.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      const number = nextDocumentNumber(last?.number, prefix)
+      await tx.inventoryItem.update({ where: { id: inventory.id }, data: next })
+      const movement = await tx.stockMovement.create({ data: { companyId, warehouseId: warehouse.id, productId: line.product!.id, type: "OUT", quantity: -data.quantity, unitCostCents: line.unitPriceCents, reference: number, notes: `Retour fournisseur · ${data.reason}` } })
+      return tx.supplierReturn.create({ data: { companyId, purchaseOrderId: data.purchaseOrderId, purchaseOrderLineId: line.id, supplierId: line.purchaseOrder.supplierId, warehouseId: warehouse.id, productId: line.product!.id, stockMovementId: movement.id, number, quantity: data.quantity, unitCostCents: line.unitPriceCents, reason: data.reason, notes: data.notes } })
+    }), { label: "le retour fournisseur" })
+    await logAction({ userId, action: "CREATE_SUPPLIER_RETURN", resource: "SUPPLIER_RETURN", resourceId: supplierReturn.id, payload: { number: supplierReturn.number, purchaseOrderId: data.purchaseOrderId, quantity: data.quantity } })
+    revalidateOperations()
+    return { success: true as const, id: supplierReturn.id, number: supplierReturn.number }
+  }, "operations.write")
+}
+
+export async function creditSupplierReturn(supplierReturnId: string, creditReference: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = z.object({ supplierReturnId: id, creditReference: z.string().trim().min(1).max(120) }).parse({ supplierReturnId, creditReference })
+    const supplierReturn = await prisma.supplierReturn.findFirst({ where: { id: data.supplierReturnId, companyId, status: "SHIPPED" }, select: { id: true, number: true } })
+    if (!supplierReturn) throw new Error("Retour fournisseur expédié introuvable")
+    await prisma.supplierReturn.update({ where: { id: supplierReturn.id }, data: { status: "CREDITED", creditedAt: new Date(), creditReference: data.creditReference } })
+    await logAction({ userId, action: "CREDIT_SUPPLIER_RETURN", resource: "SUPPLIER_RETURN", resourceId: supplierReturn.id, payload: { number: supplierReturn.number, creditReference: data.creditReference } })
+    revalidateOperations()
+    return { success: true as const }
   }, "operations.write")
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   canAssignRole,
+  canActionPermissionMutateModel,
   hasPermission,
   normalizeCompanyRole,
   requiredMutationPermission,
@@ -33,5 +34,13 @@ describe("company permissions", () => {
     expect(requiredMutationPermission("Quote")).toBe("sales.write")
     expect(requiredMutationPermission("InvoicePayment")).toBe("finance.write")
     expect(requiredMutationPermission("Notification")).toBeUndefined()
+  })
+
+  it("limits purchase approval elevation to supplier orders", () => {
+    expect(hasPermission("ACCOUNTING", "purchases.approve")).toBe(true)
+    expect(hasPermission("ACCOUNTING", "operations.write")).toBe(false)
+    expect(canActionPermissionMutateModel("purchases.approve", "PurchaseOrder")).toBe(true)
+    expect(canActionPermissionMutateModel("purchases.approve", "InventoryItem")).toBe(false)
+    expect(canActionPermissionMutateModel("finance.write", "PurchaseOrder")).toBe(false)
   })
 })

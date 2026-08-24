@@ -139,6 +139,8 @@ model Company {
   inventoryItems       InventoryItem[]
   stockMovements       StockMovement[]
   purchaseOrders       PurchaseOrder[]
+  purchaseIssues       PurchaseIssue[]
+  supplierReturns      SupplierReturn[]
   equipments           Equipment[]
   serviceTickets       ServiceTicket[]
   interventions        FieldIntervention[]
@@ -172,9 +174,10 @@ model Membership {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedTickets       ServiceTicket[]     @relation("TicketAssignee")
-  assignedInterventions FieldIntervention[] @relation("InterventionAssignee")
-  ownedOpportunities    Opportunity[]       @relation("OpportunityOwner")
+  assignedTickets        ServiceTicket[]     @relation("TicketAssignee")
+  assignedInterventions  FieldIntervention[] @relation("InterventionAssignee")
+  ownedOpportunities     Opportunity[]       @relation("OpportunityOwner")
+  approvedPurchaseOrders PurchaseOrder[]     @relation("PurchaseOrderApprover")
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -893,9 +896,10 @@ model Supplier {
   active       Boolean @default(true)
   customFields Json?
 
-  products       Product[]
-  purchaseOrders PurchaseOrder[]
-  productPrices  ProductPrice[]
+  products        Product[]
+  purchaseOrders  PurchaseOrder[]
+  productPrices   ProductPrice[]
+  supplierReturns SupplierReturn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -937,6 +941,8 @@ model Product {
   deliveryNoteLines  DeliveryNoteLine[]
   goodsReceiptLines  GoodsReceiptLine[]
   stockReservations  StockReservation[]
+  purchaseIssues     PurchaseIssue[]
+  supplierReturns    SupplierReturn[]
   variants           Product[]            @relation("ProductVariants")
   optionGroups       ProductOptionGroup[]
   assemblyComponents ProductComponent[]   @relation("ProductAssembly")
@@ -1042,10 +1048,11 @@ model Warehouse {
   address String?
   active  Boolean @default(true)
 
-  inventoryItems InventoryItem[]
-  movements      StockMovement[]
-  goodsReceipts  GoodsReceipt[]
-  reservations   StockReservation[]
+  inventoryItems  InventoryItem[]
+  movements       StockMovement[]
+  goodsReceipts   GoodsReceipt[]
+  reservations    StockReservation[]
+  supplierReturns SupplierReturn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1086,15 +1093,16 @@ model StockMovement {
   fieldInterventionId String?
   fieldIntervention   FieldIntervention? @relation(fields: [fieldInterventionId], references: [id], onDelete: SetNull)
 
-  type          String
-  quantity      Int
-  unitCostCents Int?
-  reference     String?
-  notes         String?
-  happenedAt    DateTime          @default(now())
-  createdAt     DateTime          @default(now())
-  reservationId String?
-  reservation   StockReservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  type           String
+  quantity       Int
+  unitCostCents  Int?
+  reference      String?
+  notes          String?
+  happenedAt     DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  reservationId  String?
+  reservation    StockReservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  supplierReturn SupplierReturn?
 
   @@index([companyId, happenedAt])
   @@index([warehouseId, productId])
@@ -1112,15 +1120,25 @@ model PurchaseOrder {
   projectId  String?
   project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  number        String
-  status        String              @default("DRAFT")
-  orderDate     DateTime            @default(now())
-  expectedAt    DateTime?
-  receivedAt    DateTime?
-  notes         String?
-  totalHtCents  Int                 @default(0)
-  lines         PurchaseOrderLine[]
-  goodsReceipts GoodsReceipt[]
+  number                 String
+  status                 String              @default("DRAFT")
+  orderDate              DateTime            @default(now())
+  expectedAt             DateTime?
+  receivedAt             DateTime?
+  submittedAt            DateTime?
+  approvedAt             DateTime?
+  approvedByMembershipId String?
+  approvedByMembership   Membership?         @relation("PurchaseOrderApprover", fields: [approvedByMembershipId], references: [id], onDelete: SetNull)
+  sentAt                 DateTime?
+  acknowledgedAt         DateTime?
+  supplierReference      String?
+  confirmedExpectedAt    DateTime?
+  notes                  String?
+  totalHtCents           Int                 @default(0)
+  lines                  PurchaseOrderLine[]
+  goodsReceipts          GoodsReceipt[]
+  issues                 PurchaseIssue[]
+  supplierReturns        SupplierReturn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1129,6 +1147,8 @@ model PurchaseOrder {
   @@index([companyId, status])
   @@index([supplierId])
   @@index([projectId])
+  @@index([approvedByMembershipId])
+  @@index([companyId, expectedAt])
 }
 
 model PurchaseOrderLine {
@@ -1141,10 +1161,13 @@ model PurchaseOrderLine {
   label            String
   quantity         Int
   receivedQuantity Int                @default(0)
+  creditedQuantity Int                @default(0)
   unitPriceCents   Int
   order            Int                @default(0)
   sourceKey        String?
   receiptLines     GoodsReceiptLine[]
+  issues           PurchaseIssue[]
+  supplierReturns  SupplierReturn[]
 
   @@unique([purchaseOrderId, sourceKey])
   @@index([purchaseOrderId])
@@ -1285,14 +1308,81 @@ model GoodsReceiptLine {
   goodsReceipt        GoodsReceipt       @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
   purchaseOrderLineId String?
   purchaseOrderLine   PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id], onDelete: SetNull)
-  productId           String
-  product             Product            @relation(fields: [productId], references: [id])
+  productId           String?
+  product             Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
   quantity            Int
+  acceptedQuantity    Int                @default(0)
+  rejectedQuantity    Int                @default(0)
   unitCostCents       Int?
+  issues              PurchaseIssue[]
 
   @@index([goodsReceiptId])
   @@index([purchaseOrderLineId])
   @@index([productId])
+}
+
+model PurchaseIssue {
+  id                  String            @id @default(cuid())
+  companyId           String
+  company             Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchaseOrderId     String
+  purchaseOrder       PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderLineId String
+  purchaseOrderLine   PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Cascade)
+  goodsReceiptLineId  String?
+  goodsReceiptLine    GoodsReceiptLine? @relation(fields: [goodsReceiptLineId], references: [id], onDelete: SetNull)
+  productId           String?
+  product             Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  type       String
+  quantity   Int
+  status     String    @default("OPEN")
+  notes      String?
+  resolution String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([companyId, status, createdAt])
+  @@index([purchaseOrderId])
+  @@index([purchaseOrderLineId])
+  @@index([goodsReceiptLineId])
+}
+
+model SupplierReturn {
+  id                  String            @id @default(cuid())
+  companyId           String
+  company             Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchaseOrderId     String
+  purchaseOrder       PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderLineId String
+  purchaseOrderLine   PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id])
+  supplierId          String
+  supplier            Supplier          @relation(fields: [supplierId], references: [id])
+  warehouseId         String
+  warehouse           Warehouse         @relation(fields: [warehouseId], references: [id])
+  productId           String
+  product             Product           @relation(fields: [productId], references: [id])
+  stockMovementId     String            @unique
+  stockMovement       StockMovement     @relation(fields: [stockMovementId], references: [id])
+
+  number          String
+  quantity        Int
+  unitCostCents   Int
+  reason          String
+  status          String    @default("SHIPPED")
+  shippedAt       DateTime  @default(now())
+  creditedAt      DateTime?
+  creditReference String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([companyId, number])
+  @@index([companyId, status, shippedAt])
+  @@index([purchaseOrderId])
+  @@index([supplierId])
+  @@index([warehouseId, productId])
 }
 
 model StockReservation {
