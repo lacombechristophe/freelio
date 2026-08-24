@@ -1,0 +1,129 @@
+"use server"
+
+import { revalidatePath } from "next/cache"
+import { z } from "zod"
+
+import { workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
+import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
+import { withAuth } from "@/lib/auth-wrapper"
+import prisma from "@/lib/prisma"
+
+const idSchema = z.string().cuid()
+const templateSchema = z.object({ name: z.string().trim().min(2).max(120), category: z.string().trim().min(2).max(50), subject: z.string().trim().min(2).max(180), bodyHtml: z.string().trim().min(10).max(50_000) })
+const sequenceSchema = z.object({ name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).optional() })
+const stepSchema = z.object({ sequenceId: idSchema, templateId: idSchema.optional(), delayHours: z.number().int().min(0).max(8_760), subject: z.string().trim().max(180).optional(), bodyHtml: z.string().trim().max(50_000).optional() })
+const statusSchema = z.enum(["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED"])
+
+export async function getAutomationDashboard() {
+  return withAuth(async ({ companyId }) => {
+    const [templates, sequences, workflows, deliveries, leads] = await Promise.all([
+      prisma.emailTemplate.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: { updatedAt: "desc" }, take: 100 }),
+      prisma.emailSequence.findMany({
+        where: { companyId, status: { not: "ARCHIVED" } },
+        include: {
+          steps: { orderBy: { position: "asc" } },
+          enrollments: { orderBy: { enrolledAt: "desc" }, take: 20, include: { leadCapture: { select: { firstName: true, lastName: true, email: true } } } },
+          _count: { select: { enrollments: true, deliveries: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.automationWorkflow.findMany({ where: { companyId, status: { not: "ARCHIVED" } }, include: { runs: { orderBy: { startedAt: "desc" }, take: 5 } }, orderBy: { updatedAt: "desc" } }),
+      prisma.emailDelivery.findMany({ where: { companyId }, include: { sequence: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 50 }),
+      prisma.leadCapture.findMany({ where: { companyId, marketingOptIn: true, email: { not: null }, status: { notIn: ["SPAM", "ARCHIVED"] } }, select: { id: true, firstName: true, lastName: true, email: true, projectType: true }, orderBy: { createdAt: "desc" }, take: 250 }),
+    ])
+    return { templates, sequences, workflows, deliveries, leads }
+  }, "automation.read")
+}
+
+export async function createEmailTemplate(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = templateSchema.parse(input)
+    await prisma.emailTemplate.create({ data: { companyId, ...data } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function createEmailSequence(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = sequenceSchema.parse(input)
+    await prisma.emailSequence.create({ data: { companyId, ...data } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function addEmailSequenceStep(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = stepSchema.parse(input)
+    const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, include: { steps: { orderBy: { position: "desc" }, take: 1 } } })
+    if (!sequence) throw new Error("Séquence introuvable")
+    const template = data.templateId ? await prisma.emailTemplate.findFirst({ where: { id: data.templateId, companyId, status: "ACTIVE" } }) : null
+    const subject = data.subject || template?.subject
+    const bodyHtml = data.bodyHtml || template?.bodyHtml
+    if (!subject || !bodyHtml) throw new Error("Renseignez un objet et un contenu, ou choisissez un modèle")
+    await prisma.emailSequenceStep.create({ data: { sequenceId: sequence.id, position: (sequence.steps[0]?.position ?? -1) + 1, delayHours: data.delayHours, subject, bodyHtml } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function updateEmailSequenceStatus(sequenceId: string, status: string) {
+  return withAuth(async ({ companyId }) => {
+    const id = idSchema.parse(sequenceId)
+    const nextStatus = statusSchema.parse(status)
+    const sequence = await prisma.emailSequence.findFirst({ where: { id, companyId }, include: { _count: { select: { steps: true } } } })
+    if (!sequence) throw new Error("Séquence introuvable")
+    if (nextStatus === "ACTIVE" && sequence._count.steps === 0) throw new Error("Ajoutez une étape avant d'activer la séquence")
+    await prisma.emailSequence.update({ where: { id }, data: { status: nextStatus } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function enrollLeadInSequence(sequenceId: string, leadId: string) {
+  return withAuth(async ({ companyId }) => {
+    await enrollLeadInSequenceInternal({ companyId, sequenceId: idSchema.parse(sequenceId), leadId: idSchema.parse(leadId) })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function stopSequenceEnrollment(enrollmentId: string) {
+  return withAuth(async ({ companyId }) => {
+    const enrollment = await prisma.emailSequenceEnrollment.findFirst({ where: { id: idSchema.parse(enrollmentId), sequence: { companyId } }, select: { id: true } })
+    if (!enrollment) throw new Error("Inscription introuvable")
+    await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "STOPPED", stopReason: "MANUAL", nextSendAt: null, completedAt: new Date() } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function createAutomationWorkflow(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const parsed = z.object({ name: z.string().trim().min(2).max(120), trigger: automationTriggerSchema, conditions: z.unknown().optional(), actions: z.unknown() }).parse(input)
+    const configuration = workflowConfigurationSchema.parse({ conditions: parsed.conditions, actions: parsed.actions })
+    await prisma.automationWorkflow.create({ data: { companyId, name: parsed.name, trigger: parsed.trigger, conditions: configuration.conditions || undefined, actions: configuration.actions } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function updateAutomationWorkflowStatus(workflowId: string, status: string) {
+  return withAuth(async ({ companyId }) => {
+    const id = idSchema.parse(workflowId)
+    const workflow = await prisma.automationWorkflow.findFirst({ where: { id, companyId }, select: { id: true } })
+    if (!workflow) throw new Error("Automatisation introuvable")
+    await prisma.automationWorkflow.update({ where: { id }, data: { status: statusSchema.parse(status) } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function processSequenceEmailsNow() {
+  return withAuth(async () => {
+    const summary = await processDueSequenceEmails(100)
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const, summary }
+  }, "automation.write")
+}

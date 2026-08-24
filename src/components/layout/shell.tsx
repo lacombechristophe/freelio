@@ -7,11 +7,12 @@ import { ThemeToggle } from "./theme-toggle"
 import { UserMenu } from "./user-menu"
 import { MobileSidebar } from "./mobile-sidebar"
 import { getNotifications, getUnreadCount } from "@/actions/notifications"
-import { DiskoovBrand } from "@/components/shared/diskoov-brand"
+import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 import { AppPageTransition } from "./app-page-transition"
 
 interface ShellProps {
   children: React.ReactNode
+  brand: WorkspaceBrand
 }
 
 // Silently swallow failures so a notifications/auth hiccup never takes down the
@@ -24,7 +25,7 @@ async function safe<T>(p: Promise<T>): Promise<T | null> {
   }
 }
 
-export async function Shell({ children }: ShellProps) {
+export async function Shell({ children, brand }: ShellProps) {
   const [session, notifications, unreadCount] = await Promise.all([
     safe(auth()),
     safe(getNotifications()),
@@ -40,14 +41,14 @@ export async function Shell({ children }: ShellProps) {
         Aller au contenu
       </a>
       <aside className="hidden h-full lg:flex">
-        <Sidebar />
+        <Sidebar brand={brand} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="relative z-40 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/95 px-3 backdrop-blur-xl sm:px-5 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
-            <MobileSidebar />
-            <DiskoovBrand className="lg:hidden" />
+            <MobileSidebar brand={brand} />
+            <AppBrand brand={brand} className="lg:hidden" />
             <GlobalSearch />
           </div>
 

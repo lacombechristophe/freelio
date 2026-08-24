@@ -126,7 +126,7 @@ export async function completeOnboarding(data: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return {
         success: false,
-        error: "Ce SIRET est déjà associé à un espace Diskoov.",
+        error: "Ce SIRET est déjà associé à un espace entreprise.",
       }
     }
     return {

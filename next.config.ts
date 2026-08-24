@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
+const developmentEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
-  serverExternalPackages: ["@prisma/client", "@diskoov/prisma-postgres"],
+  serverExternalPackages: ["@prisma/client", "@crm/prisma-postgres"],
   async headers() {
     return [
       {
@@ -10,7 +12,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://storage.freelio.fr; font-src 'self' data:; connect-src 'self' https://sentry.io; frame-ancestors 'none';",
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' https://sentry.io; frame-ancestors 'none';`,
           },
           {
             key: "X-Frame-Options",

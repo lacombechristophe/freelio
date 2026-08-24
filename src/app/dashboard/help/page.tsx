@@ -39,7 +39,7 @@ const topics = [
   },
   {
     title: "Factur-X et facturation électronique",
-    copy: "Diskoov CRM prépare des documents hybrides Factur-X. La transmission réglementaire dépend de la plateforme agréée choisie par votre entreprise.",
+    copy: "Le CRM prépare des documents hybrides Factur-X. La transmission réglementaire dépend de la plateforme agréée choisie par votre entreprise.",
     href: "/conformite",
     action: "Lire la page conformité",
   },
@@ -52,13 +52,14 @@ const topics = [
 ]
 
 export default function HelpPage() {
+  const supportEmail = process.env.SUPPORT_EMAIL?.trim()
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8">
       <PageHeader
         eyebrow="Ressources"
         title="Aide & conformité"
-        description="Les repères utiles pour configurer Diskoov CRM, contrôler vos documents et préparer vos données."
-        actions={<a href="mailto:support@diskoov.fr" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}><Mail />Contacter le support</a>}
+        description="Les repères utiles pour configurer le CRM, contrôler vos documents et préparer vos données."
+        actions={supportEmail ? <a href={`mailto:${supportEmail}`} className={cn(buttonVariants({ variant: "outline" }), "gap-2")}><Mail />Contacter le support</a> : undefined}
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
@@ -85,8 +86,8 @@ export default function HelpPage() {
             <CardDescription className="text-background/65">Décrivez le document, le statut concerné et le résultat attendu. Le support pourra vous répondre plus vite.</CardDescription>
           </CardHeader>
           <CardContent className="mt-auto space-y-3">
-            <a href="mailto:support@diskoov.fr" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2 bg-white text-[#101828] hover:bg-white/90")}><Mail />support@diskoov.fr</a>
-            <p className="text-center text-xs text-background/55">Support de l’outil interne Diskoov</p>
+            {supportEmail ? <a href={`mailto:${supportEmail}`} className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2 bg-white text-[#101828] hover:bg-white/90")}><Mail />{supportEmail}</a> : <Link href="/dashboard/settings" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2 bg-white text-[#101828] hover:bg-white/90")}><Settings2 />Vérifier la configuration</Link>}
+            <p className="text-center text-xs text-background/55">Canal de support défini par l’administrateur</p>
           </CardContent>
         </Card>
       </div>
@@ -95,7 +96,7 @@ export default function HelpPage() {
         <div className="mb-5 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase text-primary">Repères essentiels</p>
           <h2 className="mt-2 font-heading text-2xl font-semibold">Comprendre les réglages sensibles</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Diskoov CRM structure vos données, mais ne remplace pas le conseil d’un expert-comptable ou d’un juriste.</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Le CRM structure vos données, mais ne remplace pas le conseil d’un expert-comptable ou d’un juriste.</p>
         </div>
 
         <Card>

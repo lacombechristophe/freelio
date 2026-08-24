@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner"
 
 import { submitSignInWithEmail, type SignInState } from "@/actions/auth/signin"
-import { DiskoovBrand } from "@/components/shared/diskoov-brand"
+import { AppBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -47,7 +47,7 @@ function LoginContent() {
     <main className="marketing-surface grid min-h-screen bg-white text-freelio-ink lg:grid-cols-[minmax(440px,0.82fr)_minmax(620px,1.18fr)]">
       <section className="flex min-h-screen flex-col border-freelio-line px-6 py-5 sm:px-10 sm:py-7 lg:border-r lg:px-14 xl:px-20">
         <div className="flex items-center justify-between">
-          <DiskoovBrand href="/" />
+          <AppBrand href="/" />
           <Link href="/" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-freelio-muted transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">
             <ArrowLeft className="size-4" />
             <span className="hidden sm:inline">Retour au site</span>
@@ -55,7 +55,7 @@ function LoginContent() {
         </div>
 
         <div className="my-auto w-full max-w-[430px] py-14 lg:self-center">
-          <p className="text-xs font-semibold uppercase text-freelio-accent">Votre espace Diskoov</p>
+          <p className="text-xs font-semibold uppercase text-freelio-accent">Votre espace de travail</p>
           <h1 className="marketing-display mt-4 text-[38px] font-semibold leading-[1.02] sm:text-[46px]">
             Reprenez chaque dossier exactement là où il en est.
           </h1>
@@ -94,7 +94,7 @@ function LoginContent() {
         </div>
 
         <p className="text-xs leading-5 text-freelio-muted">
-          En continuant, vous acceptez les <Link href="/faq" className="font-medium text-freelio-ink underline decoration-freelio-line-strong underline-offset-4">conditions d’utilisation</Link> et la politique de confidentialité.
+          En continuant, vous accédez à un espace professionnel privé administré par votre organisation.
         </p>
       </section>
 

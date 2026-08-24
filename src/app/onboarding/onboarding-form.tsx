@@ -32,7 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { completeOnboarding } from "@/actions/onboarding/complete-onboarding"
-import { DiskoovBrand } from "@/components/shared/diskoov-brand"
+import { AppBrand } from "@/components/shared/app-brand"
 import {
   OnboardingFormSchema,
   type OnboardingFormInput,
@@ -158,7 +158,7 @@ export function OnboardingForm() {
   return (
     <main className="marketing-surface min-h-screen bg-freelio-canvas text-freelio-ink">
       <header className="flex h-16 items-center border-b border-freelio-line bg-white px-5 sm:px-8 lg:px-10">
-        <DiskoovBrand href="/" />
+        <AppBrand href="/" />
         <span className="ml-auto rounded-md bg-freelio-accent-soft px-2.5 py-1 text-xs font-semibold text-freelio-accent">Configuration initiale</span>
       </header>
 
@@ -166,7 +166,7 @@ export function OnboardingForm() {
         <aside className="hidden lg:block">
           <div className="sticky top-10">
             <p className="text-xs font-semibold uppercase text-freelio-accent">Premiers réglages</p>
-            <h1 className="marketing-display mt-4 text-[36px] font-semibold leading-[1.05]">Un espace prêt pour votre prochaine mission.</h1>
+            <h1 className="marketing-display mt-4 text-[36px] font-semibold leading-[1.05]">Un espace prêt pour vos ventes et vos chantiers.</h1>
             <p className="mt-4 text-sm leading-6 text-freelio-muted">Ces informations alimentent automatiquement vos documents. Vous pourrez tout modifier plus tard.</p>
 
             <ol className="mt-9 space-y-1" aria-label="Étapes de configuration">
@@ -468,7 +468,7 @@ export function OnboardingForm() {
                       <FormItem>
                         <FormLabel>Nom du client (optionnel)</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Agence Web XYZ" {...field} />
+                          <Input placeholder="Ex : Votre entreprise" {...field} />
                         </FormControl>
                         <FormDescription>Vous pourrez en ajouter d&apos;autres plus tard.</FormDescription>
                         <FormMessage />

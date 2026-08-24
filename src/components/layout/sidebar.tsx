@@ -29,12 +29,13 @@ import {
   UserRoundSearch,
   Users,
   Wallet,
+  Workflow,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { createTimeEntry } from "@/actions/temps"
 import { getProjects } from "@/actions/projets"
-import { DiskoovBrand } from "@/components/shared/diskoov-brand"
+import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useTimerStore } from "@/store/timer-store"
@@ -47,6 +48,7 @@ const navigation = [
   { name: "Projets", href: "/dashboard/projets", icon: Briefcase },
   { name: "Chantiers & SAV", href: "/dashboard/operations", icon: HardHat },
   { name: "Pipeline", href: "/dashboard/pipeline", icon: Kanban },
+  { name: "Automatisations", href: "/dashboard/automatisations", icon: Workflow },
   { name: "Organisation", href: "/dashboard/organisation", icon: CalendarDays },
   { name: "Temps passé", href: "/dashboard/temps", icon: Clock },
 ]
@@ -82,7 +84,7 @@ function formatTimer(seconds: number) {
     .join(":")
 }
 
-export function Sidebar() {
+export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [projectsList, setProjectsList] = React.useState<any[]>([])
@@ -157,7 +159,7 @@ export function Sidebar() {
       )}
     >
       <div className={cn("flex h-16 shrink-0 items-center border-b border-sidebar-border", isCollapsed ? "justify-center px-2" : "px-5")}>
-        <DiskoovBrand compact={isCollapsed} />
+        <AppBrand brand={brand} compact={isCollapsed} />
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-3 py-5">

@@ -1,6 +1,6 @@
 import { acceptTeamInvitation, getInvitationPreview } from "@/actions/team"
 import { auth } from "@/auth"
-import { DiskoovBrand } from "@/components/shared/diskoov-brand"
+import { AppBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShieldCheck } from "lucide-react"
@@ -39,7 +39,7 @@ export default async function JoinTeamPage({ params }: { params: Promise<{ token
   return (
     <main className="min-h-screen bg-background px-5 py-8">
       <div className="mx-auto w-full max-w-xl">
-        <DiskoovBrand href="/" />
+        <AppBrand href="/" brand={{ name: invitation.companyName, logo: invitation.companyLogo, brandColor: invitation.companyBrandColor }} />
         <Card className="mt-10">
           <CardHeader>
             <div className="mb-2 grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><ShieldCheck className="size-5" /></div>

@@ -1,14 +1,14 @@
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
-const email = process.env.E2E_USER_EMAIL || "qa-diskoov@example.com"
+const email = process.env.E2E_USER_EMAIL || "qa-crm@example.com"
 
 async function main() {
   const company = await prisma.company.create({
     data: {
-      id: "diskoov-e2e-company",
-      name: "Diskoov QA",
-      fullName: "Diskoov QA",
+      id: "e2e-company",
+      name: "Entreprise QA",
+      fullName: "Entreprise QA",
       siret: "99999999900024",
       address: "1 rue des Tests, 44000 Nantes",
       email,
@@ -20,7 +20,7 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email },
     update: { companyId: company.id, emailVerified: new Date() },
-    create: { email, name: "QA Diskoov", emailVerified: new Date(), companyId: company.id },
+    create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id },
   })
   const membership = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
   const client = await prisma.client.create({ data: { companyId: company.id, name: "Client QA Piscine", type: "INDIVIDUAL", address: "2 rue du Bassin, 44000 Nantes" } })
@@ -32,7 +32,7 @@ async function main() {
       companyId: company.id,
       clientId: client.id,
       number: "DEV-2026-900",
-      object: "QA couverture piscine Diskoov",
+      object: "QA couverture de piscine",
       status: "SENT",
       versions: {
         create: {

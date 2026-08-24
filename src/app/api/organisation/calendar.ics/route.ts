@@ -16,7 +16,7 @@ function event(input: { uid: string; title: string; description?: string | null;
   const end = input.end ?? new Date(input.start.getFullYear(), input.start.getMonth(), input.start.getDate() + 1)
   return [
     "BEGIN:VEVENT",
-    `UID:${icsText(input.uid)}@freelio.local`,
+    `UID:${icsText(input.uid)}@crm.local`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`,
     `DTSTART;VALUE=DATE:${icsDate(input.start)}`,
     `DTEND;VALUE=DATE:${icsDate(end)}`,
@@ -53,11 +53,11 @@ export async function GET() {
     ...goals.map((goal) => event({ uid: `goal-${goal.id}`, title: `Objectif : ${goal.title}`, description: goal.description, start: goal.periodStart!, end: goal.periodEnd })),
     ...milestones.map((milestone) => event({ uid: `milestone-${milestone.id}`, title: `${milestone.project.name} : ${milestone.title}`, description: milestone.description, start: milestone.dueDate! })),
   ]
-  const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Diskoov//Organisation//FR", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR", ""].join("\r\n")
+  const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//CRM//Organisation//FR", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR", ""].join("\r\n")
   return new Response(body, {
     headers: {
       "content-type": "text/calendar; charset=utf-8",
-      "content-disposition": "attachment; filename=freelio-organisation.ics",
+      "content-disposition": "attachment; filename=organisation.ics",
       "cache-control": "no-store",
     },
   })

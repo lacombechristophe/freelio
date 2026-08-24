@@ -1,12 +1,12 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import { ArrowUpRight, CheckCircle2, Clock3, Mail, MapPin, Phone, ShieldCheck, UserRoundSearch } from "lucide-react"
+import { ArrowUpRight, CheckCircle2, Clock3, Copy, Mail, MapPin, Phone, ShieldCheck, UserRoundSearch } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { updateLeadStatus, withdrawLeadMarketingConsent } from "@/actions/leads"
+import { createLeadMarketingWithdrawalLink, updateLeadStatus, withdrawLeadMarketingConsent } from "@/actions/leads"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,6 +46,18 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
         router.refresh()
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Action impossible")
+      }
+    })
+  }
+
+  function copyWithdrawalLink(leadId: string) {
+    startTransition(async () => {
+      try {
+        const result = await createLeadMarketingWithdrawalLink(leadId)
+        await navigator.clipboard.writeText(`${window.location.origin}${result.withdrawalPath}`)
+        toast.success("Lien de désinscription copié.")
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Création du lien impossible")
       }
     })
   }
@@ -93,10 +105,11 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
           <div className="mt-5 flex flex-wrap gap-2 border-t pt-4">
             {lead.client ? <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/dashboard/clients/${lead.client.id}`}><ArrowUpRight />Dossier client</Link> : null}
             {lead.status === "NEW" ? <Button size="sm" disabled={isPending} onClick={() => execute(() => updateLeadStatus(lead.id, "CONTACTED"), "Prospect marqué comme contacté.")}><CheckCircle2 />Marquer contacté</Button> : null}
-            {lead.marketingOptIn ? <Button variant="ghost" size="sm" disabled={isPending} onClick={() => execute(() => withdrawLeadMarketingConsent(lead.id), "Opposition marketing enregistrée avec preuve.")}>Retirer le consentement</Button> : null}
+            {lead.marketingOptIn ? <Button variant="outline" size="sm" disabled={isPending} onClick={() => copyWithdrawalLink(lead.id)}><Copy />Copier le lien de désinscription</Button> : null}
+            {lead.marketingOptIn ? <Button variant="ghost" size="sm" disabled={isPending} onClick={() => execute(() => withdrawLeadMarketingConsent(lead.id), "Opposition marketing enregistrée avec preuve.")}>Retirer en interne</Button> : null}
           </div>
         </article>
-      ))}</div> : <div className="rounded-xl border border-dashed bg-card px-6 py-16 text-center"><UserRoundSearch className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Aucun prospect dans cette vue</p><p className="mt-1 text-xs text-muted-foreground">Les demandes de diskoov.fr apparaîtront ici automatiquement.</p></div>}
+      ))}</div> : <div className="rounded-xl border border-dashed bg-card px-6 py-16 text-center"><UserRoundSearch className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Aucun prospect dans cette vue</p><p className="mt-1 text-xs text-muted-foreground">Les demandes du site public apparaîtront ici automatiquement.</p></div>}
     </div>
   )
 }

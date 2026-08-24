@@ -281,6 +281,7 @@ export async function getPublicContractForSigning(token: string) {
     validUntil: contract.validUntil?.toISOString() ?? null,
     expectedSignerEmail: signingToken.signerEmail,
     expiresAt: signingToken.expiresAt.toISOString(),
+    company: { name: contract.company.name, logo: contract.company.logo, brandColor: contract.company.brandColor },
   }
 }
 

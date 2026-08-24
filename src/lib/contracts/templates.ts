@@ -295,6 +295,63 @@ function contract(sections: Array<[string, string | string[]]>) {
 
 const RAW_CONTRACT_TEMPLATE_PRESETS: ContractTemplatePreset[] = [
   {
+    id: "vertical-fourniture-pose",
+    name: "Fourniture et pose",
+    category: "prestation",
+    title: "Contrat de fourniture et pose d’un équipement de piscine",
+    description: "Cadre la fourniture, le relevé technique, la préparation et la pose chez le client.",
+    bestFor: "Couverture, volet, équipement de sécurité ou accessoire posé par l’entreprise.",
+    sections: 9,
+    content: contract([
+      ["1. Objet", "Le présent contrat définit les conditions de fourniture, de préparation et de pose de l’équipement de piscine décrit au devis accepté par le Client."],
+      ["2. Documents contractuels", ["Le devis accepté et ses annexes techniques.", "Le relevé de dimensions validé pour fabrication ou préparation.", "Les présentes conditions et, le cas échéant, les avenants signés."]],
+      ["3. Relevé technique", "Le Client garantit l’accès au bassin et signale toute contrainte connue. Les dimensions, obstacles, accès et alimentations relevés sur site conditionnent la solution finale. Toute modification postérieure peut entraîner un avenant."],
+      ["4. Préparation du site", ["Le Client libère et sécurise la zone d’intervention.", "Les supports, alimentations et accès doivent être conformes aux prérequis communiqués.", "Les travaux de maçonnerie, électricité ou reprise non prévus au devis restent hors périmètre."]],
+      ["5. Livraison et pose", "La date de pose est confirmée lorsque le matériel, le site et les équipes sont disponibles. Les intempéries, contraintes de sécurité ou impossibilités d’accès peuvent justifier un report."],
+      ["6. Réception", "À la fin de la pose, les essais et points de contrôle sont consignés. Le compte rendu d’intervention signé mentionne les éventuelles réserves et vaut réception pour les éléments sans réserve."],
+      ["7. Prix et paiement", "Le prix, l’acompte, les échéances et les modalités de paiement sont ceux du devis accepté. La commande peut être suspendue tant qu’un acompte exigible n’est pas encaissé."],
+      ["8. Garanties", "Les garanties fabricant s’appliquent selon leurs conditions. La garantie de pose couvre les défauts directement imputables à l’intervention de {{entreprise.name}}, hors mauvaise utilisation, intervention d’un tiers, usure ou événement extérieur."],
+      ["9. Responsabilité et sécurité", "Le Client respecte les consignes d’utilisation et d’entretien remises. Un équipement de sécurité ne remplace jamais la vigilance d’un adulte responsable autour du bassin."],
+    ]),
+  },
+  {
+    id: "vertical-entretien",
+    name: "Entretien d’équipement",
+    category: "maintenance",
+    title: "Contrat d’entretien d’un équipement de piscine",
+    description: "Définit la fréquence, le parc couvert et le contenu des visites d’entretien.",
+    bestFor: "Couvertures, volets et équipements installés suivis dans le parc client.",
+    sections: 8,
+    content: contract([
+      ["1. Objet", "{{entreprise.name}} réalise les visites d’entretien préventif des équipements identifiés au contrat selon la fréquence convenue."],
+      ["2. Prestations incluses", ["Contrôle visuel et fonctionnel.", "Nettoyage et réglages courants accessibles.", "Signalement des pièces usées, anomalies et risques constatés.", "Compte rendu après chaque visite."]],
+      ["3. Exclusions", "Les pièces, réparations, travaux électriques ou de maçonnerie et interventions consécutives à une mauvaise utilisation font l’objet d’un devis séparé."],
+      ["4. Accès", "Le Client garantit l’accès au site et à l’équipement à la date convenue. Une visite empêchée sans préavis suffisant peut être considérée comme due."],
+      ["5. Planification", "Les visites sont planifiées autour de la date indicative enregistrée. {{entreprise.name}} peut proposer un ajustement pour tenir compte de la saison, de la météo ou de la disponibilité des pièces."],
+      ["6. Prix", "Le prix et les modalités de révision figurent au contrat ou au devis. Toute prestation non incluse nécessite l’accord préalable du Client."],
+      ["7. Durée et résiliation", "Le contrat s’applique pendant la période indiquée. Les conditions de renouvellement et de résiliation suivent les mentions particulières acceptées par les Parties."],
+      ["8. Traçabilité", "Chaque visite donne lieu à un rapport horodaté. L’accord du Client présent peut être recueilli électroniquement et conservé avec son empreinte de preuve."],
+    ]),
+  },
+  {
+    id: "vertical-sav",
+    name: "Intervention SAV",
+    category: "maintenance",
+    title: "Conditions d’intervention de service après-vente",
+    description: "Cadre diagnostic, réparation, pièces et réception d’une intervention SAV.",
+    bestFor: "Dépannage ponctuel, garantie, diagnostic ou remise en service.",
+    sections: 7,
+    content: contract([
+      ["1. Objet", "{{entreprise.name}} intervient sur le site du Client afin de diagnostiquer ou traiter l’anomalie déclarée sur l’équipement identifié."],
+      ["2. Diagnostic", "Le diagnostic initial repose sur les informations fournies et les contrôles réalisables sur place. Une investigation ou un démontage complémentaire peut nécessiter un accord et un devis distincts."],
+      ["3. Garantie", "Lorsque l’intervention relève d’une garantie applicable, sa prise en charge reste subordonnée aux conditions du fabricant et à l’absence d’exclusion."],
+      ["4. Pièces et travaux complémentaires", "Aucune pièce ou réparation non prévue n’est facturée sans information et accord du Client, sauf mesure conservatoire indispensable à la sécurité."],
+      ["5. Accès et sécurité", "Le Client assure un accès sûr au site, coupe les équipements lorsque cela est demandé et signale tout danger particulier."],
+      ["6. Compte rendu", "Les opérations, le temps passé et les réserves sont consignés dans le rapport d’intervention. L’accord électronique du Client présent scelle le rapport horodaté."],
+      ["7. Paiement", "Les frais de déplacement, diagnostic, main-d’œuvre et pièces sont facturés selon le devis, le tarif accepté ou les conditions de garantie applicables."],
+    ]),
+  },
+  {
     id: "prestation-web-app",
     name: "Prestation web ou application",
     category: "prestation",
@@ -762,7 +819,9 @@ const RAW_CONTRACT_TEMPLATE_PRESETS: ContractTemplatePreset[] = [
 ]
 
 export const CONTRACT_TEMPLATE_PRESETS: ContractTemplatePreset[] =
-  RAW_CONTRACT_TEMPLATE_PRESETS.map(formatTemplatePreset)
+  RAW_CONTRACT_TEMPLATE_PRESETS
+    .filter((template) => template.id.startsWith("vertical-"))
+    .map(formatTemplatePreset)
 
 const RAW_CONTRACT_CLAUSE_LIBRARY: ContractClausePreset[] = [
   {
@@ -834,7 +893,7 @@ const RAW_CONTRACT_CLAUSE_LIBRARY: ContractClausePreset[] = [
   {
     id: "signature-electronique",
     title: "Signature electronique",
-    description: "Reconnaissance de la signature signee dans Freelio.",
+    description: "Reconnaissance de la signature électronique enregistrée dans le CRM.",
     content: "Les Parties reconnaissent que la signature electronique du present contrat produit les memes effets qu'une signature manuscrite, sous reserve de l'identification du signataire et de la conservation de la preuve de signature.",
   },
 ]

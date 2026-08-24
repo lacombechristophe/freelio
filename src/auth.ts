@@ -7,7 +7,7 @@ import Credentials from "next-auth/providers/credentials"
 import { MagicLinkEmail } from "@/emails/MagicLinkEmail"
 import { render } from "@react-email/render"
 
-const emailFrom = process.env.EMAIL_FROM?.trim() || "Diskoov <noreply@diskoov.fr>"
+const emailFrom = process.env.EMAIL_FROM?.trim() || "CRM <noreply@example.invalid>"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -24,7 +24,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const host = new URL(url).host
-        const emailHtml = await render(MagicLinkEmail({ url, host }))
+        const origin = new URL(url).origin
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: { company: { select: { name: true } } },
+        })
+        const appName = user?.company?.name || "CRM & opérations"
+        const emailHtml = await render(MagicLinkEmail({ url, host, appName, homeUrl: origin }))
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -34,7 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           body: JSON.stringify({
             from: emailFrom,
             to: email,
-            subject: "Connexion à Diskoov",
+            subject: `Connexion à ${appName}`,
             html: emailHtml,
           }),
         })

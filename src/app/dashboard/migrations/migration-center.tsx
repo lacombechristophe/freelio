@@ -56,7 +56,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
   const archiveInputRef = useRef<HTMLInputElement>(null)
   const [isPending, startTransition] = useTransition()
   const [provider, setProvider] = useState<Provider>("HUBSPOT")
-  const [name, setName] = useState("HubSpot Diskoov")
+  const [name, setName] = useState("HubSpot")
   const [apiKey, setApiKey] = useState("")
   const [baseUrl, setBaseUrl] = useState("https://myextrabat.com")
   const [testPath, setTestPath] = useState("/")
@@ -121,7 +121,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                 <Select value={provider} onValueChange={(value) => {
                   const next = value as Provider
                   setProvider(next)
-                  setName(next === "HUBSPOT" ? "HubSpot Diskoov" : "Extrabat Diskoov")
+                  setName(next === "HUBSPOT" ? "HubSpot" : "Extrabat")
                 }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="HUBSPOT">HubSpot</SelectItem><SelectItem value="EXTRABAT">Extrabat</SelectItem></SelectContent>

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto"
 import { Prisma } from "@prisma/client"
 
 import { publicLeadSchema, normalizePhone, type PublicLeadInput } from "@/lib/leads/schema"
+import { runAutomationEvent } from "@/lib/automations/engine"
 import prisma from "@/lib/prisma"
 
 export class LeadConfigurationError extends Error {
@@ -23,24 +24,24 @@ function sha256(value: string) {
 }
 
 export function hashLeadRequestValue(value: string) {
-  const salt = process.env.LEAD_HASH_SALT || process.env.AUTH_SECRET || "diskoov-development-only"
+  const salt = process.env.LEAD_HASH_SALT || process.env.AUTH_SECRET || "crm-development-only"
   return sha256(`${salt}\u0000${value}`)
 }
 
 async function resolveLeadCompany() {
-  const configuredId = process.env.DISKOOV_COMPANY_ID?.trim()
+  const configuredId = process.env.PUBLIC_LEAD_COMPANY_ID?.trim()
   if (configuredId) {
-    const company = await prisma.company.findUnique({ where: { id: configuredId }, select: { id: true } })
-    if (!company) throw new LeadConfigurationError("DISKOOV_COMPANY_ID ne correspond à aucune société.")
+    const company = await prisma.company.findUnique({ where: { id: configuredId }, select: { id: true, name: true } })
+    if (!company) throw new LeadConfigurationError("PUBLIC_LEAD_COMPANY_ID ne correspond à aucune société.")
     return company
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new LeadConfigurationError("DISKOOV_COMPANY_ID doit être configuré en production.")
+    throw new LeadConfigurationError("PUBLIC_LEAD_COMPANY_ID doit être configuré en production.")
   }
 
-  const company = await prisma.company.findFirst({ orderBy: { id: "asc" }, select: { id: true } })
-  if (!company) throw new LeadConfigurationError("Créez d’abord la société Diskoov ou configurez DISKOOV_COMPANY_ID.")
+  const company = await prisma.company.findFirst({ orderBy: { id: "asc" }, select: { id: true, name: true } })
+  if (!company) throw new LeadConfigurationError("Créez d’abord une société ou configurez PUBLIC_LEAD_COMPANY_ID.")
   return company
 }
 
@@ -88,7 +89,11 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
     return { accepted: true as const, duplicate: true as const, reference: duplicate.id }
   }
 
-  const noticeUrl = process.env.DISKOOV_PRIVACY_NOTICE_URL?.trim() || "https://diskoov.fr/politique-de-confidentialite/"
+  const configuredNoticeUrl = process.env.PUBLIC_PRIVACY_NOTICE_URL?.trim()
+  if (!configuredNoticeUrl && process.env.NODE_ENV === "production") {
+    throw new LeadConfigurationError("PUBLIC_PRIVACY_NOTICE_URL doit être configuré en production.")
+  }
+  const noticeUrl = configuredNoticeUrl || `${process.env.AUTH_URL || "http://localhost:3000"}/conformite`
   const result = await prisma.$transaction(async (tx) => {
     const identityConditions: Prisma.ContactWhereInput[] = []
     if (email) identityConditions.push({ email })
@@ -156,7 +161,7 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
       update: {},
       create: {
         companyId: company.id,
-        name: "Pipeline commercial Diskoov",
+        name: "Pipeline commercial",
         stages: [
           { id: "PROSPECT", title: "Prospect" },
           { id: "CONTACTED", title: "Contact pris" },
@@ -236,7 +241,7 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
         ...event,
         source: input.source.toUpperCase(),
         noticeUrl,
-        noticeLabel: "Politique de confidentialité Diskoov",
+        noticeLabel: "Politique de confidentialité",
         capturedAt,
         proofHash: consentProofHash({ companyId: company.id, leadCaptureId: lead.id, ...event, noticeUrl, capturedAt, evidence }),
         metadata: {
@@ -260,7 +265,7 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
         data: recipients.map(({ userId }) => ({
           userId,
           type: "LEAD_CREATED",
-          title: "Nouveau prospect Diskoov",
+          title: "Nouveau prospect",
           message: `${input.firstName} ${input.lastName}${input.projectType ? ` · ${input.projectType}` : ""}`,
         })),
       })
@@ -268,6 +273,15 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
 
     return { reference: lead.id, clientId, opportunityId: opportunity.id }
   })
+
+  await runAutomationEvent({
+    companyId: company.id,
+    event: "LEAD_CREATED",
+    eventKey: `${result.reference}:created`,
+    subjectModel: "LeadCapture",
+    subjectId: result.reference,
+    leadId: result.reference,
+  }).catch((error) => console.error("Lead automation failed", error))
 
   return { accepted: true as const, duplicate: false as const, ...result }
 }

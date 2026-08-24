@@ -3,6 +3,7 @@
 import type { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
+import { runAutomationEvent } from "@/lib/automations/engine"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
@@ -306,7 +307,10 @@ export async function updateQuoteStatus(
   status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
 ) {
   return await withAuth(async ({ userId, companyId }) => {
-    const existing = await prisma.quote.findFirst({ where: { id: quoteId, companyId } })
+    const existing = await prisma.quote.findFirst({
+      where: { id: quoteId, companyId },
+      include: { client: { select: { leadCaptures: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true } } } } },
+    })
     if (!existing) throw new Error("Devis introuvable")
 
     const quote = await prisma.quote.update({
@@ -320,6 +324,14 @@ export async function updateQuoteStatus(
       resourceId: quoteId,
       payload: { status },
     })
+    await runAutomationEvent({
+      companyId,
+      event: "QUOTE_STATUS_CHANGED",
+      eventKey: `${quote.id}:status:${status}`,
+      subjectModel: "Quote",
+      subjectId: quote.id,
+      leadId: existing.client.leadCaptures[0]?.id,
+    }).catch((error) => console.error("Quote automation failed", error))
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${quoteId}`)
     return quote

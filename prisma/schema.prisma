@@ -145,6 +145,11 @@ model Company {
   deliveryNotes        DeliveryNote[]
   goodsReceipts        GoodsReceipt[]
   stockReservations    StockReservation[]
+  emailTemplates       EmailTemplate[]
+  emailSequences       EmailSequence[]
+  emailDeliveries      EmailDelivery[]
+  automationWorkflows  AutomationWorkflow[]
+  automationRuns       AutomationRun[]
 }
 
 model Membership {
@@ -256,8 +261,10 @@ model Contact {
   marketingStatus String?
   customFields    Json?
 
-  leadCaptures      LeadCapture[]
-  marketingConsents MarketingConsent[]
+  leadCaptures        LeadCapture[]
+  marketingConsents   MarketingConsent[]
+  sequenceEnrollments EmailSequenceEnrollment[]
+  emailDeliveries     EmailDelivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -321,7 +328,9 @@ model LeadCapture {
   userAgentHash   String?
   rawPayload      Json?
 
-  consents MarketingConsent[]
+  consents            MarketingConsent[]
+  sequenceEnrollments EmailSequenceEnrollment[]
+  emailDeliveries     EmailDelivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -363,6 +372,166 @@ model MarketingConsent {
   @@index([clientId])
   @@index([contactId])
   @@index([leadCaptureId])
+}
+
+// ══════════════════════════════════════════════════════════
+//  MARKETING AUTOMATION & EMAIL SEQUENCES
+// ══════════════════════════════════════════════════════════
+
+model EmailTemplate {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name     String
+  category String @default("NURTURE")
+  subject  String
+  bodyHtml String
+  status   String @default("ACTIVE")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status])
+}
+
+model EmailSequence {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  status      String  @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
+
+  steps       EmailSequenceStep[]
+  enrollments EmailSequenceEnrollment[]
+  deliveries  EmailDelivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status])
+}
+
+model EmailSequenceStep {
+  id         String        @id @default(cuid())
+  sequenceId String
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  position   Int
+  delayHours Int    @default(0)
+  subject    String
+  bodyHtml   String
+
+  deliveries EmailDelivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sequenceId, position])
+  @@index([sequenceId])
+}
+
+model EmailSequenceEnrollment {
+  id            String        @id @default(cuid())
+  sequenceId    String
+  sequence      EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  leadCaptureId String
+  leadCapture   LeadCapture   @relation(fields: [leadCaptureId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  status           String    @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, STOPPED
+  nextStepPosition Int       @default(0)
+  nextSendAt       DateTime?
+  lastSentAt       DateTime?
+  stopReason       String?
+  enrolledAt       DateTime  @default(now())
+  completedAt      DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  deliveries EmailDelivery[]
+
+  @@unique([sequenceId, leadCaptureId])
+  @@index([status, nextSendAt])
+  @@index([leadCaptureId])
+  @@index([contactId])
+}
+
+model EmailDelivery {
+  id            String                   @id @default(cuid())
+  companyId     String
+  company       Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sequenceId    String?
+  sequence      EmailSequence?           @relation(fields: [sequenceId], references: [id], onDelete: SetNull)
+  stepId        String?
+  step          EmailSequenceStep?       @relation(fields: [stepId], references: [id], onDelete: SetNull)
+  enrollmentId  String?
+  enrollment    EmailSequenceEnrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  leadCaptureId String?
+  leadCapture   LeadCapture?             @relation(fields: [leadCaptureId], references: [id], onDelete: SetNull)
+  contactId     String?
+  contact       Contact?                 @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  recipientEmail String
+  subject        String
+  status         String    @default("SCHEDULED") // SCHEDULED, SENDING, SENT, FAILED, CANCELED
+  providerId     String?
+  error          String?
+  scheduledAt    DateTime
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([enrollmentId, stepId])
+  @@index([companyId, createdAt])
+  @@index([status, scheduledAt])
+  @@index([leadCaptureId])
+}
+
+model AutomationWorkflow {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name       String
+  trigger    String // LEAD_CREATED, LEAD_STATUS_CHANGED, QUOTE_STATUS_CHANGED, MANUAL
+  status     String @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
+  conditions Json?
+  actions    Json
+
+  runs AutomationRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, trigger, status])
+}
+
+model AutomationRun {
+  id         String             @id @default(cuid())
+  companyId  String
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workflowId String
+  workflow   AutomationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  event        String
+  eventKey     String
+  subjectModel String
+  subjectId    String
+  status       String    @default("RUNNING") // RUNNING, COMPLETED, SKIPPED, FAILED
+  output       Json?
+  error        String?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  @@unique([workflowId, eventKey])
+  @@index([companyId, startedAt])
+  @@index([workflowId, status])
 }
 
 model ClientFile {

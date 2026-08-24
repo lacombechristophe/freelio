@@ -3,10 +3,24 @@ import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
+import {
+  assembleReversibilityExport,
+  redactSensitiveExportValues,
+  REVERSIBILITY_SCHEMA,
+  sortRows,
+  verifyReversibilityExport,
+  type ReversibilityExport,
+  type ReversibilityExportBase,
+  type ReversibilityFile,
+  type ReversibilityFileReference,
+  type ReversibilityTable,
+} from "@/lib/backup-integrity"
 import prisma from "@/lib/prisma"
-import { localFilesRoot } from "@/lib/local-files"
+import { listR2CompanyObjects, localFilesRoot, readLocalFile } from "@/lib/local-files"
+import { readMigrationArtifact } from "@/lib/migrations/storage"
 
-const BACKUP_SCHEMA = "freelio.local-backup.v2"
+const LEGACY_BACKUP_SCHEMA = "freelio.local-backup.v2"
+const BACKUP_SCHEMA = REVERSIBILITY_SCHEMA
 const MAX_LOCAL_BACKUPS = 14
 const backupsRoot = path.resolve(process.cwd(), "data", "backups")
 const restoreRoot = path.resolve(process.cwd(), "data", "restore-staging")
@@ -18,8 +32,8 @@ type LocalFileBackup = {
   contentBase64: string
 }
 
-type BackupPayload = {
-  schema: typeof BACKUP_SCHEMA
+type LegacyBackupPayload = {
+  schema: typeof LEGACY_BACKUP_SCHEMA
   exportedAt: string
   warning: string
   user: Record<string, any>
@@ -28,6 +42,147 @@ type BackupPayload = {
   auditLogs: Array<Record<string, any>>
   apiKeys: Array<Record<string, any>>
   localFiles: LocalFileBackup[]
+}
+
+type BackupPayload = ReversibilityExport
+
+type TableSpec = {
+  model: string
+  delegate: string
+  where: (companyId: string) => Record<string, unknown>
+}
+
+const direct = (model: string, delegate: string = `${model[0].toLowerCase()}${model.slice(1)}`): TableSpec => ({
+  model,
+  delegate,
+  where: (companyId) => ({ companyId }),
+})
+
+const related = (
+  model: string,
+  relation: Record<string, unknown>,
+  delegate: string = `${model[0].toLowerCase()}${model.slice(1)}`
+): TableSpec => ({ model, delegate, where: (companyId) => replaceCompanyId(relation, companyId) })
+
+function replaceCompanyId(value: unknown, companyId: string): any {
+  if (Array.isArray(value)) return value.map((item) => replaceCompanyId(item, companyId))
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
+      key,
+      nested === "$companyId" ? companyId : replaceCompanyId(nested, companyId),
+    ]))
+  }
+  return value
+}
+
+const COMPANY_TABLE_SPECS: TableSpec[] = [
+  { model: "Company", delegate: "company", where: (companyId) => ({ id: companyId }) },
+  direct("Membership"),
+  direct("Client"),
+  related("Contact", { client: { companyId: "$companyId" } }),
+  related("ClientActivity", { client: { companyId: "$companyId" } }),
+  direct("LeadCapture"),
+  direct("MarketingConsent"),
+  direct("EmailTemplate"),
+  direct("EmailSequence"),
+  related("EmailSequenceStep", { sequence: { companyId: "$companyId" } }),
+  related("EmailSequenceEnrollment", { sequence: { companyId: "$companyId" } }),
+  direct("EmailDelivery"),
+  direct("AutomationWorkflow"),
+  direct("AutomationRun"),
+  related("ClientFile", { client: { companyId: "$companyId" } }),
+  direct("Project"),
+  related("ProjectMilestone", { project: { companyId: "$companyId" } }),
+  related("ProjectFile", { project: { companyId: "$companyId" } }),
+  related("ProjectTechnicalProfile", { project: { companyId: "$companyId" } }),
+  related("ProjectAcceptanceItem", { project: { companyId: "$companyId" } }),
+  direct("Pipeline"),
+  related("Opportunity", { pipeline: { companyId: "$companyId" } }),
+  related("OpportunityActivity", { opportunity: { pipeline: { companyId: "$companyId" } } }),
+  related("TimeEntry", { project: { companyId: "$companyId" } }),
+  direct("OrganisationGoal"),
+  direct("OrganisationTask"),
+  direct("ServiceCategory"),
+  direct("Service"),
+  direct("CustomerSite"),
+  direct("Supplier"),
+  direct("Product"),
+  direct("Warehouse"),
+  direct("InventoryItem"),
+  direct("StockMovement"),
+  direct("PurchaseOrder"),
+  related("PurchaseOrderLine", { purchaseOrder: { companyId: "$companyId" } }),
+  direct("CustomerOrder"),
+  related("CustomerOrderLine", { customerOrder: { companyId: "$companyId" } }),
+  direct("DeliveryNote"),
+  related("DeliveryNoteLine", { deliveryNote: { companyId: "$companyId" } }),
+  direct("GoodsReceipt"),
+  related("GoodsReceiptLine", { goodsReceipt: { companyId: "$companyId" } }),
+  direct("StockReservation"),
+  direct("Equipment"),
+  direct("ServiceTicket"),
+  direct("FieldIntervention"),
+  related("InterventionFile", { intervention: { companyId: "$companyId" } }),
+  direct("MaintenanceContract"),
+  related("MaintenanceContractEquipment", { contract: { companyId: "$companyId" } }),
+  direct("Quote"),
+  related("QuoteVersion", { quote: { companyId: "$companyId" } }),
+  related("QuoteSection", { version: { quote: { companyId: "$companyId" } } }),
+  related("QuoteLine", { section: { version: { quote: { companyId: "$companyId" } } } }),
+  direct("Invoice"),
+  related("InvoiceLine", { invoice: { companyId: "$companyId" } }),
+  related("InvoicePayment", { invoice: { companyId: "$companyId" } }),
+  direct("InvoiceReminder"),
+  related("CreditNote", { invoice: { companyId: "$companyId" } }),
+  direct("RecurringInvoice"),
+  related("RecurringInvoiceOccurrence", { recurring: { companyId: "$companyId" } }),
+  direct("ContractTemplate"),
+  direct("Contract"),
+  related("ContractClause", { template: { companyId: "$companyId" } }),
+  related("ContractSignature", { contract: { companyId: "$companyId" } }),
+  direct("Expense"),
+  related("ExpenseFile", { expense: { companyId: "$companyId" } }),
+  direct("BankTransaction"),
+  direct("WebhookEndpoint"),
+  related("WebhookDelivery", { endpoint: { companyId: "$companyId" } }),
+  direct("DataSourceConnection"),
+  direct("MigrationRun"),
+  direct("SourceRecord"),
+  direct("ExternalIdMap"),
+  related("MigrationIssue", { run: { companyId: "$companyId" } }),
+  related("MigrationMetric", { run: { companyId: "$companyId" } }),
+  direct("DocumentManifest"),
+  direct("RelanceConfig"),
+  related("EInvoiceLog", { invoice: { companyId: "$companyId" } }),
+]
+
+const EXCLUDED_MODELS = [
+  { model: "Account", reason: "Jetons OAuth exclus pour éviter de réactiver des accès externes lors d’une reprise." },
+  { model: "Session", reason: "Sessions actives exclues volontairement pour des raisons de sécurité." },
+  { model: "Notification", reason: "Le schéma actuel ne porte pas de companyId ; une extraction multi-tenant sûre est impossible." },
+  { model: "ApiKey", reason: "Clés personnelles non rattachées à une entreprise et exclues volontairement." },
+  { model: "EmailLog", reason: "Journal global sans companyId : export inter-entreprises interdit." },
+  { model: "EReportingBatch", reason: "Lot global sans companyId : export inter-entreprises interdit." },
+  { model: "CompanyInvitation", reason: "Invitation et jeton éphémères exclus ; ils doivent être recréés après reprise." },
+  { model: "ContractSigningToken", reason: "Jeton de signature porteur exclu ; un nouveau lien doit être émis après reprise." },
+  { model: "SensitiveFields", reason: "IBAN chiffré, secrets webhook, identifiants de connexion et jetons éventuellement imbriqués sont retirés récursivement de l’export JSON." },
+]
+
+type FileCandidate = {
+  storageKey: string
+  reader: "FILE" | "MIGRATION" | "INLINE" | "EXTERNAL"
+  references: ReversibilityFileReference[]
+  preloaded?: Buffer
+}
+
+const FILE_FIELDS: Record<string, Array<{ field: string; size?: string; sha256?: string; reader?: FileCandidate["reader"] }>> = {
+  ClientFile: [{ field: "url", size: "size", sha256: "sha256" }],
+  ProjectFile: [{ field: "url", size: "size", sha256: "sha256" }],
+  InterventionFile: [{ field: "url", size: "size", sha256: "sha256" }],
+  Invoice: [{ field: "pdfUrl", sha256: "pdfHash" }],
+  ExpenseFile: [{ field: "url", size: "size", sha256: "sha256" }],
+  DocumentManifest: [{ field: "storageKey", size: "size", sha256: "sha256", reader: "MIGRATION" }],
+  EInvoiceLog: [{ field: "xmlUrl" }],
 }
 
 const DATE_FIELDS = new Set([
@@ -79,73 +234,224 @@ async function collectLocalFiles(companyId: string): Promise<LocalFileBackup[]> 
   }))
 }
 
-export async function buildBackupPayload(userId: string, companyId: string): Promise<BackupPayload> {
-  const [user, company, notifications, auditLogs, apiKeys, localFiles] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true, name: true, email: true, image: true, aiUsageCount: true,
-        companyId: true, createdAt: true, updatedAt: true,
-      },
-    }),
-    prisma.company.findUnique({
-      where: { id: companyId },
-      include: {
-        clients: { include: { contacts: true, activities: true, files: true } },
-        serviceCats: true,
-        services: true,
-        projects: {
-          include: {
-            milestones: true, files: true, timeEntries: true,
-            technicalProfile: true, acceptanceItems: true,
-          },
-        },
-        quotes: { include: { versions: { include: { sections: { include: { lines: true } } } } } },
-        invoices: {
-          include: {
-            lines: true, payments: true, creditNotes: true, facturXLog: true, reminders: true,
-          },
-        },
-        recurring: { include: { occurrences: true } },
-        contracts: { include: { signatures: true } },
-        contractTemplates: { include: { clauses: true } },
-        expenses: { include: { files: true } },
-        pipelines: { include: { opportunities: { include: { activities: true } } } },
-        organisationGoals: true,
-        organisationTasks: true,
-        webhooks: { include: { deliveries: true } },
-        relanceConfig: true,
-        bankTransactions: true,
-      },
-    }),
-    prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
-    prisma.auditLog.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
-    prisma.apiKey.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
-    collectLocalFiles(companyId),
-  ])
+async function collectCompanyTables(userId: string, companyId: string): Promise<ReversibilityTable[]> {
+  const database = prisma as unknown as Record<string, {
+    findMany: (args: { where: Record<string, unknown> }) => Promise<Array<Record<string, unknown>>>
+  }>
+  const tables = await Promise.all(COMPANY_TABLE_SPECS.map(async (spec) => {
+    const delegate = database[spec.delegate]
+    if (!delegate?.findMany) throw new Error(`Modèle Prisma indisponible pour l’export : ${spec.model}`)
+    const rows = await delegate.findMany({ where: spec.where(companyId) })
+    return {
+      model: spec.model,
+      rows: sortRows(rows.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
+    }
+  }))
 
-  if (!user || !company) throw new Error("Compte local incomplet")
-  return {
-    schema: BACKUP_SCHEMA,
-    exportedAt: new Date().toISOString(),
-    warning: "Sauvegarde privée contenant des données clients, financières et des secrets chiffrés.",
-    user,
-    company,
-    notifications,
-    auditLogs,
-    apiKeys,
-    localFiles,
+  const byModel = new Map(tables.map((table) => [table.model, table]))
+  if (!byModel.get("Company")?.rows.length) throw new Error("Entreprise introuvable pour l’export")
+  const memberships = byModel.get("Membership")?.rows ?? []
+  const userIds = new Set<string>([userId])
+  for (const row of memberships) if (typeof row.userId === "string") userIds.add(row.userId)
+  const users = await prisma.user.findMany({ where: { id: { in: [...userIds] } } })
+  tables.splice(1, 0, {
+    model: "User",
+    rows: sortRows(users.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
+  })
+
+  const resourceIds = new Set<string>([companyId])
+  for (const table of tables) {
+    for (const row of table.rows) if (typeof row.id === "string") resourceIds.add(row.id)
   }
+  const auditLogs = await prisma.auditLog.findMany({ where: { userId: { in: [...userIds] } } })
+  const scopedAuditLogs = auditLogs.filter((row) => row.resourceId && resourceIds.has(row.resourceId))
+  tables.push({
+    model: "AuditLog",
+    rows: sortRows(scopedAuditLogs.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
+  })
+  return tables
+}
+
+function recordId(row: Record<string, unknown>) {
+  if (typeof row.id === "string") return row.id
+  const composite = [row.contractId, row.equipmentId].filter((value): value is string => typeof value === "string")
+  return composite.length ? composite.join(":") : "unknown"
+}
+
+function normalizedStorageKey(value: string) {
+  if (value.startsWith("r2:")) return `r2:${value.slice(3).replaceAll("\\", "/")}`
+  if (value.startsWith("local:")) return `local:${value.slice(6).replaceAll("\\", "/")}`
+  return value.replaceAll("\\", "/")
+}
+
+function storageReader(value: string, preferred?: FileCandidate["reader"]): FileCandidate["reader"] {
+  if (value.startsWith("data:")) return "INLINE"
+  if (/^https?:\/\//i.test(value) || value.startsWith("/")) return "EXTERNAL"
+  return preferred ?? "FILE"
+}
+
+function fileCandidateId(candidate: Pick<FileCandidate, "storageKey" | "reader">) {
+  return candidate.storageKey.startsWith("r2:") ? candidate.storageKey : `${candidate.reader}:${candidate.storageKey}`
+}
+
+function addCandidate(map: Map<string, FileCandidate>, candidate: FileCandidate) {
+  const id = fileCandidateId(candidate)
+  const current = map.get(id)
+  if (current) {
+    current.references.push(...candidate.references)
+    if (!current.preloaded && candidate.preloaded) current.preloaded = candidate.preloaded
+  } else {
+    map.set(id, candidate)
+  }
+}
+
+function collectReferencedFiles(tables: ReversibilityTable[]) {
+  const candidates = new Map<string, FileCandidate>()
+  for (const table of tables) {
+    for (const row of table.rows) {
+      for (const field of FILE_FIELDS[table.model] ?? []) {
+        const rawValue = row[field.field]
+        if (typeof rawValue !== "string" || !rawValue.trim()) continue
+        const reader = storageReader(rawValue, field.reader)
+        let storageKey = normalizedStorageKey(rawValue.trim())
+        let preloaded: Buffer | undefined
+        if (reader === "INLINE") {
+          const separator = rawValue.indexOf(",")
+          if (separator >= 0) {
+            try {
+              const metadata = rawValue.slice(0, separator)
+              const data = rawValue.slice(separator + 1)
+              preloaded = metadata.endsWith(";base64") ? Buffer.from(data, "base64") : Buffer.from(decodeURIComponent(data))
+            } catch {
+              preloaded = undefined
+            }
+          }
+          storageKey = `inline:${table.model}:${recordId(row)}:${field.field}`
+        }
+        const expectedSize = field.size && typeof row[field.size] === "number" ? row[field.size] as number : undefined
+        const expectedSha256 = field.sha256 && typeof row[field.sha256] === "string"
+          ? (row[field.sha256] as string).toLowerCase()
+          : undefined
+        addCandidate(candidates, {
+          storageKey,
+          reader,
+          preloaded,
+          references: [{ model: table.model, recordId: recordId(row), field: field.field, expectedSize, expectedSha256 }],
+        })
+      }
+    }
+  }
+  return candidates
+}
+
+async function addStorageInventory(candidates: Map<string, FileCandidate>, companyId: string, warnings: string[]) {
+  try {
+    const localFiles = await collectLocalFiles(companyId)
+    for (const file of localFiles) {
+      addCandidate(candidates, {
+        storageKey: `local:${file.path.replaceAll("\\", "/")}`,
+        reader: "FILE",
+        references: [{ model: "StorageInventory", recordId: companyId, field: "localDirectory", expectedSize: file.size, expectedSha256: file.sha256 }],
+        preloaded: Buffer.from(file.contentBase64, "base64"),
+      })
+    }
+  } catch (error) {
+    warnings.push(`Inventaire local incomplet : ${error instanceof Error ? error.message : "lecture impossible"}`)
+  }
+  try {
+    const r2Objects = await listR2CompanyObjects(companyId)
+    for (const object of r2Objects) {
+      addCandidate(candidates, {
+        storageKey: object.relativePath,
+        reader: "FILE",
+        references: [{ model: "StorageInventory", recordId: companyId, field: "r2Prefix", expectedSize: object.size }],
+      })
+    }
+  } catch (error) {
+    warnings.push(`Inventaire R2 incomplet : ${error instanceof Error ? error.message : "lecture impossible"}`)
+  }
+}
+
+function fileStorage(candidate: FileCandidate): ReversibilityFile["storage"] {
+  if (candidate.reader === "INLINE") return "INLINE"
+  if (candidate.reader === "EXTERNAL") return "EXTERNAL"
+  if (candidate.storageKey.startsWith("r2:")) return "R2"
+  if (candidate.storageKey.startsWith("local:")) return "LOCAL"
+  return "UNKNOWN"
+}
+
+async function materializeFile(candidate: FileCandidate): Promise<ReversibilityFile> {
+  const storage = fileStorage(candidate)
+  if (candidate.reader === "EXTERNAL") {
+    return { storageKey: candidate.storageKey, storage, status: "EXTERNAL_REFERENCE", references: candidate.references }
+  }
+  try {
+    const bytes = candidate.preloaded ?? (candidate.reader === "MIGRATION"
+      ? await readMigrationArtifact(candidate.storageKey)
+      : await readLocalFile(candidate.storageKey))
+    const sha256 = createHash("sha256").update(bytes).digest("hex")
+    const corrupt = candidate.references.some((reference) =>
+      (reference.expectedSize !== undefined && reference.expectedSize !== bytes.byteLength)
+      || (reference.expectedSha256 !== undefined && reference.expectedSha256 !== sha256)
+    )
+    return {
+      storageKey: candidate.storageKey,
+      storage,
+      status: corrupt ? "CORRUPT" : "EMBEDDED",
+      references: candidate.references,
+      size: bytes.byteLength,
+      sha256,
+      contentBase64: bytes.toString("base64"),
+    }
+  } catch (error) {
+    return {
+      storageKey: candidate.storageKey,
+      storage,
+      status: "MISSING",
+      references: candidate.references,
+      error: (error instanceof Error ? error.message : "Lecture impossible").slice(0, 240),
+    }
+  }
+}
+
+async function collectReversibilityFiles(tables: ReversibilityTable[], companyId: string) {
+  const warnings: string[] = []
+  const candidates = collectReferencedFiles(tables)
+  await addStorageInventory(candidates, companyId, warnings)
+  const files = await Promise.all([...candidates.values()]
+    .sort((left, right) => fileCandidateId(left).localeCompare(fileCandidateId(right)))
+    .map(materializeFile))
+  return { files, warnings }
+}
+
+export async function buildBackupPayload(userId: string, companyId: string): Promise<BackupPayload> {
+  const tables = await collectCompanyTables(userId, companyId)
+  const { files, warnings } = await collectReversibilityFiles(tables, companyId)
+  const base: ReversibilityExportBase = {
+    schema: BACKUP_SCHEMA,
+    exportId: randomUUID(),
+    exportedAt: new Date().toISOString(),
+    scope: { companyId, requestedByUserId: userId, kind: "COMPANY_BUSINESS_DATA" },
+    restoration: {
+      automaticRestoreSupported: false,
+      mode: "CONTROLLED_LOGICAL_IMPORT",
+      reason: "Cet export logique est vérifiable et réversible, mais sa réinjection exige une procédure contrôlée tenant compte des clés étrangères et de la version du schéma.",
+    },
+    collectionWarnings: warnings,
+    tables,
+    files,
+  }
+  return assembleReversibilityExport(base, EXCLUDED_MODELS)
 }
 
 export async function writeLocalBackup(payload: BackupPayload, label = "auto") {
   await mkdir(backupsRoot, { recursive: true })
   const stamp = payload.exportedAt.replace(/[:.]/g, "-")
-  const destination = path.join(backupsRoot, `freelio-${label}-${stamp}.json`)
+  const destination = path.join(backupsRoot, `crm-${label}-${stamp}.json`)
   await writeFile(destination, JSON.stringify(payload), { flag: "wx" })
 
   const files = (await readdir(backupsRoot))
-    .filter((name) => name.startsWith("freelio-") && name.endsWith(".json"))
+    .filter((name) => (name.startsWith("crm-") || name.startsWith("diskoov-") || name.startsWith("freelio-")) && name.endsWith(".json"))
     .sort()
     .reverse()
   await Promise.all(files.slice(MAX_LOCAL_BACKUPS).map((name) => {
@@ -170,17 +476,17 @@ export async function ensureDailyBackup(userId: string, companyId: string) {
   return true
 }
 
-function validatePayload(input: unknown, companyId: string): asserts input is BackupPayload {
+function validateLegacyPayload(input: unknown, companyId: string): asserts input is LegacyBackupPayload {
   if (!input || typeof input !== "object") throw new Error("Sauvegarde invalide")
-  const payload = input as Partial<BackupPayload>
-  if (payload.schema !== BACKUP_SCHEMA) throw new Error("Version de sauvegarde non prise en charge")
+  const payload = input as Partial<LegacyBackupPayload>
+  if (payload.schema !== LEGACY_BACKUP_SCHEMA) throw new Error("Version de sauvegarde non prise en charge")
   if (!payload.company || payload.company.id !== companyId) {
     throw new Error("Cette sauvegarde appartient à une autre entreprise")
   }
   if (!Array.isArray(payload.localFiles)) throw new Error("Inventaire de fichiers absent")
 }
 
-async function stageLocalFiles(payload: BackupPayload, companyId: string) {
+async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) {
   const stage = path.resolve(restoreRoot, randomUUID())
   await mkdir(stage, { recursive: true })
   for (const file of payload.localFiles) {
@@ -199,16 +505,95 @@ async function stageLocalFiles(payload: BackupPayload, companyId: string) {
   return stage
 }
 
+const LEGACY_UNREPRESENTED_TABLES = [
+  "LeadCapture", "MarketingConsent", "CustomerSite", "Supplier", "Product", "Warehouse",
+  "InventoryItem", "StockMovement", "PurchaseOrder", "CustomerOrder", "DeliveryNote",
+  "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention",
+  "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
+  "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
+  "EmailSequenceEnrollment", "EmailDelivery", "AutomationWorkflow", "AutomationRun",
+]
+
+async function assertLegacyRestoreIsSafe(companyId: string) {
+  const specsByModel = new Map(COMPANY_TABLE_SPECS.map((spec) => [spec.model, spec]))
+  const database = prisma as unknown as Record<string, {
+    count: (args: { where: Record<string, unknown> }) => Promise<number>
+  }>
+  for (const model of LEGACY_UNREPRESENTED_TABLES) {
+    const spec = specsByModel.get(model)
+    if (!spec) continue
+    const count = await database[spec.delegate].count({ where: spec.where(companyId) })
+    if (count > 0) {
+      throw new Error(
+        `Restauration v2 refusée : ${count} enregistrement(s) ${model} ne figurent pas dans cette ancienne sauvegarde. Exportez d’abord les données actuelles et utilisez une reprise contrôlée.`
+      )
+    }
+  }
+}
+
+async function activateStagedLocalFiles(stage: string, companyId: string) {
+  const filesRoot = localFilesRoot()
+  const current = path.resolve(filesRoot, companyId)
+  const staged = path.resolve(stage, companyId)
+  const displacedRoot = path.resolve(restoreRoot, randomUUID())
+  const displaced = path.resolve(displacedRoot, companyId)
+  if (!current.startsWith(`${filesRoot}${path.sep}`)
+    || !staged.startsWith(`${stage}${path.sep}`)
+    || !displaced.startsWith(`${displacedRoot}${path.sep}`)) {
+    throw new Error("Répertoire de restauration invalide")
+  }
+  await mkdir(staged, { recursive: true })
+  await mkdir(displacedRoot, { recursive: true })
+  let previousFilesMoved = false
+  try {
+    await rename(current, displaced)
+    previousFilesMoved = true
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error
+  }
+  try {
+    await mkdir(filesRoot, { recursive: true })
+    await rename(staged, current)
+  } catch (error) {
+    if (previousFilesMoved) await rename(displaced, current)
+    await rm(displacedRoot, { recursive: true, force: true })
+    throw error
+  }
+  return {
+    async commit() {
+      await rm(displacedRoot, { recursive: true, force: true })
+      await rm(stage, { recursive: true, force: true })
+    },
+    async rollback() {
+      await rm(current, { recursive: true, force: true })
+      if (previousFilesMoved) await rename(displaced, current)
+      await rm(displacedRoot, { recursive: true, force: true })
+      await rm(stage, { recursive: true, force: true })
+    },
+  }
+}
+
 function nestedRows<T extends Record<string, any>>(parents: T[], key: string) {
   return parents.flatMap((parent) => Array.isArray(parent[key]) ? parent[key] : [])
 }
 
 export async function restoreBackupPayload(input: unknown, userId: string, companyId: string) {
-  validatePayload(input, companyId)
+  if (input && typeof input === "object" && (input as { schema?: unknown }).schema === BACKUP_SCHEMA) {
+    const verification = verifyReversibilityExport(input)
+    if (!verification.ok) throw new Error(`Export de réversibilité invalide : ${verification.errors.join(" ")}`)
+    const exportCompanyId = (input as ReversibilityExport).scope.companyId
+    if (exportCompanyId !== companyId) throw new Error("Cet export appartient à une autre entreprise")
+    throw new Error(
+      `Export de réversibilité ${verification.status === "COMPLETE" ? "complet" : "partiel"} et manifeste vérifié. La restauration automatique n’est pas proposée : utilisez une reprise logique contrôlée adaptée à la version du schéma.`
+    )
+  }
+  validateLegacyPayload(input, companyId)
   const payload = input
+  await assertLegacyRestoreIsSafe(companyId)
   const safety = await buildBackupPayload(userId, companyId)
   await writeLocalBackup(safety, "before-restore")
   const stage = await stageLocalFiles(payload, companyId)
+  const fileSwap = await activateStagedLocalFiles(stage, companyId)
   const c = payload.company
 
   const clients = c.clients ?? []
@@ -352,23 +737,12 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       if (payload.apiKeys.length) await tx.apiKey.createMany({ data: payload.apiKeys.map((row: any) => normalizeRecord(row, ["user"])) as any })
     }, { timeout: 60_000, maxWait: 10_000 })
 
-    const filesRoot = localFilesRoot()
-    const currentCompanyFiles = path.resolve(filesRoot, companyId)
-    const stagedCompanyFiles = path.resolve(stage, companyId)
-    if (!currentCompanyFiles.startsWith(`${filesRoot}${path.sep}`)) throw new Error("Répertoire cible invalide")
-    await rm(currentCompanyFiles, { recursive: true, force: true })
-    await mkdir(filesRoot, { recursive: true })
-    try {
-      await rename(stagedCompanyFiles, currentCompanyFiles)
-    } catch {
-      await mkdir(currentCompanyFiles, { recursive: true })
-    }
-    await rm(stage, { recursive: true, force: true })
+    await fileSwap.commit()
     return { ok: true, restoredAt: new Date().toISOString() }
   } catch (error) {
-    await rm(stage, { recursive: true, force: true })
+    await fileSwap.rollback()
     throw error
   }
 }
 
-export { BACKUP_SCHEMA }
+export { BACKUP_SCHEMA, LEGACY_BACKUP_SCHEMA, verifyReversibilityExport }

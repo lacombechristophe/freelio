@@ -10,7 +10,7 @@ export default async function LeadsPage() {
       <PageHeader
         eyebrow="Acquisition"
         title="Prospects entrants"
-        description="Centralisez les demandes de diskoov.fr, leur attribution commerciale et la preuve de consentement."
+        description="Centralisez les demandes du site public, leur attribution commerciale et la preuve de consentement."
       />
       <LeadInbox initialData={data} />
     </div>

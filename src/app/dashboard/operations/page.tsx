@@ -7,7 +7,7 @@ export default async function OperationsPage() {
   const data = await getOperationsDashboard()
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Exécution terrain" title="Opérations Diskoov" description="Chantiers, achats, stock, parc installé, interventions et SAV dans un même référentiel." />
+      <PageHeader eyebrow="Exécution terrain" title="Opérations" description="Chantiers, achats, stock, parc installé, interventions et SAV dans un même référentiel." />
       <OperationsCenter initialData={data} />
     </div>
   )

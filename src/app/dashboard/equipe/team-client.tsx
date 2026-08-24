@@ -85,7 +85,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
                 id="team-email"
                 type="email"
                 autoComplete="email"
-                placeholder="collaborateur@diskoov.fr"
+                placeholder="collaborateur@entreprise.fr"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
               />

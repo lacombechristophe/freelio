@@ -1,0 +1,65 @@
+name: Vérification CRM
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crm-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: file:./e2e-ci.db
+      AUTH_SECRET: ci-auth-secret-longer-than-thirty-two-characters
+      JWT_SECRET: ci-jwt-secret-longer-than-thirty-two-characters
+      CONSENT_TOKEN_SECRET: ci-consent-secret-longer-than-thirty-two-characters
+      ENCRYPTION_KEY: ci-encryption-secret-longer-than-thirty-two-characters
+      LEAD_HASH_SALT: ci-lead-hash-salt-longer-than-thirty-two-characters
+      PUBLIC_LEAD_COMPANY_ID: e2e-company
+      LEAD_ALLOWED_ORIGINS: https://example.test
+      E2E_USER_EMAIL: qa-crm@example.com
+      PUBLIC_APP_URL: http://127.0.0.1:3000
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Préparer la base E2E isolée
+        run: |
+          npx prisma db push --schema prisma/schema.prisma --skip-generate
+          node scripts/seed-e2e.mjs
+
+      - name: Vérifier types, lint, tests et build
+        run: npm run verify
+
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Exécuter les parcours critiques
+        run: npm run test:e2e
+
+      - name: Publier les traces en cas d’échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

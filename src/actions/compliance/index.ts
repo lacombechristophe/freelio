@@ -55,7 +55,7 @@ export async function anonymizeAccount() {
         where: { id: userId },
         data: {
           name: "[Supprimé]",
-          email: `supprime-${userId}@freelio.fr`,
+          email: `supprime-${userId}@anonymise.crm.local`,
           image: null,
         },
       }),

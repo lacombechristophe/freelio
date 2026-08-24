@@ -118,9 +118,9 @@ export function ProjetsGrid({
         <div className="rounded-xl border border-border bg-card">
           <EmptyState
             icon={Briefcase}
-            title={projects.length === 0 ? "Aucune mission active" : "Aucun projet dans cette vue"}
-            description={projects.length === 0 ? "Créez une première mission pour relier un client, un budget, du temps et vos prochains documents." : "Changez de filtre ou ajoutez un nouveau projet dans cette catégorie."}
-            action={<Button onClick={() => setCreateOpen(true)}><Plus />Créer une mission</Button>}
+            title={projects.length === 0 ? "Aucun chantier actif" : "Aucun projet dans cette vue"}
+            description={projects.length === 0 ? "Créez un premier chantier pour relier un client, un site, un budget et les documents opérationnels." : "Changez de filtre ou ajoutez un nouveau projet dans cette catégorie."}
+            action={<Button onClick={() => setCreateOpen(true)}><Plus />Créer un chantier</Button>}
           />
         </div>
       ) : (

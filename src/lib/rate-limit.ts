@@ -74,7 +74,7 @@ export const aiRateLimit = createRateLimit({
   limit: 30,
   window: "1 h",
   windowMs: 60 * 60 * 1000,
-  prefix: "@freelio/ai",
+  prefix: "@crm/ai",
 })
 
 // Strict limit for login attempts: 5 per 15 minutes
@@ -82,7 +82,7 @@ export const authRateLimit = createRateLimit({
   limit: 5,
   window: "15 m",
   windowMs: 15 * 60 * 1000,
-  prefix: "@freelio/auth",
+  prefix: "@crm/auth",
 })
 
 // Standard public API limit: 100 per minute
@@ -90,7 +90,7 @@ export const apiRateLimit = createRateLimit({
   limit: 100,
   window: "1 m",
   windowMs: 60 * 1000,
-  prefix: "@freelio/api",
+  prefix: "@crm/api",
 })
 
 // A signing link is a bearer credential. Limit repeated attempts per link and IP.
@@ -98,14 +98,23 @@ export const signatureRateLimit = createRateLimit({
   limit: 10,
   window: "1 h",
   windowMs: 60 * 60 * 1000,
-  prefix: "@freelio/signature",
+  prefix: "@crm/signature",
 })
 
-// Public lead forms receive traffic from diskoov.fr and need a tighter,
+// Public lead forms need a tighter,
 // dedicated bucket so abusive submissions do not affect authenticated APIs.
 export const leadRateLimit = createRateLimit({
   limit: 12,
   window: "1 h",
   windowMs: 60 * 60 * 1000,
-  prefix: "@diskoov/leads",
+  prefix: "@crm/leads",
+})
+
+// Consent withdrawal links are public bearer links. Keep their traffic isolated
+// from lead capture and authenticated API limits.
+export const consentRateLimit = createRateLimit({
+  limit: 20,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@crm/consent",
 })

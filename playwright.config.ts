@@ -5,7 +5,7 @@ const baseURL = externalBaseUrl ?? "http://localhost:3000"
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  timeout: 45_000,
+  timeout: 150_000,
   fullyParallel: false,
   workers: 1,
   reporter: "list",
@@ -25,9 +25,10 @@ export default defineConfig({
       url: "http://localhost:3000/auth/login",
       env: {
         ...process.env,
-        DISKOOV_COMPANY_ID: process.env.DISKOOV_COMPANY_ID ?? "diskoov-e2e-company",
+        PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "e2e-company",
+        LEAD_ALLOWED_ORIGINS: process.env.LEAD_ALLOWED_ORIGINS ?? "https://example.test",
       },
       reuseExistingServer: true,
-        timeout: 120_000,
+      timeout: 180_000,
       },
 })

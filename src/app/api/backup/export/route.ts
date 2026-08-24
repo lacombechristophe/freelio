@@ -6,7 +6,7 @@ export const runtime = "nodejs"
 
 function backupFilename() {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
-  return `freelio-backup-${stamp}.json`
+  return `crm-backup-${stamp}.json`
 }
 
 export async function GET() {

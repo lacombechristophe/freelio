@@ -1,0 +1,134 @@
+"use client"
+
+import { useTransition } from "react"
+import { Activity, Bot, CheckCircle2, Clock3, Mail, Pause, Play, Plus, Send, Square, Users } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+
+import {
+  addEmailSequenceStep,
+  createAutomationWorkflow,
+  createEmailSequence,
+  createEmailTemplate,
+  enrollLeadInSequence,
+  processSequenceEmailsNow,
+  stopSequenceEnrollment,
+  updateAutomationWorkflowStatus,
+  updateEmailSequenceStatus,
+} from "@/actions/automations"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+type AutomationData = Awaited<ReturnType<typeof import("@/actions/automations").getAutomationDashboard>>
+
+const controlClass = "h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+const textAreaClass = "min-h-28 w-full rounded-[10px] border border-input bg-background p-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+const STATUS_LABELS: Record<string, string> = { DRAFT: "Brouillon", ACTIVE: "Active", PAUSED: "En pause", ARCHIVED: "Archivée", COMPLETED: "Terminée", STOPPED: "Arrêtée", SENT: "Envoyé", FAILED: "Échec", SENDING: "En cours" }
+const TRIGGER_LABELS: Record<string, string> = { LEAD_CREATED: "Prospect créé", LEAD_STATUS_CHANGED: "Statut prospect modifié", QUOTE_STATUS_CHANGED: "Statut devis modifié" }
+
+export function AutomationCenter({ initialData }: { initialData: NonNullable<AutomationData> }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const activeEnrollments = initialData.sequences.reduce((sum, sequence) => sum + sequence.enrollments.filter((item) => item.status === "ACTIVE").length, 0)
+
+  function execute(operation: () => Promise<unknown>, success: string, form?: HTMLFormElement) {
+    startTransition(async () => {
+      try {
+        await operation()
+        form?.reset()
+        toast.success(success)
+        router.refresh()
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Action impossible")
+      }
+    })
+  }
+
+  function formNumber(form: FormData, key: string) {
+    return Number(form.get(key) || 0)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric icon={Mail} label="Modèles" value={initialData.templates.length} />
+        <Metric icon={Send} label="Séquences actives" value={initialData.sequences.filter((item) => item.status === "ACTIVE").length} />
+        <Metric icon={Users} label="Prospects inscrits" value={activeEnrollments} />
+        <Metric icon={Bot} label="Règles actives" value={initialData.workflows.filter((item) => item.status === "ACTIVE").length} />
+      </div>
+
+      <Tabs defaultValue="sequences" className="space-y-5">
+        <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
+          <TabsTrigger value="sequences">Séquences</TabsTrigger>
+          <TabsTrigger value="templates">Modèles</TabsTrigger>
+          <TabsTrigger value="workflows">Règles</TabsTrigger>
+          <TabsTrigger value="history">Journal</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="sequences" className="space-y-5">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Nouvelle séquence</CardTitle><CardDescription>Une séquence reste en brouillon tant qu’elle n’a pas d’étape et n’est pas activée.</CardDescription></CardHeader>
+            <CardContent><form className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto] md:items-end" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); execute(() => createEmailSequence({ name: form.get("name"), description: form.get("description") }), "Séquence créée.", event.currentTarget) }}>
+              <Field label="Nom"><Input name="name" required placeholder="Relance après demande de devis" /></Field>
+              <Field label="Description"><Input name="description" placeholder="Objectif et public de la séquence" /></Field>
+              <Button type="submit" disabled={isPending}><Plus />Créer</Button>
+            </form></CardContent>
+          </Card>
+
+          {initialData.sequences.length ? <div className="space-y-5">{initialData.sequences.map((sequence) => (
+            <Card key={sequence.id}>
+              <CardHeader className="border-b">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><CardTitle className="text-base">{sequence.name}</CardTitle><Badge variant={sequence.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[sequence.status] ?? sequence.status}</Badge></div><CardDescription className="mt-1">{sequence.description || "Sans description"} · {sequence.steps.length} étape(s) · {sequence._count.enrollments} inscription(s)</CardDescription></div><div className="flex gap-2">{sequence.status === "ACTIVE" ? <Button size="sm" variant="outline" onClick={() => execute(() => updateEmailSequenceStatus(sequence.id, "PAUSED"), "Séquence mise en pause.")} disabled={isPending}><Pause />Pause</Button> : <Button size="sm" onClick={() => execute(() => updateEmailSequenceStatus(sequence.id, "ACTIVE"), "Séquence activée.")} disabled={isPending}><Play />Activer</Button>}</div></div>
+              </CardHeader>
+              <CardContent className="grid gap-6 pt-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold">Étapes</h3>
+                  {sequence.steps.length ? <div className="space-y-2">{sequence.steps.map((step, index) => <div key={step.id} className="rounded-xl border p-4"><div className="flex items-center gap-2"><span className="grid size-7 place-items-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span><p className="font-medium">{step.subject}</p><Badge className="ml-auto" variant="outline"><Clock3 />{step.delayHours ? `${step.delayHours} h après` : "Immédiat"}</Badge></div><div className="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground" dangerouslySetInnerHTML={{ __html: step.bodyHtml.replace(/<[^>]+>/g, " ") }} /></div>)}</div> : <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Aucune étape.</p>}
+                  <form className="space-y-3 rounded-xl bg-muted/40 p-4" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); execute(() => addEmailSequenceStep({ sequenceId: sequence.id, templateId: String(form.get("templateId") || "") || undefined, delayHours: formNumber(form, "delayHours"), subject: String(form.get("subject") || "") || undefined, bodyHtml: String(form.get("bodyHtml") || "") || undefined }), "Étape ajoutée.", event.currentTarget) }}>
+                    <div className="grid gap-3 sm:grid-cols-2"><Field label="Modèle facultatif"><select name="templateId" className={controlClass}><option value="">Contenu personnalisé</option>{initialData.templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></Field><Field label="Délai après l’étape précédente (h)"><Input name="delayHours" type="number" min="0" max="8760" defaultValue="24" required /></Field></div>
+                    <Field label="Objet personnalisé"><Input name="subject" placeholder="Laissez vide si un modèle est choisi" /></Field>
+                    <Field label="Contenu HTML personnalisé"><textarea name="bodyHtml" className={textAreaClass} placeholder={'<p>Bonjour {{contact.firstName}},</p><p>…</p>'} /></Field>
+                    <Button type="submit" size="sm" variant="outline" disabled={isPending}><Plus />Ajouter l’étape</Button>
+                  </form>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold">Inscriptions</h3>
+                  <form className="space-y-3 rounded-xl border p-4" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); execute(() => enrollLeadInSequence(sequence.id, String(form.get("leadId"))), "Prospect inscrit.", event.currentTarget) }}><Field label="Prospect avec consentement actif"><select name="leadId" className={controlClass} required><option value="">Sélectionner…</option>{initialData.leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.firstName} {lead.lastName} · {lead.email}</option>)}</select></Field><Button type="submit" size="sm" disabled={isPending}><Users />Inscrire</Button></form>
+                  {sequence.enrollments.length ? <div className="divide-y rounded-xl border">{sequence.enrollments.map((item) => <div key={item.id} className="flex items-center gap-3 p-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.leadCapture.firstName} {item.leadCapture.lastName}</p><p className="truncate text-xs text-muted-foreground">{item.leadCapture.email} · {STATUS_LABELS[item.status] ?? item.status}</p></div>{item.status === "ACTIVE" ? <Button size="icon-sm" variant="ghost" title="Arrêter" onClick={() => execute(() => stopSequenceEnrollment(item.id), "Inscription arrêtée.")}><Square /></Button> : null}</div>)}</div> : <p className="text-sm text-muted-foreground">Aucune inscription récente.</p>}
+                </div>
+              </CardContent>
+            </Card>
+          ))}</div> : <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Créez votre première séquence.</p>}
+        </TabsContent>
+
+        <TabsContent value="templates" className="grid gap-5 lg:grid-cols-[minmax(340px,0.75fr)_minmax(0,1.25fr)]">
+          <Card><CardHeader><CardTitle className="text-base">Nouveau modèle</CardTitle><CardDescription>Variables : contact.firstName, contact.lastName, lead.projectType, lead.city, company.name.</CardDescription></CardHeader><CardContent><form className="space-y-4" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); execute(() => createEmailTemplate({ name: form.get("name"), category: form.get("category"), subject: form.get("subject"), bodyHtml: form.get("bodyHtml") }), "Modèle enregistré.", event.currentTarget) }}><Field label="Nom"><Input name="name" required /></Field><Field label="Catégorie"><select name="category" className={controlClass}><option value="NURTURE">Suivi commercial</option><option value="QUOTE">Devis</option><option value="SERVICE">Service</option><option value="EVENT">Actualité</option></select></Field><Field label="Objet"><Input name="subject" required placeholder="Votre projet {{lead.projectType}}" /></Field><Field label="Contenu HTML"><textarea name="bodyHtml" required className={textAreaClass} defaultValue={'<p>Bonjour {{contact.firstName}},</p><p>Nous revenons vers vous au sujet de votre projet.</p>'} /></Field><Button type="submit" disabled={isPending}><Plus />Enregistrer</Button></form></CardContent></Card>
+          <div className="space-y-3">{initialData.templates.map((template) => <Card key={template.id}><CardHeader><div className="flex items-center justify-between gap-3"><div><CardTitle className="text-sm">{template.name}</CardTitle><CardDescription>{template.category}</CardDescription></div><Badge variant="outline">{template.status}</Badge></div></CardHeader><CardContent><p className="text-sm font-medium">{template.subject}</p><p className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">{template.bodyHtml.replace(/<[^>]+>/g, " ")}</p></CardContent></Card>)}{!initialData.templates.length ? <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Aucun modèle.</p> : null}</div>
+        </TabsContent>
+
+        <TabsContent value="workflows" className="space-y-5">
+          <Card><CardHeader><CardTitle className="text-base">Nouvelle règle</CardTitle><CardDescription>Chaque événement possède une clé d’idempotence : une même règle ne s’exécute pas deux fois pour le même changement.</CardDescription></CardHeader><CardContent><form className="grid gap-4 lg:grid-cols-3" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const actionType = String(form.get("actionType")); const action = actionType === "ENROLL_SEQUENCE" ? { type: actionType, sequenceId: String(form.get("sequenceId")) } : actionType === "CREATE_TASK" ? { type: actionType, title: String(form.get("actionTitle")), delayHours: formNumber(form, "delayHours"), priority: 2 } : { type: actionType, title: String(form.get("actionTitle")) }; const source = String(form.get("source") || ""); const leadStatus = String(form.get("leadStatus") || ""); execute(() => createAutomationWorkflow({ name: form.get("name"), trigger: form.get("trigger"), conditions: { ...(source ? { source } : {}), ...(leadStatus ? { leadStatus } : {}) }, actions: [action] }), "Règle créée en brouillon.", event.currentTarget) }}>
+            <Field label="Nom"><Input name="name" required placeholder="Qualifier les demandes du site" /></Field><Field label="Déclencheur"><select name="trigger" className={controlClass}><option value="LEAD_CREATED">Prospect créé</option><option value="LEAD_STATUS_CHANGED">Statut prospect modifié</option><option value="QUOTE_STATUS_CHANGED">Statut devis modifié</option></select></Field><Field label="Source (facultatif)"><Input name="source" placeholder="WEBSITE" /></Field><Field label="Statut prospect (facultatif)"><select name="leadStatus" className={controlClass}><option value="">Tous</option><option value="NEW">Nouveau</option><option value="CONTACTED">Contacté</option><option value="QUALIFIED">Qualifié</option></select></Field><Field label="Action"><select name="actionType" className={controlClass}><option value="ENROLL_SEQUENCE">Inscrire dans une séquence</option><option value="CREATE_TASK">Créer une tâche</option><option value="NOTIFY_TEAM">Notifier l’équipe</option></select></Field><Field label="Séquence"><select name="sequenceId" className={controlClass}><option value="">Sélectionner…</option>{initialData.sequences.map((sequence) => <option key={sequence.id} value={sequence.id}>{sequence.name}</option>)}</select></Field><Field label="Titre tâche / notification"><Input name="actionTitle" defaultValue="Suivre {{contact.firstName}} {{contact.lastName}}" /></Field><Field label="Délai tâche (h)"><Input name="delayHours" type="number" min="0" defaultValue="24" /></Field><div className="flex items-end"><Button type="submit" disabled={isPending}><Bot />Créer la règle</Button></div>
+          </form></CardContent></Card>
+          <div className="grid gap-4 lg:grid-cols-2">{initialData.workflows.map((workflow) => <Card key={workflow.id}><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="text-sm">{workflow.name}</CardTitle><CardDescription>{TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger}</CardDescription></div><Badge variant={workflow.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[workflow.status] ?? workflow.status}</Badge></div></CardHeader><CardContent className="space-y-3"><p className="text-xs text-muted-foreground">{workflow.runs.length} exécution(s) récente(s) · {workflow.runs.filter((run) => run.status === "FAILED").length} échec(s)</p>{workflow.status === "ACTIVE" ? <Button size="sm" variant="outline" onClick={() => execute(() => updateAutomationWorkflowStatus(workflow.id, "PAUSED"), "Règle mise en pause.")}><Pause />Pause</Button> : <Button size="sm" onClick={() => execute(() => updateAutomationWorkflowStatus(workflow.id, "ACTIVE"), "Règle activée.")}><Play />Activer</Button>}</CardContent></Card>)}{!initialData.workflows.length ? <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground lg:col-span-2">Aucune règle.</p> : null}</div>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <div className="flex items-center justify-between gap-4 rounded-xl border bg-card p-4"><div><p className="text-sm font-semibold">Traitement des envois dus</p><p className="mt-1 text-xs text-muted-foreground">Le worker le fait automatiquement chaque minute. Ce bouton sert à la recette ou au rattrapage.</p></div><Button variant="outline" disabled={isPending} onClick={() => execute(async () => { const result = await processSequenceEmailsNow(); toast.message(`${result.summary.sent} envoyé(s), ${result.summary.failed} échec(s).`) }, "Traitement terminé.")}><Activity />Exécuter</Button></div>
+          <div className="overflow-hidden rounded-xl border bg-card"><div className="grid grid-cols-[minmax(0,1fr)_130px_110px] gap-3 border-b bg-muted/40 px-4 py-3 text-xs font-semibold text-muted-foreground"><span>Destinataire / objet</span><span>Séquence</span><span>État</span></div>{initialData.deliveries.length ? <div className="divide-y">{initialData.deliveries.map((delivery) => <div key={delivery.id} className="grid grid-cols-[minmax(0,1fr)_130px_110px] gap-3 px-4 py-3 text-sm"><span className="min-w-0"><span className="block truncate font-medium">{delivery.subject}</span><span className="block truncate text-xs text-muted-foreground">{delivery.recipientEmail}</span></span><span className="truncate text-xs text-muted-foreground">{delivery.sequence?.name || "—"}</span><Badge variant={delivery.status === "SENT" ? "secondary" : delivery.status === "FAILED" ? "destructive" : "outline"}>{delivery.status === "SENT" ? <CheckCircle2 /> : null}{STATUS_LABELS[delivery.status] ?? delivery.status}</Badge></div>)}</div> : <p className="p-8 text-center text-sm text-muted-foreground">Aucun envoi.</p>}</div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block space-y-1.5"><span className="block text-xs font-semibold">{label}</span>{children}</label>
+}
+
+function Metric({ icon: Icon, label, value }: { icon: typeof Mail; label: string; value: number }) {
+  return <Card><CardContent className="flex items-center gap-4 p-5"><span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-4" /></span><div><p className="text-2xl font-semibold tabular-nums">{value}</p><p className="text-xs text-muted-foreground">{label}</p></div></CardContent></Card>
+}

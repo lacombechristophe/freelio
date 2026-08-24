@@ -35,7 +35,7 @@ type Expense = {
   clientId?: string | null
 }
 
-const CATEGORIES = ["SaaS", "Repas", "Matériel", "Transport", "Hébergement", "Formation", "Autre"]
+const CATEGORIES = ["Fournitures", "Matériel", "Sous-traitance", "Déplacement", "Repas", "Logiciel", "Formation", "Autre"]
 
 export function ExpenseFormDialog({
   expense,
@@ -62,7 +62,7 @@ export function ExpenseFormDialog({
     date: expense
       ? new Date(expense.date).toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10),
-    category: expense?.category ?? "SaaS",
+    category: expense?.category ?? "Fournitures",
     projectId: expense?.projectId ?? "",
   })
 
@@ -85,7 +85,7 @@ export function ExpenseFormDialog({
           amount: "",
           tva: "0",
           date: new Date().toISOString().slice(0, 10),
-          category: "SaaS",
+          category: "Fournitures",
           projectId: "",
         })
         setFileAttached(null)
@@ -134,11 +134,7 @@ export function ExpenseFormDialog({
           projectId: current.projectId,
         }))
 
-        if (result.confidence === "MOCK") {
-          toast.success("Reçu analysé en local (mode démonstration).", { id: toastId })
-        } else {
-          toast.success("Reçu analysé par Gemini AI avec succès !", { id: toastId })
-        }
+        toast.success("Champs préremplis par OCR. Vérifiez les montants et la TVA avant d’enregistrer.", { id: toastId })
       }
     } catch (err: any) {
       console.error(err)
@@ -249,7 +245,7 @@ export function ExpenseFormDialog({
               id="label"
               value={form.label}
               onChange={(e) => setForm({ ...form, label: e.target.value })}
-              placeholder="Ex: Abonnement Vercel Pro"
+              placeholder="Ex : Fournitures pour chantier Martin"
               required
               className="bg-background border-border"
               disabled={ocrLoading || pending}
@@ -261,7 +257,7 @@ export function ExpenseFormDialog({
               id="provider"
               value={form.provider}
               onChange={(e) => setForm({ ...form, provider: e.target.value })}
-              placeholder="Ex: Vercel Inc."
+              placeholder="Ex : Fournisseur couverture"
               className="bg-background border-border"
               disabled={ocrLoading || pending}
             />
@@ -312,7 +308,7 @@ export function ExpenseFormDialog({
               <Label className="text-xs font-semibold">Catégorie *</Label>
               <Select 
                 value={form.category} 
-                onValueChange={(v) => setForm({ ...form, category: v ?? "SaaS" })}
+                onValueChange={(v) => setForm({ ...form, category: v ?? "Fournitures" })}
                 disabled={ocrLoading || pending}
               >
                 <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>

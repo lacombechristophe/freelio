@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client"
-import { PrismaClient as PostgreSQLPrismaClient } from "@diskoov/prisma-postgres"
+import { PrismaClient as PostgreSQLPrismaClient } from "@crm/prisma-postgres"
 import { getContext } from "./context"
 import { hasPermission, requiredMutationPermission } from "./permissions"
 
@@ -49,6 +49,11 @@ const COMPANY_SCOPED_MODELS = new Set([
   "MaintenanceContract",
   "LeadCapture",
   "MarketingConsent",
+  "EmailTemplate",
+  "EmailSequence",
+  "EmailDelivery",
+  "AutomationWorkflow",
+  "AutomationRun",
   "CustomerOrder",
   "DeliveryNote",
   "GoodsReceipt",

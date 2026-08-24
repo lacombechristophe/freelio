@@ -372,7 +372,7 @@ export async function startHubSpotSnapshot(connectionId: string) {
           accessToken,
           objectType: object.objectType,
           propertyNames: object.properties.map((property) => property.name),
-          exportName: `diskoov-${object.objectType}-${new Date().toISOString().slice(0, 10)}`,
+          exportName: `crm-${object.objectType}-${new Date().toISOString().slice(0, 10)}`,
         })
         tasks.push({ objectType: object.objectType, taskId: exportTask.id, status: "PENDING", downloaded: false, propertyCount: object.propertyCount })
         await prisma.migrationMetric.create({ data: { runId: run.id, objectType: object.objectType } })
@@ -536,7 +536,7 @@ async function ensureMigrationPipeline(companyId: string) {
     update: {},
     create: {
       companyId,
-      name: "Pipeline commercial Diskoov",
+      name: "Pipeline commercial",
       stages: [
         { id: "PROSPECT", title: "Prospect" },
         { id: "CONTACTED", title: "Contact pris" },

@@ -1,5 +1,5 @@
 {
-  "name": "tmp-app",
+  "name": "crm-erp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,7 +14,10 @@
     "db:deploy:postgres": "node scripts/sync-prisma-schemas.mjs && prisma migrate deploy --schema prisma/postgresql/schema.prisma",
     "db:status:postgres": "node scripts/sync-prisma-schemas.mjs && prisma migrate status --schema prisma/postgresql/schema.prisma",
     "db:backfill-memberships": "tsx prisma/backfill-memberships.ts",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
+    "test:unit": "vitest run",
+    "verify": "npm run db:generate && npm run typecheck && npm run lint && npm run test:unit && npm run build",
     "test:e2e": "playwright test"
   },
   "dependencies": {

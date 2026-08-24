@@ -21,11 +21,11 @@ const instrumentSans = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Diskoov — CRM & opérations",
-    template: "%s | Diskoov",
+    default: "CRM & opérations",
+    template: "%s | CRM & opérations",
   },
   description:
-    "CRM et gestion opérationnelle Diskoov pour les ventes, chantiers, équipements, stocks, interventions et facturation.",
+    "CRM et gestion opérationnelle pour les ventes, chantiers, équipements, stocks, interventions et facturation.",
 };
 
 export default function RootLayout({

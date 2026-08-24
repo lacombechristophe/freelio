@@ -12,7 +12,7 @@ const postgres = source
   .replace('provider = "sqlite"', 'provider = "postgresql"')
   .replace(
     'generator client {\n  provider = "prisma-client-js"\n}',
-    'generator client {\n  provider = "prisma-client-js"\n  output   = "../../node_modules/@diskoov/prisma-postgres"\n}',
+    'generator client {\n  provider = "prisma-client-js"\n  output   = "../../node_modules/@crm/prisma-postgres"\n}',
   )
 
 if (postgres === source) throw new Error("Impossible de produire le schéma Prisma PostgreSQL")

@@ -3,8 +3,8 @@ import { mkdir } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 
-const QA_EMAIL = process.env.E2E_USER_EMAIL || "qa-diskoov@example.com"
-const evidenceDir = path.join(os.tmpdir(), "freelio-e2e-evidence")
+const QA_EMAIL = process.env.E2E_USER_EMAIL || "qa-crm@example.com"
+const evidenceDir = path.join(os.tmpdir(), "crm-e2e-evidence")
 
 async function login(page: Page) {
   await page.goto("/auth/login")
@@ -84,7 +84,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   await expect(page.getByRole("heading", { name: "Relevé technique bassin & pose" })).toBeVisible()
   await page.getByLabel("État du relevé").selectOption("SURVEYED")
   await page.getByLabel("Date du relevé").fill("2026-08-23")
-  await page.getByLabel("Technicien").fill("QA Diskoov")
+  await page.getByLabel("Technicien").fill("Technicien QA")
   await page.getByLabel("Forme").fill("Rectangle")
   await page.getByLabel("Longueur").fill("8000")
   await page.getByLabel("Largeur", { exact: true }).fill("4000")
@@ -125,6 +125,22 @@ test("new local-first surfaces load and their primary controls respond", async (
   expect(ics.ok()).toBeTruthy()
   expect(ics.headers()["content-type"]).toContain("text/calendar")
 
+  const accountingExport = await page.request.get("/api/accounting/export")
+  expect(accountingExport.ok()).toBeTruthy()
+  expect(accountingExport.headers()["content-type"]).toContain("application/zip")
+  expect((await accountingExport.body()).subarray(0, 2).toString("ascii")).toBe("PK")
+
+  const reversibilityExport = await page.request.get("/api/backup/export")
+  expect(reversibilityExport.ok()).toBeTruthy()
+  const reversibility = await reversibilityExport.json()
+  expect(reversibility.schema).toBe("crm.reversibility-export.v4")
+  expect(reversibility.manifest.payloadSha256).toMatch(/^[a-f0-9]{64}$/)
+  expect(JSON.stringify(reversibility)).not.toContain("credentialsEncrypted")
+  expect(JSON.stringify(reversibility)).not.toContain('"secret"')
+
+  const removedLanding = await page.request.get("/v2")
+  expect(removedLanding.status()).toBe(404)
+
   await page.goto("/dashboard")
   await page.screenshot({ path: path.join(evidenceDir, `${testInfo.project.name}-dashboard.png`), fullPage: false })
 })
@@ -155,10 +171,52 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
   await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeLessThan(afterWheel)
 })
 
-test("Diskoov lead, order, billing and reserved stock flow", async ({ page }) => {
-  test.setTimeout(90_000)
+test("configures an email sequence and a lead automation", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "La configuration est créée une fois ; la page reste couverte sur mobile par les tests de surfaces.")
+  await assertHealthy(page, "/dashboard/automatisations", "Automatisations & e-mails")
+
+  await page.getByRole("tab", { name: "Modèles" }).click()
+  const templatePanel = page.getByRole("tabpanel", { name: "Modèles" })
+  await templatePanel.locator('input[name="name"]').fill("Suivi projet QA")
+  await templatePanel.locator('input[name="subject"]').fill("Votre projet {{lead.projectType}}")
+  await templatePanel.locator('textarea[name="bodyHtml"]').fill("<p>Bonjour {{contact.firstName}},</p><p>Nous restons disponibles pour votre projet.</p>")
+  await templatePanel.getByRole("button", { name: "Enregistrer" }).click()
+  await expect(page.getByText("Modèle enregistré.")).toBeVisible()
+
+  await page.getByRole("tab", { name: "Séquences" }).click()
+  const sequencePanel = page.getByRole("tabpanel", { name: "Séquences" })
+  const createSequenceForm = sequencePanel.locator("form").first()
+  await createSequenceForm.locator('input[name="name"]').fill("Nurturing QA")
+  await createSequenceForm.locator('input[name="description"]').fill("Séquence de recette")
+  await createSequenceForm.getByRole("button", { name: "Créer" }).click()
+  await expect(page.getByText("Séquence créée.")).toBeVisible()
+  const sequenceCard = page.locator("[data-slot=card]").filter({ hasText: "Nurturing QA" }).last()
+  await sequenceCard.locator('select[name="templateId"]').selectOption({ label: "Suivi projet QA" })
+  await sequenceCard.locator('input[name="delayHours"]').fill("24")
+  await sequenceCard.getByRole("button", { name: "Ajouter l’étape" }).click()
+  await expect(page.getByText("Étape ajoutée.")).toBeVisible()
+  await sequenceCard.getByRole("button", { name: "Activer" }).click()
+  await expect(page.getByText("Séquence activée.")).toBeVisible()
+
+  await page.getByRole("tab", { name: "Règles" }).click()
+  const workflowPanel = page.getByRole("tabpanel", { name: "Règles" })
+  const workflowForm = workflowPanel.locator("form").first()
+  await workflowForm.locator('input[name="name"]').fill("Inscription nouveaux leads QA")
+  await workflowForm.locator('input[name="source"]').fill("E2E")
+  await workflowForm.locator('select[name="actionType"]').selectOption("ENROLL_SEQUENCE")
+  await workflowForm.locator('select[name="sequenceId"]').selectOption({ label: "Nurturing QA" })
+  await workflowForm.getByRole("button", { name: "Créer la règle" }).click()
+  await expect(page.getByText("Règle créée en brouillon.")).toBeVisible()
+  const workflowCard = page.locator("[data-slot=card]").filter({ hasText: "Inscription nouveaux leads QA" }).last()
+  await workflowCard.getByRole("button", { name: "Activer" }).click()
+  await expect(page.getByText("Règle activée.")).toBeVisible()
+})
+
+test("lead, consent withdrawal, order, billing and reserved stock flow", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Les mutations destructives sont validées une fois ; les surfaces restent testées sur mobile.")
+  test.setTimeout(180_000)
   const leadResponse = await page.request.post("/api/public/leads", {
-    headers: { Origin: "https://diskoov.fr" },
+    headers: { Origin: "https://example.test" },
     data: {
       firstName: "Alex",
       lastName: "Bassin QA",
@@ -167,17 +225,37 @@ test("Diskoov lead, order, billing and reserved stock flow", async ({ page }) =>
       postalCode: "44000",
       city: "Nantes",
       projectType: "Couverture de piscine",
-      message: "Demande E2E Diskoov",
+      message: "Demande E2E CRM",
       privacyAccepted: true,
-      marketingOptIn: false,
+      marketingOptIn: true,
       source: "E2E",
     },
   })
   expect(leadResponse.status()).toBe(201)
 
   await assertHealthy(page, "/dashboard/leads", "Prospects entrants")
-  await expect(page.getByText("Alex Bassin QA")).toBeVisible()
-  await expect(page.getByText("Service uniquement")).toBeVisible()
+  const leadCard = page.locator("article").filter({ hasText: "Alex Bassin QA" })
+  await expect(leadCard).toBeVisible()
+  await expect(leadCard.getByText("Marketing accepté")).toBeVisible()
+  await assertHealthy(page, "/dashboard/automatisations", "Automatisations & e-mails")
+  await expect(page.locator("p").filter({ hasText: /^Alex Bassin QA$/ }).first()).toBeVisible()
+  await assertHealthy(page, "/dashboard/leads", "Prospects entrants")
+  const refreshedLeadCard = page.locator("article").filter({ hasText: "Alex Bassin QA" })
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"])
+  await refreshedLeadCard.getByRole("button", { name: "Copier le lien de désinscription" }).click()
+  await expect(page.getByText("Lien de désinscription copié.")).toBeVisible()
+  const withdrawalUrl = await page.evaluate(() => navigator.clipboard.readText())
+  expect(withdrawalUrl).toContain("/consent/withdraw/")
+  const token = withdrawalUrl.split("/").at(-1)
+  expect(token).toBeTruthy()
+  await page.goto(withdrawalUrl)
+  await page.getByRole("button", { name: "Confirmer ma désinscription" }).click()
+  await expect(page.getByText("Préférence enregistrée", { exact: true })).toBeVisible()
+  const replay = await page.request.post("/api/public/consent/withdraw", { data: { token } })
+  expect(replay.ok()).toBeTruthy()
+  await expect(replay.json()).resolves.toMatchObject({ success: true, alreadyWithdrawn: true })
+  await assertHealthy(page, "/dashboard/leads", "Prospects entrants")
+  await expect(page.locator("article").filter({ hasText: "Alex Bassin QA" }).getByText("Service uniquement")).toBeVisible()
 
   await page.goto("/dashboard/devis")
   await page.getByRole("link", { name: "DEV-2026-900" }).click()
@@ -212,9 +290,10 @@ test("Diskoov lead, order, billing and reserved stock flow", async ({ page }) =>
   await expect(page.getByText("4 disponibles")).toBeVisible()
 })
 
-test("Diskoov field report and maintenance contract flow", async ({ page }) => {
-  test.setTimeout(90_000)
-  await assertHealthy(page, "/dashboard/operations", "Opérations Diskoov")
+test("field report and maintenance contract flow", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Les mutations destructives sont validées une fois ; les surfaces restent testées sur mobile.")
+  test.setTimeout(180_000)
+  await assertHealthy(page, "/dashboard/operations", "Opérations")
 
   await page.getByRole("tab", { name: "Planning" }).click()
   const intervention = page.getByRole("tabpanel", { name: "Planning" }).getByText("Intervention QA terrain").locator("..")

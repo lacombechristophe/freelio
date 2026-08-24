@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { getContext } from "@/lib/context"
 
@@ -16,7 +17,7 @@ export async function askGemini(prompt: string, context?: unknown) {
   const userId = userContext?.userId
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-  const systemPrompt = `Tu es l'assistant du CRM/ERP interne de Diskoov, spécialiste des couvertures de piscine.
+  const systemPrompt = `Tu es l'assistant du CRM/ERP interne de l'entreprise, spécialiste de la vente, de l'installation et du service terrain.
   Ton but est d'aider à la rédaction commerciale et opérationnelle pour les ventes, installations, équipements et interventions de maintenance.
   Reste concis, précis et institutionnel (ton Linear/Stripe).
   NE cite JAMAIS de montants financiers précis ni de SIRET/IBAN.
@@ -39,15 +40,16 @@ export async function askGemini(prompt: string, context?: unknown) {
 export async function analyzeExpense(imageBuffer: Buffer, mimeType: string) {
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-  const prompt = `Analyse ce reçu de dépense professionnelle pour Diskoov.
+  const prompt = `Analyse ce reçu de dépense professionnelle.
   Extrait uniquement :
   1. Le nom du fournisseur (Merchant)
   2. La date de la dépense
-  3. La catégorie probable (SaaS, Repas, Matériel, Transport)
-  4. Le montant TTC approximatif (pour suggestion)
+  3. La catégorie probable (Fournitures, Sous-traitance, Déplacement, Repas, Matériel, Logiciel, Autre)
+  4. Le montant TTC lu sur la pièce
+  5. Le montant de TVA lu sur la pièce, ou null s'il n'est pas explicitement indiqué
 
   Réponds UNIQUEMENT avec du JSON valide, sans markdown, sans backticks :
-  { "merchant": "", "date": "", "category": "", "amountTtc": 0 }`
+  { "merchant": "", "date": "AAAA-MM-JJ", "category": "", "amountTtc": 0, "amountTva": null }`
 
   const imagePart = {
     inlineData: {
@@ -60,14 +62,21 @@ export async function analyzeExpense(imageBuffer: Buffer, mimeType: string) {
   const response = result.response
   const text = response.text().trim()
 
+  let parsed: unknown
   try {
-    return JSON.parse(text)
+    parsed = JSON.parse(text)
   } catch {
     // Gemini sometimes wraps JSON in markdown code blocks
     const match = text.match(/\{[\s\S]*\}/)
-    if (match) {
-      return JSON.parse(match[0])
-    }
-    throw new Error("La réponse de l'IA n'est pas au format JSON attendu")
+    if (!match) throw new Error("La réponse de l'IA n'est pas au format JSON attendu")
+    parsed = JSON.parse(match[0])
   }
+
+  return z.object({
+    merchant: z.string().trim().max(180).default(""),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    category: z.string().trim().max(80).default("Autre"),
+    amountTtc: z.coerce.number().nonnegative().max(10_000_000),
+    amountTva: z.coerce.number().nonnegative().max(10_000_000).nullable().optional(),
+  }).parse(parsed)
 }

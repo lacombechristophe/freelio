@@ -133,7 +133,7 @@ export function QuoteForm({
               id="object"
               value={object}
               onChange={(e) => setObject(e.target.value)}
-              placeholder="Ex : Refonte du site web"
+              placeholder="Ex : Fourniture et pose d’une couverture de piscine"
               required
             />
           </div>

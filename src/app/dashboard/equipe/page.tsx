@@ -10,7 +10,7 @@ export default async function TeamPage() {
       <PageHeader
         eyebrow="Accès et responsabilités"
         title="Équipe"
-        description="Invitez les collaborateurs Diskoov et limitez chaque accès à son rôle opérationnel."
+        description="Invitez les collaborateurs et limitez chaque accès à son rôle opérationnel."
       />
       <TeamClient initialData={data} />
     </div>

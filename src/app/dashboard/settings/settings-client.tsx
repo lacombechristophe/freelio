@@ -1,9 +1,9 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
-  Building2, FileText, CreditCard, User, Zap, Trash2, Database, Download, Save, Check, Upload
+  Building2, FileText, CreditCard, User, Zap, Trash2, Database, Download, Save, Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,6 +54,8 @@ type Company = {
   address?: string | null
   email?: string | null
   phone?: string | null
+  logo?: string | null
+  brandColor?: string | null
   apeCode?: string | null
   rcsNumber?: string | null
   isTvaApplicable: boolean
@@ -61,9 +63,6 @@ type Company = {
   invoicePrefix: string
   quotePrefix: string
   pdfTemplate?: string | null
-  socialContributionRate: number
-  tvaThresholdCents: number
-  tvaMajorThresholdCents: number
   eInvoicePlatform?: string | null
   eInvoiceRoutingId?: string | null
 }
@@ -81,7 +80,6 @@ export function SettingsClient({ company, user }: { company: Company; user: User
   const [isPending, startTransition] = useTransition()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState("")
-  const restoreInputRef = useRef<HTMLInputElement>(null)
 
   // Billing states
   const [tvaSwitch, setTvaSwitch] = useState(!company.isTvaApplicable) // checked = Franchise TVA active (i.e. isTvaApplicable = false)
@@ -93,9 +91,6 @@ export function SettingsClient({ company, user }: { company: Company; user: User
       ? (company.pdfTemplate as PdfTemplate)
       : "MINIMAL"
   )
-  const [socialRate, setSocialRate] = useState(company.socialContributionRate.toString())
-  const [tvaThreshold, setTvaThreshold] = useState((company.tvaThresholdCents / 100).toString())
-  const [tvaMajorThreshold, setTvaMajorThreshold] = useState((company.tvaMajorThresholdCents / 100).toString())
   const [eInvoicePlatform, setEInvoicePlatform] = useState(company.eInvoicePlatform ?? "")
   const [eInvoiceRoutingId, setEInvoiceRoutingId] = useState(company.eInvoiceRoutingId ?? "")
 
@@ -110,6 +105,10 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         address: form.get("address") as string,
         apeCode: form.get("ape") as string,
         rcsNumber: form.get("rcs") as string,
+        email: form.get("email") as string,
+        phone: form.get("phone") as string,
+        logo: form.get("logo") as string,
+        brandColor: form.get("brandColor") as string,
       })
       if (result?.success) {
         toast.success("Paramètres entreprise sauvegardés.")
@@ -131,9 +130,6 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         invoicePrefix,
         quotePrefix,
         pdfTemplate,
-        socialContributionRate: Number(socialRate.replace(",", ".")),
-        tvaThresholdCents: Math.round(Number(tvaThreshold.replace(",", ".")) * 100),
-        tvaMajorThresholdCents: Math.round(Number(tvaMajorThreshold.replace(",", ".")) * 100),
         eInvoicePlatform,
         eInvoiceRoutingId,
       })
@@ -156,7 +152,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         const url = URL.createObjectURL(blob)
         const link = document.createElement("a")
         link.href = url
-        link.download = `freelio-export-${new Date().toISOString().slice(0, 10)}.json`
+        link.download = `export-rgpd-${new Date().toISOString().slice(0, 10)}.json`
         document.body.appendChild(link)
         link.click()
         link.remove()
@@ -171,29 +167,6 @@ export function SettingsClient({ company, user }: { company: Company; user: User
   function handleLocalBackup() {
     toast.success("Préparation de la sauvegarde locale.")
     window.location.assign("/api/backup/export")
-  }
-
-  function handleRestore(file: File | undefined) {
-    if (!file) return
-    if (!window.confirm("Restaurer cette sauvegarde remplacera toutes les données actuelles. Une sauvegarde de sécurité sera créée automatiquement. Continuer ?")) {
-      if (restoreInputRef.current) restoreInputRef.current.value = ""
-      return
-    }
-    startTransition(async () => {
-      try {
-        const formData = new FormData()
-        formData.set("backup", file)
-        const response = await fetch("/api/backup/import", { method: "POST", body: formData })
-        const result = await response.json()
-        if (!response.ok) throw new Error(result?.error ?? "Restauration impossible")
-        toast.success("Sauvegarde restaurée.")
-        router.refresh()
-      } catch (error) {
-        toast.error(getErrorMessage(error, "Restauration impossible."))
-      } finally {
-        if (restoreInputRef.current) restoreInputRef.current.value = ""
-      }
-    })
   }
 
   function handleDeleteAccount() {
@@ -241,6 +214,17 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                   <Input id="fullName" name="fullName" defaultValue={company.fullName ?? ""} className="bg-background border-border" />
                 </div>
               </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
+                <div className="space-y-1.5">
+                  <Label htmlFor="logo" className="text-xs font-semibold">Logo de l’entreprise</Label>
+                  <Input id="logo" name="logo" type="url" defaultValue={company.logo ?? ""} placeholder="https://…/logo.svg" className="bg-background border-border" />
+                  <p className="text-xs text-muted-foreground">Utilisé dans la navigation et les documents. Laissez vide pour afficher l’initiale du nom.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="brandColor" className="text-xs font-semibold">Couleur principale</Label>
+                  <Input id="brandColor" name="brandColor" type="color" defaultValue={company.brandColor ?? "#1f4ed8"} className="h-10 bg-background p-1" />
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="siret" className="text-xs font-semibold">SIRET</Label>
@@ -249,6 +233,16 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                 <div className="space-y-1.5">
                   <Label htmlFor="address" className="text-xs font-semibold">Adresse</Label>
                   <Input id="address" name="address" defaultValue={company.address ?? ""} className="bg-background border-border" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-xs font-semibold">E-mail de l’entreprise</Label>
+                  <Input id="email" name="email" type="email" defaultValue={company.email ?? ""} className="bg-background border-border" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone" className="text-xs font-semibold">Téléphone</Label>
+                  <Input id="phone" name="phone" type="tel" defaultValue={company.phone ?? ""} className="bg-background border-border" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -274,15 +268,15 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         <form onSubmit={handleSaveBilling}>
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold">Configuration TVA & Réglementation 2026</CardTitle>
-              <CardDescription className="text-xs">Paramétrez les taxes et pénalités obligatoires en micro-entreprise.</CardDescription>
+              <CardTitle className="text-sm font-semibold">TVA, documents et facturation électronique</CardTitle>
+              <CardDescription className="text-xs">Paramétrez le régime de TVA, les documents commerciaux et les informations de routage.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-foreground">Franchise de base de TVA (Régime Micro-entreprise)</Label>
+                  <Label className="text-xs font-bold text-foreground">TVA non applicable</Label>
                   <p className="text-xs text-muted-foreground leading-normal max-w-sm">
-                    Si activé, toutes les factures et devis générés forceront un taux de TVA à 0% et incluront automatiquement la mention de franchise applicable à la date du document.
+                    Si activé, les nouveaux documents utilisent un taux de TVA à 0 %. Validez le motif et la mention applicables avec votre cabinet comptable.
                   </p>
                 </div>
                 <Switch 
@@ -347,21 +341,6 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                       </button>
                     )
                   })}
-                </div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="socialRate" className="text-xs font-semibold">Taux de cotisations estimé (%)</Label>
-                  <Input id="socialRate" inputMode="decimal" value={socialRate} onChange={(event) => setSocialRate(event.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="tvaThreshold" className="text-xs font-semibold">Repère TVA (€)</Label>
-                  <Input id="tvaThreshold" inputMode="decimal" value={tvaThreshold} onChange={(event) => setTvaThreshold(event.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="tvaMajorThreshold" className="text-xs font-semibold">Repère majoré TVA (€)</Label>
-                  <Input id="tvaMajorThreshold" inputMode="decimal" value={tvaMajorThreshold} onChange={(event) => setTvaMajorThreshold(event.target.value)} />
                 </div>
               </div>
               <Separator />
@@ -487,38 +466,18 @@ export function SettingsClient({ company, user }: { company: Company; user: User
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <p className="font-bold text-sm text-foreground">Sauvegarde locale complète</p>
-                <p className="text-xs text-muted-foreground">
-                  JSON privé contenant CRM, facturation, organisation, temps, paramètres et logs utiles à une restauration.
-                </p>
+                  <p className="font-bold text-sm text-foreground">Export de réversibilité contrôlé</p>
+                  <p className="text-xs text-muted-foreground">
+                    JSON vérifiable des données métier et fichiers lisibles, sans jetons, identifiants de connexion, secrets webhook ni IBAN chiffré.
+                  </p>
               </div>
               <Button variant="outline" className="gap-2 shrink-0" onClick={handleLocalBackup}>
-                <Database className="h-4 w-4" /> Backup local
+                <Database className="h-4 w-4" /> Exporter
               </Button>
             </div>
             <Separator />
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <p className="font-bold text-sm text-foreground">Restaurer une sauvegarde</p>
-                <p className="text-xs text-muted-foreground">
-                  Remplace les données actuelles après création d&apos;un point de retour automatique.
-                </p>
-              </div>
-              <input
-                ref={restoreInputRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={(event) => handleRestore(event.target.files?.[0])}
-              />
-              <Button
-                variant="outline"
-                className="gap-2 shrink-0"
-                disabled={isPending}
-                onClick={() => restoreInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" /> Restaurer
-              </Button>
+            <div className="rounded-lg border border-border bg-muted/40 p-4 text-xs leading-5 text-muted-foreground">
+              La restauration complète s&apos;effectue par PostgreSQL et R2 dans un environnement isolé, selon le runbook de production. L&apos;export JSON sert au contrôle de portabilité et à une reprise logique assistée ; il ne réinjecte jamais automatiquement des secrets ou des sessions.
             </div>
             <Separator />
             <div className="flex items-center justify-between gap-4">

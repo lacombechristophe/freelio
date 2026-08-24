@@ -42,7 +42,7 @@ type DocumentStudioProps = {
 const templateCopy: Record<PdfTemplate, { label: string; description: string }> = {
   MINIMAL: {
     label: "Éditorial",
-    description: "Serif expressive, grands blancs et hiérarchie sobre pour les missions premium.",
+    description: "Serif expressive, grands blancs et hiérarchie sobre pour les projets premium.",
   },
   PROFESSIONAL: {
     label: "Registre",

@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { embedFacturX, generatePdfFromHtml } from "@/lib/pdf/generator"
 import { generateFacturX } from "@/lib/pdf/facturx"
 import { renderDocumentHtml, type PdfDocument } from "@/lib/pdf/render"
+import { storeFileBytes } from "@/lib/local-files"
 
 const connection = {
   host: process.env.REDIS_HOST || "localhost",
@@ -107,7 +108,8 @@ async function generateQuote(job: Job<DocGenJob>) {
 
   const pdfBuffer = await generatePdfFromHtml(html)
   const hash = createHash("sha256").update(pdfBuffer).digest("hex")
-  const pdfUrl = `https://storage.freelio.fr/quotes/${quote.number}.pdf`
+  const stored = await storeFileBytes({ companyId: quote.companyId, kind: "generated", resourceId: quote.id, originalName: `${quote.number}.pdf`, type: "application/pdf", bytes: pdfBuffer })
+  const pdfUrl = stored.relativePath
 
   await prisma.quote.update({
     where: { id: quote.id },
@@ -187,7 +189,8 @@ async function generateInvoice(job: Job<DocGenJob>) {
 
   pdfBuffer = await embedFacturX(Buffer.from(pdfBuffer), xml)
   const hash = createHash("sha256").update(pdfBuffer).digest("hex")
-  const pdfUrl = `https://storage.freelio.fr/invoices/${invoice.number}.pdf`
+  const stored = await storeFileBytes({ companyId: invoice.companyId, kind: "generated", resourceId: invoice.id, originalName: `${invoice.number}.pdf`, type: "application/pdf", bytes: pdfBuffer })
+  const pdfUrl = stored.relativePath
 
   await prisma.invoice.update({
     where: { id: invoice.id },

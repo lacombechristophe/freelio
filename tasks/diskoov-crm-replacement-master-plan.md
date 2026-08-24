@@ -1,7 +1,8 @@
 # Plan directeur — CRM/ERP Diskoov sans HubSpot ni Extrabat
 
-Date : 23 août 2026  
-Statut : document de cadrage de référence  
+Date de création : 23 août 2026
+Dernière mise à jour : 24 août 2026
+Statut : plan directeur actif — socle et cœur métier largement implémentés, remplacement opérationnel non encore certifié
 Décision : remplacer complètement HubSpot et Extrabat par le CRM Diskoov issu de Freelio.
 
 ## 1. Décision et objectif
@@ -14,47 +15,51 @@ Le projet est réussi lorsque Diskoov peut acquérir un prospect, vendre, comman
 
 ## 2. Inventaire de l'existant — Freelio v2
 
-Le dépôt actuel est déjà un socle important, pas un prototype vide.
+Le dépôt actuel est un CRM/ERP Diskoov fonctionnel en cours de recette. Les listes ci-dessous décrivent le code présent ; elles ne remplacent pas la validation sur les comptes et processus réels.
 
 ### 2.1 Capacités déjà présentes
 
-- authentification par lien magique, onboarding et paramètres entreprise ;
+- authentification par lien magique, onboarding, paramètres entreprise, membres, invitations, rôles et permissions ;
 - tableau de bord et indicateurs ;
-- clients, contacts, activités, fichiers, prochaine action et score de relation ;
+- capture publique des leads, sources/UTM, consentements, désinscription signée, clients, contacts, activités, fichiers et prochaine action ;
 - pipeline commercial et opportunités ;
-- projets, jalons, budget, fichiers, temps passé, recette et profil technique ;
+- clients multi-sites, projets, jalons, budget, fichiers, temps passé, recette et relevé technique piscine ;
 - objectifs, tâches, récurrence et export calendrier ICS ;
-- catalogue de prestations ;
-- devis versionnés, sections, lignes, statuts, PDF et conversion en facture ou contrat ;
+- catalogue de prestations, fournisseurs, produits et dépôts ;
+- devis versionnés, sections, lignes, statuts, PDF et conversion en commande, facture ou contrat ;
 - contrats, modèles, clauses et parcours de signature ;
+- commandes clients, acomptes/soldes, commandes fournisseur, réceptions, bons de livraison, mouvements et réservations de stock ;
+- équipements installés, tickets SAV, interventions et contrats d'entretien ;
 - factures verrouillées, règlements, avoirs, relances, récurrence, temps non facturé et Factur-X ;
 - dépenses, pièces jointes et OCR Gemini ;
 - import bancaire CSV et rapprochement ;
-- synthèses comptables, notifications, recherche, sauvegarde, import/export, journal d'audit, conformité et anonymisation.
+- synthèses comptables, notifications, recherche, réversibilité, journal d'audit, conformité et anonymisation ;
+- centre de migration HubSpot/Extrabat avec archives brutes, simulation, import idempotent et vérification.
 
 ### 2.2 État technique mesuré
 
-- Next.js 16.2.10, React 19.2.4, TypeScript ;
-- Prisma 6.2 avec SQLite ;
-- 48 modèles Prisma, 108 Server Actions exportées, 38 pages, 8 routes API ;
-- 72 composants client ;
-- BullMQ/Redis prévu pour les traitements, génération PDF/Factur-X et stockage local des fichiers ;
-- 30 tests unitaires passent et le lint passe ;
-- le build compile l'application puis échoue sur un fichier de types généré et corrompu dans `.next/dev/types/routes.d.ts` ;
-- les tests navigateur n'ont pas pu être certifiés : la compilation de la page de connexion s'est bloquée durant le contrôle.
+- Next.js 16, React 19.2, TypeScript strict et Prisma 6.2 ;
+- SQLite conservé pour le développement ; schéma/client PostgreSQL et deux migrations versionnées validés sur une base PostgreSQL vierge ;
+- 81 modèles Prisma couvrant CRM, vente, opérations, finance et migration ;
+- stockage local de développement et Cloudflare R2 obligatoire en production ;
+- BullMQ/Redis pour la génération documentaire asynchrone ;
+- tests unitaires et scénarios Playwright critiques présents, dont permissions, migration, stock, commande/facturation, lead et relevé technique ;
+- export de réversibilité versionné avec tables société, fichiers, manifestes et contrôles d'intégrité.
+
+Les résultats exacts de typecheck, lint, tests, build et E2E doivent être régénérés sur le commit candidat final ; les mesures de l'audit du 23 août ne décrivent plus le dépôt actuel.
 
 ### 2.3 Limites bloquantes avant exploitation Diskoov
 
-- modèle mono-utilisateur : `User.companyId` est unique et la société ne peut avoir qu'un utilisateur ;
-- SQLite et stockage local inadaptés à une équipe connectée en continu ;
-- aucune migration Prisma versionnée trouvée ;
-- aucun connecteur HubSpot ou Extrabat existant ;
-- absence de fournisseurs, commandes d'achat, réceptions, stock, techniciens, tournées, interventions, équipements installés, numéros de série, garanties, SAV, contrats d'entretien et portail client ;
-- le profil technique projet est conçu pour une agence web et doit devenir un dossier piscine/site/installation ;
-- signature de contrat à corriger avant production : l'action publique signe avec le seul identifiant du contrat, tandis que l'écran est derrière l'authentification ;
-- contrôles tactiles et accessibilité à renforcer sur plusieurs écrans compacts.
+- audit administrateur des deux comptes réels, volumes, modules et personnalisations non encore versé au dépôt ;
+- aucune API Extrabat générique ne peut être finalisée sans documentation et droits propres au compte ;
+- reprise HubSpot des fichiers privés, formulaires, workflows et actifs marketing à compléter selon l'usage réel ;
+- e-mail/calendrier bidirectionnels, campagnes de masse et marketing avancé non reconstruits ; les modèles, séquences simples et règles événementielles sont présents ;
+- PWA hors ligne, photos/pièces d'intervention, planification de capacité et tournées non disponibles ;
+- plateforme agréée de facturation électronique non choisie/intégrée ;
+- hébergement, supervision, sauvegardes natives et restauration de production non prouvés dans le dépôt ;
+- recette terrain/commerciale/financière et bascules réelles non exécutées.
 
-Conclusion : environ la moitié du socle transversal est réutilisable, mais le cœur vertical « vente et installation d'équipements de piscine » reste à construire.
+Conclusion : le cœur vertical central est implémenté, mais la résiliation reste conditionnée aux données réelles, aux écarts d'usage et aux gates externes décrits dans la [matrice de couverture](../docs/coverage-and-external-dependencies.md).
 
 ## 3. Ce qu'il faut remplacer
 
@@ -126,6 +131,8 @@ Chaque exclusion devra être signée par le gérant après observation des prati
 
 ### 5.1 Principes
 
+État au 24 août : le monolithe modulaire, le double schéma SQLite/PostgreSQL, R2, les rôles, l'audit et les files documentaires sont présents dans le code. La PWA hors ligne, la supervision, l'infrastructure reproductible et les adaptateurs externes de facturation/cartographie ne le sont pas encore.
+
 - monolithe modulaire Next.js au départ, avec domaines séparés et contrats internes clairs ;
 - PostgreSQL managé à la place de SQLite ;
 - stockage objet compatible S3 pour les documents, photos et PDF ;
@@ -149,6 +156,8 @@ Créer des microservices maintenant ralentirait le projet. Les frontières de do
 - aucune donnée client sensible dans les journaux techniques.
 
 ## 6. Modèle de données à ajouter ou refondre
+
+Cette section conserve le modèle conceptuel cible. Une grande partie est désormais matérialisée sous des noms Prisma pragmatiques (`Membership`, `CustomerSite`, `ProjectTechnicalProfile`, `Supplier`, `Product`, `CustomerOrder`, `PurchaseOrder`, `GoodsReceipt`, `StockReservation`, `Equipment`, `ServiceTicket`, `FieldIntervention`, `MaintenanceContract`, etc.). Les objets encore absents ne doivent pas être considérés comme implémentés ; la [matrice de couverture](../docs/coverage-and-external-dependencies.md) fait foi.
 
 ### Identité et CRM
 
@@ -220,6 +229,19 @@ Chaque export doit être conservé brut, chiffré, horodaté et accompagné d'un
 - **Extrabat** : bascule après deux cycles opérationnels complets et 6 à 8 semaines de parallèle ; objectif réaliste, mois 9 à 14 avec une petite équipe dédiée.
 
 ## 8. Feuille de route de réalisation
+
+### 8.0 État d'exécution au 24 août 2026
+
+| Phase | État du code | Reste avant validation |
+|---|---|---|
+| Phase 0 — preuve réelle | **Partielle** | audit public et plans produits ; comptes, volumes, contrats et usages Diskoov réels encore à inventorier |
+| Phase 1 — fondations | **Implémentée dans le code** | déploiement PostgreSQL/R2, supervision, sauvegarde/restauration et recette de sécurité en environnement réel |
+| Phase 2 — HubSpot | **Partielle** | capture/CRM/consentement/import présents ; compléter les actifs réellement utilisés, répéter la migration et mener la bascule |
+| Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, achats, réceptions et stock présents ; valider catalogues, prix, planning et données Extrabat réelles |
+| Phase 4 — terrain/SAV | **Partielle** | équipements, tickets, interventions et entretien présents ; hors-ligne, photos/pièces, capacité/tournées et pilote terrain restent à traiter selon besoin |
+| Phase 5 — finance/sortie | **Partielle** | factures, paiements, banque, Factur-X et réversibilité présents ; plateforme agréée, portail éventuel, rapprochement final et résiliation restent ouverts |
+
+Les estimations initiales ci-dessous restent des ordres de grandeur de cadrage. Elles ne constituent plus un calendrier d'exécution constaté.
 
 ### Phase 0 — preuve et cadrage réel, 2 à 3 semaines
 
@@ -380,18 +402,18 @@ Références officielles : [DGFiP — facturation électronique et plateformes a
 | dépendance à un développeur | continuité faible | documentation, revue, tests, déploiement reproductible et second mainteneur |
 | sécurité/RGPD | atteinte aux clients | droits minimaux, audit, chiffrement, sauvegarde et procédure d'incident |
 
-## 15. Actions immédiates — les 10 prochains jours ouvrés
+## 15. Actions immédiates — prochain lot de preuve
 
-1. Récupérer les factures, contrats, dates de renouvellement et modules réellement payés des deux outils.
-2. Créer deux comptes administrateur temporaires d'audit et exporter un premier jeu complet.
-3. Faire l'inventaire chiffré : utilisateurs, contacts, affaires, pièces, factures, tâches, workflows, catalogues, stock et SAV.
-4. Observer avec le gérant trois ventes gagnées, deux perdues, deux poses, deux SAV et une clôture mensuelle.
-5. Valider la matrice des fonctions P0/P1/P2 et des exclusions.
-6. Corriger le build, la signature publique et le modèle multi-utilisateur du CRM avant d'ajouter des modules.
-7. Choisir PostgreSQL, stockage, sauvegardes, supervision et stratégie de déploiement.
-8. Construire un import pilote HubSpot et un import pilote Extrabat avec pièces jointes.
-9. Brancher un formulaire miroir de test de `diskoov.fr` sans perturber la production.
-10. Fixer les jalons, responsables, budget d'exploitation et critères de résiliation dans un comité de lancement.
+1. Récupérer factures, contrats, échéances et liste des modules réellement utilisés dans HubSpot/Extrabat.
+2. Créer les accès d'audit temporaires et produire les premiers exports complets, GED comprise.
+3. Renseigner les volumes et décisions dans la [matrice de couverture](../docs/coverage-and-external-dependencies.md).
+4. Déployer une préproduction PostgreSQL/R2 distincte et exécuter une restauration contrôlée.
+5. Rejouer deux migrations complètes selon le [runbook de bascule](../docs/migration-cutover-runbook.md).
+6. Faire recetter dix dossiers réels : vente, achat, stock, chantier, intervention, facture et paiement.
+7. Recetter les séquences/règles et décider les écarts HubSpot P0 restants : boîte e-mail, calendrier, campagnes, scoring et branches avancées.
+8. Décider les écarts Extrabat P0 : hors-ligne, photos/pièces, capacité, tournées, catalogues et tarifs.
+9. Choisir la plateforme agréée de facturation et valider l'export avec l'expert-comptable.
+10. Fixer le go/no-go, le rollback, les responsables et les dates de périodes parallèles avant toute résiliation.
 
 ## 16. Décisions encore à obtenir — sans bloquer le démarrage
 

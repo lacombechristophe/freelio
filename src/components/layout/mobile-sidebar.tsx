@@ -8,9 +8,9 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { dashboardNavigationSections } from "./sidebar"
-import { DiskoovBrand } from "@/components/shared/diskoov-brand"
+import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 
-export function MobileSidebar() {
+export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
   const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
 
@@ -59,7 +59,7 @@ export function MobileSidebar() {
             className="relative h-full w-[304px] max-w-[88vw] overscroll-contain border-r border-sidebar-border bg-sidebar shadow-[0_24px_60px_rgba(16,24,40,0.2)]"
           >
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-              <DiskoovBrand />
+              <AppBrand brand={brand} />
               <Button
                 type="button"
                 variant="ghost"

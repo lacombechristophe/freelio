@@ -29,10 +29,7 @@ export function daysUntil(value: Date | string | null | undefined, today = new D
   return Math.ceil((to - from) / (24 * 60 * 60 * 1000))
 }
 
-export function computeUnbilledValueCents(
-  durationSec: number,
-  hourlyRateCents = DEFAULT_HOURLY_RATE_CENTS
-) {
+export function computeUnbilledValueCents(durationSec: number, hourlyRateCents = DEFAULT_HOURLY_RATE_CENTS) {
   return Math.round((Math.max(0, durationSec) / 3600) * hourlyRateCents)
 }
 
@@ -43,7 +40,6 @@ export function computeProjectRisk(input: ProjectRiskInput) {
   const remainingBudgetCents = budgetCents > 0 ? budgetCents - consumedCents : null
   const daysLeft = daysUntil(input.endDate, input.today)
   const reasons: string[] = []
-
   let level: ProjectRiskLevel = "normal"
 
   if (budgetCents > 0 && budgetUsagePct >= 100) {
@@ -62,13 +58,7 @@ export function computeProjectRisk(input: ProjectRiskInput) {
     reasons.push("Échéance à moins de 7 jours")
   }
 
-  return {
-    level,
-    budgetUsagePct,
-    remainingBudgetCents,
-    daysLeft,
-    reasons,
-  }
+  return { level, budgetUsagePct, remainingBudgetCents, daysLeft, reasons }
 }
 
 export function isInvoiceActionable(status: string, dueDate: Date | string, today = new Date()) {
@@ -87,11 +77,8 @@ export function isQuoteStale(input: {
   const today = input.today ?? new Date()
   const validDaysLeft = daysUntil(input.validUntil, today)
   if (validDaysLeft !== null && validDaysLeft < 0) return true
-
   const updated = parseDate(input.updatedAt)
   if (!updated) return false
-  const ageDays = Math.floor(
-    (startOfDay(today).getTime() - startOfDay(updated).getTime()) / (24 * 60 * 60 * 1000)
-  )
+  const ageDays = Math.floor((startOfDay(today).getTime() - startOfDay(updated).getTime()) / (24 * 60 * 60 * 1000))
   return ageDays >= (input.staleAfterDays ?? 14)
 }
