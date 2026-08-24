@@ -26,6 +26,7 @@ jobs:
       LEAD_ALLOWED_ORIGINS: https://example.test
       E2E_USER_EMAIL: qa-crm@example.com
       PUBLIC_APP_URL: http://127.0.0.1:3000
+      PUBLIC_PRIVACY_NOTICE_URL: https://example.test/privacy
       AUTH_URL: http://127.0.0.1:3000
       AUTH_TRUST_HOST: "true"
       E2E_USE_PRODUCTION_SERVER: "true"
