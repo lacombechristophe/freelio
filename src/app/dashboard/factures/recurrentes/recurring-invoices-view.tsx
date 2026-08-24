@@ -36,6 +36,7 @@ type Recurring = {
 const FREQUENCY_LABELS: Record<string, string> = {
   MONTHLY: "Mensuelle",
   QUARTERLY: "Trimestrielle",
+  BIANNUALLY: "Semestrielle",
   ANNUALLY: "Annuelle",
 }
 
@@ -84,7 +85,7 @@ export function RecurringInvoicesView({
         clientId,
         label,
         object,
-        frequency: frequency as "MONTHLY" | "QUARTERLY" | "ANNUALLY",
+        frequency: frequency as "MONTHLY" | "QUARTERLY" | "BIANNUALLY" | "ANNUALLY",
         nextGenDate,
         dueDays,
         lines,
@@ -152,7 +153,7 @@ export function RecurringInvoicesView({
                 <div className="space-y-1.5"><Label>Fréquence</Label>
                   <Select value={frequency} onValueChange={(value) => setFrequency(value ?? "MONTHLY")}>
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="MONTHLY">Mensuelle</SelectItem><SelectItem value="QUARTERLY">Trimestrielle</SelectItem><SelectItem value="ANNUALLY">Annuelle</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="MONTHLY">Mensuelle</SelectItem><SelectItem value="QUARTERLY">Trimestrielle</SelectItem><SelectItem value="BIANNUALLY">Semestrielle</SelectItem><SelectItem value="ANNUALLY">Annuelle</SelectItem></SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5"><Label>Première génération</Label><Input type="date" value={nextGenDate} onChange={(event) => setNextGenDate(event.target.value)} required /></div>

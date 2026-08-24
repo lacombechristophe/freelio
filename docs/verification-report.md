@@ -15,11 +15,11 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 18 fichiers, 71 tests réussis |
-| `npm run build` | build Next.js de production réussi, 34 pages statiques/dynamiques générées |
+| `npm run test:unit` | 21 fichiers, 76 tests réussis |
+| `npm run build` | build Next.js de production réussi, 39 pages statiques/dynamiques générées |
 | `npm audit --audit-level=high` | 0 vulnérabilité déclarée |
-| Playwright, base SQLite neuve | 7 scénarios réussis, 3 mutations volontairement ignorées sur mobile après validation desktop |
-| PostgreSQL 18 vierge | 3 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
+| Playwright, base SQLite neuve | 8 scénarios réussis, 4 mutations volontairement ignorées sur mobile après validation desktop |
+| PostgreSQL 18 vierge | 5 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -39,7 +39,10 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - génération du lien de désinscription, retrait public et relecture idempotente ;
 - arrêt de l’inscription et passage du contact en opposition ;
 - devis vers commande, facture de solde, réservation puis consommation du stock ;
-- clôture d’intervention avec preuve client et création d’un contrat d’entretien ;
+- création, signature scellée et lecture PDF d’un bon de livraison ;
+- espace terrain installable, rechargement hors ligne depuis un cache borné à 24 heures et file locale de synchronisation ;
+- photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
+- capacité hebdomadaire d’équipe, création d’un contrat d’entretien, visite et facture automatiques avec second passage idempotent ;
 - export calendrier, export comptable, export de réversibilité et suppression effective de la landing `/v2` ;
 - surfaces principales et navigation pipeline sur viewport mobile.
 
@@ -66,7 +69,7 @@ Les éléments suivants ne peuvent pas être prouvés par le dépôt seul :
 4. préproduction et production PostgreSQL/R2/Redis/Upstash/Resend, sauvegardes natives, PITR, supervision et restauration mesurée ;
 5. domaine e-mail vérifié, SPF/DKIM/DMARC et test réel de délivrabilité/désinscription ;
 6. plateforme agréée de facturation électronique et format validé par le cabinet comptable ;
-7. décision sur les écarts encore partiels : boîte e-mail, calendrier bidirectionnel, campagnes de masse, hors-ligne terrain, photos/pièces, capacité/tournées et portail client ;
+7. décision sur les écarts encore partiels : boîte e-mail, calendrier bidirectionnel, campagnes de masse, tournées, signature manuscrite, pièces/frais SAV et portail client ;
 8. recette de dix dossiers réels, deux cycles opérationnels complets et procès-verbal de go/no-go du gérant.
 
 La procédure et les responsables attendus sont décrits dans le [runbook de migration](migration-cutover-runbook.md), le [runbook de production](production-runbook.md) et la [matrice de couverture](coverage-and-external-dependencies.md).

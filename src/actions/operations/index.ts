@@ -9,6 +9,7 @@ import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
+import { completeFieldInterventionForContext } from "@/lib/field/interventions"
 import prisma from "@/lib/prisma"
 
 const id = z.string().cuid()
@@ -90,14 +91,6 @@ const interventionSchema = z.object({
   scheduledEnd: z.string().datetime().optional().nullable(),
 })
 
-const interventionCompletionSchema = z.object({
-  interventionId: id,
-  report: z.string().trim().min(3, "Le compte rendu est requis").max(10_000),
-  laborMinutes: z.coerce.number().int().min(0).max(7 * 24 * 60),
-  customerName: z.string().trim().min(2, "Le nom du client est requis").max(160),
-  customerApproval: z.literal(true, { error: "L’accord du client doit être confirmé" }),
-})
-
 const maintenanceContractSchema = z.object({
   clientId: id,
   siteId: id,
@@ -107,6 +100,9 @@ const maintenanceContractSchema = z.object({
   frequency: z.enum(["MONTHLY", "QUARTERLY", "BIANNUAL", "ANNUAL"]).default("ANNUAL"),
   nextVisitAt: dateInput,
   priceCents: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
+  autoInvoice: z.boolean().default(false),
+  tvaRate: z.coerce.number().min(0).max(100).default(20),
+  invoiceDueDays: z.coerce.number().int().min(0).max(365).default(30),
   equipmentIds: z.array(id).max(100).default([]),
   notes: optionalText,
 })
@@ -172,6 +168,12 @@ const deliveryNoteSchema = z.object({
   notes: optionalText,
 })
 
+const deliverySignatureSchema = z.object({
+  deliveryNoteId: id,
+  recipientName: z.string().trim().min(2, "Le nom du réceptionnaire est requis").max(160),
+  customerApproval: z.literal(true, { error: "L’accord du réceptionnaire doit être confirmé" }),
+})
+
 const customerOrderInvoiceSchema = z.object({
   customerOrderId: id,
   mode: z.enum(["DEPOSIT", "BALANCE"]).default("BALANCE"),
@@ -195,7 +197,7 @@ export async function getOperationsDashboard() {
       prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
       prisma.equipment.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
       prisma.serviceTicket.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
-      prisma.fieldIntervention.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, ticket: { select: { number: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { scheduledStart: "asc" }, take: 200 }),
+      prisma.fieldIntervention.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, ticket: { select: { number: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } } }, orderBy: { scheduledStart: "asc" }, take: 200 }),
       prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, _count: { select: { equipments: true } } }, orderBy: { nextVisitAt: "asc" }, take: 100 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
@@ -301,33 +303,61 @@ export async function createFieldIntervention(input: unknown) {
 export async function createMaintenanceContract(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = maintenanceContractSchema.parse(input)
-    const [client, site, equipmentCount] = await Promise.all([
+    const [client, site, equipmentCount, company] = await Promise.all([
       prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
       prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } }),
       data.equipmentIds.length ? prisma.equipment.count({ where: { id: { in: data.equipmentIds }, companyId, siteId: data.siteId } }) : 0,
+      prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
     ])
     if (!client) throw new Error("Client introuvable")
     if (!site) throw new Error("Le site n’appartient pas à ce client")
     if (equipmentCount !== data.equipmentIds.length) throw new Error("Un équipement ne correspond pas au site sélectionné")
+    if (!company) throw new Error("Entreprise introuvable")
 
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const contract = await withDocumentNumberRetry(async () => {
       const last = await prisma.maintenanceContract.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
-      return prisma.maintenanceContract.create({
-        data: {
-          companyId,
-          clientId: data.clientId,
-          siteId: data.siteId,
-          number: nextDocumentNumber(last?.number, prefix),
-          label: data.label,
-          startDate: new Date(data.startDate),
-          endDate: data.endDate,
-          frequency: data.frequency,
-          nextVisitAt: data.nextVisitAt,
-          priceCents: data.priceCents,
-          notes: data.notes,
-          equipments: data.equipmentIds.length ? { create: data.equipmentIds.map((equipmentId) => ({ equipmentId })) } : undefined,
-        },
+      return prisma.$transaction(async (tx) => {
+        const startDate = new Date(data.startDate)
+        const created = await tx.maintenanceContract.create({
+          data: {
+            companyId,
+            clientId: data.clientId,
+            siteId: data.siteId,
+            number: nextDocumentNumber(last?.number, prefix),
+            label: data.label,
+            startDate,
+            endDate: data.endDate,
+            frequency: data.frequency,
+            nextVisitAt: data.nextVisitAt || startDate,
+            priceCents: data.priceCents,
+            autoInvoice: data.autoInvoice,
+            tvaRate: company.isTvaApplicable ? data.tvaRate : 0,
+            invoiceDueDays: data.invoiceDueDays,
+            notes: data.notes,
+            equipments: data.equipmentIds.length ? { create: data.equipmentIds.map((equipmentId) => ({ equipmentId })) } : undefined,
+          },
+        })
+        if (data.autoInvoice && data.priceCents > 0) {
+          const recurringFrequency = data.frequency === "BIANNUAL" ? "BIANNUALLY" : data.frequency === "ANNUAL" ? "ANNUALLY" : data.frequency
+          await tx.recurringInvoice.create({
+            data: {
+              companyId,
+              clientId: data.clientId,
+              maintenanceContractId: created.id,
+              label: `Entretien · ${data.label}`,
+              frequency: recurringFrequency,
+              nextGenDate: startDate,
+              template: {
+                object: `Contrat d’entretien ${created.number} · ${data.label}`,
+                projectId: null,
+                dueDays: data.invoiceDueDays,
+                lines: [{ label: data.label, description: `Échéance du contrat ${created.number}`, quantity: 1, unitPriceCents: data.priceCents, tvaRate: company.isTvaApplicable ? data.tvaRate : 0 }],
+              },
+            },
+          })
+        }
+        return created
       })
     }, { label: "le contrat d’entretien" })
     await logAction({ userId, action: "CREATE_MAINTENANCE_CONTRACT", resource: "MAINTENANCE_CONTRACT", resourceId: contract.id, payload: { number: contract.number, clientId: contract.clientId, siteId: contract.siteId } })
@@ -709,6 +739,35 @@ export async function createDeliveryNote(input: unknown) {
   }, "operations.write")
 }
 
+export async function signDeliveryNote(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = deliverySignatureSchema.parse(input)
+    const note = await prisma.deliveryNote.findFirst({
+      where: { id: data.deliveryNoteId, companyId },
+      include: { lines: { orderBy: { id: "asc" } } },
+    })
+    if (!note) throw new Error("Bon de livraison introuvable")
+    if (note.signedAt && note.signatureSha256) return { success: true as const, alreadySigned: true, signatureSha256: note.signatureSha256 }
+    const signedAt = new Date()
+    const signatureSha256 = createHash("sha256").update(JSON.stringify({
+      deliveryNoteId: note.id,
+      number: note.number,
+      customerOrderId: note.customerOrderId,
+      recipientName: data.recipientName,
+      signedAt: signedAt.toISOString(),
+      lines: note.lines.map((line) => ({ id: line.id, label: line.label, quantity: line.quantity })),
+    })).digest("hex")
+    const signed = await prisma.deliveryNote.updateMany({
+      where: { id: note.id, companyId, signedAt: null },
+      data: { status: "SIGNED", recipientName: data.recipientName, signedAt, signatureSha256 },
+    })
+    if (signed.count !== 1) throw new Error("Ce bon de livraison a déjà été signé")
+    await logAction({ userId, action: "SIGN_DELIVERY_NOTE", resource: "DELIVERY_NOTE", resourceId: note.id, payload: { number: note.number, recipientName: data.recipientName, signatureSha256 } })
+    revalidateOperations()
+    return { success: true as const, signatureSha256 }
+  }, "operations.write")
+}
+
 export async function createStockMovement(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = movementSchema.parse(input)
@@ -766,40 +825,8 @@ export async function updateInterventionStatus(interventionId: string, status: "
 
 export async function completeFieldIntervention(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
-    const data = interventionCompletionSchema.parse(input)
-    const intervention = await prisma.fieldIntervention.findFirst({
-      where: { id: data.interventionId, companyId },
-      select: { id: true, status: true, ticketId: true },
-    })
-    if (!intervention) throw new Error("Intervention introuvable")
-    if (intervention.status === "CANCELED") throw new Error("Une intervention annulée ne peut pas être clôturée")
-    if (intervention.status === "COMPLETED") return { success: true as const, alreadyCompleted: true }
-
-    const signedAt = new Date()
-    const signatureSha256 = createHash("sha256")
-      .update(JSON.stringify({ interventionId: intervention.id, customerName: data.customerName, signedAt: signedAt.toISOString(), report: data.report }))
-      .digest("hex")
-
-    await prisma.$transaction(async (tx) => {
-      await tx.fieldIntervention.update({
-        where: { id: intervention.id },
-        data: {
-          status: "COMPLETED",
-          startedAt: intervention.status === "PLANNED" ? signedAt : undefined,
-          completedAt: signedAt,
-          report: data.report,
-          laborMinutes: data.laborMinutes,
-          customerName: data.customerName,
-          signedAt,
-          signatureSha256,
-        },
-      })
-      if (intervention.ticketId) {
-        await tx.serviceTicket.update({ where: { id: intervention.ticketId }, data: { status: "RESOLVED" } })
-      }
-    })
-    await logAction({ userId, action: "COMPLETE_FIELD_INTERVENTION", resource: "FIELD_INTERVENTION", resourceId: intervention.id, payload: { laborMinutes: data.laborMinutes, customerName: data.customerName, signatureSha256 } })
+    const result = await completeFieldInterventionForContext(input, { companyId, userId })
     revalidateOperations()
-    return { success: true as const, signatureSha256 }
+    return result
   }, "operations.write")
 }

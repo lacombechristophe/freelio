@@ -20,6 +20,9 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
+  manifest: "/manifest.webmanifest",
+  applicationName: "CRM & opérations",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "CRM" },
   title: {
     default: "CRM & opérations",
     template: "%s | CRM & opérations",

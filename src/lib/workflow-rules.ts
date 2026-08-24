@@ -16,6 +16,7 @@ export function getEInvoiceReadiness(input: {
 export function getNextRecurringDate(date: Date, frequency: string) {
   if (frequency === "MONTHLY") return addMonths(date, 1)
   if (frequency === "QUARTERLY") return addMonths(date, 3)
+  if (frequency === "BIANNUALLY") return addMonths(date, 6)
   return addYears(date, 1)
 }
 

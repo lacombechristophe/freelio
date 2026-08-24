@@ -159,9 +159,10 @@ model Membership {
   userId    String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  role   String  @default("VIEWER")
-  status String  @default("ACTIVE")
-  title  String?
+  role                  String  @default("VIEWER")
+  status                String  @default("ACTIVE")
+  title                 String?
+  weeklyCapacityMinutes Int     @default(2100)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1288,17 +1289,20 @@ model ServiceTicket {
 }
 
 model FieldIntervention {
-  id                   String         @id @default(cuid())
-  companyId            String
-  company              Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  ticketId             String?
-  ticket               ServiceTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
-  projectId            String?
-  project              Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  siteId               String
-  site                 CustomerSite   @relation(fields: [siteId], references: [id])
-  assignedMembershipId String?
-  assignedMembership   Membership?    @relation("InterventionAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
+  id                      String               @id @default(cuid())
+  companyId               String
+  company                 Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ticketId                String?
+  ticket                  ServiceTicket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  projectId               String?
+  project                 Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  siteId                  String
+  site                    CustomerSite         @relation(fields: [siteId], references: [id])
+  assignedMembershipId    String?
+  assignedMembership      Membership?          @relation("InterventionAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
+  maintenanceContractId   String?
+  maintenanceContract     MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: SetNull)
+  maintenanceScheduledFor DateTime?
 
   title           String
   type            String    @default("SAV")
@@ -1319,11 +1323,13 @@ model FieldIntervention {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([maintenanceContractId, maintenanceScheduledFor])
   @@index([companyId, scheduledStart])
   @@index([ticketId])
   @@index([projectId])
   @@index([siteId])
   @@index([assignedMembershipId])
+  @@index([maintenanceContractId])
 }
 
 model InterventionFile {
@@ -1350,16 +1356,21 @@ model MaintenanceContract {
   siteId    String
   site      CustomerSite @relation(fields: [siteId], references: [id])
 
-  number      String
-  label       String
-  status      String                         @default("ACTIVE")
-  startDate   DateTime
-  endDate     DateTime?
-  frequency   String                         @default("ANNUAL")
-  nextVisitAt DateTime?
-  priceCents  Int                            @default(0)
-  notes       String?
-  equipments  MaintenanceContractEquipment[]
+  number           String
+  label            String
+  status           String                         @default("ACTIVE")
+  startDate        DateTime
+  endDate          DateTime?
+  frequency        String                         @default("ANNUAL")
+  nextVisitAt      DateTime?
+  priceCents       Int                            @default(0)
+  autoInvoice      Boolean                        @default(false)
+  tvaRate          Float                          @default(20)
+  invoiceDueDays   Int                            @default(30)
+  notes            String?
+  equipments       MaintenanceContractEquipment[]
+  interventions    FieldIntervention[]
+  recurringInvoice RecurringInvoice?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1566,11 +1577,13 @@ model CreditNote {
 }
 
 model RecurringInvoice {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-  clientId  String
-  client    Client  @relation(fields: [clientId], references: [id])
+  id                    String               @id @default(cuid())
+  companyId             String
+  company               Company              @relation(fields: [companyId], references: [id])
+  clientId              String
+  client                Client               @relation(fields: [clientId], references: [id])
+  maintenanceContractId String?              @unique
+  maintenanceContract   MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: SetNull)
 
   label       String    @default("Facture récurrente")
   frequency   String // MONTHLY, QUARTERLY, ANNUALLY
@@ -1583,11 +1596,14 @@ model RecurringInvoice {
 }
 
 model RecurringInvoiceOccurrence {
-  id          String           @id @default(cuid())
-  recurringId String
-  recurring   RecurringInvoice @relation(fields: [recurringId], references: [id], onDelete: Cascade)
-  invoiceId   String
-  date        DateTime         @default(now())
+  id           String           @id @default(cuid())
+  recurringId  String
+  recurring    RecurringInvoice @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+  invoiceId    String
+  date         DateTime         @default(now())
+  scheduledFor DateTime
+
+  @@unique([recurringId, scheduledFor])
 }
 
 // ══════════════════════════════════════════════════════════

@@ -229,7 +229,7 @@ export const RecurringInvoiceSchema = z.object({
   projectId: EntityIdSchema.optional().or(z.literal("")),
   label: z.string().trim().min(3).max(120),
   object: z.string().trim().min(3).max(180),
-  frequency: z.enum(["MONTHLY", "QUARTERLY", "ANNUALLY"]),
+  frequency: z.enum(["MONTHLY", "QUARTERLY", "BIANNUALLY", "ANNUALLY"]),
   nextGenDate: z.string().min(1, "Date requise"),
   dueDays: z.number().int().min(0).max(365),
   lines: z.array(InvoiceLineSchema).min(1, "Au moins une ligne est requise"),

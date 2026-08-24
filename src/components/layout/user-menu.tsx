@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react"
 import { toast } from "sonner"
 import { CircleHelp, LogOut, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { clearFieldOfflineData } from "@/lib/field/offline"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ export function UserMenu({ email, name }: { email?: string | null; name?: string
 
   async function handleLogout() {
     try {
+      await clearFieldOfflineData()
       await signOut({ redirect: false })
       toast.success("Déconnexion réussie.")
       router.push("/auth/login")

@@ -18,7 +18,7 @@ const ALLOWED_MIME_TYPES = new Set([
   "text/plain",
 ])
 
-export type LocalFileKind = "client" | "expense" | "project"
+export type LocalFileKind = "client" | "expense" | "project" | "intervention"
 type StoredFileKind = LocalFileKind | "generated"
 
 export type StoredLocalFile = {
@@ -87,6 +87,15 @@ function safeExtension(name: string) {
   return extension.slice(0, 12)
 }
 
+function hasExpectedSignature(type: string, bytes: Buffer) {
+  if (type === "application/pdf") return bytes.subarray(0, 5).toString("ascii") === "%PDF-"
+  if (type === "application/zip") return bytes[0] === 0x50 && bytes[1] === 0x4b
+  if (type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+  if (type === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  if (type === "image/webp") return bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP"
+  return true
+}
+
 export async function storeFileBytes(input: {
   companyId: string
   kind: StoredFileKind
@@ -98,6 +107,7 @@ export async function storeFileBytes(input: {
   const { companyId, kind, resourceId, originalName, type } = input
   const bytes = Buffer.from(input.bytes)
   if (bytes.length <= 0) throw new Error("Le fichier est vide")
+  if (!hasExpectedSignature(type, bytes)) throw new Error("Le contenu du fichier ne correspond pas à son type")
   const sha256 = createHash("sha256").update(bytes).digest("hex")
   const objectKey = [
     safeSegment(companyId),

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ThemeProvider } from "next-themes"
 import { ConfirmProvider } from "@/components/shared/confirm-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { PwaRegistration } from "@/components/pwa-registration"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient())
@@ -21,6 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
         <ConfirmProvider>
           {children}
+          <PwaRegistration />
           <Toaster position="top-right" richColors closeButton />
         </ConfirmProvider>
       </ThemeProvider>

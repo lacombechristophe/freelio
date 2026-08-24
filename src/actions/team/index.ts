@@ -41,6 +41,7 @@ export async function getTeamOverview() {
         role: normalizeCompanyRole(member.role),
         status: member.status,
         title: member.title,
+        weeklyCapacityMinutes: member.weeklyCapacityMinutes,
         createdAt: member.createdAt.toISOString(),
         user: member.user,
       })),
@@ -143,6 +144,20 @@ export async function updateTeamMemberRole(memberId: string, nextRole: CompanyRo
 
     await prisma.membership.update({ where: { id: member.id }, data: { role: parsed.data.nextRole } })
     revalidatePath("/dashboard/equipe")
+    return { success: true as const }
+  }, "members.manage")
+}
+
+export async function updateTeamMemberCapacity(memberId: string, weeklyHours: number) {
+  return withAuth(async ({ companyId, role: actorRole }) => {
+    const parsed = z.object({ memberId: memberIdSchema, weeklyHours: z.coerce.number().min(1).max(168) }).safeParse({ memberId, weeklyHours })
+    if (!parsed.success) return { success: false as const, error: "La capacité doit être comprise entre 1 et 168 heures." }
+    const member = await prisma.membership.findFirst({ where: { id: parsed.data.memberId, companyId }, select: { id: true, role: true } })
+    if (!member) return { success: false as const, error: "Membre introuvable." }
+    if (!canAssignRole(actorRole, normalizeCompanyRole(member.role))) return { success: false as const, error: "Vous ne pouvez pas modifier cette capacité." }
+    await prisma.membership.update({ where: { id: member.id }, data: { weeklyCapacityMinutes: Math.round(parsed.data.weeklyHours * 60) } })
+    revalidatePath("/dashboard/equipe")
+    revalidatePath("/dashboard/operations")
     return { success: true as const }
   }, "members.manage")
 }

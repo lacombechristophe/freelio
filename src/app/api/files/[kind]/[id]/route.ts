@@ -11,7 +11,7 @@ import {
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const KINDS = new Set<LocalFileKind>(["client", "expense", "project"])
+const KINDS = new Set<LocalFileKind>(["client", "expense", "project", "intervention"])
 
 function parseKind(value: string): LocalFileKind | null {
   return KINDS.has(value as LocalFileKind) ? (value as LocalFileKind) : null
@@ -23,6 +23,9 @@ async function resourceExists(kind: LocalFileKind, id: string, companyId: string
   }
   if (kind === "project") {
     return Boolean(await prisma.project.findFirst({ where: { id, companyId }, select: { id: true } }))
+  }
+  if (kind === "intervention") {
+    return Boolean(await prisma.fieldIntervention.findFirst({ where: { id, companyId }, select: { id: true } }))
   }
   return Boolean(await prisma.client.findFirst({ where: { id, companyId }, select: { id: true } }))
 }
@@ -40,6 +43,13 @@ async function findFile(kind: LocalFileKind, id: string, companyId: string) {
       select: { id: true, url: true, name: true, size: true, type: true },
     })
   }
+  if (kind === "intervention") {
+    const file = await prisma.interventionFile.findFirst({
+      where: { id, intervention: { companyId } },
+      select: { id: true, url: true, name: true, size: true, mimeType: true },
+    })
+    return file ? { ...file, type: file.mimeType || "application/octet-stream" } : null
+  }
   return prisma.clientFile.findFirst({
     where: { id, client: { companyId } },
     select: { id: true, url: true, name: true, size: true, type: true },
@@ -56,7 +66,7 @@ export async function POST(
 
   const { kind: rawKind, id } = await params
   const kind = parseKind(rawKind)
-  const writePermission = kind === "expense" ? "finance.write" : kind === "project" ? "operations.write" : "crm.write"
+  const writePermission = kind === "expense" ? "finance.write" : kind === "project" || kind === "intervention" ? "operations.write" : "crm.write"
   if (!kind || !hasPermission(role, writePermission)) {
     return Response.json({ error: "Accès refusé" }, { status: 403 })
   }
@@ -98,6 +108,27 @@ export async function POST(
       })
       return Response.json(record, { status: 201 })
     }
+    if (kind === "intervention") {
+      const existing = await prisma.interventionFile.findFirst({
+        where: { interventionId: id, sha256: stored.sha256 },
+      })
+      if (existing) {
+        await removeLocalFile(stored.relativePath)
+        return Response.json(existing)
+      }
+      const record = await prisma.interventionFile.create({
+        data: {
+          interventionId: id,
+          url: stored.relativePath,
+          name: stored.originalName,
+          size: stored.size,
+          mimeType: stored.type,
+          sha256: stored.sha256,
+          kind: stored.type.startsWith("image/") ? "PHOTO" : "DOCUMENT",
+        },
+      })
+      return Response.json(record, { status: 201 })
+    }
     const record = await prisma.clientFile.create({
       data: {
         clientId: id,
@@ -126,7 +157,7 @@ export async function GET(
   const { kind: rawKind, id } = await params
   const kind = parseKind(rawKind)
   if (!kind) return Response.json({ error: "Type invalide" }, { status: 400 })
-  const readPermission = kind === "expense" ? "finance.read" : kind === "project" ? "operations.read" : "crm.read"
+  const readPermission = kind === "expense" ? "finance.read" : kind === "project" || kind === "intervention" ? "operations.read" : "crm.read"
   if (!hasPermission(role, readPermission)) return Response.json({ error: "Accès refusé" }, { status: 403 })
   const file = await findFile(kind, id, companyId)
   if (!file) return Response.json({ error: "Fichier introuvable" }, { status: 404 })
@@ -140,6 +171,7 @@ export async function GET(
         "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,
         "cache-control": "private, no-store",
         "x-content-type-options": "nosniff",
+        "content-security-policy": "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
       },
     })
   } catch {
@@ -158,13 +190,14 @@ export async function DELETE(
   const { kind: rawKind, id } = await params
   const kind = parseKind(rawKind)
   if (!kind) return Response.json({ error: "Type invalide" }, { status: 400 })
-  const writePermission = kind === "expense" ? "finance.write" : kind === "project" ? "operations.write" : "crm.write"
+  const writePermission = kind === "expense" ? "finance.write" : kind === "project" || kind === "intervention" ? "operations.write" : "crm.write"
   if (!hasPermission(role, writePermission)) return Response.json({ error: "Accès refusé" }, { status: 403 })
   const file = await findFile(kind, id, companyId)
   if (!file) return Response.json({ error: "Fichier introuvable" }, { status: 404 })
 
   if (kind === "expense") await prisma.expenseFile.delete({ where: { id } })
   else if (kind === "project") await prisma.projectFile.delete({ where: { id } })
+  else if (kind === "intervention") await prisma.interventionFile.delete({ where: { id } })
   else await prisma.clientFile.delete({ where: { id } })
   await removeLocalFile(file.url)
 

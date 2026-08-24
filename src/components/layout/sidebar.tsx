@@ -30,6 +30,7 @@ import {
   Users,
   Wallet,
   Workflow,
+  TabletSmartphone,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -47,6 +48,7 @@ const navigation = [
   { name: "Catalogue", href: "/dashboard/catalogue", icon: Package },
   { name: "Projets", href: "/dashboard/projets", icon: Briefcase },
   { name: "Chantiers & SAV", href: "/dashboard/operations", icon: HardHat },
+  { name: "Terrain", href: "/dashboard/terrain", icon: TabletSmartphone },
   { name: "Pipeline", href: "/dashboard/pipeline", icon: Kanban },
   { name: "Automatisations", href: "/dashboard/automatisations", icon: Workflow },
   { name: "Organisation", href: "/dashboard/organisation", icon: CalendarDays },
