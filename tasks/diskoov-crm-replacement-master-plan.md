@@ -237,7 +237,7 @@ Chaque export doit être conservé brut, chiffré, horodaté et accompagné d'un
 | Phase 0 — preuve réelle | **Partielle** | audit public et plans produits ; comptes, volumes, contrats et usages Diskoov réels encore à inventorier |
 | Phase 1 — fondations | **Implémentée dans le code** | déploiement PostgreSQL/R2, supervision, sauvegarde/restauration et recette de sécurité en environnement réel |
 | Phase 2 — HubSpot | **Partielle** | capture/CRM/consentement/import présents ; compléter les actifs réellement utilisés, répéter la migration et mener la bascule |
-| Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, achats, réceptions et stock présents ; valider catalogues, prix, planning et données Extrabat réelles |
+| Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, catalogue configurable, achats approuvés, accusés, réceptions, anomalies, retours et stock présents ; compléter modèles/dépendances de chantier, tournées et validation des données Extrabat réelles |
 | Phase 4 — terrain/SAV | **Partielle** | équipements, tickets, PWA terrain hors ligne, photos/pièces, rapports PDF, capacité et entretien automatisé présents ; tournées, pièces/frais, signature manuscrite et pilote réel restent à traiter selon besoin |
 | Phase 5 — finance/sortie | **Partielle** | factures, paiements, banque, Factur-X et réversibilité présents ; plateforme agréée, portail éventuel, rapprochement final et résiliation restent ouverts |
 

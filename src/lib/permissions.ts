@@ -20,6 +20,7 @@ export const PERMISSIONS = [
   "sales.write",
   "operations.read",
   "operations.write",
+  "purchases.approve",
   "service.read",
   "service.write",
   "finance.read",
@@ -36,10 +37,10 @@ const ALL_PERMISSIONS = new Set<Permission>(PERMISSIONS)
 const ROLE_PERMISSIONS: Record<Exclude<CompanyRole, "OWNER">, ReadonlySet<Permission>> = {
   ADMIN: new Set(PERMISSIONS),
   SALES: new Set(["crm.read", "crm.write", "sales.read", "sales.write", "operations.read", "automation.read", "automation.write"]),
-  OPERATIONS: new Set(["crm.read", "sales.read", "operations.read", "operations.write", "service.read", "automation.read"]),
+  OPERATIONS: new Set(["crm.read", "sales.read", "operations.read", "operations.write", "purchases.approve", "service.read", "automation.read"]),
   TECHNICIAN: new Set(["crm.read", "operations.read", "operations.write", "service.read", "service.write"]),
   SERVICE: new Set(["crm.read", "operations.read", "service.read", "service.write", "automation.read"]),
-  ACCOUNTING: new Set(["crm.read", "sales.read", "finance.read", "finance.write"]),
+  ACCOUNTING: new Set(["crm.read", "sales.read", "operations.read", "purchases.approve", "finance.read", "finance.write"]),
   VIEWER: new Set(["crm.read", "sales.read", "operations.read", "service.read", "finance.read"]),
 }
 
@@ -124,6 +125,8 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   StockMovement: "operations.write",
   PurchaseOrder: "operations.write",
   PurchaseOrderLine: "operations.write",
+  PurchaseIssue: "operations.write",
+  SupplierReturn: "operations.write",
   CustomerOrder: "operations.write",
   CustomerOrderLine: "operations.write",
   DeliveryNote: "operations.write",
@@ -157,4 +160,12 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
 
 export function requiredMutationPermission(model: string): Permission | undefined {
   return MUTATION_PERMISSIONS[model]
+}
+
+const ACTION_PERMISSION_MODEL_ALIASES: Partial<Record<Permission, ReadonlySet<string>>> = {
+  "purchases.approve": new Set(["PurchaseOrder"]),
+}
+
+export function canActionPermissionMutateModel(permission: Permission | undefined, model: string): boolean {
+  return Boolean(permission && ACTION_PERMISSION_MODEL_ALIASES[permission]?.has(model))
 }

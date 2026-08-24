@@ -15,11 +15,12 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 23 fichiers, 83 tests réussis |
+| `npm run test:unit` | 24 fichiers, 85 tests réussis |
 | `npm run build` | build Next.js de production réussi, 39 pages statiques/dynamiques générées |
 | `npm audit --audit-level=high` | 0 vulnérabilité déclarée |
-| Playwright, base SQLite neuve | 9 scénarios réussis, 5 mutations volontairement ignorées sur mobile après validation desktop |
-| PostgreSQL 18 vierge | 8 migrations appliquées, `migrate status` à jour, aucune divergence avec le schéma Prisma |
+| Playwright, base SQLite neuve | 10 scénarios réussis, 6 mutations volontairement ignorées sur mobile après validation desktop |
+| PostgreSQL 18 vierge | 9 migrations appliquées, aucune divergence avec le schéma Prisma |
+| PostgreSQL 18 historique | reprise d’une réception antérieure vérifiée : quantité acceptée rétroalimentée, ligne produit rendue facultative et schéma final sans divergence |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -41,6 +42,8 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - devis vers commande, facture de solde, réservation puis consommation du stock ;
 - opportunité attribuée, forecast pondéré, clôture prévue et perte avec motif obligatoire ;
 - gamme configurable, option obligatoire, supplément vente/coût, nomenclature, remise et devis recalculé côté serveur ;
+- commande fournisseur multi-lignes, approbation séparée, PDF, envoi, accusé et date confirmée ;
+- réception partielle puis finale, ligne libre sans mouvement de stock, non-conformité, avoir, retour physique et avoir du retour ;
 - création, signature scellée et lecture PDF d’un bon de livraison ;
 - espace terrain installable, rechargement hors ligne depuis un cache borné à 24 heures et file locale de synchronisation ;
 - photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
@@ -62,6 +65,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - sauvegarde applicative sans IBAN chiffré, identifiants de connexion, secrets webhook, invitations ou jetons de signature ;
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
+- migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 
 ## Gates externes avant résiliation
 

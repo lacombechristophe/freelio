@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client"
 import { PrismaClient as PostgreSQLPrismaClient } from "@crm/prisma-postgres"
 import { getContext } from "./context"
-import { hasPermission, requiredMutationPermission } from "./permissions"
+import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 
 const MUTATION_OPERATIONS = new Set([
   "create",
@@ -47,6 +47,8 @@ const COMPANY_SCOPED_MODELS = new Set([
   "InventoryItem",
   "StockMovement",
   "PurchaseOrder",
+  "PurchaseIssue",
+  "SupplierReturn",
   "Equipment",
   "ServiceTicket",
   "FieldIntervention",
@@ -97,7 +99,8 @@ const prismaClientSingleton = () => {
             context &&
             requiredPermission &&
             MUTATION_OPERATIONS.has(operation) &&
-            !hasPermission(context.role, requiredPermission)
+            !hasPermission(context.role, requiredPermission) &&
+            !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)
           }

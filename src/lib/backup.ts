@@ -116,6 +116,8 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   direct("StockMovement"),
   direct("PurchaseOrder"),
   related("PurchaseOrderLine", { purchaseOrder: { companyId: "$companyId" } }),
+  direct("PurchaseIssue"),
+  direct("SupplierReturn"),
   direct("CustomerOrder"),
   related("CustomerOrderLine", { customerOrder: { companyId: "$companyId" } }),
   direct("DeliveryNote"),
@@ -512,7 +514,7 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 const LEGACY_UNREPRESENTED_TABLES = [
   "LeadCapture", "MarketingConsent", "CustomerSite", "Supplier", "Product", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
-  "InventoryItem", "StockMovement", "PurchaseOrder", "CustomerOrder", "DeliveryNote",
+  "InventoryItem", "StockMovement", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
