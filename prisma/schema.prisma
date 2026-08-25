@@ -64,6 +64,14 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 // ══════════════════════════════════════════════════════════
 //  IDENTITY & SETTINGS
 // ══════════════════════════════════════════════════════════
@@ -145,6 +153,7 @@ model Company {
   equipments           Equipment[]
   serviceTickets       ServiceTicket[]
   interventions        FieldIntervention[]
+  interventionReservations InterventionReservation[]
   maintenanceContracts MaintenanceContract[]
   leadCaptures         LeadCapture[]
   marketingConsents    MarketingConsent[]
@@ -1573,10 +1582,13 @@ model FieldIntervention {
   customerName    String?
   signedAt        DateTime?
   signatureSha256 String?
+  customerSignatureData String?
   customFields    Json?
 
   files          InterventionFile[]
   stockMovements StockMovement[]
+  expenses       Expense[]
+  reservations   InterventionReservation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1603,6 +1615,28 @@ model InterventionFile {
   createdAt      DateTime          @default(now())
 
   @@index([interventionId])
+}
+
+model InterventionReservation {
+  id             String            @id @default(cuid())
+  companyId      String
+  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  interventionId String
+  intervention   FieldIntervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+  sourceId       String?
+
+  title      String
+  details    String?
+  severity   String   @default("MINOR")
+  status     String   @default("OPEN")
+  dueAt      DateTime?
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([interventionId, sourceId])
+  @@index([companyId, status, createdAt])
+  @@index([interventionId, status])
 }
 
 model MaintenanceContract {
@@ -1958,6 +1992,9 @@ model Expense {
   client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  interventionId String?
+  intervention   FieldIntervention? @relation(fields: [interventionId], references: [id], onDelete: SetNull)
+  sourceId       String?
 
   label       String
   provider    String?
@@ -1965,6 +2002,7 @@ model Expense {
   tvaCents    Int      @default(0)
   date        DateTime
   category    String // SaaS, Repas, Matériel...
+  notes       String?
 
   status String @default("TO_JUSTIFY")
 
@@ -1976,6 +2014,8 @@ model Expense {
   @@index([companyId])
   @@index([clientId])
   @@index([projectId])
+  @@index([interventionId])
+  @@unique([interventionId, sourceId])
 }
 
 model ExpenseFile {

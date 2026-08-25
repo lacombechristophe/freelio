@@ -8,6 +8,8 @@ const emptySnapshot: FieldSnapshot = {
   cachedAt: "1970-01-01T00:00:00.000Z",
   expiresAt: "1970-01-01T00:00:00.000Z",
   assignments: [],
+  products: [],
+  warehouses: [],
 }
 
 export default function TerrainOfflinePage() {

@@ -22,6 +22,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       assignedMembership: { include: { user: { select: { name: true, email: true } } } },
       files: { orderBy: { createdAt: "asc" } },
       stockMovements: { where: { type: "OUT" }, include: { product: { select: { label: true, unit: true } } }, orderBy: { happenedAt: "asc" } },
+      expenses: { include: { _count: { select: { files: true } } }, orderBy: { createdAt: "asc" } },
+      reservations: { orderBy: { createdAt: "asc" } },
     },
   })
   if (!intervention) return NextResponse.json({ error: "Intervention introuvable" }, { status: 404 })
@@ -41,6 +43,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     customerName: intervention.customerName,
     signedAt: intervention.signedAt,
     signatureSha256: intervention.signatureSha256,
+    customerSignatureData: intervention.customerSignatureData,
     ticketNumber: intervention.ticket?.number,
     technician: intervention.assignedMembership?.user.name || intervention.assignedMembership?.user.email,
     company: intervention.company,
@@ -48,6 +51,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     site: intervention.site,
     files: intervention.files,
     materials: intervention.stockMovements.map((movement) => ({ label: movement.product.label, unit: movement.product.unit, quantity: Math.abs(movement.quantity) })),
+    expenses: intervention.expenses.map((expense) => ({ label: expense.label, category: expense.category, amountCents: expense.amountCents, justified: expense._count.files > 0 })),
+    reservations: intervention.reservations.map((reservation) => ({ title: reservation.title, details: reservation.details, severity: reservation.severity, status: reservation.status })),
   })
 
   if (new URL(request.url).searchParams.get("screen") === "1") {

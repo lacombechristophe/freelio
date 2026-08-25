@@ -9,7 +9,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const access = await getRouteAuth("operations.write")
   if (!access.ok) return access.response
   const contentLength = Number(request.headers.get("content-length") || "0")
-  if (contentLength > 32 * 1024) return Response.json({ error: "Compte rendu trop volumineux" }, { status: 413 })
+  if (contentLength > 2 * 1024 * 1024) return Response.json({ error: "Clôture terrain trop volumineuse" }, { status: 413 })
 
   try {
     const { id } = await params

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useTransition, type FormEvent, type ReactNode } from "react"
-import { AlertTriangle, Boxes, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
+import dynamic from "next/dynamic"
+import { AlertTriangle, Boxes, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
@@ -20,9 +21,9 @@ import {
   createWarehouse,
   consumeStockReservation,
   consumeInterventionMaterial,
-  completeFieldIntervention,
   releaseStockReservation,
   rescheduleFieldIntervention,
+  resolveInterventionReservation,
   reserveStock,
   signDeliveryNote,
   updateInterventionStatus,
@@ -38,6 +39,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { planningEnd, planningSlotsOverlap, routeDistanceKm } from "@/lib/operations/planning"
 import { PurchaseWorkflow } from "./purchase-workflow"
+
+const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
 
 type OperationsData = Awaited<ReturnType<typeof import("@/actions/operations").getOperationsDashboard>>
 type CreateKind = "TICKET" | "INTERVENTION" | "MAINTENANCE" | "SITE" | "EQUIPMENT" | "PRODUCT" | "SUPPLIER" | "WAREHOUSE" | "STOCK" | "CUSTOMER_ORDER" | "RESERVATION" | "DELIVERY"
@@ -101,6 +104,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
   const [isPending, startTransition] = useTransition()
   const [createKind, setCreateKind] = useState<CreateKind>("TICKET")
   const [completionId, setCompletionId] = useState<string | null>(null)
+  const [completionSignatureData, setCompletionSignatureData] = useState("")
   const [deliverySignId, setDeliverySignId] = useState<string | null>(null)
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
   const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
@@ -176,9 +180,13 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
     const form = new FormData(event.currentTarget)
     startTransition(async () => {
       try {
-        await completeFieldIntervention({ interventionId: completionId, report: value(form, "report"), laborMinutes: Number(value(form, "laborMinutes")), customerName: value(form, "customerName"), customerApproval: form.get("customerApproval") === "on" })
+        if (!completionSignatureData) throw new Error("La signature manuscrite du client est requise")
+        const response = await fetch(`/api/field/interventions/${completionId}/complete`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ report: value(form, "report"), laborMinutes: Number(value(form, "laborMinutes")), customerName: value(form, "customerName"), customerApproval: form.get("customerApproval") === "on", customerSignatureData: completionSignatureData, materials: [], expenses: [], reservations: [] }) })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result?.error || "Clôture impossible")
         toast.success("Intervention clôturée et accord client scellé.")
         setCompletionId(null)
+        setCompletionSignatureData("")
         router.refresh()
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Clôture impossible.")
@@ -310,6 +318,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
                         <p className="mt-1 text-xs text-muted-foreground">{item.site.client.name} · {item.site.label}{item.ticket ? ` · ${item.ticket.number}` : ""}{item.assignedMembership ? ` · ${item.assignedMembership.user.name || item.assignedMembership.user.email}` : ""}</p>
                         {item.report ? <p className="mt-2 text-xs leading-5 text-muted-foreground">Compte rendu : {item.report}</p> : null}
                         <InterventionCostSummary intervention={item} />
+                        {item.reservations.length ? <div className="mt-3 rounded-lg border border-warning/25 bg-warning/5 p-3"><p className="text-xs font-semibold">Réserves et reprises</p><div className="mt-2 space-y-2">{item.reservations.map((reservation) => <div key={reservation.id} className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{reservation.title}</span><Badge variant={reservation.status === "RESOLVED" ? "secondary" : reservation.severity === "BLOCKING" ? "destructive" : "outline"}>{reservation.status === "RESOLVED" ? "Résolue" : reservation.severity === "BLOCKING" ? "Bloquante" : reservation.severity === "MAJOR" ? "Majeure" : "Mineure"}</Badge></div>{reservation.details ? <p className="mt-1 text-muted-foreground">{reservation.details}</p> : null}</div>{reservation.status !== "RESOLVED" ? <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={() => mutate("Réserve résolue.", () => resolveInterventionReservation(reservation.id))}>Marquer résolue</Button> : null}</div>)}</div></div> : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {!['COMPLETED', 'CANCELED'].includes(item.status) ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => setPlanningInterventionId(item.id)}><CalendarClock />Replanifier</Button> : null}
@@ -327,7 +336,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
                         </label>
                         {item.status !== "CANCELED" ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => setMaterialInterventionId(item.id)}><PackageMinus />Matériel utilisé</Button> : null}
                         {item.status === "PLANNED" ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => mutate("Intervention démarrée.", () => updateInterventionStatus(item.id, "IN_PROGRESS"))}>Démarrer</Button> : null}
-                        {item.status === "IN_PROGRESS" ? <Button size="sm" disabled={isPending} onClick={() => setCompletionId(item.id)}>Clôturer</Button> : null}
+                        {item.status === "IN_PROGRESS" ? <Button size="sm" disabled={isPending} onClick={() => { setCompletionSignatureData(""); setCompletionId(item.id) }}>Clôturer</Button> : null}
                         {item.status === "COMPLETED" ? <a className={buttonVariants({ variant: "outline", size: "sm" })} href={`/api/pdf/intervention/${item.id}`} target="_blank" rel="noreferrer"><FileText />Rapport PDF</a> : null}
                       </div>
                     </div>
@@ -363,7 +372,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
         <TabsContent value="assets"><div className="grid gap-6 xl:grid-cols-2"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Sites clients</h2></div>{initialData.sites.length ? <div className="divide-y">{initialData.sites.map((site) => <div key={site.id} className="flex items-center gap-3 px-5 py-3"><MapPin className="size-4 text-primary" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{site.client.name} · {site.label}</p><p className="truncate text-xs text-muted-foreground">{site.address1}{site.city ? `, ${site.postalCode || ""} ${site.city}` : ""}</p></div><span className="text-xs tabular-nums text-muted-foreground">{site._count.equipments} équip.</span></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun site.</p>}</section><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Parc installé</h2></div>{initialData.equipments.length ? <div className="divide-y">{initialData.equipments.map((equipment) => <div key={equipment.id} className="px-5 py-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">{equipment.label}</p><Badge variant="outline">{equipment.status}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{equipment.site.client.name} · {equipment.site.label}{equipment.serialNumber ? ` · S/N ${equipment.serialNumber}` : ""}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun équipement installé.</p>}</section></div></TabsContent>
       </Tabs>
       <Dialog open={Boolean(planningInterventionId)} onOpenChange={(open) => { if (!open) setPlanningInterventionId(null) }}><DialogContent><PlanningDialogForm intervention={initialData.interventions.find((item) => item.id === planningInterventionId)} members={initialData.members} isPending={isPending} onCancel={() => setPlanningInterventionId(null)} onSubmit={submitInterventionPlanning} /></DialogContent></Dialog>
-      <Dialog open={Boolean(completionId)} onOpenChange={(open) => { if (!open) setCompletionId(null) }}><DialogContent><form onSubmit={submitCompletion} className="space-y-4"><DialogHeader><DialogTitle>Clôturer l’intervention</DialogTitle></DialogHeader><Field label="Compte rendu terrain" name="report" required><textarea id="report" name="report" required className="min-h-32 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Travaux réalisés, contrôles et éventuelles réserves…" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Temps passé (minutes)" name="laborMinutes" required><Input id="laborMinutes" name="laborMinutes" type="number" min="0" defaultValue="60" required /></Field><Field label="Nom du client présent" name="customerName" required><Input id="customerName" name="customerName" required /></Field></div><label className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le client confirme le compte rendu et la fin de l’intervention. Une empreinte horodatée sera conservée dans le journal d’audit.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => setCompletionId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : null}Valider la clôture</Button></DialogFooter></form></DialogContent></Dialog>
+      <Dialog open={Boolean(completionId)} onOpenChange={(open) => { if (!open) { setCompletionId(null); setCompletionSignatureData("") } }}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl"><form onSubmit={submitCompletion} className="space-y-4"><DialogHeader><DialogTitle>Clôturer l’intervention</DialogTitle></DialogHeader><Field label="Compte rendu terrain" name="report" required><textarea id="report" name="report" required className="min-h-32 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Travaux réalisés, contrôles et éventuelles réserves…" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Temps passé (minutes)" name="laborMinutes" required><Input id="laborMinutes" name="laborMinutes" type="number" min="0" defaultValue="60" required /></Field><Field label="Nom du client présent" name="customerName" required><Input id="customerName" name="customerName" required /></Field></div><div className="space-y-2"><p className="text-sm font-medium">Signature manuscrite du client *</p><SignatureCanvas disabled={isPending} onSave={setCompletionSignatureData} onClear={() => setCompletionSignatureData("")} />{completionSignatureData ? <Badge variant="secondary"><ShieldCheck />Signature capturée</Badge> : <p className="text-xs text-muted-foreground">Demandez au client de signer dans le cadre ci-dessus puis confirmez la signature.</p>}</div><label className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le client confirme le compte rendu et la fin de l’intervention. La signature et l’empreinte horodatée seront conservées dans le dossier.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => { setCompletionId(null); setCompletionSignatureData("") }}>Annuler</Button><Button type="submit" disabled={isPending || !completionSignatureData}>{isPending ? <Loader2 className="animate-spin" /> : null}Valider la clôture</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={Boolean(materialInterventionId)} onOpenChange={(open) => { if (!open) setMaterialInterventionId(null) }}><DialogContent><form onSubmit={submitInterventionMaterial} className="space-y-4"><DialogHeader><DialogTitle>Matériel utilisé en intervention</DialogTitle></DialogHeader><Field label="Dépôt" name="materialWarehouseId" required><NativeSelect name="materialWarehouseId" required>{initialData.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Produit" name="materialProductId" required><NativeSelect name="materialProductId" required>{initialData.products.filter((product) => product.stockTracked).map((product) => <option key={product.id} value={product.id}>{product.sku} · {product.label}</option>)}</NativeSelect></Field><Field label="Quantité consommée" name="materialQuantity" required><Input id="materialQuantity" name="materialQuantity" type="number" min="1" step="1" defaultValue="1" required /></Field><p className="text-xs leading-5 text-muted-foreground">La quantité est sortie du dépôt dans une transaction unique. Le coût d’achat du catalogue est figé sur le mouvement pour conserver l’historique.</p><DialogFooter><Button type="button" variant="outline" onClick={() => setMaterialInterventionId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PackageMinus />}Consommer</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={Boolean(deliverySignId)} onOpenChange={(open) => { if (!open) setDeliverySignId(null) }}><DialogContent><form onSubmit={submitDeliverySignature} className="space-y-4"><DialogHeader><DialogTitle>Signer le bon de livraison</DialogTitle></DialogHeader><Field label="Nom du réceptionnaire" name="deliverySignatureRecipientName" required><Input id="deliverySignatureRecipientName" name="recipientName" required /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le réceptionnaire confirme les quantités indiquées et la réception. Le bon sera horodaté et scellé par empreinte SHA-256.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => setDeliverySignId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PenLine />}Signer et sceller</Button></DialogFooter></form></DialogContent></Dialog>
     </div>
@@ -374,12 +383,14 @@ function InterventionCostSummary({ intervention }: { intervention: OperationsDat
   const materialCost = intervention.stockMovements.reduce((sum, movement) => sum + Math.abs(movement.quantity) * (movement.unitCostCents ?? 0), 0)
   const hourlyCost = intervention.assignedMembership?.hourlyCostCents ?? 0
   const laborCost = Math.round(intervention.laborMinutes * hourlyCost / 60)
-  if (!intervention.stockMovements.length && !laborCost) return null
+  const expenseCost = intervention.expenses.reduce((sum, expense) => sum + expense.amountCents, 0)
+  if (!intervention.stockMovements.length && !laborCost && !expenseCost) return null
   return (
     <div className="mt-3 rounded-lg border bg-muted/35 p-3 text-xs">
-      <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">Coût réel interne</span><span className="font-semibold tabular-nums">{formatMoney(materialCost + laborCost)}</span></div>
-      <p className="mt-1 text-muted-foreground">Matériel {formatMoney(materialCost)} · Main-d’œuvre {formatMoney(laborCost)}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">Coût réel interne</span><span className="font-semibold tabular-nums">{formatMoney(materialCost + laborCost + expenseCost)}</span></div>
+      <p className="mt-1 text-muted-foreground">Matériel {formatMoney(materialCost)} · Main-d’œuvre {formatMoney(laborCost)} · Frais {formatMoney(expenseCost)}</p>
       {intervention.stockMovements.length ? <ul className="mt-2 space-y-1 border-t pt-2 text-muted-foreground">{intervention.stockMovements.map((movement) => <li key={movement.id}>{Math.abs(movement.quantity)} × {movement.product.label} · {movement.warehouse.name}</li>)}</ul> : null}
+      {intervention.expenses.length ? <ul className="mt-2 space-y-1 border-t pt-2 text-muted-foreground">{intervention.expenses.map((expense) => <li key={expense.id}>{expense.label} · {formatMoney(expense.amountCents)} · {expense.status === "JUSTIFIED" ? "justifié" : "à justifier"}</li>)}</ul> : null}
     </div>
   )
 }

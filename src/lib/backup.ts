@@ -131,6 +131,7 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   direct("ServiceTicket"),
   direct("FieldIntervention"),
   related("InterventionFile", { intervention: { companyId: "$companyId" } }),
+  direct("InterventionReservation"),
   direct("MaintenanceContract"),
   related("MaintenanceContractEquipment", { contract: { companyId: "$companyId" } }),
   direct("Quote"),
@@ -167,6 +168,7 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
 const EXCLUDED_MODELS = [
   { model: "Account", reason: "Jetons OAuth exclus pour éviter de réactiver des accès externes lors d’une reprise." },
   { model: "Session", reason: "Sessions actives exclues volontairement pour des raisons de sécurité." },
+  { model: "VerificationToken", reason: "Jetons de connexion à usage unique exclus volontairement pour des raisons de sécurité." },
   { model: "Notification", reason: "Le schéma actuel ne porte pas de companyId ; une extraction multi-tenant sûre est impossible." },
   { model: "ApiKey", reason: "Clés personnelles non rattachées à une entreprise et exclues volontairement." },
   { model: "EmailLog", reason: "Journal global sans companyId : export inter-entreprises interdit." },
@@ -196,7 +198,7 @@ const FILE_FIELDS: Record<string, Array<{ field: string; size?: string; sha256?:
 const DATE_FIELDS = new Set([
   "createdAt", "updatedAt", "emailVerified", "expires", "lastBackupAt", "nextActionAt",
   "happenedAt", "startDate", "endDate", "plannedStartAt", "dueDate", "validUntil", "date", "signedAt",
-  "nextGenDate", "periodStart", "periodEnd", "scheduledDate", "recurrenceEnd",
+  "nextGenDate", "periodStart", "periodEnd", "scheduledDate", "recurrenceEnd", "resolvedAt",
   "domainExpiresAt", "lockedAt", "sentAt", "importedAt", "lastUsed", "validFrom",
 ])
 
@@ -459,7 +461,7 @@ export async function writeLocalBackup(payload: BackupPayload, label = "auto") {
   await writeFile(destination, JSON.stringify(payload), { flag: "wx" })
 
   const files = (await readdir(backupsRoot))
-    .filter((name) => (name.startsWith("crm-") || name.startsWith("diskoov-") || name.startsWith("freelio-")) && name.endsWith(".json"))
+    .filter((name) => (name.startsWith("crm-") || name.startsWith("freelio-")) && name.endsWith(".json"))
     .sort()
     .reverse()
   await Promise.all(files.slice(MAX_LOCAL_BACKUPS).map((name) => {
@@ -517,7 +519,7 @@ const LEGACY_UNREPRESENTED_TABLES = [
   "LeadCapture", "MarketingConsent", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
   "InventoryItem", "StockMovement", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
-  "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention",
+  "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention", "InterventionReservation",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
   "EmailSequenceEnrollment", "EmailDelivery", "AutomationWorkflow", "AutomationRun",

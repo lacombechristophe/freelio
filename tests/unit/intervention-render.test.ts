@@ -17,6 +17,7 @@ describe("intervention report renderer", () => {
       customerName: "Camille Martin",
       signedAt: new Date("2026-08-24T09:25:00.000Z"),
       signatureSha256: "a".repeat(64),
+      customerSignatureData: `data:image/png;base64,${"A".repeat(120)}`,
       ticketNumber: "SAV-2026-0042",
       technician: "Technicien terrain",
       company: { name: "Entreprise QA", siret: "12345678900012", brandColor: "#173B64" },
@@ -24,6 +25,8 @@ describe("intervention report renderer", () => {
       site: { label: "Bassin principal", address1: "2 rue du Bassin", postalCode: "44000", city: "Nantes" },
       files: [{ name: "photo-fin.jpg", kind: "PHOTO", size: 1024, sha256: "b".repeat(64) }],
       materials: [{ label: "Joint <premium>", unit: "unité", quantity: 2 }],
+      expenses: [{ label: "Péage chantier", category: "TOLL", amountCents: 1250, justified: true }],
+      reservations: [{ title: "Réglage de tension", details: "Repasser sous 7 jours", severity: "MAJOR", status: "OPEN" }],
     })
 
     expect(html).toContain("Rapport d’intervention")
@@ -32,6 +35,10 @@ describe("intervention report renderer", () => {
     expect(html).toContain("photo-fin.jpg")
     expect(html).toContain("Matériel utilisé (1)")
     expect(html).toContain("Joint &lt;premium&gt;")
+    expect(html).toContain("Frais terrain (1)")
+    expect(html).toContain("12,50")
+    expect(html).toContain("Réserves et reprises (1)")
+    expect(html).toContain("Signature manuscrite du client")
     expect(html).toContain("Camille Martin")
     expect(html).toContain("a".repeat(64))
     expect(html).not.toContain("<finals>")

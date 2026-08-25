@@ -10,7 +10,6 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
-import { completeFieldInterventionForContext } from "@/lib/field/interventions"
 import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 
@@ -302,7 +301,20 @@ export async function getOperationsDashboard() {
       prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, approvedByMembership: { include: { user: { select: { name: true, email: true } } } }, lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } }, issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } }, supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true } } }, orderBy: { createdAt: "desc" } } }, orderBy: { createdAt: "desc" }, take: 100 }),
       prisma.equipment.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
       prisma.serviceTicket.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
-      prisma.fieldIntervention.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, ticket: { select: { number: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } }, stockMovements: { where: { type: "OUT" }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { happenedAt: "asc" } } }, orderBy: { scheduledStart: "asc" }, take: 200 }),
+      prisma.fieldIntervention.findMany({
+        where: { companyId },
+        include: {
+          site: { include: { client: { select: { name: true } } } },
+          ticket: { select: { number: true } },
+          assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+          files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } },
+          stockMovements: { where: { type: "OUT" }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { happenedAt: "asc" } },
+          expenses: { select: { id: true, label: true, amountCents: true, status: true }, orderBy: { createdAt: "asc" } },
+          reservations: { orderBy: { createdAt: "asc" } },
+        },
+        orderBy: { scheduledStart: "asc" },
+        take: 200,
+      }),
       prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, _count: { select: { equipments: true } } }, orderBy: { nextVisitAt: "asc" }, take: 100 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
@@ -1156,10 +1168,18 @@ export async function updateInterventionStatus(interventionId: string, status: "
   }, "operations.write")
 }
 
-export async function completeFieldIntervention(input: unknown) {
-  return withAuth(async (context) => {
-    const result = await completeFieldInterventionForContext(input, context)
+export async function resolveInterventionReservation(reservationId: string) {
+  return withAuth(async ({ companyId, userId, membershipId, role }) => {
+    const parsedId = id.parse(reservationId)
+    const reservation = await prisma.interventionReservation.findFirst({
+      where: { id: parsedId, companyId, intervention: role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {} },
+      select: { id: true, interventionId: true, status: true },
+    })
+    if (!reservation) throw new Error("Réserve introuvable")
+    if (reservation.status === "RESOLVED") return { success: true as const, alreadyResolved: true }
+    await prisma.interventionReservation.update({ where: { id: reservation.id }, data: { status: "RESOLVED", resolvedAt: new Date() } })
+    await logAction({ userId, action: "RESOLVE_INTERVENTION_RESERVATION", resource: "INTERVENTION_RESERVATION", resourceId: reservation.id, payload: { interventionId: reservation.interventionId } })
     revalidateOperations()
-    return result
+    return { success: true as const }
   }, "operations.write")
 }

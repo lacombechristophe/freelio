@@ -8,14 +8,16 @@ import { Trash2 } from "lucide-react"
 
 interface SignatureCanvasProps {
   onSave: (signatureData: string) => void
+  onClear?: () => void
   disabled?: boolean
 }
 
-export function SignatureCanvas({ onSave, disabled }: SignatureCanvasProps) {
+export function SignatureCanvas({ onSave, onClear, disabled }: SignatureCanvasProps) {
   const sigPad = React.useRef<SignaturePad>(null)
 
   const clear = () => {
     sigPad.current?.clear()
+    onClear?.()
   }
 
   const save = () => {
@@ -39,6 +41,7 @@ export function SignatureCanvas({ onSave, disabled }: SignatureCanvasProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button 
+            type="button"
             variant="outline" 
             size="sm" 
             onClick={clear}
@@ -51,6 +54,7 @@ export function SignatureCanvas({ onSave, disabled }: SignatureCanvasProps) {
         </div>
         
         <Button 
+          type="button"
           onClick={save} 
           disabled={disabled}
           className="h-8 bg-success hover:bg-success/90"

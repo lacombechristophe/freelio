@@ -56,10 +56,10 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Bon de livraison | **Disponible** | lignes, reliquats, destinataire, signature horodatée et scellée SHA-256, statut et PDF métier | niveau de preuve de réception à faire valider juridiquement selon les usages réels |
 | Chantiers | **Partiel** | projet, site, modèles réutilisables, budget/type/durée par défaut, étapes datées, responsables, dépendances anti-cycle et blocage des prérequis, recette, documents et temps | marge réelle globale, plan de ressources et cas métier des modèles à recetter sur les dossiers réels |
 | Planning | **Partiel** | tâches et jalons dépendants, interventions replanifiables, affectation membre, rejet serveur des chevauchements et charge hebdomadaire comparée à la capacité configurable | pas de prise de rendez-vous client, de temps de trajet routier ni d’optimisation automatique |
-| Terrain mobile | **Partiel** | PWA installable, cache borné à 24 h, missions accessibles hors ligne, brouillons, clôtures et photos mises en attente puis resynchronisées | hors-ligne limité au terrain ; pas de signature manuscrite ni de résolution assistée des conflits complexes |
+| Terrain mobile | **Disponible** | PWA installable, cache borné à 24 h, missions, catalogues de stock, brouillons, photos, matériel, frais/justificatifs, réserves, accord et signature manuscrite conservés hors ligne puis resynchronisés de manière rejouable | hors-ligne volontairement limité au terrain ; une fusion automatique de deux modifications concurrentes du même rapport n'est pas proposée |
 | Parc installé | **Disponible** | site, produit, fabricant, modèle, série, pose, garantie et état | notices et historique de pièces non structurés |
 | Tickets SAV | **Disponible** | client/site/équipement, priorité, affectation, échéance, statuts, résolution et interventions rattachées | SLA et diagnostic guidé à enrichir |
-| Interventions SAV | **Partiel** | planification, technicien, progression, rapport, minutes, coût horaire, consommation transactionnelle du stock, coût matériel figé, photos/pièces, acquittement hashé et PDF client | saisie du matériel hors ligne, frais annexes et signature manuscrite à enrichir |
+| Interventions SAV | **Disponible** | planification, technicien, progression, rapport, minutes, coût horaire, consommation transactionnelle du stock, coût matériel figé, photos/pièces, frais justifiés, réserves et reprises, signature manuscrite, scellement SHA-256 et PDF client | la valeur juridique de la preuve et les règles internes de clôture restent à faire valider par l'entreprise |
 | Contrats d'entretien | **Partiel** | contrat, site, équipements, fréquence, prochaine visite, prix, création idempotente des visites et factures automatiques | renouvellement contractuel, alertes et cas tarifaires complexes à compléter |
 | GED | **Partiel** | fichiers client/projet/dépense/intervention, stockage R2 privé, hash, contrôle de signature de fichier et accès authentifié | classement, recherche plein texte et politiques de conservation à formaliser |
 | Portail client | **Non couvert** | signature publique de contrat uniquement | documents, rendez-vous, messages et suivi client absents |
@@ -67,7 +67,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Caisse/POS | **Non couvert** | — | exclure formellement si non utilisé |
 | Import historique Extrabat | **Partiel** | dépôt CSV/JSON/Excel/ZIP/PDF, mappings métier étendus et vérification | pas d'extracteur générique sans documentation API du compte ; restitution/export Extrabat obligatoire |
 
-**Conclusion Extrabat :** le dépôt couvre le flux central vente → commande → achat/stock → chantier → facturation ainsi que le noyau SAV, le terrain hors ligne borné, les preuves d’intervention, les dépendances de chantier, la capacité hebdomadaire et l’ordre de tournée. L’optimisation routière, la signature manuscrite, les pièces/frais SAV et les règles/catalogues avancés restent des gates selon les pratiques réelles de Diskoov.
+**Conclusion Extrabat :** le dépôt couvre le flux central vente → commande → achat/stock → chantier → facturation ainsi que le SAV, le terrain hors ligne borné, les preuves d’intervention, le stock et les frais terrain, les réserves, les dépendances de chantier, la capacité hebdomadaire et l’ordre de tournée. L’optimisation routière, le portail client et les règles/catalogues très spécifiques restent des gates selon les pratiques réelles de Diskoov.
 
 ## 4. Finance, conformité et administration
 
@@ -104,9 +104,9 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Réversibilité | **Disponible** | export versionné des tables société, fichiers locaux/R2 et manifeste d'intégrité, avec secrets/jetons exclus | la reprise du JSON est logique et contrôlée ; le PRA complet repose sur PostgreSQL/R2 natifs |
 | Sauvegarde/PRA | **Externe** | export applicatif utile à la portabilité | sauvegardes natives PostgreSQL/R2, PITR et tests de restauration à configurer |
 | Supervision | **Partiel** | logs structurés et routes publiques de vie/aptitude sans exposition de secrets | brancher moniteur, collecte d’erreurs, métriques et alertes humaines |
-| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 88 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
+| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 91 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
 | E2E | **Disponible** | parcours critiques Playwright desktop/mobile | exécution finale sur préproduction isolée nécessaire |
-| PWA/hors ligne | **Partiel** | manifeste, service worker et espace terrain hors ligne borné avec reprise des clôtures/photos | pas de fonctionnement hors ligne du CRM/ERP complet ni de résolution avancée de conflits |
+| PWA/hors ligne | **Disponible pour le terrain** | manifeste, service worker et espace terrain hors ligne borné avec reprise rejouable des clôtures, photos, sorties de stock, frais, justificatifs, réserves et signatures | pas de fonctionnement hors ligne du CRM/ERP complet ni de fusion avancée de conflits |
 | Sécurité externe | **Externe** | CSP, contrôles de routes, chiffrement et rate limiting dans le code | revue de configuration, pentest et procédure incident avant données réelles |
 
 ## 6. Dépendances qui subsistent après HubSpot/Extrabat
@@ -143,7 +143,7 @@ L'objectif est zéro licence HubSpot/Extrabat, pas zéro service externe.
 - la restitution complète et la GED ont été obtenues ;
 - stock, commandes, factures, paiements, équipements et SAV concordent ;
 - deux cycles opérationnels complets sont réalisés dans Diskoov ;
-- les limites restantes du terrain, des tournées, de la signature manuscrite et des catalogues sont couvertes ou exclues explicitement ;
+- les limites restantes des tournées, du portail et des catalogues spécifiques sont couvertes ou exclues explicitement ;
 - l'export expert-comptable et la plateforme de facturation électronique sont opérationnels ;
 - les archives restent lisibles sans Extrabat et le rollback est validé.
 

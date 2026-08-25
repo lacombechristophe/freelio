@@ -53,6 +53,7 @@ const COMPANY_SCOPED_MODELS = new Set([
   "Equipment",
   "ServiceTicket",
   "FieldIntervention",
+  "InterventionReservation",
   "MaintenanceContract",
   "LeadCapture",
   "MarketingConsent",

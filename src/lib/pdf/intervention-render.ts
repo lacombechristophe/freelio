@@ -14,6 +14,7 @@ type InterventionReportDocument = {
   customerName?: string | null
   signedAt?: Date | null
   signatureSha256?: string | null
+  customerSignatureData?: string | null
   ticketNumber?: string | null
   technician?: string | null
   company: { name: string; address?: string | null; email?: string | null; phone?: string | null; siret?: string | null; brandColor?: string | null }
@@ -21,6 +22,8 @@ type InterventionReportDocument = {
   site: { label: string; address1: string; address2?: string | null; postalCode?: string | null; city?: string | null }
   files: Array<{ name: string; kind: string; size: number; sha256?: string | null }>
   materials?: Array<{ label: string; unit: string; quantity: number }>
+  expenses?: Array<{ label: string; category: string; amountCents: number; justified: boolean }>
+  reservations?: Array<{ title: string; details?: string | null; severity: string; status: string }>
 }
 
 function escapeHtml(value: string | null | undefined) {
@@ -51,6 +54,14 @@ function quantity(value: number) {
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 }).format(value)
 }
 
+function money(value: number) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(value / 100)
+}
+
+function signatureImage(value: string | null | undefined) {
+  return value && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) ? value : null
+}
+
 function color(value: string | null | undefined) {
   return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#0b63f6"
 }
@@ -61,6 +72,7 @@ export function renderInterventionReportHtml(doc: InterventionReportDocument) {
   const siteAddress = [doc.site.address1, doc.site.address2, [doc.site.postalCode, doc.site.city].filter(Boolean).join(" ")].filter(Boolean).map((line) => escapeHtml(line || "")).join("<br>")
   const companyLine = [doc.company.address, doc.company.email, doc.company.phone, doc.company.siret ? `SIRET ${doc.company.siret}` : null].filter(Boolean).map((item) => escapeHtml(item || "")).join(" · ")
   const status = doc.status === "COMPLETED" ? "Terminée" : doc.status
+  const signature = signatureImage(doc.customerSignatureData)
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -101,6 +113,7 @@ export function renderInterventionReportHtml(doc: InterventionReportDocument) {
   td { font-size: 8pt; }
   .proof { border: 1px solid ${accent}; break-inside: avoid; display: grid; gap: 6mm; grid-template-columns: 1fr 1fr; padding: 4mm; }
   .proof strong { display: block; margin-top: 1mm; }
+  .signature { border-bottom: 1px solid #d0d5dd; display: block; height: 20mm; margin: 2mm 0; max-width: 58mm; object-fit: contain; object-position: left bottom; width: 100%; }
   .digest { color: #475467; font-family: monospace; font-size: 6.8pt; overflow-wrap: anywhere; }
   footer { border-top: 1px solid #dce3ed; color: #667085; font-size: 6.5pt; margin-top: 8mm; padding-top: 2.5mm; }
   @media screen { body { background: #e4e7ec; padding: 20px; } .page { background: #fff; box-shadow: 0 2px 8px rgba(16,24,40,.12); margin: auto; } }
@@ -125,8 +138,10 @@ export function renderInterventionReportHtml(doc: InterventionReportDocument) {
   </div>
   <section><h2>Compte rendu terrain</h2><div class="report">${multiline(doc.report || "Aucun compte rendu renseigné.")}</div></section>
   ${doc.materials?.length ? `<section><h2>Matériel utilisé (${doc.materials.length})</h2><table><thead><tr><th>Désignation</th><th>Quantité</th></tr></thead><tbody>${doc.materials.map((material) => `<tr><td>${escapeHtml(material.label)}</td><td>${escapeHtml(quantity(material.quantity))} ${escapeHtml(material.unit)}</td></tr>`).join("")}</tbody></table></section>` : ""}
+  ${doc.expenses?.length ? `<section><h2>Frais terrain (${doc.expenses.length})</h2><table><thead><tr><th>Libellé</th><th>Catégorie</th><th>Montant TTC</th><th>Justificatif</th></tr></thead><tbody>${doc.expenses.map((expense) => `<tr><td>${escapeHtml(expense.label)}</td><td>${escapeHtml(expense.category)}</td><td>${escapeHtml(money(expense.amountCents))}</td><td>${expense.justified ? "Archivé" : "À fournir"}</td></tr>`).join("")}</tbody></table></section>` : ""}
+  ${doc.reservations?.length ? `<section><h2>Réserves et reprises (${doc.reservations.length})</h2><table><thead><tr><th>Réserve</th><th>Sévérité</th><th>État</th></tr></thead><tbody>${doc.reservations.map((reservation) => `<tr><td><strong>${escapeHtml(reservation.title)}</strong>${reservation.details ? `<br>${escapeHtml(reservation.details)}` : ""}</td><td>${escapeHtml(reservation.severity === "BLOCKING" ? "Bloquante" : reservation.severity === "MAJOR" ? "Majeure" : "Mineure")}</td><td>${escapeHtml(reservation.status === "RESOLVED" ? "Résolue" : "Ouverte")}</td></tr>`).join("")}</tbody></table></section>` : ""}
   ${doc.files.length ? `<section><h2>Pièces jointes et photos (${doc.files.length})</h2><table><thead><tr><th>Nom</th><th>Nature</th><th>Taille</th><th>Empreinte SHA-256</th></tr></thead><tbody>${doc.files.map((file) => `<tr><td>${escapeHtml(file.name)}</td><td>${escapeHtml(file.kind === "PHOTO" ? "Photo" : "Document")}</td><td>${escapeHtml(bytes(file.size))}</td><td class="digest">${escapeHtml(file.sha256 || "Non disponible")}</td></tr>`).join("")}</tbody></table></section>` : ""}
-  <section><h2>Accord client et intégrité</h2><div class="proof"><div><span class="label">Client présent</span><strong>${escapeHtml(doc.customerName || "Non renseigné")}</strong><p>Accord horodaté le ${escapeHtml(dateTime(doc.signedAt))}</p></div><div><span class="label">Empreinte du rapport</span><strong class="digest">${escapeHtml(doc.signatureSha256 || "Rapport non scellé")}</strong></div></div></section>
+  <section><h2>Accord client et intégrité</h2><div class="proof"><div><span class="label">Client présent</span><strong>${escapeHtml(doc.customerName || "Non renseigné")}</strong>${signature ? `<img class="signature" src="${signature}" alt="Signature manuscrite du client">` : ""}<p>Accord horodaté le ${escapeHtml(dateTime(doc.signedAt))}</p></div><div><span class="label">Empreinte du rapport</span><strong class="digest">${escapeHtml(doc.signatureSha256 || "Rapport non scellé")}</strong></div></div></section>
   <footer><strong>${escapeHtml(doc.company.name)}</strong> · Rapport généré depuis le dossier d’intervention · Les originaux des pièces restent conservés dans la GED privée.</footer>
 </main>
 </body>
