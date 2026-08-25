@@ -64,7 +64,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `JWT_SECRET` : secret indépendant pour les jetons applicatifs ;
 - `CONSENT_TOKEN_SECRET` : secret dédié d'au moins 32 caractères pour les liens publics de désinscription ; le repli technique sur `JWT_SECRET`/`AUTH_SECRET` ne doit pas être le choix de production ;
 - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` pour les e-mails CRM, les événements et le lien magique optionnel ;
-- `PUBLIC_LEAD_COMPANY_ID` : identifiant de la société destinataire des demandes publiques ;
+- `PUBLIC_LEAD_COMPANY_ID` : facultatif tant que la base contient exactement une société, obligatoire dès qu’il faut router les demandes publiques entre plusieurs sociétés ;
 - `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL` et `AUTOMATION_CRON_SECRET` ;
 - `SCHEDULER_CRON_SECRET` si une clé distincte est souhaitée pour l’ordonnanceur métier ; sinon la route utilise `AUTOMATION_CRON_SECRET` ;
 - `LEAD_HASH_SALT` et `LEAD_INGEST_SECRET` ;

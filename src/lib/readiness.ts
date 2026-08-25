@@ -28,7 +28,7 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
     if (!hasSecret(environment, name)) issues.push(name)
   }
   if (hasValue(environment, "SCHEDULER_CRON_SECRET") && !hasSecret(environment, "SCHEDULER_CRON_SECRET")) issues.push("SCHEDULER_CRON_SECRET")
-  for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM", "PUBLIC_LEAD_COMPANY_ID", "LEAD_ALLOWED_ORIGINS"]) {
+  for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM", "LEAD_ALLOWED_ORIGINS"]) {
     if (!hasValue(environment, name)) issues.push(name)
   }
   for (const name of ["AUTH_URL", "PUBLIC_APP_URL", "PUBLIC_PRIVACY_NOTICE_URL"]) {

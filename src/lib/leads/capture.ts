@@ -37,13 +37,10 @@ async function resolveLeadCompany() {
     return company
   }
 
-  if (process.env.NODE_ENV === "production") {
-    throw new LeadConfigurationError("PUBLIC_LEAD_COMPANY_ID doit être configuré en production.")
-  }
-
-  const company = await prisma.company.findFirst({ orderBy: { id: "asc" }, select: { id: true, name: true } })
-  if (!company) throw new LeadConfigurationError("Créez d’abord une société ou configurez PUBLIC_LEAD_COMPANY_ID.")
-  return company
+  const companies = await prisma.company.findMany({ orderBy: { id: "asc" }, select: { id: true, name: true }, take: 2 })
+  if (companies.length === 1) return companies[0]
+  if (companies.length === 0) throw new LeadConfigurationError("Créez d’abord une société ou configurez PUBLIC_LEAD_COMPANY_ID.")
+  throw new LeadConfigurationError("Plusieurs sociétés existent : PUBLIC_LEAD_COMPANY_ID est requis pour router les demandes publiques sans ambiguïté.")
 }
 
 function canonicalLeadFingerprint(companyId: string, input: PublicLeadInput) {
