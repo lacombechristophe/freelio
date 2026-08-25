@@ -10,7 +10,7 @@ export async function getFieldWorkspace(): Promise<FieldSnapshot | null> {
     const recentCompleted = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000)
     const futureLimit = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1_000)
     const technicianScope = role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {}
-    const [company, interventions] = await Promise.all([
+    const [company, interventions, products, warehouses] = await Promise.all([
       prisma.company.findUnique({ where: { id: companyId }, select: { id: true, name: true } }),
       prisma.fieldIntervention.findMany({
         where: {
@@ -31,6 +31,8 @@ export async function getFieldWorkspace(): Promise<FieldSnapshot | null> {
         orderBy: [{ scheduledStart: "asc" }, { createdAt: "asc" }],
         take: 80,
       }),
+      prisma.product.findMany({ where: { companyId, active: true, stockTracked: true }, select: { id: true, sku: true, label: true, unit: true }, orderBy: { label: "asc" }, take: 500 }),
+      prisma.warehouse.findMany({ where: { companyId, active: true }, select: { id: true, name: true, inventoryItems: { select: { productId: true, quantity: true, reservedQuantity: true } } }, orderBy: { name: "asc" }, take: 100 }),
     ])
     if (!company) return null
     const cachedAt = new Date()
@@ -61,6 +63,8 @@ export async function getFieldWorkspace(): Promise<FieldSnapshot | null> {
         technician: item.assignedMembership?.user.name || item.assignedMembership?.user.email || null,
         files: item.files,
       })),
+      products,
+      warehouses: warehouses.map((warehouse) => ({ id: warehouse.id, name: warehouse.name, items: warehouse.inventoryItems.map((item) => ({ productId: item.productId, availableQuantity: Math.max(item.quantity - item.reservedQuantity, 0) })) })),
     }
   }, "operations.read")
 }

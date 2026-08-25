@@ -20,9 +20,15 @@ export type FieldSnapshot = {
   cachedAt: string
   expiresAt: string
   assignments: FieldAssignment[]
+  products: Array<{ id: string; sku: string; label: string; unit: string }>
+  warehouses: Array<{ id: string; name: string; items: Array<{ productId: string; availableQuantity: number }> }>
 }
 
 export type OfflinePhoto = { id: string; name: string; type: string; blob: Blob }
+
+export type FieldMaterialDraft = { id: string; warehouseId: string; productId: string; quantity: number }
+export type FieldExpenseDraft = { id: string; label: string; category: "TRAVEL" | "TOLL" | "PARKING" | "MEAL" | "SUPPLIES" | "OTHER"; amountCents: number; tvaCents: number; notes: string; receipt: OfflinePhoto | null }
+export type FieldReservationDraft = { id: string; title: string; details: string; severity: "MINOR" | "MAJOR" | "BLOCKING" }
 
 export type FieldDraft = {
   interventionId: string
@@ -30,7 +36,11 @@ export type FieldDraft = {
   laborMinutes: number
   customerName: string
   customerApproval: boolean
+  customerSignatureData: string
   photos: OfflinePhoto[]
+  materials: FieldMaterialDraft[]
+  expenses: FieldExpenseDraft[]
+  reservations: FieldReservationDraft[]
   pendingCompletion: boolean
   updatedAt: string
 }

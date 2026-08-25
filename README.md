@@ -14,7 +14,7 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - projets, modèles de chantier, étapes datées, dépendances, responsables, relevé technique, documents et réception ;
 - fournisseurs, gammes, variantes, options, nomenclatures, tarifs historisés, dépôts, achats multi-lignes approuvés, accusés, réceptions, anomalies, retours, mouvements et réservations de stock ;
 - configurateur de devis avec options obligatoires, coût de nomenclature, remises contrôlées et marge unitaire ;
-- équipements installés, tickets SAV, planning anti-conflit, capacité, tournées chronologiques, coûts horaires, matériel consommé et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
+- équipements installés, tickets SAV, planning anti-conflit, capacité, tournées chronologiques, coûts horaires et terrain PWA hors ligne avec photos, consommation atomique du stock, frais et justificatifs, réserves, signature manuscrite, rapports PDF et preuves client ;
 - contrats d’entretien avec visites et factures récurrentes idempotentes ;
 - factures, règlements, avoirs, relances, récurrence, dépenses, import bancaire et Factur-X ;
 - équipe multi-utilisateur avec rôles et permissions par domaine ;
