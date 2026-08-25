@@ -93,6 +93,9 @@ test("new local-first surfaces load and their primary controls respond", async (
 
   await assertHealthy(page, "/dashboard/crm", "Clients et relations")
   await assertHealthy(page, "/dashboard/contacts", "Contacts")
+  await page.getByRole("link", { name: "Camille Piscine", exact: true }).click()
+  await expect(page.getByRole("heading", { name: "Camille Piscine" })).toBeVisible()
+  await expect(page.getByText("Coordonnées et client")).toBeVisible()
   await assertHealthy(page, "/dashboard/sales", "Transformer les projets en commandes")
   await assertHealthy(page, "/dashboard/marketing/overview", "Acquisition et engagement")
   await assertHealthy(page, "/dashboard/service", "SAV et fidélisation")
