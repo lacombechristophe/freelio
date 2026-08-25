@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { FileText, Plus, Ruler, Settings2, ShieldCheck, Trash2, Upload } from "lucide-react"
+import { CalendarRange, FileText, Link2, Plus, Ruler, Settings2, ShieldCheck, Trash2, Upload, UserRound } from "lucide-react"
 import { toast } from "sonner"
 import {
   createProjectAcceptanceItem,
@@ -11,6 +11,7 @@ import {
   deleteProjectMilestone,
   updateProjectAcceptanceStatus,
   updateProjectMilestoneStatus,
+  updateProjectMilestonePlanning,
   upsertProjectTechnicalProfile,
 } from "@/actions/projets"
 import { Badge } from "@/components/ui/badge"
@@ -22,9 +23,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-type Milestone = { id: string; title: string; description?: string | null; status: string; dueDate?: string | null }
+type Milestone = { id: string; title: string; description?: string | null; kind: string; status: string; plannedStartAt?: string | null; dueDate?: string | null; durationDays: number; dependsOnId?: string | null; dependsOn?: { id: string; title: string; status: string } | null; assignedMembershipId?: string | null; assignedMembership?: { user: { name?: string | null; email?: string | null } } | null }
 type Acceptance = { id: string; title: string; status: string; dueDate?: string | null }
 type ProjectFile = { id: string; name: string; size: number; type: string; createdAt: string }
+type PlanningMember = { id: string; user: { name?: string | null; email?: string | null } }
 type Profile = {
   surveyStatus?: "DRAFT" | "SURVEYED" | "VALIDATED" | null
   surveyedAt?: string | null; surveyedBy?: string | null; poolShape?: string | null
@@ -44,18 +46,20 @@ const emptyProfile = {
   measurementNotes: "", validationNotes: "",
 }
 
-export function ProjectWorkspace({ projectId, milestones, acceptanceItems, files, profile }: {
+export function ProjectWorkspace({ projectId, milestones, acceptanceItems, files, profile, members }: {
   projectId: string
   milestones: Milestone[]
   acceptanceItems: Acceptance[]
   files: ProjectFile[]
   profile: Profile
+  members: PlanningMember[]
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
   const [milestoneOpen, setMilestoneOpen] = React.useState(false)
+  const [planningTarget, setPlanningTarget] = React.useState<Milestone | null>(null)
   const [profileOpen, setProfileOpen] = React.useState(false)
-  const [milestone, setMilestone] = React.useState({ title: "", description: "", dueDate: "" })
+  const [milestone, setMilestone] = React.useState({ title: "", description: "", kind: "MILESTONE", plannedStartAt: "", dueDate: "", durationDays: "1", dependsOnId: "", assignedMembershipId: "" })
   const [acceptanceTitle, setAcceptanceTitle] = React.useState("")
   const [technical, setTechnical] = React.useState({
     ...emptyProfile,
@@ -66,16 +70,28 @@ export function ProjectWorkspace({ projectId, milestones, acceptanceItems, files
 
   async function run(operation: () => Promise<unknown>, success: string) {
     setPending(true)
-    try { await operation(); toast.success(success); router.refresh() }
-    catch (error) { toast.error(error instanceof Error ? error.message : "Action impossible.") }
+    try {
+      const result = await operation()
+      if (result && typeof result === "object" && "success" in result && result.success === false) throw new Error("error" in result && typeof result.error === "string" ? result.error : "Action refusée.")
+      toast.success(success); router.refresh(); return true
+    }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Action impossible."); return false }
     finally { setPending(false) }
   }
 
   async function submitMilestone(event: React.FormEvent) {
     event.preventDefault()
-    await run(() => createProjectMilestone(projectId, milestone), "Jalon ajouté.")
-    setMilestone({ title: "", description: "", dueDate: "" })
+    if (!await run(() => createProjectMilestone(projectId, milestone), "Jalon ajouté.")) return
+    setMilestone({ title: "", description: "", kind: "MILESTONE", plannedStartAt: "", dueDate: "", durationDays: "1", dependsOnId: "", assignedMembershipId: "" })
     setMilestoneOpen(false)
+  }
+
+  async function savePlanning(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!planningTarget) return
+    const form = new FormData(event.currentTarget)
+    if (!await run(() => updateProjectMilestonePlanning(planningTarget.id, { plannedStartAt: form.get("plannedStartAt"), dueDate: form.get("dueDate"), durationDays: form.get("durationDays"), dependsOnId: form.get("dependsOnId"), assignedMembershipId: form.get("assignedMembershipId") }), "Planification mise à jour.")) return
+    setPlanningTarget(null)
   }
 
   async function addAcceptance(event: React.FormEvent) {
@@ -120,9 +136,10 @@ export function ProjectWorkspace({ projectId, milestones, acceptanceItems, files
         <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-sm">Jalons</CardTitle><Button size="sm" variant="outline" className="gap-2" onClick={() => setMilestoneOpen(true)}><Plus /> Ajouter</Button></CardHeader>
         <CardContent className="space-y-2">
           {milestones.length === 0 ? <p className="text-sm text-muted-foreground">Aucun jalon.</p> : milestones.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-lg border p-3">
-              <div className="min-w-0 flex-1"><div className="font-medium">{item.title}</div><div className="text-xs text-muted-foreground">{item.dueDate ? new Date(item.dueDate).toLocaleDateString("fr-FR") : "Sans échéance"}</div></div>
-              <Select value={item.status} onValueChange={(value) => run(() => updateProjectMilestoneStatus(item.id, (value ?? "PENDING") as "PENDING" | "IN_PROGRESS" | "DONE"), "Jalon mis à jour.")}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PENDING">À faire</SelectItem><SelectItem value="IN_PROGRESS">En cours</SelectItem><SelectItem value="DONE">Terminé</SelectItem></SelectContent></Select>
+            <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{item.title}</span><Badge variant="outline">{item.kind === "TASK" ? "Tâche" : item.kind === "CHECKPOINT" ? "Contrôle" : "Jalon"}</Badge></div><div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{item.plannedStartAt ? `${new Date(item.plannedStartAt).toLocaleDateString("fr-FR")} → ` : ""}{item.dueDate ? new Date(item.dueDate).toLocaleDateString("fr-FR") : "Sans échéance"}</span>{item.dependsOn ? <span className="inline-flex items-center gap-1"><Link2 className="size-3" />après {item.dependsOn.title}</span> : null}{item.assignedMembership ? <span className="inline-flex items-center gap-1"><UserRound className="size-3" />{item.assignedMembership.user.name || item.assignedMembership.user.email}</span> : null}</div></div>
+              <Select value={item.status} onValueChange={(value) => run(() => updateProjectMilestoneStatus(item.id, (value ?? "PENDING") as "PENDING" | "IN_PROGRESS" | "DONE"), "Jalon mis à jour.")}><SelectTrigger aria-label={`Statut de ${item.title}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PENDING">À faire</SelectItem><SelectItem value="IN_PROGRESS">En cours</SelectItem><SelectItem value="DONE">Terminé</SelectItem></SelectContent></Select>
+              <Button size="icon-xs" variant="ghost" title="Planifier" onClick={() => setPlanningTarget(item)}><CalendarRange /></Button>
               <Button size="icon-xs" variant="ghost" title="Supprimer" onClick={() => run(() => deleteProjectMilestone(item.id), "Jalon supprimé.")}><Trash2 className="text-danger" /></Button>
             </div>
           ))}
@@ -158,7 +175,9 @@ export function ProjectWorkspace({ projectId, milestones, acceptanceItems, files
       </Card>
     </div>
 
-    <Dialog open={milestoneOpen} onOpenChange={setMilestoneOpen}><DialogContent><form onSubmit={submitMilestone} className="space-y-4"><DialogHeader><DialogTitle>Nouveau jalon</DialogTitle></DialogHeader><div><Label>Titre</Label><Input value={milestone.title} onChange={(event) => setMilestone({ ...milestone, title: event.target.value })} required /></div><div><Label>Description</Label><Input value={milestone.description} onChange={(event) => setMilestone({ ...milestone, description: event.target.value })} /></div><div><Label>Échéance</Label><Input type="date" value={milestone.dueDate} onChange={(event) => setMilestone({ ...milestone, dueDate: event.target.value })} /></div><DialogFooter><Button type="button" variant="outline" onClick={() => setMilestoneOpen(false)}>Annuler</Button><Button type="submit" disabled={pending}>Ajouter</Button></DialogFooter></form></DialogContent></Dialog>
+    <Dialog open={milestoneOpen} onOpenChange={setMilestoneOpen}><DialogContent><form onSubmit={submitMilestone} className="space-y-4"><DialogHeader><DialogTitle>Nouveau jalon</DialogTitle></DialogHeader><div><Label>Titre</Label><Input value={milestone.title} onChange={(event) => setMilestone({ ...milestone, title: event.target.value })} required /></div><div><Label>Description</Label><Input value={milestone.description} onChange={(event) => setMilestone({ ...milestone, description: event.target.value })} /></div><div className="grid grid-cols-2 gap-3"><label className="space-y-1.5 text-sm font-medium">Type<select aria-label="Type du jalon" value={milestone.kind} onChange={(event) => setMilestone({ ...milestone, kind: event.target.value })} className="mt-1 h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="MILESTONE">Jalon</option><option value="TASK">Tâche</option><option value="CHECKPOINT">Contrôle</option></select></label><div><Label htmlFor="milestoneDuration">Durée (jours)</Label><Input id="milestoneDuration" type="number" min="0" value={milestone.durationDays} onChange={(event) => setMilestone({ ...milestone, durationDays: event.target.value })} /></div></div><div className="grid grid-cols-2 gap-3"><div><Label htmlFor="milestoneStart">Début prévu</Label><Input id="milestoneStart" type="date" value={milestone.plannedStartAt} onChange={(event) => setMilestone({ ...milestone, plannedStartAt: event.target.value })} /></div><div><Label htmlFor="milestoneDue">Échéance</Label><Input id="milestoneDue" type="date" value={milestone.dueDate} onChange={(event) => setMilestone({ ...milestone, dueDate: event.target.value })} /></div></div><label className="space-y-1.5 text-sm font-medium">Prérequis<select aria-label="Prérequis du jalon" value={milestone.dependsOnId} onChange={(event) => setMilestone({ ...milestone, dependsOnId: event.target.value })} className="mt-1 h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="">Aucun</option>{milestones.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="space-y-1.5 text-sm font-medium">Responsable<select aria-label="Responsable du jalon" value={milestone.assignedMembershipId} onChange={(event) => setMilestone({ ...milestone, assignedMembershipId: event.target.value })} className="mt-1 h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="">Non affecté</option>{members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</select></label><DialogFooter><Button type="button" variant="outline" onClick={() => setMilestoneOpen(false)}>Annuler</Button><Button type="submit" disabled={pending}>Ajouter</Button></DialogFooter></form></DialogContent></Dialog>
+
+    <Dialog open={Boolean(planningTarget)} onOpenChange={(open) => { if (!open) setPlanningTarget(null) }}><DialogContent><form key={planningTarget?.id} onSubmit={savePlanning} className="space-y-4"><DialogHeader><DialogTitle>Planifier {planningTarget?.title}</DialogTitle></DialogHeader><div className="grid grid-cols-2 gap-3"><div><Label htmlFor="planningStart">Début prévu</Label><Input id="planningStart" name="plannedStartAt" type="date" defaultValue={planningTarget?.plannedStartAt?.slice(0, 10) || ""} /></div><div><Label htmlFor="planningDue">Échéance</Label><Input id="planningDue" name="dueDate" type="date" defaultValue={planningTarget?.dueDate?.slice(0, 10) || ""} /></div></div><div><Label htmlFor="planningDuration">Durée (jours)</Label><Input id="planningDuration" name="durationDays" type="number" min="0" defaultValue={planningTarget?.durationDays ?? 1} /></div><label className="space-y-1.5 text-sm font-medium">Prérequis<select name="dependsOnId" aria-label="Prérequis planifié" defaultValue={planningTarget?.dependsOnId || ""} className="mt-1 h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="">Aucun</option>{milestones.filter((item) => item.id !== planningTarget?.id).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label className="space-y-1.5 text-sm font-medium">Responsable<select name="assignedMembershipId" aria-label="Responsable planifié" defaultValue={planningTarget?.assignedMembershipId || ""} className="mt-1 h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="">Non affecté</option>{members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</select></label><DialogFooter><Button type="button" variant="outline" onClick={() => setPlanningTarget(null)}>Annuler</Button><Button type="submit" disabled={pending}>Enregistrer</Button></DialogFooter></form></DialogContent></Dialog>
 
     <Dialog open={profileOpen} onOpenChange={setProfileOpen}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><form onSubmit={saveTechnical} className="space-y-5"><DialogHeader><DialogTitle>Relevé technique bassin & pose</DialogTitle></DialogHeader>
       <div className="grid gap-3 sm:grid-cols-3"><div><Label htmlFor="surveyStatus">État du relevé</Label><select id="surveyStatus" className="h-10 w-full rounded-lg border bg-background px-3 text-sm" value={technical.surveyStatus} onChange={(event) => setTechnical({ ...technical, surveyStatus: event.target.value as "DRAFT" | "SURVEYED" | "VALIDATED" })}><option value="DRAFT">Brouillon</option><option value="SURVEYED">Relevé effectué</option><option value="VALIDATED">Validé pour pose</option></select></div><div><Label htmlFor="surveyedAt">Date du relevé</Label><Input id="surveyedAt" type="date" value={technical.surveyedAt ?? ""} onChange={(event) => setTechnical({ ...technical, surveyedAt: event.target.value })} /></div><div><Label htmlFor="surveyedBy">Technicien</Label><Input id="surveyedBy" value={technical.surveyedBy ?? ""} onChange={(event) => setTechnical({ ...technical, surveyedBy: event.target.value })} /></div></div>

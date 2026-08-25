@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition, type FormEvent, type ReactNode } from "react"
-import { AlertTriangle, Boxes, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, PackageCheck, PackageMinus, PenLine, Plus, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
+import { AlertTriangle, Boxes, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
@@ -22,6 +22,7 @@ import {
   consumeInterventionMaterial,
   completeFieldIntervention,
   releaseStockReservation,
+  rescheduleFieldIntervention,
   reserveStock,
   signDeliveryNote,
   updateInterventionStatus,
@@ -35,6 +36,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { planningEnd, planningSlotsOverlap, routeDistanceKm } from "@/lib/operations/planning"
 import { PurchaseWorkflow } from "./purchase-workflow"
 
 type OperationsData = Awaited<ReturnType<typeof import("@/actions/operations").getOperationsDashboard>>
@@ -101,6 +103,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
   const [completionId, setCompletionId] = useState<string | null>(null)
   const [deliverySignId, setDeliverySignId] = useState<string | null>(null)
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
+  const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
 
   const openTickets = initialData.tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length
   const comingInterventions = initialData.interventions.filter((item) => new Date(item.scheduledStart) >= new Date() && !["COMPLETED", "CANCELED"].includes(item.status)).length
@@ -124,13 +127,16 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
     const form = new FormData(formElement)
     startTransition(async () => {
       try {
-        if (createKind === "SITE") await createCustomerSite({ clientId: value(form, "clientId"), label: value(form, "label"), kind: value(form, "kind") || "INSTALLATION", address1: value(form, "address1"), postalCode: optional(form, "postalCode"), city: optional(form, "city"), accessNotes: optional(form, "notes") })
+        if (createKind === "SITE") await createCustomerSite({ clientId: value(form, "clientId"), label: value(form, "label"), kind: value(form, "kind") || "INSTALLATION", address1: value(form, "address1"), postalCode: optional(form, "postalCode"), city: optional(form, "city"), latitude: optional(form, "latitude"), longitude: optional(form, "longitude"), accessNotes: optional(form, "notes") })
         else if (createKind === "SUPPLIER") await createSupplier({ name: value(form, "name"), code: optional(form, "code"), contactName: optional(form, "contactName"), email: optional(form, "email"), phone: optional(form, "phone"), deliveryDays: optional(form, "deliveryDays") })
         else if (createKind === "PRODUCT") await createProduct({ sku: value(form, "sku"), label: value(form, "label"), supplierId: optional(form, "supplierId"), manufacturer: optional(form, "manufacturer"), family: optional(form, "family"), unit: value(form, "unit") || "unité", purchasePriceCents: cents(form, "purchasePrice"), salePriceCents: cents(form, "salePrice"), stockTracked: true })
         else if (createKind === "WAREHOUSE") await createWarehouse({ name: value(form, "name"), code: value(form, "code"), address: optional(form, "address") })
         else if (createKind === "EQUIPMENT") await createEquipment({ siteId: value(form, "siteId"), productId: optional(form, "productId"), label: value(form, "label"), category: optional(form, "category"), manufacturer: optional(form, "manufacturer"), model: optional(form, "model"), serialNumber: optional(form, "serialNumber"), installedAt: isoDate(form, "installedAt"), warrantyUntil: isoDate(form, "warrantyUntil"), notes: optional(form, "notes") })
         else if (createKind === "TICKET") await createServiceTicket({ clientId: value(form, "clientId"), siteId: optional(form, "siteId"), equipmentId: optional(form, "equipmentId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), description: value(form, "description"), type: value(form, "type") || "SAV", priority: value(form, "priority") || "NORMAL", dueAt: isoDate(form, "dueAt") })
-        else if (createKind === "INTERVENTION") await createFieldIntervention({ ticketId: optional(form, "ticketId"), projectId: optional(form, "projectId"), siteId: value(form, "siteId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), type: value(form, "type") || "SAV", scheduledStart: isoDate(form, "scheduledStart"), scheduledEnd: isoDate(form, "scheduledEnd") })
+        else if (createKind === "INTERVENTION") {
+          const result = await createFieldIntervention({ ticketId: optional(form, "ticketId"), projectId: optional(form, "projectId"), siteId: value(form, "siteId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), type: value(form, "type") || "SAV", scheduledStart: isoDate(form, "scheduledStart"), scheduledEnd: isoDate(form, "scheduledEnd") })
+          if (!result.success) throw new Error(result.error)
+        }
         else if (createKind === "MAINTENANCE") await createMaintenanceContract({ clientId: value(form, "clientId"), siteId: value(form, "siteId"), label: value(form, "label"), startDate: value(form, "startDate"), endDate: optional(form, "endDate"), frequency: value(form, "frequency") || "ANNUAL", nextVisitAt: optional(form, "nextVisitAt"), priceCents: cents(form, "price"), autoInvoice: form.get("autoInvoice") === "on", tvaRate: Number(value(form, "tvaRate") || "20"), invoiceDueDays: Number(value(form, "invoiceDueDays") || "30"), equipmentIds: optional(form, "equipmentId") ? [value(form, "equipmentId")] : [], notes: optional(form, "notes") })
         else if (createKind === "STOCK") await createStockMovement({ warehouseId: value(form, "warehouseId"), productId: value(form, "productId"), projectId: optional(form, "projectId"), type: value(form, "type"), quantity: Number(value(form, "quantity")), unitCostCents: cents(form, "unitCost"), reference: optional(form, "reference"), notes: optional(form, "notes") })
         else if (createKind === "CUSTOMER_ORDER") await createCustomerOrder({ clientId: value(form, "clientId"), projectId: optional(form, "projectId"), expectedInstallationAt: isoDate(form, "expectedInstallationAt"), notes: optional(form, "notes"), productId: optional(form, "productId"), label: value(form, "label"), quantity: Number(value(form, "quantity")), unitPriceCents: cents(form, "unitPrice"), tvaRate: Number(value(form, "tvaRate") || "20"), depositCents: cents(form, "deposit") })
@@ -247,6 +253,28 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
     })
   }
 
+  function submitInterventionPlanning(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!planningInterventionId) return
+    const form = new FormData(event.currentTarget)
+    startTransition(async () => {
+      try {
+        const result = await rescheduleFieldIntervention({
+          interventionId: planningInterventionId,
+          assignedMembershipId: optional(form, "planningAssignedMembershipId"),
+          scheduledStart: isoDate(form, "planningScheduledStart"),
+          scheduledEnd: isoDate(form, "planningScheduledEnd"),
+        })
+        if (!result.success) throw new Error(result.error)
+        toast.success("Intervention replanifiée.")
+        setPlanningInterventionId(null)
+        router.refresh()
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Replanification impossible.")
+      }
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -264,12 +292,13 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
         <TabsContent value="planning">
           <div className="space-y-4">
             <CapacityOverview members={initialData.members} interventions={initialData.interventions} />
+            <RouteOverview interventions={initialData.interventions} />
             <section className="overflow-hidden rounded-xl border bg-card">
             <div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Planning terrain</h2></div>
             {initialData.interventions.length ? (
               <div className="divide-y">
                 {initialData.interventions.map((item) => (
-                  <article key={item.id} className="px-5 py-4">
+                  <article key={item.id} data-field-intervention={item.id} className="px-5 py-4">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
@@ -283,6 +312,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
                         <InterventionCostSummary intervention={item} />
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        {!['COMPLETED', 'CANCELED'].includes(item.status) ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => setPlanningInterventionId(item.id)}><CalendarClock />Replanifier</Button> : null}
                         <label className={buttonVariants({ variant: "outline", size: "sm" })}>
                           <Upload />Ajouter une pièce
                           <input
@@ -332,6 +362,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
         </TabsContent>
         <TabsContent value="assets"><div className="grid gap-6 xl:grid-cols-2"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Sites clients</h2></div>{initialData.sites.length ? <div className="divide-y">{initialData.sites.map((site) => <div key={site.id} className="flex items-center gap-3 px-5 py-3"><MapPin className="size-4 text-primary" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{site.client.name} · {site.label}</p><p className="truncate text-xs text-muted-foreground">{site.address1}{site.city ? `, ${site.postalCode || ""} ${site.city}` : ""}</p></div><span className="text-xs tabular-nums text-muted-foreground">{site._count.equipments} équip.</span></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun site.</p>}</section><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Parc installé</h2></div>{initialData.equipments.length ? <div className="divide-y">{initialData.equipments.map((equipment) => <div key={equipment.id} className="px-5 py-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium">{equipment.label}</p><Badge variant="outline">{equipment.status}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{equipment.site.client.name} · {equipment.site.label}{equipment.serialNumber ? ` · S/N ${equipment.serialNumber}` : ""}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun équipement installé.</p>}</section></div></TabsContent>
       </Tabs>
+      <Dialog open={Boolean(planningInterventionId)} onOpenChange={(open) => { if (!open) setPlanningInterventionId(null) }}><DialogContent><PlanningDialogForm intervention={initialData.interventions.find((item) => item.id === planningInterventionId)} members={initialData.members} isPending={isPending} onCancel={() => setPlanningInterventionId(null)} onSubmit={submitInterventionPlanning} /></DialogContent></Dialog>
       <Dialog open={Boolean(completionId)} onOpenChange={(open) => { if (!open) setCompletionId(null) }}><DialogContent><form onSubmit={submitCompletion} className="space-y-4"><DialogHeader><DialogTitle>Clôturer l’intervention</DialogTitle></DialogHeader><Field label="Compte rendu terrain" name="report" required><textarea id="report" name="report" required className="min-h-32 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Travaux réalisés, contrôles et éventuelles réserves…" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Temps passé (minutes)" name="laborMinutes" required><Input id="laborMinutes" name="laborMinutes" type="number" min="0" defaultValue="60" required /></Field><Field label="Nom du client présent" name="customerName" required><Input id="customerName" name="customerName" required /></Field></div><label className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le client confirme le compte rendu et la fin de l’intervention. Une empreinte horodatée sera conservée dans le journal d’audit.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => setCompletionId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : null}Valider la clôture</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={Boolean(materialInterventionId)} onOpenChange={(open) => { if (!open) setMaterialInterventionId(null) }}><DialogContent><form onSubmit={submitInterventionMaterial} className="space-y-4"><DialogHeader><DialogTitle>Matériel utilisé en intervention</DialogTitle></DialogHeader><Field label="Dépôt" name="materialWarehouseId" required><NativeSelect name="materialWarehouseId" required>{initialData.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Produit" name="materialProductId" required><NativeSelect name="materialProductId" required>{initialData.products.filter((product) => product.stockTracked).map((product) => <option key={product.id} value={product.id}>{product.sku} · {product.label}</option>)}</NativeSelect></Field><Field label="Quantité consommée" name="materialQuantity" required><Input id="materialQuantity" name="materialQuantity" type="number" min="1" step="1" defaultValue="1" required /></Field><p className="text-xs leading-5 text-muted-foreground">La quantité est sortie du dépôt dans une transaction unique. Le coût d’achat du catalogue est figé sur le mouvement pour conserver l’historique.</p><DialogFooter><Button type="button" variant="outline" onClick={() => setMaterialInterventionId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PackageMinus />}Consommer</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={Boolean(deliverySignId)} onOpenChange={(open) => { if (!open) setDeliverySignId(null) }}><DialogContent><form onSubmit={submitDeliverySignature} className="space-y-4"><DialogHeader><DialogTitle>Signer le bon de livraison</DialogTitle></DialogHeader><Field label="Nom du réceptionnaire" name="deliverySignatureRecipientName" required><Input id="deliverySignatureRecipientName" name="recipientName" required /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le réceptionnaire confirme les quantités indiquées et la réception. Le bon sera horodaté et scellé par empreinte SHA-256.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => setDeliverySignId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PenLine />}Signer et sceller</Button></DialogFooter></form></DialogContent></Dialog>
@@ -350,6 +381,91 @@ function InterventionCostSummary({ intervention }: { intervention: OperationsDat
       <p className="mt-1 text-muted-foreground">Matériel {formatMoney(materialCost)} · Main-d’œuvre {formatMoney(laborCost)}</p>
       {intervention.stockMovements.length ? <ul className="mt-2 space-y-1 border-t pt-2 text-muted-foreground">{intervention.stockMovements.map((movement) => <li key={movement.id}>{Math.abs(movement.quantity)} × {movement.product.label} · {movement.warehouse.name}</li>)}</ul> : null}
     </div>
+  )
+}
+
+function datetimeLocalValue(value: Date | string | null) {
+  if (!value) return ""
+  const date = new Date(value)
+  const pad = (part: number) => String(part).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function PlanningDialogForm({
+  intervention,
+  members,
+  isPending,
+  onCancel,
+  onSubmit,
+}: {
+  intervention: OperationsData["interventions"][number] | undefined
+  members: OperationsData["members"]
+  isPending: boolean
+  onCancel: () => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+}) {
+  if (!intervention) return null
+  return (
+    <form key={intervention.id} onSubmit={onSubmit} className="space-y-4">
+      <DialogHeader><DialogTitle>Replanifier l’intervention</DialogTitle></DialogHeader>
+      <div className="rounded-lg border bg-muted/35 p-3"><p className="text-sm font-semibold">{intervention.title}</p><p className="mt-1 text-xs text-muted-foreground">{intervention.site.client.name} · {intervention.site.label}</p></div>
+      <Field label="Intervenant" name="planningAssignedMembershipId"><select id="planningAssignedMembershipId" name="planningAssignedMembershipId" defaultValue={intervention.assignedMembershipId ?? ""} className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-3 focus:ring-ring/20"><option value="">Non affectée</option>{members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</select></Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Début" name="planningScheduledStart" required><Input id="planningScheduledStart" name="planningScheduledStart" type="datetime-local" defaultValue={datetimeLocalValue(intervention.scheduledStart)} required /></Field>
+        <Field label="Fin" name="planningScheduledEnd" required><Input id="planningScheduledEnd" name="planningScheduledEnd" type="datetime-local" defaultValue={datetimeLocalValue(planningEnd(intervention))} required /></Field>
+      </div>
+      <p className="text-xs leading-5 text-muted-foreground">Le créneau est vérifié avec les autres interventions de l’intervenant avant l’enregistrement.</p>
+      <DialogFooter><Button type="button" variant="outline" onClick={onCancel}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <CalendarClock />}Enregistrer</Button></DialogFooter>
+    </form>
+  )
+}
+
+function RouteOverview({ interventions }: { interventions: OperationsData["interventions"] }) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const upcoming = interventions
+    .filter((item) => item.status !== "CANCELED" && new Date(item.scheduledStart) >= today)
+    .sort((left, right) => new Date(left.scheduledStart).getTime() - new Date(right.scheduledStart).getTime())
+  const byDay = new Map<string, typeof upcoming>()
+  for (const intervention of upcoming) {
+    const key = new Intl.DateTimeFormat("fr-CA").format(new Date(intervention.scheduledStart))
+    const day = byDay.get(key) ?? []
+    day.push(intervention)
+    byDay.set(key, day)
+  }
+  const days = [...byDay.entries()].slice(0, 14)
+  if (!days.length) return null
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <div className="border-b px-5 py-4"><h2 className="flex items-center gap-2 text-sm font-semibold"><Navigation className="size-4 text-primary" />Tournées à venir</h2><p className="mt-1 text-xs text-muted-foreground">Ordre chronologique par intervenant et distance à vol d’oiseau ; les trajets routiers restent à confirmer dans l’outil de navigation.</p></div>
+      <div className="grid gap-4 p-4 xl:grid-cols-2">
+        {days.map(([dayKey, items]) => {
+          const byMember = new Map<string, typeof items>()
+          for (const item of items) {
+            const key = item.assignedMembershipId ?? "unassigned"
+            const route = byMember.get(key) ?? []
+            route.push(item)
+            byMember.set(key, route)
+          }
+          let distanceKm = 0
+          let measuredLegs = 0
+          let totalLegs = 0
+          for (const route of byMember.values()) {
+            const distance = routeDistanceKm(route.map((item) => item.site))
+            distanceKm += distance.distanceKm
+            measuredLegs += distance.measuredLegs
+            totalLegs += distance.totalLegs
+          }
+          const conflicts = items.filter((item, index) => item.assignedMembershipId && items.some((other, otherIndex) => otherIndex !== index && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)))
+          return (
+            <article key={dayKey} className="overflow-hidden rounded-xl border">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/25 px-4 py-3"><div><p className="text-sm font-semibold capitalize">{new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date(`${dayKey}T12:00:00`))}</p><p className="mt-0.5 text-xs text-muted-foreground">{items.length} intervention{items.length > 1 ? "s" : ""}{totalLegs ? ` · ${distanceKm.toFixed(1)} km estimés (${measuredLegs}/${totalLegs} tronçons)` : ""}</p></div>{conflicts.length ? <Badge variant="destructive">{conflicts.length} créneau{conflicts.length > 1 ? "x" : ""} en conflit</Badge> : <Badge variant="secondary">Planning cohérent</Badge>}</div>
+              <div className="divide-y">{items.map((item) => { const conflict = item.assignedMembershipId && items.some((other) => other.id !== item.id && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)); return <div key={item.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 px-4 py-3"><p className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.scheduledStart))}</p><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-xs font-medium">{item.title}</p>{conflict ? <Badge variant="destructive" className="h-5">Conflit</Badge> : null}</div><p className="mt-1 truncate text-[11px] text-muted-foreground">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"} · {item.site.label}</p></div></div>})}</div>
+            </article>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -390,7 +506,7 @@ function renderForm(kind: CreateKind, data: OperationsData) {
   const suppliers = <>{data.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</>
   const projects = <>{data.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</>
   const members = <>{data.members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</>
-  if (kind === "SITE") return <><Field label="Client" name="clientId" required><NativeSelect name="clientId" required>{clients}</NativeSelect></Field><Field label="Libellé" name="label" required><Input id="label" name="label" required placeholder="Domicile / Résidence secondaire" /></Field><Field label="Adresse" name="address1" required><Input id="address1" name="address1" required /></Field><Field label="Ville" name="city"><Input id="city" name="city" /></Field></>
+  if (kind === "SITE") return <><Field label="Client" name="clientId" required><NativeSelect name="clientId" required>{clients}</NativeSelect></Field><Field label="Libellé" name="label" required><Input id="label" name="label" required placeholder="Domicile / Résidence secondaire" /></Field><Field label="Adresse" name="address1" required><Input id="address1" name="address1" required /></Field><Field label="Code postal" name="postalCode"><Input id="postalCode" name="postalCode" /></Field><Field label="Ville" name="city"><Input id="city" name="city" /></Field><Field label="Latitude" name="latitude"><Input id="latitude" name="latitude" inputMode="decimal" placeholder="48.8566" /></Field><Field label="Longitude" name="longitude"><Input id="longitude" name="longitude" inputMode="decimal" placeholder="2.3522" /></Field></>
   if (kind === "SUPPLIER") return <><Field label="Nom" name="name" required><Input id="name" name="name" required /></Field><Field label="Code" name="code"><Input id="code" name="code" /></Field><Field label="Contact" name="contactName"><Input id="contactName" name="contactName" /></Field><Field label="E-mail" name="email"><Input id="email" name="email" type="email" /></Field></>
   if (kind === "PRODUCT") return <><Field label="Référence / SKU" name="sku" required><Input id="sku" name="sku" required /></Field><Field label="Produit" name="label" required><Input id="label" name="label" required /></Field><Field label="Fournisseur" name="supplierId"><NativeSelect name="supplierId">{suppliers}</NativeSelect></Field><Field label="Famille" name="family"><Input id="family" name="family" placeholder="Pompe, filtration, traitement…" /></Field><Field label="Coût HT (€)" name="purchasePrice"><Input id="purchasePrice" name="purchasePrice" inputMode="decimal" /></Field><Field label="Prix de vente HT (€)" name="salePrice"><Input id="salePrice" name="salePrice" inputMode="decimal" /></Field></>
   if (kind === "WAREHOUSE") return <><Field label="Nom du dépôt" name="name" required><Input id="name" name="name" required /></Field><Field label="Code" name="code" required><Input id="code" name="code" required /></Field><Field label="Adresse" name="address"><Input id="address" name="address" /></Field></>

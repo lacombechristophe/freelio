@@ -29,6 +29,7 @@ const COMPANY_SCOPED_MODELS = new Set([
   "RelanceConfig",
   "OrganisationGoal",
   "OrganisationTask",
+  "ProjectTemplate",
   "InvoiceReminder",
   "BankTransaction",
   "DataSourceConnection",

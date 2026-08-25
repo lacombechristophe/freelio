@@ -91,6 +91,8 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   direct("AutomationWorkflow"),
   direct("AutomationRun"),
   related("ClientFile", { client: { companyId: "$companyId" } }),
+  direct("ProjectTemplate"),
+  related("ProjectTemplateStep", { template: { companyId: "$companyId" } }),
   direct("Project"),
   related("ProjectMilestone", { project: { companyId: "$companyId" } }),
   related("ProjectFile", { project: { companyId: "$companyId" } }),
@@ -193,7 +195,7 @@ const FILE_FIELDS: Record<string, Array<{ field: string; size?: string; sha256?:
 
 const DATE_FIELDS = new Set([
   "createdAt", "updatedAt", "emailVerified", "expires", "lastBackupAt", "nextActionAt",
-  "happenedAt", "startDate", "endDate", "dueDate", "validUntil", "date", "signedAt",
+  "happenedAt", "startDate", "endDate", "plannedStartAt", "dueDate", "validUntil", "date", "signedAt",
   "nextGenDate", "periodStart", "periodEnd", "scheduledDate", "recurrenceEnd",
   "domainExpiresAt", "lockedAt", "sentAt", "importedAt", "lastUsed", "validFrom",
 ])
@@ -512,7 +514,7 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 }
 
 const LEGACY_UNREPRESENTED_TABLES = [
-  "LeadCapture", "MarketingConsent", "CustomerSite", "Supplier", "Product", "ProductOptionGroup",
+  "LeadCapture", "MarketingConsent", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
   "InventoryItem", "StockMovement", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention",

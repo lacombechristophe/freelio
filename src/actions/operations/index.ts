@@ -9,6 +9,7 @@ import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
+import { planningSlotsOverlap } from "@/lib/operations/planning"
 import { completeFieldInterventionForContext } from "@/lib/field/interventions"
 import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
@@ -17,6 +18,10 @@ const id = z.string().cuid()
 const optionalId = z.union([id, z.literal("")]).optional().transform((value) => value || null)
 const optionalText = z.string().trim().max(2_000).optional().transform((value) => value || null)
 const dateInput = z.string().trim().optional().transform((value) => value ? new Date(value) : null)
+const optionalCoordinate = z.preprocess(
+  (value) => value === "" || value == null ? null : Number(value),
+  z.number().finite().nullable(),
+)
 
 const siteSchema = z.object({
   clientId: id,
@@ -27,6 +32,8 @@ const siteSchema = z.object({
   postalCode: z.string().trim().max(20).optional().transform((value) => value || null),
   city: z.string().trim().max(100).optional().transform((value) => value || null),
   accessNotes: optionalText,
+  latitude: optionalCoordinate.refine((value) => value == null || (value >= -90 && value <= 90), "Latitude invalide"),
+  longitude: optionalCoordinate.refine((value) => value == null || (value >= -180 && value <= 180), "Longitude invalide"),
 })
 
 const supplierSchema = z.object({
@@ -90,6 +97,21 @@ const interventionSchema = z.object({
   type: z.enum(["SITE_VISIT", "INSTALLATION", "SAV", "MAINTENANCE"]).default("SAV"),
   scheduledStart: z.string().datetime(),
   scheduledEnd: z.string().datetime().optional().nullable(),
+}).superRefine((value, context) => {
+  if (value.scheduledEnd && Date.parse(value.scheduledEnd) <= Date.parse(value.scheduledStart)) {
+    context.addIssue({ code: "custom", path: ["scheduledEnd"], message: "La fin doit être postérieure au début" })
+  }
+})
+
+const interventionPlanningSchema = z.object({
+  interventionId: id,
+  assignedMembershipId: optionalId,
+  scheduledStart: z.string().datetime(),
+  scheduledEnd: z.string().datetime(),
+}).superRefine((value, context) => {
+  if (Date.parse(value.scheduledEnd) <= Date.parse(value.scheduledStart)) {
+    context.addIssue({ code: "custom", path: ["scheduledEnd"], message: "La fin doit être postérieure au début" })
+  }
 })
 
 const maintenanceContractSchema = z.object({
@@ -228,6 +250,47 @@ function revalidateOperations() {
   revalidatePath("/dashboard/projets")
 }
 
+async function findInterventionSlotConflict({
+  companyId,
+  assignedMembershipId,
+  scheduledStart,
+  scheduledEnd,
+  excludeInterventionId,
+}: {
+  companyId: string
+  assignedMembershipId: string | null
+  scheduledStart: Date
+  scheduledEnd: Date | null
+  excludeInterventionId?: string
+}) {
+  if (!assignedMembershipId) return null
+  const effectiveEnd = scheduledEnd ?? new Date(scheduledStart.getTime() + 60 * 60 * 1_000)
+  const possibleConflicts = await prisma.fieldIntervention.findMany({
+    where: {
+      companyId,
+      assignedMembershipId,
+      status: { not: "CANCELED" },
+      id: excludeInterventionId ? { not: excludeInterventionId } : undefined,
+      scheduledStart: { lt: effectiveEnd },
+      OR: [
+        { scheduledEnd: { gt: scheduledStart } },
+        { scheduledEnd: null, scheduledStart: { gt: new Date(scheduledStart.getTime() - 60 * 60 * 1_000) } },
+      ],
+    },
+    select: { id: true, title: true, scheduledStart: true, scheduledEnd: true },
+    orderBy: { scheduledStart: "asc" },
+  })
+  const conflict = possibleConflicts.find((item) => planningSlotsOverlap(
+    { scheduledStart, scheduledEnd },
+    item,
+  ))
+  if (conflict) {
+    const date = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Paris" }).format(conflict.scheduledStart)
+    return `Conflit de planning avec « ${conflict.title} » le ${date}.`
+  }
+  return null
+}
+
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role }) => {
     const [clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes] = await Promise.all([
@@ -329,16 +392,56 @@ export async function createFieldIntervention(input: unknown) {
     if (data.ticketId && !await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId }, select: { id: true } })) throw new Error("Ticket introuvable")
     if (data.projectId && !await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } })) throw new Error("Chantier introuvable")
     if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
+    const scheduledStart = new Date(data.scheduledStart)
+    const scheduledEnd = data.scheduledEnd ? new Date(data.scheduledEnd) : null
+    const conflict = await findInterventionSlotConflict({ companyId, assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd })
+    if (conflict) return { success: false as const, error: conflict }
     const intervention = await prisma.fieldIntervention.create({
       data: {
         companyId,
         ...data,
-        scheduledStart: new Date(data.scheduledStart),
-        scheduledEnd: data.scheduledEnd ? new Date(data.scheduledEnd) : null,
+        scheduledStart,
+        scheduledEnd,
       },
     })
     revalidateOperations()
     return { success: true as const, id: intervention.id }
+  }, "operations.write")
+}
+
+export async function rescheduleFieldIntervention(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = interventionPlanningSchema.parse(input)
+    const intervention = await prisma.fieldIntervention.findFirst({
+      where: { id: data.interventionId, companyId },
+      select: { id: true, status: true },
+    })
+    if (!intervention) throw new Error("Intervention introuvable")
+    if (["CANCELED", "COMPLETED"].includes(intervention.status)) throw new Error("Une intervention terminée ou annulée ne peut pas être replanifiée")
+    if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
+    const scheduledStart = new Date(data.scheduledStart)
+    const scheduledEnd = new Date(data.scheduledEnd)
+    const conflict = await findInterventionSlotConflict({
+      companyId,
+      assignedMembershipId: data.assignedMembershipId,
+      scheduledStart,
+      scheduledEnd,
+      excludeInterventionId: intervention.id,
+    })
+    if (conflict) return { success: false as const, error: conflict }
+    await prisma.fieldIntervention.update({
+      where: { id: intervention.id },
+      data: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd },
+    })
+    await logAction({
+      userId,
+      action: "UPDATE_FIELD_INTERVENTION_PLAN",
+      resource: "FIELD_INTERVENTION",
+      resourceId: intervention.id,
+      payload: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd },
+    })
+    revalidateOperations()
+    return { success: true as const }
   }, "operations.write")
 }
 

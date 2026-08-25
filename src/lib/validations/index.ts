@@ -94,16 +94,41 @@ export const ClientNextActionSchema = z.object({
 
 export const ProjectSchema = z.object({
   clientId: EntityIdSchema,
+  projectTemplateId: EntityIdSchema.optional().or(z.literal("")),
   name: z.string().min(3, "Le nom du projet est requis"),
   description: z.string().optional().or(z.literal("")),
+  worksiteType: z.string().trim().max(80).optional().or(z.literal("")),
   budgetCents: z.number().int().nonnegative(),
+  startDate: z.string().optional().or(z.literal("")),
+  endDate: z.string().optional().or(z.literal("")),
   status: z.enum(["ACTIVE", "COMPLETED", "ARCHIVED"]).optional(),
 })
 
 export const ProjectMilestoneSchema = z.object({
   title: z.string().trim().min(2).max(180),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
+  kind: z.enum(["MILESTONE", "TASK", "CHECKPOINT"]).default("MILESTONE"),
+  plannedStartAt: z.string().optional().or(z.literal("")),
   dueDate: z.string().optional().or(z.literal("")),
+  durationDays: z.coerce.number().int().min(0).max(365).default(1),
+  dependsOnId: EntityIdSchema.optional().or(z.literal("")),
+  assignedMembershipId: EntityIdSchema.optional().or(z.literal("")),
+})
+
+export const ProjectTemplateSchema = z.object({
+  name: z.string().trim().min(3).max(120),
+  description: z.string().trim().max(1000).optional().or(z.literal("")),
+  worksiteType: z.string().trim().max(80).optional().or(z.literal("")),
+  defaultBudgetCents: z.coerce.number().int().nonnegative().default(0),
+  defaultDurationDays: z.coerce.number().int().min(0).max(730).default(0),
+  steps: z.array(z.object({
+    title: z.string().trim().min(2).max(180),
+    description: z.string().trim().max(1000).optional().or(z.literal("")),
+    kind: z.enum(["MILESTONE", "TASK", "CHECKPOINT"]).default("MILESTONE"),
+    offsetDays: z.coerce.number().int().min(0).max(730),
+    durationDays: z.coerce.number().int().min(0).max(365).default(1),
+    dependsOnIndex: z.coerce.number().int().min(-1).max(39).default(-1),
+  })).min(1).max(40),
 })
 
 export const ProjectAcceptanceSchema = z.object({
