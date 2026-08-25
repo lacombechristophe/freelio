@@ -1,0 +1,10 @@
+import { getContactsDirectory } from "@/actions/contacts"
+import { OnboardingRequired } from "@/components/shared/onboarding-required"
+import { PageHeader } from "@/components/shared/page-header"
+import { ContactsDirectory } from "./contacts-directory"
+
+export default async function ContactsPage() {
+  const contacts = await getContactsDirectory()
+  if (!contacts) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant d’ajouter des contacts." />
+  return <div className="space-y-7"><PageHeader eyebrow="CRM" title="Contacts" description="Tous les interlocuteurs, leurs coordonnées, leur entreprise et leur niveau d’engagement dans une vue exploitable." /><ContactsDirectory contacts={contacts} /></div>
+}

@@ -2,17 +2,25 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { ChevronDown, Menu, X } from "lucide-react"
+import { usePathname, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { dashboardNavigationSections } from "./sidebar"
+import { dashboardHome, dashboardNavGroups, dashboardUtilityItems, navigationItemIsActive } from "./dashboard-navigation"
 import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 
 export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
   const pathname = usePathname()
+  const currentQuery = useSearchParams().toString()
   const [open, setOpen] = React.useState(false)
+  const activeGroup = dashboardNavGroups.find((group) => group.items.some((item) => navigationItemIsActive(pathname, item, currentQuery)))?.name
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(() => new Set(activeGroup ? [activeGroup] : ["CRM"]))
+
+  React.useEffect(() => {
+    if (!activeGroup) return
+    setOpenGroups((current) => current.has(activeGroup) ? current : new Set([...current, activeGroup]))
+  }, [activeGroup])
 
   React.useEffect(() => {
     if (!open) return
@@ -71,38 +79,14 @@ export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
               </Button>
             </div>
 
-            <div className="h-[calc(100dvh-4rem)] space-y-5 overflow-y-auto px-3 py-5">
-              {dashboardNavigationSections.map((section) => (
-                <div key={section.label}>
-                  <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase text-muted-foreground">
-                    {section.label}
-                  </h2>
-                  <div className="space-y-1">
-                    {section.items.map((item) => {
-                      const active = item.href === "/dashboard"
-                        ? pathname === "/dashboard"
-                        : pathname === item.href || pathname.startsWith(`${item.href}/`)
-
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setOpen(false)}
-                          className={cn(
-                            "flex h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-medium transition-colors",
-                            active
-                              ? "bg-accent text-accent-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                          )}
-                        >
-                          <item.icon aria-hidden="true" className={cn("h-5 w-5", active && "text-primary")} />
-                          {item.name}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto px-3 py-4">
+              <Link href={dashboardHome.href} onClick={() => setOpen(false)} className={cn("flex h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-semibold", pathname === dashboardHome.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><dashboardHome.icon className="size-5" />{dashboardHome.name}</Link>
+              <div className="pt-2">{dashboardNavGroups.map((group) => {
+                const active = group.items.some((item) => navigationItemIsActive(pathname, item, currentQuery))
+                const groupOpen = openGroups.has(group.name)
+                return <section key={group.name} className="mb-1"><button type="button" onClick={() => setOpenGroups((current) => { const next = new Set(current); if (next.has(group.name)) next.delete(group.name); else next.add(group.name); return next })} aria-expanded={groupOpen} className={cn("flex h-11 w-full items-center gap-3 rounded-[10px] px-3 text-sm font-semibold", active ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><group.icon className={cn("size-5", active && "text-primary")} /><span className="flex-1 text-left">{group.name}</span><ChevronDown className={cn("size-4 transition-transform", groupOpen && "rotate-180")} /></button>{groupOpen && <div className="ml-5 border-l py-1 pl-2">{group.items.map((item) => { const itemActive = navigationItemIsActive(pathname, item, currentQuery); return <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={cn("flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm", itemActive ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><item.icon className={cn("size-4 shrink-0", itemActive && "text-primary")} />{item.name}</Link> })}</div>}</section>
+              })}</div>
+              <div className="border-t pt-3">{dashboardUtilityItems.map((item) => <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm", navigationItemIsActive(pathname, item, currentQuery) ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><item.icon className="size-4" />{item.name}</Link>)}</div>
             </div>
           </nav>
         </div>
