@@ -1,6 +1,6 @@
 # Feuille de route de complétude CRM/ERP
 
-Date de référence : 25 août 2026  
+Date de référence : 25 août 2026
 Portée : benchmark officiel HubSpot, Extrabat Piscine, activité de vente/pose/SAV de couvertures et abris de piscine, et état réel du dépôt.
 
 ## 1. Principe
