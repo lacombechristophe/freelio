@@ -174,6 +174,7 @@ model Company {
   communicationChannels CommunicationChannel[]
   leadScoringRules     LeadScoringRule[]
   marketingSegments    MarketingSegment[]
+  marketingCampaigns   MarketingCampaign[]
   automationWorkflows  AutomationWorkflow[]
   automationRuns       AutomationRun[]
 }
@@ -199,6 +200,8 @@ model Membership {
   ownedOpportunities     Opportunity[]       @relation("OpportunityOwner")
   approvedPurchaseOrders PurchaseOrder[]     @relation("PurchaseOrderApprover")
   assignedProjectMilestones ProjectMilestone[] @relation("ProjectMilestoneAssignee")
+  ownedMarketingCampaigns MarketingCampaign[] @relation("MarketingCampaignOwner")
+  ownedCampaignAssets MarketingCampaignAsset[] @relation("MarketingCampaignAssetOwner")
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -502,11 +505,62 @@ model MarketingSegment {
   status      String  @default("ACTIVE")
   lastBuiltAt DateTime?
   memberships MarketingSegmentMember[]
+  campaigns  MarketingCampaign[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([companyId, name])
   @@index([companyId, status])
+}
+
+model MarketingCampaign {
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  segmentId   String?
+  segment     MarketingSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  ownerMembershipId String?
+  ownerMembership Membership? @relation("MarketingCampaignOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+
+  name        String
+  objective   String
+  status      String   @default("DRAFT")
+  channels    Json
+  startAt     DateTime?
+  endAt       DateTime?
+  budgetCents Int      @default(0)
+  utmCampaign String?
+  notes       String?
+
+  assets      MarketingCampaignAsset[]
+  sequences   EmailSequence[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status, startAt])
+  @@index([segmentId])
+  @@index([ownerMembershipId])
+}
+
+model MarketingCampaignAsset {
+  id          String  @id @default(cuid())
+  campaignId  String
+  campaign    MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ownerMembershipId String?
+  ownerMembership Membership? @relation("MarketingCampaignAssetOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+
+  type        String
+  name        String
+  status      String   @default("TODO")
+  url         String?
+  dueAt       DateTime?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaignId, status])
+  @@index([ownerMembershipId, dueAt])
 }
 
 model MarketingSegmentMember {
@@ -547,6 +601,8 @@ model EmailSequence {
   id        String  @id @default(cuid())
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaignId String?
+  campaign   MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   name        String
   description String?
@@ -561,6 +617,7 @@ model EmailSequence {
 
   @@unique([companyId, name])
   @@index([companyId, status])
+  @@index([campaignId])
 }
 
 model EmailSequenceStep {

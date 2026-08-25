@@ -1,38 +1,14 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 import {
-  Bell,
-  Briefcase,
-  Calculator,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock,
-  FileSignature,
-  FileText,
-  Database,
-  HardHat,
-  Gauge,
-  HelpCircle,
-  Kanban,
-  LayoutDashboard,
-  Mail,
-  Package,
   Pause,
   Play,
-  Receipt,
   RotateCcw,
   Save,
-  Settings,
-  ShieldCheck,
-  UserRoundSearch,
-  Users,
-  Wallet,
-  Workflow,
-  TabletSmartphone,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -42,44 +18,7 @@ import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useTimerStore } from "@/store/timer-store"
-
-const navigation = [
-  { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clients", href: "/dashboard/clients", icon: Users },
-  { name: "Prospects", href: "/dashboard/leads", icon: UserRoundSearch },
-  { name: "Catalogue", href: "/dashboard/catalogue", icon: Package },
-  { name: "Projets", href: "/dashboard/projets", icon: Briefcase },
-  { name: "Chantiers & SAV", href: "/dashboard/operations", icon: HardHat },
-  { name: "Terrain", href: "/dashboard/terrain", icon: TabletSmartphone },
-  { name: "Pipeline", href: "/dashboard/pipeline", icon: Kanban },
-  { name: "Communications", href: "/dashboard/communications", icon: Mail },
-  { name: "Automatisations", href: "/dashboard/automatisations", icon: Workflow },
-  { name: "Scoring & segments", href: "/dashboard/marketing", icon: Gauge },
-  { name: "Organisation", href: "/dashboard/organisation", icon: CalendarDays },
-  { name: "Temps passé", href: "/dashboard/temps", icon: Clock },
-]
-
-const billing = [
-  { name: "Devis", href: "/dashboard/devis", icon: FileText },
-  { name: "Contrats", href: "/dashboard/contrats", icon: FileSignature },
-  { name: "Factures", href: "/dashboard/factures", icon: Receipt },
-  { name: "Dépenses", href: "/dashboard/depenses", icon: Wallet },
-  { name: "Comptabilité", href: "/dashboard/comptabilite", icon: Calculator },
-]
-
-const system = [
-  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
-  { name: "Équipe", href: "/dashboard/equipe", icon: ShieldCheck },
-  { name: "Migration", href: "/dashboard/migrations", icon: Database },
-  { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
-  { name: "Aide", href: "/dashboard/help", icon: HelpCircle },
-]
-
-export const dashboardNavigationSections = [
-  { label: "Général", items: navigation },
-  { label: "Facturation", items: billing },
-  { label: "Système", items: system },
-]
+import { DashboardNavigationMenu } from "./dashboard-navigation-menu"
 
 function formatTimer(seconds: number) {
   const hours = Math.floor(seconds / 3600)
@@ -91,7 +30,6 @@ function formatTimer(seconds: number) {
 }
 
 export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
-  const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [projectsList, setProjectsList] = React.useState<any[]>([])
   const [saving, setSaving] = React.useState(false)
@@ -168,44 +106,7 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
         <AppBrand brand={brand} compact={isCollapsed} />
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
-        {dashboardNavigationSections.map((section) => (
-          <div key={section.label}>
-            {!isCollapsed && (
-              <h2 className="mb-2 px-2 text-[11px] font-semibold uppercase text-muted-foreground">
-                {section.label}
-              </h2>
-            )}
-            <nav aria-label={section.label} className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = item.href === "/dashboard"
-                  ? pathname === "/dashboard"
-                  : pathname === item.href || pathname.startsWith(`${item.href}/`)
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    title={isCollapsed ? item.name : undefined}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "group relative flex h-10 items-center rounded-[10px] text-sm font-medium transition-colors",
-                      isCollapsed ? "justify-center px-2" : "gap-3 px-3",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    {isActive && !isCollapsed && <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary" />}
-                    <item.icon className={cn("size-[18px] shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                    {!isCollapsed && <span>{item.name}</span>}
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-        ))}
-      </div>
+      <div className="flex-1 overflow-y-auto px-3 py-4"><DashboardNavigationMenu collapsed={isCollapsed} /></div>
 
       <div className="border-t border-sidebar-border p-3">
         {isCollapsed ? (

@@ -53,10 +53,10 @@ function previewDocument(html: string | null, plainText: string | null) {
   return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'"><meta name="viewport" content="width=device-width"><style>body{font-family:Arial,sans-serif;color:#182230;line-height:1.55;margin:24px}img{max-width:100%;height:auto}a{color:#1768ff}</style></head><body>${content}</body></html>`
 }
 
-export function CommunicationCenter({ initialData }: { initialData: CommunicationData }) {
+export function CommunicationCenter({ initialData, initialTab = "inbox" }: { initialData: CommunicationData; initialTab?: string }) {
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
-  const [tab, setTab] = React.useState("inbox")
+  const [tab, setTab] = React.useState(initialTab)
   const [selectedId, setSelectedId] = React.useState(initialData.threads[0]?.id ?? "")
   const [previewMessage, setPreviewMessage] = React.useState<CommunicationData["threads"][number]["messages"][number] | null>(null)
   const selected = initialData.threads.find((thread) => thread.id === selectedId) ?? initialData.threads[0]

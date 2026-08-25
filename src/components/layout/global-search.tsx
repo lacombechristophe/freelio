@@ -74,14 +74,14 @@ export function GlobalSearch() {
             <Input
               autoFocus
               className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0"
-              placeholder="Rechercher clients, factures, devis, projets…"
+              placeholder="Rechercher clients, contacts, dossiers, tickets, campagnes…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
           <div className="max-h-[420px] min-h-36 overflow-y-auto p-2">
             {query.length < 2 ? (
-              <div className="grid min-h-32 place-items-center px-4 text-center"><div><Search className="mx-auto mb-3 size-5 text-muted-foreground" /><p className="text-sm font-medium">Recherchez un client, un document ou un projet</p><p className="mt-1 text-xs text-muted-foreground">Saisissez au moins deux caractères.</p></div></div>
+              <div className="grid min-h-32 place-items-center px-4 text-center"><div><Search className="mx-auto mb-3 size-5 text-muted-foreground" /><p className="text-sm font-medium">Recherchez dans tout l’espace</p><p className="mt-1 text-xs text-muted-foreground">Clients, contacts, documents, tickets, équipements et campagnes.</p></div></div>
             ) : loading ? (
               <div className="grid min-h-32 place-items-center"><LoaderCircle className="size-5 animate-spin text-primary" /><span className="sr-only">Recherche en cours</span></div>
             ) : results.length === 0 ? (

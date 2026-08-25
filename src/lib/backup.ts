@@ -97,6 +97,8 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   direct("LeadScoringRule"),
   direct("MarketingSegment"),
   related("MarketingSegmentMember", { segment: { companyId: "$companyId" } }),
+  direct("MarketingCampaign"),
+  related("MarketingCampaignAsset", { campaign: { companyId: "$companyId" } }),
   direct("AutomationWorkflow"),
   direct("AutomationRun"),
   related("ClientFile", { client: { companyId: "$companyId" } }),
@@ -532,7 +534,7 @@ const LEGACY_UNREPRESENTED_TABLES = [
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention", "InterventionReservation",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
-  "EmailSequenceEnrollment", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "AutomationWorkflow", "AutomationRun",
+  "EmailSequenceEnrollment", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "MarketingCampaign", "MarketingCampaignAsset", "AutomationWorkflow", "AutomationRun",
 ]
 
 async function assertLegacyRestoreIsSafe(companyId: string) {

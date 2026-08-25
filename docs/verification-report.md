@@ -15,11 +15,11 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 28 fichiers, 96 tests réussis |
-| `npm run build` | build Next.js 16 de production réussi, 47 routes/pages générées |
+| `npm run test:unit` | 29 fichiers, 98 tests réussis |
+| `npm run build` | build Next.js 16 de production réussi, 56 routes/pages générées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
-| Playwright, PostgreSQL isolé | 12 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 10 mutations volontairement ignorées sur mobile après preuve desktop (24 exécutions) |
-| PostgreSQL 18 vierge | 16 migrations appliquées, dont réparation historique idempotente, sans divergence avec le schéma Prisma |
+| Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
+| PostgreSQL 18 vierge | 17 migrations appliquées, dont réparation historique idempotente et campagnes marketing, sans divergence avec le schéma Prisma |
 | PostgreSQL 18 existant | mise à niveau depuis les 11 migrations antérieures, client historique conservé, nouveaux modèles d’authentification/portail/communication/scoring présents et aucune divergence finale |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |

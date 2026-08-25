@@ -42,6 +42,11 @@ test.afterEach(async ({ page }) => {
 test("new local-first surfaces load and their primary controls respond", async ({ page }, testInfo) => {
   await mkdir(evidenceDir, { recursive: true })
 
+  if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "Ouvrir la navigation" }).click()
+  await page.getByRole("button", { name: "Marketing", exact: true }).click()
+  await expect(page.getByRole("link", { name: "Campagnes", exact: true })).toBeVisible()
+  if (testInfo.project.name === "mobile") await page.locator("#mobile-dashboard-navigation").getByRole("button", { name: "Fermer la navigation" }).click()
+
   await page.goto("/")
   await expect(page.getByRole("heading", { name: "Freelio. Tout votre business freelance, enfin relié." })).toBeVisible()
   await expect(page.locator("#workflow")).toHaveCount(1)
@@ -82,9 +87,18 @@ test("new local-first surfaces load and their primary controls respond", async (
   await clientLink.first().click()
   await page.waitForURL(/\/dashboard\/clients\/[^/]+$/)
   await expect(page.getByText("Prochaine action")).toBeVisible()
-  await page.getByRole("button", { name: "Ajouter" }).first().click()
+  await page.getByRole("button", { name: "Ajouter", exact: true }).first().click()
   await expect(page.getByRole("heading", { name: "Nouveau contact" })).toBeVisible()
   await page.getByRole("button", { name: "Annuler" }).click()
+
+  await assertHealthy(page, "/dashboard/crm", "Clients et relations")
+  await assertHealthy(page, "/dashboard/contacts", "Contacts")
+  await assertHealthy(page, "/dashboard/sales", "Transformer les projets en commandes")
+  await assertHealthy(page, "/dashboard/marketing/overview", "Acquisition et engagement")
+  await assertHealthy(page, "/dashboard/service", "SAV et fidélisation")
+  await assertHealthy(page, "/dashboard/revenue", "Facturation et trésorerie")
+  await assertHealthy(page, "/dashboard/data", "Qualité et gouvernance")
+  await assertHealthy(page, "/dashboard/reports", "Piloter l’entreprise")
 
   await assertHealthy(page, "/dashboard/projets", "Projets")
   const projectLink = page.locator('a[href^="/dashboard/projets/"]')
@@ -483,6 +497,32 @@ test("configures an email sequence and a lead automation", async ({ page }, test
   await expect(page.getByText("Règle activée.")).toBeVisible()
 })
 
+test("plans a multichannel marketing campaign and links its sequence", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "La campagne est créée une seule fois ; sa vue reste couverte au build mobile.")
+  await assertHealthy(page, "/dashboard/campagnes", "Campagnes")
+  const creation = page.locator("details").filter({ hasText: "Créer une campagne" })
+  await creation.locator("summary").click()
+  await creation.locator('input[name="name"]').fill("Campagne QA printemps")
+  await creation.locator('input[name="objective"]').fill("Obtenir des demandes de visite technique")
+  await creation.locator('input[name="startAt"]').fill("2026-09-01")
+  await creation.locator('input[name="endAt"]').fill("2026-10-15")
+  await creation.locator('input[name="budget"]').fill("1500")
+  await creation.locator('input[name="utmCampaign"]').fill("qa-printemps")
+  await creation.getByRole("button", { name: "Créer la campagne" }).click()
+  await expect(page.getByText("Campagne créée.")).toBeVisible()
+  const campaign = page.locator('[data-slot="card"]').filter({ hasText: "Campagne QA printemps" }).last()
+  await expect(campaign).toContainText("Obtenir des demandes de visite technique")
+  await campaign.getByLabel("Statut de la campagne Campagne QA printemps").selectOption("PLANNED")
+  await expect(page.getByText("Statut de campagne mis à jour.")).toBeVisible()
+  await campaign.getByLabel("Nom du livrable pour Campagne QA printemps").fill("E-mail d’annonce QA")
+  await campaign.getByLabel("Échéance du livrable pour Campagne QA printemps").fill("2026-09-01")
+  await campaign.getByRole("button", { name: "Ajouter" }).click()
+  await expect(page.getByText("Livrable ajouté.")).toBeVisible()
+  await campaign.getByLabel("Séquence à rattacher à Campagne QA printemps").selectOption({ label: "Nurturing QA · ACTIVE" })
+  await campaign.getByRole("button", { name: "Rattacher la séquence" }).click()
+  await expect(page.getByText("Séquence rattachée.")).toBeVisible()
+})
+
 test("lead, consent withdrawal, order, billing and reserved stock flow", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Les mutations destructives sont validées une fois ; les surfaces restent testées sur mobile.")
   test.setTimeout(180_000)
@@ -654,6 +694,7 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await reservationSection.getByLabel("Détail de la réserve").fill("Contrôler le réglage après sept jours d’utilisation.")
 
   const signatureCanvas = fieldIntervention.locator("canvas")
+  await signatureCanvas.scrollIntoViewIfNeeded()
   const signatureBox = await signatureCanvas.boundingBox()
   expect(signatureBox).toBeTruthy()
   await page.mouse.move(signatureBox!.x + 25, signatureBox!.y + 95)

@@ -1,0 +1,10 @@
+import { Database, Repeat2, Settings, ShieldCheck, Sparkles } from "lucide-react"
+import { getWorkspaceOverview } from "@/actions/workspaces"
+import { OnboardingRequired } from "@/components/shared/onboarding-required"
+import { WorkspaceHub } from "@/app/dashboard/_components/workspace-hub"
+
+export default async function DataWorkspacePage() {
+  const data = await getWorkspaceOverview()
+  if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de gérer les données." />
+  return <WorkspaceHub eyebrow="Espace données" title="Qualité et gouvernance" description="Contrôlez les sources, migrations, droits et réglages qui rendent les données fiables." primaryAction={{ name: "Centre de migration", href: "/dashboard/migrations", icon: Repeat2, description: "Importer une source" }} metrics={[{ label: "Clients", value: data.clients, detail: `${data.contacts} contact(s)` }, { label: "Connexions actives", value: data.activeConnections, detail: "Sources de migration" }, { label: "Lots de migration", value: data.migrationRuns, detail: "Historique des reprises" }, { label: "Membres actifs", value: data.teamMembers, detail: "Accès à l’espace" }]} sections={[{ title: "Entrées et intégrations", description: "Faire entrer les données sans perdre leur provenance.", links: [{ name: "Migrations", href: "/dashboard/migrations", icon: Repeat2, description: "HubSpot, Extrabat, fichiers et rapports de rapprochement." }, { name: "Canaux et intégrations", href: "/dashboard/communications?tab=integrations", icon: Sparkles, description: "Messagerie et services externes." }] }, { title: "Administration", description: "Gouverner l’identité, les droits et la conformité.", links: [{ name: "Équipe et permissions", href: "/dashboard/equipe", icon: ShieldCheck, description: "Rôles, invitations, capacité et coûts." }, { name: "Paramètres", href: "/dashboard/settings", icon: Settings, description: "Entreprise, documents, fiscalité et sauvegardes." }, { name: "Référentiel", href: "/dashboard/crm", icon: Database, description: "Contrôler clients, contacts et prospects." }] }]} />
+}
