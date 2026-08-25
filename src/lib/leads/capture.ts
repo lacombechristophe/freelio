@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client"
 
 import { publicLeadSchema, normalizePhone, type PublicLeadInput } from "@/lib/leads/schema"
 import { runAutomationEvent } from "@/lib/automations/engine"
+import { refreshSingleLeadIntelligence } from "@/lib/marketing/intelligence"
 import prisma from "@/lib/prisma"
 
 export class LeadConfigurationError extends Error {
@@ -282,6 +283,7 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
     subjectId: result.reference,
     leadId: result.reference,
   }).catch((error) => console.error("Lead automation failed", error))
+  await refreshSingleLeadIntelligence(company.id, result.reference).catch((error) => console.error("Lead scoring refresh failed", error))
 
   return { accepted: true as const, duplicate: false as const, ...result }
 }

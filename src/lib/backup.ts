@@ -79,6 +79,8 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   { model: "Company", delegate: "company", where: (companyId) => ({ id: companyId }) },
   direct("Membership"),
   direct("Client"),
+  direct("ClientPortalMessage"),
+  direct("ClientPortalAppointmentRequest"),
   related("Contact", { client: { companyId: "$companyId" } }),
   related("ClientActivity", { client: { companyId: "$companyId" } }),
   direct("LeadCapture"),
@@ -88,6 +90,13 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   related("EmailSequenceStep", { sequence: { companyId: "$companyId" } }),
   related("EmailSequenceEnrollment", { sequence: { companyId: "$companyId" } }),
   direct("EmailDelivery"),
+  direct("EmailThread"),
+  direct("EmailMessage"),
+  direct("EmailEvent"),
+  direct("CommunicationChannel"),
+  direct("LeadScoringRule"),
+  direct("MarketingSegment"),
+  related("MarketingSegmentMember", { segment: { companyId: "$companyId" } }),
   direct("AutomationWorkflow"),
   direct("AutomationRun"),
   related("ClientFile", { client: { companyId: "$companyId" } }),
@@ -169,6 +178,7 @@ const EXCLUDED_MODELS = [
   { model: "Account", reason: "Jetons OAuth exclus pour éviter de réactiver des accès externes lors d’une reprise." },
   { model: "Session", reason: "Sessions actives exclues volontairement pour des raisons de sécurité." },
   { model: "VerificationToken", reason: "Jetons de connexion à usage unique exclus volontairement pour des raisons de sécurité." },
+  { model: "ClientPortalAccess", reason: "Liens d'accès porteurs exclus ; ils doivent être réémis après une reprise." },
   { model: "Notification", reason: "Le schéma actuel ne porte pas de companyId ; une extraction multi-tenant sûre est impossible." },
   { model: "ApiKey", reason: "Clés personnelles non rattachées à une entreprise et exclues volontairement." },
   { model: "EmailLog", reason: "Journal global sans companyId : export inter-entreprises interdit." },
@@ -516,13 +526,13 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 }
 
 const LEGACY_UNREPRESENTED_TABLES = [
-  "LeadCapture", "MarketingConsent", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
+  "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
   "InventoryItem", "StockMovement", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "FieldIntervention", "InterventionReservation",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
-  "EmailSequenceEnrollment", "EmailDelivery", "AutomationWorkflow", "AutomationRun",
+  "EmailSequenceEnrollment", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "AutomationWorkflow", "AutomationRun",
 ]
 
 async function assertLegacyRestoreIsSafe(companyId: string) {

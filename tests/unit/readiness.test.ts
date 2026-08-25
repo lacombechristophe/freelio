@@ -14,6 +14,7 @@ const validProductionEnvironment = {
   AUTOMATION_CRON_SECRET: "g".repeat(32),
   SCHEDULER_CRON_SECRET: "h".repeat(32),
   RESEND_API_KEY: "resend-test-key",
+  RESEND_WEBHOOK_SECRET: "whsec_test-key",
   EMAIL_FROM: "CRM <noreply@example.test>",
   PUBLIC_LEAD_COMPANY_ID: "company-id",
   LEAD_ALLOWED_ORIGINS: "https://example.test",

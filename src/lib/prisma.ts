@@ -15,6 +15,9 @@ const MUTATION_OPERATIONS = new Set([
 
 const COMPANY_SCOPED_MODELS = new Set([
   "Client",
+  "ClientPortalAccess",
+  "ClientPortalMessage",
+  "ClientPortalAppointmentRequest",
   "Project",
   "Pipeline",
   "ServiceCategory",
@@ -60,6 +63,12 @@ const COMPANY_SCOPED_MODELS = new Set([
   "EmailTemplate",
   "EmailSequence",
   "EmailDelivery",
+  "EmailThread",
+  "EmailMessage",
+  "EmailEvent",
+  "CommunicationChannel",
+  "LeadScoringRule",
+  "MarketingSegment",
   "AutomationWorkflow",
   "AutomationRun",
   "CustomerOrder",

@@ -1,6 +1,6 @@
 "use server"
 
-import { credentialsAuthEnabled, signIn } from "@/auth"
+import { credentialsAuthEnabled, magicLinkAuthEnabled, signIn } from "@/auth"
 import { AuthError } from "next-auth"
 import { authRateLimit } from "@/lib/rate-limit"
 import { headers } from "next/headers"
@@ -8,6 +8,7 @@ import { headers } from "next/headers"
 export type SignInState = {
   success: boolean
   error?: string
+  method?: "password" | "magic"
 }
 
 export async function submitSignInWithEmail(
@@ -19,6 +20,8 @@ export async function submitSignInWithEmail(
 
 export async function signInWithEmail(formData: FormData) {
   const email = formData.get("email") as string
+  const password = String(formData.get("password") ?? "")
+  const method: "magic" | "password" = formData.get("method") === "magic" ? "magic" : "password"
   const requestedRedirect = String(formData.get("redirectTo") ?? "")
   const redirectTo = requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//")
     ? requestedRedirect
@@ -28,8 +31,14 @@ export async function signInWithEmail(formData: FormData) {
     return { success: false, error: "L'adresse e-mail est requise." }
   }
 
-  const isLocalCredentials = credentialsAuthEnabled
-  if (!isLocalCredentials) {
+  if (method === "magic" && !magicLinkAuthEnabled && !credentialsAuthEnabled) {
+    return { success: false, method, error: "La connexion par lien n’est pas encore configurée. Utilisez votre mot de passe." }
+  }
+  if (method === "password" && !credentialsAuthEnabled && !password) {
+    return { success: false, method, error: "Le mot de passe est requis." }
+  }
+
+  if (!credentialsAuthEnabled) {
     // Rate limit by IP to prevent brute-force on the public auth endpoint.
     const headersList = await headers()
     const ip = headersList.get("x-forwarded-for") ?? headersList.get("x-real-ip") ?? "unknown"
@@ -42,16 +51,16 @@ export async function signInWithEmail(formData: FormData) {
 
   try {
     await signIn(
-      credentialsAuthEnabled ? "credentials" : "resend",
-      { email, redirectTo }
+      method === "magic" ? "resend" : "credentials",
+      { email: email.trim().toLowerCase(), password, redirectTo }
     )
-    return { success: true }
+    return { success: true, method }
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
-        return { success: false, error: "Identifiants invalides." }
+        return { success: false, method, error: "Adresse e-mail ou mot de passe incorrect." }
       }
-      return { success: false, error: "Une erreur est survenue lors de la connexion." }
+      return { success: false, method, error: "Une erreur est survenue lors de la connexion." }
     }
     throw error
   }

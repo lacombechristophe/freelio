@@ -5,7 +5,7 @@ import { renderEmailVariables } from "@/lib/automations/email"
 import { enrollLeadInSequenceInternal } from "@/lib/automations/sequences"
 import prisma from "@/lib/prisma"
 
-export const automationTriggerSchema = z.enum(["LEAD_CREATED", "LEAD_STATUS_CHANGED", "QUOTE_STATUS_CHANGED"])
+export const automationTriggerSchema = z.enum(["LEAD_CREATED", "LEAD_STATUS_CHANGED", "QUOTE_STATUS_CHANGED", "EMAIL_RECEIVED", "EMAIL_OPENED", "EMAIL_CLICKED", "PORTAL_APPOINTMENT_REQUESTED", "INTERVENTION_COMPLETED"])
 
 const conditionsSchema = z.object({
   source: z.string().trim().max(80).optional(),
@@ -18,6 +18,7 @@ const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("ENROLL_SEQUENCE"), sequenceId: z.string().cuid() }),
   z.object({ type: z.literal("CREATE_TASK"), title: z.string().trim().min(2).max(180), delayHours: z.number().int().min(0).max(8_760).default(0), priority: z.number().int().min(1).max(4).default(2) }),
   z.object({ type: z.literal("NOTIFY_TEAM"), title: z.string().trim().min(2).max(180) }),
+  z.object({ type: z.literal("UPDATE_LEAD_STATUS"), status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "ARCHIVED", "SPAM"]) }),
 ])
 
 export const workflowConfigurationSchema = z.object({
@@ -28,10 +29,11 @@ export const workflowConfigurationSchema = z.object({
 type AutomationEvent = {
   companyId: string
   event: z.infer<typeof automationTriggerSchema>
-  subjectModel: "LeadCapture" | "Quote"
+  subjectModel: "LeadCapture" | "Quote" | "EmailMessage" | "ClientPortalAppointmentRequest" | "FieldIntervention"
   subjectId: string
   eventKey: string
   leadId?: string
+  clientId?: string
 }
 
 function conditionMatches(conditions: z.infer<typeof conditionsSchema>, lead: {
@@ -71,7 +73,8 @@ export async function runAutomationEvent(event: AutomationEvent) {
 
     try {
       const config = workflowConfigurationSchema.parse({ conditions: workflow.conditions ?? undefined, actions: workflow.actions })
-      if (config.conditions && (!lead || !conditionMatches(config.conditions, lead))) {
+      const hasLeadConditions = config.conditions && Object.values(config.conditions).some((value) => value !== undefined && value !== "")
+      if (hasLeadConditions && (!lead || !conditionMatches(config.conditions!, lead))) {
         await prisma.automationRun.update({ where: { id: runId }, data: { status: "SKIPPED", output: { reason: "CONDITIONS_NOT_MET" }, completedAt: new Date() } })
         continue
       }
@@ -82,16 +85,20 @@ export async function runAutomationEvent(event: AutomationEvent) {
           const enrollment = await enrollLeadInSequenceInternal({ companyId: event.companyId, sequenceId: action.sequenceId, leadId: lead.id })
           output.push({ type: action.type, enrollmentId: enrollment.id })
         } else if (action.type === "CREATE_TASK") {
-          if (!lead) throw new Error("Cette action exige un prospect")
-          const title = renderEmailVariables(action.title, { company, lead }, false)
+          if (!lead && !event.clientId) throw new Error("Cette action exige un prospect ou un client")
+          const title = lead ? renderEmailVariables(action.title, { company, lead }, false) : action.title
           const dueDate = new Date(Date.now() + action.delayHours * 60 * 60 * 1_000)
-          const task = await prisma.organisationTask.create({ data: { companyId: event.companyId, clientId: lead.clientId, title, status: "TODO", priority: action.priority, category: "COMMERCIAL", dueDate } })
+          const task = await prisma.organisationTask.create({ data: { companyId: event.companyId, clientId: lead?.clientId || event.clientId || null, title, status: "TODO", priority: action.priority, category: "COMMERCIAL", dueDate } })
           output.push({ type: action.type, taskId: task.id })
         } else if (action.type === "NOTIFY_TEAM") {
           const title = lead ? renderEmailVariables(action.title, { company, lead }, false) : action.title
           const recipients = await prisma.membership.findMany({ where: { companyId: event.companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] } }, select: { userId: true } })
           if (recipients.length) await prisma.notification.createMany({ data: recipients.map(({ userId }) => ({ userId, type: "AUTOMATION", title, message: `Règle : ${workflow.name}` })) })
           output.push({ type: action.type, recipients: recipients.length })
+        } else if (action.type === "UPDATE_LEAD_STATUS") {
+          if (!lead) throw new Error("Cette action exige un prospect")
+          await prisma.leadCapture.update({ where: { id: lead.id }, data: { status: action.status } })
+          output.push({ type: action.type, status: action.status })
         }
       }
       await prisma.automationRun.update({ where: { id: runId }, data: { status: "COMPLETED", output: output as Prisma.InputJsonValue, completedAt: new Date() } })

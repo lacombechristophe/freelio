@@ -63,7 +63,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `ENCRYPTION_KEY` : clé stable protégeant l'IBAN et les identifiants de sources ;
 - `JWT_SECRET` : secret indépendant pour les jetons applicatifs ;
 - `CONSENT_TOKEN_SECRET` : secret dédié d'au moins 32 caractères pour les liens publics de désinscription ; le repli technique sur `JWT_SECRET`/`AUTH_SECRET` ne doit pas être le choix de production ;
-- `RESEND_API_KEY` et `EMAIL_FROM` ;
+- `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` pour les e-mails CRM, les événements et le lien magique optionnel ;
 - `PUBLIC_LEAD_COMPANY_ID` : identifiant de la société destinataire des demandes publiques ;
 - `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL` et `AUTOMATION_CRON_SECRET` ;
 - `SCHEDULER_CRON_SECRET` si une clé distincte est souhaitée pour l’ordonnanceur métier ; sinon la route utilise `AUTOMATION_CRON_SECRET` ;
@@ -76,6 +76,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires dès que plusieurs instances servent du trafic ou que la capture publique est ouverte ;
 - `REDIS_HOST` et `REDIS_PORT` : obligatoires pour BullMQ ;
 - `GEMINI_API_KEY` : seulement pour l'OCR des justificatifs.
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte/calendrier correspondant doit être autorisé ; ne jamais afficher un canal comme actif avant le consentement OAuth et un test de lecture/écriture.
 
 Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur présence, leur date de rotation et l'accès au service cible.
 
@@ -143,7 +144,9 @@ Effectuer avec un compte de recette non privilégié puis avec chaque rôle crit
 
 - `/auth/login` répond sans erreur ;
 - `/api/health/live` répond `200` et `/api/health/ready` répond `200` sans exposer de détail de configuration ;
-- connexion par lien magique reçue et utilisable une fois ;
+- création d’un compte de recette, connexion par mot de passe et rejet d’un mot de passe incorrect ;
+- si Resend est activé, lien magique reçu et utilisable une fois ;
+- si la réception e-mail est activée, webhook signé reçu, événement dédoublonné et réponse rattachée au bon client ;
 - dashboard, clients, pipeline, projets, opérations, factures et migrations chargent ;
 - isolation des rôles : un profil sans permission ne peut pas muter le domaine ;
 - création puis suppression d'un prospect de recette ;
@@ -234,7 +237,8 @@ Niveaux conseillés :
 ### Authentification ou Resend indisponible
 
 - vérifier le statut fournisseur et la validité du domaine ;
-- ne pas activer le fournisseur `credentials` en production : il est limité par le code à `NODE_ENV=development` ;
+- la connexion par mot de passe reste disponible sans Resend ; ne jamais créer de mot de passe en clair ni activer la porte de recette sans les trois variables CI prévues ;
+- si le lien magique est utilisé, contrôler la présence de `VerificationToken`, `RESEND_API_KEY`, `EMAIL_FROM` et l’URL canonique ;
 - conserver les sessions existantes si elles ne présentent pas de risque ;
 - utiliser une procédure métier hors ligne validée pour les urgences ;
 - après retour, tester un lien neuf et un lien expiré.

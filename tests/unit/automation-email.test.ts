@@ -51,7 +51,7 @@ describe("email automation", () => {
       subjectTemplate: "Bonjour {{contact.firstName}}",
       bodyTemplate: "<p>Votre projet {{lead.projectType}}</p>",
       idempotencyKey: "delivery-1",
-    })).resolves.toEqual({ providerId: "email-1", subject: "Bonjour Camille" })
+    })).resolves.toMatchObject({ providerId: "email-1", subject: "Bonjour Camille", from: "Entreprise & Associés <noreply@example.fr>" })
 
     const [, request] = fetchMock.mock.calls[0]
     const body = JSON.parse(String(request.body))

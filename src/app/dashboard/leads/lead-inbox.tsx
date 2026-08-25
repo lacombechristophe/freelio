@@ -80,7 +80,7 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
         <article key={lead.id} className="rounded-xl border bg-card p-5 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-semibold">{lead.firstName} {lead.lastName}</h2><Badge variant={lead.status === "NEW" ? "default" : lead.status === "SPAM" ? "destructive" : "secondary"}>{STATUS_LABELS[lead.status] ?? lead.status}</Badge></div>
+              <div className="flex flex-wrap items-center gap-2"><h2 className="text-base font-semibold">{lead.firstName} {lead.lastName}</h2><Badge variant={lead.status === "NEW" ? "default" : lead.status === "SPAM" ? "destructive" : "secondary"}>{STATUS_LABELS[lead.status] ?? lead.status}</Badge><Badge variant={lead.score >= 60 ? "default" : "outline"} title="Score de priorité explicable dans Scoring & segments">{lead.score} points</Badge></div>
               <p className="mt-1 text-sm text-muted-foreground">{lead.projectType || "Projet à qualifier"}</p>
             </div>
             <Select value={lead.status} disabled={isPending} onValueChange={(value) => { if (value) execute(() => updateLeadStatus(lead.id, value), "Statut du prospect actualisé.") }}><SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
