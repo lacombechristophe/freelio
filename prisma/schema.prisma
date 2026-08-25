@@ -110,6 +110,7 @@ model Company {
   services             Service[]
   serviceCats          ServiceCategory[]
   projects             Project[]
+  projectTemplates     ProjectTemplate[]
   quotes               Quote[]
   invoices             Invoice[]
   recurring            RecurringInvoice[]
@@ -178,6 +179,7 @@ model Membership {
   assignedInterventions  FieldIntervention[] @relation("InterventionAssignee")
   ownedOpportunities     Opportunity[]       @relation("OpportunityOwner")
   approvedPurchaseOrders PurchaseOrder[]     @relation("PurchaseOrderApprover")
+  assignedProjectMilestones ProjectMilestone[] @relation("ProjectMilestoneAssignee")
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -568,6 +570,8 @@ model Project {
   client    Client        @relation(fields: [clientId], references: [id])
   siteId    String?
   site      CustomerSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  projectTemplateId String?
+  projectTemplate   ProjectTemplate? @relation(fields: [projectTemplateId], references: [id], onDelete: SetNull)
 
   name          String
   description   String?
@@ -603,6 +607,50 @@ model Project {
   @@index([companyId])
   @@index([clientId])
   @@index([siteId])
+  @@index([projectTemplateId])
+}
+
+model ProjectTemplate {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name                String
+  description         String?
+  worksiteType        String?
+  defaultBudgetCents  Int     @default(0)
+  defaultDurationDays Int     @default(0)
+  active              Boolean @default(true)
+
+  steps    ProjectTemplateStep[]
+  projects Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, active])
+}
+
+model ProjectTemplateStep {
+  id         String          @id @default(cuid())
+  templateId String
+  template   ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+  kind            String @default("MILESTONE")
+  offsetDays      Int    @default(0)
+  durationDays    Int    @default(1)
+  order           Int    @default(0)
+  dependsOnStepId String?
+  dependsOnStep   ProjectTemplateStep?  @relation("ProjectTemplateStepDependency", fields: [dependsOnStepId], references: [id], onDelete: SetNull)
+  dependentSteps  ProjectTemplateStep[] @relation("ProjectTemplateStepDependency")
+  milestones      ProjectMilestone[]
+
+  @@unique([templateId, title])
+  @@index([templateId, order])
+  @@index([dependsOnStepId])
 }
 
 model ProjectMilestone {
@@ -611,11 +659,26 @@ model ProjectMilestone {
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
   description String?
+  kind        String    @default("MILESTONE")
   status      String    @default("PENDING")
+  plannedStartAt DateTime?
   dueDate     DateTime?
+  durationDays Int      @default(1)
   order       Int       @default(0)
+  templateStepId String?
+  templateStep   ProjectTemplateStep? @relation(fields: [templateStepId], references: [id], onDelete: SetNull)
+  dependsOnId    String?
+  dependsOn      ProjectMilestone?  @relation("ProjectMilestoneDependency", fields: [dependsOnId], references: [id], onDelete: SetNull)
+  dependentMilestones ProjectMilestone[] @relation("ProjectMilestoneDependency")
+  assignedMembershipId String?
+  assignedMembership   Membership? @relation("ProjectMilestoneAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@unique([projectId, templateStepId])
+  @@index([projectId, order])
+  @@index([dependsOnId])
+  @@index([assignedMembershipId, plannedStartAt])
 }
 
 model ProjectFile {
@@ -645,7 +708,7 @@ model ProjectTechnicalProfile {
   domainExpiresAt  DateTime?
   notes            String?
 
-  // Relevé technique Diskoov. Les champs ci-dessus restent disponibles pour
+  // Relevé technique métier. Les champs ci-dessus restent disponibles pour
   // préserver les anciennes données lors d'une reprise, mais ne sont plus
   // exposés dans l'interface métier.
   surveyStatus            String    @default("DRAFT") // DRAFT, SURVEYED, VALIDATED
@@ -845,7 +908,7 @@ model Service {
 }
 
 // ══════════════════════════════════════════════════════════
-//  DISKOOV OPERATIONS: SITES, PRODUCTS, STOCK & FIELD SERVICE
+//  OPERATIONS: SITES, PRODUCTS, STOCK & FIELD SERVICE
 // ══════════════════════════════════════════════════════════
 
 model CustomerSite {

@@ -1,6 +1,6 @@
-# Diskoov CRM/ERP
+# CRM/ERP Freelio
 
-Application métier interne destinée à réunir dans un même outil la relation client, la vente, les opérations piscine, le stock, le SAV et la facturation de Diskoov. Le dépôt contient aussi un centre de reprise contrôlée des données HubSpot et Extrabat.
+Application métier configurable destinée à réunir dans un même outil la relation client, la vente, les opérations, le stock, le SAV et la facturation. L’identité affichée provient du profil entreprise ; aucune marque cliente n’est codée en dur dans l’interface. Le dépôt contient aussi un centre de reprise contrôlée des données HubSpot et Extrabat.
 
 L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliables. La résiliation ne doit toutefois intervenir qu'après une reprise réelle des comptes Diskoov, une recette métier et la validation des dépendances externes listées dans la [matrice de couverture](docs/coverage-and-external-dependencies.md).
 
@@ -11,10 +11,10 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - clients, contacts, sites d'installation, activités et prochaines actions ;
 - pipeline commercial avec responsables, échéances, forecast pondéré et motifs de perte, devis versionnés, contrats et signature publique par jeton ;
 - conversion devis → commande client → facture d'acompte ou de solde ;
-- projets, relevé technique piscine, jalons, documents et réception ;
+- projets, modèles de chantier, étapes datées, dépendances, responsables, relevé technique, documents et réception ;
 - fournisseurs, gammes, variantes, options, nomenclatures, tarifs historisés, dépôts, achats multi-lignes approuvés, accusés, réceptions, anomalies, retours, mouvements et réservations de stock ;
 - configurateur de devis avec options obligatoires, coût de nomenclature, remises contrôlées et marge unitaire ;
-- équipements installés, tickets SAV, planning de capacité, coûts horaires, matériel consommé et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
+- équipements installés, tickets SAV, planning anti-conflit, capacité, tournées chronologiques, coûts horaires, matériel consommé et terrain PWA hors ligne avec photos, rapports PDF et preuves client ;
 - contrats d’entretien avec visites et factures récurrentes idempotentes ;
 - factures, règlements, avoirs, relances, récurrence, dépenses, import bancaire et Factur-X ;
 - équipe multi-utilisateur avec rôles et permissions par domaine ;

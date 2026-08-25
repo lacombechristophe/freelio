@@ -1,6 +1,6 @@
 # Matrice de couverture et dépendances externes
 
-Date de l'audit du code : 24 août 2026
+Date de l'audit du code : 25 août 2026
 Portée : état du dépôt, pas configuration réelle des comptes ni preuve de production.
 
 ## 1. Légende
@@ -54,8 +54,8 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Dépôts et stock | **Disponible** | quantité, réservé, disponible, seuil, emplacement et mouvements transactionnels | inventaire tournant, valorisation avancée, lots/séries et transferts guidés à compléter |
 | Réservation chantier/commande | **Disponible** | réservation, libération, consommation et traçabilité | allocation automatique et substitutions produit absentes |
 | Bon de livraison | **Disponible** | lignes, reliquats, destinataire, signature horodatée et scellée SHA-256, statut et PDF métier | niveau de preuve de réception à faire valider juridiquement selon les usages réels |
-| Chantiers | **Partiel** | projet, site, étapes métier, budget, jalons, recette, documents et temps | modèles de chantier, dépendances et marge réelle complète à compléter |
-| Planning | **Partiel** | tâches, dates, interventions planifiées, affectation membre et charge hebdomadaire comparée à la capacité configurable | pas d’optimisation de tournée, de dépendances avancées ni de prise de rendez-vous client |
+| Chantiers | **Partiel** | projet, site, modèles réutilisables, budget/type/durée par défaut, étapes datées, responsables, dépendances anti-cycle et blocage des prérequis, recette, documents et temps | marge réelle globale, plan de ressources et cas métier des modèles à recetter sur les dossiers réels |
+| Planning | **Partiel** | tâches et jalons dépendants, interventions replanifiables, affectation membre, rejet serveur des chevauchements et charge hebdomadaire comparée à la capacité configurable | pas de prise de rendez-vous client, de temps de trajet routier ni d’optimisation automatique |
 | Terrain mobile | **Partiel** | PWA installable, cache borné à 24 h, missions accessibles hors ligne, brouillons, clôtures et photos mises en attente puis resynchronisées | hors-ligne limité au terrain ; pas de signature manuscrite ni de résolution assistée des conflits complexes |
 | Parc installé | **Disponible** | site, produit, fabricant, modèle, série, pose, garantie et état | notices et historique de pièces non structurés |
 | Tickets SAV | **Disponible** | client/site/équipement, priorité, affectation, échéance, statuts, résolution et interventions rattachées | SLA et diagnostic guidé à enrichir |
@@ -63,11 +63,11 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Contrats d'entretien | **Partiel** | contrat, site, équipements, fréquence, prochaine visite, prix, création idempotente des visites et factures automatiques | renouvellement contractuel, alertes et cas tarifaires complexes à compléter |
 | GED | **Partiel** | fichiers client/projet/dépense/intervention, stockage R2 privé, hash, contrôle de signature de fichier et accès authentifié | classement, recherche plein texte et politiques de conservation à formaliser |
 | Portail client | **Non couvert** | signature publique de contrat uniquement | documents, rendez-vous, messages et suivi client absents |
-| Cartographie/tournées | **Non couvert** | latitude/longitude stockables | fournisseur de carte/géocodage et UX à choisir si nécessaires |
+| Cartographie/tournées | **Partiel** | coordonnées saisissables, tournées quotidiennes chronologiques par intervenant, distance à vol d’oiseau et alertes de créneaux en conflit | pas de carte, géocodage, trafic ni optimisation routière ; fournisseur externe à choisir si ces fonctions sont requises |
 | Caisse/POS | **Non couvert** | — | exclure formellement si non utilisé |
 | Import historique Extrabat | **Partiel** | dépôt CSV/JSON/Excel/ZIP/PDF, mappings métier étendus et vérification | pas d'extracteur générique sans documentation API du compte ; restitution/export Extrabat obligatoire |
 
-**Conclusion Extrabat :** le dépôt couvre le flux central vente → commande → achat/stock → chantier → facturation ainsi que le noyau SAV, le terrain hors ligne borné, les preuves d’intervention et la capacité hebdomadaire. L’optimisation des tournées, la signature manuscrite, les pièces/frais SAV et les règles/catalogues avancés restent des gates selon les pratiques réelles de Diskoov.
+**Conclusion Extrabat :** le dépôt couvre le flux central vente → commande → achat/stock → chantier → facturation ainsi que le noyau SAV, le terrain hors ligne borné, les preuves d’intervention, les dépendances de chantier, la capacité hebdomadaire et l’ordre de tournée. L’optimisation routière, la signature manuscrite, les pièces/frais SAV et les règles/catalogues avancés restent des gates selon les pratiques réelles de Diskoov.
 
 ## 4. Finance, conformité et administration
 
@@ -95,7 +95,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Permissions | **Partiel** | lecture/écriture par domaine et isolation `companyId` | pas d'autorisation fine par dossier/équipe ; audit de sécurité nécessaire |
 | Authentification | **Partiel** | lien magique Resend, session JWT, connexion locale limitée au développement | pas de MFA ni interface de révocation de session |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
-| PostgreSQL | **Disponible** | schéma miroir, client dédié et huit migrations versionnées validées sur une base PostgreSQL vierge | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
+| PostgreSQL | **Disponible** | schéma miroir, client dédié et dix migrations versionnées validées sur base vierge et sur reprise d’un schéma antérieur avec données | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
 | Stockage objet | **Disponible** | R2 privé obligatoire en production, hash et accès authentifié | versioning/rétention/sauvegarde fournisseur à configurer |
 | Rate limiting | **Disponible** | Upstash distribué ou mémoire locale | Upstash requis en production multi-instance |
 | Files de travaux | **Partiel** | BullMQ pour les documents, processeur persistant des séquences e-mail et ordonnanceur entretien/factures dans le worker, avec routes de cron protégées | supervision, alertes, quotas et procédure de rejeu à configurer |
@@ -104,7 +104,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Réversibilité | **Disponible** | export versionné des tables société, fichiers locaux/R2 et manifeste d'intégrité, avec secrets/jetons exclus | la reprise du JSON est logique et contrôlée ; le PRA complet repose sur PostgreSQL/R2 natifs |
 | Sauvegarde/PRA | **Externe** | export applicatif utile à la portabilité | sauvegardes natives PostgreSQL/R2, PITR et tests de restauration à configurer |
 | Supervision | **Partiel** | logs structurés et routes publiques de vie/aptitude sans exposition de secrets | brancher moniteur, collecte d’erreurs, métriques et alertes humaines |
-| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 83 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
+| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 88 tests unitaires, build et Playwright sur base isolée | déploiement automatique et infrastructure reproductible non fournis |
 | E2E | **Disponible** | parcours critiques Playwright desktop/mobile | exécution finale sur préproduction isolée nécessaire |
 | PWA/hors ligne | **Partiel** | manifeste, service worker et espace terrain hors ligne borné avec reprise des clôtures/photos | pas de fonctionnement hors ligne du CRM/ERP complet ni de résolution avancée de conflits |
 | Sécurité externe | **Externe** | CSP, contrôles de routes, chiffrement et rate limiting dans le code | revue de configuration, pentest et procédure incident avant données réelles |

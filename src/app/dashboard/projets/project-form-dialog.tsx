@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { createProject, updateProject } from "@/actions/projets"
+import type { ProjectTemplateOption } from "./project-template-dialog"
 
 type Project = {
   id: string
@@ -26,18 +27,28 @@ type Project = {
   status: string
   budgetCents: number
   clientId: string
+  projectTemplateId?: string | null
+  worksiteType?: string | null
+  startDate?: Date | string | null
+  endDate?: Date | string | null
 }
 
 type ClientOption = { id: string; name: string }
 
+function emptyProjectForm() {
+  return { clientId: "", projectTemplateId: "", name: "", description: "", worksiteType: "", startDate: "", endDate: "", budget: "", status: "ACTIVE" }
+}
+
 export function ProjectFormDialog({
   project,
   clients,
+  templates,
   open,
   onOpenChange,
 }: {
   project?: Project
   clients: ClientOption[]
+  templates: ProjectTemplateOption[]
   open: boolean
   onOpenChange: (o: boolean) => void
 }) {
@@ -45,8 +56,12 @@ export function ProjectFormDialog({
   const [pending, setPending] = React.useState(false)
   const [form, setForm] = React.useState({
     clientId: project?.clientId ?? "",
+    projectTemplateId: project?.projectTemplateId ?? "",
     name: project?.name ?? "",
     description: project?.description ?? "",
+    worksiteType: project?.worksiteType ?? "",
+    startDate: project?.startDate ? new Date(project.startDate).toISOString().slice(0, 10) : "",
+    endDate: project?.endDate ? new Date(project.endDate).toISOString().slice(0, 10) : "",
     budget: project ? (project.budgetCents / 100).toString() : "",
     status: project?.status ?? "ACTIVE",
   })
@@ -55,12 +70,16 @@ export function ProjectFormDialog({
     if (open && project) {
       setForm({
         clientId: project.clientId,
+        projectTemplateId: project.projectTemplateId ?? "",
         name: project.name,
         description: project.description ?? "",
+        worksiteType: project.worksiteType ?? "",
+        startDate: project.startDate ? new Date(project.startDate).toISOString().slice(0, 10) : "",
+        endDate: project.endDate ? new Date(project.endDate).toISOString().slice(0, 10) : "",
         budget: (project.budgetCents / 100).toString(),
         status: project.status,
       })
-    }
+    } else if (open && !project) setForm(emptyProjectForm())
   }, [open, project])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -73,8 +92,12 @@ export function ProjectFormDialog({
     try {
       const payload = {
         clientId: form.clientId,
+        projectTemplateId: form.projectTemplateId,
         name: form.name,
         description: form.description,
+        worksiteType: form.worksiteType,
+        startDate: form.startDate,
+        endDate: form.endDate,
         budgetCents: Math.round(Number(form.budget || 0) * 100),
         status: form.status as "ACTIVE" | "COMPLETED" | "ARCHIVED",
       }
@@ -104,7 +127,7 @@ export function ProjectFormDialog({
           <div className="space-y-1.5">
             <Label>Client *</Label>
             <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v ?? "" })}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Client du projet">
                 <SelectValue placeholder="Sélectionner un client…" />
               </SelectTrigger>
               <SelectContent>
@@ -114,6 +137,19 @@ export function ProjectFormDialog({
               </SelectContent>
             </Select>
           </div>
+          {!project && templates.some((template) => template.active) ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="project-template">Modèle de chantier</Label>
+              <select id="project-template" value={form.projectTemplateId} onChange={(event) => {
+                const template = templates.find((item) => item.id === event.target.value)
+                setForm({ ...form, projectTemplateId: event.target.value, worksiteType: template?.worksiteType || form.worksiteType, budget: template?.defaultBudgetCents ? (template.defaultBudgetCents / 100).toString() : form.budget })
+              }} className="h-10 w-full rounded-[10px] border bg-background px-3 text-sm">
+                <option value="">Projet libre</option>
+                {templates.filter((template) => template.active).map((template) => <option key={template.id} value={template.id}>{template.name} · {template.steps.length} étapes</option>)}
+              </select>
+              <p className="text-xs text-muted-foreground">Les étapes, dates et dépendances sont instanciées à la création.</p>
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="name">Nom *</Label>
             <Input
@@ -130,6 +166,14 @@ export function ProjectFormDialog({
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="worksiteType">Type de chantier</Label>
+            <Input id="worksiteType" value={form.worksiteType} onChange={(e) => setForm({ ...form, worksiteType: e.target.value })} placeholder="Installation, SAV, rénovation…" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label htmlFor="projectStartDate">Début prévu</Label><Input id="projectStartDate" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label htmlFor="projectEndDate">Fin prévue</Label><Input id="projectEndDate" type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="budget">Budget (€)</Label>

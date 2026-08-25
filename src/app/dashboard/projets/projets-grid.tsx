@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Plus, MoreHorizontal, Briefcase } from "lucide-react"
+import { Plus, MoreHorizontal, Briefcase, Workflow } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +18,7 @@ import { ProjectFormDialog } from "./project-form-dialog"
 import { archiveProject, deleteProject } from "@/actions/projets"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { EmptyState } from "@/components/shared/empty-state"
+import { ProjectTemplateDialog, type ProjectTemplateOption } from "./project-template-dialog"
 
 type Project = {
   id: string
@@ -29,6 +30,8 @@ type Project = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   clientId: string
+  projectTemplateId?: string | null
+  worksiteType?: string | null
   client: { id: string; name: string }
 }
 
@@ -45,14 +48,17 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 export function ProjetsGrid({
   projects,
   clients,
+  templates,
 }: {
   projects: Project[]
   clients: Array<{ id: string; name: string }>
+  templates: ProjectTemplateOption[]
 }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [filter, setFilter] = React.useState<string>("ALL")
   const [createOpen, setCreateOpen] = React.useState(false)
+  const [templatesOpen, setTemplatesOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<Project | null>(null)
 
   const filtered = filter === "ALL" ? projects : projects.filter((p) => p.status === filter)
@@ -98,18 +104,21 @@ export function ProjetsGrid({
             </Button>
           ))}
         </div>
-        <Button className="w-full gap-2 sm:ml-auto sm:w-auto" onClick={() => setCreateOpen(true)}>
+        <Button variant="outline" className="w-full gap-2 sm:ml-auto sm:w-auto" onClick={() => setTemplatesOpen(true)}><Workflow />Modèles</Button>
+        <Button className="w-full gap-2 sm:w-auto" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" />
           Nouveau Projet
         </Button>
       </div>
 
-      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} clients={clients} />
+      <ProjectTemplateDialog open={templatesOpen} onOpenChange={setTemplatesOpen} templates={templates} />
+      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} clients={clients} templates={templates} />
       {editTarget && (
         <ProjectFormDialog
           open={!!editTarget}
           onOpenChange={(o) => !o && setEditTarget(null)}
           clients={clients}
+          templates={templates}
           project={editTarget}
         />
       )}

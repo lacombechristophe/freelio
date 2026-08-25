@@ -39,8 +39,8 @@ Le dépôt actuel est un CRM/ERP Diskoov fonctionnel en cours de recette. Les li
 ### 2.2 État technique mesuré
 
 - Next.js 16, React 19.2, TypeScript strict et Prisma 6.2 ;
-- SQLite conservé pour le développement ; schéma/client PostgreSQL et huit migrations versionnées validés sur une base PostgreSQL vierge ;
-- 81 modèles Prisma couvrant CRM, vente, opérations, finance et migration ;
+- SQLite conservé pour le développement ; schéma/client PostgreSQL et dix migrations versionnées validés sur une base PostgreSQL vierge et une reprise avec données historiques ;
+- 96 modèles Prisma couvrant CRM, vente, opérations, finance et migration ;
 - stockage local de développement et Cloudflare R2 obligatoire en production ;
 - BullMQ/Redis pour la génération documentaire asynchrone ;
 - tests unitaires et scénarios Playwright critiques présents, dont permissions, migration, stock, commande/facturation, lead et relevé technique ;
@@ -54,7 +54,7 @@ Les résultats exacts de typecheck, lint, tests, build et E2E doivent être rég
 - aucune API Extrabat générique ne peut être finalisée sans documentation et droits propres au compte ;
 - reprise HubSpot des fichiers privés, formulaires, workflows et actifs marketing à compléter selon l'usage réel ;
 - e-mail/calendrier bidirectionnels, campagnes de masse et marketing avancé non reconstruits ; les modèles, séquences simples et règles événementielles sont présents ;
-- PWA terrain hors ligne, photos/pièces d'intervention et planification de capacité disponibles ; optimisation de tournée, signature manuscrite et conflits hors ligne complexes non couverts ;
+- PWA terrain hors ligne, photos/pièces d'intervention, planification anti-chevauchement, capacité et ordre de tournée disponibles ; optimisation routière, signature manuscrite et conflits hors ligne complexes non couverts ;
 - plateforme agréée de facturation électronique non choisie/intégrée ;
 - hébergement, supervision, sauvegardes natives et restauration de production non prouvés dans le dépôt ;
 - recette terrain/commerciale/financière et bascules réelles non exécutées.
@@ -230,15 +230,15 @@ Chaque export doit être conservé brut, chiffré, horodaté et accompagné d'un
 
 ## 8. Feuille de route de réalisation
 
-### 8.0 État d'exécution au 24 août 2026
+### 8.0 État d'exécution au 25 août 2026
 
 | Phase | État du code | Reste avant validation |
 |---|---|---|
 | Phase 0 — preuve réelle | **Partielle** | audit public et plans produits ; comptes, volumes, contrats et usages Diskoov réels encore à inventorier |
 | Phase 1 — fondations | **Implémentée dans le code** | déploiement PostgreSQL/R2, supervision, sauvegarde/restauration et recette de sécurité en environnement réel |
 | Phase 2 — HubSpot | **Partielle** | capture/CRM/consentement/import présents ; compléter les actifs réellement utilisés, répéter la migration et mener la bascule |
-| Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, catalogue configurable, achats approuvés, accusés, réceptions, anomalies, retours et stock présents ; compléter modèles/dépendances de chantier, tournées et validation des données Extrabat réelles |
-| Phase 4 — terrain/SAV | **Partielle** | équipements, tickets, PWA terrain hors ligne, photos/pièces, rapports PDF, capacité et entretien automatisé présents ; tournées, pièces/frais, signature manuscrite et pilote réel restent à traiter selon besoin |
+| Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, catalogue configurable, achats complets, stock, modèles/dépendances de chantier, responsables, capacité et planning anti-conflit présents ; validation des données Extrabat réelles et marge globale restent à traiter |
+| Phase 4 — terrain/SAV | **Partielle avancée** | équipements, tickets, PWA terrain hors ligne, photos/pièces, rapports PDF, capacité, ordre de tournée et entretien automatisé présents ; optimisation routière, pièces/frais hors ligne, signature manuscrite et pilote réel restent à traiter selon besoin |
 | Phase 5 — finance/sortie | **Partielle** | factures, paiements, banque, Factur-X et réversibilité présents ; plateforme agréée, portail éventuel, rapprochement final et résiliation restent ouverts |
 
 Les estimations initiales ci-dessous restent des ordres de grandeur de cadrage. Elles ne constituent plus un calendrier d'exécution constaté.

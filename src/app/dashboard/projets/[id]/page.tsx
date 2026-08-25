@@ -43,7 +43,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
-            <Badge variant="secondary">{project.status}</Badge>
+            <Badge variant="secondary">{project.status === "ACTIVE" ? "En cours" : project.status === "COMPLETED" ? "Terminé" : "Archivé"}</Badge>
+            {project.projectTemplate ? <Badge variant="outline">{project.projectTemplate.name}</Badge> : null}
           </div>
           <p className="text-sm text-muted-foreground">
             <Link href={`/dashboard/clients/${project.clientId}`} className="hover:underline">
@@ -72,7 +73,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <ProjectWorkspace
         projectId={project.id}
-        milestones={project.milestones.map((item) => ({ id: item.id, title: item.title, description: item.description, status: item.status, dueDate: item.dueDate?.toISOString() ?? null }))}
+        milestones={project.milestones.map((item) => ({ id: item.id, title: item.title, description: item.description, kind: item.kind, status: item.status, plannedStartAt: item.plannedStartAt?.toISOString() ?? null, dueDate: item.dueDate?.toISOString() ?? null, durationDays: item.durationDays, dependsOnId: item.dependsOnId, dependsOn: item.dependsOn, assignedMembershipId: item.assignedMembershipId, assignedMembership: item.assignedMembership }))}
         acceptanceItems={project.acceptanceItems.map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.dueDate?.toISOString() ?? null }))}
         files={project.files.map((file) => ({ id: file.id, name: file.name, size: file.size, type: file.type, createdAt: file.createdAt.toISOString() }))}
         profile={project.technicalProfile ? {
@@ -98,6 +99,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           validationNotes: project.technicalProfile.validationNotes,
           validatedAt: project.technicalProfile.validatedAt?.toISOString() ?? null,
         } : null}
+        members={project.planningMembers.map((member) => ({ id: member.id, user: member.user }))}
       />
 
       <Card>

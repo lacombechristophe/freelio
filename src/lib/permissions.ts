@@ -109,6 +109,8 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   ContractSigningToken: "sales.write",
 
   Project: "operations.write",
+  ProjectTemplate: "operations.write",
+  ProjectTemplateStep: "operations.write",
   ProjectMilestone: "operations.write",
   ProjectFile: "operations.write",
   ProjectTechnicalProfile: "operations.write",
