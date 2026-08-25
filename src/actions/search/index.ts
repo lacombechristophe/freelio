@@ -28,7 +28,7 @@ export async function globalSearch(query: string) {
 
     return [
       ...clients.map((client) => ({ id: client.id, label: client.name, type: "Client", href: `/dashboard/clients/${client.id}` })),
-      ...contacts.map((contact) => ({ id: contact.id, label: `${contact.firstName} ${contact.lastName} — ${contact.client.name}`, type: "Contact", href: `/dashboard/clients/${contact.clientId}` })),
+      ...contacts.map((contact) => ({ id: contact.id, label: `${contact.firstName} ${contact.lastName} — ${contact.client.name}`, type: "Contact", href: `/dashboard/contacts/${contact.id}` })),
       ...leads.map((lead) => ({ id: lead.id, label: `${lead.firstName} ${lead.lastName}${lead.projectType ? ` — ${lead.projectType}` : ""}`, type: "Prospect", href: `/dashboard/leads#lead-${lead.id}` })),
       ...projects.map((project) => ({ id: project.id, label: project.name, type: "Projet", href: `/dashboard/projets/${project.id}` })),
       ...quotes.map((quote) => ({ id: quote.id, label: `${quote.number} — ${quote.object}`, type: "Devis", href: `/dashboard/devis/${quote.id}` })),
