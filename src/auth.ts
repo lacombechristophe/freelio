@@ -6,6 +6,7 @@ import Resend from "next-auth/providers/resend"
 import Credentials from "next-auth/providers/credentials"
 import { MagicLinkEmail } from "@/emails/MagicLinkEmail"
 import { render } from "@react-email/render"
+import { verifyPassword } from "@/lib/auth/password"
 
 const emailFrom = process.env.EMAIL_FROM?.trim() || "CRM <noreply@example.invalid>"
 const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true"
@@ -15,13 +16,14 @@ const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true"
 // The production server is used by CI to avoid flaky cold compilation. This
 // provider is impossible to enable outside CI and only accepts the seeded QA address.
 export const credentialsAuthEnabled = process.env.NODE_ENV === "development" || ciCredentialsAuth
+export const magicLinkAuthEnabled = Boolean(process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim())
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
-    Resend({
+    ...(magicLinkAuthEnabled ? [Resend({
       apiKey: process.env.RESEND_API_KEY,
       from: emailFrom,
       async sendVerificationRequest({ identifier: email, url }) {
@@ -56,36 +58,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Resend error")
         }
       },
-    }),
-    ...(credentialsAuthEnabled ? [
-      Credentials({
-        id: "credentials",
-        name: "Local Dev Portal",
-        credentials: {
-          email: { label: "Email", type: "email" },
-        },
-        async authorize(credentials) {
-          if (!credentials?.email) return null
-          const email = credentials.email as string
-          if (ciCredentialsAuth && email.toLowerCase() !== process.env.E2E_USER_EMAIL?.toLowerCase()) return null
+    })] : []),
+    Credentials({
+      id: "credentials",
+      name: "Email et mot de passe",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Mot de passe", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null
+        const email = String(credentials.email).trim().toLowerCase()
+        const password = typeof credentials.password === "string" ? credentials.password : ""
+        if (ciCredentialsAuth && !password && email !== process.env.E2E_USER_EMAIL?.toLowerCase()) return null
 
-          try {
-            const user = await prisma.user.upsert({
+        try {
+          if (credentialsAuthEnabled && !password) {
+            return prisma.user.upsert({
               where: { email },
               update: {},
-              create: {
-                email,
-                name: email.split("@")[0],
-                emailVerified: new Date(),
-              },
+              create: { email, name: email.split("@")[0], emailVerified: new Date() },
             })
-            return user
-          } catch {
-            return null
           }
-        },
-      })
-    ] : []),
+          const user = await prisma.user.findUnique({ where: { email } })
+          if (!user || !await verifyPassword(password, user.passwordHash)) return null
+          return user
+        } catch {
+          return null
+        }
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {

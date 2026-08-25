@@ -6,6 +6,7 @@ import { logAction } from "@/lib/audit"
 import { interventionCompletionSchema } from "@/lib/field/completion-schema"
 import { calculateStockBalance } from "@/lib/operations/stock"
 import prisma from "@/lib/prisma"
+import { runAutomationEvent } from "@/lib/automations/engine"
 
 export { interventionCompletionSchema } from "@/lib/field/completion-schema"
 
@@ -119,5 +120,6 @@ export async function completeFieldInterventionForContext(input: unknown, contex
     resourceId: intervention.id,
     payload: { laborMinutes: data.laborMinutes, customerName: data.customerName, signatureSha256, signatureImageHash, materialMovementIds: result.movementIds, expenseIds: result.expenseMappings.map((item) => item.id), reservationIds: result.reservationIds },
   })
+  await runAutomationEvent({ companyId: context.companyId, event: "INTERVENTION_COMPLETED", subjectModel: "FieldIntervention", subjectId: intervention.id, eventKey: `${intervention.id}:completed`, clientId: intervention.site.clientId }).catch((error) => console.error("Intervention completion automation failed", error))
   return { success: true as const, signatureSha256, expenses: result.expenseMappings }
 }

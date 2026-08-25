@@ -118,3 +118,11 @@ export const consentRateLimit = createRateLimit({
   windowMs: 60 * 60 * 1000,
   prefix: "@crm/consent",
 })
+
+// Client-portal bearer links and write endpoints share a dedicated bucket.
+export const portalRateLimit = createRateLimit({
+  limit: 30,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@crm/portal",
+})

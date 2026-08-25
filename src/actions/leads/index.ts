@@ -8,6 +8,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { runAutomationEvent } from "@/lib/automations/engine"
 import { createConsentWithdrawalToken } from "@/lib/leads/consent-token"
 import prisma from "@/lib/prisma"
+import { refreshSingleLeadIntelligence } from "@/lib/marketing/intelligence"
 
 const idSchema = z.string().cuid()
 const leadStatusSchema = z.enum(["NEW", "CONTACTED", "QUALIFIED", "ARCHIVED", "SPAM"])
@@ -50,6 +51,9 @@ export async function getLeadDashboard() {
         utmCampaign: lead.utmCampaign,
         marketingOptIn: lead.marketingOptIn,
         status: lead.status,
+        score: lead.score,
+        scoreBreakdown: lead.scoreBreakdown,
+        scoreUpdatedAt: lead.scoreUpdatedAt?.toISOString() ?? null,
         createdAt: lead.createdAt.toISOString(),
         client: lead.client ? { ...lead.client, nextActionAt: lead.client.nextActionAt?.toISOString() ?? null } : null,
         opportunity: lead.opportunity,
@@ -97,6 +101,7 @@ export async function updateLeadStatus(leadId: string, status: string) {
       subjectId: lead.id,
       leadId: lead.id,
     }).catch((error) => console.error("Lead status automation failed", error))
+    await refreshSingleLeadIntelligence(companyId, lead.id).catch((error) => console.error("Lead scoring refresh failed", error))
 
     revalidatePath("/dashboard/leads")
     revalidatePath("/dashboard/pipeline")

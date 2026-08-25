@@ -58,7 +58,7 @@ function appBaseUrl() {
   return (configured || "http://localhost:3000").replace(/\/$/, "")
 }
 
-function senderFor(companyName: string) {
+export function senderFor(companyName: string) {
   const configured = process.env.EMAIL_FROM?.trim()
   if (!configured || configured.includes("example.invalid")) throw new Error("EMAIL_FROM et RESEND_API_KEY doivent être configurés")
   const address = configured.match(/<([^>]+)>/)?.[1] || configured
@@ -91,5 +91,5 @@ export async function sendSequenceEmail(input: EmailContext & { subjectTemplate:
   })
   const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
   if (!response.ok || !payload.id) throw new Error(payload.message || `Resend a répondu ${response.status}`)
-  return { providerId: payload.id, subject }
+  return { providerId: payload.id, subject, html, from: senderFor(input.company.name) }
 }

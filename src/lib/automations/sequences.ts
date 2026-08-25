@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client"
 
 import { sendSequenceEmail } from "@/lib/automations/email"
 import prisma from "@/lib/prisma"
+import { recordOutgoingEmail } from "@/lib/communications/threads"
 
 function addHours(date: Date, hours: number) {
   return new Date(date.getTime() + Math.max(0, hours) * 60 * 60 * 1_000)
@@ -69,7 +70,7 @@ export async function processDueSequenceEmails(limit = 50) {
       const existing = await prisma.emailDelivery.findUnique({
         where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } },
       })
-      if (existing?.status === "SENT") {
+      if (existing && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(existing.status)) {
         const stepIndex = enrollment.sequence.steps.findIndex((item) => item.id === step.id)
         const nextStep = enrollment.sequence.steps[stepIndex + 1]
         await prisma.emailSequenceEnrollment.update({
@@ -118,6 +119,17 @@ export async function processDueSequenceEmails(limit = 50) {
             : { status: "COMPLETED", nextSendAt: null, lastSentAt: new Date(), completedAt: new Date() },
         }),
       ])
+      await recordOutgoingEmail({
+        companyId: enrollment.sequence.companyId,
+        contactId: enrollment.contactId,
+        leadCaptureId: lead.id,
+        deliveryId: delivery.id,
+        providerId: sent.providerId,
+        from: sent.from,
+        to: [lead.email!],
+        subject: sent.subject,
+        bodyHtml: sent.html,
+      })
       summary.sent += 1
       if (!nextStep) summary.completed += 1
     } catch (error) {

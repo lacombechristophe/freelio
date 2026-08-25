@@ -17,6 +17,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  passwordHash  String?
   accounts      Account[]
   sessions      Session[]
 
@@ -158,12 +159,21 @@ model Company {
   leadCaptures         LeadCapture[]
   marketingConsents    MarketingConsent[]
   customerOrders       CustomerOrder[]
+  portalAccesses       ClientPortalAccess[]
+  portalMessages       ClientPortalMessage[]
+  portalAppointmentRequests ClientPortalAppointmentRequest[]
   deliveryNotes        DeliveryNote[]
   goodsReceipts        GoodsReceipt[]
   stockReservations    StockReservation[]
   emailTemplates       EmailTemplate[]
   emailSequences       EmailSequence[]
   emailDeliveries      EmailDelivery[]
+  emailThreads         EmailThread[]
+  emailMessages        EmailMessage[]
+  emailEvents          EmailEvent[]
+  communicationChannels CommunicationChannel[]
+  leadScoringRules     LeadScoringRule[]
+  marketingSegments    MarketingSegment[]
   automationWorkflows  AutomationWorkflow[]
   automationRuns       AutomationRun[]
 }
@@ -257,6 +267,10 @@ model Client {
   leadCaptures         LeadCapture[]
   marketingConsents    MarketingConsent[]
   customerOrders       CustomerOrder[]
+  portalAccesses       ClientPortalAccess[]
+  portalMessages       ClientPortalMessage[]
+  portalAppointmentRequests ClientPortalAppointmentRequest[]
+  emailThreads        EmailThread[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -286,11 +300,71 @@ model Contact {
   marketingConsents   MarketingConsent[]
   sequenceEnrollments EmailSequenceEnrollment[]
   emailDeliveries     EmailDelivery[]
+  emailThreads        EmailThread[]
+  portalAccesses      ClientPortalAccess[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clientId])
+}
+
+model ClientPortalAccess {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  label      String?
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([companyId, clientId, revokedAt])
+  @@index([expiresAt])
+}
+
+model ClientPortalMessage {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  direction  String
+  authorName String
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId, clientId, createdAt])
+  @@index([companyId, direction, readAt])
+}
+
+model ClientPortalAppointmentRequest {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  subject           String
+  preferredStart    DateTime
+  alternativeStart  DateTime?
+  durationMinutes   Int      @default(60)
+  notes             String?
+  status            String   @default("PENDING")
+  response          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([companyId, clientId, status, preferredStart], map: "ClientPortalAppointmentRequest_company_client_status_start_idx")
 }
 
 model ClientActivity {
@@ -348,10 +422,15 @@ model LeadCapture {
   ipHash          String?
   userAgentHash   String?
   rawPayload      Json?
+  score           Int       @default(0)
+  scoreBreakdown  Json?
+  scoreUpdatedAt  DateTime?
 
   consents            MarketingConsent[]
   sequenceEnrollments EmailSequenceEnrollment[]
   emailDeliveries     EmailDelivery[]
+  emailThreads        EmailThread[]
+  segmentMemberships  MarketingSegmentMember[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -392,6 +471,53 @@ model MarketingConsent {
   @@index([companyId, channel, status])
   @@index([clientId])
   @@index([contactId])
+  @@index([leadCaptureId])
+}
+
+model LeadScoringRule {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  field     String
+  operator  String
+  value     String
+  points    Int
+  status    String  @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status])
+}
+
+model MarketingSegment {
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  kind        String  @default("ACTIVE")
+  filters     Json
+  status      String  @default("ACTIVE")
+  lastBuiltAt DateTime?
+  memberships MarketingSegmentMember[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status])
+}
+
+model MarketingSegmentMember {
+  id            String           @id @default(cuid())
+  segmentId     String
+  segment       MarketingSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  leadCaptureId String
+  leadCapture   LeadCapture      @relation(fields: [leadCaptureId], references: [id], onDelete: Cascade)
+  addedAt       DateTime         @default(now())
+
+  @@unique([segmentId, leadCaptureId])
   @@index([leadCaptureId])
 }
 
@@ -499,18 +625,120 @@ model EmailDelivery {
 
   recipientEmail String
   subject        String
-  status         String    @default("SCHEDULED") // SCHEDULED, SENDING, SENT, FAILED, CANCELED
+  status         String    @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
   providerId     String?
   error          String?
   scheduledAt    DateTime
   sentAt         DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  message         EmailMessage?
 
   @@unique([enrollmentId, stepId])
   @@index([companyId, createdAt])
   @@index([status, scheduledAt])
   @@index([leadCaptureId])
+}
+
+model CommunicationChannel {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  provider             String
+  emailAddress         String
+  displayName          String?
+  status               String   @default("PENDING")
+  credentialsEncrypted String?
+  config               Json?
+  lastSyncAt           DateTime?
+  lastError            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([companyId, provider, emailAddress])
+  @@index([companyId, status])
+  @@index([provider, emailAddress])
+}
+
+model EmailThread {
+  id            String       @id @default(cuid())
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  contactId     String?
+  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  leadCaptureId String?
+  leadCapture   LeadCapture? @relation(fields: [leadCaptureId], references: [id], onDelete: SetNull)
+
+  subject       String
+  status        String   @default("OPEN")
+  assignedUserId String?
+  unreadCount   Int      @default(0)
+  lastMessageAt DateTime @default(now())
+  messages      EmailMessage[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId, status, lastMessageAt])
+  @@index([clientId])
+  @@index([contactId])
+  @@index([leadCaptureId])
+}
+
+model EmailMessage {
+  id        String      @id @default(cuid())
+  companyId String
+  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  threadId  String
+  thread    EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  deliveryId String?      @unique
+  delivery   EmailDelivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+
+  direction         String
+  provider          String
+  providerId        String?
+  internetMessageId String?
+  inReplyTo         String?
+  fromAddress       String
+  toAddresses       Json
+  ccAddresses       Json?
+  bccAddresses      Json?
+  subject           String
+  bodyHtml          String?
+  bodyText          String?
+  attachments       Json?
+  status            String   @default("SENT")
+  sentAt            DateTime?
+  receivedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  events            EmailEvent[]
+
+  @@unique([provider, providerId])
+  @@index([companyId, createdAt])
+  @@index([threadId, createdAt])
+  @@index([internetMessageId])
+}
+
+model EmailEvent {
+  id                String        @id @default(cuid())
+  companyId         String
+  company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  messageId         String?
+  message           EmailMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  provider          String
+  providerEventId   String        @unique
+  providerMessageId String?
+  type              String
+  payload           Json?
+  occurredAt        DateTime
+  createdAt         DateTime      @default(now())
+
+  @@index([companyId, occurredAt])
+  @@index([providerMessageId])
+  @@index([messageId, occurredAt])
 }
 
 model AutomationWorkflow {

@@ -10,6 +10,7 @@ import {
   FileCheck2,
   Loader2,
   Mail,
+  KeyRound,
   ReceiptText,
   ShieldCheck,
   TimerReset,
@@ -37,10 +38,11 @@ function LoginContent() {
     submitSignInWithEmail,
     initialSignInState
   )
+  const [method, setMethod] = React.useState<"password" | "magic">(() => searchParams.get("mode") === "magic" ? "magic" : "password")
 
   React.useEffect(() => {
     if (state.error) toast.error(state.error)
-    else if (state.success) toast.success("Vérifiez votre e-mail pour continuer.")
+    else if (state.success && state.method === "magic") toast.success("Vérifiez votre e-mail pour continuer.")
   }, [state])
 
   return (
@@ -60,11 +62,12 @@ function LoginContent() {
             Reprenez chaque dossier exactement là où il en est.
           </h1>
           <p className="mt-5 max-w-md text-base leading-7 text-freelio-muted">
-            Connectez-vous avec votre adresse professionnelle. Aucun mot de passe à mémoriser.
+            {method === "password" ? "Connectez-vous à votre espace professionnel." : "Recevez un lien de connexion sécurisé par e-mail."}
           </p>
 
           <form action={formAction} className="mt-9 space-y-5">
             <input type="hidden" name="redirectTo" value={redirectTo} />
+            <input type="hidden" name="method" value={method} />
             <div className="space-y-2">
               <Label htmlFor="email">Adresse e-mail professionnelle</Label>
               <div className="relative">
@@ -81,15 +84,29 @@ function LoginContent() {
               </div>
             </div>
 
+            {method === "password" && <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Mot de passe</Label><Link href="/auth/login?mode=magic" onClick={(event) => { event.preventDefault(); setMethod("magic") }} className="text-xs font-medium text-freelio-accent hover:underline">Mot de passe oublié ?</Link></div>
+              <div className="relative">
+                <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-freelio-muted" />
+                <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Votre mot de passe" className="h-11 border-freelio-line-strong bg-white pl-10 text-freelio-ink placeholder:text-[#98a2b3] focus-visible:border-freelio-accent focus-visible:ring-freelio-accent/20" />
+              </div>
+            </div>}
+
             <Button type="submit" size="lg" disabled={isPending} className="group w-full">
-              {isPending ? <><Loader2 className="animate-spin" />Connexion en cours</> : <>Continuer avec mon e-mail<ArrowRight className="transition-transform group-hover:translate-x-0.5" /></>}
+              {isPending ? <><Loader2 className="animate-spin" />Connexion en cours</> : <>{method === "password" ? "Se connecter" : "Recevoir le lien de connexion"}<ArrowRight className="transition-transform group-hover:translate-x-0.5" /></>}
             </Button>
             <p aria-live="polite" className="sr-only">{state.error ?? ""}</p>
           </form>
 
+          <div className="mt-5 flex items-center gap-3 text-xs text-freelio-muted"><span className="h-px flex-1 bg-freelio-line" /><span>ou</span><span className="h-px flex-1 bg-freelio-line" /></div>
+          <Button type="button" variant="outline" className="mt-5 w-full" onClick={() => setMethod((current) => current === "password" ? "magic" : "password")}>
+            {method === "password" ? <><Mail />Utiliser un lien de connexion</> : <><KeyRound />Utiliser mon mot de passe</>}
+          </Button>
+          <p className="mt-5 text-center text-sm text-freelio-muted">Pas encore de compte ? <Link href="/auth/register" className="font-semibold text-freelio-accent hover:underline">Créer mon espace</Link></p>
+
           <div className="mt-7 flex items-start gap-2.5 border-t border-freelio-line pt-5 text-xs leading-5 text-freelio-muted">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-freelio-success" />
-            <p>Lien de connexion sécurisé et accès contrôlé. Aucun mot de passe n’est conservé.</p>
+            <p>Accès chiffré, tentatives limitées et sessions sécurisées. Les mots de passe ne sont jamais conservés en clair.</p>
           </div>
         </div>
 

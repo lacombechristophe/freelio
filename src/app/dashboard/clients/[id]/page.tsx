@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { ClientWorkspace } from "./client-workspace"
+import { ClientPortalPanel } from "./client-portal-panel"
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -100,6 +101,35 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           size: file.size,
           type: file.type,
           createdAt: file.createdAt.toISOString(),
+        }))}
+      />
+
+      <ClientPortalPanel
+        clientId={client.id}
+        contacts={client.contacts.map((contact) => ({
+          id: contact.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email,
+        }))}
+        accesses={client.portalAccesses.map((access) => ({
+          ...access,
+          expiresAt: access.expiresAt.toISOString(),
+          lastUsedAt: access.lastUsedAt?.toISOString() ?? null,
+          revokedAt: access.revokedAt?.toISOString() ?? null,
+          createdAt: access.createdAt.toISOString(),
+        }))}
+        messages={client.portalMessages.map((message) => ({
+          ...message,
+          readAt: message.readAt?.toISOString() ?? null,
+          createdAt: message.createdAt.toISOString(),
+        }))}
+        appointments={client.portalAppointmentRequests.map((appointment) => ({
+          ...appointment,
+          preferredStart: appointment.preferredStart.toISOString(),
+          alternativeStart: appointment.alternativeStart?.toISOString() ?? null,
+          createdAt: appointment.createdAt.toISOString(),
+          updatedAt: appointment.updatedAt.toISOString(),
         }))}
       />
 

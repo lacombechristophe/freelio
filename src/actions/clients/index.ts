@@ -69,6 +69,21 @@ export async function getClientById(id: string) {
         },
         invoices: { orderBy: { createdAt: "desc" }, take: 10 },
         contracts: { orderBy: { createdAt: "desc" }, take: 10 },
+        portalAccesses: {
+          orderBy: { createdAt: "desc" },
+          take: 25,
+          select: {
+            id: true,
+            label: true,
+            expiresAt: true,
+            lastUsedAt: true,
+            revokedAt: true,
+            createdAt: true,
+            contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
+        },
+        portalMessages: { orderBy: { createdAt: "asc" }, take: 100 },
+        portalAppointmentRequests: { orderBy: { createdAt: "desc" }, take: 50 },
       },
     })
     if (!client) return null

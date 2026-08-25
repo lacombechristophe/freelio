@@ -6,7 +6,7 @@ Portée : code et bases de recette locales ; les comptes HubSpot/Extrabat et l�
 
 ## Résultat synthétique
 
-Le candidat du dépôt est cohérent, compilable et déployable sur une base PostgreSQL vierge. Les flux centraux CRM, vente, opérations, finance, migration, séquences e-mail et réversibilité ont des preuves automatisées. La résiliation réelle de HubSpot et Extrabat demeure un **no-go** tant que les exports réels, rapprochements, répétitions, services de production et décisions métier de la matrice de couverture ne sont pas signés.
+Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. Les flux centraux CRM, vente, opérations, finance, migration, e-mails, automatisations, scoring, portail et réversibilité ont des preuves automatisées. La résiliation réelle de HubSpot et Extrabat demeure un **no-go** tant que les exports réels, rapprochements, services externes et décisions métier de la matrice de couverture ne sont pas signés.
 
 ## Preuves exécutées
 
@@ -15,13 +15,12 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 26 fichiers, 91 tests réussis |
-| `npm run build` | build Next.js de production réussi, 39 pages statiques/dynamiques générées |
-| `npm audit --audit-level=high` | 0 vulnérabilité déclarée |
-| Playwright, base SQLite neuve | 11 scénarios réussis, 7 mutations volontairement ignorées sur mobile après validation desktop (18 exécutions) |
-| PostgreSQL 18 vierge | 11 migrations appliquées, aucune divergence avec le schéma Prisma |
-| PostgreSQL 18 existant | mise à niveau depuis les 10 migrations antérieures, interventions et frais existants conservés, aucune divergence finale |
-| PostgreSQL 18 historique | chantier et jalon antérieurs conservés, nouvelles valeurs par défaut vérifiées et schéma final sans divergence |
+| `npm run test:unit` | 28 fichiers, 96 tests réussis |
+| `npm run build` | build Next.js 16 de production réussi, 47 routes/pages générées |
+| `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
+| Playwright, PostgreSQL isolé | 12 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 10 mutations volontairement ignorées sur mobile après preuve desktop (24 exécutions) |
+| PostgreSQL 18 vierge | 15 migrations appliquées, aucune divergence avec le schéma Prisma |
+| PostgreSQL 18 existant | mise à niveau depuis les 11 migrations antérieures, client historique conservé, nouveaux modèles d’authentification/portail/communication/scoring présents et aucune divergence finale |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -31,11 +30,13 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 
 ## Parcours navigateur couverts
 
-- connexion de développement et chargement sans erreur console ;
+- création d’un compte propriétaire et connexion de production par mot de passe, plus maintien du lien magique optionnel ;
 - landing Freelio restaurée, page Produit et section workflow animée, avec `/v2` toujours absente ;
 - facturation récurrente, banque, organisation, migration, clients, projets et relevé technique ;
 - devis et aperçu PDF ;
 - création de modèle e-mail, séquence, étape et règle événementielle ;
+- aperçu HTML isolé, boîte e-mail CRM, statistiques et écrans d’intégration sans faux statut actif ;
+- scoring explicable, règles personnalisées, file priorisée et segments actifs/statiques ;
 - capture publique d’un prospect avec consentement ;
 - inscription automatique à la séquence ;
 - génération du lien de désinscription, retrait public et relecture idempotente ;
@@ -55,6 +56,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - replanification terrain, vue de tournée et refus explicite d’un chevauchement pour le même intervenant ;
 - export calendrier, export comptable, export de réversibilité et suppression effective de la landing `/v2` ;
 - surfaces principales et navigation pipeline sur viewport mobile.
+- portail client temporaire/révocable avec suivi de dossier, PDF, messages et demandes de rendez-vous ; révocation vérifiée depuis une nouvelle session anonyme.
 
 ## Invariants vérifiés dans le code et les tests
 
@@ -64,6 +66,9 @@ Le candidat du dépôt est cohérent, compilable et déployable sur une base Pos
 - contenu e-mail assaini, variables échappées, `List-Unsubscribe` one-click et clé d’idempotence Resend ;
 - verrou d’envoi persistant avec reprise après expiration ;
 - règles CRM idempotentes par clé d’événement ;
+- arrêt des séquences sur réponse entrante et déclencheurs e-mail/portail/intervention ;
+- mot de passe scrypt salé, politique minimale contrôlée et compte créé sans identité d’entreprise codée en dur ;
+- jetons de portail conservés uniquement sous forme hashée, retirés de l’URL après activation et révocables ;
 - exports tableur protégés contre l’injection de formule ;
 - journal précomptable équilibré et explicitement non présenté comme FEC ;
 - sauvegarde applicative sans IBAN chiffré, identifiants de connexion, secrets webhook, invitations ou jetons de signature ;
@@ -82,7 +87,8 @@ Les éléments suivants ne peuvent pas être prouvés par le dépôt seul :
 4. préproduction et production PostgreSQL/R2/Redis/Upstash/Resend, sauvegardes natives, PITR, supervision et restauration mesurée ;
 5. domaine e-mail vérifié, SPF/DKIM/DMARC et test réel de délivrabilité/désinscription ;
 6. plateforme agréée de facturation électronique et format validé par le cabinet comptable ;
-7. décision sur les écarts encore partiels : boîte e-mail, calendrier bidirectionnel, campagnes de masse, optimisation routière et portail client ;
-8. recette de dix dossiers réels, deux cycles opérationnels complets et procès-verbal de go/no-go du gérant.
+7. autorisation et recette des boîtes/calendriers Google ou Microsoft réellement utilisés, ou décision formelle de rester sur le canal Resend ;
+8. décision sur les écarts encore partiels : campagnes de masse, live chat/social/publicité, workflows à branches complexes et optimisation routière ;
+9. recette de dix dossiers réels, deux cycles opérationnels complets et procès-verbal de go/no-go du gérant.
 
 La procédure et les responsables attendus sont décrits dans le [runbook de migration](migration-cutover-runbook.md), le [runbook de production](production-runbook.md) et la [matrice de couverture](coverage-and-external-dependencies.md).
