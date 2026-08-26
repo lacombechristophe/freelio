@@ -19,6 +19,8 @@ import {
   Headphones,
   HelpCircle,
   Inbox,
+  BookOpen,
+  MessageSquareHeart,
   Kanban,
   LayoutDashboard,
   Megaphone,
@@ -118,6 +120,8 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     items: [
       { name: "Vue service", href: "/dashboard/service", icon: Headphones, description: "Tickets, urgences et contrats", exactMatch: true },
       { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Inbox, description: "Files, délais et affectations" },
+      { name: "Base de connaissances", href: "/dashboard/service/connaissance", icon: BookOpen, description: "Procédures internes et portail" },
+      { name: "Satisfaction", href: "/dashboard/service/satisfaction", icon: MessageSquareHeart, description: "CSAT, NPS et verbatims" },
       { name: "Tickets SAV", href: "/dashboard/operations?tab=sav", icon: Tickets, description: "Demandes et résolutions" },
       { name: "Interventions", href: "/dashboard/operations?tab=planning", icon: Wrench, description: "Planning et comptes rendus", activeMatch: false },
       { name: "Parc installé", href: "/dashboard/operations?tab=assets", icon: SlidersHorizontal, description: "Équipements et garanties" },

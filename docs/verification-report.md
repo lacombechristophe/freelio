@@ -15,13 +15,12 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 30 fichiers, 106 tests réussis |
-| `npm run build` | build Next.js 16 de production réussi, 57 pages statiques analysées et routes dynamiques compilées |
+| `npm run test:unit` | 31 fichiers, 110 tests réussis |
+| `npm run build` | build Next.js 16 de production réussi, 59 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
-| PostgreSQL 18 vierge | 17 migrations appliquées, dont réparation historique idempotente et campagnes marketing, sans divergence avec le schéma Prisma |
-| PostgreSQL 18 existant | mise à niveau depuis les 11 migrations antérieures, client historique conservé, nouveaux modèles d’authentification/portail/communication/scoring présents et aucune divergence finale |
+| PostgreSQL | 18 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance et satisfaction |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -54,6 +53,8 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - clôture terrain atomique et rejouable avec photo, stock, frais et justificatif, réserve, signature manuscrite, coût réel, résolution et PDF ;
 - photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
 - help desk avec files filtrables, charge, délais de résolution testés, et dossiers liés ticket/intervention/équipement validés sur desktop et mobile ;
+- base de connaissances avec aperçu HTML assaini, publication interne/portail et fiche d'aide protégée par la session client ;
+- enquêtes CSAT/NPS/CES, invitation publique à jeton hashé et expirant, réponse atomique, verbatim et indicateurs ; parcours article → enquête → réponse → tableau Service validé en navigateur ;
 - coût horaire, sortie de matériel liée à l’intervention, coût réel et fournitures du rapport client ;
 - capacité hebdomadaire d’équipe, création d’un contrat d’entretien, visite et facture automatiques avec second passage idempotent ;
 - modèle de chantier multi-étapes, budget/dates par défaut, dépendance obligatoire et progression après prérequis ;
@@ -78,6 +79,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - sauvegarde applicative sans IBAN chiffré, identifiants de connexion, secrets webhook, invitations ou jetons de signature ;
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
 - engagements de résolution SAV déterministes par priorité, échéance manuelle prioritaire et ticket clos exclu des dépassements.
+- contenu de connaissance assaini côté serveur, articles portail bornés à la société et réponses de satisfaction à usage unique.
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 - migration des modèles et dépendances de chantier avec conservation d’un projet et d’un jalon historiques.

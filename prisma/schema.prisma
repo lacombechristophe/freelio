@@ -177,6 +177,9 @@ model Company {
   marketingCampaigns   MarketingCampaign[]
   automationWorkflows  AutomationWorkflow[]
   automationRuns       AutomationRun[]
+  knowledgeArticles    KnowledgeArticle[]
+  satisfactionSurveys  SatisfactionSurvey[]
+  satisfactionRequests SatisfactionRequest[]
 }
 
 model Membership {
@@ -202,6 +205,7 @@ model Membership {
   assignedProjectMilestones ProjectMilestone[] @relation("ProjectMilestoneAssignee")
   ownedMarketingCampaigns MarketingCampaign[] @relation("MarketingCampaignOwner")
   ownedCampaignAssets MarketingCampaignAsset[] @relation("MarketingCampaignAssetOwner")
+  authoredKnowledgeArticles KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -274,6 +278,7 @@ model Client {
   portalMessages       ClientPortalMessage[]
   portalAppointmentRequests ClientPortalAppointmentRequest[]
   emailThreads        EmailThread[]
+  satisfactionRequests SatisfactionRequest[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -298,6 +303,8 @@ model Contact {
   lifecycleStage  String?
   marketingStatus String?
   customFields    Json?
+
+  satisfactionRequests SatisfactionRequest[]
 
   leadCaptures        LeadCapture[]
   marketingConsents   MarketingConsent[]
@@ -1827,6 +1834,7 @@ model ServiceTicket {
   customFields Json?
 
   interventions FieldIntervention[]
+  satisfactionRequests SatisfactionRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1837,6 +1845,91 @@ model ServiceTicket {
   @@index([siteId])
   @@index([equipmentId])
   @@index([assignedMembershipId])
+}
+
+model KnowledgeArticle {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  title      String
+  slug       String
+  summary    String?
+  bodyHtml   String
+  category   String?
+  status     String   @default("DRAFT")
+  visibility String   @default("INTERNAL")
+  tags       Json?
+
+  authorMembershipId String?
+  authorMembership   Membership? @relation("KnowledgeArticleAuthor", fields: [authorMembershipId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([companyId, slug])
+  @@index([companyId, status, visibility])
+  @@index([companyId, category])
+  @@index([authorMembershipId])
+}
+
+model SatisfactionSurvey {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name             String
+  type             String  @default("CSAT")
+  status           String  @default("ACTIVE")
+  question         String
+  scaleMin         Int     @default(1)
+  scaleMax         Int     @default(5)
+  followUpQuestion String?
+  triggerEvent     String  @default("TICKET_CLOSED")
+  delayHours       Int     @default(2)
+  anonymous        Boolean @default(false)
+
+  requests SatisfactionRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status, type])
+}
+
+model SatisfactionRequest {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  surveyId  String
+  survey    SatisfactionSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  serviceTicketId String?
+  serviceTicket   ServiceTicket? @relation(fields: [serviceTicketId], references: [id], onDelete: SetNull)
+
+  tokenHash   String   @unique
+  status      String   @default("PENDING")
+  channel     String   @default("LINK")
+  expiresAt   DateTime
+  sentAt      DateTime?
+  respondedAt DateTime?
+  score       Int?
+  comment     String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, status, createdAt])
+  @@index([surveyId, respondedAt])
+  @@index([clientId, createdAt])
+  @@index([serviceTicketId])
+  @@index([contactId])
+  @@index([expiresAt, status])
 }
 
 model FieldIntervention {

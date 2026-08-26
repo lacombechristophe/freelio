@@ -176,6 +176,8 @@ Livré dans le produit :
 - fiches unifiées contact et opportunité, avec associations client, interlocuteurs, devis, chantiers, origine et chronologie commerciale ;
 - dossiers SAV, intervention, équipement, fournisseur et commande d'achat, reliés entre eux et aux clients/chantiers ;
 - centre de support filtrable avec propriétaire, charge, priorité, engagement de résolution explicite, dépassement et règles testées ;
+- base de connaissances avec HTML assaini, catégories, tags, cycle de publication et exposition sélective dans le portail client ;
+- satisfaction CSAT/NPS/CES avec invitations expirantes rattachées aux tickets, réponses publiques atomiques, verbatims et indicateurs ;
 - résolution SAV documentée obligatoire, preuves terrain, signature, pièces, coûts réels, réserves, garantie, anomalies fournisseur et retours ;
 - campagnes marketing structurées, assets, audiences, budgets, UTM, séquences et métriques d'attribution.
 

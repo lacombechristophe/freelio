@@ -165,6 +165,12 @@ Le worker traite les échéances chaque minute lorsque `RESEND_API_KEY` est conf
 
 Le même worker planifie toutes les cinq minutes les visites d’entretien et les factures récurrentes arrivées à échéance. Un ordonnanceur externe peut appeler `POST /api/scheduling/process` avec `SCHEDULER_CRON_SECRET`, ou `AUTOMATION_CRON_SECRET` si aucun secret distinct n’est défini. Les occurrences et visites portent une clé métier persistante pour rendre un rejeu sans doublon.
 
+## Service client et fidélisation
+
+Le centre de support regroupe les files SAV, priorités, responsables et engagements de résolution. Les dossiers ticket, intervention et équipement restent reliés au client et aux preuves terrain. La base de connaissances distingue les contenus internes des articles publiés dans le portail client et nettoie le HTML côté serveur.
+
+Le centre Satisfaction gère des enquêtes CSAT, NPS ou CES. Chaque invitation peut être rattachée à un client, un contact et un ticket ; son lien contient un jeton aléatoire conservé uniquement sous forme hashée, expire automatiquement et n’accepte qu’une réponse. Les notes, taux de satisfaction et verbatims remontent dans le tableau Service.
+
 ## Reprise HubSpot et Extrabat
 
 Le centre de migration est réservé aux rôles disposant de `migration.manage` :

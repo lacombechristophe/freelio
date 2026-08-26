@@ -2,7 +2,7 @@ import type { CSSProperties } from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
-import { CalendarDays, CheckCircle2, Clock3, Download, FileText, FolderKanban, LogOut, MapPin, MessageSquare, ReceiptText, ShieldCheck } from "lucide-react"
+import { BookOpen, CalendarDays, CheckCircle2, Clock3, Download, FileText, FolderKanban, LogOut, MapPin, MessageSquare, ReceiptText, ShieldCheck } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   if (!access) return <EmptyPortal invalid={query.error === "invalid"} />
 
   const now = new Date()
-  const [company, projects, quotes, invoices, contracts, files, interventions, messages, appointments] = await Promise.all([
+  const [company, projects, quotes, invoices, contracts, files, interventions, messages, appointments, knowledgeArticles] = await Promise.all([
     prisma.company.findUniqueOrThrow({
       where: { id: access.companyId },
       select: { name: true, logo: true, brandColor: true, email: true, phone: true, address: true },
@@ -83,6 +83,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     }),
     prisma.clientPortalMessage.findMany({ where: { companyId: access.companyId, clientId: access.clientId }, orderBy: { createdAt: "asc" }, take: 100 }),
     prisma.clientPortalAppointmentRequest.findMany({ where: { companyId: access.companyId, clientId: access.clientId }, orderBy: { createdAt: "desc" }, take: 20 }),
+    prisma.knowledgeArticle.findMany({ where: { companyId: access.companyId, status: "PUBLISHED", visibility: "PORTAL" }, select: { id: true, title: true, summary: true, category: true, updatedAt: true }, orderBy: [{ category: "asc" }, { title: "asc" }], take: 60 }),
   ])
 
   const upcoming = interventions.filter((item) => item.scheduledStart >= now && !["CANCELLED", "COMPLETED"].includes(item.status))
@@ -148,6 +149,14 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
             {files.map((file) => <Link key={file.id} href={`/api/portal/files/${file.id}`} target="_blank" className="group flex items-center gap-3 rounded-xl border p-4 transition hover:border-primary/40 hover:bg-primary/[0.025]"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-violet-50 text-violet-700"><FileText className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{file.name}</span><span className="mt-1 block text-xs text-muted-foreground">Fichier · {Math.max(1, Math.round(file.size / 1024))} Ko</span></span><Download className="size-4 text-muted-foreground group-hover:text-primary" /></Link>)}
             {contracts.map((contract) => <div key={contract.id} className="flex items-center gap-3 rounded-xl border p-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-700"><ShieldCheck className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{contract.number} · {contract.title}</span><span className="mt-1 block text-xs text-muted-foreground">Contrat · {contract.status}</span></span></div>)}
             {quotes.length + invoices.length + files.length + contracts.length === 0 && <p className="col-span-full rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">Aucun document publié.</p>}
+          </div>
+        </section>
+
+        <section id="aide" className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><BookOpen className="size-5" /></span><div><h2 className="font-semibold">Aide et conseils</h2><p className="text-sm text-muted-foreground">Les réponses publiées par l’équipe pour vous accompagner.</p></div></div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {knowledgeArticles.map((article) => <Link key={article.id} href={`/portal/aide/${article.id}`} className="group rounded-xl border p-4 transition hover:border-primary/40 hover:bg-primary/[0.025]"><div className="flex items-start justify-between gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><BookOpen className="size-4" /></span>{article.category && <Badge variant="outline">{article.category}</Badge>}</div><h3 className="mt-4 text-sm font-semibold group-hover:text-primary">{article.title}</h3><p className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">{article.summary || "Consultez cette fiche pratique."}</p></Link>)}
+            {knowledgeArticles.length === 0 && <p className="col-span-full rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">Aucun article publié pour le moment.</p>}
           </div>
         </section>
 
