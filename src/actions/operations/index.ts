@@ -10,6 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { serviceResolutionTarget } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 
@@ -85,6 +86,14 @@ const ticketSchema = z.object({
   type: z.enum(["SAV", "MAINTENANCE", "WARRANTY", "QUESTION"]).default("SAV"),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   dueAt: dateInput,
+})
+
+const ticketUpdateSchema = z.object({
+  status: z.enum(["OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED"]),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
+  assignedMembershipId: optionalId,
+  dueAt: dateInput,
+  resolution: z.string().trim().max(5_000).optional().transform((value) => value || null),
 })
 
 const interventionSchema = z.object({
@@ -325,6 +334,149 @@ export async function getOperationsDashboard() {
     ])
     return { clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, canApprovePurchases: hasPermission(role, "purchases.approve") }
   }, "operations.read")
+}
+
+export async function getServiceTicketDetail(ticketId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = id.safeParse(ticketId)
+    if (!parsedId.success) return null
+    const [ticket, members] = await Promise.all([
+      prisma.serviceTicket.findFirst({
+        where: { id: parsedId.data, companyId },
+        include: {
+          client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } },
+          site: true,
+          equipment: true,
+          assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+          interventions: {
+            include: {
+              assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+              files: { orderBy: { createdAt: "asc" } },
+              reservations: { orderBy: { createdAt: "desc" } },
+            },
+            orderBy: { scheduledStart: "desc" },
+          },
+        },
+      }),
+      prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
+    ])
+    return ticket ? { ...ticket, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) } : null
+  }, "service.read")
+}
+
+export async function getFieldInterventionDetail(interventionId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = id.safeParse(interventionId)
+    if (!parsedId.success) return null
+    return prisma.fieldIntervention.findFirst({
+    where: { id: parsedId.data, companyId },
+    include: {
+      site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
+      ticket: true,
+      project: true,
+      maintenanceContract: true,
+      assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+      files: { orderBy: { createdAt: "asc" } },
+      stockMovements: { include: { product: true, warehouse: true }, orderBy: { happenedAt: "desc" } },
+      expenses: { orderBy: { date: "desc" } },
+      reservations: { orderBy: { createdAt: "desc" } },
+    },
+    })
+  }, "operations.read")
+}
+
+export async function getEquipmentDetail(equipmentId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = id.safeParse(equipmentId)
+    if (!parsedId.success) return null
+    return prisma.equipment.findFirst({
+    where: { id: parsedId.data, companyId },
+    include: {
+      site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
+      product: { include: { supplier: true } },
+      tickets: { include: { assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: { requestedAt: "desc" } },
+      maintenanceContracts: { include: { contract: true }, orderBy: { contract: { createdAt: "desc" } } },
+    },
+    })
+  }, "operations.read")
+}
+
+export async function getSupplierDetail(supplierId: string) {
+  return withAuth(async ({ companyId }) => {
+    const parsedId = id.safeParse(supplierId)
+    if (!parsedId.success) return null
+    return prisma.supplier.findFirst({
+    where: { id: parsedId.data, companyId },
+    include: {
+      products: { include: { inventoryItems: true }, orderBy: { label: "asc" }, take: 300 },
+      productPrices: { include: { product: { select: { id: true, sku: true, label: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
+      purchaseOrders: { include: { project: { select: { id: true, name: true } }, lines: true, issues: true }, orderBy: { orderDate: "desc" }, take: 100 },
+      supplierReturns: { include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
+    },
+    })
+  }, "operations.read")
+}
+
+export async function getPurchaseOrderDetail(purchaseOrderId: string) {
+  return withAuth(async ({ companyId, role }) => {
+    const parsedId = id.safeParse(purchaseOrderId)
+    if (!parsedId.success) return null
+    const order = await prisma.purchaseOrder.findFirst({
+      where: { id: parsedId.data, companyId },
+      include: {
+        supplier: true,
+        project: { include: { client: { select: { id: true, name: true } } } },
+        approvedByMembership: { include: { user: { select: { name: true, email: true } } } },
+        lines: { include: { product: true, receiptLines: { include: { goodsReceipt: { include: { warehouse: true } }, issues: true } }, supplierReturns: { include: { warehouse: true, product: true } } }, orderBy: { order: "asc" } },
+        goodsReceipts: { include: { warehouse: true, lines: { include: { product: true, issues: true } } }, orderBy: { receivedAt: "desc" } },
+        issues: { include: { product: true, purchaseOrderLine: true }, orderBy: { createdAt: "desc" } },
+        supplierReturns: { include: { product: true, warehouse: true }, orderBy: { shippedAt: "desc" } },
+      },
+    })
+    return order ? { ...order, canApprovePurchases: hasPermission(role, "purchases.approve") } : null
+  }, "operations.read")
+}
+
+export async function getHelpDeskDashboard(input: unknown = {}) {
+  return withAuth(async ({ companyId }) => {
+    const parsedFilters = z.object({
+      status: z.enum(["ACTIVE", "OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED", "ALL"]).default("ACTIVE"),
+      priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT", "ALL"]).default("ALL"),
+      assignedMembershipId: z.union([id, z.literal("ALL"), z.literal("UNASSIGNED")]).default("ALL"),
+    }).safeParse(input)
+    const filters = parsedFilters.success ? parsedFilters.data : { status: "ACTIVE" as const, priority: "ALL" as const, assignedMembershipId: "ALL" as const }
+    const activeStatuses = ["OPEN", "QUALIFIED", "PLANNED", "WAITING"]
+    const tickets = await prisma.serviceTicket.findMany({
+      where: {
+        companyId,
+        status: filters.status === "ACTIVE" ? { in: activeStatuses } : filters.status === "ALL" ? undefined : filters.status,
+        priority: filters.priority === "ALL" ? undefined : filters.priority,
+        assignedMembershipId: filters.assignedMembershipId === "ALL" ? undefined : filters.assignedMembershipId === "UNASSIGNED" ? null : filters.assignedMembershipId,
+      },
+      include: {
+        client: { select: { id: true, name: true } },
+        site: { select: { id: true, label: true, city: true } },
+        equipment: { select: { id: true, label: true, warrantyUntil: true } },
+        assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+        _count: { select: { interventions: true } },
+      },
+      orderBy: [{ priority: "desc" }, { dueAt: "asc" }, { requestedAt: "asc" }],
+      take: 500,
+    })
+    const members = await prisma.membership.findMany({
+      where: { companyId, status: "ACTIVE" },
+      include: { user: { select: { name: true, email: true } }, _count: { select: { assignedTickets: { where: { status: { in: activeStatuses } } } } } },
+      orderBy: { createdAt: "asc" },
+    })
+    return {
+      filters,
+      members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre", openTickets: member._count.assignedTickets })),
+      tickets: tickets.map((ticket) => {
+        const target = serviceResolutionTarget(ticket)
+        return { ...ticket, targetAt: target.targetAt, slaSource: target.source }
+      }),
+    }
+  }, "service.read")
 }
 
 export async function createCustomerSite(input: unknown) {
@@ -1140,13 +1292,28 @@ export async function consumeInterventionMaterial(input: unknown) {
   }, "operations.write")
 }
 
-export async function updateServiceTicketStatus(ticketId: string, status: "OPEN" | "QUALIFIED" | "PLANNED" | "WAITING" | "RESOLVED" | "CLOSED") {
-  return withAuth(async ({ companyId }) => {
-    const parsed = z.object({ ticketId: id, status: z.enum(["OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED"]) }).parse({ ticketId, status })
-    const ticket = await prisma.serviceTicket.findFirst({ where: { id: parsed.ticketId, companyId }, select: { id: true } })
+export async function updateServiceTicket(ticketId: string, input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(ticketId)
+    const data = ticketUpdateSchema.parse(input)
+    const ticket = await prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true } })
     if (!ticket) throw new Error("Ticket introuvable")
-    await prisma.serviceTicket.update({ where: { id: ticket.id }, data: { status: parsed.status, closedAt: parsed.status === "CLOSED" ? new Date() : null } })
+    if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
+    if (["RESOLVED", "CLOSED"].includes(data.status) && !data.resolution) throw new Error("Décrivez la résolution avant de résoudre ou clore le ticket")
+    await prisma.serviceTicket.update({
+      where: { id: ticket.id },
+      data: {
+        status: data.status,
+        priority: data.priority,
+        assignedMembershipId: data.assignedMembershipId,
+        dueAt: data.dueAt,
+        resolution: data.resolution,
+        closedAt: data.status === "CLOSED" ? ticket.closedAt ?? new Date() : null,
+      },
+    })
+    await logAction({ userId, action: "UPDATE_SERVICE_TICKET", resource: "SERVICE_TICKET", resourceId: ticket.id, payload: { fromStatus: ticket.status, status: data.status, priority: data.priority, assignedMembershipId: data.assignedMembershipId } })
     revalidateOperations()
+    revalidatePath(`/dashboard/service/tickets/${ticket.id}`)
     return { success: true as const }
   }, "service.write")
 }
@@ -1164,6 +1331,7 @@ export async function updateInterventionStatus(interventionId: string, status: "
       },
     })
     revalidateOperations()
+    revalidatePath(`/dashboard/service/interventions/${intervention.id}`)
     return { success: true as const }
   }, "operations.write")
 }

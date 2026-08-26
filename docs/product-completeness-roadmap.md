@@ -1,6 +1,6 @@
 # Feuille de route de complétude CRM/ERP
 
-Date de référence : 25 août 2026
+Date de référence : 26 août 2026
 Portée : benchmark officiel HubSpot, Extrabat Piscine, activité de vente/pose/SAV de couvertures et abris de piscine, et état réel du dépôt.
 
 ## 1. Principe
@@ -167,3 +167,16 @@ Le site de l'entreprise met en avant des solutions sur mesure, plusieurs fabrica
 7. **Bascule** : migrations à blanc, parallèle, delta final et PV de résiliation.
 
 Chaque lot doit conserver le build, les tests unitaires, les migrations PostgreSQL sans dérive et les scénarios Playwright critiques au vert avant push et déploiement.
+
+## 8. Avancement vérifiable
+
+Livré dans le produit :
+
+- navigation par espaces, sous-menus, favoris personnels, recherche globale et pages-hubs alimentées par les données réelles ;
+- fiches unifiées contact et opportunité, avec associations client, interlocuteurs, devis, chantiers, origine et chronologie commerciale ;
+- dossiers SAV, intervention, équipement, fournisseur et commande d'achat, reliés entre eux et aux clients/chantiers ;
+- centre de support filtrable avec propriétaire, charge, priorité, engagement de résolution explicite, dépassement et règles testées ;
+- résolution SAV documentée obligatoire, preuves terrain, signature, pièces, coûts réels, réserves, garantie, anomalies fournisseur et retours ;
+- campagnes marketing structurées, assets, audiences, budgets, UTM, séquences et métriques d'attribution.
+
+Toujours bloquant avant résiliation : connecteurs OAuth réels et recette des boîtes/calendriers, activation des fournisseurs de production, migrations à blanc sur les exports réels, e-facturation agréée, sauvegarde/restauration mesurée, puis recette métier et procès-verbal de bascule.

@@ -1,6 +1,6 @@
 # Rapport de vérification du candidat CRM/ERP
 
-Date : 25 août 2026
+Date : 26 août 2026
 Branche : `codex/diskoov-crm-replacement`
 Portée : code et bases de recette locales ; les comptes HubSpot/Extrabat et l’infrastructure de production ne sont pas inclus.
 
@@ -15,10 +15,11 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 29 fichiers, 98 tests réussis |
-| `npm run build` | build Next.js 16 de production réussi, 56 routes/pages générées |
+| `npm run test:unit` | 30 fichiers, 106 tests réussis |
+| `npm run build` | build Next.js 16 de production réussi, 57 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
+| Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | PostgreSQL 18 vierge | 17 migrations appliquées, dont réparation historique idempotente et campagnes marketing, sans divergence avec le schéma Prisma |
 | PostgreSQL 18 existant | mise à niveau depuis les 11 migrations antérieures, client historique conservé, nouveaux modèles d’authentification/portail/communication/scoring présents et aucune divergence finale |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
@@ -43,13 +44,16 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - arrêt de l’inscription et passage du contact en opposition ;
 - devis vers commande, facture de solde, réservation puis consommation du stock ;
 - opportunité attribuée, forecast pondéré, clôture prévue et perte avec motif obligatoire ;
+- fiche opportunité reliée au client, devis, chantiers, interlocuteurs et chronologie ; ajout d'activité répliqué dans l'historique client ;
 - gamme configurable, option obligatoire, supplément vente/coût, nomenclature, remise et devis recalculé côté serveur ;
 - commande fournisseur multi-lignes, approbation séparée, PDF, envoi, accusé et date confirmée ;
+- dossiers fournisseur et commande avec ponctualité, catalogue, reliquats, cycle d'approbation, réceptions, anomalies et retours ;
 - réception partielle puis finale, ligne libre sans mouvement de stock, non-conformité, avoir, retour physique et avoir du retour ;
 - création, signature scellée et lecture PDF d’un bon de livraison ;
 - espace terrain installable, rechargement hors ligne depuis un cache borné à 24 heures et file locale de synchronisation ;
 - clôture terrain atomique et rejouable avec photo, stock, frais et justificatif, réserve, signature manuscrite, coût réel, résolution et PDF ;
 - photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
+- help desk avec files filtrables, charge, délais de résolution testés, et dossiers liés ticket/intervention/équipement validés sur desktop et mobile ;
 - coût horaire, sortie de matériel liée à l’intervention, coût réel et fournitures du rapport client ;
 - capacité hebdomadaire d’équipe, création d’un contrat d’entretien, visite et facture automatiques avec second passage idempotent ;
 - modèle de chantier multi-étapes, budget/dates par défaut, dépendance obligatoire et progression après prérequis ;
@@ -73,6 +77,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - journal précomptable équilibré et explicitement non présenté comme FEC ;
 - sauvegarde applicative sans IBAN chiffré, identifiants de connexion, secrets webhook, invitations ou jetons de signature ;
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
+- engagements de résolution SAV déterministes par priorité, échéance manuelle prioritaire et ticket clos exclu des dépassements.
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 - migration des modèles et dépendances de chantier avec conservation d’un projet et d’un jalon historiques.

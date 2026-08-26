@@ -48,6 +48,7 @@ export type DashboardNavItem = {
   icon: LucideIcon
   description?: string
   activeMatch?: boolean
+  exactMatch?: boolean
   requireEmptyQuery?: boolean
 }
 
@@ -115,7 +116,8 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     icon: Headphones,
     description: "SAV, parc et fidélisation",
     items: [
-      { name: "Vue service", href: "/dashboard/service", icon: Headphones, description: "Tickets, urgences et contrats" },
+      { name: "Vue service", href: "/dashboard/service", icon: Headphones, description: "Tickets, urgences et contrats", exactMatch: true },
+      { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Inbox, description: "Files, délais et affectations" },
       { name: "Tickets SAV", href: "/dashboard/operations?tab=sav", icon: Tickets, description: "Demandes et résolutions" },
       { name: "Interventions", href: "/dashboard/operations?tab=planning", icon: Wrench, description: "Planning et comptes rendus", activeMatch: false },
       { name: "Parc installé", href: "/dashboard/operations?tab=assets", icon: SlidersHorizontal, description: "Équipements et garanties" },
@@ -180,6 +182,7 @@ export function navigationItemIsActive(pathname: string, item: DashboardNavItem,
     return [...expected.entries()].every(([key, value]) => current.get(key) === value)
   }
   if (item.requireEmptyQuery && currentQuery) return false
+  if (item.exactMatch) return pathname === path
   if (path === "/dashboard") return pathname === path
   return pathname === path || pathname.startsWith(`${path}/`)
 }

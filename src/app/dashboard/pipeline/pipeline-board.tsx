@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Euro, Target, UserRound } from "lucide-react"
@@ -379,9 +380,9 @@ export function PipelineBoard({
                     <Card key={deal.id} className="py-0 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_8px_20px_rgba(16,24,40,0.07)]">
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-start justify-between gap-1">
-                          <p className="font-semibold text-sm leading-tight cursor-pointer" onClick={() => setEditTarget(deal)}>
+                          <Link className="text-sm font-semibold leading-tight hover:text-primary hover:underline" href={`/dashboard/pipeline/${deal.id}`}>
                             {deal.title}
-                          </p>
+                          </Link>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="-mr-1 -mt-0.5 h-8 w-8 shrink-0" aria-label="Ouvrir les actions de l’opportunité">
@@ -389,6 +390,7 @@ export function PipelineBoard({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem render={<Link href={`/dashboard/pipeline/${deal.id}`} />}>Ouvrir le dossier</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setEditTarget(deal)}>Éditer</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               {displayStages.map((s) => s.id !== deal.status && (
