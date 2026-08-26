@@ -169,6 +169,8 @@ Le même worker planifie toutes les cinq minutes les visites d’entretien et le
 
 Le centre de support regroupe les files SAV, priorités, responsables et engagements de résolution. Les dossiers ticket, intervention et équipement restent reliés au client et aux preuves terrain. La base de connaissances distingue les contenus internes des articles publiés dans le portail client et nettoie le HTML côté serveur.
 
+Les listes commencent à utiliser des vues enregistrées persistantes : une vue conserve recherche, filtres, tri et colonnes sous une configuration validée côté serveur, reste isolée par entreprise et peut être réappliquée après rechargement. Le partage équipe est réservé aux administrateurs.
+
 Le centre Satisfaction gère des enquêtes CSAT, NPS ou CES. Chaque invitation peut être rattachée à un client, un contact et un ticket ; son lien contient un jeton aléatoire conservé uniquement sous forme hashée, expire automatiquement et n’accepte qu’une réponse. Les notes, taux de satisfaction et verbatims remontent dans le tableau Service.
 
 ## Reprise HubSpot et Extrabat

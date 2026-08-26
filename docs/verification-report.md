@@ -20,7 +20,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
-| PostgreSQL | 18 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance et satisfaction |
+| PostgreSQL | 19 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction et vues persistées |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -80,6 +80,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
 - engagements de résolution SAV déterministes par priorité, échéance manuelle prioritaire et ticket clos exclu des dépassements.
 - contenu de connaissance assaini côté serveur, articles portail bornés à la société et réponses de satisfaction à usage unique.
+- vues persistées bornées à la société et au membre, configuration JSON validée côté serveur et réapplication après rechargement.
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 - migration des modèles et dépendances de chantier avec conservation d’un projet et d’un jalon historiques.

@@ -19,7 +19,7 @@ export default async function JoinTeamPage({ params }: { params: Promise<{ token
             <CardTitle>Invitation indisponible</CardTitle>
             <CardDescription>Ce lien a expiré, a déjà été utilisé ou n'est pas valide.</CardDescription>
           </CardHeader>
-          <CardFooter><Button render={<Link href="/auth/login" />}>Se connecter</Button></CardFooter>
+          <CardFooter><Button nativeButton={false} render={<Link href="/auth/login" />}>Se connecter</Button></CardFooter>
         </Card>
       </main>
     )

@@ -180,6 +180,7 @@ model Company {
   knowledgeArticles    KnowledgeArticle[]
   satisfactionSurveys  SatisfactionSurvey[]
   satisfactionRequests SatisfactionRequest[]
+  savedViews           SavedView[]
 }
 
 model Membership {
@@ -206,6 +207,7 @@ model Membership {
   ownedMarketingCampaigns MarketingCampaign[] @relation("MarketingCampaignOwner")
   ownedCampaignAssets MarketingCampaignAsset[] @relation("MarketingCampaignAssetOwner")
   authoredKnowledgeArticles KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
+  savedViews SavedView[]
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -1930,6 +1932,28 @@ model SatisfactionRequest {
   @@index([serviceTicketId])
   @@index([contactId])
   @@index([expiresAt, status])
+}
+
+model SavedView {
+  id           String     @id @default(cuid())
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  resource   String
+  name       String
+  visibility String @default("PERSONAL")
+  isDefault  Boolean @default(false)
+  config     Json
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastUsedAt DateTime?
+
+  @@unique([companyId, membershipId, resource, name])
+  @@index([companyId, resource, visibility])
+  @@index([membershipId, resource, isDefault])
 }
 
 model FieldIntervention {

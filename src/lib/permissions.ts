@@ -158,6 +158,7 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   KnowledgeArticle: "service.write",
   SatisfactionSurvey: "service.write",
   SatisfactionRequest: "service.write",
+  SavedView: "crm.write",
   OrganisationGoal: "operations.write",
   OrganisationTask: "operations.write",
 

@@ -180,5 +180,6 @@ Livré dans le produit :
 - satisfaction CSAT/NPS/CES avec invitations expirantes rattachées aux tickets, réponses publiques atomiques, verbatims et indicateurs ;
 - résolution SAV documentée obligatoire, preuves terrain, signature, pièces, coûts réels, réserves, garantie, anomalies fournisseur et retours ;
 - campagnes marketing structurées, assets, audiences, budgets, UTM, séquences et métriques d'attribution.
+- premières vues de listes persistées par membre, avec partage équipe réservé aux administrateurs et réapplication après rechargement.
 
 Toujours bloquant avant résiliation : connecteurs OAuth réels et recette des boîtes/calendriers, activation des fournisseurs de production, migrations à blanc sur les exports réels, e-facturation agréée, sauvegarde/restauration mesurée, puis recette métier et procès-verbal de bascule.
