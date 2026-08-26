@@ -248,7 +248,9 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
 })
 
 test("service records connect the help desk, ticket, intervention and installed equipment", async ({ page }) => {
-  await assertHealthy(page, "/dashboard/service/help-desk", "Centre de support")
+  // The desktop field workflow can resolve this seeded ticket before the mobile project starts.
+  // Use the complete queue so the record-chain test is deterministic across both projects.
+  await assertHealthy(page, "/dashboard/service/help-desk?status=ALL", "Centre de support")
   await page.getByRole("link", { name: /SAV-2026-900/ }).click()
   await expect(page.getByRole("heading", { name: /SAV-2026-900 · Contrôle couverture QA/ })).toBeVisible()
   await expect(page.getByText("Traitement du ticket")).toBeVisible()
@@ -260,6 +262,25 @@ test("service records connect the help desk, ticket, intervention and installed 
   await expect(page.getByRole("heading", { name: "Intervention QA terrain" })).toBeVisible()
   await expect(page.getByText("Coûts réels")).toBeVisible()
   await expect(page.getByText("Compte rendu et accord client")).toBeVisible()
+})
+
+test("publishes service knowledge and records a secure satisfaction response", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "La mutation de l’invitation est exécutée une seule fois ; les pages Service restent couvertes sur mobile par les tests de chargement.")
+  await assertHealthy(page, "/dashboard/service/connaissance", "Base de connaissances")
+  await expect(page.getByText("Entretenir la couverture QA")).toBeVisible()
+  await page.getByRole("button", { name: "Prévisualiser l’article" }).click()
+  await expect(page.getByRole("heading", { name: "Contrôle mensuel" })).toBeVisible()
+  await assertHealthy(page, "/dashboard/service/satisfaction", "Satisfaction client")
+  await expect(page.locator("[data-slot=card]").filter({ hasText: "Enquêtes disponibles" }).getByText("CSAT QA après résolution")).toBeVisible()
+  await page.goto("/feedback/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+  await expect(page.getByRole("heading", { name: "Êtes-vous satisfait de la prise en charge ?" })).toBeVisible()
+  await page.getByRole("button", { name: "5", exact: true }).click()
+  await page.getByLabel("Que pourrions-nous améliorer ?").fill("Parcours QA simple et réponse très claire")
+  await page.getByRole("button", { name: "Envoyer ma réponse" }).click()
+  await expect(page.getByRole("heading", { name: /Merci pour votre retour|Réponse enregistrée/ })).toBeVisible()
+  await page.goto("/dashboard/service/satisfaction")
+  await expect(page.getByText("Parcours QA simple et réponse très claire")).toBeVisible()
+  await expect(page.getByText("100%", { exact: true }).first()).toBeVisible()
 })
 
 test("configures a product, its options and its bill of materials into a quote", async ({ page }, testInfo) => {
