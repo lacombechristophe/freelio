@@ -99,6 +99,8 @@ test("new local-first surfaces load and their primary controls respond", async (
   await assertHealthy(page, "/dashboard/sales", "Transformer les projets en commandes")
   await assertHealthy(page, "/dashboard/marketing/overview", "Acquisition et engagement")
   await assertHealthy(page, "/dashboard/service", "SAV et fidélisation")
+  await assertHealthy(page, "/dashboard/service/help-desk", "Centre de support")
+  await expect(page.getByText("Filtres de la file")).toBeVisible()
   await assertHealthy(page, "/dashboard/revenue", "Facturation et trésorerie")
   await assertHealthy(page, "/dashboard/data", "Qualité et gouvernance")
   await assertHealthy(page, "/dashboard/reports", "Piloter l’entreprise")
@@ -207,6 +209,14 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
     const reopenedCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
     await expect(reopenedCard).toContainText("Utilisateur QA")
     await expect(reopenedCard).not.toContainText("Budget reporté après arbitrage")
+    await reopenedCard.getByRole("link", { name: "Prévision commerciale QA" }).click()
+    await expect(page.getByRole("heading", { name: "Prévision commerciale QA" })).toBeVisible()
+    await expect(page.getByText("Chronologie commerciale")).toBeVisible()
+    await page.getByLabel("Compte rendu").fill("Relance QA consignée depuis la fiche opportunité")
+    await page.getByRole("button", { name: "Ajouter à l’historique" }).click()
+    await expect(page.getByText("Activité ajoutée à la chronologie.")).toBeVisible()
+    await expect(page.getByText("Relance QA consignée depuis la fiche opportunité")).toBeVisible()
+    await page.goto("/dashboard/pipeline")
   }
 
   const viewport = page.locator("[data-pipeline-scroll-viewport]")
@@ -235,6 +245,21 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
 
   await page.getByRole("button", { name: "Afficher les étapes précédentes" }).click()
   await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeLessThan(afterWheel)
+})
+
+test("service records connect the help desk, ticket, intervention and installed equipment", async ({ page }) => {
+  await assertHealthy(page, "/dashboard/service/help-desk", "Centre de support")
+  await page.getByRole("link", { name: /SAV-2026-900/ }).click()
+  await expect(page.getByRole("heading", { name: /SAV-2026-900 · Contrôle couverture QA/ })).toBeVisible()
+  await expect(page.getByText("Traitement du ticket")).toBeVisible()
+  await page.getByRole("link", { name: "Couverture QA installée" }).click()
+  await expect(page.getByRole("heading", { name: "Couverture QA installée" })).toBeVisible()
+  await expect(page.getByText("Historique SAV")).toBeVisible()
+  await page.getByRole("link", { name: /SAV-2026-900 · Contrôle couverture QA/ }).click()
+  await page.getByRole("link", { name: "Intervention QA terrain" }).click()
+  await expect(page.getByRole("heading", { name: "Intervention QA terrain" })).toBeVisible()
+  await expect(page.getByText("Coûts réels")).toBeVisible()
+  await expect(page.getByText("Compte rendu et accord client")).toBeVisible()
 })
 
 test("configures a product, its options and its bill of materials into a quote", async ({ page }, testInfo) => {
@@ -431,6 +456,12 @@ test("runs the supplier approval, receipt issue and return workflow", async ({ p
   await page.getByRole("button", { name: "Enregistrer l’avoir" }).click()
   await expect(page.getByText("Avoir fournisseur rattaché au retour.")).toBeVisible()
   await expect(order.getByText("Crédité", { exact: true })).toBeVisible()
+  await order.getByRole("link", { name: "Dossier" }).click()
+  await expect(page.getByText("Cycle d’approbation")).toBeVisible()
+  await expect(page.getByText("Anomalies qualité")).toBeVisible()
+  await page.getByRole("link", { name: "Fournisseur QA", exact: true }).first().click()
+  await expect(page.getByRole("heading", { name: "Fournisseur QA" })).toBeVisible()
+  await expect(page.getByText("Ponctualité")).toBeVisible()
 })
 
 test("field workspace installs and reloads from its bounded offline cache", async ({ page, context }, testInfo) => {

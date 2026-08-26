@@ -52,8 +52,9 @@ async function main() {
   const product = await prisma.product.create({ data: { companyId: company.id, sku: "QA-COVER", label: "Couverture de test", salePriceCents: 10_000, purchasePriceCents: 5_000 } })
   await prisma.inventoryItem.create({ data: { companyId: company.id, warehouseId: warehouse.id, productId: product.id, quantity: 5, reservedQuantity: 0 } })
   const equipment = await prisma.equipment.create({ data: { companyId: company.id, siteId: site.id, productId: product.id, label: "Couverture QA installée", category: "COVER", status: "ACTIVE" } })
-  const intervention = await prisma.fieldIntervention.create({ data: { companyId: company.id, projectId: project.id, siteId: site.id, assignedMembershipId: membership.id, title: "Intervention QA terrain", type: "INSTALLATION", status: "IN_PROGRESS", scheduledStart: new Date(), startedAt: new Date() } })
-  console.log(JSON.stringify({ companyId: company.id, userId: user.id, email, clientId: client.id, projectId: project.id, siteId: site.id, warehouseId: warehouse.id, productId: product.id, equipmentId: equipment.id, interventionId: intervention.id }))
+  const ticket = await prisma.serviceTicket.create({ data: { companyId: company.id, clientId: client.id, siteId: site.id, equipmentId: equipment.id, assignedMembershipId: membership.id, number: "SAV-2026-900", title: "Contrôle couverture QA", description: "Vérifier le réglage et le fonctionnement de la couverture de recette.", priority: "HIGH", status: "PLANNED", dueAt: new Date(Date.now() + 24 * 60 * 60 * 1_000) } })
+  const intervention = await prisma.fieldIntervention.create({ data: { companyId: company.id, ticketId: ticket.id, projectId: project.id, siteId: site.id, assignedMembershipId: membership.id, title: "Intervention QA terrain", type: "INSTALLATION", status: "IN_PROGRESS", scheduledStart: new Date(), startedAt: new Date() } })
+  console.log(JSON.stringify({ companyId: company.id, userId: user.id, email, clientId: client.id, projectId: project.id, siteId: site.id, warehouseId: warehouse.id, productId: product.id, equipmentId: equipment.id, ticketId: ticket.id, interventionId: intervention.id }))
 }
 
 main().finally(() => prisma.$disconnect())
