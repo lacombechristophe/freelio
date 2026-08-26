@@ -82,6 +82,15 @@ test("new local-first surfaces load and their primary controls respond", async (
   await expect(page.getByText("Interventions à exécuter")).toBeVisible()
 
   await assertHealthy(page, "/dashboard/clients", "Clients")
+  if (testInfo.project.name === "desktop") {
+    await page.getByPlaceholder("Rechercher un client…").fill("Client QA")
+    await page.getByLabel("Enregistrer la vue actuelle").fill("Clients QA")
+    await page.getByRole("button", { name: "Enregistrer la vue" }).click()
+    await expect(page.getByText("Vue enregistrée.")).toBeVisible()
+    await page.reload()
+    await page.getByLabel("Vue enregistrée").selectOption({ label: "Clients QA" })
+    await expect(page.getByPlaceholder("Rechercher un client…")).toHaveValue("Client QA")
+  }
   const clientLink = page.locator('a[href^="/dashboard/clients/"]')
   expect(await clientLink.count()).toBeGreaterThan(0)
   await clientLink.first().click()

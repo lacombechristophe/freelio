@@ -105,8 +105,8 @@ export default async function OpportunityDetailPage({
           </div>
         </div>
         <Button
-          variant="outline"
           nativeButton={false}
+          variant="outline"
           render={<Link href={`/dashboard/clients/${opportunity.client.id}`} />}
         >
           <UserRound />

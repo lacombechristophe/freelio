@@ -21,6 +21,7 @@ import { ClientFormDialog } from "./client-form-dialog"
 import { deleteClient } from "@/actions/clients"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { EmptyState } from "@/components/shared/empty-state"
+import { SavedViewBar } from "@/components/shared/saved-view-bar"
 
 type Client = {
   id: string
@@ -39,7 +40,9 @@ function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
 }
 
-export function ClientsTable({ clients }: { clients: Client[] }) {
+type SavedView = Awaited<ReturnType<typeof import("@/actions/views").getSavedViews>>[number]
+
+export function ClientsTable({ clients, savedViews }: { clients: Client[]; savedViews: SavedView[] }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [search, setSearch] = React.useState("")
@@ -68,6 +71,7 @@ export function ClientsTable({ clients }: { clients: Client[] }) {
 
   return (
     <div className="space-y-4">
+      <SavedViewBar resource="CLIENTS" views={savedViews} config={{ search }} onApply={(config) => { const nextSearch = typeof config.search === "string" ? config.search : ""; setSearch(nextSearch) }} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
