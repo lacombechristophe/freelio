@@ -15,12 +15,12 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 32 fichiers, 115 tests réussis |
+| `npm run test:unit` | 32 fichiers, 116 tests réussis |
 | `npm run build` | build Next.js 16 de production réussi, 59 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
-| PostgreSQL | 21 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, cadence et tâches manuelles des séquences |
+| PostgreSQL | 22 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, séquences professionnelles et versions de workflows |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -37,6 +37,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - création de modèle e-mail, séquence, étape et règle événementielle ;
 - cadence de séquence avec jours ouvrés, fenêtre horaire, fuseau et métriques de livraison/ouverture/clic/erreur par étape ;
 - étape d’appel issue d’une séquence, tâche créée dans Organisation, pause de l’inscription, réalisation puis reprise/fin automatique vérifiées en navigateur ;
+- workflow conditionnel créé en brouillon, publication versionnée et simulation sans effet avec trace du chemin et actions prévues ;
 - aperçu HTML isolé, boîte e-mail CRM, statistiques et écrans d’intégration sans faux statut actif ;
 - scoring explicable, règles personnalisées, file priorisée et segments actifs/statiques ;
 - capture publique d’un prospect avec consentement ;

@@ -177,6 +177,7 @@ model Company {
   marketingSegments    MarketingSegment[]
   marketingCampaigns   MarketingCampaign[]
   automationWorkflows  AutomationWorkflow[]
+  automationWorkflowVersions AutomationWorkflowVersion[]
   automationRuns       AutomationRun[]
   knowledgeArticles    KnowledgeArticle[]
   satisfactionSurveys  SatisfactionSurvey[]
@@ -850,14 +851,36 @@ model AutomationWorkflow {
   status     String @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
   conditions Json?
   actions    Json
+  publishedVersion Int?
 
   runs AutomationRun[]
+  versions AutomationWorkflowVersion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([companyId, name])
   @@index([companyId, trigger, status])
+}
+
+model AutomationWorkflowVersion {
+  id         String             @id @default(cuid())
+  companyId  String
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workflowId String
+  workflow   AutomationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  version    Int
+  status     String @default("DRAFT")
+  trigger    String
+  conditions Json?
+  actions    Json
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([workflowId, version])
+  @@index([companyId, createdAt])
+  @@index([workflowId, status])
 }
 
 model AutomationRun {

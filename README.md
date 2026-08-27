@@ -163,6 +163,8 @@ Le centre `/dashboard/automatisations` gère les modèles, séquences multi-éta
 
 Le worker traite les échéances chaque minute. Les étapes manuelles fonctionnent même sans fournisseur e-mail ; les étapes d’envoi sont reprises lorsque `RESEND_API_KEY` est configurée. Une plateforme de cron peut aussi appeler `POST /api/automations/process` avec `Authorization: Bearer <AUTOMATION_CRON_SECRET>`. `EMAIL_FROM` doit utiliser un domaine Resend vérifié ; le nom affiché provient du profil entreprise.
 
+Les workflows peuvent contenir une branche conditionnelle avec chemin vrai et chemin alternatif. L’activation publie un instantané versionné ; la simulation sur un prospect affiche les conditions, le chemin choisi et les actions prévues sans produire aucun effet externe.
+
 Le même worker planifie toutes les cinq minutes les visites d’entretien et les factures récurrentes arrivées à échéance. Un ordonnanceur externe peut appeler `POST /api/scheduling/process` avec `SCHEDULER_CRON_SECRET`, ou `AUTOMATION_CRON_SECRET` si aucun secret distinct n’est défini. Les occurrences et visites portent une clé métier persistante pour rendre un rejeu sans doublon.
 
 ## Service client et fidélisation
