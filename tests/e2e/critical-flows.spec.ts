@@ -102,6 +102,15 @@ test("new local-first surfaces load and their primary controls respond", async (
 
   await assertHealthy(page, "/dashboard/crm", "Clients et relations")
   await assertHealthy(page, "/dashboard/contacts", "Contacts")
+  if (testInfo.project.name === "desktop") {
+    await page.getByLabel("Rechercher un contact").fill("Camille")
+    await page.getByLabel("Enregistrer la vue actuelle").fill("Contacts QA")
+    await page.getByRole("button", { name: "Enregistrer la vue" }).click()
+    await expect(page.getByText("Vue enregistrée.")).toBeVisible()
+    await page.reload()
+    await page.getByLabel("Vue enregistrée").selectOption({ label: "Contacts QA" })
+    await expect(page.getByLabel("Rechercher un contact")).toHaveValue("Camille")
+  }
   await page.getByRole("link", { name: "Camille Piscine", exact: true }).click()
   await expect(page.getByRole("heading", { name: "Camille Piscine" })).toBeVisible()
   await expect(page.getByText("Coordonnées et client")).toBeVisible()

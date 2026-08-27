@@ -23,6 +23,7 @@ import { convertQuoteToInvoice, deleteQuote, updateQuoteStatus } from "@/actions
 import { convertQuoteToCustomerOrder } from "@/actions/operations"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { EmptyState } from "@/components/shared/empty-state"
+import { SavedViewBar } from "@/components/shared/saved-view-bar"
 
 type Quote = {
   id: string
@@ -51,7 +52,9 @@ function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
 }
 
-export function DevisTable({ quotes }: { quotes: Quote[] }) {
+type SavedView = Awaited<ReturnType<typeof import("@/actions/views").getSavedViews>>[number]
+
+export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews: SavedView[] }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [search, setSearch] = useState("")
@@ -103,6 +106,7 @@ export function DevisTable({ quotes }: { quotes: Quote[] }) {
 
   return (
     <div className="space-y-4">
+      <SavedViewBar resource="QUOTES" views={savedViews} config={{ search }} onApply={(config) => setSearch(typeof config.search === "string" ? config.search : "")} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
