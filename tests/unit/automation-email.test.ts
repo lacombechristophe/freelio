@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { renderEmailVariables, sanitizeSequenceEmailHtml, sendSequenceEmail } from "@/lib/automations/email"
-import { workflowConfigurationSchema } from "@/lib/automations/engine"
+import { evaluateWorkflowConfiguration, workflowConfigurationSchema } from "@/lib/automations/engine"
 
 const context = {
   company: { id: "company-1", name: "Entreprise & Associés", email: "contact@example.fr" },
@@ -33,6 +33,28 @@ describe("email automation", () => {
       actions: [{ type: "CREATE_TASK", title: "Rappeler {{contact.firstName}}", delayHours: 24, priority: 2 }],
     }).actions[0]).toMatchObject({ type: "CREATE_TASK", delayHours: 24 })
     expect(() => workflowConfigurationSchema.parse({ actions: [] })).toThrow()
+  })
+
+  it("resolves a conditional branch without executing its actions", () => {
+    const workflow = {
+      conditions: { marketingOptIn: true },
+      actions: [{
+        type: "CONDITIONAL_BRANCH",
+        label: "Projet couverture",
+        conditions: { projectTypeContains: "couverture" },
+        ifTrue: [{ type: "UPDATE_LEAD_STATUS", status: "QUALIFIED" }],
+        ifFalse: [{ type: "CREATE_TASK", title: "Qualifier le besoin", delayHours: 2, priority: 2 }],
+      }],
+    }
+    const lead = { ...context.lead, clientId: null, source: "WEBSITE", status: "NEW", marketingOptIn: true }
+    expect(evaluateWorkflowConfiguration(workflow, lead)).toMatchObject({
+      matches: true,
+      actions: [{ type: "UPDATE_LEAD_STATUS", status: "QUALIFIED" }],
+      trace: [{ type: "ROOT", matched: true }, { type: "BRANCH", selected: "TRUE" }],
+    })
+    expect(evaluateWorkflowConfiguration(workflow, { ...lead, projectType: "Entretien" }).actions).toEqual([
+      { type: "CREATE_TASK", title: "Qualifier le besoin", delayHours: 2, priority: 2 },
+    ])
   })
 
   it("uses the company profile and adds one-click unsubscribe headers", async () => {

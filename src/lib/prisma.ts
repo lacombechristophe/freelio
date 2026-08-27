@@ -76,6 +76,7 @@ const COMPANY_SCOPED_MODELS = new Set([
   "MarketingSegment",
   "MarketingCampaign",
   "AutomationWorkflow",
+  "AutomationWorkflowVersion",
   "AutomationRun",
   "CustomerOrder",
   "DeliveryNote",

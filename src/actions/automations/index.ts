@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
+import { evaluateWorkflowConfiguration, workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
@@ -51,9 +51,9 @@ export async function getAutomationDashboard() {
         },
         orderBy: { updatedAt: "desc" },
       }),
-      prisma.automationWorkflow.findMany({ where: { companyId, status: { not: "ARCHIVED" } }, include: { runs: { orderBy: { startedAt: "desc" }, take: 5 } }, orderBy: { updatedAt: "desc" } }),
+      prisma.automationWorkflow.findMany({ where: { companyId, status: { not: "ARCHIVED" } }, include: { runs: { orderBy: { startedAt: "desc" }, take: 5 }, versions: { orderBy: { version: "desc" }, take: 5 } }, orderBy: { updatedAt: "desc" } }),
       prisma.emailDelivery.findMany({ where: { companyId }, include: { sequence: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 50 }),
-      prisma.leadCapture.findMany({ where: { companyId, marketingOptIn: true, email: { not: null }, status: { notIn: ["SPAM", "ARCHIVED"] } }, select: { id: true, firstName: true, lastName: true, email: true, projectType: true }, orderBy: { createdAt: "desc" }, take: 250 }),
+      prisma.leadCapture.findMany({ where: { companyId, marketingOptIn: true, email: { not: null }, status: { notIn: ["SPAM", "ARCHIVED"] } }, select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true }, orderBy: { createdAt: "desc" }, take: 250 }),
     ])
     return { templates, sequences, workflows, deliveries, leads }
   }, "automation.read")
@@ -159,7 +159,10 @@ export async function createAutomationWorkflow(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const parsed = z.object({ name: z.string().trim().min(2).max(120), trigger: automationTriggerSchema, conditions: z.unknown().optional(), actions: z.unknown() }).parse(input)
     const configuration = workflowConfigurationSchema.parse({ conditions: parsed.conditions, actions: parsed.actions })
-    await prisma.automationWorkflow.create({ data: { companyId, name: parsed.name, trigger: parsed.trigger, conditions: configuration.conditions || undefined, actions: configuration.actions } })
+    await prisma.$transaction(async (tx) => {
+      const workflow = await tx.automationWorkflow.create({ data: { companyId, name: parsed.name, trigger: parsed.trigger, conditions: configuration.conditions || undefined, actions: configuration.actions } })
+      await tx.automationWorkflowVersion.create({ data: { companyId, workflowId: workflow.id, version: 1, status: "DRAFT", trigger: parsed.trigger, conditions: configuration.conditions || undefined, actions: configuration.actions } })
+    })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }
   }, "automation.write")
@@ -168,12 +171,43 @@ export async function createAutomationWorkflow(input: unknown) {
 export async function updateAutomationWorkflowStatus(workflowId: string, status: string) {
   return withAuth(async ({ companyId }) => {
     const id = idSchema.parse(workflowId)
-    const workflow = await prisma.automationWorkflow.findFirst({ where: { id, companyId }, select: { id: true } })
+    const workflow = await prisma.automationWorkflow.findFirst({ where: { id, companyId }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } })
     if (!workflow) throw new Error("Automatisation introuvable")
-    await prisma.automationWorkflow.update({ where: { id }, data: { status: statusSchema.parse(status) } })
+    const nextStatus = statusSchema.parse(status)
+    if (nextStatus === "ACTIVE") {
+      const configuration = workflowConfigurationSchema.parse({ conditions: workflow.conditions ?? undefined, actions: workflow.actions })
+      await prisma.$transaction(async (tx) => {
+        const latest = workflow.versions[0]
+        const snapshot = JSON.stringify({ trigger: workflow.trigger, conditions: configuration.conditions || null, actions: configuration.actions })
+        const latestSnapshot = latest ? JSON.stringify({ trigger: latest.trigger, conditions: latest.conditions || null, actions: latest.actions }) : null
+        let publishedVersion = latest?.version ?? 1
+        await tx.automationWorkflowVersion.updateMany({ where: { workflowId: workflow.id, status: "PUBLISHED" }, data: { status: "SUPERSEDED" } })
+        if (latest && latestSnapshot === snapshot) {
+          await tx.automationWorkflowVersion.update({ where: { id: latest.id }, data: { status: "PUBLISHED", publishedAt: latest.publishedAt || new Date() } })
+        } else {
+          publishedVersion = (latest?.version ?? 0) + 1
+          await tx.automationWorkflowVersion.create({ data: { companyId, workflowId: workflow.id, version: publishedVersion, status: "PUBLISHED", trigger: workflow.trigger, conditions: configuration.conditions || undefined, actions: configuration.actions, publishedAt: new Date() } })
+        }
+        await tx.automationWorkflow.update({ where: { id }, data: { status: nextStatus, publishedVersion } })
+      })
+    } else {
+      await prisma.automationWorkflow.update({ where: { id }, data: { status: nextStatus } })
+    }
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }
   }, "automation.write")
+}
+
+export async function simulateAutomationWorkflow(workflowId: string, leadId: string) {
+  return withAuth(async ({ companyId }) => {
+    const [workflow, lead] = await Promise.all([
+      prisma.automationWorkflow.findFirst({ where: { id: idSchema.parse(workflowId), companyId }, select: { id: true, name: true, conditions: true, actions: true } }),
+      prisma.leadCapture.findFirst({ where: { id: idSchema.parse(leadId), companyId }, select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true } }),
+    ])
+    if (!workflow || !lead) throw new Error("Workflow ou prospect introuvable")
+    const evaluation = evaluateWorkflowConfiguration({ conditions: workflow.conditions ?? undefined, actions: workflow.actions }, lead)
+    return { success: true as const, workflow: workflow.name, lead: `${lead.firstName} ${lead.lastName}`, matches: evaluation.matches, trace: evaluation.trace, actions: evaluation.actions.map((action) => ({ type: action.type })) }
+  }, "automation.read")
 }
 
 export async function processSequenceEmailsNow() {

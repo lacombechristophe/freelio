@@ -511,4 +511,15 @@ Troisième sous-lot livré :
 - parcours navigateur séquence → appel → Organisation → réalisation → séquence terminée.
 - pilotage individuel des inscriptions : pause, reprise dans la prochaine fenêtre autorisée, arrêt, échéance et motif visibles.
 
-Prochaine extension Automatisation : version brouillon/publiée, test sans effet, branches conditionnelles et journal détaillé par action.
+Quatrième sous-lot livré :
+
+- branche conditionnelle avec critères CRM et chemins vrai/alternatif ;
+- actions de qualification, tâche ou notification selon le chemin ;
+- instantané immuable à chaque configuration publiée ;
+- reprise historique des workflows existants en version 1 ;
+- affichage de la version publiée et des versions récentes ;
+- simulation sur prospect sans mutation, notification, tâche, inscription ni envoi ;
+- trace explicable des conditions, branche choisie et actions prévues ;
+- trace d’exécution persistée dans le journal réel.
+
+Prochaine extension Automatisation : édition d’un nouveau brouillon à partir d’une version publiée, branches multiples imbriquées, délais conditionnels et journal détaillé/rejeu par action.
