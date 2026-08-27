@@ -159,9 +159,9 @@ Le champ invisible `website` peut servir de honeypot. La politique de confidenti
 
 ## Automatisations et séquences
 
-Le centre `/dashboard/automatisations` gère les modèles, séquences multi-étapes, délais, jours ouvrés, fenêtres d’envoi, fuseaux, inscriptions consenties, règles déclenchées par les événements CRM et journal d’envoi. Chaque étape expose ses volumes livrés, ouverts, cliqués et en erreur. Les e-mails ajoutent un lien de désinscription signé et un en-tête `List-Unsubscribe` ; tout retrait arrête les inscriptions actives.
+Le centre `/dashboard/automatisations` gère les modèles, séquences multi-étapes, e-mails automatiques ou manuels, appels, tâches, délais, jours ouvrés, fenêtres d’envoi, fuseaux, inscriptions consenties, règles déclenchées par les événements CRM et journal d’envoi. Une étape manuelle peut bloquer la suite jusqu’à sa réalisation dans Organisation. Chaque étape expose ses volumes livrés, ouverts, cliqués, en erreur ou ses tâches terminées. Les e-mails ajoutent un lien de désinscription signé et un en-tête `List-Unsubscribe` ; tout retrait arrête les inscriptions actives.
 
-Le worker traite les échéances chaque minute lorsque `RESEND_API_KEY` est configurée. Une plateforme de cron peut aussi appeler `POST /api/automations/process` avec `Authorization: Bearer <AUTOMATION_CRON_SECRET>`. `EMAIL_FROM` doit utiliser un domaine Resend vérifié ; le nom affiché provient du profil entreprise.
+Le worker traite les échéances chaque minute. Les étapes manuelles fonctionnent même sans fournisseur e-mail ; les étapes d’envoi sont reprises lorsque `RESEND_API_KEY` est configurée. Une plateforme de cron peut aussi appeler `POST /api/automations/process` avec `Authorization: Bearer <AUTOMATION_CRON_SECRET>`. `EMAIL_FROM` doit utiliser un domaine Resend vérifié ; le nom affiché provient du profil entreprise.
 
 Le même worker planifie toutes les cinq minutes les visites d’entretien et les factures récurrentes arrivées à échéance. Un ordonnanceur externe peut appeler `POST /api/scheduling/process` avec `SCHEDULER_CRON_SECRET`, ou `AUTOMATION_CRON_SECRET` si aucun secret distinct n’est défini. Les occurrences et visites portent une clé métier persistante pour rendre un rejeu sans doublon.
 

@@ -498,4 +498,16 @@ Deuxième sous-lot livré :
 - validation serveur, contrainte PostgreSQL et tests des soirées/week-ends ;
 - parcours navigateur de modification et persistance de la cadence.
 
-Prochaine extension Automatisation : étapes e-mail manuel/appel/tâche, pause jusqu’à réalisation, version brouillon/publiée, test sans effet et branches conditionnelles.
+Troisième sous-lot livré :
+
+- étapes e-mail manuel, appel et tâche générale dans les séquences ;
+- création idempotente dans le module Organisation existant ;
+- titre et consignes personnalisables avec variables CRM ;
+- priorité et rattachement au client ;
+- pause facultative jusqu’à réalisation ;
+- reprise atomique de l’inscription lorsque la tâche est terminée ;
+- indicateurs de tâches créées/terminées dans la séquence ;
+- fonctionnement des tâches manuelles même si le fournisseur e-mail n’est pas configuré ;
+- parcours navigateur séquence → appel → Organisation → réalisation → séquence terminée.
+
+Prochaine extension Automatisation : version brouillon/publiée, test sans effet, branches conditionnelles et journal détaillé par action.
