@@ -523,3 +523,17 @@ Quatrième sous-lot livré :
 - trace d’exécution persistée dans le journal réel.
 
 Prochaine extension Automatisation : édition d’un nouveau brouillon à partir d’une version publiée, branches multiples imbriquées, délais conditionnels et journal détaillé/rejeu par action.
+
+Cinquième sous-lot livré — Service conversationnel :
+
+- relation explicite entre ticket SAV et fils e-mail ;
+- rattachement contrôlé d’une conversation existante du même client ;
+- création/poursuite d’un fil lors d’une réponse depuis le ticket ;
+- conservation automatique des futures réponses entrantes dans le dossier ;
+- chronologie unifiée des messages entrants/sortants et événements de délivrabilité ;
+- notes internes distinctes, attribuées à un membre et jamais envoyées au client ;
+- composeur avec destinataire, conversation, objet et aperçu textuel sûr ;
+- protection contre les conversations d’un autre client ou déjà liées à un autre ticket ;
+- validation navigateur desktop/mobile de la chaîne help desk → conversation → ticket → équipement → intervention.
+
+Prochaine extension Service : SLA en heures ouvrées et jours fériés, première réponse, pause en attente client, macros de réponse et routage par compétence/capacité.
