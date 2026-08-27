@@ -20,7 +20,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
-| PostgreSQL | 22 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, séquences professionnelles et versions de workflows |
+| PostgreSQL | 23 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées et conversations SAV |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -56,6 +56,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - clôture terrain atomique et rejouable avec photo, stock, frais et justificatif, réserve, signature manuscrite, coût réel, résolution et PDF ;
 - photo d’intervention contrôlée, clôture avec preuve client et lecture du rapport PDF ;
 - help desk avec files filtrables, charge, délais de résolution testés, et dossiers liés ticket/intervention/équipement validés sur desktop et mobile ;
+- fil e-mail client rattaché au ticket, message entrant visible et note interne séparée, validés sur desktop puis relus sur mobile ;
 - base de connaissances avec aperçu HTML assaini, publication interne/portail et fiche d'aide protégée par la session client ;
 - enquêtes CSAT/NPS/CES, invitation publique à jeton hashé et expirant, réponse atomique, verbatim et indicateurs ; parcours article → enquête → réponse → tableau Service validé en navigateur ;
 - coût horaire, sortie de matériel liée à l’intervention, coût réel et fournitures du rapport client ;
@@ -83,6 +84,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
 - engagements de résolution SAV déterministes par priorité, échéance manuelle prioritaire et ticket clos exclu des dépassements.
 - contenu de connaissance assaini côté serveur, articles portail bornés à la société et réponses de satisfaction à usage unique.
+- rattachement d’un fil e-mail refusé entre deux clients ou lorsqu’il appartient déjà à un autre ticket ; notes internes isolées par société et auteur.
 - vues persistées bornées à la société et au membre, configuration JSON validée côté serveur et réapplication après rechargement.
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.

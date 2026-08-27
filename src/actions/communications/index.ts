@@ -41,6 +41,7 @@ export async function getCommunicationDashboard() {
 const sendSchema = z.object({
   contactId: cuid,
   threadId: z.union([cuid, z.literal("")]).optional(),
+  serviceTicketId: z.union([cuid, z.literal("")]).optional(),
   subject: z.string().trim().min(2).max(180),
   bodyHtml: z.string().trim().min(10).max(100_000),
 })
@@ -53,8 +54,10 @@ export async function sendCrmEmail(input: unknown) {
       prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId }, email: { not: null } }, select: { id: true, email: true, clientId: true } }),
     ])
     if (!contact?.email) throw new Error("Contact ou adresse e-mail introuvable")
+    const ticket = data.serviceTicketId ? await prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, companyId, clientId: contact.clientId }, select: { id: true } }) : null
+    if (data.serviceTicketId && !ticket) throw new Error("Ticket introuvable ou sans rapport avec ce contact")
     if (data.threadId) {
-      const thread = await prisma.emailThread.findFirst({ where: { id: data.threadId, companyId }, select: { id: true } })
+      const thread = await prisma.emailThread.findFirst({ where: { id: data.threadId, companyId, clientId: contact.clientId, ...(ticket ? { OR: [{ serviceTicketId: null }, { serviceTicketId: ticket.id }] } : {}) }, select: { id: true } })
       if (!thread) throw new Error("Conversation introuvable")
     }
     const apiKey = process.env.RESEND_API_KEY?.trim()
@@ -72,9 +75,11 @@ export async function sendCrmEmail(input: unknown) {
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
     const message = await recordOutgoingEmail({ companyId, threadId: data.threadId || null, clientId: contact.clientId, contactId: contact.id, providerId: payload.id, from, to: [contact.email], subject, bodyHtml: html })
+    if (ticket) await prisma.emailThread.update({ where: { id: message.threadId }, data: { serviceTicketId: ticket.id } })
     await logAction({ userId, action: "SEND_CRM_EMAIL", resource: "EMAIL_MESSAGE", resourceId: message.id, payload: { contactId: contact.id, threadId: message.threadId } })
     revalidatePath("/dashboard/communications")
     revalidatePath(`/dashboard/clients/${contact.clientId}`)
+    if (ticket) revalidatePath(`/dashboard/service/tickets/${ticket.id}`)
     return { success: true as const, messageId: message.id }
   }, "automation.write")
 }

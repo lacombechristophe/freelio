@@ -265,13 +265,25 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
   await expect.poll(() => viewport.evaluate((element) => element.scrollLeft)).toBeLessThan(afterWheel)
 })
 
-test("service records connect the help desk, ticket, intervention and installed equipment", async ({ page }) => {
+test("service records connect the help desk, conversation, ticket, intervention and installed equipment", async ({ page }, testInfo) => {
   // The desktop field workflow can resolve this seeded ticket before the mobile project starts.
   // Use the complete queue so the record-chain test is deterministic across both projects.
   await assertHealthy(page, "/dashboard/service/help-desk?status=ALL", "Centre de support")
   await page.getByRole("link", { name: /SAV-2026-900/ }).click()
   await expect(page.getByRole("heading", { name: /SAV-2026-900 · Contrôle couverture QA/ })).toBeVisible()
   await expect(page.getByText("Traitement du ticket")).toBeVisible()
+  if (testInfo.project.name === "desktop") {
+    await page.getByLabel("Conversation client à rattacher").selectOption({ index: 1 })
+    await page.getByRole("button", { name: "Rattacher" }).click()
+    await expect(page.getByText("Conversation rattachée au ticket.")).toBeVisible()
+    await page.getByLabel("Note", { exact: true }).fill("Appel QA : contrôle confirmé avec le client.")
+    await page.getByRole("button", { name: "Ajouter la note" }).click()
+    await expect(page.getByText("Note interne ajoutée.")).toBeVisible()
+  }
+  const clientEmail = page.getByRole("article").filter({ hasText: "Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?" })
+  await expect(clientEmail.getByText("Question réglage couverture QA", { exact: true })).toBeVisible()
+  await expect(page.getByText("Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?")).toBeVisible()
+  await expect(page.getByText("Appel QA : contrôle confirmé avec le client.")).toBeVisible()
   await page.getByRole("link", { name: "Couverture QA installée" }).click()
   await expect(page.getByRole("heading", { name: "Couverture QA installée" })).toBeVisible()
   await expect(page.getByText("Historique SAV")).toBeVisible()

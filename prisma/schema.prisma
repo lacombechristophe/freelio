@@ -153,6 +153,7 @@ model Company {
   supplierReturns      SupplierReturn[]
   equipments           Equipment[]
   serviceTickets       ServiceTicket[]
+  serviceTicketNotes   ServiceTicketNote[]
   interventions        FieldIntervention[]
   interventionReservations InterventionReservation[]
   maintenanceContracts MaintenanceContract[]
@@ -209,6 +210,7 @@ model Membership {
   ownedMarketingCampaigns MarketingCampaign[] @relation("MarketingCampaignOwner")
   ownedCampaignAssets MarketingCampaignAsset[] @relation("MarketingCampaignAssetOwner")
   authoredKnowledgeArticles KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
+  authoredServiceTicketNotes ServiceTicketNote[] @relation("ServiceTicketNoteAuthor")
   savedViews SavedView[]
 
   @@unique([companyId, userId])
@@ -771,6 +773,8 @@ model EmailThread {
   contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
   leadCaptureId String?
   leadCapture   LeadCapture? @relation(fields: [leadCaptureId], references: [id], onDelete: SetNull)
+  serviceTicketId String?
+  serviceTicket   ServiceTicket? @relation(fields: [serviceTicketId], references: [id], onDelete: SetNull)
 
   subject       String
   status        String   @default("OPEN")
@@ -785,6 +789,7 @@ model EmailThread {
   @@index([clientId])
   @@index([contactId])
   @@index([leadCaptureId])
+  @@index([serviceTicketId])
 }
 
 model EmailMessage {
@@ -1894,6 +1899,8 @@ model ServiceTicket {
 
   interventions FieldIntervention[]
   satisfactionRequests SatisfactionRequest[]
+  emailThreads EmailThread[]
+  notes ServiceTicketNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1904,6 +1911,24 @@ model ServiceTicket {
   @@index([siteId])
   @@index([equipmentId])
   @@index([assignedMembershipId])
+}
+
+model ServiceTicketNote {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ticketId  String
+  ticket    ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorMembershipId String?
+  authorMembership   Membership? @relation("ServiceTicketNoteAuthor", fields: [authorMembershipId], references: [id], onDelete: SetNull)
+
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, createdAt])
+  @@index([ticketId, createdAt])
+  @@index([authorMembershipId])
 }
 
 model KnowledgeArticle {

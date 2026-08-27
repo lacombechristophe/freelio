@@ -344,7 +344,7 @@ export async function getServiceTicketDetail(ticketId: string) {
       prisma.serviceTicket.findFirst({
         where: { id: parsedId.data, companyId },
         include: {
-          client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } },
+          client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] }, emailThreads: { where: { serviceTicketId: null }, select: { id: true, subject: true, lastMessageAt: true, unreadCount: true }, orderBy: { lastMessageAt: "desc" }, take: 50 } } },
           site: true,
           equipment: true,
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
@@ -356,6 +356,8 @@ export async function getServiceTicketDetail(ticketId: string) {
             },
             orderBy: { scheduledStart: "desc" },
           },
+          emailThreads: { include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } }, orderBy: { lastMessageAt: "asc" } },
+          notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),

@@ -55,6 +55,7 @@ const COMPANY_SCOPED_MODELS = new Set([
   "SupplierReturn",
   "Equipment",
   "ServiceTicket",
+  "ServiceTicketNote",
   "KnowledgeArticle",
   "SatisfactionSurvey",
   "SatisfactionRequest",
