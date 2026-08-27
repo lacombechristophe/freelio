@@ -616,6 +616,10 @@ model EmailSequence {
   name        String
   description String?
   status      String  @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
+  businessDaysOnly Boolean @default(true)
+  sendWindowStart  Int     @default(8)
+  sendWindowEnd    Int     @default(18)
+  timezone         String  @default("Europe/Paris")
 
   steps       EmailSequenceStep[]
   enrollments EmailSequenceEnrollment[]
