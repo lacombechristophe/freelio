@@ -3,10 +3,7 @@ import { Prisma } from "@prisma/client"
 import { sendSequenceEmail } from "@/lib/automations/email"
 import prisma from "@/lib/prisma"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
-
-function addHours(date: Date, hours: number) {
-  return new Date(date.getTime() + Math.max(0, hours) * 60 * 60 * 1_000)
-}
+import { nextSequenceExecution } from "@/lib/automations/schedule"
 
 export async function enrollLeadInSequenceInternal(input: { companyId: string; sequenceId: string; leadId: string }) {
   const [sequence, lead] = await Promise.all([
@@ -23,8 +20,8 @@ export async function enrollLeadInSequenceInternal(input: { companyId: string; s
   const now = new Date()
   return prisma.emailSequenceEnrollment.upsert({
     where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId: lead.id } },
-    update: { status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: addHours(now, sequence.steps[0].delayHours), stopReason: null, completedAt: null },
-    create: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: lead.contactId, status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: addHours(now, sequence.steps[0].delayHours) },
+    update: { status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: nextSequenceExecution(now, sequence.steps[0].delayHours, sequence), stopReason: null, completedAt: null },
+    create: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: lead.contactId, status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: nextSequenceExecution(now, sequence.steps[0].delayHours, sequence) },
   })
 }
 
@@ -76,7 +73,7 @@ export async function processDueSequenceEmails(limit = 50) {
         await prisma.emailSequenceEnrollment.update({
           where: { id: enrollment.id },
           data: nextStep
-            ? { nextStepPosition: nextStep.position, nextSendAt: addHours(existing.sentAt || new Date(), nextStep.delayHours), lastSentAt: existing.sentAt }
+            ? { nextStepPosition: nextStep.position, nextSendAt: nextSequenceExecution(existing.sentAt || new Date(), nextStep.delayHours, enrollment.sequence), lastSentAt: existing.sentAt }
             : { status: "COMPLETED", nextSendAt: null, lastSentAt: existing.sentAt, completedAt: existing.sentAt || new Date() },
         })
         continue
@@ -115,7 +112,7 @@ export async function processDueSequenceEmails(limit = 50) {
         prisma.emailSequenceEnrollment.update({
           where: { id: enrollment.id },
           data: nextStep
-            ? { nextStepPosition: nextStep.position, nextSendAt: addHours(new Date(), nextStep.delayHours), lastSentAt: new Date() }
+            ? { nextStepPosition: nextStep.position, nextSendAt: nextSequenceExecution(new Date(), nextStep.delayHours, enrollment.sequence), lastSentAt: new Date() }
             : { status: "COMPLETED", nextSendAt: null, lastSentAt: new Date(), completedAt: new Date() },
         }),
       ])
@@ -135,7 +132,7 @@ export async function processDueSequenceEmails(limit = 50) {
     } catch (error) {
       const message = (error instanceof Error ? error.message : "Envoi impossible").slice(0, 500)
       await prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id }, data: { status: "FAILED", error: message } })
-      await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: addHours(new Date(), 1) } })
+      await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: nextSequenceExecution(new Date(), 1, enrollment.sequence) } })
       summary.failed += 1
     }
   }

@@ -488,3 +488,14 @@ Premier sous-lot livré :
 Extension livrée dans ce checkpoint : la barre est également active sur Contacts (recherche + consentement) et Devis (recherche), avec couverture navigateur de la persistance après rechargement.
 
 Prochaine extension du même lot : appliquer la barre aux Prospects, Pipeline, Factures, Tickets, Projets et Achats, puis ajouter colonnes, tris, filtres composables et actions en masse.
+
+Deuxième sous-lot livré :
+
+- jours ouvrés activables par séquence ;
+- fenêtre horaire d’exécution et fuseau IANA ;
+- calcul de prochain créneau appliqué à l’inscription, aux étapes suivantes et aux reprises après erreur ;
+- métriques livrés, ouverts, cliqués et erreurs pour chaque étape ;
+- validation serveur, contrainte PostgreSQL et tests des soirées/week-ends ;
+- parcours navigateur de modification et persistance de la cadence.
+
+Prochaine extension Automatisation : étapes e-mail manuel/appel/tâche, pause jusqu’à réalisation, version brouillon/publiée, test sans effet et branches conditionnelles.

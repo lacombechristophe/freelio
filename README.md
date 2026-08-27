@@ -159,7 +159,7 @@ Le champ invisible `website` peut servir de honeypot. La politique de confidenti
 
 ## Automatisations et séquences
 
-Le centre `/dashboard/automatisations` gère les modèles, séquences multi-étapes, délais, inscriptions consenties, règles déclenchées par les événements CRM et journal d’envoi. Les e-mails ajoutent un lien de désinscription signé et un en-tête `List-Unsubscribe` ; tout retrait arrête les inscriptions actives.
+Le centre `/dashboard/automatisations` gère les modèles, séquences multi-étapes, délais, jours ouvrés, fenêtres d’envoi, fuseaux, inscriptions consenties, règles déclenchées par les événements CRM et journal d’envoi. Chaque étape expose ses volumes livrés, ouverts, cliqués et en erreur. Les e-mails ajoutent un lien de désinscription signé et un en-tête `List-Unsubscribe` ; tout retrait arrête les inscriptions actives.
 
 Le worker traite les échéances chaque minute lorsque `RESEND_API_KEY` est configurée. Une plateforme de cron peut aussi appeler `POST /api/automations/process` avec `Authorization: Bearer <AUTOMATION_CRON_SECRET>`. `EMAIL_FROM` doit utiliser un domaine Resend vérifié ; le nom affiché provient du profil entreprise.
 

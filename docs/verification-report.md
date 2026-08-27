@@ -15,12 +15,12 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 31 fichiers, 110 tests réussis |
+| `npm run test:unit` | 32 fichiers, 115 tests réussis |
 | `npm run build` | build Next.js 16 de production réussi, 59 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
-| PostgreSQL | 19 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction et vues persistées |
+| PostgreSQL | 20 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées et cadence des séquences |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
@@ -35,6 +35,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - facturation récurrente, banque, organisation, migration, clients, projets et relevé technique ;
 - devis et aperçu PDF ;
 - création de modèle e-mail, séquence, étape et règle événementielle ;
+- cadence de séquence avec jours ouvrés, fenêtre horaire, fuseau et métriques de livraison/ouverture/clic/erreur par étape ;
 - aperçu HTML isolé, boîte e-mail CRM, statistiques et écrans d’intégration sans faux statut actif ;
 - scoring explicable, règles personnalisées, file priorisée et segments actifs/statiques ;
 - capture publique d’un prospect avec consentement ;

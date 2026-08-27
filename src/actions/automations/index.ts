@@ -7,12 +7,22 @@ import { workflowConfigurationSchema, automationTriggerSchema } from "@/lib/auto
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
+import { sequenceTimezoneIsValid } from "@/lib/automations/schedule"
 
 const idSchema = z.string().cuid()
 const templateSchema = z.object({ name: z.string().trim().min(2).max(120), category: z.string().trim().min(2).max(50), subject: z.string().trim().min(2).max(180), bodyHtml: z.string().trim().min(10).max(50_000) })
 const sequenceSchema = z.object({ name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).optional() })
 const stepSchema = z.object({ sequenceId: idSchema, templateId: idSchema.optional(), delayHours: z.number().int().min(0).max(8_760), subject: z.string().trim().max(180).optional(), bodyHtml: z.string().trim().max(50_000).optional() })
 const statusSchema = z.enum(["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED"])
+const sequenceSettingsSchema = z.object({
+  sequenceId: idSchema,
+  businessDaysOnly: z.boolean(),
+  sendWindowStart: z.coerce.number().int().min(0).max(22),
+  sendWindowEnd: z.coerce.number().int().min(1).max(23),
+  timezone: z.string().trim().min(1).max(100).refine(sequenceTimezoneIsValid, "Fuseau horaire invalide"),
+}).superRefine((value, context) => {
+  if (value.sendWindowStart >= value.sendWindowEnd) context.addIssue({ code: "custom", path: ["sendWindowEnd"], message: "La fin de fenêtre doit être postérieure au début" })
+})
 
 export async function getAutomationDashboard() {
   return withAuth(async ({ companyId }) => {
@@ -21,7 +31,7 @@ export async function getAutomationDashboard() {
       prisma.emailSequence.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         include: {
-          steps: { orderBy: { position: "asc" } },
+          steps: { orderBy: { position: "asc" }, include: { deliveries: { select: { status: true } } } },
           enrollments: { orderBy: { enrolledAt: "desc" }, take: 20, include: { leadCapture: { select: { firstName: true, lastName: true, email: true } } } },
           _count: { select: { enrollments: true, deliveries: true } },
         },
@@ -76,6 +86,17 @@ export async function updateEmailSequenceStatus(sequenceId: string, status: stri
     if (!sequence) throw new Error("Séquence introuvable")
     if (nextStatus === "ACTIVE" && sequence._count.steps === 0) throw new Error("Ajoutez une étape avant d'activer la séquence")
     await prisma.emailSequence.update({ where: { id }, data: { status: nextStatus } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function updateEmailSequenceSettings(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = sequenceSettingsSchema.parse(input)
+    const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, select: { id: true } })
+    if (!sequence) throw new Error("Séquence introuvable")
+    await prisma.emailSequence.update({ where: { id: sequence.id }, data: { businessDaysOnly: data.businessDaysOnly, sendWindowStart: data.sendWindowStart, sendWindowEnd: data.sendWindowEnd, timezone: data.timezone } })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }
   }, "automation.write")
