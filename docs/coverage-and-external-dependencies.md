@@ -22,7 +22,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Source et UTM | **Disponible** | source, landing page, referrer et paramètres UTM conservés sur lead/opportunité | tableaux d'attribution avancés absents |
 | Consentement | **Disponible** | événements et preuve hashée, retrait interne, lien public signé généré depuis la file prospects, retrait idempotent | pas de centre de préférences multicanal ; durées et texte RGPD à valider |
 | Clients et contacts | **Disponible** | fiches entreprise/particulier, contacts, coordonnées, activités, fichiers et prochaine action | dédoublonnage global/humain encore limité |
-| Vues de listes | **Partiel** | vues personnelles persistées sur les clients, configuration JSON bornée et réapplication après rechargement | colonnes, filtres avancés et actions en masse à généraliser aux autres index |
+| Vues de listes | **Partiel** | vues personnelles persistées sur clients, contacts et devis, configuration JSON bornée et réapplication après rechargement | colonnes, filtres avancés, partage équipe et actions en masse à généraliser aux autres index |
 | Sites/adresses multiples | **Disponible** | `CustomerSite` structuré avec accès et coordonnées | géocodage/cartographie non intégrés |
 | Pipeline commercial | **Partiel** | étapes, opportunités, responsable lié à l’équipe, montant, probabilité, clôture prévue/réelle, motif de perte obligatoire et forecast pondéré du mois | prévisions multi-périodes, quotas et statistiques de vélocité à approfondir |
 | Chronologie commerciale | **Partiel** | activités manuelles/importées et conversations e-mail rattachées aux clients, contacts ou prospects | appels et réunions externes non synchronisés tant qu’un connecteur Google/Microsoft n’est pas autorisé |

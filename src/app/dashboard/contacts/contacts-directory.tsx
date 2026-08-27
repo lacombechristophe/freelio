@@ -8,10 +8,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SavedViewBar } from "@/components/shared/saved-view-bar"
 
 type ContactRow = NonNullable<Awaited<ReturnType<typeof import("@/actions/contacts").getContactsDirectory>>>[number]
 
-export function ContactsDirectory({ contacts }: { contacts: ContactRow[] }) {
+type SavedView = Awaited<ReturnType<typeof import("@/actions/views").getSavedViews>>[number]
+
+export function ContactsDirectory({ contacts, savedViews }: { contacts: ContactRow[]; savedViews: SavedView[] }) {
   const [search, setSearch] = React.useState("")
   const [marketing, setMarketing] = React.useState("ALL")
   const normalized = search.trim().toLowerCase()
@@ -23,6 +26,7 @@ export function ContactsDirectory({ contacts }: { contacts: ContactRow[] }) {
   })
 
   return <div className="space-y-4">
+    <SavedViewBar resource="CONTACTS" views={savedViews} config={{ search, filters: { marketing } }} onApply={(config) => { setSearch(typeof config.search === "string" ? config.search : ""); const filters = config.filters as Record<string, unknown> | undefined; const nextMarketing = filters && typeof filters.marketing === "string" ? filters.marketing : "ALL"; setMarketing(["ALL", "OPTED_IN", "OPTED_OUT"].includes(nextMarketing) ? nextMarketing : "ALL") }} />
     <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 lg:flex-row lg:items-center">
       <div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Rechercher un contact" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nom, entreprise, e-mail, téléphone…" className="pl-9" /></div>
       <Select value={marketing} onValueChange={(value) => setMarketing(value ?? "ALL")}><SelectTrigger aria-label="Filtrer par consentement" className="w-full lg:w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Tous les consentements</SelectItem><SelectItem value="OPTED_IN">Marketing accepté</SelectItem><SelectItem value="OPTED_OUT">Marketing refusé</SelectItem></SelectContent></Select>

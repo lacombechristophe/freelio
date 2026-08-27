@@ -485,4 +485,6 @@ Premier sous-lot livré :
 - correction des avertissements d’accessibilité Base UI sur plusieurs liens-boutons ;
 - correction des clés React dupliquées dans les hubs et sous-menus.
 
-Prochaine extension du même lot : appliquer la barre aux Contacts, Prospects, Pipeline, Devis, Factures, Tickets, Projets et Achats, puis ajouter colonnes, tris, filtres composables et actions en masse.
+Extension livrée dans ce checkpoint : la barre est également active sur Contacts (recherche + consentement) et Devis (recherche), avec couverture navigateur de la persistance après rechargement.
+
+Prochaine extension du même lot : appliquer la barre aux Prospects, Pipeline, Factures, Tickets, Projets et Achats, puis ajouter colonnes, tris, filtres composables et actions en masse.
