@@ -168,6 +168,7 @@ model Company {
   emailTemplates       EmailTemplate[]
   emailSequences       EmailSequence[]
   emailDeliveries      EmailDelivery[]
+  emailSequenceTasks   EmailSequenceTask[]
   emailThreads         EmailThread[]
   emailMessages        EmailMessage[]
   emailEvents          EmailEvent[]
@@ -640,10 +641,16 @@ model EmailSequenceStep {
 
   position   Int
   delayHours Int    @default(0)
+  type       String @default("EMAIL")
   subject    String
   bodyHtml   String
+  taskTitle         String?
+  taskNotes         String?
+  taskPriority      Int     @default(2)
+  pauseUntilComplete Boolean @default(false)
 
   deliveries EmailDelivery[]
+  taskExecutions EmailSequenceTask[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -671,6 +678,7 @@ model EmailSequenceEnrollment {
   updatedAt        DateTime  @updatedAt
 
   deliveries EmailDelivery[]
+  taskExecutions EmailSequenceTask[]
 
   @@unique([sequenceId, leadCaptureId])
   @@index([status, nextSendAt])
@@ -708,6 +716,27 @@ model EmailDelivery {
   @@index([companyId, createdAt])
   @@index([status, scheduledAt])
   @@index([leadCaptureId])
+}
+
+model EmailSequenceTask {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  enrollmentId String
+  enrollment   EmailSequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  stepId       String
+  step         EmailSequenceStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  organisationTaskId String @unique
+  organisationTask   OrganisationTask @relation(fields: [organisationTaskId], references: [id], onDelete: Cascade)
+
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([enrollmentId, stepId])
+  @@index([companyId, createdAt])
+  @@index([stepId])
 }
 
 model CommunicationChannel {
@@ -1175,6 +1204,7 @@ model OrganisationTask {
   project   Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
   goalId    String?
   goal      OrganisationGoal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  sequenceExecution EmailSequenceTask?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

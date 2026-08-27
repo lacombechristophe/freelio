@@ -6,6 +6,7 @@ import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { advanceTaskRecurrence } from "@/lib/workflow-rules"
+import { completeSequenceTaskFromOrganisationTask } from "@/lib/automations/sequences"
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as const
 const GOAL_SCOPES = ["DAY", "WEEK", "MONTH", "YEAR"] as const
@@ -501,7 +502,9 @@ export async function updateOrganisationTaskStatus(id: string, status: (typeof T
       }
       return updated
     })
+    if (status === "DONE") await completeSequenceTaskFromOrganisationTask(task.id)
     revalidateOrganisation()
+    revalidatePath("/dashboard/automatisations")
     return task
   })
 }

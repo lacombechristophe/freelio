@@ -66,6 +66,7 @@ const COMPANY_SCOPED_MODELS = new Set([
   "MarketingConsent",
   "EmailTemplate",
   "EmailSequence",
+  "EmailSequenceTask",
   "EmailDelivery",
   "EmailThread",
   "EmailMessage",

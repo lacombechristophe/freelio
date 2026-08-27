@@ -20,16 +20,16 @@ const processAutomations = async () => {
   automationRunning = true
   try {
     const result = await processDueSequenceEmails(100)
-    if (result.examined) console.log(`[Worker] Email sequences: ${result.sent} sent, ${result.failed} failed, ${result.stopped} stopped.`)
+    if (result.examined) console.log(`[Worker] Sequences: ${result.sent} email(s), ${result.tasksCreated} task(s), ${result.tasksWaiting} waiting, ${result.failed} failed, ${result.stopped} stopped.`)
   } catch (error) {
-    console.error(`[Worker] Email sequence processing failed: ${error instanceof Error ? error.message : "unknown error"}`)
+    console.error(`[Worker] Sequence processing failed: ${error instanceof Error ? error.message : "unknown error"}`)
   } finally {
     automationRunning = false
   }
 }
-const automationInterval = process.env.RESEND_API_KEY ? setInterval(() => { void processAutomations() }, 60_000) : null
-if (automationInterval) void processAutomations()
-else console.log("[Worker] Email sequences disabled: RESEND_API_KEY is not configured.")
+const automationInterval = setInterval(() => { void processAutomations() }, 60_000)
+void processAutomations()
+if (!process.env.RESEND_API_KEY) console.log("[Worker] Automatic email steps will retry until RESEND_API_KEY is configured; manual sequence tasks remain active.")
 
 let schedulingRunning = false
 const processScheduling = async () => {

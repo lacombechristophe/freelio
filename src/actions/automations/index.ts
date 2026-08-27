@@ -12,7 +12,21 @@ import { sequenceTimezoneIsValid } from "@/lib/automations/schedule"
 const idSchema = z.string().cuid()
 const templateSchema = z.object({ name: z.string().trim().min(2).max(120), category: z.string().trim().min(2).max(50), subject: z.string().trim().min(2).max(180), bodyHtml: z.string().trim().min(10).max(50_000) })
 const sequenceSchema = z.object({ name: z.string().trim().min(2).max(120), description: z.string().trim().max(500).optional() })
-const stepSchema = z.object({ sequenceId: idSchema, templateId: idSchema.optional(), delayHours: z.number().int().min(0).max(8_760), subject: z.string().trim().max(180).optional(), bodyHtml: z.string().trim().max(50_000).optional() })
+const stepSchema = z.object({
+  sequenceId: idSchema,
+  type: z.enum(["EMAIL", "MANUAL_EMAIL", "CALL_TASK", "GENERAL_TASK"]).default("EMAIL"),
+  templateId: idSchema.optional(),
+  delayHours: z.coerce.number().int().min(0).max(8_760),
+  subject: z.string().trim().max(180).optional(),
+  bodyHtml: z.string().trim().max(50_000).optional(),
+  taskTitle: z.string().trim().max(180).optional(),
+  taskNotes: z.string().trim().max(2_000).optional(),
+  taskPriority: z.coerce.number().int().min(1).max(3).default(2),
+  pauseUntilComplete: z.boolean().default(false),
+}).superRefine((value, context) => {
+  if (value.type === "EMAIL" && !value.templateId && (!value.subject || !value.bodyHtml)) context.addIssue({ code: "custom", message: "Choisissez un modèle ou renseignez l’objet et le contenu" })
+  if (value.type !== "EMAIL" && !value.taskTitle) context.addIssue({ code: "custom", path: ["taskTitle"], message: "Le titre de la tâche est requis" })
+})
 const statusSchema = z.enum(["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED"])
 const sequenceSettingsSchema = z.object({
   sequenceId: idSchema,
@@ -31,8 +45,8 @@ export async function getAutomationDashboard() {
       prisma.emailSequence.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         include: {
-          steps: { orderBy: { position: "asc" }, include: { deliveries: { select: { status: true } } } },
-          enrollments: { orderBy: { enrolledAt: "desc" }, take: 20, include: { leadCapture: { select: { firstName: true, lastName: true, email: true } } } },
+          steps: { orderBy: { position: "asc" }, include: { deliveries: { select: { status: true } }, taskExecutions: { select: { completedAt: true, organisationTask: { select: { status: true } } } } } },
+          enrollments: { orderBy: { enrolledAt: "desc" }, take: 20, include: { leadCapture: { select: { firstName: true, lastName: true, email: true } }, taskExecutions: { orderBy: { createdAt: "desc" }, include: { step: { select: { taskTitle: true, type: true } }, organisationTask: { select: { id: true, status: true, title: true } } } } } },
           _count: { select: { enrollments: true, deliveries: true } },
         },
         orderBy: { updatedAt: "desc" },
@@ -68,11 +82,11 @@ export async function addEmailSequenceStep(input: unknown) {
     const data = stepSchema.parse(input)
     const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, include: { steps: { orderBy: { position: "desc" }, take: 1 } } })
     if (!sequence) throw new Error("Séquence introuvable")
-    const template = data.templateId ? await prisma.emailTemplate.findFirst({ where: { id: data.templateId, companyId, status: "ACTIVE" } }) : null
-    const subject = data.subject || template?.subject
-    const bodyHtml = data.bodyHtml || template?.bodyHtml
-    if (!subject || !bodyHtml) throw new Error("Renseignez un objet et un contenu, ou choisissez un modèle")
-    await prisma.emailSequenceStep.create({ data: { sequenceId: sequence.id, position: (sequence.steps[0]?.position ?? -1) + 1, delayHours: data.delayHours, subject, bodyHtml } })
+    const template = data.type === "EMAIL" && data.templateId ? await prisma.emailTemplate.findFirst({ where: { id: data.templateId, companyId, status: "ACTIVE" } }) : null
+    const subject = data.type === "EMAIL" ? data.subject || template?.subject : ""
+    const bodyHtml = data.type === "EMAIL" ? data.bodyHtml || template?.bodyHtml : ""
+    if (data.type === "EMAIL" && (!subject || !bodyHtml)) throw new Error("Renseignez un objet et un contenu, ou choisissez un modèle")
+    await prisma.emailSequenceStep.create({ data: { sequenceId: sequence.id, position: (sequence.steps[0]?.position ?? -1) + 1, delayHours: data.delayHours, type: data.type, subject: subject || "", bodyHtml: bodyHtml || "", taskTitle: data.type === "EMAIL" ? null : data.taskTitle || null, taskNotes: data.type === "EMAIL" ? null : data.taskNotes || null, taskPriority: data.taskPriority, pauseUntilComplete: data.type === "EMAIL" ? false : data.pauseUntilComplete } })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }
   }, "automation.write")

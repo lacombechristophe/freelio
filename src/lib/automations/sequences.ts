@@ -1,9 +1,19 @@
 import { Prisma } from "@prisma/client"
 
-import { sendSequenceEmail } from "@/lib/automations/email"
+import { renderEmailVariables, sendSequenceEmail } from "@/lib/automations/email"
 import prisma from "@/lib/prisma"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
-import { nextSequenceExecution } from "@/lib/automations/schedule"
+import { nextSequenceExecution, type SequenceSchedule } from "@/lib/automations/schedule"
+
+type ProgressionSequence = SequenceSchedule & { steps: Array<{ id: string; position: number; delayHours: number }> }
+
+function progressionData(sequence: ProgressionSequence, currentStepId: string, at: Date) {
+  const stepIndex = sequence.steps.findIndex((item) => item.id === currentStepId)
+  const nextStep = sequence.steps[stepIndex + 1]
+  return nextStep
+    ? { nextStep, data: { nextStepPosition: nextStep.position, nextSendAt: nextSequenceExecution(at, nextStep.delayHours, sequence) } }
+    : { nextStep: null, data: { status: "COMPLETED", nextSendAt: null, completedAt: at } }
+}
 
 export async function enrollLeadInSequenceInternal(input: { companyId: string; sequenceId: string; leadId: string }) {
   const [sequence, lead] = await Promise.all([
@@ -30,20 +40,19 @@ async function stopEnrollment(id: string, reason: string) {
 }
 
 export async function processDueSequenceEmails(limit = 50) {
-  if (!process.env.RESEND_API_KEY?.trim()) throw new Error("RESEND_API_KEY n'est pas configurée")
   const now = new Date()
   const due = await prisma.emailSequenceEnrollment.findMany({
     where: { status: "ACTIVE", nextSendAt: { lte: now }, sequence: { status: "ACTIVE" } },
     include: {
       sequence: { include: { company: { select: { id: true, name: true, email: true } }, steps: { orderBy: { position: "asc" } } } },
-      leadCapture: { select: { id: true, firstName: true, lastName: true, email: true, projectType: true, city: true, marketingOptIn: true, status: true } },
+      leadCapture: { select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, marketingOptIn: true, status: true } },
       contact: { select: { marketingStatus: true } },
     },
     orderBy: { nextSendAt: "asc" },
     take: Math.min(Math.max(limit, 1), 200),
   })
 
-  const summary = { examined: due.length, sent: 0, failed: 0, stopped: 0, completed: 0 }
+  const summary = { examined: due.length, sent: 0, failed: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0 }
   for (const enrollment of due) {
     const lead = enrollment.leadCapture
     if (!lead.marketingOptIn || enrollment.contact?.marketingStatus === "OPTED_OUT") {
@@ -63,18 +72,47 @@ export async function processDueSequenceEmails(limit = 50) {
       continue
     }
 
+    if (step.type !== "EMAIL") {
+      try {
+        let execution = await prisma.emailSequenceTask.findUnique({ where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } }, include: { organisationTask: { select: { status: true } } } })
+        if (!execution) {
+          const title = renderEmailVariables(step.taskTitle || "Action de suivi", { company: enrollment.sequence.company, lead }, false)
+          const notes = step.taskNotes ? renderEmailVariables(step.taskNotes, { company: enrollment.sequence.company, lead }, false) : null
+          execution = await prisma.$transaction(async (tx) => {
+            const existing = await tx.emailSequenceTask.findUnique({ where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } }, include: { organisationTask: { select: { status: true } } } })
+            if (existing) return existing
+            const task = await tx.organisationTask.create({ data: { companyId: enrollment.sequence.companyId, clientId: lead.clientId, title, notes: [notes, `Séquence : ${enrollment.sequence.name}`].filter(Boolean).join("\n\n"), status: "TODO", priority: step.taskPriority, category: "SALES", isBillable: false, dueDate: enrollment.nextSendAt || now } })
+            return tx.emailSequenceTask.create({ data: { companyId: enrollment.sequence.companyId, enrollmentId: enrollment.id, stepId: step.id, organisationTaskId: task.id }, include: { organisationTask: { select: { status: true } } } })
+          })
+          summary.tasksCreated += 1
+        }
+        if (!step.pauseUntilComplete || execution.organisationTask.status === "DONE") {
+          const progressed = progressionData(enrollment.sequence, step.id, now)
+          await prisma.$transaction([
+            prisma.emailSequenceTask.update({ where: { id: execution.id }, data: { completedAt: execution.organisationTask.status === "DONE" ? now : execution.completedAt } }),
+            prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: progressed.data }),
+          ])
+          if (!progressed.nextStep) summary.completed += 1
+        } else {
+          await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: nextSequenceExecution(now, 1, enrollment.sequence) } })
+          summary.tasksWaiting += 1
+        }
+      } catch {
+        await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: nextSequenceExecution(new Date(), 1, enrollment.sequence) } })
+        summary.failed += 1
+      }
+      continue
+    }
+
     try {
       const existing = await prisma.emailDelivery.findUnique({
         where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } },
       })
       if (existing && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(existing.status)) {
-        const stepIndex = enrollment.sequence.steps.findIndex((item) => item.id === step.id)
-        const nextStep = enrollment.sequence.steps[stepIndex + 1]
+        const progressed = progressionData(enrollment.sequence, step.id, existing.sentAt || new Date())
         await prisma.emailSequenceEnrollment.update({
           where: { id: enrollment.id },
-          data: nextStep
-            ? { nextStepPosition: nextStep.position, nextSendAt: nextSequenceExecution(existing.sentAt || new Date(), nextStep.delayHours, enrollment.sequence), lastSentAt: existing.sentAt }
-            : { status: "COMPLETED", nextSendAt: null, lastSentAt: existing.sentAt, completedAt: existing.sentAt || new Date() },
+          data: { ...progressed.data, lastSentAt: existing.sentAt },
         })
         continue
       }
@@ -105,15 +143,13 @@ export async function processDueSequenceEmails(limit = 50) {
       })
       if (claimed.count !== 1) continue
       const sent = await sendSequenceEmail({ company: enrollment.sequence.company, lead, subjectTemplate: step.subject, bodyTemplate: step.bodyHtml, idempotencyKey: delivery.id })
-      const stepIndex = enrollment.sequence.steps.findIndex((item) => item.id === step.id)
-      const nextStep = enrollment.sequence.steps[stepIndex + 1]
+      const sentAt = new Date()
+      const progressed = progressionData(enrollment.sequence, step.id, sentAt)
       await prisma.$transaction([
-        prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, providerId: sent.providerId, sentAt: new Date(), error: null } }),
+        prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, providerId: sent.providerId, sentAt, error: null } }),
         prisma.emailSequenceEnrollment.update({
           where: { id: enrollment.id },
-          data: nextStep
-            ? { nextStepPosition: nextStep.position, nextSendAt: nextSequenceExecution(new Date(), nextStep.delayHours, enrollment.sequence), lastSentAt: new Date() }
-            : { status: "COMPLETED", nextSendAt: null, lastSentAt: new Date(), completedAt: new Date() },
+          data: { ...progressed.data, lastSentAt: sentAt },
         }),
       ])
       await recordOutgoingEmail({
@@ -128,7 +164,7 @@ export async function processDueSequenceEmails(limit = 50) {
         bodyHtml: sent.html,
       })
       summary.sent += 1
-      if (!nextStep) summary.completed += 1
+      if (!progressed.nextStep) summary.completed += 1
     } catch (error) {
       const message = (error instanceof Error ? error.message : "Envoi impossible").slice(0, 500)
       await prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id }, data: { status: "FAILED", error: message } })
@@ -137,6 +173,19 @@ export async function processDueSequenceEmails(limit = 50) {
     }
   }
   return summary
+}
+
+export async function completeSequenceTaskFromOrganisationTask(organisationTaskId: string) {
+  const execution = await prisma.emailSequenceTask.findUnique({
+    where: { organisationTaskId },
+    include: { organisationTask: { select: { status: true } }, step: { select: { id: true, position: true, pauseUntilComplete: true } }, enrollment: { include: { sequence: { include: { steps: { orderBy: { position: "asc" }, select: { id: true, position: true, delayHours: true } } } } } } },
+  })
+  if (!execution || execution.organisationTask.status !== "DONE" || !execution.step.pauseUntilComplete || execution.enrollment.status !== "ACTIVE" || execution.enrollment.nextStepPosition !== execution.step.position) return { advanced: false as const }
+  const now = new Date()
+  const progressed = progressionData(execution.enrollment.sequence, execution.step.id, now)
+  const updated = await prisma.emailSequenceEnrollment.updateMany({ where: { id: execution.enrollment.id, status: "ACTIVE", nextStepPosition: execution.step.position }, data: progressed.data })
+  if (updated.count === 1) await prisma.emailSequenceTask.update({ where: { id: execution.id }, data: { completedAt: now } })
+  return { advanced: updated.count === 1 }
 }
 
 export function isUniqueConstraintError(error: unknown) {
