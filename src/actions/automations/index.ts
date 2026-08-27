@@ -7,7 +7,7 @@ import { workflowConfigurationSchema, automationTriggerSchema } from "@/lib/auto
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
-import { sequenceTimezoneIsValid } from "@/lib/automations/schedule"
+import { nextSequenceExecution, sequenceTimezoneIsValid } from "@/lib/automations/schedule"
 
 const idSchema = z.string().cuid()
 const templateSchema = z.object({ name: z.string().trim().min(2).max(120), category: z.string().trim().min(2).max(50), subject: z.string().trim().min(2).max(180), bodyHtml: z.string().trim().min(10).max(50_000) })
@@ -129,6 +129,27 @@ export async function stopSequenceEnrollment(enrollmentId: string) {
     const enrollment = await prisma.emailSequenceEnrollment.findFirst({ where: { id: idSchema.parse(enrollmentId), sequence: { companyId } }, select: { id: true } })
     if (!enrollment) throw new Error("Inscription introuvable")
     await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "STOPPED", stopReason: "MANUAL", nextSendAt: null, completedAt: new Date() } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function pauseSequenceEnrollment(enrollmentId: string) {
+  return withAuth(async ({ companyId }) => {
+    const enrollment = await prisma.emailSequenceEnrollment.findFirst({ where: { id: idSchema.parse(enrollmentId), sequence: { companyId }, status: "ACTIVE" }, select: { id: true } })
+    if (!enrollment) throw new Error("Inscription active introuvable")
+    await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "PAUSED", stopReason: "MANUAL_PAUSE" } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function resumeSequenceEnrollment(enrollmentId: string) {
+  return withAuth(async ({ companyId }) => {
+    const enrollment = await prisma.emailSequenceEnrollment.findFirst({ where: { id: idSchema.parse(enrollmentId), sequence: { companyId }, status: "PAUSED" }, include: { sequence: { select: { businessDaysOnly: true, sendWindowStart: true, sendWindowEnd: true, timezone: true } } } })
+    if (!enrollment) throw new Error("Inscription en pause introuvable")
+    const nextSendAt = nextSequenceExecution(new Date(), 0, enrollment.sequence)
+    await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "ACTIVE", stopReason: null, nextSendAt } })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }
   }, "automation.write")

@@ -509,5 +509,6 @@ Troisième sous-lot livré :
 - indicateurs de tâches créées/terminées dans la séquence ;
 - fonctionnement des tâches manuelles même si le fournisseur e-mail n’est pas configuré ;
 - parcours navigateur séquence → appel → Organisation → réalisation → séquence terminée.
+- pilotage individuel des inscriptions : pause, reprise dans la prochaine fenêtre autorisée, arrêt, échéance et motif visibles.
 
 Prochaine extension Automatisation : version brouillon/publiée, test sans effet, branches conditionnelles et journal détaillé par action.
