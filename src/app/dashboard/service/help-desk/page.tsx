@@ -79,13 +79,13 @@ export default async function HelpDeskPage({
       ticket.priority === "URGENT" &&
       !["RESOLVED", "CLOSED"].includes(ticket.status),
   ).length;
+  const firstResponseBreached = data.tickets.filter(
+    (ticket) => !ticket.firstRespondedAt && ticket.firstResponseTargetAt < now && !["RESOLVED", "CLOSED"].includes(ticket.status),
+  ).length;
   const unassigned = data.tickets.filter(
     (ticket) =>
       !ticket.assignedMembershipId &&
       !["RESOLVED", "CLOSED"].includes(ticket.status),
-  ).length;
-  const planned = data.tickets.filter(
-    (ticket) => ticket.status === "PLANNED",
   ).length;
 
   return (
@@ -105,10 +105,10 @@ export default async function HelpDeskPage({
         />
         <Metric
           icon={AlertTriangle}
-          label="Urgences"
-          value={urgent}
-          detail="Engagement par défaut 4 h"
-          alert={urgent > 0}
+          label="1re réponse en retard"
+          value={firstResponseBreached}
+          detail={`${urgent} urgence(s) active(s)`}
+          alert={firstResponseBreached > 0}
         />
         <Metric
           icon={UserRound}
@@ -119,9 +119,9 @@ export default async function HelpDeskPage({
         />
         <Metric
           icon={Wrench}
-          label="Planifiés"
-          value={planned}
-          detail="Intervention prévue"
+          label="En attente client"
+          value={data.tickets.filter((ticket) => ticket.status === "WAITING").length}
+          detail="Horloge SLA suspendue"
         />
       </section>
       <Card>
@@ -130,9 +130,7 @@ export default async function HelpDeskPage({
             <div>
               <CardTitle className="text-base">Filtres de la file</CardTitle>
               <CardDescription>
-                Les engagements par défaut sont calculés depuis la demande :
-                urgent 4 h, haut 24 h, normal 72 h, faible 120 h. Une échéance
-                manuelle les remplace.
+                Les objectifs utilisent les heures et jours ouverts définis dans Paramètres → Service. Une échéance manuelle remplace l’objectif de résolution ; le statut En attente suspend les horloges.
               </CardDescription>
             </div>
             <CircleHelp
@@ -214,6 +212,7 @@ export default async function HelpDeskPage({
             {data.tickets.map((ticket) => {
               const isClosed = ["RESOLVED", "CLOSED"].includes(ticket.status);
               const isBreached = !isClosed && ticket.targetAt < now;
+              const firstResponseLate = !isClosed && !ticket.firstRespondedAt && ticket.firstResponseTargetAt < now;
               const warranty =
                 ticket.equipment?.warrantyUntil &&
                 ticket.equipment.warrantyUntil >= now;
@@ -247,6 +246,7 @@ export default async function HelpDeskPage({
                       {warranty && (
                         <Badge variant="secondary">Sous garantie</Badge>
                       )}
+                      {ticket.status === "WAITING" && <Badge variant="secondary">SLA suspendu</Badge>}
                     </div>
                     <p className="mt-2 truncate text-sm font-semibold">
                       {ticket.title}
@@ -269,6 +269,7 @@ export default async function HelpDeskPage({
                     <p className="mt-1 text-xs text-muted-foreground">
                       {ticket._count.interventions} intervention(s)
                     </p>
+                    <p className={`mt-1 text-xs ${firstResponseLate ? "text-destructive" : "text-muted-foreground"}`}>{ticket.firstRespondedAt ? `Réponse le ${formatDate(ticket.firstRespondedAt)}` : `1re réponse avant ${formatDate(ticket.firstResponseTargetAt)}`}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -284,7 +285,7 @@ export default async function HelpDeskPage({
                         ? "Délai dépassé"
                         : ticket.slaSource === "CUSTOM"
                           ? "Échéance personnalisée"
-                          : "Règle par défaut"}
+                          : "Politique en heures ouvrées"}
                     </p>
                   </div>
                 </Link>

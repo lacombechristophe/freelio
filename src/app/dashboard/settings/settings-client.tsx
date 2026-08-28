@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
-  Building2, FileText, CreditCard, User, Zap, Trash2, Database, Download, Save, Check
+  Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,6 +65,13 @@ type Company = {
   pdfTemplate?: string | null
   eInvoicePlatform?: string | null
   eInvoiceRoutingId?: string | null
+  serviceTimezone: string
+  serviceDayStart: number
+  serviceDayEnd: number
+  serviceWorkdays?: unknown
+  serviceHolidays?: unknown
+  serviceFirstResponseHours?: unknown
+  serviceResolutionHours?: unknown
 }
 
 type User = {
@@ -142,6 +149,26 @@ export function SettingsClient({ company, user }: { company: Company; user: User
     })
   }
 
+  function handleSaveService(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const form = new FormData(e.currentTarget)
+    const number = (name: string) => Number(form.get(name))
+    startTransition(async () => {
+      const result = await updateCompany({
+        name: company.name,
+        serviceTimezone: form.get("serviceTimezone"),
+        serviceDayStart: number("serviceDayStart"),
+        serviceDayEnd: number("serviceDayEnd"),
+        serviceWorkdays: form.getAll("serviceWorkdays").map(Number),
+        serviceHolidays: String(form.get("serviceHolidays") || "").split(/[\s,;]+/).map((item) => item.trim()).filter(Boolean),
+        serviceFirstResponseHours: { URGENT: number("firstUrgent"), HIGH: number("firstHigh"), NORMAL: number("firstNormal"), LOW: number("firstLow") },
+        serviceResolutionHours: { URGENT: number("resolutionUrgent"), HIGH: number("resolutionHigh"), NORMAL: number("resolutionNormal"), LOW: number("resolutionLow") },
+      })
+      if (result?.success) toast.success("Politique de service sauvegardée.")
+      else toast.error(result?.error ?? "Erreur lors de la sauvegarde.")
+    })
+  }
+
   function handleExport() {
     startTransition(async () => {
       try {
@@ -179,6 +206,16 @@ export function SettingsClient({ company, user }: { company: Company; user: User
     })
   }
 
+  const serviceFormKey = JSON.stringify([
+    company.serviceTimezone,
+    company.serviceDayStart,
+    company.serviceDayEnd,
+    company.serviceWorkdays,
+    company.serviceHolidays,
+    company.serviceFirstResponseHours,
+    company.serviceResolutionHours,
+  ])
+
   return (
     <Tabs defaultValue="enterprise" className="space-y-4">
       <TabsList className="h-auto min-h-10 max-w-full justify-start overflow-x-auto bg-muted/60 p-1">
@@ -187,6 +224,9 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         </TabsTrigger>
         <TabsTrigger value="billing" className="gap-2">
           <CreditCard className="h-4 w-4" /> Facturation
+        </TabsTrigger>
+        <TabsTrigger value="service" className="gap-2">
+          <Headphones className="h-4 w-4" /> Service
         </TabsTrigger>
         <TabsTrigger value="integrations" className="gap-2">
           <Zap className="h-4 w-4" /> Intégrations
@@ -430,6 +470,10 @@ export function SettingsClient({ company, user }: { company: Company; user: User
             </div>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="service" className="space-y-4">
+        <Card><CardHeader><CardTitle className="text-sm font-semibold">Horaires et engagements SAV</CardTitle><CardDescription className="text-xs">Les objectifs de première réponse et de résolution ne décomptent que les heures ouvertes. Le statut « En attente » suspend les horloges.</CardDescription></CardHeader><CardContent><form key={serviceFormKey} onSubmit={handleSaveService} className="space-y-6"><div className="grid gap-4 sm:grid-cols-3"><div className="space-y-1.5"><Label htmlFor="serviceTimezone">Fuseau</Label><select id="serviceTimezone" name="serviceTimezone" defaultValue={company.serviceTimezone || "Europe/Paris"} className="h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="Europe/Paris">Europe/Paris</option><option value="Europe/Brussels">Europe/Bruxelles</option><option value="UTC">UTC</option></select></div><div className="space-y-1.5"><Label htmlFor="serviceDayStart">Ouverture</Label><Input id="serviceDayStart" name="serviceDayStart" type="number" min="0" max="22" defaultValue={company.serviceDayStart ?? 8} /></div><div className="space-y-1.5"><Label htmlFor="serviceDayEnd">Fermeture</Label><Input id="serviceDayEnd" name="serviceDayEnd" type="number" min="1" max="23" defaultValue={company.serviceDayEnd ?? 18} /></div></div><div><Label>Jours ouverts</Label><div className="mt-2 flex flex-wrap gap-2">{[[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[0,"Dimanche"]].map(([value,label]) => <label key={value} className="flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm"><input name="serviceWorkdays" type="checkbox" value={value} defaultChecked={(Array.isArray(company.serviceWorkdays) ? company.serviceWorkdays : [1,2,3,4,5]).includes(value)} />{label}</label>)}</div></div><div className="space-y-1.5"><Label htmlFor="serviceHolidays">Jours de fermeture</Label><Input id="serviceHolidays" name="serviceHolidays" defaultValue={Array.isArray(company.serviceHolidays) ? company.serviceHolidays.join(", ") : ""} placeholder="2026-12-25, 2027-01-01" /><p className="text-xs text-muted-foreground">Dates ISO séparées par des virgules.</p></div><div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[620px] text-sm"><thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="p-3">Priorité</th><th className="p-3">Première réponse (h ouvrées)</th><th className="p-3">Résolution (h ouvrées)</th></tr></thead><tbody className="divide-y">{[["Urgente","Urgent",1,4],["Haute","High",4,16],["Normale","Normal",8,40],["Faible","Low",16,80]].map(([label,key,first,resolution]) => { const firstMap = company.serviceFirstResponseHours as Record<string, number> | null; const resolutionMap = company.serviceResolutionHours as Record<string, number> | null; const code = String(key).toUpperCase(); return <tr key={String(key)}><td className="p-3 font-medium">{label}</td><td className="p-3"><Input aria-label={`Première réponse ${String(label).toLowerCase()}`} name={`first${key}`} type="number" min="0.25" step="0.25" defaultValue={firstMap?.[code] ?? first} /></td><td className="p-3"><Input aria-label={`Résolution ${String(label).toLowerCase()}`} name={`resolution${key}`} type="number" min="0.25" step="0.25" defaultValue={resolutionMap?.[code] ?? resolution} /></td></tr> })}</tbody></table></div><Button type="submit" disabled={isPending}><Save />Enregistrer la politique SAV</Button></form></CardContent></Card>
       </TabsContent>
 
       <TabsContent value="integrations" className="space-y-4">

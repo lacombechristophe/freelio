@@ -153,7 +153,7 @@ export function TicketRecordActions({
           Obligatoire avant de passer le ticket en résolu ou clos.
         </p>
       </div>
-      <Button disabled={pending}>
+      <Button type="submit" disabled={pending}>
         {pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer
         le traitement
       </Button>

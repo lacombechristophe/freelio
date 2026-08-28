@@ -93,18 +93,24 @@ export default async function ServiceTicketDetailPage({
           </>
         }
       />
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-5">
         <RecordMetric
           icon={CalendarClock}
           label="Échéance"
           value={formatRecordDate(ticket.dueAt, true)}
-          detail={
+          detail={ticket.status === "WAITING" ? "Horloge suspendue" :
             overdue ? (
               <span className="text-destructive">Délai dépassé</span>
             ) : (
               "Engagement de traitement"
             )
           }
+        />
+        <RecordMetric
+          icon={Mail}
+          label="Première réponse"
+          value={formatRecordDate(ticket.firstRespondedAt || ticket.sla.firstResponse.targetAt, true)}
+          detail={ticket.firstRespondedAt ? "Réponse envoyée" : ticket.status === "WAITING" ? "Horloge suspendue" : ticket.sla.firstResponse.targetAt < new Date() ? <span className="text-destructive">Objectif dépassé</span> : "Objectif en heures ouvrées"}
         />
         <RecordMetric
           icon={UserRound}

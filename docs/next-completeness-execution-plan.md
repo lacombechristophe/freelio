@@ -59,7 +59,7 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
 | Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
-| Service | tickets, files, échéance, détail, interventions | conversation dans le help desk, macros, fusion, routage/capacité, horaires ouvrés et SLA contractuels | P0 |
+| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction et SLA ouvrés configurables | macros, fusion, routage/capacité, diagnostics guidés et santé client | P0 |
 | Customer Success | CSAT/NPS/CES et score relation simple | portefeuille, score de santé configurable, alertes, plans de succès, renouvellements et opportunités d’extension | P1 |
 | Connaissance | articles, tags, visibilité, portail | éditeur riche, versions, approbation, pièces, recherche plein texte, suggestions et statistiques d’usage | P1 |
 | Catalogue métier | produits, options, nomenclature, prix | import/version fournisseur, règles dimensionnelles, compatibilités, documents, pièces détachées et alternatives | P0 |
@@ -536,4 +536,15 @@ Cinquième sous-lot livré — Service conversationnel :
 - protection contre les conversations d’un autre client ou déjà liées à un autre ticket ;
 - validation navigateur desktop/mobile de la chaîne help desk → conversation → ticket → équipement → intervention.
 
-Prochaine extension Service : SLA en heures ouvrées et jours fériés, première réponse, pause en attente client, macros de réponse et routage par compétence/capacité.
+Sixième sous-lot livré — SLA de service ouvré :
+
+- fuseau, heures d’ouverture, jours travaillés et jours de fermeture configurables par société ;
+- objectifs distincts de première réponse et de résolution, par priorité ;
+- calcul exact à la minute, sans dépassement de l’heure d’ouverture et avec gestion des changements de fuseau ;
+- première réponse horodatée au premier e-mail sortant depuis le ticket ;
+- suspension sur le statut « En attente » et cumul des seules minutes qui auraient été ouvrées ;
+- reprise de l’horloge sans compter nuits, week-ends ou jours fermés ;
+- indicateurs de file et fiche ticket pour première réponse, résolution, dépassement et suspension ;
+- validation navigateur desktop/mobile de la configuration puis de la pause/reprise du ticket.
+
+Prochaine extension Service : macros de réponse, détection/fusion de doublons et routage par compétence/capacité.
