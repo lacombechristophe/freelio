@@ -75,7 +75,10 @@ export async function sendCrmEmail(input: unknown) {
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
     const message = await recordOutgoingEmail({ companyId, threadId: data.threadId || null, clientId: contact.clientId, contactId: contact.id, providerId: payload.id, from, to: [contact.email], subject, bodyHtml: html })
-    if (ticket) await prisma.emailThread.update({ where: { id: message.threadId }, data: { serviceTicketId: ticket.id } })
+    if (ticket) await prisma.$transaction([
+      prisma.emailThread.update({ where: { id: message.threadId }, data: { serviceTicketId: ticket.id } }),
+      prisma.serviceTicket.updateMany({ where: { id: ticket.id, firstRespondedAt: null }, data: { firstRespondedAt: new Date() } }),
+    ])
     await logAction({ userId, action: "SEND_CRM_EMAIL", resource: "EMAIL_MESSAGE", resourceId: message.id, payload: { contactId: contact.id, threadId: message.threadId } })
     revalidatePath("/dashboard/communications")
     revalidatePath(`/dashboard/clients/${contact.clientId}`)

@@ -10,7 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
-import { serviceResolutionTarget } from "@/lib/operations/service-sla"
+import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 
@@ -340,7 +340,7 @@ export async function getServiceTicketDetail(ticketId: string) {
   return withAuth(async ({ companyId }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
-    const [ticket, members] = await Promise.all([
+    const [ticket, members, company] = await Promise.all([
       prisma.serviceTicket.findFirst({
         where: { id: parsedId.data, companyId },
         include: {
@@ -361,8 +361,11 @@ export async function getServiceTicketDetail(ticketId: string) {
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
+      prisma.company.findUnique({ where: { id: companyId }, select: { serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
     ])
-    return ticket ? { ...ticket, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) } : null
+    if (!ticket) return null
+    const policy = serviceSlaPolicy(company)
+    return { ...ticket, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
   }, "service.read")
 }
 
@@ -448,7 +451,7 @@ export async function getHelpDeskDashboard(input: unknown = {}) {
     }).safeParse(input)
     const filters = parsedFilters.success ? parsedFilters.data : { status: "ACTIVE" as const, priority: "ALL" as const, assignedMembershipId: "ALL" as const }
     const activeStatuses = ["OPEN", "QUALIFIED", "PLANNED", "WAITING"]
-    const tickets = await prisma.serviceTicket.findMany({
+    const [tickets, company] = await Promise.all([prisma.serviceTicket.findMany({
       where: {
         companyId,
         status: filters.status === "ACTIVE" ? { in: activeStatuses } : filters.status === "ALL" ? undefined : filters.status,
@@ -464,7 +467,7 @@ export async function getHelpDeskDashboard(input: unknown = {}) {
       },
       orderBy: [{ priority: "desc" }, { dueAt: "asc" }, { requestedAt: "asc" }],
       take: 500,
-    })
+    }), prisma.company.findUnique({ where: { id: companyId }, select: { serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } })])
     const members = await prisma.membership.findMany({
       where: { companyId, status: "ACTIVE" },
       include: { user: { select: { name: true, email: true } }, _count: { select: { assignedTickets: { where: { status: { in: activeStatuses } } } } } },
@@ -474,8 +477,10 @@ export async function getHelpDeskDashboard(input: unknown = {}) {
       filters,
       members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre", openTickets: member._count.assignedTickets })),
       tickets: tickets.map((ticket) => {
-        const target = serviceResolutionTarget(ticket)
-        return { ...ticket, targetAt: target.targetAt, slaSource: target.source }
+        const policy = serviceSlaPolicy(company)
+        const resolution = serviceResolutionTarget(ticket, policy)
+        const firstResponse = serviceFirstResponseTarget(ticket, policy)
+        return { ...ticket, targetAt: resolution.targetAt, slaSource: resolution.source, firstResponseTargetAt: firstResponse.targetAt }
       }),
     }
   }, "service.read")
@@ -1298,10 +1303,17 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const parsedId = id.parse(ticketId)
     const data = ticketUpdateSchema.parse(input)
-    const ticket = await prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true } })
+    const [ticket, company] = await Promise.all([
+      prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true, waitingSince: true, pausedMinutes: true } }),
+      prisma.company.findUnique({ where: { id: companyId }, select: { serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
+    ])
     if (!ticket) throw new Error("Ticket introuvable")
+    if (!company) throw new Error("Entreprise introuvable")
     if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
     if (["RESOLVED", "CLOSED"].includes(data.status) && !data.resolution) throw new Error("Décrivez la résolution avant de résoudre ou clore le ticket")
+    const now = new Date()
+    const leavingWaiting = ticket.status === "WAITING" && data.status !== "WAITING" && ticket.waitingSince
+    const pausedMinutes = ticket.pausedMinutes + (leavingWaiting ? businessMinutesBetween(ticket.waitingSince!, now, serviceSlaPolicy(company)) : 0)
     await prisma.serviceTicket.update({
       where: { id: ticket.id },
       data: {
@@ -1310,6 +1322,8 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
         assignedMembershipId: data.assignedMembershipId,
         dueAt: data.dueAt,
         resolution: data.resolution,
+        pausedMinutes,
+        waitingSince: data.status === "WAITING" ? ticket.waitingSince || now : null,
         closedAt: data.status === "CLOSED" ? ticket.closedAt ?? new Date() : null,
       },
     })

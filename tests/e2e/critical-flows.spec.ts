@@ -266,6 +266,15 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
 })
 
 test("service records connect the help desk, conversation, ticket, intervention and installed equipment", async ({ page }, testInfo) => {
+  if (testInfo.project.name === "desktop") {
+    await assertHealthy(page, "/dashboard/settings", "Paramètres")
+    await page.getByRole("tab", { name: "Service" }).click()
+    await page.getByLabel("Première réponse haute").fill("3")
+    await page.getByLabel("Résolution haute").fill("12")
+    await page.getByLabel("Jours de fermeture").fill("2026-12-25")
+    await page.getByRole("button", { name: "Enregistrer la politique SAV" }).click()
+    await expect(page.getByText("Politique de service sauvegardée.")).toBeVisible()
+  }
   // The desktop field workflow can resolve this seeded ticket before the mobile project starts.
   // Use the complete queue so the record-chain test is deterministic across both projects.
   await assertHealthy(page, "/dashboard/service/help-desk?status=ALL", "Centre de support")
@@ -273,6 +282,13 @@ test("service records connect the help desk, conversation, ticket, intervention 
   await expect(page.getByRole("heading", { name: /SAV-2026-900 · Contrôle couverture QA/ })).toBeVisible()
   await expect(page.getByText("Traitement du ticket")).toBeVisible()
   if (testInfo.project.name === "desktop") {
+    await page.getByLabel("Statut").selectOption("WAITING")
+    await page.getByRole("button", { name: "Enregistrer le traitement" }).click()
+    await expect(page.getByText("Ticket SAV mis à jour.")).toBeVisible()
+    await expect(page.getByText("Horloge suspendue").first()).toBeVisible()
+    await page.getByLabel("Statut").selectOption("PLANNED")
+    await page.getByRole("button", { name: "Enregistrer le traitement" }).click()
+    await expect(page.getByText("Ticket SAV mis à jour.").last()).toBeVisible()
     await page.getByLabel("Conversation client à rattacher").selectOption({ index: 1 })
     await page.getByRole("button", { name: "Rattacher" }).click()
     await expect(page.getByText("Conversation rattachée au ticket.")).toBeVisible()

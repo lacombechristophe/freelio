@@ -98,6 +98,14 @@ model Company {
   brandColor  String @default("#6366f1")
   pdfTemplate String @default("MINIMAL")
 
+  serviceTimezone           String @default("Europe/Paris")
+  serviceDayStart           Int    @default(8)
+  serviceDayEnd             Int    @default(18)
+  serviceWorkdays           Json?
+  serviceHolidays           Json?
+  serviceFirstResponseHours Json?
+  serviceResolutionHours    Json?
+
   // Local-first operations
   lastBackupAt      DateTime?
   eInvoicePlatform  String?
@@ -1893,6 +1901,9 @@ model ServiceTicket {
   source       String    @default("INTERNAL")
   requestedAt  DateTime  @default(now())
   dueAt        DateTime?
+  firstRespondedAt DateTime?
+  waitingSince     DateTime?
+  pausedMinutes    Int      @default(0)
   closedAt     DateTime?
   resolution   String?
   customFields Json?

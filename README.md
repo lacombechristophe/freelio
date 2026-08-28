@@ -169,7 +169,7 @@ Le même worker planifie toutes les cinq minutes les visites d’entretien et le
 
 ## Service client et fidélisation
 
-Le centre de support regroupe les files SAV, priorités, responsables et engagements de résolution. Les dossiers ticket, intervention et équipement restent reliés au client et aux preuves terrain. La base de connaissances distingue les contenus internes des articles publiés dans le portail client et nettoie le HTML côté serveur.
+Le centre de support regroupe les files SAV, priorités, responsables et engagements de première réponse/résolution. La politique se configure dans Paramètres avec fuseau, horaires, jours ouverts, fermetures et objectifs par priorité. Les échéances sont calculées en heures ouvrées ; le statut « En attente » suspend les deux horloges sans compter nuits, week-ends ou jours fermés. Les dossiers ticket, intervention et équipement restent reliés au client et aux preuves terrain. La base de connaissances distingue les contenus internes des articles publiés dans le portail client et nettoie le HTML côté serveur.
 
 La fiche ticket contient une chronologie conversationnelle : fils e-mail rattachés, messages entrants/sortants, statuts de délivrabilité et notes internes séparées. L’équipe peut rattacher un fil existant ou répondre depuis le ticket ; les réponses suivantes restent dans le même dossier grâce aux en-têtes du fil.
 
