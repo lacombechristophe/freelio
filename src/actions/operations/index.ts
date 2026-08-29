@@ -10,6 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { diagnosticSteps, diagnosticStringList, equipmentWarrantyStatus, scoreDiagnosticGuide } from "@/lib/operations/service-diagnostics"
 import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
@@ -377,7 +378,7 @@ export async function getServiceTicketDetail(ticketId: string) {
   return withAuth(async ({ companyId }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
-    const [ticket, members, company, serviceMacros] = await Promise.all([
+    const [ticket, members, company, serviceMacros, diagnosticGuides] = await Promise.all([
       prisma.serviceTicket.findFirst({
         where: { id: parsedId.data, companyId },
         include: {
@@ -398,6 +399,7 @@ export async function getServiceTicketDetail(ticketId: string) {
               },
               emailThreads: { include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } }, orderBy: { lastMessageAt: "asc" } },
               notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+              diagnostics: { include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
             },
             orderBy: { mergedAt: "asc" },
           },
@@ -411,11 +413,13 @@ export async function getServiceTicketDetail(ticketId: string) {
           },
           emailThreads: { include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } }, orderBy: { lastMessageAt: "asc" } },
           notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+          diagnostics: { include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.company.findUnique({ where: { id: companyId }, select: { name: true, serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
       prisma.emailTemplate.findMany({ where: { companyId, category: "SERVICE", status: "ACTIVE" }, select: { id: true, name: true, subject: true, bodyHtml: true }, orderBy: { name: "asc" }, take: 200 }),
+      prisma.serviceDiagnosticGuide.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
     ])
     if (!ticket) return null
     const mergedInto = ticket.mergedIntoTicketId ? await prisma.serviceTicket.findFirst({
@@ -465,11 +469,52 @@ export async function getServiceTicketDetail(ticketId: string) {
       ...ticket.notes.map((item) => ({ ...item, mergedFrom: null })),
       ...ticket.mergedTickets.flatMap((source) => source.notes.map((item) => ({ ...item, mergedFrom: { id: source.id, number: source.number } }))),
     ].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())
+    const diagnosticView = (item: typeof ticket.diagnostics[number], mergedFrom: { id: string; number: string } | null) => {
+      const snapshot = item.guideSnapshot && typeof item.guideSnapshot === "object" && !Array.isArray(item.guideSnapshot)
+        ? item.guideSnapshot as Record<string, unknown>
+        : {}
+      return {
+        id: item.id,
+        guideName: typeof snapshot.name === "string" ? snapshot.name : "Guide archivé",
+        steps: diagnosticSteps(snapshot.steps),
+        completedStepIds: diagnosticStringList(item.completedStepIds),
+        warrantyStatus: item.warrantyStatus,
+        symptom: item.symptom,
+        outcome: item.outcome,
+        recommendedAction: item.recommendedAction,
+        completedAt: item.completedAt,
+        performedBy: item.performedByMembership?.user.name || item.performedByMembership?.user.email || "Membre",
+        mergedFrom,
+      }
+    }
+    const diagnostics = [
+      ...ticket.diagnostics.map((item) => diagnosticView(item, null)),
+      ...ticket.mergedTickets.flatMap((source) => source.diagnostics.map((item) => diagnosticView(item, { id: source.id, number: source.number }))),
+    ].sort((left, right) => right.completedAt.getTime() - left.completedAt.getTime())
+    const guides = diagnosticGuides.map((guide) => {
+      const match = scoreDiagnosticGuide(guide, ticket)
+      return {
+        id: guide.id,
+        name: guide.name,
+        productCategory: guide.productCategory,
+        manufacturer: guide.manufacturer,
+        modelPattern: guide.modelPattern,
+        symptom: guide.symptom,
+        steps: diagnosticSteps(guide.steps),
+        resolutionHints: diagnosticStringList(guide.resolutionHints),
+        warrantyInstructions: guide.warrantyInstructions,
+        outOfWarrantyInstructions: guide.outOfWarrantyInstructions,
+        suggested: Boolean(match),
+        score: match?.score || 0,
+        reasons: match?.reasons || [],
+      }
+    }).filter((guide) => guide.steps.length > 0).sort((left, right) => Number(right.suggested) - Number(left.suggested) || right.score - left.score || left.name.localeCompare(right.name, "fr"))
+    const warrantyStatus = equipmentWarrantyStatus(ticket.equipment?.warrantyUntil)
     const policy = serviceSlaPolicy(company)
     const contact = ticket.client.contacts[0]
     const variables = { "ticket.number": ticket.number, "ticket.title": ticket.title, "client.name": ticket.client.name, "contact.firstName": contact?.firstName || "", "contact.lastName": contact?.lastName || "", "assigned.name": ticket.assignedMembership?.user.name || ticket.assignedMembership?.user.email || "notre équipe", "company.name": company?.name || "notre entreprise" }
     const macros = serviceMacros.map((macro) => ({ id: macro.id, name: macro.name, subject: renderServiceMacro(macro.subject, variables), bodyText: renderServiceMacro(serviceMacroText(macro.bodyHtml), variables) }))
-    return { ...ticket, mergedInto, mergedTickets: mergedTicketSummaries, interventions, emailThreads, notes, duplicateCandidates, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, macros, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
+    return { ...ticket, mergedInto, mergedTickets: mergedTicketSummaries, interventions, emailThreads, notes, diagnostics, diagnosticGuides: guides, warrantyStatus, duplicateCandidates, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, macros, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
   }, "service.read")
 }
 
