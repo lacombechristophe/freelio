@@ -725,7 +725,7 @@ test("configures an email sequence and a lead automation", async ({ page }, test
   await taskSequence.getByRole("button", { name: "Ajouter l’étape" }).click()
   await expect(page.getByText("Étape ajoutée.").last()).toBeVisible()
   await taskSequence.getByRole("button", { name: "Activer" }).click()
-  await expect(page.getByText("Séquence activée.")).toBeVisible()
+  await expect(page.getByText("Séquence activée.").last()).toBeVisible()
   await taskSequence.locator('select[name="leadId"]').selectOption({ label: "Camille Piscine · camille@example.com" })
   await taskSequence.getByRole("button", { name: "Inscrire" }).click()
   await expect(page.getByText("Prospect inscrit.")).toBeVisible()
