@@ -5,13 +5,16 @@ import { renderEmailVariables } from "@/lib/automations/email"
 import { enrollLeadInSequenceInternal } from "@/lib/automations/sequences"
 import prisma from "@/lib/prisma"
 
-export const automationTriggerSchema = z.enum(["LEAD_CREATED", "LEAD_STATUS_CHANGED", "QUOTE_STATUS_CHANGED", "EMAIL_RECEIVED", "EMAIL_OPENED", "EMAIL_CLICKED", "PORTAL_APPOINTMENT_REQUESTED", "INTERVENTION_COMPLETED"])
+export const automationTriggerSchema = z.enum(["LEAD_CREATED", "LEAD_STATUS_CHANGED", "QUOTE_STATUS_CHANGED", "EMAIL_RECEIVED", "EMAIL_OPENED", "EMAIL_CLICKED", "PORTAL_APPOINTMENT_REQUESTED", "INTERVENTION_COMPLETED", "CUSTOMER_HEALTH_CHANGED"])
 
 export const workflowConditionsSchema = z.object({
   source: z.string().trim().max(80).optional(),
   leadStatus: z.string().trim().max(40).optional(),
   marketingOptIn: z.boolean().optional(),
   projectTypeContains: z.string().trim().max(100).optional(),
+  healthStatus: z.enum(["HEALTHY", "WATCH", "RISK"]).optional(),
+  healthScoreBelow: z.number().int().min(0).max(100).optional(),
+  healthScoreDropAtLeast: z.number().int().min(1).max(100).optional(),
 }).partial()
 
 const leafActionSchema = z.discriminatedUnion("type", [
@@ -39,11 +42,19 @@ export const workflowConfigurationSchema = z.object({
 type AutomationEvent = {
   companyId: string
   event: z.infer<typeof automationTriggerSchema>
-  subjectModel: "LeadCapture" | "Quote" | "EmailMessage" | "ClientPortalAppointmentRequest" | "FieldIntervention"
+  subjectModel: "LeadCapture" | "Quote" | "EmailMessage" | "ClientPortalAppointmentRequest" | "FieldIntervention" | "Client"
   subjectId: string
   eventKey: string
   leadId?: string
   clientId?: string
+  context?: WorkflowEventContext
+}
+
+type WorkflowEventContext = {
+  clientName?: string
+  healthStatus?: "HEALTHY" | "WATCH" | "RISK"
+  healthScore?: number
+  previousHealthScore?: number | null
 }
 
 type WorkflowLead = {
@@ -59,18 +70,23 @@ type WorkflowLead = {
   marketingOptIn: boolean
 }
 
-export function workflowConditionsMatch(conditions: z.infer<typeof workflowConditionsSchema>, lead: WorkflowLead) {
-  if (conditions.source && lead.source.toLowerCase() !== conditions.source.toLowerCase()) return false
-  if (conditions.leadStatus && lead.status !== conditions.leadStatus) return false
-  if (conditions.marketingOptIn !== undefined && lead.marketingOptIn !== conditions.marketingOptIn) return false
-  if (conditions.projectTypeContains && !lead.projectType?.toLowerCase().includes(conditions.projectTypeContains.toLowerCase())) return false
+export function workflowConditionsMatch(conditions: z.infer<typeof workflowConditionsSchema>, lead: WorkflowLead | null, context: WorkflowEventContext = {}) {
+  if (conditions.source && (!lead || lead.source.toLowerCase() !== conditions.source.toLowerCase())) return false
+  if (conditions.leadStatus && (!lead || lead.status !== conditions.leadStatus)) return false
+  if (conditions.marketingOptIn !== undefined && (!lead || lead.marketingOptIn !== conditions.marketingOptIn)) return false
+  if (conditions.projectTypeContains && (!lead || !lead.projectType?.toLowerCase().includes(conditions.projectTypeContains.toLowerCase()))) return false
+  if (conditions.healthStatus && context.healthStatus !== conditions.healthStatus) return false
+  if (conditions.healthScoreBelow !== undefined && (context.healthScore === undefined || context.healthScore > conditions.healthScoreBelow)) return false
+  if (conditions.healthScoreDropAtLeast !== undefined) {
+    if (context.healthScore === undefined || context.previousHealthScore == null || context.previousHealthScore - context.healthScore < conditions.healthScoreDropAtLeast) return false
+  }
   return true
 }
 
-export function evaluateWorkflowConfiguration(input: unknown, lead: WorkflowLead | null) {
+export function evaluateWorkflowConfiguration(input: unknown, lead: WorkflowLead | null, context: WorkflowEventContext = {}) {
   const config = workflowConfigurationSchema.parse(input)
   const hasConditions = Boolean(config.conditions && Object.values(config.conditions).some((value) => value !== undefined && value !== ""))
-  const matches = !hasConditions || Boolean(lead && workflowConditionsMatch(config.conditions!, lead))
+  const matches = !hasConditions || workflowConditionsMatch(config.conditions!, lead, context)
   const trace: Array<{ type: "ROOT" | "BRANCH"; label: string; matched: boolean; selected?: "TRUE" | "FALSE" }> = [
     { type: "ROOT", label: "Conditions d’inscription", matched: matches },
   ]
@@ -81,7 +97,7 @@ export function evaluateWorkflowConfiguration(input: unknown, lead: WorkflowLead
       actions.push(action)
       continue
     }
-    const branchMatches = Boolean(lead && workflowConditionsMatch(action.conditions, lead))
+    const branchMatches = workflowConditionsMatch(action.conditions, lead, context)
     trace.push({ type: "BRANCH", label: action.label, matched: branchMatches, selected: branchMatches ? "TRUE" : "FALSE" })
     actions.push(...(branchMatches ? action.ifTrue : action.ifFalse))
   }
@@ -93,7 +109,10 @@ export async function runAutomationEvent(event: AutomationEvent) {
     where: { id: event.leadId, companyId: event.companyId },
     select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true },
   }) : null
-  const company = await prisma.company.findUnique({ where: { id: event.companyId }, select: { id: true, name: true, email: true } })
+  const [company, client] = await Promise.all([
+    prisma.company.findUnique({ where: { id: event.companyId }, select: { id: true, name: true, email: true } }),
+    event.clientId ? prisma.client.findFirst({ where: { id: event.clientId, companyId: event.companyId }, select: { id: true, name: true } }) : null,
+  ])
   if (!company) return { workflows: 0, completed: 0 }
   const workflows = await prisma.automationWorkflow.findMany({ where: { companyId: event.companyId, trigger: event.event, status: "ACTIVE" } })
   let completed = 0
@@ -111,9 +130,9 @@ export async function runAutomationEvent(event: AutomationEvent) {
     }
 
     try {
-      const evaluation = evaluateWorkflowConfiguration({ conditions: workflow.conditions ?? undefined, actions: workflow.actions }, lead)
+      const evaluation = evaluateWorkflowConfiguration({ conditions: workflow.conditions ?? undefined, actions: workflow.actions }, lead, event.context)
       if (!evaluation.matches) {
-        await prisma.automationRun.update({ where: { id: runId }, data: { status: "SKIPPED", output: { reason: "CONDITIONS_NOT_MET" }, completedAt: new Date() } })
+        await prisma.automationRun.update({ where: { id: runId }, data: { status: "SKIPPED", output: { reason: "CONDITIONS_NOT_MET", context: event.context || null }, completedAt: new Date() } })
         continue
       }
       const output: Array<Record<string, unknown>> = []
@@ -124,12 +143,12 @@ export async function runAutomationEvent(event: AutomationEvent) {
           output.push({ type: action.type, enrollmentId: enrollment.id })
         } else if (action.type === "CREATE_TASK") {
           if (!lead && !event.clientId) throw new Error("Cette action exige un prospect ou un client")
-          const title = lead ? renderEmailVariables(action.title, { company, lead }, false) : action.title
+          const title = renderWorkflowTitle(action.title, company, lead, client?.name || event.context?.clientName, event.context)
           const dueDate = new Date(Date.now() + action.delayHours * 60 * 60 * 1_000)
-          const task = await prisma.organisationTask.create({ data: { companyId: event.companyId, clientId: lead?.clientId || event.clientId || null, title, status: "TODO", priority: action.priority, category: "SALES", dueDate } })
+          const task = await prisma.organisationTask.create({ data: { companyId: event.companyId, clientId: lead?.clientId || event.clientId || null, title, status: "TODO", priority: action.priority, category: event.event === "CUSTOMER_HEALTH_CHANGED" ? "SUPPORT" : "SALES", dueDate } })
           output.push({ type: action.type, taskId: task.id })
         } else if (action.type === "NOTIFY_TEAM") {
-          const title = lead ? renderEmailVariables(action.title, { company, lead }, false) : action.title
+          const title = renderWorkflowTitle(action.title, company, lead, client?.name || event.context?.clientName, event.context)
           const recipients = await prisma.membership.findMany({ where: { companyId: event.companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] } }, select: { userId: true } })
           if (recipients.length) await prisma.notification.createMany({ data: recipients.map(({ userId }) => ({ userId, type: "AUTOMATION", title, message: `Règle : ${workflow.name}` })) })
           output.push({ type: action.type, recipients: recipients.length })
@@ -139,11 +158,20 @@ export async function runAutomationEvent(event: AutomationEvent) {
           output.push({ type: action.type, status: action.status })
         }
       }
-      await prisma.automationRun.update({ where: { id: runId }, data: { status: "COMPLETED", output: { trace: evaluation.trace, actions: output } as Prisma.InputJsonValue, completedAt: new Date() } })
+      await prisma.automationRun.update({ where: { id: runId }, data: { status: "COMPLETED", output: { trace: evaluation.trace, actions: output, context: event.context || null } as Prisma.InputJsonValue, completedAt: new Date() } })
       completed += 1
     } catch (error) {
       await prisma.automationRun.update({ where: { id: runId }, data: { status: "FAILED", error: (error instanceof Error ? error.message : "Exécution impossible").slice(0, 500), completedAt: new Date() } })
     }
   }
   return { workflows: workflows.length, completed }
+}
+
+function renderWorkflowTitle(template: string, company: { id: string; name: string; email: string | null }, lead: WorkflowLead | null, clientName?: string, context: WorkflowEventContext = {}) {
+  const rendered = lead ? renderEmailVariables(template, { company, lead }, false) : template.replaceAll("{{company.name}}", company.name)
+  return rendered
+    .replaceAll("{{client.name}}", clientName || "Client")
+    .replaceAll("{{health.score}}", context.healthScore?.toString() || "—")
+    .replaceAll("{{health.previousScore}}", context.previousHealthScore?.toString() || "—")
+    .replaceAll("{{health.status}}", context.healthStatus || "—")
 }

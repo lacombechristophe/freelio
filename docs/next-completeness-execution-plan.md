@@ -597,4 +597,17 @@ Dixième sous-lot livré — portefeuille et santé client :
 - recherche, filtre de risque, tendances, permissions, audit et export de réversibilité ;
 - couverture unitaire du moteur et parcours navigateur desktop/mobile.
 
-Prochaine extension Service : analyses de performance et déclenchement d’automatisations proactives depuis les variations de santé.
+Onzième sous-lot livré — automatisations proactives de santé :
+
+- événement `CUSTOMER_HEALTH_CHANGED` émis seulement lors d’une variation réelle ;
+- clé d’idempotence par client, calcul et transition de score ;
+- conditions sur niveau de santé, score maximal et baisse minimale ;
+- actions bornées à la création d’une tâche client ou à la notification d’équipe ;
+- variables client, score courant, score précédent et niveau dans les titres ;
+- tâche rattachée au client et visible dans l’organisation ;
+- simulation sans effet à partir d’un client du portefeuille ;
+- garde serveur contre les actions réservées aux prospects ;
+- exécution en échec isolé : le recalcul de santé reste disponible et l’échec est journalisé ;
+- couverture unitaire et navigateur de la chaîne score 100 → 95 → tâche.
+
+Prochaine extension Service : analyses de performance par équipe, cohorte, SLA, diagnostic et santé.

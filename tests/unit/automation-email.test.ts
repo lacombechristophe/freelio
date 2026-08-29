@@ -57,6 +57,15 @@ describe("email automation", () => {
     ])
   })
 
+  it("evaluates customer health conditions without requiring a lead", () => {
+    const workflow = {
+      conditions: { healthStatus: "RISK", healthScoreBelow: 49, healthScoreDropAtLeast: 10 },
+      actions: [{ type: "CREATE_TASK", title: "Suivre {{client.name}}", delayHours: 2, priority: 1 }],
+    }
+    expect(evaluateWorkflowConfiguration(workflow, null, { healthStatus: "RISK", healthScore: 42, previousHealthScore: 65 })).toMatchObject({ matches: true, actions: [{ type: "CREATE_TASK" }] })
+    expect(evaluateWorkflowConfiguration(workflow, null, { healthStatus: "WATCH", healthScore: 60, previousHealthScore: 65 })).toMatchObject({ matches: false, actions: [] })
+  })
+
   it("uses the company profile and adds one-click unsubscribe headers", async () => {
     vi.stubEnv("RESEND_API_KEY", "re_test")
     vi.stubEnv("EMAIL_FROM", "CRM <noreply@example.fr>")

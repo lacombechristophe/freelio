@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
+import { runAutomationEvent } from "@/lib/automations/engine"
 import { withAuth } from "@/lib/auth-wrapper"
 import {
   customerHealthMetricDefinitions,
@@ -197,8 +198,23 @@ export async function recomputeCustomerHealth() {
         }
       }
     })
+    const changes = workspace.portfolio.filter((client) => client.previousScore === null || client.previousScore !== client.score)
+    const automationResults = await Promise.all(changes.map((client) => runAutomationEvent({
+      companyId,
+      event: "CUSTOMER_HEALTH_CHANGED",
+      subjectModel: "Client",
+      subjectId: client.id,
+      eventKey: `${client.id}:health:${computedAt.toISOString()}:${client.previousScore ?? "initial"}:${client.score}`,
+      clientId: client.id,
+      context: { clientName: client.name, healthStatus: client.status, healthScore: client.score, previousHealthScore: client.previousScore },
+    }).catch((error) => {
+      console.error("Customer health automation failed", error)
+      return { workflows: 0, completed: 0 }
+    })))
     await logAction({ userId, action: "RECOMPUTE_CUSTOMER_HEALTH", resource: "CUSTOMER_HEALTH_SNAPSHOT", payload: { clients: workspace.portfolio.length, computedAt } })
     revalidatePath("/dashboard/service/customer-success")
-    return { success: true as const, clients: workspace.portfolio.length }
+    revalidatePath("/dashboard/automatisations")
+    revalidatePath("/dashboard/organisation")
+    return { success: true as const, clients: workspace.portfolio.length, workflows: automationResults.reduce((total, result) => total + result.completed, 0) }
   }, "service.write")
 }
