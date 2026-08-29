@@ -59,7 +59,7 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
 | Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
-| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction et SLA ouvrés configurables | macros, fusion, routage/capacité, diagnostics guidés et santé client | P0 |
+| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros et routage compétence/zone/capacité | fusion de doublons, diagnostics guidés et santé client | P0 |
 | Customer Success | CSAT/NPS/CES et score relation simple | portefeuille, score de santé configurable, alertes, plans de succès, renouvellements et opportunités d’extension | P1 |
 | Connaissance | articles, tags, visibilité, portail | éditeur riche, versions, approbation, pièces, recherche plein texte, suggestions et statistiques d’usage | P1 |
 | Catalogue métier | produits, options, nomenclature, prix | import/version fournisseur, règles dimensionnelles, compatibilités, documents, pièces détachées et alternatives | P0 |
@@ -547,4 +547,17 @@ Sixième sous-lot livré — SLA de service ouvré :
 - indicateurs de file et fiche ticket pour première réponse, résolution, dépassement et suspension ;
 - validation navigateur desktop/mobile de la configuration puis de la pause/reprise du ticket.
 
-Prochaine extension Service : macros de réponse, détection/fusion de doublons et routage par compétence/capacité.
+Septième sous-lot livré — macros et routage SAV :
+
+- bibliothèque de macros active, modifiable et archivable sans suppression de l’historique ;
+- objet et corps paramétrables avec variables ticket, client, contact, responsable et société ;
+- aperçu textuel sûr et insertion dans le composeur sans envoi automatique ;
+- compétences, territoires, disponibilité et capacité configurables par membre ;
+- recommandation déterministe privilégiant compétence, zone, taux de charge puis charge absolue ;
+- refus explicite lorsqu’aucune capacité normale n’est disponible et débordement réservé aux urgences ;
+- critères et motif d’affectation persistés et visibles sur la fiche ;
+- affectation automatique à la création sans responsable et relance manuelle depuis le ticket ;
+- journal d’audit pour création, modification, archivage et routage ;
+- validation navigateur desktop/mobile de la chaîne équipe → macro → SLA → ticket → conversation → équipement → intervention.
+
+Prochaine extension Service : détection/fusion de doublons, diagnostics guidés et santé client.

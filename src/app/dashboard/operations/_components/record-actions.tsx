@@ -2,13 +2,14 @@
 
 import { useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Navigation, Play, Save, Send } from "lucide-react";
+import { Check, Loader2, Navigation, Play, Route, Save, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   approvePurchaseOrder,
   sendPurchaseOrder,
   submitPurchaseOrder,
+  routeServiceTicket,
   updateInterventionStatus,
   updateServiceTicket,
 } from "@/actions/operations";
@@ -45,6 +46,9 @@ export function TicketRecordActions({
     assignedMembershipId: string | null;
     dueAt: Date | null;
     resolution: string | null;
+    requiredSkill: string | null;
+    territory: string | null;
+    routingReason: string | null;
     members: Array<{ id: string; name: string }>;
   };
 }) {
@@ -61,6 +65,8 @@ export function TicketRecordActions({
           assignedMembershipId: String(form.get("assignedMembershipId") || ""),
           dueAt: dueAt ? new Date(dueAt).toISOString() : "",
           resolution: String(form.get("resolution") || ""),
+          requiredSkill: String(form.get("requiredSkill") || ""),
+          territory: String(form.get("territory") || ""),
         }),
       "Ticket SAV mis à jour.",
     );
@@ -74,8 +80,9 @@ export function TicketRecordActions({
         .toISOString()
         .slice(0, 16)
     : "";
+  const formKey = JSON.stringify([ticket.status, ticket.priority, ticket.assignedMembershipId, dueAt, ticket.resolution, ticket.requiredSkill, ticket.territory, ticket.routingReason]);
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-5">
+    <form key={formKey} onSubmit={submit} className="space-y-4 rounded-xl border bg-card p-5">
       <div>
         <h2 className="text-sm font-semibold">Traitement du ticket</h2>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -128,6 +135,7 @@ export function TicketRecordActions({
               </option>
             ))}
           </select>
+          {ticket.routingReason ? <p className="text-xs leading-5 text-muted-foreground">{ticket.routingReason}</p> : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ticketDueAt">Échéance</Label>
@@ -138,6 +146,8 @@ export function TicketRecordActions({
             defaultValue={dueAt}
           />
         </div>
+        <div className="space-y-1.5"><Label htmlFor="ticketRequiredSkill">Compétence requise</Label><Input id="ticketRequiredSkill" name="requiredSkill" maxLength={80} defaultValue={ticket.requiredSkill ?? ""} placeholder="SAV, pompe, couverture…" /></div>
+        <div className="space-y-1.5"><Label htmlFor="ticketTerritory">Zone</Label><Input id="ticketTerritory" name="territory" maxLength={80} defaultValue={ticket.territory ?? ""} placeholder="Ville ou secteur" /></div>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="ticketResolution">Résolution</Label>
@@ -153,10 +163,7 @@ export function TicketRecordActions({
           Obligatoire avant de passer le ticket en résolu ou clos.
         </p>
       </div>
-      <Button type="submit" disabled={pending}>
-        {pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer
-        le traitement
-      </Button>
+      <div className="flex flex-wrap gap-2"><Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer le traitement</Button><Button type="button" variant="outline" disabled={pending || ["RESOLVED", "CLOSED"].includes(ticket.status)} title={["RESOLVED", "CLOSED"].includes(ticket.status) ? "Rouvrez le ticket avant de le réaffecter" : "Choisir le membre le plus adapté selon compétence, zone et charge"} onClick={() => mutate(() => routeServiceTicket(ticket.id), "Affectation intelligente appliquée.")}>{pending ? <Loader2 className="animate-spin" /> : <Route />}Affecter selon les règles</Button></div>
     </form>
   );
 }

@@ -206,6 +206,10 @@ model Membership {
   title                 String?
   weeklyCapacityMinutes Int     @default(2100)
   hourlyCostCents       Int     @default(0)
+  serviceAvailable      Boolean @default(true)
+  serviceTicketCapacity Int     @default(15)
+  serviceSkills         Json?
+  serviceTerritories    Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1906,6 +1910,10 @@ model ServiceTicket {
   pausedMinutes    Int      @default(0)
   closedAt     DateTime?
   resolution   String?
+  requiredSkill String?
+  territory     String?
+  routingReason String?
+  routedAt      DateTime?
   customFields Json?
 
   interventions FieldIntervention[]
@@ -1922,6 +1930,7 @@ model ServiceTicket {
   @@index([siteId])
   @@index([equipmentId])
   @@index([assignedMembershipId])
+  @@index([companyId, requiredSkill, territory])
 }
 
 model ServiceTicketNote {

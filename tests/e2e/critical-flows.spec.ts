@@ -267,6 +267,22 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
 
 test("service records connect the help desk, conversation, ticket, intervention and installed equipment", async ({ page }, testInfo) => {
   if (testInfo.project.name === "desktop") {
+    await assertHealthy(page, "/dashboard/equipe", "Équipe")
+    const routingSettings = page.locator("details").filter({ hasText: "Routage SAV" }).first()
+    await routingSettings.locator("summary").click()
+    await routingSettings.getByLabel("Capacité tickets").fill("8")
+    await routingSettings.getByLabel("Compétences").fill("Couverture, SAV")
+    await routingSettings.getByLabel("Zones").fill("Nantes")
+    await routingSettings.getByRole("button", { name: "Enregistrer" }).click()
+    await expect(page.getByText("Routage SAV mis à jour.")).toBeVisible()
+
+    await assertHealthy(page, "/dashboard/service/macros", "Macros de réponse")
+    await page.getByLabel("Nom interne").fill("Prise en charge QA")
+    await page.getByLabel("Objet").fill("{{ticket.number}} · prise en charge")
+    await page.getByLabel("Message").fill("Bonjour {{contact.firstName}},\n\nLa demande {{ticket.number}} est prise en charge par {{assigned.name}}.")
+    await page.getByRole("button", { name: "Créer la macro" }).click()
+    await expect(page.getByText("Macro SAV créée.")).toBeVisible()
+
     await assertHealthy(page, "/dashboard/settings", "Paramètres")
     await page.getByRole("tab", { name: "Service" }).click()
     await page.getByLabel("Première réponse haute").fill("3")
@@ -282,6 +298,16 @@ test("service records connect the help desk, conversation, ticket, intervention 
   await expect(page.getByRole("heading", { name: /SAV-2026-900 · Contrôle couverture QA/ })).toBeVisible()
   await expect(page.getByText("Traitement du ticket")).toBeVisible()
   if (testInfo.project.name === "desktop") {
+    await page.getByLabel("Compétence requise").fill("Couverture")
+    await page.getByLabel("Zone").fill("Nantes")
+    await page.getByRole("button", { name: "Enregistrer le traitement" }).click()
+    await expect(page.getByText("Ticket SAV mis à jour.").last()).toBeVisible()
+    await page.getByRole("button", { name: "Affecter selon les règles" }).click()
+    await expect(page.getByText("Affectation intelligente appliquée.")).toBeVisible()
+    await expect(page.getByText(/compétence « Couverture » · zone « Nantes »/)).toBeVisible()
+    await page.getByLabel("Macro de réponse").selectOption({ label: "Prise en charge QA" })
+    await expect(page.getByLabel("Objet")).toHaveValue("SAV-2026-900 · prise en charge")
+    await expect(page.getByLabel("Message")).toHaveValue(/Bonjour Camille,[\s\S]*SAV-2026-900/)
     await page.getByLabel("Statut").selectOption("WAITING")
     await page.getByRole("button", { name: "Enregistrer le traitement" }).click()
     await expect(page.getByText("Ticket SAV mis à jour.")).toBeVisible()
@@ -617,7 +643,7 @@ test("configures an email sequence and a lead automation", async ({ page }, test
   const taskCadence = taskSequence.locator("details").filter({ hasText: "Cadence et fenêtre d’envoi" })
   await taskCadence.locator("summary").click()
   await taskCadence.locator('input[name="businessDaysOnly"]').uncheck()
-  await taskCadence.locator('select[name="sendWindowStart"]').selectOption("6")
+  await taskCadence.locator('select[name="sendWindowStart"]').selectOption("0")
   await taskCadence.locator('select[name="sendWindowEnd"]').selectOption("23")
   await taskCadence.getByRole("button", { name: "Enregistrer la cadence" }).click()
   await expect(page.getByText("Cadence de la séquence mise à jour.").last()).toBeVisible()

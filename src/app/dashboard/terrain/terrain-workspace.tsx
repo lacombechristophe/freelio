@@ -223,14 +223,20 @@ export function TerrainWorkspace({ initialSnapshot }: { initialSnapshot: FieldSn
 function FieldAssignmentEditor({ assignment, products, warehouses, online, onDraftChange, onSync }: { assignment: FieldAssignment; products: FieldSnapshot["products"]; warehouses: FieldSnapshot["warehouses"]; online: boolean; onDraftChange: () => Promise<void>; onSync: (draft: FieldDraft) => Promise<void> }) {
   const [draft, setDraft] = useState<FieldDraft>(() => emptyDraft(assignment.id))
   const draftRef = useRef(draft)
+  const [draftReady, setDraftReady] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     void getFieldDraft(assignment.id).then((stored) => {
+      if (cancelled) return
       const normalized = normalizeDraft(stored, assignment.id)
       draftRef.current = normalized
       setDraft(normalized)
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setDraftReady(true)
+    })
+    return () => { cancelled = true }
   }, [assignment.id])
 
   function change(patch: Partial<FieldDraft>) {
@@ -337,7 +343,8 @@ function FieldAssignmentEditor({ assignment, products, warehouses, online, onDra
   return (
     <article className="px-5 py-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{STATUS_LABELS[assignment.status] || assignment.status}</Badge><span className="text-xs font-medium tabular-nums">{formatDate(assignment.scheduledStart)}</span>{draft.pendingCompletion ? <Badge variant="secondary">À synchroniser</Badge> : null}</div><h3 className="mt-2 text-sm font-semibold">{assignment.title}</h3><p className="mt-1 text-xs text-muted-foreground">{assignment.site.clientName} · {assignment.site.label}{assignment.ticketNumber ? ` · ${assignment.ticketNumber}` : ""}</p><p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3.5" />{siteAddress(assignment)}</p></div>{assignment.technician ? <span className="text-xs text-muted-foreground">{assignment.technician}</span> : null}</div>
-      <form onSubmit={complete} className="mt-5 space-y-4 border-t pt-4">
+      <form onSubmit={complete} className="mt-5 space-y-4 border-t pt-4" aria-busy={!draftReady}>
+        <fieldset disabled={!draftReady} className="contents">
         <div><Label htmlFor={`report-${assignment.id}`}>Compte rendu terrain</Label><textarea id={`report-${assignment.id}`} className="mt-1.5 min-h-28 w-full rounded-[10px] border bg-background p-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20" value={draft.report} onChange={(event) => change({ report: event.target.value })} /></div>
         <div className="grid gap-4 sm:grid-cols-2"><div><Label htmlFor={`minutes-${assignment.id}`}>Temps passé (minutes)</Label><Input id={`minutes-${assignment.id}`} className="mt-1.5" type="number" min="0" max="10080" value={draft.laborMinutes} onChange={(event) => change({ laborMinutes: Number(event.target.value) })} /></div><div><Label htmlFor={`customer-${assignment.id}`}>Client présent</Label><Input id={`customer-${assignment.id}`} className="mt-1.5" value={draft.customerName} onChange={(event) => change({ customerName: event.target.value })} /></div></div>
         <div className="flex flex-wrap items-center gap-2"><label className={buttonVariants({ variant: "outline", size: "sm" })}><FileImage />Ajouter des photos<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple onChange={(event) => void addPhotos(event.currentTarget)} /></label>{draft.photos.map((photo) => <span key={photo.id} className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-xs"><span className="max-w-40 truncate">{photo.name}</span><button type="button" aria-label={`Retirer ${photo.name}`} onClick={() => change({ photos: draftRef.current.photos.filter((item) => item.id !== photo.id) })}><Trash2 className="size-3.5 text-danger" /></button></span>)}</div>
@@ -357,9 +364,10 @@ function FieldAssignmentEditor({ assignment, products, warehouses, online, onDra
           {draft.reservations.length ? <div className="divide-y">{draft.reservations.map((reservation) => <div key={reservation.id} className="grid gap-3 p-4 sm:grid-cols-[minmax(180px,1fr)_140px_minmax(180px,1fr)_36px] sm:items-end"><div><Label>Titre</Label><Input aria-label="Titre de la réserve" className="mt-1.5" value={reservation.title} onChange={(event) => updateReservation(reservation.id, { title: event.target.value })} /></div><label className="space-y-1.5 text-sm font-medium">Sévérité<select aria-label="Sévérité de la réserve" value={reservation.severity} onChange={(event) => updateReservation(reservation.id, { severity: event.target.value as FieldReservationDraft["severity"] })} className="h-10 w-full rounded-[10px] border bg-background px-3 text-sm">{Object.entries(RESERVATION_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><div><Label>Détail</Label><Input aria-label="Détail de la réserve" className="mt-1.5" value={reservation.details} onChange={(event) => updateReservation(reservation.id, { details: event.target.value })} /></div><Button type="button" size="icon-sm" variant="ghost" aria-label="Retirer la réserve" onClick={() => change({ reservations: draft.reservations.filter((item) => item.id !== reservation.id) })}><Trash2 className="text-danger" /></Button></div>)}</div> : <p className="px-4 py-5 text-xs text-muted-foreground">Aucune réserve signalée.</p>}
         </div>
 
-        <div className="space-y-3 rounded-xl border p-4"><div><p className="text-sm font-semibold">Signature manuscrite du client</p><p className="mt-1 text-xs text-muted-foreground">La signature est conservée dans le rapport et incluse dans son empreinte d’intégrité.</p></div><SignatureCanvas disabled={saving} onSave={(customerSignatureData) => change({ customerSignatureData })} onClear={() => change({ customerSignatureData: "" })} />{draft.customerSignatureData ? <Badge variant="secondary" className="w-fit"><ShieldCheck />Signature capturée</Badge> : <Badge variant="outline" className="w-fit">Signature requise</Badge>}</div>
+        <div className="space-y-3 rounded-xl border p-4"><div><p className="text-sm font-semibold">Signature manuscrite du client</p><p className="mt-1 text-xs text-muted-foreground">La signature est conservée dans le rapport et incluse dans son empreinte d’intégrité.</p></div><SignatureCanvas disabled={!draftReady || saving} onSave={(customerSignatureData) => change({ customerSignatureData })} onClear={() => change({ customerSignatureData: "" })} />{draft.customerSignatureData ? <Badge variant="secondary" className="w-fit"><ShieldCheck />Signature capturée</Badge> : <Badge variant="outline" className="w-fit">Signature requise</Badge>}</div>
         <label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm"><input type="checkbox" className="mt-0.5 size-4" checked={draft.customerApproval} onChange={(event) => change({ customerApproval: event.target.checked })} /><span><strong className="block">Accord du client présent</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Le compte rendu sera horodaté et scellé lors de la synchronisation.</span></span></label>
         <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={saving} onClick={() => void persist()}>{saving ? <Loader2 className="animate-spin" /> : <Save />}Conserver le brouillon</Button><Button type="submit" disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : online ? <Send /> : <CloudOff />}{online ? "Clôturer et synchroniser" : "Mettre en attente"}</Button>{assignment.files.length ? <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><ShieldCheck className="size-3.5" />{assignment.files.length} pièce{assignment.files.length > 1 ? "s" : ""} déjà archivée{assignment.files.length > 1 ? "s" : ""}</span> : null}</div>
+        </fieldset>
       </form>
     </article>
   )

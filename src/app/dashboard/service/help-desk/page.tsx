@@ -190,7 +190,7 @@ export default async function HelpDeskPage({
                   active={selected.assignedMembershipId === member.id}
                   href={queryHref(selected, "assignedMembershipId", member.id)}
                 >
-                  {member.name} · {member.openTickets}
+                  {member.name} · {member.openTickets}/{member.capacity}{member.available ? "" : " · indisponible"}
                 </FilterLink>
               ))}
             </div>
