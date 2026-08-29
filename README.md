@@ -177,6 +177,8 @@ Les macros SAV centralisent les réponses fréquentes avec objet, corps et varia
 
 La fiche SAV calcule aussi les doublons probables du même client à partir de l’équipement, du site, de la proximité des objets/descriptions et de la date de création. La fusion est manuelle et non destructive : le ticket écarté passe en lecture seule, son historique est agrégé au dossier conservé, l’action est auditée et une restauration remet immédiatement le dossier dans son statut précédent.
 
+Les guides de diagnostic SAV sont configurables par entreprise et ciblables par gamme, fabricant, famille de modèle, symptôme et mots-clés. Le ticket explique la suggestion, distingue les contrôles obligatoires des contrôles optionnels, présente la consigne adaptée au statut de garantie et exige une conclusion humaine. Chaque diagnostic conserve un instantané du guide, du matériel, des contrôles validés et de l’auteur afin que les évolutions futures de la bibliothèque ne réécrivent jamais l’historique.
+
 Les listes commencent à utiliser des vues enregistrées persistantes : une vue conserve recherche, filtres, tri et colonnes sous une configuration validée côté serveur, reste isolée par entreprise et peut être réappliquée après rechargement. Le partage équipe est réservé aux administrateurs.
 
 Le centre Satisfaction gère des enquêtes CSAT, NPS ou CES. Chaque invitation peut être rattachée à un client, un contact et un ticket ; son lien contient un jeton aléatoire conservé uniquement sous forme hashée, expire automatiquement et n’accepte qu’une réponse. Les notes, taux de satisfaction et verbatims remontent dans le tableau Service.

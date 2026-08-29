@@ -158,6 +158,8 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   MaintenanceContractEquipment: "operations.write",
   ServiceTicket: "service.write",
   ServiceTicketNote: "service.write",
+  ServiceDiagnosticGuide: "service.write",
+  ServiceTicketDiagnostic: "service.write",
   KnowledgeArticle: "service.write",
   SatisfactionSurvey: "service.write",
   SatisfactionRequest: "service.write",

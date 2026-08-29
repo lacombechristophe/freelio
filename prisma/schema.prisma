@@ -191,6 +191,8 @@ model Company {
   knowledgeArticles    KnowledgeArticle[]
   satisfactionSurveys  SatisfactionSurvey[]
   satisfactionRequests SatisfactionRequest[]
+  serviceDiagnosticGuides ServiceDiagnosticGuide[]
+  serviceTicketDiagnostics ServiceTicketDiagnostic[]
   savedViews           SavedView[]
 }
 
@@ -223,6 +225,7 @@ model Membership {
   ownedCampaignAssets MarketingCampaignAsset[] @relation("MarketingCampaignAssetOwner")
   authoredKnowledgeArticles KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
   authoredServiceTicketNotes ServiceTicketNote[] @relation("ServiceTicketNoteAuthor")
+  performedServiceTicketDiagnostics ServiceTicketDiagnostic[] @relation("ServiceTicketDiagnosticPerformer")
   savedViews SavedView[]
 
   @@unique([companyId, userId])
@@ -1928,6 +1931,7 @@ model ServiceTicket {
   satisfactionRequests SatisfactionRequest[]
   emailThreads EmailThread[]
   notes ServiceTicketNote[]
+  diagnostics ServiceTicketDiagnostic[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1940,6 +1944,62 @@ model ServiceTicket {
   @@index([assignedMembershipId])
   @@index([companyId, requiredSkill, territory])
   @@index([companyId, mergedIntoTicketId])
+}
+
+model ServiceDiagnosticGuide {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name              String
+  status            String @default("ACTIVE")
+  productCategory   String?
+  manufacturer      String?
+  modelPattern      String?
+  symptom           String
+  keywords          Json?
+  steps             Json
+  resolutionHints   Json?
+  warrantyInstructions String?
+  outOfWarrantyInstructions String?
+  priority          Int @default(0)
+
+  diagnostics ServiceTicketDiagnostic[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status, priority])
+}
+
+model ServiceTicketDiagnostic {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ticketId  String
+  ticket    ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  guideId   String?
+  guide     ServiceDiagnosticGuide? @relation(fields: [guideId], references: [id], onDelete: SetNull)
+  performedByMembershipId String?
+  performedByMembership   Membership? @relation("ServiceTicketDiagnosticPerformer", fields: [performedByMembershipId], references: [id], onDelete: SetNull)
+
+  guideSnapshot     Json
+  completedStepIds  Json
+  warrantyStatus    String
+  symptom           String
+  outcome           String
+  recommendedAction String?
+  status            String @default("COMPLETED")
+  completedAt       DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, completedAt])
+  @@index([ticketId, completedAt])
+  @@index([guideId])
+  @@index([performedByMembershipId])
 }
 
 model ServiceTicketNote {

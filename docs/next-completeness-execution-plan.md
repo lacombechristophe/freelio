@@ -59,7 +59,7 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
 | Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
-| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage et fusion réversible de doublons | diagnostics guidés et santé client | P0 |
+| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage, fusion réversible et diagnostics guidés | santé client configurable | P0 |
 | Customer Success | CSAT/NPS/CES et score relation simple | portefeuille, score de santé configurable, alertes, plans de succès, renouvellements et opportunités d’extension | P1 |
 | Connaissance | articles, tags, visibilité, portail | éditeur riche, versions, approbation, pièces, recherche plein texte, suggestions et statistiques d’usage | P1 |
 | Catalogue métier | produits, options, nomenclature, prix | import/version fournisseur, règles dimensionnelles, compatibilités, documents, pièces détachées et alternatives | P0 |
@@ -571,4 +571,17 @@ Huitième sous-lot livré — détection et fusion des doublons SAV :
 - restauration du statut précédent et de toutes les relations d’origine ;
 - transaction sérialisable, garde multi-tenant, audit et couverture navigateur desktop/mobile.
 
-Prochaine extension Service : diagnostics guidés par gamme/symptôme/garantie, puis santé client configurable.
+Neuvième sous-lot livré — diagnostics SAV guidés :
+
+- bibliothèque de guides isolée par entreprise, modifiable et archivable sans altérer l’historique ;
+- ciblage cumulable par gamme, fabricant, famille de modèle, symptôme et mots-clés ;
+- score de suggestion explicable sans sélection ni résolution automatique ;
+- points de contrôle obligatoires ou optionnels validés côté serveur ;
+- statut de garantie détecté depuis le parc puis confirmable par le technicien ;
+- consignes distinctes sous garantie et hors garantie ;
+- conclusion factuelle et action recommandée attribuées et horodatées ;
+- instantané immuable du guide et du matériel pour préserver la valeur probante de l’historique ;
+- diagnostics des tickets fusionnés agrégés avec leur provenance et restaurables avec le dossier source ;
+- permissions, audit, export de réversibilité et couverture unitaire/navigateur intégrés.
+
+Prochaine extension Service : santé client configurable, alertes de risque et portefeuille de suivi.

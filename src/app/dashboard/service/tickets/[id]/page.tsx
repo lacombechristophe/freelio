@@ -29,6 +29,7 @@ import {
   RecordMetric,
 } from "@/app/dashboard/operations/_components/record-ui";
 import { ServiceConversationPanel } from "./service-conversation-panel";
+import { ServiceDiagnosticPanel } from "./service-diagnostic-panel";
 import { TicketDuplicateManager } from "./ticket-duplicate-manager";
 
 const STATUS: Record<string, string> = {
@@ -144,7 +145,7 @@ export default async function ServiceTicketDetailPage({
           <ServiceConversationPanel ticket={ticket} readOnly={readOnly} />
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Demande et diagnostic</CardTitle>
+              <CardTitle className="text-base">Demande et matériel</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="whitespace-pre-wrap text-sm leading-6">
@@ -184,6 +185,7 @@ export default async function ServiceTicketDetailPage({
               )}
             </CardContent>
           </Card>
+          <ServiceDiagnosticPanel ticket={ticket} readOnly={readOnly} />
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
