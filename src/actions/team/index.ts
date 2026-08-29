@@ -9,6 +9,7 @@ import {
   type CompanyRole,
 } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
+import { serviceRoutingTags } from "@/lib/operations/service-routing"
 import { createInvitationToken, hashInvitationToken } from "@/lib/team-invitations"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -43,6 +44,10 @@ export async function getTeamOverview() {
         title: member.title,
         weeklyCapacityMinutes: member.weeklyCapacityMinutes,
         hourlyCostCents: member.hourlyCostCents,
+        serviceAvailable: member.serviceAvailable,
+        serviceTicketCapacity: member.serviceTicketCapacity,
+        serviceSkills: serviceRoutingTags(member.serviceSkills),
+        serviceTerritories: serviceRoutingTags(member.serviceTerritories),
         createdAt: member.createdAt.toISOString(),
         user: member.user,
       })),
@@ -159,6 +164,34 @@ export async function updateTeamMemberWorkSettings(memberId: string, weeklyHours
     await prisma.membership.update({ where: { id: member.id }, data: { weeklyCapacityMinutes: Math.round(parsed.data.weeklyHours * 60), hourlyCostCents: parsed.data.hourlyCostCents } })
     revalidatePath("/dashboard/equipe")
     revalidatePath("/dashboard/operations")
+    return { success: true as const }
+  }, "members.manage")
+}
+
+export async function updateTeamMemberServiceSettings(memberId: string, input: unknown) {
+  return withAuth(async ({ companyId, role: actorRole }) => {
+    const parsed = z.object({
+      memberId: memberIdSchema,
+      available: z.boolean(),
+      ticketCapacity: z.coerce.number().int().min(1).max(500),
+      skills: z.array(z.string().trim().min(1).max(80)).max(50),
+      territories: z.array(z.string().trim().min(1).max(80)).max(50),
+    }).safeParse({ memberId, ...(typeof input === "object" && input ? input : {}) })
+    if (!parsed.success) return { success: false as const, error: "Paramètres de routage invalides." }
+    const member = await prisma.membership.findFirst({ where: { id: parsed.data.memberId, companyId }, select: { id: true, role: true } })
+    if (!member) return { success: false as const, error: "Membre introuvable." }
+    if (!canAssignRole(actorRole, normalizeCompanyRole(member.role))) return { success: false as const, error: "Vous ne pouvez pas modifier ces paramètres." }
+    await prisma.membership.update({
+      where: { id: member.id },
+      data: {
+        serviceAvailable: parsed.data.available,
+        serviceTicketCapacity: parsed.data.ticketCapacity,
+        serviceSkills: serviceRoutingTags(parsed.data.skills),
+        serviceTerritories: serviceRoutingTags(parsed.data.territories),
+      },
+    })
+    revalidatePath("/dashboard/equipe")
+    revalidatePath("/dashboard/service/help-desk")
     return { success: true as const }
   }, "members.manage")
 }

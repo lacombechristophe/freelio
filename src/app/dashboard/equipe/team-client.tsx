@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, Clock3, Copy, Euro, Save, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
+import { Check, Clock3, Copy, Euro, Route, Save, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   cancelTeamInvitation,
   createTeamInvitation,
   deactivateTeamMember,
+  updateTeamMemberServiceSettings,
   updateTeamMemberWorkSettings,
   updateTeamMemberRole,
 } from "@/actions/team"
@@ -130,7 +131,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
             const protectedRole = member.role === "OWNER" || member.role === "ADMIN"
             const actorCanEdit = initialData.actorRole === "OWNER" || !protectedRole
             return (
-              <div key={member.id} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center">
+              <div key={member.id} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:flex-wrap lg:items-center">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{member.user.name || member.user.email || "Utilisateur"}</p>
                   <p className="mt-1 truncate text-xs text-muted-foreground">{member.user.email}</p>
@@ -170,6 +171,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
                 >
                   <UserMinus />Désactiver
                 </Button>
+                {["OWNER", "ADMIN", "SERVICE", "TECHNICIAN"].includes(member.role) ? <ServiceRoutingSettings member={member} disabled={isPending || member.status !== "ACTIVE" || !actorCanEdit} onPending={(operation) => startTransition(operation)} /> : null}
               </div>
             )
           })}
@@ -206,6 +208,26 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
         </section>
       ) : null}
     </div>
+  )
+}
+
+function ServiceRoutingSettings({ member, disabled, onPending }: { member: TeamData["members"][number]; disabled: boolean; onPending: (operation: () => Promise<void>) => void }) {
+  const [available, setAvailable] = useState(member.serviceAvailable)
+  const [capacity, setCapacity] = useState(member.serviceTicketCapacity.toString())
+  const [skills, setSkills] = useState(member.serviceSkills.join(", "))
+  const [territories, setTerritories] = useState(member.serviceTerritories.join(", "))
+  const list = (value: string) => [...new Set(value.split(/[,;\n]+/).map((item) => item.trim()).filter(Boolean))]
+  return (
+    <details className="w-full rounded-lg border bg-muted/20">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium"><Route className="size-4 text-primary" />Routage SAV <span className="text-xs font-normal text-muted-foreground">{available ? `${capacity} ticket(s) · ${list(skills).length} compétence(s)` : "indisponible"}</span></summary>
+      <div className="grid gap-3 border-t p-3 md:grid-cols-[150px_150px_minmax(180px,1fr)_minmax(180px,1fr)_auto] md:items-end">
+        <label className="flex h-10 items-center gap-2 rounded-lg border bg-background px-3 text-sm"><input type="checkbox" checked={available} disabled={disabled} onChange={(event) => setAvailable(event.target.checked)} />Disponible</label>
+        <div className="space-y-1.5"><Label htmlFor={`service-capacity-${member.id}`}>Capacité tickets</Label><Input id={`service-capacity-${member.id}`} type="number" min="1" max="500" value={capacity} disabled={disabled} onChange={(event) => setCapacity(event.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor={`service-skills-${member.id}`}>Compétences</Label><Input id={`service-skills-${member.id}`} value={skills} disabled={disabled} onChange={(event) => setSkills(event.target.value)} placeholder="SAV, pompe, couverture" /></div>
+        <div className="space-y-1.5"><Label htmlFor={`service-territories-${member.id}`}>Zones</Label><Input id={`service-territories-${member.id}`} value={territories} disabled={disabled} onChange={(event) => setTerritories(event.target.value)} placeholder="Nantes, Loire-Atlantique" /></div>
+        <Button type="button" variant="outline" disabled={disabled || !capacity} onClick={() => onPending(async () => { const result = await updateTeamMemberServiceSettings(member.id, { available, ticketCapacity: Number(capacity), skills: list(skills), territories: list(territories) }); if (result?.success) toast.success("Routage SAV mis à jour."); else toast.error(result?.error || "Modification impossible.") })}><Save />Enregistrer</Button>
+      </div>
+    </details>
   )
 }
 

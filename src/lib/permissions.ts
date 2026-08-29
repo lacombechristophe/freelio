@@ -186,6 +186,7 @@ export function requiredMutationPermission(model: string): Permission | undefine
 
 const ACTION_PERMISSION_MODEL_ALIASES: Partial<Record<Permission, ReadonlySet<string>>> = {
   "purchases.approve": new Set(["PurchaseOrder"]),
+  "service.write": new Set(["EmailTemplate"]),
 }
 
 export function canActionPermissionMutateModel(permission: Permission | undefined, model: string): boolean {

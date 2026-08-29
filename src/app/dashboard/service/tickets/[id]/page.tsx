@@ -253,6 +253,9 @@ export default async function ServiceTicketDetailPage({
               assignedMembershipId: ticket.assignedMembershipId,
               dueAt: ticket.dueAt,
               resolution: ticket.resolution,
+              requiredSkill: ticket.requiredSkill,
+              territory: ticket.territory,
+              routingReason: ticket.routingReason,
               members: ticket.members,
             }}
           />

@@ -10,6 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
@@ -17,6 +18,7 @@ import prisma from "@/lib/prisma"
 const id = z.string().cuid()
 const optionalId = z.union([id, z.literal("")]).optional().transform((value) => value || null)
 const optionalText = z.string().trim().max(2_000).optional().transform((value) => value || null)
+const optionalRoutingText = z.string().trim().max(80).optional().transform((value) => value || null)
 const dateInput = z.string().trim().optional().transform((value) => value ? new Date(value) : null)
 const optionalCoordinate = z.preprocess(
   (value) => value === "" || value == null ? null : Number(value),
@@ -86,6 +88,8 @@ const ticketSchema = z.object({
   type: z.enum(["SAV", "MAINTENANCE", "WARRANTY", "QUESTION"]).default("SAV"),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   dueAt: dateInput,
+  requiredSkill: optionalRoutingText,
+  territory: optionalRoutingText,
 })
 
 const ticketUpdateSchema = z.object({
@@ -94,6 +98,8 @@ const ticketUpdateSchema = z.object({
   assignedMembershipId: optionalId,
   dueAt: dateInput,
   resolution: z.string().trim().max(5_000).optional().transform((value) => value || null),
+  requiredSkill: optionalRoutingText,
+  territory: optionalRoutingText,
 })
 
 const interventionSchema = z.object({
@@ -258,6 +264,31 @@ function revalidateOperations() {
   revalidatePath("/dashboard/projets")
 }
 
+async function getServiceRoutingRecommendation(companyId: string, ticketId: string) {
+  const activeStatuses = ["OPEN", "QUALIFIED", "PLANNED", "WAITING"]
+  const [ticket, members] = await Promise.all([
+    prisma.serviceTicket.findFirst({ where: { id: ticketId, companyId }, select: { id: true, status: true, type: true, priority: true, requiredSkill: true, territory: true, site: { select: { city: true } }, equipment: { select: { category: true } } } }),
+    prisma.membership.findMany({
+      where: { companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SERVICE", "TECHNICIAN"] } },
+      select: { id: true, role: true, serviceAvailable: true, serviceTicketCapacity: true, serviceSkills: true, serviceTerritories: true, _count: { select: { assignedTickets: { where: { id: { not: ticketId }, status: { in: activeStatuses } } } } } },
+    }),
+  ])
+  if (!ticket) throw new Error("Ticket introuvable")
+  if (["RESOLVED", "CLOSED"].includes(ticket.status)) throw new Error("Un ticket résolu ou clos ne peut pas être réaffecté")
+  const requiredSkill = ticket.requiredSkill || ticket.equipment?.category || ticket.type
+  const territory = ticket.territory || ticket.site?.city || null
+  const recommendation = recommendServiceAssignee({ requiredSkill, territory, priority: ticket.priority }, members.map((member) => ({ id: member.id, role: member.role, available: member.serviceAvailable, capacity: member.serviceTicketCapacity, activeTickets: member._count.assignedTickets, skills: serviceRoutingTags(member.serviceSkills), territories: serviceRoutingTags(member.serviceTerritories) })))
+  return { recommendation, requiredSkill, territory }
+}
+
+function serviceMacroText(html: string) {
+  return html.replace(/<br\s*\/?\s*>/gi, "\n").replace(/<\/p>\s*<p>/gi, "\n\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#0?39;/gi, "'").trim()
+}
+
+function renderServiceMacro(value: string, variables: Record<string, string>) {
+  return Object.entries(variables).reduce((rendered, [name, replacement]) => rendered.replaceAll(`{{${name}}}`, replacement), value)
+}
+
 async function findInterventionSlotConflict({
   companyId,
   assignedMembershipId,
@@ -340,7 +371,7 @@ export async function getServiceTicketDetail(ticketId: string) {
   return withAuth(async ({ companyId }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
-    const [ticket, members, company] = await Promise.all([
+    const [ticket, members, company, serviceMacros] = await Promise.all([
       prisma.serviceTicket.findFirst({
         where: { id: parsedId.data, companyId },
         include: {
@@ -361,11 +392,15 @@ export async function getServiceTicketDetail(ticketId: string) {
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
-      prisma.company.findUnique({ where: { id: companyId }, select: { serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
+      prisma.company.findUnique({ where: { id: companyId }, select: { name: true, serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
+      prisma.emailTemplate.findMany({ where: { companyId, category: "SERVICE", status: "ACTIVE" }, select: { id: true, name: true, subject: true, bodyHtml: true }, orderBy: { name: "asc" }, take: 200 }),
     ])
     if (!ticket) return null
     const policy = serviceSlaPolicy(company)
-    return { ...ticket, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
+    const contact = ticket.client.contacts[0]
+    const variables = { "ticket.number": ticket.number, "ticket.title": ticket.title, "client.name": ticket.client.name, "contact.firstName": contact?.firstName || "", "contact.lastName": contact?.lastName || "", "assigned.name": ticket.assignedMembership?.user.name || ticket.assignedMembership?.user.email || "notre équipe", "company.name": company?.name || "notre entreprise" }
+    const macros = serviceMacros.map((macro) => ({ id: macro.id, name: macro.name, subject: renderServiceMacro(macro.subject, variables), bodyText: renderServiceMacro(serviceMacroText(macro.bodyHtml), variables) }))
+    return { ...ticket, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, macros, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
   }, "service.read")
 }
 
@@ -475,7 +510,7 @@ export async function getHelpDeskDashboard(input: unknown = {}) {
     })
     return {
       filters,
-      members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre", openTickets: member._count.assignedTickets })),
+      members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre", openTickets: member._count.assignedTickets, capacity: member.serviceTicketCapacity, available: member.serviceAvailable })),
       tickets: tickets.map((ticket) => {
         const policy = serviceSlaPolicy(company)
         const resolution = serviceResolutionTarget(ticket, policy)
@@ -538,20 +573,33 @@ export async function createEquipment(input: unknown) {
 }
 
 export async function createServiceTicket(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const data = ticketSchema.parse(input)
     const client = await prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } })
     if (!client) throw new Error("Client introuvable")
     if (data.siteId && !await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } })) throw new Error("Le site n'appartient pas à ce client")
-    if (data.equipmentId && !await prisma.equipment.findFirst({ where: { id: data.equipmentId, companyId }, select: { id: true } })) throw new Error("Équipement introuvable")
+    const equipment = data.equipmentId ? await prisma.equipment.findFirst({ where: { id: data.equipmentId, companyId }, select: { id: true, siteId: true, site: { select: { clientId: true } } } }) : null
+    if (data.equipmentId && !equipment) throw new Error("Équipement introuvable")
+    if (equipment && equipment.site.clientId !== data.clientId) throw new Error("L’équipement n’appartient pas à ce client")
+    if (equipment && data.siteId && equipment.siteId !== data.siteId) throw new Error("L’équipement n’appartient pas au site sélectionné")
     if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
+    const siteId = data.siteId || equipment?.siteId || null
     const prefix = buildYearlyDocumentPrefix("SAV-", "SAV-")
     const ticket = await withDocumentNumberRetry(async () => {
       const last = await prisma.serviceTicket.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
-      return prisma.serviceTicket.create({ data: { companyId, ...data, number: nextDocumentNumber(last?.number, prefix) } })
+      return prisma.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last?.number, prefix) } })
     }, { label: "le ticket SAV" })
+    let assignedMembershipId = ticket.assignedMembershipId
+    if (!assignedMembershipId) {
+      const routing = await getServiceRoutingRecommendation(companyId, ticket.id)
+      if (routing.recommendation) {
+        assignedMembershipId = routing.recommendation.membershipId
+        await prisma.serviceTicket.update({ where: { id: ticket.id }, data: { assignedMembershipId, requiredSkill: ticket.requiredSkill || routing.requiredSkill, territory: ticket.territory || routing.territory, routingReason: routing.recommendation.reason, routedAt: new Date() } })
+      }
+    }
+    await logAction({ userId, action: "CREATE_SERVICE_TICKET", resource: "SERVICE_TICKET", resourceId: ticket.id, payload: { number: ticket.number, clientId: ticket.clientId, assignedMembershipId } })
     revalidateOperations()
-    return { success: true as const, id: ticket.id, number: ticket.number }
+    return { success: true as const, id: ticket.id, number: ticket.number, assignedMembershipId }
   }, "service.write")
 }
 
@@ -1304,7 +1352,7 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
     const parsedId = id.parse(ticketId)
     const data = ticketUpdateSchema.parse(input)
     const [ticket, company] = await Promise.all([
-      prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true, waitingSince: true, pausedMinutes: true } }),
+      prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true, waitingSince: true, pausedMinutes: true, assignedMembershipId: true, routingReason: true, routedAt: true } }),
       prisma.company.findUnique({ where: { id: companyId }, select: { serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
     ])
     if (!ticket) throw new Error("Ticket introuvable")
@@ -1314,6 +1362,7 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
     const now = new Date()
     const leavingWaiting = ticket.status === "WAITING" && data.status !== "WAITING" && ticket.waitingSince
     const pausedMinutes = ticket.pausedMinutes + (leavingWaiting ? businessMinutesBetween(ticket.waitingSince!, now, serviceSlaPolicy(company)) : 0)
+    const manualAssignmentChanged = data.assignedMembershipId !== ticket.assignedMembershipId
     await prisma.serviceTicket.update({
       where: { id: ticket.id },
       data: {
@@ -1322,6 +1371,10 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
         assignedMembershipId: data.assignedMembershipId,
         dueAt: data.dueAt,
         resolution: data.resolution,
+        requiredSkill: data.requiredSkill,
+        territory: data.territory,
+        routingReason: manualAssignmentChanged ? data.assignedMembershipId ? "Affectation manuelle" : null : ticket.routingReason,
+        routedAt: manualAssignmentChanged ? data.assignedMembershipId ? now : null : ticket.routedAt,
         pausedMinutes,
         waitingSince: data.status === "WAITING" ? ticket.waitingSince || now : null,
         closedAt: data.status === "CLOSED" ? ticket.closedAt ?? new Date() : null,
@@ -1331,6 +1384,20 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
     revalidateOperations()
     revalidatePath(`/dashboard/service/tickets/${ticket.id}`)
     return { success: true as const }
+  }, "service.write")
+}
+
+export async function routeServiceTicket(ticketId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(ticketId)
+    const routing = await getServiceRoutingRecommendation(companyId, parsedId)
+    if (!routing.recommendation) throw new Error("Aucun membre disponible sous sa capacité. Ajustez la disponibilité, les compétences ou la capacité dans Équipe.")
+    await prisma.serviceTicket.update({ where: { id: parsedId }, data: { assignedMembershipId: routing.recommendation.membershipId, requiredSkill: routing.requiredSkill, territory: routing.territory, routingReason: routing.recommendation.reason, routedAt: new Date() } })
+    await logAction({ userId, action: "ROUTE_SERVICE_TICKET", resource: "SERVICE_TICKET", resourceId: parsedId, payload: { assignedMembershipId: routing.recommendation.membershipId, requiredSkill: routing.requiredSkill, territory: routing.territory, capacityOverflow: routing.recommendation.capacityOverflow } })
+    revalidateOperations()
+    revalidatePath(`/dashboard/service/tickets/${parsedId}`)
+    revalidatePath("/dashboard/service/help-desk")
+    return { success: true as const, assignedMembershipId: routing.recommendation.membershipId, reason: routing.recommendation.reason }
   }, "service.write")
 }
 

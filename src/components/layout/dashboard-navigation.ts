@@ -21,6 +21,7 @@ import {
   Inbox,
   BookOpen,
   MessageSquareHeart,
+  MessageSquareText,
   Kanban,
   LayoutDashboard,
   Megaphone,
@@ -120,6 +121,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     items: [
       { name: "Vue service", href: "/dashboard/service", icon: Headphones, description: "Tickets, urgences et contrats", exactMatch: true },
       { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Inbox, description: "Files, délais et affectations" },
+      { name: "Macros SAV", href: "/dashboard/service/macros", icon: MessageSquareText, description: "Réponses validées et personnalisables" },
       { name: "Base de connaissances", href: "/dashboard/service/connaissance", icon: BookOpen, description: "Procédures internes et portail" },
       { name: "Satisfaction", href: "/dashboard/service/satisfaction", icon: MessageSquareHeart, description: "CSAT, NPS et verbatims" },
       { name: "Tickets SAV", href: "/dashboard/operations?tab=sav", icon: Tickets, description: "Demandes et résolutions" },

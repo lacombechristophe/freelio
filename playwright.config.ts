@@ -29,6 +29,7 @@ export default defineConfig({
       url: "http://127.0.0.1:3000/auth/login",
       env: {
         ...process.env,
+        FILE_STORAGE_DRIVER: "local",
         PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "e2e-company",
         LEAD_ALLOWED_ORIGINS: process.env.LEAD_ALLOWED_ORIGINS ?? "https://example.test",
       },
