@@ -59,8 +59,8 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
 | Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
-| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage, fusion réversible et diagnostics guidés | santé client configurable | P0 |
-| Customer Success | CSAT/NPS/CES et score relation simple | portefeuille, score de santé configurable, alertes, plans de succès, renouvellements et opportunités d’extension | P1 |
+| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage, fusion réversible et diagnostics guidés | canaux temps réel et analyses avancées | P0/P1 |
+| Customer Success | portefeuille, score configurable, alertes explicables, historique, plans de succès, renouvellements et opportunités d’extension | règles temporelles avancées, cohortes et automatisations proactives | P1 |
 | Connaissance | articles, tags, visibilité, portail | éditeur riche, versions, approbation, pièces, recherche plein texte, suggestions et statistiques d’usage | P1 |
 | Catalogue métier | produits, options, nomenclature, prix | import/version fournisseur, règles dimensionnelles, compatibilités, documents, pièces détachées et alternatives | P0 |
 | Achats | commandes, approbation, réception, anomalies/retours | génération automatique depuis commande client, relances, dates confirmées en masse et portail/EDI fournisseur | P0/P1 |
@@ -584,4 +584,17 @@ Neuvième sous-lot livré — diagnostics SAV guidés :
 - diagnostics des tickets fusionnés agrégés avec leur provenance et restaurables avec le dossier source ;
 - permissions, audit, export de réversibilité et couverture unitaire/navigateur intégrés.
 
-Prochaine extension Service : santé client configurable, alertes de risque et portefeuille de suivi.
+Dixième sous-lot livré — portefeuille et santé client :
+
+- score sur 100 calculé à partir de règles configurables et isolées par entreprise ;
+- mesures SAV, satisfaction, activité, encours échu, contrat et renouvellement ;
+- règles explicites avec opérateur, seuil, impact et priorité ;
+- socle recommandé installable sans imposer de paramètres métier définitifs ;
+- distinction sain, à surveiller et à risque avec facteurs détaillés ;
+- historique de score créé sur changement ou au plus une fois par jour ;
+- responsable de portefeuille, renouvellement, montant, prochaine action et plan de succès ;
+- espace d’opportunités d’extension relié à la fiche client ;
+- recherche, filtre de risque, tendances, permissions, audit et export de réversibilité ;
+- couverture unitaire du moteur et parcours navigateur desktop/mobile.
+
+Prochaine extension Service : analyses de performance et déclenchement d’automatisations proactives depuis les variations de santé.
