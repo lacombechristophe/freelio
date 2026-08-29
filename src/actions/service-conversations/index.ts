@@ -14,8 +14,9 @@ const linkSchema = z.object({ ticketId: cuid, threadId: cuid })
 export async function addServiceTicketNote(input: unknown) {
   return withAuth(async ({ companyId, membershipId, userId }) => {
     const data = noteSchema.parse(input)
-    const ticket = await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId }, select: { id: true } })
+    const ticket = await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId }, select: { id: true, status: true, mergedIntoTicketId: true } })
     if (!ticket) throw new Error("Ticket introuvable")
+    if (ticket.status === "MERGED" || ticket.mergedIntoTicketId) throw new Error("Ce ticket est fusionné. Ajoutez la note au dossier conservé.")
     const note = await prisma.serviceTicketNote.create({ data: { companyId, ticketId: ticket.id, authorMembershipId: membershipId, body: data.body } })
     await logAction({ userId, action: "ADD_SERVICE_TICKET_NOTE", resource: "SERVICE_TICKET", resourceId: ticket.id, payload: { noteId: note.id } })
     revalidatePath(`/dashboard/service/tickets/${ticket.id}`)
@@ -27,10 +28,11 @@ export async function linkServiceTicketThread(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = linkSchema.parse(input)
     const [ticket, thread] = await Promise.all([
-      prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId }, select: { id: true, clientId: true } }),
+      prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId }, select: { id: true, clientId: true, status: true, mergedIntoTicketId: true } }),
       prisma.emailThread.findFirst({ where: { id: data.threadId, companyId }, select: { id: true, clientId: true, serviceTicketId: true } }),
     ])
     if (!ticket || !thread) throw new Error("Ticket ou conversation introuvable")
+    if (ticket.status === "MERGED" || ticket.mergedIntoTicketId) throw new Error("Ce ticket est fusionné. Rattachez la conversation au dossier conservé.")
     if (thread.clientId && thread.clientId !== ticket.clientId) throw new Error("Cette conversation appartient à un autre client")
     if (thread.serviceTicketId && thread.serviceTicketId !== ticket.id) throw new Error("Cette conversation appartient déjà à un autre ticket")
     await prisma.emailThread.update({ where: { id: thread.id }, data: { serviceTicketId: ticket.id, clientId: ticket.clientId } })
@@ -40,4 +42,3 @@ export async function linkServiceTicketThread(input: unknown) {
     return { success: true as const }
   }, "service.write")
 }
-

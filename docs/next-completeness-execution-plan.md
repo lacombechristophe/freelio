@@ -59,7 +59,7 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
 | Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
-| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros et routage compétence/zone/capacité | fusion de doublons, diagnostics guidés et santé client | P0 |
+| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage et fusion réversible de doublons | diagnostics guidés et santé client | P0 |
 | Customer Success | CSAT/NPS/CES et score relation simple | portefeuille, score de santé configurable, alertes, plans de succès, renouvellements et opportunités d’extension | P1 |
 | Connaissance | articles, tags, visibilité, portail | éditeur riche, versions, approbation, pièces, recherche plein texte, suggestions et statistiques d’usage | P1 |
 | Catalogue métier | produits, options, nomenclature, prix | import/version fournisseur, règles dimensionnelles, compatibilités, documents, pièces détachées et alternatives | P0 |
@@ -560,4 +560,15 @@ Septième sous-lot livré — macros et routage SAV :
 - journal d’audit pour création, modification, archivage et routage ;
 - validation navigateur desktop/mobile de la chaîne équipe → macro → SLA → ticket → conversation → équipement → intervention.
 
-Prochaine extension Service : détection/fusion de doublons, diagnostics guidés et santé client.
+Huitième sous-lot livré — détection et fusion des doublons SAV :
+
+- score explicable limité aux tickets du même client et à une fenêtre temporelle bornée ;
+- indices combinant équipement, site, objet, description, type et proximité de création ;
+- aucune fusion automatique : choix explicite du dossier à conserver ;
+- fusion douce sans suppression ni déplacement des conversations, notes ou interventions ;
+- chronologie agrégée dans le dossier conservé avec provenance du ticket source ;
+- ticket source en lecture seule et retrait des files actives, du routage et des nouvelles associations ;
+- restauration du statut précédent et de toutes les relations d’origine ;
+- transaction sérialisable, garde multi-tenant, audit et couverture navigateur desktop/mobile.
+
+Prochaine extension Service : diagnostics guidés par gamme/symptôme/garantie, puis santé client configurable.

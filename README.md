@@ -175,6 +175,8 @@ La fiche ticket contient une chronologie conversationnelle : fils e-mail rattach
 
 Les macros SAV centralisent les réponses fréquentes avec objet, corps et variables de contexte (ticket, contact, client, responsable et société). Leur insertion remplit le composeur sans envoyer automatiquement : l’utilisateur garde l’aperçu, la personnalisation et la validation finale. L’affectation intelligente tient compte des compétences, territoires, disponibilité, capacité et charge courante de chaque membre ; son motif reste visible sur le ticket et une urgence peut utiliser une capacité de débordement contrôlée.
 
+La fiche SAV calcule aussi les doublons probables du même client à partir de l’équipement, du site, de la proximité des objets/descriptions et de la date de création. La fusion est manuelle et non destructive : le ticket écarté passe en lecture seule, son historique est agrégé au dossier conservé, l’action est auditée et une restauration remet immédiatement le dossier dans son statut précédent.
+
 Les listes commencent à utiliser des vues enregistrées persistantes : une vue conserve recherche, filtres, tri et colonnes sous une configuration validée côté serveur, reste isolée par entreprise et peut être réappliquée après rechargement. Le partage équipe est réservé aux administrateurs.
 
 Le centre Satisfaction gère des enquêtes CSAT, NPS ou CES. Chaque invitation peut être rattachée à un client, un contact et un ticket ; son lien contient un jeton aléatoire conservé uniquement sous forme hashée, expire automatiquement et n’accepte qu’une réponse. Les notes, taux de satisfaction et verbatims remontent dans le tableau Service.

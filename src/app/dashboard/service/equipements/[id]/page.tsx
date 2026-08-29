@@ -35,7 +35,7 @@ export default async function EquipmentDetailPage({
   const equipment = await getEquipmentDetail((await params).id);
   if (!equipment) notFound();
   const openTickets = equipment.tickets.filter(
-    (ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status),
+    (ticket) => !["RESOLVED", "CLOSED", "MERGED"].includes(ticket.status),
   ).length;
   const warrantyActive = Boolean(
     equipment.warrantyUntil && equipment.warrantyUntil >= new Date(),
@@ -212,7 +212,7 @@ export default async function EquipmentDetailPage({
                                 : "outline"
                           }
                         >
-                          {ticket.status}
+                          {ticket.status === "MERGED" ? "Fusionné" : ticket.status}
                         </Badge>
                       </div>
                       <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">

@@ -143,11 +143,11 @@ export async function createSatisfactionRequest(input: unknown) {
       prisma.satisfactionSurvey.findFirst({ where: { id: data.surveyId, companyId, status: "ACTIVE" }, select: { id: true } }),
       prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
       data.contactId ? prisma.contact.findFirst({ where: { id: data.contactId, clientId: data.clientId, client: { companyId } }, select: { id: true } }) : null,
-      data.serviceTicketId ? prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, clientId: data.clientId, companyId }, select: { id: true } }) : null,
+      data.serviceTicketId ? prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, clientId: data.clientId, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }) : null,
     ])
     if (!survey || !client) throw new Error("Enquête ou client introuvable")
     if (data.contactId && !contact) throw new Error("Le contact ne correspond pas à ce client")
-    if (data.serviceTicketId && !ticket) throw new Error("Le ticket ne correspond pas à ce client")
+    if (data.serviceTicketId && !ticket) throw new Error("Le ticket ne correspond pas à ce client ou a déjà été fusionné")
     const token = randomBytes(32).toString("base64url")
     const request = await prisma.satisfactionRequest.create({ data: { companyId, surveyId: survey.id, clientId: client.id, contactId: contact?.id || null, serviceTicketId: ticket?.id || null, tokenHash: tokenHash(token), expiresAt: new Date(Date.now() + data.expiresInDays * 86_400_000) } })
     await logAction({ userId, action: "CREATE_SATISFACTION_REQUEST", resource: "SATISFACTION_REQUEST", resourceId: request.id, payload: { surveyId: survey.id, clientId: client.id, serviceTicketId: ticket?.id || null } })

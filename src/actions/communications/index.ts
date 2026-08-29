@@ -54,7 +54,7 @@ export async function sendCrmEmail(input: unknown) {
       prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId }, email: { not: null } }, select: { id: true, email: true, clientId: true } }),
     ])
     if (!contact?.email) throw new Error("Contact ou adresse e-mail introuvable")
-    const ticket = data.serviceTicketId ? await prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, companyId, clientId: contact.clientId }, select: { id: true } }) : null
+    const ticket = data.serviceTicketId ? await prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, companyId, clientId: contact.clientId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }) : null
     if (data.serviceTicketId && !ticket) throw new Error("Ticket introuvable ou sans rapport avec ce contact")
     if (data.threadId) {
       const thread = await prisma.emailThread.findFirst({ where: { id: data.threadId, companyId, clientId: contact.clientId, ...(ticket ? { OR: [{ serviceTicketId: null }, { serviceTicketId: ticket.id }] } : {}) }, select: { id: true } })

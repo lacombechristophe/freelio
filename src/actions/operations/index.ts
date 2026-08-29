@@ -10,6 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
@@ -101,6 +102,11 @@ const ticketUpdateSchema = z.object({
   requiredSkill: optionalRoutingText,
   territory: optionalRoutingText,
 })
+
+const ticketMergeSchema = z.object({ sourceId: id, targetId: id }).refine(
+  (value) => value.sourceId !== value.targetId,
+  { message: "Les deux tickets doivent être différents" },
+)
 
 const interventionSchema = z.object({
   ticketId: optionalId,
@@ -274,7 +280,7 @@ async function getServiceRoutingRecommendation(companyId: string, ticketId: stri
     }),
   ])
   if (!ticket) throw new Error("Ticket introuvable")
-  if (["RESOLVED", "CLOSED"].includes(ticket.status)) throw new Error("Un ticket résolu ou clos ne peut pas être réaffecté")
+  if (["RESOLVED", "CLOSED", "MERGED"].includes(ticket.status)) throw new Error("Un ticket résolu, clos ou fusionné ne peut pas être réaffecté")
   const requiredSkill = ticket.requiredSkill || ticket.equipment?.category || ticket.type
   const territory = ticket.territory || ticket.site?.city || null
   const recommendation = recommendServiceAssignee({ requiredSkill, territory, priority: ticket.priority }, members.map((member) => ({ id: member.id, role: member.role, available: member.serviceAvailable, capacity: member.serviceTicketCapacity, activeTickets: member._count.assignedTickets, skills: serviceRoutingTags(member.serviceSkills), territories: serviceRoutingTags(member.serviceTerritories) })))
@@ -340,7 +346,7 @@ export async function getOperationsDashboard() {
       prisma.warehouse.findMany({ where: { companyId, active: true }, include: { inventoryItems: { include: { product: { select: { label: true, sku: true } } } } }, orderBy: { name: "asc" } }),
       prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, approvedByMembership: { include: { user: { select: { name: true, email: true } } } }, lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } }, issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } }, supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true } } }, orderBy: { createdAt: "desc" } } }, orderBy: { createdAt: "desc" }, take: 100 }),
       prisma.equipment.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
-      prisma.serviceTicket.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
+      prisma.serviceTicket.findMany({ where: { companyId, status: { not: "MERGED" } }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
       prisma.fieldIntervention.findMany({
         where: { companyId },
         include: {
@@ -379,6 +385,22 @@ export async function getServiceTicketDetail(ticketId: string) {
           site: true,
           equipment: true,
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+          mergedTickets: {
+            where: { companyId },
+            include: {
+              interventions: {
+                include: {
+                  assignedMembership: { include: { user: { select: { name: true, email: true } } } },
+                  files: { orderBy: { createdAt: "asc" } },
+                  reservations: { orderBy: { createdAt: "desc" } },
+                },
+                orderBy: { scheduledStart: "desc" },
+              },
+              emailThreads: { include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } }, orderBy: { lastMessageAt: "asc" } },
+              notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+            },
+            orderBy: { mergedAt: "asc" },
+          },
           interventions: {
             include: {
               assignedMembership: { include: { user: { select: { name: true, email: true } } } },
@@ -396,11 +418,58 @@ export async function getServiceTicketDetail(ticketId: string) {
       prisma.emailTemplate.findMany({ where: { companyId, category: "SERVICE", status: "ACTIVE" }, select: { id: true, name: true, subject: true, bodyHtml: true }, orderBy: { name: "asc" }, take: 200 }),
     ])
     if (!ticket) return null
+    const mergedInto = ticket.mergedIntoTicketId ? await prisma.serviceTicket.findFirst({
+      where: { id: ticket.mergedIntoTicketId, companyId },
+      select: { id: true, number: true, title: true },
+    }) : null
+    const duplicateRecords = ticket.status === "MERGED" ? [] : await prisma.serviceTicket.findMany({
+      where: {
+        companyId,
+        clientId: ticket.clientId,
+        id: { not: ticket.id },
+        status: { not: "MERGED" },
+        mergedIntoTicketId: null,
+        requestedAt: {
+          gte: new Date(ticket.requestedAt.getTime() - 90 * 24 * 60 * 60 * 1_000),
+          lte: new Date(ticket.requestedAt.getTime() + 90 * 24 * 60 * 60 * 1_000),
+        },
+      },
+      select: { id: true, clientId: true, siteId: true, equipmentId: true, number: true, title: true, description: true, type: true, status: true, requestedAt: true },
+      orderBy: { requestedAt: "desc" },
+      take: 200,
+    })
+    const duplicateCandidates = duplicateRecords.flatMap((candidate) => {
+      const match = scoreServiceDuplicate(ticket, candidate)
+      return match ? [{ ...candidate, ...match }] : []
+    }).sort((left, right) => right.score - left.score || left.requestedAt.getTime() - right.requestedAt.getTime()).slice(0, 10)
+    const mergedTicketSummaries = ticket.mergedTickets.map((mergedTicket) => ({
+      id: mergedTicket.id,
+      number: mergedTicket.number,
+      title: mergedTicket.title,
+      previousStatus: mergedTicket.preMergeStatus,
+      requestedAt: mergedTicket.requestedAt,
+      mergedAt: mergedTicket.mergedAt,
+      interventionCount: mergedTicket.interventions.length,
+      conversationCount: mergedTicket.emailThreads.length,
+      noteCount: mergedTicket.notes.length,
+    }))
+    const interventions = [
+      ...ticket.interventions.map((item) => ({ ...item, mergedFrom: null })),
+      ...ticket.mergedTickets.flatMap((source) => source.interventions.map((item) => ({ ...item, mergedFrom: { id: source.id, number: source.number } }))),
+    ].sort((left, right) => right.scheduledStart.getTime() - left.scheduledStart.getTime())
+    const emailThreads = [
+      ...ticket.emailThreads.map((item) => ({ ...item, mergedFrom: null })),
+      ...ticket.mergedTickets.flatMap((source) => source.emailThreads.map((item) => ({ ...item, mergedFrom: { id: source.id, number: source.number } }))),
+    ].sort((left, right) => left.lastMessageAt.getTime() - right.lastMessageAt.getTime())
+    const notes = [
+      ...ticket.notes.map((item) => ({ ...item, mergedFrom: null })),
+      ...ticket.mergedTickets.flatMap((source) => source.notes.map((item) => ({ ...item, mergedFrom: { id: source.id, number: source.number } }))),
+    ].sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())
     const policy = serviceSlaPolicy(company)
     const contact = ticket.client.contacts[0]
     const variables = { "ticket.number": ticket.number, "ticket.title": ticket.title, "client.name": ticket.client.name, "contact.firstName": contact?.firstName || "", "contact.lastName": contact?.lastName || "", "assigned.name": ticket.assignedMembership?.user.name || ticket.assignedMembership?.user.email || "notre équipe", "company.name": company?.name || "notre entreprise" }
     const macros = serviceMacros.map((macro) => ({ id: macro.id, name: macro.name, subject: renderServiceMacro(macro.subject, variables), bodyText: renderServiceMacro(serviceMacroText(macro.bodyHtml), variables) }))
-    return { ...ticket, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, macros, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
+    return { ...ticket, mergedInto, mergedTickets: mergedTicketSummaries, interventions, emailThreads, notes, duplicateCandidates, sla: { resolution: serviceResolutionTarget(ticket, policy), firstResponse: serviceFirstResponseTarget(ticket, policy), policy }, macros, members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })) }
   }, "service.read")
 }
 
@@ -489,7 +558,7 @@ export async function getHelpDeskDashboard(input: unknown = {}) {
     const [tickets, company] = await Promise.all([prisma.serviceTicket.findMany({
       where: {
         companyId,
-        status: filters.status === "ACTIVE" ? { in: activeStatuses } : filters.status === "ALL" ? undefined : filters.status,
+        status: filters.status === "ACTIVE" ? { in: activeStatuses } : filters.status === "ALL" ? { not: "MERGED" } : filters.status,
         priority: filters.priority === "ALL" ? undefined : filters.priority,
         assignedMembershipId: filters.assignedMembershipId === "ALL" ? undefined : filters.assignedMembershipId === "UNASSIGNED" ? null : filters.assignedMembershipId,
       },
@@ -608,7 +677,7 @@ export async function createFieldIntervention(input: unknown) {
     const data = interventionSchema.parse(input)
     const site = await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId }, select: { id: true } })
     if (!site) throw new Error("Site client introuvable")
-    if (data.ticketId && !await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId }, select: { id: true } })) throw new Error("Ticket introuvable")
+    if (data.ticketId && !await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } })) throw new Error("Ticket introuvable ou déjà fusionné")
     if (data.projectId && !await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } })) throw new Error("Chantier introuvable")
     if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
     const scheduledStart = new Date(data.scheduledStart)
@@ -1352,10 +1421,11 @@ export async function updateServiceTicket(ticketId: string, input: unknown) {
     const parsedId = id.parse(ticketId)
     const data = ticketUpdateSchema.parse(input)
     const [ticket, company] = await Promise.all([
-      prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true, waitingSince: true, pausedMinutes: true, assignedMembershipId: true, routingReason: true, routedAt: true } }),
+      prisma.serviceTicket.findFirst({ where: { id: parsedId, companyId }, select: { id: true, status: true, closedAt: true, waitingSince: true, pausedMinutes: true, assignedMembershipId: true, routingReason: true, routedAt: true, mergedIntoTicketId: true } }),
       prisma.company.findUnique({ where: { id: companyId }, select: { serviceTimezone: true, serviceDayStart: true, serviceDayEnd: true, serviceWorkdays: true, serviceHolidays: true, serviceFirstResponseHours: true, serviceResolutionHours: true } }),
     ])
     if (!ticket) throw new Error("Ticket introuvable")
+    if (ticket.status === "MERGED" || ticket.mergedIntoTicketId) throw new Error("Ce ticket est fusionné. Restaurez-le avant de le modifier.")
     if (!company) throw new Error("Entreprise introuvable")
     if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Intervenant introuvable")
     if (["RESOLVED", "CLOSED"].includes(data.status) && !data.resolution) throw new Error("Décrivez la résolution avant de résoudre ou clore le ticket")
@@ -1398,6 +1468,63 @@ export async function routeServiceTicket(ticketId: string) {
     revalidatePath(`/dashboard/service/tickets/${parsedId}`)
     revalidatePath("/dashboard/service/help-desk")
     return { success: true as const, assignedMembershipId: routing.recommendation.membershipId, reason: routing.recommendation.reason }
+  }, "service.write")
+}
+
+export async function mergeServiceTickets(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = ticketMergeSchema.parse(input)
+    const { source, target, mergedAt } = await prisma.$transaction(async (transaction) => {
+      const tickets = await transaction.serviceTicket.findMany({
+        where: { companyId, id: { in: [data.sourceId, data.targetId] } },
+        select: { id: true, number: true, clientId: true, status: true, mergedIntoTicketId: true, _count: { select: { mergedTickets: true } } },
+      })
+      const source = tickets.find((ticket) => ticket.id === data.sourceId)
+      const target = tickets.find((ticket) => ticket.id === data.targetId)
+      if (!source || !target) throw new Error("Ticket source ou ticket conservé introuvable")
+      if (source.clientId !== target.clientId) throw new Error("Seuls deux tickets du même client peuvent être fusionnés")
+      if (source.status === "MERGED" || source.mergedIntoTicketId) throw new Error("Le ticket source est déjà fusionné")
+      if (target.status === "MERGED" || target.mergedIntoTicketId) throw new Error("Le ticket à conserver est déjà fusionné dans un autre dossier")
+      if (source._count.mergedTickets > 0) throw new Error("Ce ticket regroupe déjà d’autres dossiers. Restaurez-les avant de le fusionner.")
+
+      const mergedAt = new Date()
+      const merged = await transaction.serviceTicket.updateMany({
+        where: { id: source.id, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null },
+        data: { status: "MERGED", preMergeStatus: source.status, mergedIntoTicketId: target.id, mergedAt },
+      })
+      if (merged.count !== 1) throw new Error("Le ticket a changé pendant la fusion. Rechargez la page.")
+      return { source, target, mergedAt }
+    }, { isolationLevel: "Serializable" })
+    await logAction({ userId, action: "MERGE_SERVICE_TICKET", resource: "SERVICE_TICKET", resourceId: target.id, payload: { sourceId: source.id, sourceNumber: source.number, targetId: target.id, targetNumber: target.number, previousStatus: source.status, mergedAt } })
+    revalidateOperations()
+    revalidatePath("/dashboard/service/help-desk")
+    revalidatePath(`/dashboard/service/tickets/${source.id}`)
+    revalidatePath(`/dashboard/service/tickets/${target.id}`)
+    return { success: true as const, targetId: target.id, targetNumber: target.number }
+  }, "service.write")
+}
+
+export async function unmergeServiceTicket(sourceId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(sourceId)
+    const source = await prisma.serviceTicket.findFirst({
+      where: { id: parsedId, companyId },
+      select: { id: true, number: true, status: true, preMergeStatus: true, mergedIntoTicketId: true, mergedInto: { select: { number: true } } },
+    })
+    if (!source || source.status !== "MERGED" || !source.mergedIntoTicketId) throw new Error("Ce ticket n’est pas fusionné")
+    const restorableStatuses = new Set(["OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED"])
+    const restoredStatus = source.preMergeStatus && restorableStatuses.has(source.preMergeStatus) ? source.preMergeStatus : "OPEN"
+    const restored = await prisma.serviceTicket.updateMany({
+      where: { id: source.id, companyId, status: "MERGED", mergedIntoTicketId: source.mergedIntoTicketId },
+      data: { status: restoredStatus, preMergeStatus: null, mergedIntoTicketId: null, mergedAt: null },
+    })
+    if (restored.count !== 1) throw new Error("Le ticket a changé pendant la restauration. Rechargez la page.")
+    await logAction({ userId, action: "UNMERGE_SERVICE_TICKET", resource: "SERVICE_TICKET", resourceId: source.id, payload: { sourceNumber: source.number, targetId: source.mergedIntoTicketId, targetNumber: source.mergedInto?.number, restoredStatus } })
+    revalidateOperations()
+    revalidatePath("/dashboard/service/help-desk")
+    revalidatePath(`/dashboard/service/tickets/${source.id}`)
+    revalidatePath(`/dashboard/service/tickets/${source.mergedIntoTicketId}`)
+    return { success: true as const, id: source.id, status: restoredStatus }
   }, "service.write")
 }
 
