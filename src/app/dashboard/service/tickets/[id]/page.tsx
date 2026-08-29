@@ -29,6 +29,7 @@ import {
   RecordMetric,
 } from "@/app/dashboard/operations/_components/record-ui";
 import { ServiceConversationPanel } from "./service-conversation-panel";
+import { TicketDuplicateManager } from "./ticket-duplicate-manager";
 
 const STATUS: Record<string, string> = {
   OPEN: "Ouvert",
@@ -37,6 +38,7 @@ const STATUS: Record<string, string> = {
   WAITING: "En attente",
   RESOLVED: "Résolu",
   CLOSED: "Clos",
+  MERGED: "Fusionné",
 };
 const PRIORITY: Record<string, string> = {
   LOW: "Faible",
@@ -52,10 +54,11 @@ export default async function ServiceTicketDetailPage({
 }) {
   const ticket = await getServiceTicketDetail((await params).id);
   if (!ticket) notFound();
+  const readOnly = ticket.status === "MERGED" || Boolean(ticket.mergedInto);
   const overdue = Boolean(
     ticket.dueAt &&
       ticket.dueAt < new Date() &&
-      !["RESOLVED", "CLOSED"].includes(ticket.status),
+      !["RESOLVED", "CLOSED", "MERGED"].includes(ticket.status),
   );
   const openReservations = ticket.interventions
     .flatMap((item) => item.reservations)
@@ -98,7 +101,7 @@ export default async function ServiceTicketDetailPage({
           icon={CalendarClock}
           label="Échéance"
           value={formatRecordDate(ticket.dueAt, true)}
-          detail={ticket.status === "WAITING" ? "Horloge suspendue" :
+          detail={readOnly ? "Dossier regroupé" : ticket.status === "WAITING" ? "Horloge suspendue" :
             overdue ? (
               <span className="text-destructive">Délai dépassé</span>
             ) : (
@@ -109,8 +112,8 @@ export default async function ServiceTicketDetailPage({
         <RecordMetric
           icon={Mail}
           label="Première réponse"
-          value={formatRecordDate(ticket.firstRespondedAt || ticket.sla.firstResponse.targetAt, true)}
-          detail={ticket.firstRespondedAt ? "Réponse envoyée" : ticket.status === "WAITING" ? "Horloge suspendue" : ticket.sla.firstResponse.targetAt < new Date() ? <span className="text-destructive">Objectif dépassé</span> : "Objectif en heures ouvrées"}
+          value={formatRecordDate(ticket.firstRespondedAt || (readOnly ? null : ticket.sla.firstResponse.targetAt), true)}
+          detail={readOnly ? "Dossier regroupé" : ticket.firstRespondedAt ? "Réponse envoyée" : ticket.status === "WAITING" ? "Horloge suspendue" : ticket.sla.firstResponse.targetAt < new Date() ? <span className="text-destructive">Objectif dépassé</span> : "Objectif en heures ouvrées"}
         />
         <RecordMetric
           icon={UserRound}
@@ -137,7 +140,8 @@ export default async function ServiceTicketDetailPage({
       </section>
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
-          <ServiceConversationPanel ticket={ticket} />
+          <TicketDuplicateManager ticketId={ticket.id} ticketNumber={ticket.number} duplicateCandidates={ticket.duplicateCandidates} mergedTickets={ticket.mergedTickets} mergedInto={ticket.mergedInto} />
+          <ServiceConversationPanel ticket={ticket} readOnly={readOnly} />
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Demande et diagnostic</CardTitle>
@@ -218,6 +222,7 @@ export default async function ServiceTicketDetailPage({
                           intervention.assignedMembership?.user.email ||
                           "Non affectée"}
                       </p>
+                      {intervention.mergedFrom && <p className="mt-1 text-[11px] text-primary">Historique regroupé depuis {intervention.mergedFrom.number}</p>}
                       <p className="mt-3 text-xs">
                         {intervention.report ||
                           "Compte rendu terrain à renseigner"}
@@ -245,7 +250,7 @@ export default async function ServiceTicketDetailPage({
           </Card>
         </div>
         <div className="space-y-6">
-          <TicketRecordActions
+          {!readOnly && <TicketRecordActions
             ticket={{
               id: ticket.id,
               status: ticket.status,
@@ -258,7 +263,7 @@ export default async function ServiceTicketDetailPage({
               routingReason: ticket.routingReason,
               members: ticket.members,
             }}
-          />
+          />}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">

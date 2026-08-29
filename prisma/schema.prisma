@@ -1916,6 +1916,14 @@ model ServiceTicket {
   routedAt      DateTime?
   customFields Json?
 
+  // A merge is intentionally non-destructive: the source ticket remains
+  // readable and can be restored without reconstructing its child records.
+  mergedIntoTicketId String?
+  mergedInto         ServiceTicket?  @relation("ServiceTicketMerge", fields: [mergedIntoTicketId], references: [id], onDelete: SetNull)
+  mergedTickets      ServiceTicket[] @relation("ServiceTicketMerge")
+  preMergeStatus     String?
+  mergedAt           DateTime?
+
   interventions FieldIntervention[]
   satisfactionRequests SatisfactionRequest[]
   emailThreads EmailThread[]
@@ -1931,6 +1939,7 @@ model ServiceTicket {
   @@index([equipmentId])
   @@index([assignedMembershipId])
   @@index([companyId, requiredSkill, territory])
+  @@index([companyId, mergedIntoTicketId])
 }
 
 model ServiceTicketNote {
