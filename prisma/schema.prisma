@@ -193,6 +193,8 @@ model Company {
   satisfactionRequests SatisfactionRequest[]
   serviceDiagnosticGuides ServiceDiagnosticGuide[]
   serviceTicketDiagnostics ServiceTicketDiagnostic[]
+  customerHealthRules CustomerHealthRule[]
+  customerHealthSnapshots CustomerHealthSnapshot[]
   savedViews           SavedView[]
 }
 
@@ -226,6 +228,7 @@ model Membership {
   authoredKnowledgeArticles KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
   authoredServiceTicketNotes ServiceTicketNote[] @relation("ServiceTicketNoteAuthor")
   performedServiceTicketDiagnostics ServiceTicketDiagnostic[] @relation("ServiceTicketDiagnosticPerformer")
+  ownedSuccessClients Client[] @relation("ClientSuccessOwner")
   savedViews SavedView[]
 
   @@unique([companyId, userId])
@@ -279,6 +282,13 @@ model Client {
   relationScore     Int       @default(100)
   nextActionAt      DateTime?
   nextActionLabel   String?
+  successOwnerMembershipId String?
+  successOwnerMembership   Membership? @relation("ClientSuccessOwner", fields: [successOwnerMembershipId], references: [id], onDelete: SetNull)
+  renewalAt         DateTime?
+  renewalAmountCents Int      @default(0)
+  successPlan       String?
+  expansionNotes    String?
+  healthLastComputedAt DateTime?
 
   contacts             Contact[]
   activities           ClientActivity[]
@@ -300,6 +310,7 @@ model Client {
   portalAppointmentRequests ClientPortalAppointmentRequest[]
   emailThreads        EmailThread[]
   satisfactionRequests SatisfactionRequest[]
+  healthSnapshots CustomerHealthSnapshot[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -307,6 +318,45 @@ model Client {
   expenses          Expense[]
 
   @@index([companyId])
+  @@index([companyId, relationScore])
+  @@index([successOwnerMembershipId])
+  @@index([renewalAt])
+}
+
+model CustomerHealthRule {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name      String
+  status    String @default("ACTIVE")
+  metric    String
+  operator  String
+  threshold Float
+  impact    Int
+  priority  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId, status, priority])
+}
+
+model CustomerHealthSnapshot {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  score      Int
+  status     String
+  factors    Json
+  computedAt DateTime @default(now())
+
+  @@index([companyId, computedAt])
+  @@index([clientId, computedAt])
 }
 
 model Contact {
