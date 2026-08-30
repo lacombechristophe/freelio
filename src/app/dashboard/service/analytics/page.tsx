@@ -1,9 +1,9 @@
-import { Activity, BarChart3, CheckCircle2, ClipboardCheck, Clock3, Gauge, Headphones, Tickets, UsersRound } from "lucide-react"
+import { Activity, BarChart3, CheckCircle2, ClipboardCheck, Clock3, Download, Gauge, Headphones, Tickets, UsersRound } from "lucide-react"
 
 import { getServiceAnalytics } from "@/actions/service-analytics"
 import { PageHeader } from "@/components/shared/page-header"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { HelpTip } from "@/components/ui/help-tip"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -50,6 +50,9 @@ export default async function ServiceAnalyticsPage({ searchParams }: { searchPar
   const maxTrend = Math.max(1, ...data.trend.flatMap((item) => [item.created, item.closed]))
   const maxStatus = Math.max(1, ...data.statusCounts.map((item) => item.count))
   const maxDiagnostic = Math.max(1, ...data.topDiagnostics.map((item) => item.count))
+  const exportParams = new URLSearchParams({ days: String(data.filters.days) })
+  if (data.filters.assignedMembershipId) exportParams.set("assignedMembershipId", data.filters.assignedMembershipId)
+  if (data.filters.priority) exportParams.set("priority", data.filters.priority)
 
   return <div className="space-y-7">
     <PageHeader eyebrow="Service" title="Analyses Service" description="Mesurez le volume, les délais, la qualité des diagnostics et les risques clients sans masquer les dossiers en retard." />
@@ -58,7 +61,7 @@ export default async function ServiceAnalyticsPage({ searchParams }: { searchPar
       <label className="space-y-1.5"><span className="block text-xs font-semibold">Période</span><select name="days" defaultValue={data.filters.days} className={controlClass}><option value="30">30 jours</option><option value="90">90 jours</option><option value="180">180 jours</option><option value="365">365 jours</option></select></label>
       <label className="space-y-1.5"><span className="block text-xs font-semibold">Responsable</span><select name="assignedMembershipId" defaultValue={data.filters.assignedMembershipId || ""} className={controlClass}><option value="">Toute l’équipe</option>{data.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
       <label className="space-y-1.5"><span className="block text-xs font-semibold">Priorité</span><select name="priority" defaultValue={data.filters.priority || ""} className={controlClass}><option value="">Toutes</option>{Object.entries(priorityLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-      <Button type="submit"><BarChart3 />Appliquer</Button>
+      <div className="flex flex-wrap gap-2"><Button type="submit"><BarChart3 />Appliquer</Button><a href={`/api/service/analytics/export?${exportParams}`} className={buttonVariants({ variant: "outline" })}><Download />Exporter l’analyse</a></div>
     </form>
 
     <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-6">

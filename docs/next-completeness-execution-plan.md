@@ -623,4 +623,17 @@ Douzième sous-lot livré — analyses Service :
 - satisfaction globale et distribution actuelle de santé clairement signalées comme non filtrées par agent ;
 - tests du moteur et parcours navigateur desktop/mobile.
 
-Prochaine extension Service : rapports programmés, exports analytiques et canaux temps réel lorsque les fournisseurs seront configurés.
+Prochaine extension Service : rapports programmés et canaux temps réel lorsque les fournisseurs seront configurés.
+
+Treizième sous-lot livré — export analytique Service :
+
+- export privé protégé par la permission de lecture Service ;
+- reprise exacte des filtres de période, responsable et priorité ;
+- ZIP séparant résumé, équipe, priorités, tendance, diagnostics et santé ;
+- CSV UTF-8 compatibles tableur et neutralisation des formules injectables ;
+- manifeste versionné avec période, filtres, notes méthodologiques, tailles et SHA-256 ;
+- nom de fichier dérivé du profil entreprise sans valeur codée en dur ;
+- cache HTTP interdit et journal d’audit du téléchargement ;
+- validation navigateur du contenu ZIP authentifié.
+
+Prochaine extension Service : programmation et envoi de rapports lorsque le fournisseur e-mail sera opérationnel.
