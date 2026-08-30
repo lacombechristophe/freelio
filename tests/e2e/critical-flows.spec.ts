@@ -48,11 +48,11 @@ test("new local-first surfaces load and their primary controls respond", async (
   if (testInfo.project.name === "mobile") await page.locator("#mobile-dashboard-navigation").getByRole("button", { name: "Fermer la navigation" }).click()
 
   await page.goto("/")
-  await expect(page.getByRole("heading", { name: "Freelio. Tout votre business freelance, enfin relié." })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Freelio. Toute votre activité piscine, enfin reliée." })).toBeVisible()
   await expect(page.locator("#workflow")).toHaveCount(1)
   await expect(page.getByRole("link", { name: "Essayer gratuitement" }).first()).toBeVisible()
   await page.goto("/fonctionnalites")
-  await expect(page.getByRole("heading", { name: "Un seul produit pour faire avancer toute la mission." })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Un seul produit, du premier contact à l’entretien." })).toBeVisible()
 
   await assertHealthy(page, "/dashboard/factures/recurrentes", "Facturation récurrente")
   await page.getByRole("button", { name: "Nouvelle récurrence" }).click()
@@ -207,6 +207,36 @@ test("new local-first surfaces load and their primary controls respond", async (
 
   await page.goto("/dashboard")
   await page.screenshot({ path: path.join(evidenceDir, `${testInfo.project.name}-dashboard.png`), fullPage: false })
+})
+
+test("agencies connect teams, warehouses and operational records", async ({ page }, testInfo) => {
+  await assertHealthy(page, "/dashboard/settings/agencies", "Agences, équipes et dépôts")
+  await expect(page.getByText("Une agence est une unité opérationnelle.")).toBeVisible()
+
+  if (testInfo.project.name === "desktop") {
+    const suffix = Date.now().toString().slice(-6)
+    const agencyName = `Agence terrain QA ${suffix}`
+    await page.getByRole("button", { name: "Nouvelle agence" }).click()
+    await page.getByLabel("Nom *").fill(agencyName)
+    await page.getByLabel("Code *").fill(`QA${suffix}`)
+    await page.getByLabel("Type d’activité").click()
+    await page.getByRole("option", { name: "Pose" }).click()
+    await page.getByLabel("Ville").fill("Nantes")
+    await page.getByRole("button", { name: "Enregistrer" }).click()
+    await expect(page.getByText("Agence créée.")).toBeVisible()
+
+    const agencyCard = page.locator("[data-slot=card]").filter({ hasText: agencyName })
+    await expect(agencyCard).toContainText("Pose")
+    const warehouseRow = agencyCard.locator("label").filter({ hasText: "Dépôt QA" })
+    await warehouseRow.getByRole("checkbox").click()
+    await agencyCard.getByRole("button", { name: "Enregistrer" }).click()
+    await expect(page.getByText("Affectations enregistrées.")).toBeVisible()
+  }
+
+  await assertHealthy(page, "/dashboard/projets", "Projets")
+  await page.getByRole("button", { name: "Nouveau Projet" }).click()
+  await expect(page.getByLabel("Agence responsable du chantier")).toBeVisible()
+  await page.getByRole("button", { name: "Annuler" }).click()
 })
 
 test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ page }, testInfo) => {
@@ -648,7 +678,7 @@ test("field workspace installs and reloads from its bounded offline cache", asyn
   await assertHealthy(page, "/dashboard/terrain", "Terrain hors ligne")
   const manifest = await page.request.get("/manifest.webmanifest")
   expect(manifest.ok()).toBeTruthy()
-  await expect(manifest.json()).resolves.toMatchObject({ name: "CRM & opérations", start_url: "/dashboard/terrain", display: "standalone" })
+  await expect(manifest.json()).resolves.toMatchObject({ name: "Freelio - CRM pour piscinistes", start_url: "/dashboard/terrain", display: "standalone" })
   expect((await page.request.get("/sw.js")).ok()).toBeTruthy()
 
   await page.getByRole("button", { name: "Activer hors ligne" }).click()

@@ -51,36 +51,37 @@ const pricingPlans = [
     name: "Alpha",
     price: "0 €",
     cadence: "pendant la phase privée",
-    description: "Pour tester Freelio sur vos missions réelles et participer à la construction du produit.",
+    description: "Pour tester Freelio sur vos dossiers piscine réels et participer à la construction du produit.",
     cta: "Rejoindre l’alpha",
     href: "/auth/login",
-    features: ["Clients et missions", "Devis et factures", "Exports complets", "Support produit direct"],
+    features: ["Prospects et clients", "Devis et factures", "Chantiers et SAV", "Support produit direct"],
   },
   {
-    name: "Solo",
-    price: "19 €",
+    name: "Atelier",
+    price: "79 €",
     cadence: "par mois HT, tarif indicatif",
-    description: "Le cockpit complet pour une activité indépendante qui veut relier travail, documents et paiement.",
+    description: "Le cockpit complet d’une entreprise de piscine qui relie commerce, terrain, service et paiement.",
     cta: "Commencer gratuitement",
     href: "/auth/login",
     featured: true,
-    features: ["Tout Alpha", "Contrats et temps", "Factur-X", "Relances et suivi TVA"],
+    features: ["Tout Alpha", "Stocks et achats", "Entretien et parc installé", "Automatisations et relances"],
   },
   {
-    name: "Studio",
-    price: "39 €",
+    name: "Réseau",
+    price: "149 €",
     cadence: "par mois HT, tarif indicatif",
-    description: "Pour les petits collectifs qui partagent des clients et un processus commercial commun.",
+    description: "Pour les équipes qui partagent plusieurs agences, dépôts, secteurs de pose et files SAV.",
     cta: "Demander un accès",
     href: "/auth/login",
-    features: ["Tout Solo", "Plusieurs collaborateurs", "Modèles partagés", "Support prioritaire"],
+    features: ["Tout Atelier", "Multi-agences et dépôts", "Droits avancés", "Support prioritaire"],
   },
 ]
 
 const pricingRows = [
   ["Devis et factures Factur-X", [true, true, true]],
   ["Contrats et signatures", [false, true, true]],
-  ["Projets, jalons et temps", [false, true, true]],
+  ["Chantiers, planning et terrain", [false, true, true]],
+  ["Stocks, achats et parc installé", [false, true, true]],
   ["Relances et encaissements", [true, true, true]],
   ["Exports et sauvegardes", [true, true, true]],
   ["Support", ["Direct", "Email", "Prioritaire"]],
@@ -101,7 +102,7 @@ const faqs = [
   },
   {
     question: "À qui s’adresse l’alpha ?",
-    answer: "Aux indépendants français qui gèrent plusieurs missions et veulent tester un flux continu, du premier devis jusqu’au paiement.",
+    answer: "Aux piscinistes français qui veulent tester un flux complet, du premier contact jusqu’au chantier, au SAV et au paiement.",
   },
   {
     question: "Une carte bancaire est-elle demandée ?",
@@ -167,14 +168,14 @@ function Hero() {
       <HeroIntroMotion className={cn(shell, "relative z-10 text-center")}>
         <div className="mx-auto inline-flex min-h-8 items-center gap-2 rounded-full border border-freelio-line bg-white/90 px-3 text-[11px] font-semibold text-freelio-muted shadow-freelio-float">
           <span className="size-1.5 rounded-full bg-freelio-success shadow-[0_0_0_4px_var(--color-freelio-success-soft)]" />
-          Cockpit français pour indépendants
+          CRM & ERP français pour piscinistes
           <ChevronRight className="size-3 text-freelio-accent" />
         </div>
 
         <h1 className="marketing-display mx-auto mt-7 max-w-[1060px] text-[46px] font-bold leading-[0.98] text-freelio-ink sm:text-[66px] lg:text-[78px]">
-          Freelio. Tout votre business freelance, enfin relié.
+          Freelio. Toute votre activité piscine, enfin reliée.
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-freelio-muted sm:text-lg sm:leading-8">Clients, missions, documents et trésorerie avancent ensemble, du premier devis au dernier paiement.</p>
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-freelio-muted sm:text-lg sm:leading-8">Prospects, devis, chantiers, stocks, SAV, entretien et trésorerie avancent dans un seul dossier client.</p>
 
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           <PrimaryLink href="/auth/login">Essayer gratuitement</PrimaryLink>
@@ -202,7 +203,7 @@ function ProofRail() {
       <SectionReveal className={cn(shell, "grid divide-y divide-freelio-line lg:grid-cols-[1.2fr_repeat(3,1fr)] lg:divide-x lg:divide-y-0")}>
         <div className="flex min-h-28 items-center gap-4 py-6 pr-6">
           <span className="grid size-10 shrink-0 place-items-center rounded-md bg-freelio-accent text-white"><BadgeCheck className="size-4" /></span>
-          <div><p className="text-xs font-semibold text-freelio-accent">CONÇU POUR LES INDÉPENDANTS FRANÇAIS</p><p className="mt-2 max-w-xs text-sm leading-6 text-freelio-muted">Trois engagements concrets, pas une liste de fonctions génériques.</p></div>
+          <div><p className="text-xs font-semibold text-freelio-accent">CONÇU POUR LES PISCINISTES</p><p className="mt-2 max-w-xs text-sm leading-6 text-freelio-muted">Un outil métier complet, pas une collection de fonctions génériques.</p></div>
         </div>
         {items.map(([Icon, label, copy]) => {
           const ItemIcon = Icon as LucideIcon
@@ -224,17 +225,17 @@ function ValueSystem() {
 
         <SectionReveal className="mt-14 grid gap-px overflow-hidden rounded-freelio-frame border border-freelio-line bg-freelio-line lg:grid-cols-12" delay={0.06}>
           <section className="bg-white p-6 sm:p-8 lg:col-span-7">
-            <FeatureHeading icon={Target} label="Mémoire de mission" title="Le contexte reste attaché au travail." text="Le besoin, le budget, les validations et les documents parlent toujours du même dossier." />
+            <FeatureHeading icon={Target} label="Mémoire du chantier" title="Le contexte reste attaché au bassin." text="La visite technique, le budget, les validations, les équipements et les documents parlent toujours du même dossier." />
             <div className="mt-10 grid gap-px bg-freelio-line sm:grid-cols-[0.82fr_1.18fr]">
-              <div className="bg-freelio-surface-2 p-4"><p className="text-[9px] font-semibold uppercase text-freelio-muted">Client actif</p><p className="marketing-display mt-3 text-xl font-semibold text-freelio-ink">Studio Brume</p><p className="mt-1 text-xs text-freelio-muted">Refonte du cockpit client</p><div className="mt-6 flex items-center justify-between border-t border-freelio-line pt-3"><span className="text-[10px] text-freelio-muted">Budget</span><span className="font-mono text-xs font-semibold text-freelio-ink">2 900 € HT</span></div></div>
-              <div className="bg-white p-4"><div className="flex items-center justify-between"><p className="text-[9px] font-semibold uppercase text-freelio-muted">Éléments reliés</p><span className="font-mono text-[9px] text-freelio-accent">04</span></div>{["Brief validé", "Devis signé", "13h40 réalisées", "Facture préparée"].map((item, index) => <div key={item} className="flex items-center gap-3 border-b border-freelio-line py-3 text-[11px] last:border-0"><span className={cn("grid size-5 place-items-center rounded-full text-[8px]", index < 3 ? "bg-freelio-accent-soft text-freelio-accent" : "bg-freelio-surface-2 text-freelio-muted")}>{index + 1}</span><span className="font-medium text-freelio-ink">{item}</span></div>)}</div>
+              <div className="bg-freelio-surface-2 p-4"><p className="text-[9px] font-semibold uppercase text-freelio-muted">Chantier actif</p><p className="marketing-display mt-3 text-xl font-semibold text-freelio-ink">Famille Martin</p><p className="mt-1 text-xs text-freelio-muted">Construction bassin 8 × 4</p><div className="mt-6 flex items-center justify-between border-t border-freelio-line pt-3"><span className="text-[10px] text-freelio-muted">Budget</span><span className="font-mono text-xs font-semibold text-freelio-ink">28 900 € HT</span></div></div>
+              <div className="bg-white p-4"><div className="flex items-center justify-between"><p className="text-[9px] font-semibold uppercase text-freelio-muted">Éléments reliés</p><span className="font-mono text-[9px] text-freelio-accent">04</span></div>{["Visite technique", "Devis signé", "Matériel réservé", "Pose planifiée"].map((item, index) => <div key={item} className="flex items-center gap-3 border-b border-freelio-line py-3 text-[11px] last:border-0"><span className={cn("grid size-5 place-items-center rounded-full text-[8px]", index < 3 ? "bg-freelio-accent-soft text-freelio-accent" : "bg-freelio-surface-2 text-freelio-muted")}>{index + 1}</span><span className="font-medium text-freelio-ink">{item}</span></div>)}</div>
             </div>
           </section>
 
           <section className="bg-white p-6 sm:p-8 lg:col-span-5">
             <FeatureHeading icon={Gauge} label="Pilotage" title="Le bon chiffre au moment utile." text="Pas un mur de graphiques : les montants qui déclenchent une décision." />
             <div className="mt-10 divide-y divide-freelio-line border-y border-freelio-line">
-              {[["À facturer", "1 940 €", "6h20 validées"], ["À relancer", "2 735 €", "2 factures"], ["Seuil TVA", "31,6 %", "suivi indicatif"]].map(([label, value, note]) => <div key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 py-4"><div><p className="text-[10px] font-medium text-freelio-ink">{label}</p><p className="mt-1 text-[9px] text-freelio-muted">{note}</p></div><p className="font-mono text-lg font-semibold text-freelio-ink">{value}</p></div>)}
+              {[["À facturer", "18 940 €", "3 situations prêtes"], ["À relancer", "12 735 €", "2 factures"], ["Stock critique", "7 réf.", "réassort conseillé"]].map(([label, value, note]) => <div key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 py-4"><div><p className="text-[10px] font-medium text-freelio-ink">{label}</p><p className="mt-1 text-[9px] text-freelio-muted">{note}</p></div><p className="font-mono text-lg font-semibold text-freelio-ink">{value}</p></div>)}
             </div>
           </section>
 
@@ -244,7 +245,7 @@ function ValueSystem() {
           </section>
 
           <section className="bg-freelio-accent p-6 text-white sm:p-8 lg:col-span-7">
-            <FeatureHeading icon={WalletCards} label="Encaissement" title="La mission ne disparaît pas après la facture." text="Échéance, relances et preuve de paiement restent dans le fil jusqu’à l’encaissement." invert />
+            <FeatureHeading icon={WalletCards} label="Encaissement" title="Le chantier ne disparaît pas après la facture." text="Échéance, relances, acomptes et preuve de paiement restent dans le fil jusqu’à l’encaissement." invert />
             <div className="mt-10 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
               <div className="border-l border-white/15 pl-5">
                 {[["28 juin", "Facture envoyée", true], ["25 juillet", "Rappel courtois", true], ["4 août", "Relance J+7", false]].map(([date, label, done]) => <div key={label as string} className="relative flex items-center justify-between gap-5 border-b border-white/15 py-3 last:border-0"><span className={cn("absolute -left-[24px] size-2 rounded-full ring-4 ring-freelio-accent", done ? "bg-white" : "bg-white/35")} /><span className="text-xs font-medium text-white">{label as string}</span><span className="font-mono text-[9px] text-white/65">{date as string}</span></div>)}
@@ -276,9 +277,9 @@ function DocumentPreviewGrid() {
       status: "Accepté",
       statusClass: "bg-freelio-success-soft text-freelio-success",
       icon: FileText,
-      client: "Atelier Rivet",
+      client: "Famille Martin",
       meta: "Valide jusqu’au 30 juin",
-      lines: [["Audit & cadrage", "1 800 €"], ["Design interface", "3 200 €"]],
+      lines: [["Terrassement", "8 500 €"], ["Filtration", "4 900 €"]],
       totalLabel: "Total HT",
       total: "5 000 €",
     },
@@ -288,8 +289,8 @@ function DocumentPreviewGrid() {
       status: "Signé",
       statusClass: "bg-freelio-accent-soft text-freelio-accent",
       icon: FileCheck2,
-      client: "Mission produit",
-      meta: "Atelier Rivet · Freelio",
+      client: "Construction piscine",
+      meta: "Famille Martin · Pisciniste",
       lines: [["Démarrage", "03 juin"], ["Échéance", "28 juin"]],
       totalLabel: "Signature",
       total: "A. Rivet",
@@ -300,9 +301,9 @@ function DocumentPreviewGrid() {
       status: "Factur-X",
       statusClass: "bg-freelio-accent text-white",
       icon: ReceiptText,
-      client: "Atelier Rivet",
+      client: "Famille Martin",
       meta: "Échéance · 02 juillet",
-      lines: [["Conception UI", "3 200 €"], ["Intégration", "1 800 €"]],
+      lines: [["Acompte chantier", "8 500 €"], ["Équipements", "4 900 €"]],
       totalLabel: "Net à payer",
       total: "6 000 €",
     },
@@ -425,7 +426,7 @@ function PricingSection({ compact = false }: { compact?: boolean }) {
               <span className="grid size-9 place-items-center rounded-lg border border-freelio-line bg-white text-freelio-accent"><BadgeCheck className="size-4" /></span>
               <div className="mt-8">
                 <p className="text-sm font-semibold text-freelio-ink">Comparer les plans</p>
-                <p className="mt-1 max-w-[220px] text-xs leading-5 text-freelio-muted">Six critères concrets, sans option cachée ni engagement.</p>
+                <p className="mt-1 max-w-[220px] text-xs leading-5 text-freelio-muted">Sept critères concrets, sans option cachée ni engagement.</p>
                 <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-medium text-freelio-muted"><span className="rounded-full border border-freelio-line bg-white px-2 py-1">Alpha gratuite</span><span className="rounded-full border border-freelio-line bg-white px-2 py-1">Sans carte</span></div>
               </div>
             </div>
@@ -486,9 +487,9 @@ function FAQSection({ compact = false }: { compact?: boolean }) {
 
 function FinalCTA() {
   const steps = [
-    { icon: BadgeCheck, label: "Client ajouté", detail: "Atelier Rivet · Informations vérifiées", value: "Terminé", done: true },
-    { icon: FileCheck2, label: "Devis accepté", detail: "DEV-2026-024 · 6 000 € HT", value: "Signé", done: true },
-    { icon: ReceiptText, label: "Facture Factur-X", detail: "FAC-2026-041 · Prête à émettre", value: "À envoyer", done: false },
+    { icon: BadgeCheck, label: "Prospect qualifié", detail: "Famille Martin · Visite technique réalisée", value: "Terminé", done: true },
+    { icon: FileCheck2, label: "Devis accepté", detail: "DEV-2026-024 · 28 900 € HT", value: "Signé", done: true },
+    { icon: ReceiptText, label: "Acompte Factur-X", detail: "FAC-2026-041 · Prêt à émettre", value: "À envoyer", done: false },
   ]
 
   return (
@@ -499,8 +500,8 @@ function FinalCTA() {
             <div className="relative overflow-hidden bg-freelio-accent px-6 py-10 text-white sm:px-10 sm:py-12 lg:px-12 lg:py-14">
               <div aria-hidden className="absolute inset-x-0 top-8 border-t border-white/15" />
               <div className="relative flex items-center gap-2 text-[10px] font-semibold uppercase text-white/70"><span className="size-1.5 rounded-full bg-white shadow-[0_0_0_4px_rgba(255,255,255,0.14)]" />Alpha privée · Accès ouvert</div>
-              <h2 className="marketing-display relative mt-7 max-w-xl text-[42px] font-semibold leading-[1.02] sm:text-[54px]">Commencez avec une mission réelle.</h2>
-              <p className="relative mt-5 max-w-lg text-base leading-7 text-white/75">Importez un client, créez son devis et suivez le paiement dans un même fil. La valeur se voit dès le premier dossier.</p>
+              <h2 className="marketing-display relative mt-7 max-w-xl text-[42px] font-semibold leading-[1.02] sm:text-[54px]">Commencez avec un chantier réel.</h2>
+              <p className="relative mt-5 max-w-lg text-base leading-7 text-white/75">Importez un prospect, créez son devis et suivez le chantier, la pose et le paiement dans un même fil.</p>
               <div className="relative mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link href="/auth/login" className="group inline-flex h-12 items-center justify-center gap-3 rounded-md bg-white px-5 text-sm font-semibold text-freelio-ink shadow-[0_2px_6px_rgba(16,24,40,0.12)] transition-[background-color,transform,box-shadow] hover:bg-freelio-surface-2 hover:shadow-[0_4px_8px_rgba(16,24,40,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-freelio-accent">Créer mon espace<ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
                 <Link href="/fonctionnalites" className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Voir le produit<ChevronRight className="size-4" /></Link>
@@ -511,7 +512,7 @@ function FinalCTA() {
             <div className="bg-freelio-surface-2 p-4 sm:p-7 lg:p-9">
               <div className="overflow-hidden rounded-xl border border-freelio-line-strong bg-white shadow-freelio-panel">
                 <div className="flex items-center justify-between gap-4 border-b border-freelio-line px-4 py-3.5 sm:px-5">
-                  <div className="min-w-0"><p className="text-[9px] font-semibold uppercase text-freelio-accent">Première mission</p><p className="mt-1 truncate text-sm font-semibold text-freelio-ink">Refonte du site · Atelier Rivet</p></div>
+                  <div className="min-w-0"><p className="text-[9px] font-semibold uppercase text-freelio-accent">Premier chantier</p><p className="mt-1 truncate text-sm font-semibold text-freelio-ink">Construction 8 × 4 · Famille Martin</p></div>
                   <span className="shrink-0 rounded-full bg-freelio-success-soft px-2.5 py-1 text-[9px] font-semibold text-freelio-success">Dossier actif</span>
                 </div>
                 <div className="p-3 sm:p-4">
@@ -541,8 +542,8 @@ export function FeaturesMarketingPage() {
     <MarketingFrame>
       <PublicPageHero
         eyebrow="Produit"
-        title="Un seul produit pour faire avancer toute la mission."
-        text="Freelio relie les décisions commerciales, le travail livré et les documents financiers dans un même dossier vivant."
+        title="Un seul produit, du premier contact à l’entretien."
+        text="Freelio relie les décisions commerciales, le chantier, le parc installé, le SAV et les documents financiers dans un même dossier vivant."
         icon={Target}
         variant="features"
         secondaryHref="#workflow"
@@ -558,9 +559,9 @@ export function FeaturesMarketingPage() {
 
 function UseCases() {
   const cases = [
-    { number: "01", title: "Consultant", copy: "Proposition, contrat, jalons et relances partagent le même contexte client.", signal: "2 900 € à sécuriser", icon: Target },
-    { number: "02", title: "Créatif indépendant", copy: "Phases, validations et livrables deviennent des lignes de facturation sans ressaisie.", signal: "18h45 suivies", icon: FileText },
-    { number: "03", title: "Développeur freelance", copy: "Temps, recette, anomalies et échéances restent visibles jusqu’au paiement.", signal: "6h20 à facturer", icon: Gauge },
+    { number: "01", title: "Construction & rénovation", copy: "Visite technique, devis, jalons, commandes et situations partagent le même dossier chantier.", signal: "28 900 € à piloter", icon: Target },
+    { number: "02", title: "Magasin & négoce", copy: "Catalogue, commandes clients, achats fournisseurs, dépôts et livraisons restent synchronisés.", signal: "7 références critiques", icon: FileText },
+    { number: "03", title: "SAV & entretien", copy: "Parc installé, garanties, diagnostics, planning et contrats d’entretien restent visibles après la pose.", signal: "12 visites à planifier", icon: Gauge },
   ]
   return (
     <section className="border-t border-freelio-line bg-white py-20 sm:py-28">
@@ -604,7 +605,7 @@ function PricingComparison() {
   const options = [
     { name: "Tableur + PDF", cost: "Faible au départ", friction: "Ressaisies, suivi manuel, contexte dispersé", fit: "Activité ponctuelle" },
     { name: "Facturation seule", cost: "8 à 25 € / mois", friction: "Document efficace, projet et relance séparés", fit: "Besoin documentaire" },
-    { name: "Freelio", cost: "19 € / mois HT", friction: "Client, mission, temps, facture et paiement reliés", fit: "Activité à piloter" },
+    { name: "Freelio", cost: "79 € / mois HT", friction: "Commerce, chantier, stock, SAV et facturation reliés", fit: "Entreprise de piscine" },
   ]
   return (
     <section className="border-t border-freelio-line bg-white py-20 sm:py-28">
@@ -695,7 +696,7 @@ function Footer() {
   return (
     <footer className="border-t border-freelio-line bg-freelio-surface-2 py-10">
       <div className={cn(shell, "grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end")}>
-        <div><div className="flex items-center gap-2.5"><LogoMark /><span className="marketing-display text-lg font-bold text-freelio-ink">Freelio</span></div><p className="mt-4 max-w-lg text-sm leading-6 text-freelio-muted">Cockpit de gestion pour indépendants français. Freelio structure vos opérations sans remplacer votre expert-comptable ni votre plateforme agréée.</p></div>
+        <div><div className="flex items-center gap-2.5"><LogoMark /><span className="marketing-display text-lg font-bold text-freelio-ink">Freelio</span></div><p className="mt-4 max-w-lg text-sm leading-6 text-freelio-muted">CRM & ERP métier pour piscinistes. Freelio relie vos ventes, chantiers, stocks, interventions et revenus sans remplacer votre expert-comptable.</p></div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-freelio-muted">{navItems.map((item) => <Link key={item.href} href={item.href} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">{item.label}</Link>)}<Link href="/auth/login" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Connexion</Link></div>
       </div>
       <div className={cn(shell, "mt-8 flex flex-col gap-3 border-t border-freelio-line pt-5 text-xs text-freelio-muted sm:flex-row sm:items-center sm:justify-between")}><span>© 2026 Freelio. Produit en phase alpha.</span><span className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-freelio-success shadow-[0_0_0_4px_var(--color-freelio-success-soft)]" />Alpha privée en cours</span></div>

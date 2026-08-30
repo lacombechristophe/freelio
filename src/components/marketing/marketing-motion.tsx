@@ -59,25 +59,25 @@ const navItems = [
 const workflowSteps = [
   {
     label: "Devis",
-    title: "Une proposition prête à décider.",
-    copy: "Le besoin, le budget et les lignes de prestation restent rattachés au client. Le devis part avec le bon contexte, sans reconstruction.",
+    title: "Une proposition technique prête à décider.",
+    copy: "La visite, les dimensions, les options et le budget restent rattachés au prospect. Le devis part avec le bon contexte, sans reconstruction.",
     icon: FileCheck2,
   },
   {
     label: "Contrat",
-    title: "L’accord devient un cadre de travail.",
-    copy: "Une fois signé, le contrat ouvre la mission avec les jalons, les dates et les conditions déjà validées.",
+    title: "L’accord ouvre le chantier.",
+    copy: "Une fois signé, le contrat ouvre le chantier avec ses jalons, commandes, dates et conditions déjà validées.",
     icon: BriefcaseBusiness,
   },
   {
-    label: "Mission & temps",
-    title: "Le réalisé alimente la suite.",
-    copy: "Temps, avancement et validations remontent dans le dossier. Vous voyez ce qui est livré, facturable ou encore à arbitrer.",
+    label: "Chantier & terrain",
+    title: "Le terrain alimente la suite.",
+    copy: "Temps, avancement, consommations et validations remontent dans le dossier. Vous voyez ce qui est posé, facturable ou encore à arbitrer.",
     icon: TimerReset,
   },
   {
     label: "Facture & paiement",
-    title: "La mission reste suivie jusqu’au virement.",
+    title: "Le chantier reste suivi jusqu’au virement.",
     copy: "Factur-X, échéance, relances et preuve de paiement partagent la même histoire, jusqu’à l’encaissement.",
     icon: ReceiptText,
   },
@@ -88,8 +88,8 @@ const sidebarItems = [
   { icon: UsersRound, label: "CRM" },
   { icon: FileText, label: "Devis" },
   { icon: BriefcaseBusiness, label: "Contrats" },
-  { icon: FolderKanban, label: "Projets" },
-  { icon: Clock3, label: "Temps" },
+  { icon: FolderKanban, label: "Chantiers" },
+  { icon: Clock3, label: "Planning" },
   { icon: ReceiptText, label: "Factures" },
   { icon: WalletCards, label: "Paiements" },
   { icon: BarChart3, label: "Rapports" },
@@ -480,7 +480,7 @@ function CockpitPanel({ compact = false }: { compact?: boolean }) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[9px] text-freelio-muted">Mardi 16 juin</p>
-              <p className="marketing-display mt-1 text-base font-bold text-freelio-ink sm:text-lg">Bonjour Julien</p>
+              <p className="marketing-display mt-1 text-base font-bold text-freelio-ink sm:text-lg">Bonjour Camille</p>
             </div>
             <span className="hidden h-8 items-center gap-1.5 rounded-md bg-freelio-accent px-3 text-[9px] font-semibold text-white sm:inline-flex">
               <span className="text-sm leading-none">+</span>Nouveau
@@ -490,8 +490,8 @@ function CockpitPanel({ compact = false }: { compact?: boolean }) {
           <div className="mt-3 grid grid-cols-2 divide-x divide-y divide-freelio-line overflow-hidden rounded-md border border-freelio-line sm:grid-cols-4 sm:divide-y-0">
             {[
               ["Chiffre d’affaires", "12 840 €", "+ 18 %"],
-              ["Temps à facturer", "18h45", "2 340 €"],
-              ["À relancer", "3 280 €", "1 facture"],
+              ["Chantiers actifs", "14", "3 à planifier"],
+              ["À relancer", "13 280 €", "2 factures"],
               ["Trésorerie", "14 560 €", "+ 8 %"],
             ].map(([label, value, note], index) => (
               <div key={label} className={cn("min-w-0 p-2.5", index === 2 && "sm:border-l-0")}>
@@ -505,13 +505,13 @@ function CockpitPanel({ compact = false }: { compact?: boolean }) {
           <div className="mt-3 grid gap-3 sm:grid-cols-[1.18fr_0.82fr]">
             <div className="overflow-hidden rounded-md border border-freelio-line">
               <div className="flex items-center justify-between border-b border-freelio-line px-3 py-2.5">
-                <p className="text-[9px] font-semibold text-freelio-ink">Missions en cours</p>
+                <p className="text-[9px] font-semibold text-freelio-ink">Chantiers en cours</p>
                 <span className="font-mono text-[7px] text-freelio-muted">4 ACTIVES</span>
               </div>
               {[
-                ["Atelier Rivet", "Refonte site", "60 %", "8 160 €"],
-                ["Maison Lune", "Application mobile", "35 %", "6 000 €"],
-                ["Studio Sept", "Identité visuelle", "90 %", "2 400 €"],
+                ["Famille Martin", "Construction 8 × 4", "60 %", "28 900 €"],
+                ["Résidence Alba", "Rénovation filtration", "35 %", "12 600 €"],
+                ["Hôtel des Pins", "Volet automatique", "90 %", "9 400 €"],
               ].map(([client, mission, progress, budget]) => (
                 <div key={client} className="grid grid-cols-[1fr_52px_58px] items-center gap-2 border-b border-freelio-line px-3 py-2 last:border-0">
                   <div className="min-w-0"><p className="truncate text-[8px] font-semibold text-freelio-ink">{client}</p><p className="truncate text-[7px] text-freelio-muted">{mission}</p></div>
@@ -522,9 +522,9 @@ function CockpitPanel({ compact = false }: { compact?: boolean }) {
             </div>
 
             <div className="rounded-md border border-freelio-line bg-freelio-surface-2 p-3">
-              <div className="flex items-center justify-between"><p className="text-[9px] font-semibold text-freelio-ink">Temps suivi</p><Clock3 className="size-3 text-freelio-accent" /></div>
-              <p className="mt-3 font-mono text-2xl font-semibold tabular-nums text-freelio-ink">18:45 h</p>
-              <p className="mt-1 text-[7px] font-medium text-freelio-success">+ 2:30 h cette semaine</p>
+              <div className="flex items-center justify-between"><p className="text-[9px] font-semibold text-freelio-ink">Charge terrain</p><Clock3 className="size-3 text-freelio-accent" /></div>
+              <p className="mt-3 font-mono text-2xl font-semibold tabular-nums text-freelio-ink">82 %</p>
+              <p className="mt-1 text-[7px] font-medium text-freelio-success">6 interventions cette semaine</p>
               <div className="mt-4 flex h-16 items-end gap-1.5 border-b border-freelio-line px-1">
                 {[38, 55, 72, 48, 82, 64, 34].map((height, index) => (
                   <span key={index} className={cn("flex-1 rounded-t-sm", index === 4 ? "bg-freelio-accent" : "bg-freelio-accent/20")} style={{ height: `${height}%` }} />
@@ -551,9 +551,9 @@ function QuoteDocument({ compact = false }: { compact?: boolean }) {
         <div><p className="text-[10px] font-bold text-freelio-ink">DEVIS</p><p className="font-mono text-[7px] text-freelio-muted">DEV-2026-041</p></div>
         <span className="rounded-md bg-freelio-success-soft px-2 py-1 text-[8px] font-semibold text-freelio-success">Accepté</span>
       </div>
-      <div className="mt-3 flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-freelio-accent-soft text-[8px] font-bold text-freelio-accent">AR</span><div><p className="text-[8px] font-semibold text-freelio-ink">Atelier Rivet</p><p className="text-[7px] text-freelio-muted">Refonte du site vitrine</p></div></div>
+      <div className="mt-3 flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-freelio-accent-soft text-[8px] font-bold text-freelio-accent">FM</span><div><p className="text-[8px] font-semibold text-freelio-ink">Famille Martin</p><p className="text-[7px] text-freelio-muted">Construction piscine 8 × 4</p></div></div>
       <div className="mt-4 space-y-2">
-        {[ ["Direction artistique", "3 200 €"], ["Conception UI", "2 400 €"], ["Intégration", "1 200 €"] ].map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line pb-2 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-medium text-freelio-ink">{value}</span></div>)}
+        {[ ["Terrassement", "8 500 €"], ["Structure & étanchéité", "12 400 €"], ["Filtration", "8 000 €"] ].map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line pb-2 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-medium text-freelio-ink">{value}</span></div>)}
       </div>
       <div className="mt-3 flex items-end justify-between"><span className="text-[7px] text-freelio-muted">Total TTC</span><span className="font-mono text-sm font-semibold text-freelio-ink">8 160 €</span></div>
     </div>
@@ -564,7 +564,7 @@ function ContractDocument() {
   return (
     <div className="rounded-lg border border-freelio-line-strong bg-white p-4 shadow-freelio-float">
       <div className="flex items-start justify-between border-b border-freelio-line pb-3"><div><p className="text-[10px] font-bold text-freelio-ink">CONTRAT</p><p className="font-mono text-[7px] text-freelio-muted">CTR-2026-041</p></div><span className="rounded-md bg-freelio-success-soft px-2 py-1 text-[8px] font-semibold text-freelio-success">Signé</span></div>
-      <div className="mt-4 space-y-3 text-[7px] text-freelio-muted"><p>Entre Atelier Rivet et Julien Martin</p><p>Mission : refonte du site vitrine</p><p>Budget : 8 160 € TTC</p><p>Du 12 mai au 30 juin 2026</p></div>
+      <div className="mt-4 space-y-3 text-[7px] text-freelio-muted"><p>Entre Piscines Horizon et la famille Martin</p><p>Chantier : construction piscine 8 × 4</p><p>Budget : 34 680 € TTC</p><p>Du 12 mai au 30 juin 2026</p></div>
       <div className="mt-5 h-px bg-freelio-line" />
       <div className="mt-3 flex items-end justify-between"><span className="text-[7px] text-freelio-muted">Signature électronique</span><span className="marketing-display -rotate-6 text-lg italic text-freelio-ink">J. Martin</span></div>
     </div>
@@ -575,9 +575,9 @@ function InvoiceDocument() {
   return (
     <div className="rounded-lg border border-freelio-line-strong bg-white p-4 shadow-freelio-float">
       <div className="flex items-start justify-between gap-3 border-b border-freelio-line pb-3"><div><p className="text-[10px] font-bold text-freelio-ink">FACTURE</p><p className="font-mono text-[7px] text-freelio-muted">FAC-2026-041</p></div><span className="rounded-md bg-freelio-accent-soft px-2 py-1 text-[8px] font-semibold text-freelio-accent">Factur-X</span></div>
-      <div className="mt-4 grid grid-cols-2 gap-4 text-[7px]"><div><p className="text-freelio-muted">Émetteur</p><p className="mt-1 font-semibold text-freelio-ink">Julien Martin</p><p className="mt-1 leading-4 text-freelio-muted">Paris · France<br />SIRET vérifié</p></div><div><p className="text-freelio-muted">Client</p><p className="mt-1 font-semibold text-freelio-ink">Atelier Rivet</p><p className="mt-1 leading-4 text-freelio-muted">Échéance<br />2 juillet 2026</p></div></div>
+      <div className="mt-4 grid grid-cols-2 gap-4 text-[7px]"><div><p className="text-freelio-muted">Émetteur</p><p className="mt-1 font-semibold text-freelio-ink">Piscines Horizon</p><p className="mt-1 leading-4 text-freelio-muted">Nantes · France<br />SIRET vérifié</p></div><div><p className="text-freelio-muted">Client</p><p className="mt-1 font-semibold text-freelio-ink">Famille Martin</p><p className="mt-1 leading-4 text-freelio-muted">Échéance<br />2 juillet 2026</p></div></div>
       <div className="mt-4 border-y border-freelio-line py-3">
-        {[ ["Direction artistique", "3 200 €"], ["Conception UI", "2 400 €"], ["Intégration", "1 200 €"] ].map(([label, value]) => <div key={label} className="flex justify-between py-1 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{value}</span></div>)}
+        {[ ["Acompte chantier", "8 500 €"], ["Équipements", "4 900 €"], ["Pose", "3 600 €"] ].map(([label, value]) => <div key={label} className="flex justify-between py-1 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{value}</span></div>)}
       </div>
       <div className="mt-3 flex items-end justify-between"><span className="text-[7px] text-freelio-muted">Total TTC</span><span className="font-mono text-sm font-semibold text-freelio-accent">8 160 €</span></div>
     </div>
@@ -588,7 +588,7 @@ function PaymentCard({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn("rounded-lg border border-freelio-success/30 bg-white p-4 shadow-freelio-float", compact && "h-full shadow-none")}>
       <div className="flex items-center gap-2 text-freelio-success"><span className="grid size-6 place-items-center rounded-full bg-freelio-success text-white"><Check className="size-3.5" /></span><span className="text-xs font-semibold">Paiement reçu</span></div>
-      <p className="mt-4 text-[8px] text-freelio-muted">Atelier Rivet</p>
+      <p className="mt-4 text-[8px] text-freelio-muted">Famille Martin</p>
       <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-freelio-ink">8 160,00 €</p>
       <p className="mt-3 border-t border-freelio-line pt-3 text-[7px] leading-4 text-freelio-muted">Virement bancaire reçu le 2 juin 2026<br />Réf. TRX-2026-0873</p>
       <span className="mt-3 inline-flex rounded-md bg-freelio-success-soft px-2 py-1 text-[8px] font-semibold text-freelio-success">Payé</span>
@@ -599,7 +599,7 @@ function PaymentCard({ compact = false }: { compact?: boolean }) {
 function TimeCard() {
   return (
     <div className="rounded-lg border border-freelio-line-strong bg-white p-3 shadow-freelio-float">
-      <div className="flex items-center justify-between"><div><p className="text-[8px] font-semibold text-freelio-ink">Temps suivi</p><p className="mt-0.5 text-[7px] text-freelio-muted">Refonte du site</p></div><span className="grid size-7 place-items-center rounded-full bg-freelio-accent text-white"><Clock3 className="size-3.5" /></span></div>
+      <div className="flex items-center justify-between"><div><p className="text-[8px] font-semibold text-freelio-ink">Temps suivi</p><p className="mt-0.5 text-[7px] text-freelio-muted">Pose et mise en service</p></div><span className="grid size-7 place-items-center rounded-full bg-freelio-accent text-white"><Clock3 className="size-3.5" /></span></div>
       <p className="mt-4 font-mono text-2xl font-semibold tabular-nums text-freelio-accent">18:45</p>
       <div className="mt-3 flex items-center justify-between border-t border-freelio-line pt-2 text-[7px]"><span className="text-freelio-muted">Cette semaine</span><span className="font-medium text-freelio-ink">+ 3h20</span></div>
     </div>
@@ -609,7 +609,7 @@ function TimeCard() {
 function HeroMetricRail({ compact = false }: { compact?: boolean }) {
   const metrics = [
     { icon: Bell, label: "À relancer aujourd’hui", value: "3 280 €", tone: "danger" },
-    { icon: Clock3, label: "Temps à facturer", value: "18h45", tone: "accent" },
+    { icon: Clock3, label: "Interventions à planifier", value: "6", tone: "accent" },
     { icon: CircleDollarSign, label: "TVA collectée", value: "73 %", tone: "success" },
   ]
 
@@ -690,7 +690,7 @@ function FeaturesVisual({ item }: { item: MotionItem }) {
   const stages = [
     { icon: FileCheck2, label: "Devis", value: "8 160 €", status: "Accepté" },
     { icon: BriefcaseBusiness, label: "Contrat", value: "Signé", status: "07 mai" },
-    { icon: TimerReset, label: "Mission", value: "18h45", status: "60 %" },
+    { icon: TimerReset, label: "Chantier", value: "14 jalons", status: "60 %" },
     { icon: ReceiptText, label: "Facture", value: "Factur-X", status: "Émise" },
     { icon: WalletCards, label: "Paiement", value: "8 160 €", status: "Reçu" },
   ]
@@ -709,8 +709,8 @@ function FeaturesVisual({ item }: { item: MotionItem }) {
         ))}
       </div>
       <motion.div variants={item} className="marketing-variant-item mt-5 grid gap-px overflow-hidden rounded-lg border border-freelio-line bg-freelio-line sm:grid-cols-[1.25fr_0.75fr]">
-        <div className="bg-white p-4"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold text-freelio-ink">Mission · Refonte Atelier Rivet</p><span className="rounded-md bg-freelio-accent-soft px-2 py-1 text-[8px] font-semibold text-freelio-accent">EN COURS</span></div><div className="mt-4 space-y-3">{[["Cadrage", "100%"], ["Design", "82%"], ["Intégration", "57%"]].map(([label, progress]) => <div key={label}><div className="flex justify-between text-[8px]"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{progress}</span></div><div className="mt-1.5 h-1 rounded-full bg-freelio-line"><div className="h-full rounded-full bg-freelio-accent" style={{ width: progress }} /></div></div>)}</div></div>
-        <div className="bg-freelio-surface-2 p-4"><p className="text-[9px] font-semibold text-freelio-ink">Prochaine action</p><p className="marketing-display mt-4 text-xl font-bold text-freelio-ink">Facturer 6h20</p><p className="mt-2 text-[8px] leading-4 text-freelio-muted">Le temps validé et les lignes du devis sont déjà disponibles.</p><span className="mt-4 inline-flex rounded-md bg-freelio-accent px-2.5 py-1.5 text-[8px] font-semibold text-white">Préparer la facture</span></div>
+        <div className="bg-white p-4"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold text-freelio-ink">Chantier · Construction famille Martin</p><span className="rounded-md bg-freelio-accent-soft px-2 py-1 text-[8px] font-semibold text-freelio-accent">EN COURS</span></div><div className="mt-4 space-y-3">{[["Terrassement", "100%"], ["Structure", "82%"], ["Local technique", "57%"]].map(([label, progress]) => <div key={label}><div className="flex justify-between text-[8px]"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{progress}</span></div><div className="mt-1.5 h-1 rounded-full bg-freelio-line"><div className="h-full rounded-full bg-freelio-accent" style={{ width: progress }} /></div></div>)}</div></div>
+        <div className="bg-freelio-surface-2 p-4"><p className="text-[9px] font-semibold text-freelio-ink">Prochaine action</p><p className="marketing-display mt-4 text-xl font-bold text-freelio-ink">Commander la filtration</p><p className="mt-2 text-[8px] leading-4 text-freelio-muted">Les références du devis et le stock disponible sont déjà rapprochés.</p><span className="mt-4 inline-flex rounded-md bg-freelio-accent px-2.5 py-1.5 text-[8px] font-semibold text-white">Préparer la commande</span></div>
       </motion.div>
     </div>
   )
@@ -718,16 +718,16 @@ function FeaturesVisual({ item }: { item: MotionItem }) {
 
 function PricingVisual({ item }: { item: MotionItem }) {
   const tools = [
-    ["CRM", "12 €"],
-    ["Facturation", "19 €"],
-    ["Suivi du temps", "8 €"],
-    ["Signature", "14 €"],
+    ["CRM commercial", "45 €"],
+    ["Gestion de chantiers", "49 €"],
+    ["Stocks & achats", "35 €"],
+    ["SAV & entretien", "39 €"],
   ]
   return (
     <div className="grid min-h-[300px] gap-5 lg:grid-cols-[0.9fr_auto_1.1fr] lg:items-center">
-      <motion.div variants={item} className="marketing-variant-item rounded-lg border border-freelio-line bg-white p-4"><div className="flex items-center justify-between border-b border-freelio-line pb-3"><p className="text-[10px] font-semibold text-freelio-ink">Outils séparés</p><span className="font-mono text-[9px] text-freelio-danger">53 € / mois</span></div><div className="mt-2">{tools.map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line py-2.5 text-[9px] last:border-0"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{value}</span></div>)}</div><p className="mt-3 text-[8px] text-freelio-muted">4 abonnements · 4 historiques · ressaisies</p></motion.div>
+      <motion.div variants={item} className="marketing-variant-item rounded-lg border border-freelio-line bg-white p-4"><div className="flex items-center justify-between border-b border-freelio-line pb-3"><p className="text-[10px] font-semibold text-freelio-ink">Outils séparés</p><span className="font-mono text-[9px] text-freelio-danger">168 € / mois</span></div><div className="mt-2">{tools.map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line py-2.5 text-[9px] last:border-0"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{value}</span></div>)}</div><p className="mt-3 text-[8px] text-freelio-muted">4 abonnements · 4 historiques · ressaisies</p></motion.div>
       <motion.div variants={item} className="marketing-variant-item hidden size-10 place-items-center rounded-full border border-freelio-line bg-freelio-surface-2 text-freelio-accent lg:grid"><ArrowRight className="size-4" /></motion.div>
-      <motion.div variants={item} className="marketing-variant-item relative overflow-hidden rounded-lg border border-freelio-accent-line bg-freelio-accent-soft p-5"><span className="absolute right-0 top-0 bg-freelio-accent px-3 py-1.5 text-[8px] font-semibold text-white">RECOMMANDÉ</span><p className="text-[9px] font-semibold uppercase text-freelio-accent">Freelio Solo</p><div className="mt-5 flex items-end gap-2"><p className="font-mono text-4xl font-semibold tabular-nums text-freelio-ink">19 €</p><p className="pb-1 text-[9px] text-freelio-muted">/ mois HT</p></div><div className="mt-5 grid grid-cols-2 gap-2">{["Clients & CRM", "Devis & contrats", "Projets & temps", "Factur-X", "Relances", "Exports"].map((feature) => <p key={feature} className="flex items-center gap-1.5 text-[8px] text-freelio-ink"><Check className="size-3 text-freelio-success" />{feature}</p>)}</div><div className="mt-5 flex items-center justify-between border-t border-freelio-accent-line pt-4"><span className="text-[8px] text-freelio-muted">Économie estimée</span><span className="font-mono text-lg font-semibold text-freelio-success">34 € / mois</span></div></motion.div>
+      <motion.div variants={item} className="marketing-variant-item relative overflow-hidden rounded-lg border border-freelio-accent-line bg-freelio-accent-soft p-5"><span className="absolute right-0 top-0 bg-freelio-accent px-3 py-1.5 text-[8px] font-semibold text-white">RECOMMANDÉ</span><p className="text-[9px] font-semibold uppercase text-freelio-accent">Freelio Atelier</p><div className="mt-5 flex items-end gap-2"><p className="font-mono text-4xl font-semibold tabular-nums text-freelio-ink">79 €</p><p className="pb-1 text-[9px] text-freelio-muted">/ mois HT</p></div><div className="mt-5 grid grid-cols-2 gap-2">{["Prospects & CRM", "Devis & contrats", "Chantiers & terrain", "Stocks & achats", "SAV & entretien", "Factur-X"].map((feature) => <p key={feature} className="flex items-center gap-1.5 text-[8px] text-freelio-ink"><Check className="size-3 text-freelio-success" />{feature}</p>)}</div><div className="mt-5 flex items-center justify-between border-t border-freelio-accent-line pt-4"><span className="text-[8px] text-freelio-muted">Économie indicative</span><span className="font-mono text-lg font-semibold text-freelio-success">89 € / mois</span></div></motion.div>
     </div>
   )
 }
@@ -895,7 +895,7 @@ function StageScreen({ index, active }: { index: number; active: boolean }) {
   return (
     <div className={cn("overflow-hidden rounded-lg border bg-white transition-[border-color,box-shadow] duration-500", active ? "border-freelio-accent-line shadow-freelio-stage" : "border-freelio-line")}>
       <div className="flex h-11 items-center justify-between border-b border-freelio-line bg-freelio-surface-2 px-4">
-        <div className="flex items-center gap-2"><BrandMark small /><span className="text-[10px] font-semibold text-freelio-ink">Atelier Rivet · Refonte du site</span></div>
+        <div className="flex items-center gap-2"><BrandMark small /><span className="text-[10px] font-semibold text-freelio-ink">Famille Martin · Construction piscine</span></div>
         <span className="font-mono text-[8px] text-freelio-muted">DOSSIER 26-041</span>
       </div>
       {index === 0 && <QuoteScreen />}
@@ -910,8 +910,8 @@ function QuoteScreen() {
   return (
     <div className="grid gap-px bg-freelio-line sm:grid-cols-[1fr_220px]">
       <div className="bg-white p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4 border-b border-freelio-line pb-4"><div><p className="font-mono text-[9px] text-freelio-muted">DEV-2026-041</p><p className="marketing-display mt-2 text-2xl font-bold text-freelio-ink">Refonte du site vitrine</p></div><span className="rounded-md bg-freelio-success-soft px-2.5 py-1 text-[9px] font-semibold text-freelio-success">ACCEPTÉ</span></div>
-        <div className="mt-3">{[["Direction artistique", "3 200 €"], ["Conception de l’interface", "2 400 €"], ["Intégration front-end", "1 200 €"]].map(([label, price]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line py-3 text-[11px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-semibold text-freelio-ink">{price}</span></div>)}</div>
+        <div className="flex items-start justify-between gap-4 border-b border-freelio-line pb-4"><div><p className="font-mono text-[9px] text-freelio-muted">DEV-2026-041</p><p className="marketing-display mt-2 text-2xl font-bold text-freelio-ink">Construction piscine 8 × 4</p></div><span className="rounded-md bg-freelio-success-soft px-2.5 py-1 text-[9px] font-semibold text-freelio-success">ACCEPTÉ</span></div>
+        <div className="mt-3">{[["Terrassement", "8 500 €"], ["Structure & étanchéité", "12 400 €"], ["Filtration & pose", "8 000 €"]].map(([label, price]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line py-3 text-[11px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-semibold text-freelio-ink">{price}</span></div>)}</div>
         <div className="flex justify-end pt-4"><div className="text-right"><p className="text-[9px] uppercase text-freelio-muted">Total TTC</p><p className="mt-1 font-mono text-2xl font-semibold text-freelio-ink">8 160 €</p></div></div>
       </div>
       <div className="bg-freelio-surface-2 p-5">
@@ -928,8 +928,8 @@ function ContractScreen() {
   return (
     <div className="grid gap-px bg-freelio-line sm:grid-cols-[0.9fr_1.1fr]">
       <div className="bg-freelio-surface-2 p-5 sm:p-6">
-        <div className="flex items-center gap-2"><BriefcaseBusiness className="size-4 text-freelio-accent" /><p className="text-xs font-semibold text-freelio-ink">Mission ouverte automatiquement</p></div>
-        <p className="marketing-display mt-6 text-2xl font-bold text-freelio-ink">Refonte du site vitrine</p>
+        <div className="flex items-center gap-2"><BriefcaseBusiness className="size-4 text-freelio-accent" /><p className="text-xs font-semibold text-freelio-ink">Chantier ouvert automatiquement</p></div>
+        <p className="marketing-display mt-6 text-2xl font-bold text-freelio-ink">Construction piscine 8 × 4</p>
         <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-md bg-freelio-line">{[["Début", "12 mai 2026"], ["Fin", "30 juin 2026"], ["Budget", "8 160 € TTC"], ["Jalons", "4 étapes"]].map(([label, value]) => <div key={label} className="bg-white p-3"><p className="text-[8px] uppercase text-freelio-muted">{label}</p><p className="mt-1.5 text-[10px] font-semibold text-freelio-ink">{value}</p></div>)}</div>
       </div>
       <div className="bg-white p-5 sm:p-6">
@@ -945,7 +945,7 @@ function DeliveryScreen() {
     <div className="p-5 sm:p-6">
       <div className="grid gap-5 sm:grid-cols-[190px_1fr]">
         <div className="rounded-md bg-freelio-accent p-5 text-white"><p className="text-[9px] uppercase text-white/65">Temps validé</p><p className="mt-3 font-mono text-4xl font-semibold tabular-nums">18h45</p><p className="mt-2 text-[10px] text-white/70">dont 6h20 non facturées</p><div className="mt-8 border-t border-white/20 pt-4"><p className="text-[9px] text-white/65">Valeur facturable</p><p className="mt-1 font-mono text-lg font-semibold">2 340 €</p></div></div>
-        <div><div className="flex items-center justify-between"><p className="text-xs font-semibold text-freelio-ink">Avancement de la mission</p><span className="font-mono text-[9px] text-freelio-muted">SEMAINE 24</span></div><div className="mt-5 space-y-5">{[["Audit & cadrage", "100%"], ["Maquettes du cockpit", "82%"], ["Intégration front", "57%"], ["Recette client", "24%"]].map(([label, value]) => <div key={label}><div className="flex items-center justify-between text-[10px]"><span className="font-medium text-freelio-ink">{label}</span><span className="font-mono text-freelio-muted">{value}</span></div><div className="mt-2 h-1 overflow-hidden rounded-full bg-freelio-line"><div className="h-full rounded-full bg-freelio-accent" style={{ width: value }} /></div></div>)}</div></div>
+        <div><div className="flex items-center justify-between"><p className="text-xs font-semibold text-freelio-ink">Avancement du chantier</p><span className="font-mono text-[9px] text-freelio-muted">SEMAINE 24</span></div><div className="mt-5 space-y-5">{[["Terrassement", "100%"], ["Structure", "82%"], ["Local technique", "57%"], ["Mise en service", "24%"]].map(([label, value]) => <div key={label}><div className="flex items-center justify-between text-[10px]"><span className="font-medium text-freelio-ink">{label}</span><span className="font-mono text-freelio-muted">{value}</span></div><div className="mt-2 h-1 overflow-hidden rounded-full bg-freelio-line"><div className="h-full rounded-full bg-freelio-accent" style={{ width: value }} /></div></div>)}</div></div>
       </div>
       <div className="mt-5 flex items-center justify-between border-t border-freelio-line pt-4"><p className="flex items-center gap-2 text-[10px] font-medium text-freelio-success"><CheckCircle2 className="size-3.5" />Le temps validé peut alimenter la facture</p><ChevronRight className="size-4 text-freelio-muted" /></div>
     </div>

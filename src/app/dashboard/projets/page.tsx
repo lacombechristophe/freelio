@@ -2,12 +2,14 @@ import { getProjects, getProjectTemplates } from "@/actions/projets"
 import { getClientsMinimal } from "@/actions/clients"
 import { ProjetsGrid } from "./projets-grid"
 import { PageHeader } from "@/components/shared/page-header"
+import { getActiveAgencies } from "@/actions/agencies"
 
 export default async function ProjetsPage() {
-  const [projects, clients, templates] = await Promise.all([
+  const [projects, clients, templates, agencies] = await Promise.all([
     getProjects(),
     getClientsMinimal(),
     getProjectTemplates(),
+    getActiveAgencies(),
   ])
 
   return (
@@ -17,7 +19,7 @@ export default async function ProjetsPage() {
         title="Projets"
         description="Pilotez les budgets, le temps consommé et l’avancement de chaque chantier actif."
       />
-      <ProjetsGrid projects={projects ?? []} clients={clients ?? []} templates={templates ?? []} />
+      <ProjetsGrid projects={projects ?? []} clients={clients ?? []} templates={templates ?? []} agencies={agencies ?? []} />
     </div>
   )
 }

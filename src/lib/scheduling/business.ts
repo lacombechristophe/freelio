@@ -6,6 +6,7 @@ import { z } from "zod"
 import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import prisma from "@/lib/prisma"
 import { getNextRecurringDate } from "@/lib/workflow-rules"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 
 const storedTemplateSchema = z.object({
   object: z.string().min(3),
@@ -13,14 +14,6 @@ const storedTemplateSchema = z.object({
   dueDays: z.number().int().min(0).max(365),
   lines: z.array(z.object({ label: z.string().min(1), description: z.string().nullable().optional(), quantity: z.number().positive(), unitPriceCents: z.number().int().nonnegative(), tvaRate: z.number().min(0).max(100) })).min(1),
 })
-
-function totals(lines: Array<{ quantity: number; unitPriceCents: number; tvaRate: number }>) {
-  return lines.reduce((sum, line) => {
-    const ht = Math.round(line.quantity * line.unitPriceCents)
-    const tva = Math.round(ht * line.tvaRate / 100)
-    return { totalHtCents: sum.totalHtCents + ht, totalTvaCents: sum.totalTvaCents + tva, totalTtcCents: sum.totalTtcCents + ht + tva }
-  }, { totalHtCents: 0, totalTvaCents: 0, totalTtcCents: 0 })
-}
 
 async function auditUser(companyId: string, preferred?: string) {
   if (preferred) return preferred
@@ -56,7 +49,12 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
       continue
     }
     const lines = recurring.company.isTvaApplicable ? parsed.data.lines : parsed.data.lines.map((line) => ({ ...line, tvaRate: 0 }))
-    const amounts = totals(lines)
+    const calculation = calculateCommercialDocument(lines)
+    const amounts = {
+      totalHtCents: calculation.totalHtCents,
+      totalTvaCents: calculation.totalTvaCents,
+      totalTtcCents: calculation.totalTtcCents,
+    }
     try {
       await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
         if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return

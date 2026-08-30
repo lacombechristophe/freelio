@@ -21,14 +21,14 @@ const instrumentSans = Instrument_Sans({
 
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
-  applicationName: "CRM & opérations",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "CRM" },
+  applicationName: "Freelio Piscine",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Freelio" },
   title: {
-    default: "CRM & opérations",
-    template: "%s | CRM & opérations",
+    default: "Freelio - CRM pour piscinistes",
+    template: "%s | Freelio",
   },
   description:
-    "CRM et gestion opérationnelle pour les ventes, chantiers, équipements, stocks, interventions et facturation.",
+    "CRM et ERP métier pour les piscinistes : ventes, chantiers, parc installé, stocks, SAV, entretien et facturation.",
 };
 
 export default function RootLayout({

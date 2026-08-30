@@ -69,13 +69,30 @@ export async function completeOnboarding(data: unknown) {
           },
         })
 
-        await tx.membership.create({
+        const membership = await tx.membership.create({
           data: {
             companyId: company.id,
             userId,
             role: "OWNER",
             status: "ACTIVE",
           },
+        })
+
+        const agency = await tx.agency.create({
+          data: {
+            companyId: company.id,
+            code: "PRINCIPALE",
+            name: "Agence principale",
+            kind: "MIXED",
+            address: payload.address,
+            phone: payload.phone || null,
+            email: payload.email,
+            isDefault: true,
+          },
+        })
+
+        await tx.agencyMembership.create({
+          data: { agencyId: agency.id, membershipId: membership.id, isPrimary: true },
         })
 
         if (payload.firstClientName) {

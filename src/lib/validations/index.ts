@@ -94,6 +94,7 @@ export const ClientNextActionSchema = z.object({
 
 export const ProjectSchema = z.object({
   clientId: EntityIdSchema,
+  agencyId: EntityIdSchema.optional().or(z.literal("")),
   projectTemplateId: EntityIdSchema.optional().or(z.literal("")),
   name: z.string().min(3, "Le nom du projet est requis"),
   description: z.string().optional().or(z.literal("")),

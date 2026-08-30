@@ -30,7 +30,7 @@ export async function getProjects(cursor?: string, limit: number = 20) {
       take: limit,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
-      include: { client: true, projectTemplate: { select: { id: true, name: true } } },
+      include: { client: true, agency: { select: { id: true, name: true, code: true } }, projectTemplate: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     })
   })
@@ -99,20 +99,24 @@ export async function setProjectTemplateActive(templateId: string, active: boole
   }, "operations.write")
 }
 
-export async function createProject(data: any) {
+export async function createProject(data: unknown) {
   return await withAuth(async ({ companyId, userId }) => {
     const validated = ProjectSchema.parse(data)
-    const [client, template] = await Promise.all([
+    const [client, agency, template] = await Promise.all([
       prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
+      validated.agencyId
+        ? prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })
+        : prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
       validated.projectTemplateId ? prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: { order: "asc" } } } }) : null,
     ])
     if (!client) throw new Error("Client introuvable")
+    if (validated.agencyId && !agency) throw new Error("Agence introuvable ou inactive")
     if (validated.projectTemplateId && !template) throw new Error("Modèle de chantier introuvable ou inactif")
     const requestedStartDate = atNoon(validated.startDate || undefined)
     const startDate = requestedStartDate || (template ? (() => { const today = new Date(); today.setHours(12, 0, 0, 0); return today })() : null)
     const endDate = atNoon(validated.endDate || undefined) || (startDate && template?.defaultDurationDays ? addCalendarDays(startDate, template.defaultDurationDays) : null)
     const project = await prisma.$transaction(async (tx) => {
-      const created = await tx.project.create({ data: { companyId, clientId: validated.clientId, projectTemplateId: template?.id || null, name: validated.name, description: validated.description || null, status: validated.status || "ACTIVE", worksiteType: validated.worksiteType || template?.worksiteType || null, budgetCents: validated.budgetCents, startDate, endDate } })
+      const created = await tx.project.create({ data: { companyId, clientId: validated.clientId, agencyId: agency?.id || null, projectTemplateId: template?.id || null, name: validated.name, description: validated.description || null, status: validated.status || "ACTIVE", worksiteType: validated.worksiteType || template?.worksiteType || null, budgetCents: validated.budgetCents, startDate, endDate } })
       if (template?.steps.length) {
         const milestoneIds = new Map<string, string>()
         for (const step of template.steps) {
@@ -135,17 +139,18 @@ export async function createProject(data: any) {
   })
 }
 
-export async function updateProject(id: string, data: any) {
+export async function updateProject(id: string, data: unknown) {
   return await withAuth(async ({ companyId, userId }) => {
     const validated = ProjectSchema.parse(data)
     const existing = await prisma.project.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Projet introuvable")
     if (!await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })) throw new Error("Client introuvable")
+    if (validated.agencyId && !await prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })) throw new Error("Agence introuvable ou inactive")
     if (validated.projectTemplateId && !await prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId }, select: { id: true } })) throw new Error("Modèle de chantier introuvable")
 
     const project = await prisma.project.update({
       where: { id },
-      data: { clientId: validated.clientId, projectTemplateId: validated.projectTemplateId || null, name: validated.name, description: validated.description || null, status: validated.status, worksiteType: validated.worksiteType || null, budgetCents: validated.budgetCents, startDate: atNoon(validated.startDate || undefined), endDate: atNoon(validated.endDate || undefined) },
+      data: { clientId: validated.clientId, agencyId: validated.agencyId || existing.agencyId, projectTemplateId: validated.projectTemplateId || null, name: validated.name, description: validated.description || null, status: validated.status, worksiteType: validated.worksiteType || null, budgetCents: validated.budgetCents, startDate: atNoon(validated.startDate || undefined), endDate: atNoon(validated.endDate || undefined) },
     })
     await logAction({
       userId,

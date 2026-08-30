@@ -3,9 +3,9 @@ import type { Metadata } from "next"
 import { PricingMarketingPage } from "@/components/marketing/marketing"
 
 export const metadata: Metadata = {
-  title: "Tarifs - Alpha gratuite et offres Solo",
+  title: "Tarifs - CRM pour piscinistes",
   description:
-    "Comparez les offres Freelio pour indépendants : alpha gratuite, offre Solo et formule Studio, sans frais cachés.",
+    "Comparez les offres Freelio pour entreprises de piscine : alpha gratuite, équipe et multi-agences, sans frais cachés.",
 }
 
 export default function TarifsPage() {

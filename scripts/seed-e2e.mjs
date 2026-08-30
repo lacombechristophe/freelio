@@ -28,11 +28,13 @@ async function main() {
     create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id },
   })
   const membership = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
+  const agency = await prisma.agency.create({ data: { companyId: company.id, code: "PRINCIPALE", name: "Agence QA", kind: "MIXED", active: true, isDefault: true } })
+  await prisma.agencyMembership.create({ data: { agencyId: agency.id, membershipId: membership.id, isPrimary: true } })
   const client = await prisma.client.create({ data: { companyId: company.id, name: "Client QA Piscine", type: "INDIVIDUAL", address: "2 rue du Bassin, 44000 Nantes" } })
   const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", isPrimary: true } })
   await prisma.leadCapture.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", city: "Nantes", projectType: "Couverture QA", source: "E2E_SEED", privacyAccepted: true, marketingOptIn: true, fingerprint: "e2e-seeded-lead" } })
-  const site = await prisma.customerSite.create({ data: { companyId: company.id, clientId: client.id, label: "Bassin QA", kind: "INSTALLATION", address1: "2 rue du Bassin", postalCode: "44000", city: "Nantes", latitude: 47.2184, longitude: -1.5536 } })
-  const project = await prisma.project.create({ data: { companyId: company.id, clientId: client.id, siteId: site.id, name: "Chantier QA existant", status: "ACTIVE", worksiteType: "INSTALLATION" } })
+  const site = await prisma.customerSite.create({ data: { companyId: company.id, clientId: client.id, agencyId: agency.id, label: "Bassin QA", kind: "INSTALLATION", address1: "2 rue du Bassin", postalCode: "44000", city: "Nantes", latitude: 47.2184, longitude: -1.5536 } })
+  const project = await prisma.project.create({ data: { companyId: company.id, clientId: client.id, agencyId: agency.id, siteId: site.id, name: "Chantier QA existant", status: "ACTIVE", worksiteType: "INSTALLATION" } })
   await prisma.quote.create({
     data: {
       companyId: company.id,
@@ -51,7 +53,7 @@ async function main() {
       },
     },
   })
-  const warehouse = await prisma.warehouse.create({ data: { companyId: company.id, name: "Dépôt QA", code: "QA" } })
+  const warehouse = await prisma.warehouse.create({ data: { companyId: company.id, agencyId: agency.id, name: "Dépôt QA", code: "QA" } })
   const product = await prisma.product.create({ data: { companyId: company.id, sku: "QA-COVER", label: "Couverture de test", salePriceCents: 10_000, purchasePriceCents: 5_000 } })
   await prisma.inventoryItem.create({ data: { companyId: company.id, warehouseId: warehouse.id, productId: product.id, quantity: 5, reservedQuantity: 0 } })
   const equipment = await prisma.equipment.create({ data: { companyId: company.id, siteId: site.id, productId: product.id, label: "Couverture QA installée", category: "COVER", status: "ACTIVE" } })

@@ -30,6 +30,7 @@ const optionalCoordinate = z.preprocess(
 
 const siteSchema = z.object({
   clientId: id,
+  agencyId: optionalId,
   label: z.string().trim().min(2).max(120),
   kind: z.string().trim().min(2).max(40).default("INSTALLATION"),
   address1: z.string().trim().min(3).max(200),
@@ -63,6 +64,7 @@ const productSchema = z.object({
 })
 
 const warehouseSchema = z.object({
+  agencyId: optionalId,
   name: z.string().trim().min(2).max(120),
   code: z.string().trim().min(1).max(30),
   address: optionalText,
@@ -349,7 +351,8 @@ async function findInterventionSlotConflict({
 
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role }) => {
-    const [clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes] = await Promise.all([
+    const [agencies, clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes] = await Promise.all([
+      prisma.agency.findMany({ where: { companyId, active: true }, select: { id: true, code: true, name: true, isDefault: true }, orderBy: [{ isDefault: "desc" }, { name: "asc" }] }),
       prisma.client.findMany({ where: { companyId }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 500 }),
       prisma.customerSite.findMany({ where: { companyId }, include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
@@ -380,7 +383,7 @@ export async function getOperationsDashboard() {
       prisma.stockReservation.findMany({ where: { companyId, status: "ACTIVE" }, include: { warehouse: { select: { name: true } }, product: { select: { sku: true, label: true } }, project: { select: { name: true } }, customerOrder: { select: { number: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
       prisma.deliveryNote.findMany({ where: { companyId }, include: { customerOrder: { include: { client: { select: { name: true } } } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
     ])
-    return { clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, canApprovePurchases: hasPermission(role, "purchases.approve") }
+    return { agencies, clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, canApprovePurchases: hasPermission(role, "purchases.approve") }
   }, "operations.read")
 }
 
@@ -648,9 +651,14 @@ export async function getHelpDeskDashboard(input: unknown = {}) {
 export async function createCustomerSite(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = siteSchema.parse(input)
-    const client = await prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } })
+    const [client, requestedAgency, defaultAgency] = await Promise.all([
+      prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
+      data.agencyId ? prisma.agency.findFirst({ where: { id: data.agencyId, companyId, active: true }, select: { id: true } }) : null,
+      data.agencyId ? null : prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
+    ])
     if (!client) throw new Error("Client introuvable")
-    const site = await prisma.customerSite.create({ data: { companyId, ...data } })
+    if (data.agencyId && !requestedAgency) throw new Error("Agence introuvable ou inactive")
+    const site = await prisma.customerSite.create({ data: { companyId, ...data, agencyId: requestedAgency?.id || defaultAgency?.id || null } })
     revalidateOperations()
     return { success: true as const, id: site.id }
   }, "crm.write")
@@ -678,7 +686,11 @@ export async function createProduct(input: unknown) {
 export async function createWarehouse(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = warehouseSchema.parse(input)
-    const warehouse = await prisma.warehouse.create({ data: { companyId, ...data } })
+    const agency = data.agencyId
+      ? await prisma.agency.findFirst({ where: { id: data.agencyId, companyId, active: true }, select: { id: true } })
+      : await prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } })
+    if (data.agencyId && !agency) throw new Error("Agence introuvable ou inactive")
+    const warehouse = await prisma.warehouse.create({ data: { companyId, ...data, agencyId: agency?.id || null } })
     revalidateOperations()
     return { success: true as const, id: warehouse.id }
   }, "operations.write")

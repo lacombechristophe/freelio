@@ -1,4 +1,5 @@
 import type { PdfDocument } from "@/lib/pdf/render"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 
 export type DocumentQualitySeverity = "error" | "warning" | "info"
 
@@ -84,19 +85,12 @@ function buildReport(issues: DocumentQualityIssue[], readyLabel: string): Docume
 }
 
 function hasCoherentTotals(doc: PdfDocument) {
-  const computedHt = doc.lines.reduce(
-    (total, line) => total + Math.round(line.quantity * line.unitPriceCents),
-    0
-  )
-  const computedTva = doc.lines.reduce((total, line) => {
-    const lineHt = Math.round(line.quantity * line.unitPriceCents)
-    return total + Math.round((lineHt * line.tvaRate) / 100)
-  }, 0)
+  const computed = calculateCommercialDocument(doc.lines)
 
   return (
-    Math.abs(computedHt - doc.totalHtCents) <= 1 &&
-    Math.abs(computedTva - doc.totalTvaCents) <= 1 &&
-    Math.abs(computedHt + computedTva - doc.totalTtcCents) <= 1
+    Math.abs(computed.totalHtCents - doc.totalHtCents) <= 1 &&
+    Math.abs(computed.totalTvaCents - doc.totalTvaCents) <= 1 &&
+    Math.abs(computed.totalTtcCents - doc.totalTtcCents) <= 1
   )
 }
 
@@ -222,4 +216,3 @@ export function assessContractQuality(contract: ContractQualityInput): DocumentQ
 
   return buildReport(issues, "Pret pour signature")
 }
-
