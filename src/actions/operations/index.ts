@@ -10,6 +10,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { calculateStockBalance } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
 import { diagnosticSteps, diagnosticStringList, equipmentWarrantyStatus, scoreDiagnosticGuide } from "@/lib/operations/service-diagnostics"
 import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
@@ -149,6 +150,15 @@ const maintenanceContractSchema = z.object({
   invoiceDueDays: z.coerce.number().int().min(0).max(365).default(30),
   equipmentIds: z.array(id).max(100).default([]),
   notes: optionalText,
+})
+
+const maintenanceRenewalSettingsSchema = z.object({
+  contractId: id,
+  noticeDays: z.coerce.number().int().min(0).max(365),
+  indexationRate: z.coerce.number().min(-100).max(100),
+  autoRenew: z.boolean(),
+  renewalStatus: z.enum(["NOT_DUE", "UPCOMING", "PROPOSED", "ACCEPTED", "DECLINED"]),
+  renewalNotes: z.string().trim().max(5_000).optional().transform((value) => value || null),
 })
 
 const purchaseOrderLineSchema = z.object({
@@ -362,7 +372,7 @@ export async function getOperationsDashboard() {
         orderBy: { scheduledStart: "asc" },
         take: 200,
       }),
-      prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, _count: { select: { equipments: true } } }, orderBy: { nextVisitAt: "asc" }, take: 100 }),
+      prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, recurringInvoice: { select: { id: true, isActive: true } }, renewedFrom: { select: { id: true, number: true } }, _count: { select: { equipments: true, renewedContracts: true } } }, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }], take: 200 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, invoices: { select: { id: true, type: true, status: true } }, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
@@ -841,6 +851,81 @@ export async function createMaintenanceContract(input: unknown) {
     await logAction({ userId, action: "CREATE_MAINTENANCE_CONTRACT", resource: "MAINTENANCE_CONTRACT", resourceId: contract.id, payload: { number: contract.number, clientId: contract.clientId, siteId: contract.siteId } })
     revalidateOperations()
     return { success: true as const, id: contract.id, number: contract.number }
+  }, "service.write")
+}
+
+export async function updateMaintenanceRenewalSettings(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = maintenanceRenewalSettingsSchema.parse(input)
+    const contract = await prisma.maintenanceContract.findFirst({ where: { id: data.contractId, companyId }, select: { id: true, number: true, renewalStatus: true } })
+    if (!contract) throw new Error("Contrat d’entretien introuvable")
+    if (contract.renewalStatus === "RENEWED") throw new Error("Ce terme a déjà été renouvelé")
+    await prisma.maintenanceContract.update({ where: { id: contract.id }, data: { noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew, renewalStatus: data.renewalStatus, renewalNotes: data.renewalNotes } })
+    await logAction({ userId, action: "UPDATE_MAINTENANCE_RENEWAL", resource: "MAINTENANCE_CONTRACT", resourceId: contract.id, payload: { number: contract.number, noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew, renewalStatus: data.renewalStatus } })
+    revalidateOperations()
+    return { success: true as const }
+  }, "service.write")
+}
+
+export async function renewMaintenanceContract(contractId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const parsedId = id.parse(contractId)
+    const [contract, company] = await Promise.all([
+      prisma.maintenanceContract.findFirst({
+        where: { id: parsedId, companyId },
+        include: { equipments: { select: { equipmentId: true } }, recurringInvoice: { select: { isActive: true } }, _count: { select: { renewedContracts: true } } },
+      }),
+      prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
+    ])
+    if (!contract || !company) throw new Error("Contrat d’entretien introuvable")
+    if (!contract.endDate) throw new Error("Renseignez une date de fin avant de renouveler ce contrat")
+    if (contract.renewalStatus === "DECLINED") throw new Error("Le renouvellement a été refusé. Modifiez d’abord la décision.")
+    if (contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new Error("Ce terme a déjà été renouvelé")
+    const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
+    const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
+    const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
+    const renewed = await withDocumentNumberRetry(async () => {
+      const last = await prisma.maintenanceContract.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+      return prisma.$transaction(async (transaction) => {
+        const created = await transaction.maintenanceContract.create({
+          data: {
+            companyId,
+            clientId: contract.clientId,
+            siteId: contract.siteId,
+            number: nextDocumentNumber(last?.number, prefix),
+            label: contract.label,
+            status: "ACTIVE",
+            startDate: term.startDate,
+            endDate: term.endDate,
+            frequency: contract.frequency,
+            nextVisitAt: term.startDate,
+            priceCents: nextPriceCents,
+            tvaRate: company.isTvaApplicable ? contract.tvaRate : 0,
+            invoiceDueDays: contract.invoiceDueDays,
+            notes: contract.notes,
+            noticeDays: contract.noticeDays,
+            indexationRate: contract.indexationRate,
+            autoRenew: contract.autoRenew,
+            renewalStatus: "NOT_DUE",
+            renewalNotes: contract.renewalNotes,
+            renewedFromId: contract.id,
+            equipments: contract.equipments.length ? { create: contract.equipments.map(({ equipmentId }) => ({ equipmentId })) } : undefined,
+          },
+        })
+        if (contract.recurringInvoice?.isActive && nextPriceCents > 0) {
+          const recurringFrequency = contract.frequency === "BIANNUAL" ? "BIANNUALLY" : contract.frequency === "ANNUAL" ? "ANNUALLY" : contract.frequency
+          await transaction.recurringInvoice.updateMany({ where: { maintenanceContractId: contract.id, isActive: true }, data: { isActive: false } })
+          await transaction.recurringInvoice.create({ data: { companyId, clientId: contract.clientId, maintenanceContractId: created.id, label: `Entretien · ${contract.label}`, frequency: recurringFrequency, nextGenDate: term.startDate, template: { object: `Contrat d’entretien ${created.number} · ${contract.label}`, projectId: null, dueDays: contract.invoiceDueDays, lines: [{ label: contract.label, description: `Échéance du contrat ${created.number}`, quantity: 1, unitPriceCents: nextPriceCents, tvaRate: company.isTvaApplicable ? contract.tvaRate : 0 }] } } })
+        }
+        const updated = await transaction.maintenanceContract.updateMany({ where: { id: contract.id, companyId, renewalStatus: { not: "RENEWED" } }, data: { status: "RENEWED", renewalStatus: "RENEWED", renewedAt: new Date(), nextVisitAt: null } })
+        if (updated.count !== 1) throw new Error("Le contrat a changé pendant le renouvellement. Rechargez la page.")
+        return created
+      }, { isolationLevel: "Serializable" })
+    }, { label: "le renouvellement du contrat d’entretien" })
+    await logAction({ userId, action: "RENEW_MAINTENANCE_CONTRACT", resource: "MAINTENANCE_CONTRACT", resourceId: renewed.id, payload: { previousContractId: contract.id, previousNumber: contract.number, number: renewed.number, startDate: renewed.startDate, endDate: renewed.endDate, priceCents: renewed.priceCents, indexationRate: contract.indexationRate } })
+    revalidateOperations()
+    revalidatePath("/dashboard/service/customer-success")
+    return { success: true as const, id: renewed.id, number: renewed.number }
   }, "service.write")
 }
 

@@ -187,6 +187,8 @@ Les analyses Service distinguent les tickets créés, les clôtures de la pério
 
 L’export des analyses reprend exactement ces filtres dans une archive ZIP privée : six CSV séparés et un manifeste JSON décrivent le résumé, l’équipe, les priorités, la tendance, les diagnostics et la santé. Chaque fichier possède sa taille et son empreinte SHA-256 ; le contenu CSV neutralise les cellules pouvant être interprétées comme des formules et chaque téléchargement est inscrit au journal d’audit.
 
+Les contrats d’entretien gèrent désormais leur renouvellement comme une nouvelle période liée à l’ancienne : préavis, indexation, autorisation automatique, décision et notes restent explicites. Une reconduction conserve le terme précédent, calcule les nouvelles dates et le tarif indexé, reprend les équipements et recrée la facturation récurrente lorsqu’elle était active. Une transaction sérialisable empêche les doubles renouvellements concurrents.
+
 Les listes commencent à utiliser des vues enregistrées persistantes : une vue conserve recherche, filtres, tri et colonnes sous une configuration validée côté serveur, reste isolée par entreprise et peut être réappliquée après rechargement. Le partage équipe est réservé aux administrateurs.
 
 Le centre Satisfaction gère des enquêtes CSAT, NPS ou CES. Chaque invitation peut être rattachée à un client, un contact et un ticket ; son lien contient un jeton aléatoire conservé uniquement sous forme hashée, expire automatiquement et n’accepte qu’une réponse. Les notes, taux de satisfaction et verbatims remontent dans le tableau Service.
