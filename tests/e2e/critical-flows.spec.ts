@@ -124,6 +124,16 @@ test("new local-first surfaces load and their primary controls respond", async (
   await page.getByRole("button", { name: "Appliquer" }).click()
   await page.waitForURL(/\/dashboard\/service\/analytics\?days=30/)
   await expect(page.getByText("Performance de l’équipe")).toBeVisible()
+  const serviceExport = page.getByRole("link", { name: "Exporter l’analyse" })
+  await expect(serviceExport).toBeVisible()
+  if (testInfo.project.name === "desktop") {
+    const exportHref = await serviceExport.getAttribute("href")
+    expect(exportHref).toBeTruthy()
+    const response = await page.request.get(exportHref!)
+    expect(response.ok()).toBeTruthy()
+    expect(response.headers()["content-type"]).toContain("application/zip")
+    expect((await response.body()).subarray(0, 2).toString("ascii")).toBe("PK")
+  }
   await assertHealthy(page, "/dashboard/revenue", "Facturation et trésorerie")
   await assertHealthy(page, "/dashboard/data", "Qualité et gouvernance")
   await assertHealthy(page, "/dashboard/reports", "Piloter l’entreprise")
