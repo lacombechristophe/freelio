@@ -19,6 +19,7 @@ import {
 } from "@/lib/document-numbering"
 import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
 import { processDueRecurringInvoices } from "@/lib/scheduling/business"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
 type PaymentInput = z.input<typeof PaymentSchema>
@@ -109,18 +110,6 @@ async function generateCreditNoteNumber(companyId: string) {
     select: { number: true },
   })
   return nextDocumentNumber(last?.number, prefix)
-}
-
-function computeTotals(lines: Array<{ quantity: number; unitPriceCents: number; tvaRate: number }>) {
-  let totalHtCents = 0
-  let totalTvaCents = 0
-  for (const l of lines) {
-    const lineHt = Math.round(l.quantity * l.unitPriceCents)
-    const lineTva = Math.round((lineHt * l.tvaRate) / 100)
-    totalHtCents += lineHt
-    totalTvaCents += lineTva
-  }
-  return { totalHtCents, totalTvaCents, totalTtcCents: totalHtCents + totalTvaCents }
 }
 
 function formatInvoiceDate(date: Date) {
@@ -251,7 +240,7 @@ export async function createInvoice(data: InvoiceInput) {
       ? validated.lines
       : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
 
-    const totals = computeTotals(lines)
+    const totals = calculateCommercialDocument(lines)
 
     const invoice = await withDocumentNumberRetry(async () => {
       const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
@@ -342,7 +331,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
       tvaRate,
       validated.lineMode
     )
-    const totals = computeTotals(lines)
+    const totals = calculateCommercialDocument(lines)
     const clientName = entries[0].project.client.name
     const object = validated.object || `Temps pass\u00e9 - ${clientName}`
 
@@ -434,7 +423,7 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
       ? validated.lines
       : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
 
-    const totals = computeTotals(lines)
+    const totals = calculateCommercialDocument(lines)
 
     await prisma.invoiceLine.deleteMany({ where: { invoiceId: id } })
 

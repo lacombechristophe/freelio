@@ -65,6 +65,8 @@ export function canAssignRole(actorRole: CompanyRole, targetRole: CompanyRole): 
 
 const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   Company: "company.manage",
+  Agency: "company.manage",
+  AgencyMembership: "company.manage",
   Membership: "members.manage",
   CompanyInvitation: "members.manage",
   WebhookEndpoint: "company.manage",

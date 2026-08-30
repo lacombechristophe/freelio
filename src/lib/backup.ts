@@ -78,6 +78,8 @@ function replaceCompanyId(value: unknown, companyId: string): any {
 const COMPANY_TABLE_SPECS: TableSpec[] = [
   { model: "Company", delegate: "company", where: (companyId) => ({ id: companyId }) },
   direct("Membership"),
+  direct("Agency"),
+  related("AgencyMembership", { agency: { companyId: "$companyId" } }),
   direct("Client"),
   direct("ClientPortalMessage"),
   direct("ClientPortalAppointmentRequest"),
@@ -540,7 +542,7 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 }
 
 const LEGACY_UNREPRESENTED_TABLES = [
-  "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
+  "Agency", "AgencyMembership", "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
   "InventoryItem", "StockMovement", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "ServiceTicketNote", "ServiceDiagnosticGuide", "ServiceTicketDiagnostic", "CustomerHealthRule", "CustomerHealthSnapshot", "KnowledgeArticle", "SatisfactionSurvey", "SatisfactionRequest", "SavedView", "FieldIntervention", "InterventionReservation",

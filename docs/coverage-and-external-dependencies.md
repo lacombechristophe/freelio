@@ -18,7 +18,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 
 | Domaine HubSpot | État | Couverture actuelle | Limite / gate de sortie |
 |---|---|---|---|
-| Capture du site | **Disponible** | `POST /api/public/leads`, validation, origine ou secret, honeypot, limite de débit, dédoublonnage | brancher le vrai formulaire `diskoov.fr`, supervision et test de perte de lead |
+| Capture du site | **Disponible** | `POST /api/public/leads`, validation, origine ou secret, honeypot, limite de débit, dédoublonnage | brancher le vrai formulaire public, supervision et test de perte de lead |
 | Source et UTM | **Disponible** | source, landing page, referrer et paramètres UTM conservés sur lead/opportunité | tableaux d'attribution avancés absents |
 | Consentement | **Disponible** | événements et preuve hashée, retrait interne, lien public signé généré depuis la file prospects, retrait idempotent | pas de centre de préférences multicanal ; durées et texte RGPD à valider |
 | Clients et contacts | **Disponible** | fiches entreprise/particulier, contacts, coordonnées, activités, fichiers et prochaine action | dédoublonnage global/humain encore limité |
@@ -29,7 +29,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Tâches et agenda | **Partiel** | objectifs, tâches, récurrence et export ICS | pas de synchronisation calendrier bidirectionnelle, invitations ou disponibilité |
 | E-mails individuels | **Disponible avec Resend** | composition, aperçu HTML isolé, fils entrants/sortants, rattachement CRM, réponses, événements signé de livraison/ouverture/clic/rejet/plainte et statistiques à 30 jours | domaine d’envoi/réception et webhook Resend à configurer ; Google Workspace et Microsoft 365 restent à autoriser avant synchronisation de boîtes existantes |
 | Modèles, séquences, workflows | **Partiel** | modèles HTML assainis avec aperçu, e-mails automatiques/manuels, appels et tâches, pause jusqu’à réalisation dans Organisation, délais, jours ouvrés, fenêtre/fuseau d’envoi, statistiques par étape, inscriptions consenties avec pause/reprise/arrêt individuels, prochaine échéance et motif, arrêt sur réponse ou opposition, triggers lead/devis/e-mail/portail/intervention, branche conditionnelle vrai/alternatif, publication versionnée, simulation sans effet, notifications, changement de statut et journal idempotent | éditeur graphique, branches imbriquées multiples, modification d’un brouillon publié et test A/B restent à approfondir |
-| Formulaires HubSpot existants | **Partiel** | endpoint Diskoov de remplacement | remplacement du code embarqué/CTA et historique des soumissions à faire hors code |
+| Formulaires HubSpot existants | **Partiel** | endpoint public de remplacement | remplacement du code embarqué/CTA et historique des soumissions à faire hors code |
 | Marketing automation/campagnes | **Partiel** | dossiers de campagne avec objectif, audience, canaux, responsable, période, budget, UTM, plan de livrables, séquences rattachées et statistiques ; règles CRM, segments et arrêt immédiat sur retrait/réponse | diffusion de masse, validation éditoriale, A/B, attribution avancée et gouvernance de délivrabilité à compléter ou externaliser |
 | Scoring/segmentation/listes | **Disponible** | score borné et détaillé, règles métier configurables, file priorisée, segments actifs ou statiques multicritères et reconstruction sans doublon | valider les points et critères avec l’équipe commerciale sur les données réelles |
 | Conversations, publicité, social | **Partiel** | boîte e-mail CRM partagée et portail client couverts | live chat, publicité et publication sociale à externaliser ou exclure formellement |
@@ -42,17 +42,17 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 
 | Domaine Extrabat | État | Couverture actuelle | Limite / gate de sortie |
 |---|---|---|---|
-| Clients, contacts et sites | **Disponible** | référentiel client et sites d'installation structurés | import réel et contrôle des doublons nécessaires |
+| Clients, contacts et sites | **Disponible** | référentiel client, sites d'installation structurés et agence opérationnelle responsable | import réel et contrôle des doublons nécessaires |
 | Relevé technique piscine | **Disponible** | statut, mesures, forme, margelles, terrasse, accès, alimentation, obstacles, produit/modèle/couleur et validation | faire valider le formulaire par les techniciens et les fabricants |
 | Catalogue produits | **Partiel** | gammes et variantes, SKU, fabricant/fournisseur, options obligatoires ou multiples, suppléments vente/coût, nomenclatures anti-cycle, pertes, tarifs historisés et stock | règles tarifaires dimensionnelles et imports automatiques des catalogues fabricants à ajouter selon les fichiers obtenus |
 | Fournisseurs | **Disponible** | coordonnées, délais, conditions et rattachement produits/achats | évaluation fournisseur et EDI restent optionnels selon les échanges réels |
-| Devis | **Disponible** | versions, sections, lignes libres ou configurées, options contrôlées serveur, nomenclature/coût, remise, marge, TVA, statuts et PDF | formules dimensionnelles propres aux fabricants à paramétrer lorsque leurs barèmes sont disponibles |
+| Devis | **Disponible** | versions, sections, lignes libres ou configurées, options contrôlées serveur, nomenclature/coût, remises, marges par catégorie, TVA mixte, statuts et PDF ; calcul central pur et testé au centime | formules dimensionnelles propres aux fabricants à paramétrer lorsque leurs barèmes sont disponibles |
 | Signature de contrat | **Disponible** | contrat, avenant structuré et proposition de renouvellement ; lien public jetonné, expiration/usage unique, canvas, empreinte d’intégrité et piste d'audit | niveau de preuve à valider juridiquement ; ce n'est pas une signature qualifiée externe |
 | Commande client | **Disponible** | création directe ou depuis devis, lignes, totaux, chantier lié et état de facturation | amendements/annulations et workflow d'approbation limités |
 | Acompte et solde | **Disponible** | facture d'acompte idempotente et facture du reste à payer | contrôler les règles comptables réelles et cas d'avoirs complexes |
 | Achats fournisseur | **Disponible** | brouillon multi-lignes, rattachement chantier, approbation dédiée, PDF, envoi, accusé, référence et date confirmée, reliquats et piste d'audit | relance automatique fournisseur et EDI restent à décider selon les échanges réels |
 | Réception fournisseur | **Disponible** | réception partielle/complète, lignes stockées ou libres, quantités acceptées/rejetées, entrée en stock, anomalies, résolution par remplacement/avoir/acceptation, retours et avoirs fournisseur | litiges financiers complexes et intégration comptable des avoirs à recetter avec l'expert-comptable |
-| Dépôts et stock | **Disponible** | quantité, réservé, disponible, seuil, emplacement et mouvements transactionnels | inventaire tournant, valorisation avancée, lots/séries et transferts guidés à compléter |
+| Dépôts et stock | **Disponible** | dépôts rattachés aux agences, quantité, réservé, disponible, seuil, emplacement et mouvements transactionnels | inventaire tournant, valorisation avancée, lots/séries et transferts inter-agences corrélés à compléter |
 | Réservation chantier/commande | **Disponible** | réservation, libération, consommation et traçabilité | allocation automatique et substitutions produit absentes |
 | Bon de livraison | **Disponible** | lignes, reliquats, destinataire, signature horodatée et scellée SHA-256, statut et PDF métier | niveau de preuve de réception à faire valider juridiquement selon les usages réels |
 | Chantiers | **Partiel** | projet, site, modèles réutilisables, budget/type/durée par défaut, étapes datées, responsables, dépendances anti-cycle et blocage des prérequis, recette, documents et temps | marge réelle globale, plan de ressources et cas métier des modèles à recetter sur les dossiers réels |
@@ -77,7 +77,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 
 | Domaine | État | Couverture actuelle | Limite / dépendance |
 |---|---|---|---|
-| Factures | **Disponible** | standard, acompte, avoir, verrouillage après émission, échéance, PDF | recette légale/comptable sur les vrais cas Diskoov |
+| Factures | **Disponible** | standard, acompte, avoir, verrouillage après émission, échéance, PDF et calcul central pur avec TVA mixte et remises | recette légale/comptable sur les vrais cas de l’entreprise pilote |
 | Factur-X | **Disponible** | XML généré et embarqué dans le PDF | valider le profil et la conformité avec l'expert-comptable/PDP |
 | Facturation électronique | **Externe** | champs de préparation, routage et journal | aucune transmission à une plateforme agréée ; fournisseur à choisir et intégrer |
 | Règlements | **Disponible** | paiements partiels/complets, moyen et référence | pas d'initiation de paiement ni de lettrage bancaire automatique complet |
@@ -96,7 +96,8 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Domaine | État | Couverture actuelle | Limite / gate production |
 |---|---|---|---|
 | Multi-utilisateur | **Disponible** | memberships, invitations et rôles Owner/Admin/Sales/Operations/Technician/Service/Accounting/Viewer | recette de chaque rôle et revue des accès |
-| Permissions | **Partiel** | lecture/écriture par domaine et isolation `companyId` | pas d'autorisation fine par dossier/équipe ; audit de sécurité nécessaire |
+| Multi-agences | **Partiel** | magasins, secteurs de pose ou équipes SAV, agence principale, membres, sites, chantiers et dépôts rattachés | filtres de visibilité par agence et transferts de stock inter-agences à terminer après validation des règles d’accès |
+| Permissions | **Partiel** | lecture/écriture par domaine, isolation `companyId` et administration des agences | pas encore d'autorisation fine par agence ou dossier ; audit de sécurité nécessaire |
 | Authentification | **Partiel** | création de compte, mot de passe dérivé par scrypt avec sel unique, connexion production autonome, lien magique Resend optionnel et session JWT | pas encore de MFA, récupération autonome par jeton dédié ni interface de révocation de toutes les sessions |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
 | PostgreSQL | **Disponible** | schéma miroir, client dédié et vingt-trois migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CRM & opérations",
-    short_name: "CRM",
+    name: "Freelio - CRM pour piscinistes",
+    short_name: "Freelio",
     description: "Ventes, chantiers, stock, interventions et service client.",
     start_url: "/dashboard/terrain",
     scope: "/",

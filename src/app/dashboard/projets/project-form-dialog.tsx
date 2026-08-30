@@ -27,6 +27,7 @@ type Project = {
   status: string
   budgetCents: number
   clientId: string
+  agencyId?: string | null
   projectTemplateId?: string | null
   worksiteType?: string | null
   startDate?: Date | string | null
@@ -34,21 +35,24 @@ type Project = {
 }
 
 type ClientOption = { id: string; name: string }
+type AgencyOption = { id: string; name: string; code: string; isDefault: boolean }
 
-function emptyProjectForm() {
-  return { clientId: "", projectTemplateId: "", name: "", description: "", worksiteType: "", startDate: "", endDate: "", budget: "", status: "ACTIVE" }
+function emptyProjectForm(defaultAgencyId = "") {
+  return { clientId: "", agencyId: defaultAgencyId, projectTemplateId: "", name: "", description: "", worksiteType: "", startDate: "", endDate: "", budget: "", status: "ACTIVE" }
 }
 
 export function ProjectFormDialog({
   project,
   clients,
   templates,
+  agencies,
   open,
   onOpenChange,
 }: {
   project?: Project
   clients: ClientOption[]
   templates: ProjectTemplateOption[]
+  agencies: AgencyOption[]
   open: boolean
   onOpenChange: (o: boolean) => void
 }) {
@@ -56,6 +60,7 @@ export function ProjectFormDialog({
   const [pending, setPending] = React.useState(false)
   const [form, setForm] = React.useState({
     clientId: project?.clientId ?? "",
+    agencyId: project?.agencyId ?? agencies.find((agency) => agency.isDefault)?.id ?? "",
     projectTemplateId: project?.projectTemplateId ?? "",
     name: project?.name ?? "",
     description: project?.description ?? "",
@@ -70,6 +75,7 @@ export function ProjectFormDialog({
     if (open && project) {
       setForm({
         clientId: project.clientId,
+        agencyId: project.agencyId ?? agencies.find((agency) => agency.isDefault)?.id ?? "",
         projectTemplateId: project.projectTemplateId ?? "",
         name: project.name,
         description: project.description ?? "",
@@ -79,8 +85,8 @@ export function ProjectFormDialog({
         budget: (project.budgetCents / 100).toString(),
         status: project.status,
       })
-    } else if (open && !project) setForm(emptyProjectForm())
-  }, [open, project])
+    } else if (open && !project) setForm(emptyProjectForm(agencies.find((agency) => agency.isDefault)?.id))
+  }, [agencies, open, project])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -92,6 +98,7 @@ export function ProjectFormDialog({
     try {
       const payload = {
         clientId: form.clientId,
+        agencyId: form.agencyId,
         projectTemplateId: form.projectTemplateId,
         name: form.name,
         description: form.description,
@@ -137,6 +144,16 @@ export function ProjectFormDialog({
               </SelectContent>
             </Select>
           </div>
+          {agencies.length ? (
+            <div className="space-y-1.5">
+              <Label>Agence responsable</Label>
+              <Select value={form.agencyId} onValueChange={(v) => setForm({ ...form, agencyId: v ?? "" })}>
+                <SelectTrigger aria-label="Agence responsable du chantier"><SelectValue placeholder="Sélectionner une agence…" /></SelectTrigger>
+                <SelectContent>{agencies.map((agency) => <SelectItem key={agency.id} value={agency.id}>{agency.name}{agency.isDefault ? " · principale" : ""}</SelectItem>)}</SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Détermine l’équipe opérationnelle et les dépôts de référence du chantier.</p>
+            </div>
+          ) : null}
           {!project && templates.some((template) => template.active) ? (
             <div className="space-y-1.5">
               <Label htmlFor="project-template">Modèle de chantier</Label>

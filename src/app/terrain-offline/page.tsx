@@ -4,7 +4,7 @@ import type { FieldSnapshot } from "@/lib/field/offline"
 
 const emptySnapshot: FieldSnapshot = {
   companyId: "offline",
-  companyName: "CRM & opérations",
+  companyName: "Freelio",
   cachedAt: "1970-01-01T00:00:00.000Z",
   expiresAt: "1970-01-01T00:00:00.000Z",
   assignments: [],

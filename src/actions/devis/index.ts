@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
 import { calculateConfiguredProductPrice, resolveProductOptionSelection } from "@/lib/product-pricing"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 import {
   buildYearlyDocumentPrefix,
   nextDocumentNumber,
@@ -16,6 +17,25 @@ import {
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
+
+type QuoteFinancialLine = {
+  quantity: number
+  unitPriceCents: number
+  tvaRate: number
+  unitCostCents?: number | null
+  listUnitPriceCents?: number | null
+  discountRate?: number | null
+}
+
+function calculateQuoteTotals(lines: QuoteFinancialLine[]) {
+  return calculateCommercialDocument(lines.map((line) => ({
+    quantity: line.quantity,
+    unitPriceCents: line.listUnitPriceCents ?? line.unitPriceCents,
+    lineDiscountRate: line.discountRate ?? 0,
+    tvaRate: line.tvaRate,
+    unitCostCents: line.unitCostCents,
+  })))
+}
 
 export async function getQuotes(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
@@ -147,18 +167,6 @@ function buildContractContentFromQuote(quote: {
   ].join("")
 }
 
-function computeTotals(lines: Array<{ quantity: number; unitPriceCents: number; tvaRate: number }>) {
-  let totalHtCents = 0
-  let totalTvaCents = 0
-  for (const l of lines) {
-    const lineHt = Math.round(l.quantity * l.unitPriceCents)
-    const lineTva = Math.round((lineHt * l.tvaRate) / 100)
-    totalHtCents += lineHt
-    totalTvaCents += lineTva
-  }
-  return { totalHtCents, totalTvaCents, totalTtcCents: totalHtCents + totalTvaCents }
-}
-
 async function resolveCatalogQuoteLines(companyId: string, inputLines: ValidatedQuoteLine[]) {
   const productIds = [...new Set(inputLines.flatMap((line) => line.productId ? [line.productId] : []))]
   const products = productIds.length ? await prisma.product.findMany({
@@ -215,7 +223,7 @@ export async function createQuote(data: QuoteInput) {
     const resolvedLines = await resolveCatalogQuoteLines(companyId, validated.lines)
     const lines = company.isTvaApplicable ? resolvedLines : resolvedLines.map((line) => ({ ...line, tvaRate: 0 }))
 
-    const totals = computeTotals(lines)
+    const totals = calculateQuoteTotals(lines)
 
     const quote = await withDocumentNumberRetry(async () => {
       const number = await generateQuoteNumber(companyId, company.quotePrefix)
@@ -301,7 +309,7 @@ export async function updateQuote(id: string, data: QuoteInput) {
     const resolvedLines = await resolveCatalogQuoteLines(companyId, validated.lines)
     const lines = company.isTvaApplicable ? resolvedLines : resolvedLines.map((line) => ({ ...line, tvaRate: 0 }))
 
-    const totals = computeTotals(lines)
+    const totals = calculateQuoteTotals(lines)
     const latestVersion = existing.versions[0]
 
     // Replace the latest version's sections/lines
@@ -448,7 +456,7 @@ export async function convertQuoteToInvoice(quoteId: string) {
 
     const totals = company.isTvaApplicable
       ? { totalHtCents: latest.totalHtCents, totalTvaCents: latest.totalTvaCents, totalTtcCents: latest.totalTtcCents }
-      : computeTotals(allLines)
+      : calculateQuoteTotals(allLines)
 
     const invoice = await withDocumentNumberRetry(async () => {
       const number = await generateInvoiceNumber(companyId, company.invoicePrefix)

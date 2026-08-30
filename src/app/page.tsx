@@ -3,9 +3,9 @@ import type { Metadata } from "next"
 import { MarketingHome } from "@/components/marketing/marketing"
 
 export const metadata: Metadata = {
-  title: "Freelio - Tout votre business freelance, enfin relié",
+  title: "Freelio - CRM & ERP pour piscinistes",
   description:
-    "Clients, missions, documents, factures Factur-X et trésorerie avancent ensemble, du premier devis au dernier paiement.",
+    "Prospects, devis, chantiers, stocks, SAV, contrats d’entretien et facturation réunis dans un CRM conçu pour les piscinistes.",
 }
 
 export default function Home() {

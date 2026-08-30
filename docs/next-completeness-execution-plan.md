@@ -665,3 +665,18 @@ Quinzième sous-lot livré — avenants et accord de renouvellement :
 - suppression contrôlée, audit, sauvegarde/réversibilité et parcours navigateur des deux cycles.
 
 Prochaine extension Contrats : circuit d’approbation interne avant envoi, comparaison visuelle de versions et politiques de conservation configurables.
+
+Seizième sous-lot livré — moteur financier et multi-agences :
+
+- moteur pur unique pour les totaux HT, TVA et TTC des devis et factures ;
+- TVA mixte ligne par ligne, franchise de TVA et remises de ligne ou globales avec répartition exacte au centime ;
+- marges distinctes matériel, main-d’œuvre, service et autres lorsque les coûts sont fournis ;
+- suppression des anciens calculs dupliqués dans les actions et contrôles documentaires ;
+- séparation documentée entre entreprise légale, agence opérationnelle et dépôt physique ;
+- agence principale créée et données existantes réaffectées par migration ;
+- administration des agences, membres et dépôts avec contrôles multi-tenant ;
+- rattachement d’agence sur sites clients, chantiers et dépôts, avec repli serveur vers l’agence principale ;
+- export de réversibilité, permissions, audit, données de recette et parcours navigateur complétés ;
+- présentation publique repositionnée comme CRM/ERP pour piscinistes sans identité de l’entreprise pilote codée en dur.
+
+Prochaine extension multi-agences : transferts de stock corrélés, filtres de visibilité par agence et tableaux de bord comparatifs lorsque les règles de droits auront été validées avec les utilisateurs réels.

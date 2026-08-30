@@ -38,7 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email },
           select: { company: { select: { name: true } } },
         })
-        const appName = user?.company?.name || "CRM & opérations"
+        const appName = user?.company?.name || "Freelio"
         const emailHtml = await render(MagicLinkEmail({ url, host, appName, homeUrl: origin }))
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",

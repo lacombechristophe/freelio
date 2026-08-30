@@ -8,7 +8,7 @@ export type WorkspaceBrand = {
   brandColor?: string | null
 }
 
-const DEFAULT_BRAND: WorkspaceBrand = { name: "CRM & opérations", brandColor: "#1f4ed8" }
+const DEFAULT_BRAND: WorkspaceBrand = { name: "Freelio", brandColor: "#1f4ed8" }
 
 function safeColor(value?: string | null) {
   return value && /^#[0-9a-f]{6}$/i.test(value) ? value : DEFAULT_BRAND.brandColor!

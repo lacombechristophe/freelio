@@ -122,6 +122,7 @@ model Company {
 
   users                User[]                 @relation("ActiveCompany")
   memberships          Membership[]
+  agencies             Agency[]
   invitations          CompanyInvitation[]
   clients              Client[]
   services             Service[]
@@ -230,10 +231,52 @@ model Membership {
   performedServiceTicketDiagnostics ServiceTicketDiagnostic[] @relation("ServiceTicketDiagnosticPerformer")
   ownedSuccessClients Client[] @relation("ClientSuccessOwner")
   savedViews SavedView[]
+  agencyMemberships AgencyMembership[]
 
   @@unique([companyId, userId])
   @@index([userId, status])
   @@index([companyId, role, status])
+}
+
+model Agency {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  code      String
+  name      String
+  kind      String  @default("MIXED") // STORE, INSTALLATION, SERVICE, MIXED
+  address   String?
+  postalCode String?
+  city      String?
+  phone     String?
+  email     String?
+  active    Boolean @default(true)
+  isDefault Boolean @default(false)
+
+  memberships  AgencyMembership[]
+  warehouses   Warehouse[]
+  customerSites CustomerSite[]
+  projects     Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, code])
+  @@index([companyId, active, name])
+  @@index([companyId, isDefault])
+}
+
+model AgencyMembership {
+  agencyId     String
+  agency       Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  isPrimary    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  @@id([agencyId, membershipId])
+  @@index([membershipId, isPrimary])
 }
 
 model CompanyInvitation {
@@ -999,6 +1042,8 @@ model Project {
   client    Client        @relation(fields: [clientId], references: [id])
   siteId    String?
   site      CustomerSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  agencyId  String?
+  agency    Agency?       @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   projectTemplateId String?
   projectTemplate   ProjectTemplate? @relation(fields: [projectTemplateId], references: [id], onDelete: SetNull)
 
@@ -1036,6 +1081,7 @@ model Project {
   @@index([companyId])
   @@index([clientId])
   @@index([siteId])
+  @@index([companyId, agencyId, status])
   @@index([projectTemplateId])
 }
 
@@ -1347,6 +1393,8 @@ model CustomerSite {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   clientId  String
   client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  agencyId  String?
+  agency    Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
 
   label        String
   kind         String  @default("INSTALLATION")
@@ -1371,6 +1419,7 @@ model CustomerSite {
 
   @@index([companyId, clientId])
   @@index([companyId, postalCode])
+  @@index([companyId, agencyId])
 }
 
 model Supplier {
@@ -1535,6 +1584,8 @@ model Warehouse {
   id        String  @id @default(cuid())
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  agencyId  String?
+  agency    Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
 
   name    String
   code    String
@@ -1552,6 +1603,7 @@ model Warehouse {
 
   @@unique([companyId, code])
   @@index([companyId, active])
+  @@index([companyId, agencyId, active])
 }
 
 model InventoryItem {

@@ -1,12 +1,12 @@
 # CRM/ERP Freelio
 
-Application métier configurable destinée à réunir dans un même outil la relation client, la vente, les opérations, le stock, le SAV et la facturation. L’identité affichée provient du profil entreprise ; aucune marque cliente n’est codée en dur dans l’interface. Le dépôt contient aussi un centre de reprise contrôlée des données HubSpot et Extrabat.
+CRM/ERP vertical destiné aux piscinistes, conçu pour réunir dans un même outil la relation client, la vente, les chantiers, le stock, le parc installé, le SAV, l’entretien et la facturation. L’identité affichée provient du profil entreprise ; aucune marque cliente n’est codée en dur dans l’interface. Le dépôt contient aussi un centre de reprise contrôlée des données HubSpot et Extrabat.
 
-L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliables. La résiliation ne doit toutefois intervenir qu'après une reprise réelle des comptes Diskoov, une recette métier et la validation des dépendances externes listées dans la [matrice de couverture](docs/coverage-and-external-dependencies.md).
+L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliables. La résiliation ne doit toutefois intervenir qu'après une reprise réelle des comptes de l’entreprise pilote, une recette métier et la validation des dépendances externes listées dans la [matrice de couverture](docs/coverage-and-external-dependencies.md).
 
 ## Fonctions disponibles
 
-- capture des prospects depuis `diskoov.fr`, sources/UTM, anti-doublon et preuve de consentement ;
+- capture des prospects depuis le site public, sources/UTM, anti-doublon et preuve de consentement ;
 - modèles d’e-mail, séquences multi-étapes, règles CRM, journal d’envoi et désinscription automatique ;
 - clients, contacts, sites d'installation, activités et prochaines actions ;
 - pipeline commercial avec responsables, échéances, forecast pondéré et motifs de perte, devis versionnés, contrats, avenants structurés et signature publique par jeton ;
@@ -17,7 +17,7 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - équipements installés, tickets SAV, planning anti-conflit, capacité, tournées chronologiques, coûts horaires et terrain PWA hors ligne avec photos, consommation atomique du stock, frais et justificatifs, réserves, signature manuscrite, rapports PDF et preuves client ;
 - contrats d’entretien avec visites et factures récurrentes idempotentes, préavis, indexation et propositions de renouvellement signables ;
 - factures, règlements, avoirs, relances, récurrence, dépenses, import bancaire et Factur-X ;
-- équipe multi-utilisateur avec rôles et permissions par domaine ;
+- équipe multi-utilisateur avec rôles et permissions par domaine, agences opérationnelles et dépôts rattachés ;
 - centre de migration HubSpot/Extrabat : connexion, dépôt d'archives, analyse, simulation, import idempotent, rapprochement et rapport de vérification ;
 - stockage local en développement et Cloudflare R2 en production.
 

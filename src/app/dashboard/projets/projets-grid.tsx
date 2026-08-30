@@ -30,6 +30,8 @@ type Project = {
   startDate?: Date | string | null
   endDate?: Date | string | null
   clientId: string
+  agencyId?: string | null
+  agency?: { id: string; name: string; code: string } | null
   projectTemplateId?: string | null
   worksiteType?: string | null
   client: { id: string; name: string }
@@ -49,10 +51,12 @@ export function ProjetsGrid({
   projects,
   clients,
   templates,
+  agencies,
 }: {
   projects: Project[]
   clients: Array<{ id: string; name: string }>
   templates: ProjectTemplateOption[]
+  agencies: Array<{ id: string; name: string; code: string; isDefault: boolean }>
 }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
@@ -112,13 +116,14 @@ export function ProjetsGrid({
       </div>
 
       <ProjectTemplateDialog open={templatesOpen} onOpenChange={setTemplatesOpen} templates={templates} />
-      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} clients={clients} templates={templates} />
+      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} clients={clients} templates={templates} agencies={agencies} />
       {editTarget && (
         <ProjectFormDialog
           open={!!editTarget}
           onOpenChange={(o) => !o && setEditTarget(null)}
           clients={clients}
           templates={templates}
+          agencies={agencies}
           project={editTarget}
         />
       )}
@@ -146,7 +151,7 @@ export function ProjetsGrid({
                   <div className="flex items-start justify-between gap-2">
                     <Link href={`/dashboard/projets/${project.id}`} className="space-y-1 flex-1 min-w-0 hover:opacity-80">
                       <CardTitle className="text-base font-bold truncate">{project.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground truncate">{project.client.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{project.client.name}{project.agency ? ` · ${project.agency.name}` : ""}</p>
                     </Link>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge className={cn("text-xs uppercase font-bold border px-2 py-0.5", status.class)}>
