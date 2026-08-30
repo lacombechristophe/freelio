@@ -2,7 +2,7 @@
 
 Date : 30 août 2026
 Branche : `codex/diskoov-crm-replacement`
-Portée : code et bases de recette locales ; les comptes HubSpot/Extrabat et l’infrastructure de production ne sont pas inclus.
+Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
 ## Résultat synthétique
 
@@ -15,13 +15,15 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 39 fichiers, 153 tests réussis |
-| `npm run build` | build Next.js 16 de production réussi, 63 pages statiques analysées et routes dynamiques compilées |
+| `npm run test:unit` | 40 fichiers, 160 tests réussis |
+| `npm run build` | build Next.js 16 de production réussi, 64 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
-| Playwright, PostgreSQL isolé | 13 scénarios desktop réussis, 2 scénarios de surface mobile réussis et 11 mutations volontairement ignorées sur mobile après preuve desktop (26 exécutions) |
+| Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 30 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements et avenants |
+| PostgreSQL | 31 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants et multi-agences |
+| Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
+| Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |

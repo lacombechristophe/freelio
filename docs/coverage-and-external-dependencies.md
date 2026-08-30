@@ -1,7 +1,7 @@
 # Matrice de couverture et dépendances externes
 
-Date de l'audit du code : 25 août 2026
-Portée : état du dépôt, pas configuration réelle des comptes ni preuve de production.
+Date de l'audit du code : 30 août 2026
+Portée : état du dépôt et recette technique de la production ; la configuration réelle des comptes métier et des fournisseurs externes reste à valider.
 
 ## 1. Légende
 
@@ -100,7 +100,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Permissions | **Partiel** | lecture/écriture par domaine, isolation `companyId` et administration des agences | pas encore d'autorisation fine par agence ou dossier ; audit de sécurité nécessaire |
 | Authentification | **Partiel** | création de compte, mot de passe dérivé par scrypt avec sel unique, connexion production autonome, lien magique Resend optionnel et session JWT | pas encore de MFA, récupération autonome par jeton dédié ni interface de révocation de toutes les sessions |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
-| PostgreSQL | **Disponible** | schéma miroir, client dédié et vingt-trois migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
+| PostgreSQL | **Disponible** | schéma miroir, client dédié et 31 migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
 | Stockage objet | **Disponible** | R2 privé obligatoire en production, hash et accès authentifié | versioning/rétention/sauvegarde fournisseur à configurer |
 | Rate limiting | **Disponible** | Upstash distribué ou mémoire locale | Upstash requis en production multi-instance |
 | Files de travaux | **Partiel** | BullMQ pour les documents, processeur persistant des séquences e-mail et ordonnanceur entretien/factures dans le worker, avec routes de cron protégées | supervision, alertes, quotas et procédure de rejeu à configurer |
@@ -109,7 +109,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Réversibilité | **Disponible** | export versionné des tables société, fichiers locaux/R2 et manifeste d'intégrité, avec secrets/jetons exclus | la reprise du JSON est logique et contrôlée ; le PRA complet repose sur PostgreSQL/R2 natifs |
 | Sauvegarde/PRA | **Externe** | export applicatif utile à la portabilité | sauvegardes natives PostgreSQL/R2, PITR et tests de restauration à configurer |
 | Supervision | **Partiel** | logs structurés et routes publiques de vie/aptitude sans exposition de secrets | brancher moniteur, collecte d’erreurs, métriques et alertes humaines |
-| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 116 tests unitaires, build et Playwright sur base isolée ; déclenchement push, PR ou manuel | infrastructure externe et secrets de production restent à administrer |
+| CI/CD | **Partiel** | workflow GitHub Actions : génération Prisma, types, lint, 160 tests unitaires, build et Playwright sur base isolée ; déclenchement push, PR ou manuel | fournisseurs externes et secrets associés restent à administrer |
 | E2E | **Disponible** | parcours critiques Playwright desktop/mobile | exécution finale sur préproduction isolée nécessaire |
 | PWA/hors ligne | **Disponible pour le terrain** | manifeste, service worker et espace terrain hors ligne borné avec reprise rejouable des clôtures, photos, sorties de stock, frais, justificatifs, réserves et signatures | pas de fonctionnement hors ligne du CRM/ERP complet ni de fusion avancée de conflits |
 | Sécurité externe | **Externe** | CSP, contrôles de routes, chiffrement et rate limiting dans le code | revue de configuration, pentest et procédure incident avant données réelles |
