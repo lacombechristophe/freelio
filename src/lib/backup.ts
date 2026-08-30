@@ -131,6 +131,7 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   direct("Warehouse"),
   direct("InventoryItem"),
   direct("StockMovement"),
+  direct("StockTransfer"),
   direct("PurchaseOrder"),
   related("PurchaseOrderLine", { purchaseOrder: { companyId: "$companyId" } }),
   direct("PurchaseIssue"),
@@ -544,7 +545,7 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 const LEGACY_UNREPRESENTED_TABLES = [
   "Agency", "AgencyMembership", "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
-  "InventoryItem", "StockMovement", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
+  "InventoryItem", "StockMovement", "StockTransfer", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "ServiceTicketNote", "ServiceDiagnosticGuide", "ServiceTicketDiagnostic", "CustomerHealthRule", "CustomerHealthSnapshot", "KnowledgeArticle", "SatisfactionSurvey", "SatisfactionRequest", "SavedView", "FieldIntervention", "InterventionReservation",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",

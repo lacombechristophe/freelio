@@ -35,8 +35,8 @@ La numérotation légale reste au niveau `Company`. Si une agence devient une en
 ## 3. Évolution attendue
 
 - Les futurs filtres de visibilité par agence doivent s’ajouter aux permissions de domaine, jamais les remplacer.
-- Les transferts de stock inter-agences doivent produire deux mouvements corrélés et auditables, pas une simple modification de solde.
-- Les tableaux de bord peuvent agréger l’entreprise entière ou filtrer une agence, mais leurs définitions de KPI doivent rester identiques.
+- Les transferts de stock inter-agences produisent un `StockTransfer` et deux mouvements corrélés `OUTBOUND`/`INBOUND` dans une transaction sérialisable. Le moteur pur refuse le stock négatif et le déplacement d’unités réservées.
+- Les tableaux de bord agrègent l’entreprise entière ou filtrent une agence avec les mêmes définitions de KPI. Ce filtre est analytique et ne constitue jamais une autorisation d’accès.
 - Les imports HubSpot et Extrabat doivent résoudre les agences et dépôts par correspondance explicite, avec une file d’anomalies pour les rattachements ambigus.
 
 ## 4. Critères de vérification

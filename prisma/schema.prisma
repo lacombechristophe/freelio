@@ -157,6 +157,7 @@ model Company {
   warehouses           Warehouse[]
   inventoryItems       InventoryItem[]
   stockMovements       StockMovement[]
+  stockTransfers       StockTransfer[]
   purchaseOrders       PurchaseOrder[]
   purchaseIssues       PurchaseIssue[]
   supplierReturns      SupplierReturn[]
@@ -1477,6 +1478,7 @@ model Product {
 
   inventoryItems     InventoryItem[]
   stockMovements     StockMovement[]
+  stockTransfers     StockTransfer[]
   purchaseLines      PurchaseOrderLine[]
   equipments         Equipment[]
   customerOrderLines CustomerOrderLine[]
@@ -1592,11 +1594,13 @@ model Warehouse {
   address String?
   active  Boolean @default(true)
 
-  inventoryItems  InventoryItem[]
-  movements       StockMovement[]
-  goodsReceipts   GoodsReceipt[]
-  reservations    StockReservation[]
-  supplierReturns SupplierReturn[]
+  inventoryItems    InventoryItem[]
+  movements         StockMovement[]
+  outgoingTransfers StockTransfer[]    @relation("StockTransferSource")
+  incomingTransfers StockTransfer[]    @relation("StockTransferDestination")
+  goodsReceipts     GoodsReceipt[]
+  reservations      StockReservation[]
+  supplierReturns   SupplierReturn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1637,6 +1641,9 @@ model StockMovement {
   project             Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
   fieldInterventionId String?
   fieldIntervention   FieldIntervention? @relation(fields: [fieldInterventionId], references: [id], onDelete: SetNull)
+  stockTransferId     String?
+  stockTransfer       StockTransfer?     @relation(fields: [stockTransferId], references: [id], onDelete: SetNull)
+  transferLeg         String?
 
   type           String
   quantity       Int
@@ -1654,6 +1661,32 @@ model StockMovement {
   @@index([projectId])
   @@index([fieldInterventionId, happenedAt])
   @@index([reservationId])
+  @@index([stockTransferId, transferLeg])
+}
+
+model StockTransfer {
+  id              String          @id @default(cuid())
+  companyId       String
+  company         Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fromWarehouseId String
+  fromWarehouse   Warehouse       @relation("StockTransferSource", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String
+  toWarehouse     Warehouse       @relation("StockTransferDestination", fields: [toWarehouseId], references: [id])
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitCostCents   Int?
+  reference       String?
+  notes           String?
+  status          String          @default("COMPLETED")
+  happenedAt      DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+  movements       StockMovement[]
+
+  @@index([companyId, happenedAt])
+  @@index([fromWarehouseId, happenedAt])
+  @@index([toWarehouseId, happenedAt])
+  @@index([productId, happenedAt])
 }
 
 model PurchaseOrder {

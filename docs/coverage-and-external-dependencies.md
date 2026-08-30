@@ -1,6 +1,6 @@
 # Matrice de couverture et dépendances externes
 
-Date de l'audit du code : 30 août 2026
+Date de l'audit du code : 31 août 2026
 Portée : état du dépôt et recette technique de la production ; la configuration réelle des comptes métier et des fournisseurs externes reste à valider.
 
 ## 1. Légende
@@ -52,7 +52,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Acompte et solde | **Disponible** | facture d'acompte idempotente et facture du reste à payer | contrôler les règles comptables réelles et cas d'avoirs complexes |
 | Achats fournisseur | **Disponible** | brouillon multi-lignes, rattachement chantier, approbation dédiée, PDF, envoi, accusé, référence et date confirmée, reliquats et piste d'audit | relance automatique fournisseur et EDI restent à décider selon les échanges réels |
 | Réception fournisseur | **Disponible** | réception partielle/complète, lignes stockées ou libres, quantités acceptées/rejetées, entrée en stock, anomalies, résolution par remplacement/avoir/acceptation, retours et avoirs fournisseur | litiges financiers complexes et intégration comptable des avoirs à recetter avec l'expert-comptable |
-| Dépôts et stock | **Disponible** | dépôts rattachés aux agences, quantité, réservé, disponible, seuil, emplacement et mouvements transactionnels | inventaire tournant, valorisation avancée, lots/séries et transferts inter-agences corrélés à compléter |
+| Dépôts et stock | **Disponible** | dépôts rattachés aux agences, quantité, réservé, disponible, seuil, emplacement, mouvements transactionnels et transferts inter-dépôts corrélés par une sortie/entrée atomique | inventaire tournant, méthodes de valorisation comptable et lots/séries à compléter si requis |
 | Réservation chantier/commande | **Disponible** | réservation, libération, consommation et traçabilité | allocation automatique et substitutions produit absentes |
 | Bon de livraison | **Disponible** | lignes, reliquats, destinataire, signature horodatée et scellée SHA-256, statut et PDF métier | niveau de preuve de réception à faire valider juridiquement selon les usages réels |
 | Chantiers | **Partiel** | projet, site, modèles réutilisables, budget/type/durée par défaut, étapes datées, responsables, dépendances anti-cycle et blocage des prérequis, recette, documents et temps | marge réelle globale, plan de ressources et cas métier des modèles à recetter sur les dossiers réels |
@@ -96,11 +96,11 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Domaine | État | Couverture actuelle | Limite / gate production |
 |---|---|---|---|
 | Multi-utilisateur | **Disponible** | memberships, invitations et rôles Owner/Admin/Sales/Operations/Technician/Service/Accounting/Viewer | recette de chaque rôle et revue des accès |
-| Multi-agences | **Partiel** | magasins, secteurs de pose ou équipes SAV, agence principale, membres, sites, chantiers et dépôts rattachés | filtres de visibilité par agence et transferts de stock inter-agences à terminer après validation des règles d’accès |
+| Multi-agences | **Partiel** | magasins, secteurs de pose ou équipes SAV, agence principale, membres, sites, chantiers et dépôts rattachés, filtre opérationnel, comparaison des agences et transferts de stock inter-agences corrélés | les autorisations fines par agence restent distinctes du filtre d’analyse et exigent la validation des règles d’accès réelles |
 | Permissions | **Partiel** | lecture/écriture par domaine, isolation `companyId` et administration des agences | pas encore d'autorisation fine par agence ou dossier ; audit de sécurité nécessaire |
 | Authentification | **Partiel** | création de compte, mot de passe dérivé par scrypt avec sel unique, connexion production autonome, lien magique Resend optionnel et session JWT | pas encore de MFA, récupération autonome par jeton dédié ni interface de révocation de toutes les sessions |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
-| PostgreSQL | **Disponible** | schéma miroir, client dédié et 31 migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
+| PostgreSQL | **Disponible** | schéma miroir, client dédié et 32 migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
 | Stockage objet | **Disponible** | R2 privé obligatoire en production, hash et accès authentifié | versioning/rétention/sauvegarde fournisseur à configurer |
 | Rate limiting | **Disponible** | Upstash distribué ou mémoire locale | Upstash requis en production multi-instance |
 | Files de travaux | **Partiel** | BullMQ pour les documents, processeur persistant des séquences e-mail et ordonnanceur entretien/factures dans le worker, avec routes de cron protégées | supervision, alertes, quotas et procédure de rejeu à configurer |

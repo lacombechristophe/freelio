@@ -7,7 +7,7 @@ import { z } from "zod"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
-import { calculateStockBalance } from "@/lib/operations/stock"
+import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
 import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
@@ -195,6 +195,19 @@ const movementSchema = z.object({
   notes: optionalText,
 })
 
+const stockTransferSchema = z.object({
+  fromWarehouseId: id,
+  toWarehouseId: id,
+  productId: id,
+  quantity: z.coerce.number().int().min(1).max(1_000_000),
+  unitCostCents: z.coerce.number().int().min(0).max(2_000_000_000).optional().nullable(),
+  reference: z.string().trim().max(120).optional().transform((value) => value || null),
+  notes: optionalText,
+}).refine((value) => value.fromWarehouseId !== value.toWarehouseId, {
+  message: "Les dépôts de départ et d’arrivée doivent être différents",
+  path: ["toWarehouseId"],
+})
+
 const interventionMaterialSchema = z.object({
   interventionId: id,
   warehouseId: id,
@@ -351,16 +364,16 @@ async function findInterventionSlotConflict({
 
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role }) => {
-    const [agencies, clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes] = await Promise.all([
+    const [agencies, clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, stockTransfers] = await Promise.all([
       prisma.agency.findMany({ where: { companyId, active: true }, select: { id: true, code: true, name: true, isDefault: true }, orderBy: [{ isDefault: "desc" }, { name: "asc" }] }),
       prisma.client.findMany({ where: { companyId }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 500 }),
       prisma.customerSite.findMany({ where: { companyId }, include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
-      prisma.product.findMany({ where: { companyId, active: true }, include: { supplier: { select: { name: true } }, inventoryItems: { select: { quantity: true, reservedQuantity: true, reorderPoint: true } } }, orderBy: { label: "asc" }, take: 500 }),
+      prisma.product.findMany({ where: { companyId, active: true }, include: { supplier: { select: { name: true } }, inventoryItems: { select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } }, orderBy: { label: "asc" }, take: 500 }),
       prisma.warehouse.findMany({ where: { companyId, active: true }, include: { inventoryItems: { include: { product: { select: { label: true, sku: true } } } } }, orderBy: { name: "asc" } }),
-      prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true } }, approvedByMembership: { include: { user: { select: { name: true, email: true } } } }, lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } }, issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } }, supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true } } }, orderBy: { createdAt: "desc" } } }, orderBy: { createdAt: "desc" }, take: 100 }),
+      prisma.purchaseOrder.findMany({ where: { companyId }, include: { supplier: { select: { name: true } }, project: { select: { name: true, agencyId: true } }, approvedByMembership: { include: { user: { select: { name: true, email: true } } } }, lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } }, issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } }, supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true, agencyId: true } } }, orderBy: { createdAt: "desc" } } }, orderBy: { createdAt: "desc" }, take: 100 }),
       prisma.equipment.findMany({ where: { companyId }, include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } }, orderBy: { updatedAt: "desc" }, take: 200 }),
-      prisma.serviceTicket.findMany({ where: { companyId, status: { not: "MERGED" } }, include: { client: { select: { name: true } }, site: { select: { label: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
+      prisma.serviceTicket.findMany({ where: { companyId, status: { not: "MERGED" } }, include: { client: { select: { name: true } }, site: { select: { label: true, agencyId: true } }, equipment: { select: { label: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } }, orderBy: [{ priority: "desc" }, { updatedAt: "desc" }], take: 200 }),
       prisma.fieldIntervention.findMany({
         where: { companyId },
         include: {
@@ -375,15 +388,16 @@ export async function getOperationsDashboard() {
         orderBy: { scheduledStart: "asc" },
         take: 200,
       }),
-      prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, recurringInvoice: { select: { id: true, isActive: true } }, renewedFrom: { select: { id: true, number: true } }, renewalProposals: { select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 }, _count: { select: { equipments: true, renewedContracts: true } } }, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }], take: 200 }),
-      prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
-      prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
-      prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, invoices: { select: { id: true, type: true, status: true } }, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
-      prisma.goodsReceipt.findMany({ where: { companyId }, include: { purchaseOrder: { include: { supplier: { select: { name: true } } } }, warehouse: { select: { name: true } }, lines: { include: { product: { select: { sku: true, label: true } }, issues: true } } }, orderBy: { receivedAt: "desc" }, take: 100 }),
-      prisma.stockReservation.findMany({ where: { companyId, status: "ACTIVE" }, include: { warehouse: { select: { name: true } }, product: { select: { sku: true, label: true } }, project: { select: { name: true } }, customerOrder: { select: { number: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
-      prisma.deliveryNote.findMany({ where: { companyId }, include: { customerOrder: { include: { client: { select: { name: true } } } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+      prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true, agencyId: true } }, recurringInvoice: { select: { id: true, isActive: true } }, renewedFrom: { select: { id: true, number: true } }, renewalProposals: { select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 }, _count: { select: { equipments: true, renewedContracts: true } } }, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }], take: 200 }),
+      prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true, agencyId: true }, orderBy: { name: "asc" }, take: 300 }),
+      prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } }, agencyMemberships: { select: { agencyId: true, isPrimary: true } } }, orderBy: { createdAt: "asc" } }),
+      prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true, agencyId: true } }, lines: true, invoices: { select: { id: true, type: true, status: true } }, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
+      prisma.goodsReceipt.findMany({ where: { companyId }, include: { purchaseOrder: { include: { supplier: { select: { name: true } } } }, warehouse: { select: { name: true, agencyId: true } }, lines: { include: { product: { select: { sku: true, label: true } }, issues: true } } }, orderBy: { receivedAt: "desc" }, take: 100 }),
+      prisma.stockReservation.findMany({ where: { companyId, status: "ACTIVE" }, include: { warehouse: { select: { name: true, agencyId: true } }, product: { select: { sku: true, label: true } }, project: { select: { name: true, agencyId: true } }, customerOrder: { select: { number: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
+      prisma.deliveryNote.findMany({ where: { companyId }, include: { customerOrder: { include: { client: { select: { name: true } }, project: { select: { agencyId: true } } } }, lines: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+      prisma.stockTransfer.findMany({ where: { companyId }, include: { fromWarehouse: { select: { name: true, agencyId: true } }, toWarehouse: { select: { name: true, agencyId: true } }, product: { select: { sku: true, label: true } } }, orderBy: { happenedAt: "desc" }, take: 100 }),
     ])
-    return { agencies, clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, canApprovePurchases: hasPermission(role, "purchases.approve") }
+    return { agencies, clients, sites, suppliers, products, warehouses, purchaseOrders, equipments, tickets, interventions, contracts, projects, members, customerOrders, goodsReceipts, reservations, deliveryNotes, stockTransfers, canApprovePurchases: hasPermission(role, "purchases.approve") }
   }, "operations.read")
 }
 
@@ -1517,6 +1531,70 @@ export async function createStockMovement(input: unknown) {
     })
     revalidateOperations()
     return { success: true as const }
+  }, "operations.write")
+}
+
+export async function createStockTransfer(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = stockTransferSchema.parse(input)
+    const [fromWarehouse, toWarehouse, product] = await Promise.all([
+      prisma.warehouse.findFirst({ where: { id: data.fromWarehouseId, companyId, active: true }, select: { id: true, name: true } }),
+      prisma.warehouse.findFirst({ where: { id: data.toWarehouseId, companyId, active: true }, select: { id: true, name: true } }),
+      prisma.product.findFirst({ where: { id: data.productId, companyId, active: true, stockTracked: true }, select: { id: true, label: true, purchasePriceCents: true } }),
+    ])
+    if (!fromWarehouse || !toWarehouse || !product) throw new Error("Dépôt ou produit suivi en stock introuvable")
+
+    const transfer = await prisma.$transaction(async (tx) => {
+      const [sourceInventory, destinationInventory] = await Promise.all([
+        tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: fromWarehouse.id, productId: product.id } } }),
+        tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: toWarehouse.id, productId: product.id } } }),
+      ])
+      if (!sourceInventory) throw new Error("Aucun stock disponible dans le dépôt de départ")
+
+      const balances = calculateStockTransferBalances({
+        source: { quantity: sourceInventory.quantity, reservedQuantity: sourceInventory.reservedQuantity },
+        destination: { quantity: destinationInventory?.quantity ?? 0, reservedQuantity: destinationInventory?.reservedQuantity ?? 0 },
+        transferQuantity: data.quantity,
+      })
+      await tx.inventoryItem.update({ where: { id: sourceInventory.id }, data: balances.source })
+      await tx.inventoryItem.upsert({
+        where: { warehouseId_productId: { warehouseId: toWarehouse.id, productId: product.id } },
+        update: balances.destination,
+        create: { companyId, warehouseId: toWarehouse.id, productId: product.id, ...balances.destination },
+      })
+
+      const created = await tx.stockTransfer.create({
+        data: {
+          companyId,
+          fromWarehouseId: fromWarehouse.id,
+          toWarehouseId: toWarehouse.id,
+          productId: product.id,
+          quantity: data.quantity,
+          unitCostCents: data.unitCostCents ?? product.purchasePriceCents,
+          reference: data.reference,
+          notes: data.notes,
+        },
+        select: { id: true },
+      })
+      const movementReference = data.reference || `TRF-${created.id.slice(-8).toUpperCase()}`
+      await tx.stockMovement.createMany({
+        data: [
+          { companyId, warehouseId: fromWarehouse.id, productId: product.id, stockTransferId: created.id, transferLeg: "OUTBOUND", type: "OUT", quantity: -data.quantity, unitCostCents: data.unitCostCents ?? product.purchasePriceCents, reference: movementReference, notes: data.notes },
+          { companyId, warehouseId: toWarehouse.id, productId: product.id, stockTransferId: created.id, transferLeg: "INBOUND", type: "IN", quantity: data.quantity, unitCostCents: data.unitCostCents ?? product.purchasePriceCents, reference: movementReference, notes: data.notes },
+        ],
+      })
+      return created
+    }, { isolationLevel: "Serializable" })
+
+    await logAction({
+      userId,
+      action: "TRANSFER_STOCK",
+      resource: "STOCK_TRANSFER",
+      resourceId: transfer.id,
+      payload: { fromWarehouseId: fromWarehouse.id, toWarehouseId: toWarehouse.id, productId: product.id, quantity: data.quantity },
+    })
+    revalidateOperations()
+    return { success: true as const, id: transfer.id }
   }, "operations.write")
 }
 

@@ -50,6 +50,7 @@ const COMPANY_SCOPED_MODELS = new Set([
   "Warehouse",
   "InventoryItem",
   "StockMovement",
+  "StockTransfer",
   "PurchaseOrder",
   "PurchaseIssue",
   "SupplierReturn",

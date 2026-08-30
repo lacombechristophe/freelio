@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useTransition, type FormEvent, type ReactNode } from "react"
+import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { AlertTriangle, Boxes, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
+import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
@@ -18,6 +18,7 @@ import {
   createProduct,
   createServiceTicket,
   createStockMovement,
+  createStockTransfer,
   createSupplier,
   createWarehouse,
   consumeStockReservation,
@@ -44,7 +45,7 @@ import { MaintenanceRenewalPanel } from "./_components/maintenance-renewal-panel
 const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
 
 type OperationsData = Awaited<ReturnType<typeof import("@/actions/operations").getOperationsDashboard>>
-type CreateKind = "TICKET" | "INTERVENTION" | "MAINTENANCE" | "SITE" | "EQUIPMENT" | "PRODUCT" | "SUPPLIER" | "WAREHOUSE" | "STOCK" | "CUSTOMER_ORDER" | "RESERVATION" | "DELIVERY"
+type CreateKind = "TICKET" | "INTERVENTION" | "MAINTENANCE" | "SITE" | "EQUIPMENT" | "PRODUCT" | "SUPPLIER" | "WAREHOUSE" | "STOCK" | "TRANSFER" | "CUSTOMER_ORDER" | "RESERVATION" | "DELIVERY"
 
 const CREATE_LABELS: Record<CreateKind, string> = {
   TICKET: "Ticket SAV",
@@ -56,6 +57,7 @@ const CREATE_LABELS: Record<CreateKind, string> = {
   SUPPLIER: "Fournisseur",
   WAREHOUSE: "Dépôt",
   STOCK: "Mouvement de stock",
+  TRANSFER: "Transfert de stock",
   CUSTOMER_ORDER: "Commande client",
   RESERVATION: "Réservation de stock",
   DELIVERY: "Bon de livraison",
@@ -99,7 +101,33 @@ function formatDate(value: Date | string | null) {
   return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—"
 }
 
-export function OperationsCenter({ initialData }: { initialData: OperationsData }) {
+function filterOperationsByAgency(data: OperationsData, agencyId: string): OperationsData {
+  if (agencyId === "ALL") return data
+  const warehouseIds = new Set(data.warehouses.filter((warehouse) => warehouse.agencyId === agencyId).map((warehouse) => warehouse.id))
+  return {
+    ...data,
+    sites: data.sites.filter((site) => site.agencyId === agencyId),
+    products: data.products.map((product) => ({
+      ...product,
+      inventoryItems: product.inventoryItems.filter((item) => warehouseIds.has(item.warehouseId)),
+    })),
+    warehouses: data.warehouses.filter((warehouse) => warehouse.agencyId === agencyId),
+    purchaseOrders: data.purchaseOrders.filter((order) => order.project?.agencyId === agencyId),
+    equipments: data.equipments.filter((equipment) => equipment.site.agencyId === agencyId),
+    tickets: data.tickets.filter((ticket) => ticket.site?.agencyId === agencyId),
+    interventions: data.interventions.filter((intervention) => intervention.site.agencyId === agencyId),
+    contracts: data.contracts.filter((contract) => contract.site.agencyId === agencyId),
+    projects: data.projects.filter((project) => project.agencyId === agencyId),
+    members: data.members.filter((member) => member.agencyMemberships.some((membership) => membership.agencyId === agencyId)),
+    customerOrders: data.customerOrders.filter((order) => order.project?.agencyId === agencyId),
+    goodsReceipts: data.goodsReceipts.filter((receipt) => receipt.warehouse.agencyId === agencyId),
+    reservations: data.reservations.filter((reservation) => reservation.warehouse.agencyId === agencyId),
+    deliveryNotes: data.deliveryNotes.filter((note) => note.customerOrder.project?.agencyId === agencyId),
+    stockTransfers: data.stockTransfers.filter((transfer) => transfer.fromWarehouse.agencyId === agencyId || transfer.toWarehouse.agencyId === agencyId),
+  }
+}
+
+export function OperationsCenter({ initialData: sourceData }: { initialData: OperationsData }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -109,16 +137,20 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
   const [deliverySignId, setDeliverySignId] = useState<string | null>(null)
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
   const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
+  const [agencyId, setAgencyId] = useState("ALL")
+  const data = useMemo(() => filterOperationsByAgency(sourceData, agencyId), [sourceData, agencyId])
+  const initialData = data
 
-  const openTickets = initialData.tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length
-  const comingInterventions = initialData.interventions.filter((item) => new Date(item.scheduledStart) >= new Date() && !["COMPLETED", "CANCELED"].includes(item.status)).length
-  const lowStock = initialData.products.filter((product) => {
+  const openTickets = data.tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length
+  const comingInterventions = data.interventions.filter((item) => new Date(item.scheduledStart) >= new Date() && !["COMPLETED", "CANCELED"].includes(item.status)).length
+  const lowStock = data.products.filter((product) => {
+    if (agencyId !== "ALL" && product.inventoryItems.length === 0) return false
     const quantity = product.inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
     const reserved = product.inventoryItems.reduce((sum, item) => sum + item.reservedQuantity, 0)
     const reorder = product.inventoryItems.reduce((sum, item) => sum + item.reorderPoint, 0)
     return product.stockTracked && quantity - reserved <= reorder
   }).length
-  const activeOrders = initialData.purchaseOrders.filter((order) => !["RECEIVED", "CANCELED"].includes(order.status)).length
+  const activeOrders = data.purchaseOrders.filter((order) => !["RECEIVED", "CANCELED"].includes(order.status)).length
   const stats: Array<{ icon: LucideIcon; label: string; metric: number; detail: string }> = [
     { icon: Wrench, label: "SAV ouverts", metric: openTickets, detail: "À qualifier ou résoudre" },
     { icon: CalendarDays, label: "Interventions", metric: comingInterventions, detail: "Planifiées à venir" },
@@ -144,6 +176,7 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
         }
         else if (createKind === "MAINTENANCE") await createMaintenanceContract({ clientId: value(form, "clientId"), siteId: value(form, "siteId"), label: value(form, "label"), startDate: value(form, "startDate"), endDate: optional(form, "endDate"), frequency: value(form, "frequency") || "ANNUAL", nextVisitAt: optional(form, "nextVisitAt"), priceCents: cents(form, "price"), autoInvoice: form.get("autoInvoice") === "on", tvaRate: Number(value(form, "tvaRate") || "20"), invoiceDueDays: Number(value(form, "invoiceDueDays") || "30"), equipmentIds: optional(form, "equipmentId") ? [value(form, "equipmentId")] : [], notes: optional(form, "notes") })
         else if (createKind === "STOCK") await createStockMovement({ warehouseId: value(form, "warehouseId"), productId: value(form, "productId"), projectId: optional(form, "projectId"), type: value(form, "type"), quantity: Number(value(form, "quantity")), unitCostCents: cents(form, "unitCost"), reference: optional(form, "reference"), notes: optional(form, "notes") })
+        else if (createKind === "TRANSFER") await createStockTransfer({ fromWarehouseId: value(form, "fromWarehouseId"), toWarehouseId: value(form, "toWarehouseId"), productId: value(form, "productId"), quantity: Number(value(form, "quantity")), reference: optional(form, "reference"), notes: optional(form, "notes") })
         else if (createKind === "CUSTOMER_ORDER") await createCustomerOrder({ clientId: value(form, "clientId"), projectId: optional(form, "projectId"), expectedInstallationAt: isoDate(form, "expectedInstallationAt"), notes: optional(form, "notes"), productId: optional(form, "productId"), label: value(form, "label"), quantity: Number(value(form, "quantity")), unitPriceCents: cents(form, "unitPrice"), tvaRate: Number(value(form, "tvaRate") || "20"), depositCents: cents(form, "deposit") })
         else if (createKind === "RESERVATION") await reserveStock({ warehouseId: value(form, "warehouseId"), productId: value(form, "productId"), projectId: optional(form, "projectId"), customerOrderId: optional(form, "customerOrderId"), quantity: Number(value(form, "quantity")), notes: optional(form, "notes") })
         else if (createKind === "DELIVERY") await createDeliveryNote({ customerOrderId: value(form, "customerOrderId"), customerOrderLineId: value(form, "customerOrderLineId"), quantity: Number(value(form, "quantity")), recipientName: optional(form, "recipientName"), notes: optional(form, "notes") })
@@ -286,13 +319,30 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-semibold"><Building2 className="size-4 text-primary" />Périmètre opérationnel</p>
+            <p className="mt-1 text-xs text-muted-foreground">Le filtre adapte les indicateurs et les listes. Les autorisations restent gérées séparément dans les paramètres.</p>
+          </div>
+          <div className="w-full lg:w-72">
+            <Select value={agencyId} onValueChange={(next) => setAgencyId(next || "ALL")}>
+              <SelectTrigger aria-label="Filtrer par agence"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="ALL">Toutes les agences</SelectItem>{sourceData.agencies.map((agency) => <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ icon: Icon, label, metric, detail }) => <Card key={label}><CardContent className="flex items-center gap-4 p-5"><span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-4" /></span><div><p className="text-2xl font-semibold tabular-nums">{metric}</p><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{detail}</p></div></CardContent></Card>)}
       </div>
 
+      <AgencyComparison data={sourceData} selectedAgencyId={agencyId} />
+
       <Card>
         <CardHeader className="pb-4"><div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><CardTitle className="flex items-center gap-2 text-base"><Plus className="size-4 text-primary" />Créer une opération</CardTitle><CardDescription>Les rattachements sont contrôlés côté serveur avant chaque écriture.</CardDescription></div><div className="w-full lg:w-64"><Select value={createKind} onValueChange={(next) => setCreateKind(next as CreateKind)}><SelectTrigger aria-label="Type d’opération"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(CREATE_LABELS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent></Select></div></div></CardHeader>
-        <CardContent><form key={createKind} onSubmit={submit} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{renderForm(createKind, initialData)}<div className="flex items-end"><Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? <Loader2 className="animate-spin" /> : <Plus />}Enregistrer</Button></div></form></CardContent>
+        <CardContent><form key={createKind} onSubmit={submit} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{renderForm(createKind, sourceData)}<div className="flex items-end"><Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? <Loader2 className="animate-spin" /> : <Plus />}Enregistrer</Button></div></form></CardContent>
       </Card>
 
       <Tabs defaultValue={(["sav", "planning", "maintenance", "orders", "stock", "assets"].includes(searchParams.get("tab") || "") ? searchParams.get("tab") : "sav") ?? "sav"} className="space-y-4">
@@ -369,6 +419,10 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
               <section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Stock par produit</h2></div>{initialData.products.length ? <div className="divide-y">{initialData.products.map((product) => { const quantity = product.inventoryItems.reduce((sum, item) => sum + item.quantity, 0); const reserved = product.inventoryItems.reduce((sum, item) => sum + item.reservedQuantity, 0); return <div key={product.id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="text-sm font-medium">{product.label}</p><p className="font-mono text-[11px] text-muted-foreground">{product.sku}{product.supplier ? ` · ${product.supplier.name}` : ""}</p></div><div className="text-right"><p className="text-sm font-semibold tabular-nums">{quantity - reserved} disponible{quantity - reserved > 1 ? "s" : ""}</p><p className="text-xs text-muted-foreground">{reserved} réservé{reserved > 1 ? "s" : ""}</p></div></div>})}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Catalogue produit vide.</p>}</section>
               <section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Réceptions récentes</h2></div>{initialData.goodsReceipts.length ? <div className="divide-y">{initialData.goodsReceipts.map((receipt) => <div key={receipt.id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="font-mono text-xs font-semibold">{receipt.number}</p><p className="mt-1 text-xs text-muted-foreground">{receipt.purchaseOrder.supplier.name} · {receipt.warehouse.name} · {receipt.lines.reduce((sum, line) => sum + line.acceptedQuantity, 0)} acceptée{receipt.lines.some((line) => line.rejectedQuantity) ? ` · ${receipt.lines.reduce((sum, line) => sum + line.rejectedQuantity, 0)} rejetée` : ""}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(receipt.receivedAt)}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune réception.</p>}</section>
             </div>
+            <section className="overflow-hidden rounded-xl border bg-card">
+              <div className="flex flex-col gap-2 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold">Transferts récents</h2><p className="mt-1 text-xs text-muted-foreground">Chaque transfert regroupe une sortie et une entrée indissociables.</p></div><Badge variant="outline"><ArrowRightLeft />{initialData.stockTransfers.length}</Badge></div>
+              {initialData.stockTransfers.length ? <div className="divide-y">{initialData.stockTransfers.map((transfer) => <div key={transfer.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{transfer.product.label}</p><Badge variant="secondary">{transfer.quantity} unité{transfer.quantity > 1 ? "s" : ""}</Badge></div><p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"><span>{transfer.fromWarehouse.name}</span><ArrowRightLeft className="size-3.5" /><span>{transfer.toWarehouse.name}</span>{transfer.reference ? <span>· {transfer.reference}</span> : null}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(transfer.happenedAt)}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun transfert dans ce périmètre.</p>}
+            </section>
           </div>
         </TabsContent>
         <TabsContent value="assets"><div className="grid gap-6 xl:grid-cols-2"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Sites clients</h2></div>{initialData.sites.length ? <div className="divide-y">{initialData.sites.map((site) => <div key={site.id} className="flex items-center gap-3 px-5 py-3"><MapPin className="size-4 text-primary" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{site.client.name} · {site.label}</p><p className="truncate text-xs text-muted-foreground">{site.address1}{site.city ? `, ${site.postalCode || ""} ${site.city}` : ""}</p></div><span className="text-xs tabular-nums text-muted-foreground">{site._count.equipments} équip.</span></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun site.</p>}</section><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Parc installé</h2></div>{initialData.equipments.length ? <div className="divide-y">{initialData.equipments.map((equipment) => <Link key={equipment.id} href={`/dashboard/service/equipements/${equipment.id}`} className="block px-5 py-3 hover:bg-muted/35"><div className="flex items-center justify-between gap-3"><p className="text-sm font-medium hover:text-primary hover:underline">{equipment.label}</p><Badge variant="outline">{equipment.status}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{equipment.site.client.name} · {equipment.site.label}{equipment.serialNumber ? ` · S/N ${equipment.serialNumber}` : ""}</p></Link>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun équipement installé.</p>}</section></div></TabsContent>
@@ -378,6 +432,35 @@ export function OperationsCenter({ initialData }: { initialData: OperationsData 
       <Dialog open={Boolean(materialInterventionId)} onOpenChange={(open) => { if (!open) setMaterialInterventionId(null) }}><DialogContent><form onSubmit={submitInterventionMaterial} className="space-y-4"><DialogHeader><DialogTitle>Matériel utilisé en intervention</DialogTitle></DialogHeader><Field label="Dépôt" name="materialWarehouseId" required><NativeSelect name="materialWarehouseId" required>{initialData.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Produit" name="materialProductId" required><NativeSelect name="materialProductId" required>{initialData.products.filter((product) => product.stockTracked).map((product) => <option key={product.id} value={product.id}>{product.sku} · {product.label}</option>)}</NativeSelect></Field><Field label="Quantité consommée" name="materialQuantity" required><Input id="materialQuantity" name="materialQuantity" type="number" min="1" step="1" defaultValue="1" required /></Field><p className="text-xs leading-5 text-muted-foreground">La quantité est sortie du dépôt dans une transaction unique. Le coût d’achat du catalogue est figé sur le mouvement pour conserver l’historique.</p><DialogFooter><Button type="button" variant="outline" onClick={() => setMaterialInterventionId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PackageMinus />}Consommer</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={Boolean(deliverySignId)} onOpenChange={(open) => { if (!open) setDeliverySignId(null) }}><DialogContent><form onSubmit={submitDeliverySignature} className="space-y-4"><DialogHeader><DialogTitle>Signer le bon de livraison</DialogTitle></DialogHeader><Field label="Nom du réceptionnaire" name="deliverySignatureRecipientName" required><Input id="deliverySignatureRecipientName" name="recipientName" required /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le réceptionnaire confirme les quantités indiquées et la réception. Le bon sera horodaté et scellé par empreinte SHA-256.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => setDeliverySignId(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PenLine />}Signer et sceller</Button></DialogFooter></form></DialogContent></Dialog>
     </div>
+  )
+}
+
+function AgencyComparison({ data, selectedAgencyId }: { data: OperationsData; selectedAgencyId: string }) {
+  const rows = data.agencies.map((agency) => {
+    const warehouseIds = new Set(data.warehouses.filter((warehouse) => warehouse.agencyId === agency.id).map((warehouse) => warehouse.id))
+    const inventory = data.products.flatMap((product) => product.inventoryItems
+      .filter((item) => warehouseIds.has(item.warehouseId))
+      .map((item) => ({ ...item, purchasePriceCents: product.purchasePriceCents })))
+    const quantity = inventory.reduce((sum, item) => sum + item.quantity, 0)
+    const reserved = inventory.reduce((sum, item) => sum + item.reservedQuantity, 0)
+    return {
+      ...agency,
+      warehouses: warehouseIds.size,
+      sites: data.sites.filter((site) => site.agencyId === agency.id).length,
+      projects: data.projects.filter((project) => project.agencyId === agency.id).length,
+      members: data.members.filter((member) => member.agencyMemberships.some((membership) => membership.agencyId === agency.id)).length,
+      available: quantity - reserved,
+      stockValueCents: inventory.reduce((sum, item) => sum + item.quantity * item.purchasePriceCents, 0),
+    }
+  })
+  if (!rows.length) return null
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Comparaison des agences</h2><p className="mt-1 text-xs text-muted-foreground">Charge opérationnelle et stock physique, calculés à partir des rattachements actuels.</p></div>
+      <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
+        {rows.map((row) => <article key={row.id} className={`bg-card p-5 ${selectedAgencyId === row.id ? "ring-2 ring-inset ring-primary" : ""}`}><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-semibold">{row.name}</p>{row.isDefault ? <Badge variant="secondary">Principale</Badge> : null}</div><dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-muted-foreground">Sites / chantiers</dt><dd className="mt-1 font-semibold tabular-nums">{row.sites} / {row.projects}</dd></div><div><dt className="text-muted-foreground">Dépôts / équipe</dt><dd className="mt-1 font-semibold tabular-nums">{row.warehouses} / {row.members}</dd></div><div><dt className="text-muted-foreground">Disponible</dt><dd className="mt-1 font-semibold tabular-nums">{row.available} unités</dd></div><div><dt className="text-muted-foreground">Valeur achat</dt><dd className="mt-1 font-semibold tabular-nums">{formatMoney(row.stockValueCents)}</dd></div></dl></article>)}
+      </div>
+    </section>
   )
 }
 
@@ -529,6 +612,7 @@ function renderForm(kind: CreateKind, data: OperationsData) {
   if (kind === "INTERVENTION") return <><Field label="Site" name="siteId" required><NativeSelect name="siteId" required>{sites}</NativeSelect></Field><Field label="Ticket SAV" name="ticketId"><NativeSelect name="ticketId">{data.tickets.map((ticket) => <option key={ticket.id} value={ticket.id}>{ticket.number} · {ticket.title}</option>)}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Intervenant" name="assignedMembershipId"><NativeSelect name="assignedMembershipId">{members}</NativeSelect></Field><Field label="Objet" name="title" required><Input id="title" name="title" required /></Field><Field label="Début" name="scheduledStart" required><Input id="scheduledStart" name="scheduledStart" type="datetime-local" required /></Field><Field label="Fin prévue" name="scheduledEnd"><Input id="scheduledEnd" name="scheduledEnd" type="datetime-local" /></Field></>
   if (kind === "MAINTENANCE") return <><Field label="Client" name="clientId" required><NativeSelect name="clientId" required>{clients}</NativeSelect></Field><Field label="Site" name="siteId" required><NativeSelect name="siteId" required>{sites}</NativeSelect></Field><Field label="Libellé du contrat" name="label" required><Input id="label" name="label" required placeholder="Entretien annuel couverture" /></Field><Field label="Équipement couvert" name="equipmentId"><NativeSelect name="equipmentId">{data.equipments.map((equipment) => <option key={equipment.id} value={equipment.id}>{equipment.site.client.name} · {equipment.label}</option>)}</NativeSelect></Field><Field label="Début" name="startDate" required><Input id="startDate" name="startDate" type="date" required /></Field><Field label="Fin" name="endDate"><Input id="endDate" name="endDate" type="date" /></Field><Field label="Fréquence" name="frequency"><NativeSelect name="frequency"><option value="ANNUAL">Annuelle</option><option value="BIANNUAL">Semestrielle</option><option value="QUARTERLY">Trimestrielle</option><option value="MONTHLY">Mensuelle</option></NativeSelect></Field><Field label="Prochaine visite" name="nextVisitAt"><Input id="nextVisitAt" name="nextVisitAt" type="date" /></Field><Field label="Prix HT (€)" name="price"><Input id="price" name="price" inputMode="decimal" /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Échéance facture (jours)" name="invoiceDueDays"><Input id="invoiceDueDays" name="invoiceDueDays" type="number" min="0" max="365" defaultValue="30" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm sm:col-span-2"><input name="autoInvoice" type="checkbox" className="mt-0.5 size-4" /><span><strong className="block">Facturation automatique</strong><span className="mt-1 block text-xs text-muted-foreground">Crée un modèle récurrent aligné sur la fréquence du contrat.</span></span></label></>
   if (kind === "STOCK") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Produit" name="productId" required><NativeSelect name="productId" required>{products}</NativeSelect></Field><Field label="Mouvement" name="type" required><NativeSelect name="type" required><option value="IN">Entrée</option><option value="OUT">Sortie</option><option value="RESERVE">Réserver chantier</option><option value="RELEASE">Libérer réservation</option><option value="CONSUME">Consommer</option><option value="ADJUST">Ajustement signé</option></NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" required defaultValue="1" /></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" /></Field></>
+  if (kind === "TRANSFER") return <><Field label="Dépôt de départ" name="fromWarehouseId" required><NativeSelect name="fromWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Dépôt d’arrivée" name="toWarehouseId" required><NativeSelect name="toWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Produit suivi" name="productId" required><NativeSelect name="productId" required>{data.products.filter((product) => product.stockTracked).map((product) => <option key={product.id} value={product.id}>{product.sku} · {product.label}</option>)}</NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" step="1" defaultValue="1" required /></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" placeholder="Bon interne, véhicule…" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" placeholder="Motif ou consigne logistique" /></Field></>
   if (kind === "CUSTOMER_ORDER") return <><Field label="Client" name="clientId" required><NativeSelect name="clientId" required>{clients}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Produit" name="productId"><NativeSelect name="productId">{products}</NativeSelect></Field><Field label="Libellé" name="label" required><Input id="label" name="label" required /></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" required /></Field><Field label="Prix unitaire HT (€)" name="unitPrice" required><Input id="unitPrice" name="unitPrice" inputMode="decimal" required /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Acompte (€)" name="deposit"><Input id="deposit" name="deposit" inputMode="decimal" /></Field><Field label="Pose prévue" name="expectedInstallationAt"><Input id="expectedInstallationAt" name="expectedInstallationAt" type="date" /></Field></>
   if (kind === "RESERVATION") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Produit" name="productId" required><NativeSelect name="productId" required>{products}</NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required /></Field><Field label="Commande client" name="customerOrderId"><NativeSelect name="customerOrderId">{data.customerOrders.filter((order) => !["DELIVERED", "COMPLETED", "CANCELLED"].includes(order.status)).map((order) => <option key={order.id} value={order.id}>{order.number} · {order.client.name}</option>)}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field></>
   if (kind === "DELIVERY") return <><Field label="Commande client" name="customerOrderId" required><NativeSelect name="customerOrderId" required>{data.customerOrders.filter((order) => !["DELIVERED", "CANCELLED"].includes(order.status)).map((order) => <option key={order.id} value={order.id}>{order.number} · {order.client.name}</option>)}</NativeSelect></Field><Field label="Ligne livrée" name="customerOrderLineId" required><NativeSelect name="customerOrderLineId" required>{data.customerOrders.flatMap((order) => order.lines.filter((line) => line.deliveredQuantity < line.quantity).map((line) => <option key={line.id} value={line.id}>{order.number} · {line.label} · reste {line.quantity - line.deliveredQuantity}</option>))}</NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" required /></Field><Field label="Réceptionnaire" name="recipientName"><Input id="recipientName" name="recipientName" /></Field></>
