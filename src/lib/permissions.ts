@@ -118,6 +118,7 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   QuoteLine: "sales.write",
   ContractTemplate: "sales.write",
   Contract: "sales.write",
+  ContractAmendmentChange: "sales.write",
   ContractClause: "sales.write",
   ContractSignature: "sales.write",
   ContractSigningToken: "sales.write",

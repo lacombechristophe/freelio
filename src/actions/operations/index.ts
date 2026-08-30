@@ -372,7 +372,7 @@ export async function getOperationsDashboard() {
         orderBy: { scheduledStart: "asc" },
         take: 200,
       }),
-      prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, recurringInvoice: { select: { id: true, isActive: true } }, renewedFrom: { select: { id: true, number: true } }, _count: { select: { equipments: true, renewedContracts: true } } }, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }], take: 200 }),
+      prisma.maintenanceContract.findMany({ where: { companyId }, include: { client: { select: { name: true } }, site: { select: { label: true } }, recurringInvoice: { select: { id: true, isActive: true } }, renewedFrom: { select: { id: true, number: true } }, renewalProposals: { select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 }, _count: { select: { equipments: true, renewedContracts: true } } }, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }], take: 200 }),
       prisma.project.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, clientId: true, siteId: true }, orderBy: { name: "asc" }, take: 300 }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
       prisma.customerOrder.findMany({ where: { companyId }, include: { client: { select: { name: true } }, project: { select: { name: true } }, lines: true, invoices: { select: { id: true, type: true, status: true } }, _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } } }, orderBy: { createdAt: "desc" }, take: 150 }),
@@ -880,6 +880,7 @@ export async function renewMaintenanceContract(contractId: string) {
     if (!contract || !company) throw new Error("Contrat d’entretien introuvable")
     if (!contract.endDate) throw new Error("Renseignez une date de fin avant de renouveler ce contrat")
     if (contract.renewalStatus === "DECLINED") throw new Error("Le renouvellement a été refusé. Modifiez d’abord la décision.")
+    if (contract.renewalStatus !== "ACCEPTED" && !contract.autoRenew) throw new Error("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
     if (contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new Error("Ce terme a déjà été renouvelé")
     const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
     const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
