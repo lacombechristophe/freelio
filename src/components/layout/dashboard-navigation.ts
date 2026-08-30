@@ -124,6 +124,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Inbox, description: "Files, délais et affectations" },
       { name: "Diagnostics SAV", href: "/dashboard/service/diagnostics", icon: ClipboardCheck, description: "Playbooks, symptômes et garantie" },
       { name: "Portefeuille clients", href: "/dashboard/service/customer-success", icon: Gauge, description: "Santé, risques et renouvellements" },
+      { name: "Analyses Service", href: "/dashboard/service/analytics", icon: BarChart3, description: "SLA, charge, diagnostics et santé" },
       { name: "Macros SAV", href: "/dashboard/service/macros", icon: MessageSquareText, description: "Réponses validées et personnalisables" },
       { name: "Base de connaissances", href: "/dashboard/service/connaissance", icon: BookOpen, description: "Procédures internes et portail" },
       { name: "Satisfaction", href: "/dashboard/service/satisfaction", icon: MessageSquareHeart, description: "CSAT, NPS et verbatims" },
