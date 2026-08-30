@@ -183,6 +183,8 @@ Le portefeuille Customer Success calcule une santé client explicable à partir 
 
 Le recalcul de santé publie aussi un événement d’automatisation idempotent lorsqu’un score évolue. Une règle active peut filtrer le niveau atteint, un score maximal ou une baisse minimale, puis créer une tâche client ou notifier l’équipe. Les titres acceptent les variables client, score actuel, score précédent et niveau de santé ; une simulation sur un client vérifie les conditions sans produire d’effet.
 
+Les analyses Service distinguent les tickets créés, les clôtures de la période et le backlog actif, puis évaluent les SLA de première réponse et de résolution en incluant les objectifs échus sans action. La vue propose les flux hebdomadaires, les temps moyens ouvrés, la performance par responsable et priorité, la couverture des diagnostics, les guides utilisés, la satisfaction globale et la distribution de santé. La période, le responsable et la priorité sont filtrables par URL pour permettre le partage d’une lecture stable.
+
 Les listes commencent à utiliser des vues enregistrées persistantes : une vue conserve recherche, filtres, tri et colonnes sous une configuration validée côté serveur, reste isolée par entreprise et peut être réappliquée après rechargement. Le partage équipe est réservé aux administrateurs.
 
 Le centre Satisfaction gère des enquêtes CSAT, NPS ou CES. Chaque invitation peut être rattachée à un client, un contact et un ticket ; son lien contient un jeton aléatoire conservé uniquement sous forme hashée, expire automatiquement et n’accepte qu’une réponse. Les notes, taux de satisfaction et verbatims remontent dans le tableau Service.

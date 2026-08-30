@@ -59,7 +59,7 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
 | Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
-| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage, fusion réversible et diagnostics guidés | canaux temps réel et analyses avancées | P0/P1 |
+| Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage, fusion réversible, diagnostics guidés et analyses équipe/SLA | canaux temps réel et rapports programmés | P0/P1 |
 | Customer Success | portefeuille, score configurable, alertes explicables, historique, plans de succès, renouvellements et opportunités d’extension | règles temporelles avancées, cohortes et automatisations proactives | P1 |
 | Connaissance | articles, tags, visibilité, portail | éditeur riche, versions, approbation, pièces, recherche plein texte, suggestions et statistiques d’usage | P1 |
 | Catalogue métier | produits, options, nomenclature, prix | import/version fournisseur, règles dimensionnelles, compatibilités, documents, pièces détachées et alternatives | P0 |
@@ -610,4 +610,17 @@ Onzième sous-lot livré — automatisations proactives de santé :
 - exécution en échec isolé : le recalcul de santé reste disponible et l’échec est journalisé ;
 - couverture unitaire et navigateur de la chaîne score 100 → 95 → tâche.
 
-Prochaine extension Service : analyses de performance par équipe, cohorte, SLA, diagnostic et santé.
+Douzième sous-lot livré — analyses Service :
+
+- périodes bornées de 30, 90, 180 ou 365 jours ;
+- filtres partageables par responsable et priorité ;
+- cohortes distinctes pour créations, clôtures et backlog actif ;
+- SLA première réponse et résolution incluant les objectifs échus sans action ;
+- temps moyens calculés selon les heures, jours et fermetures de la politique Service ;
+- flux hebdomadaires créés/clos ;
+- performance par responsable et priorité ;
+- couverture diagnostic et guides les plus utilisés ;
+- satisfaction globale et distribution actuelle de santé clairement signalées comme non filtrées par agent ;
+- tests du moteur et parcours navigateur desktop/mobile.
+
+Prochaine extension Service : rapports programmés, exports analytiques et canaux temps réel lorsque les fournisseurs seront configurés.
