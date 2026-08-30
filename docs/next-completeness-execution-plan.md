@@ -68,7 +68,7 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 | Planning | interventions, charge, conflits, tournée chronologique | calendrier jour/semaine, glisser-déposer, verrouillage, compétences, absences, trajets et optimisation | P0 |
 | Bon de travaux | rapport, consommé, frais, signature | comparaison prévu/réel visuelle, ajout hors devis avec justification, validation responsable et écarts de marge | P0 |
 | Chantiers | modèles, jalons, dépendances, recette | Gantt, charge, budget engagé/réel, journal, risques, sous-traitants et marge finale | P0/P1 |
-| Contrats | signature et entretien périodique | renouvellement, révision tarifaire, préavis, alertes, avenants et signature de renouvellement | P0 |
+| Contrats | signature, entretien périodique, préavis, indexation, décision et renouvellement historisé | avenants et signature spécifique du renouvellement | P0/P1 |
 | Finance | devis, facture, avoir, paiement, récurrence | paiement en ligne, relances envoyées, échéancier, trésorerie prévisionnelle et e-facturation via PA/PDP | P0 externe/produit |
 | Comptabilité | journal applicatif, banque CSV | règles de rapprochement, flux bancaire, export cabinet validé, TVA et clôture de période | P1 externe/produit |
 | Reporting | tableaux fixes | constructeur de rapports, dashboards sauvegardés, objectifs, drill-down, partage et envoi planifié | P0/P1 |
@@ -637,3 +637,18 @@ Treizième sous-lot livré — export analytique Service :
 - validation navigateur du contenu ZIP authentifié.
 
 Prochaine extension Service : programmation et envoi de rapports lorsque le fournisseur e-mail sera opérationnel.
+
+Quatorzième sous-lot livré — renouvellement des contrats d’entretien :
+
+- préavis configurable et état visuel de la fenêtre de renouvellement ;
+- indexation positive ou négative avec arrondi au centime ;
+- décision non préparé, à préparer, proposé, accepté ou refusé ;
+- notes et autorisation de renouvellement automatique conservées ;
+- nouveau terme créé sans modifier l’historique du précédent ;
+- durée inclusive, équipements et paramètres opérationnels repris ;
+- facturation récurrente recréée au tarif indexé lorsqu’elle était active ;
+- lien explicite entre terme source et terme renouvelé ;
+- transaction sérialisable et garde contre la double reconduction ;
+- audit, tests unitaires et parcours navigateur du cycle complet.
+
+Prochaine extension Contrats : avenants structurés et signature électronique de la proposition de renouvellement.

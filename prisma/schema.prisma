@@ -2283,6 +2283,15 @@ model MaintenanceContract {
   tvaRate          Float                          @default(20)
   invoiceDueDays   Int                            @default(30)
   notes            String?
+  noticeDays       Int                            @default(60)
+  indexationRate   Float                          @default(0)
+  autoRenew        Boolean                        @default(false)
+  renewalStatus    String                         @default("NOT_DUE")
+  renewalNotes     String?
+  renewedAt        DateTime?
+  renewedFromId    String?
+  renewedFrom      MaintenanceContract?           @relation("MaintenanceContractRenewal", fields: [renewedFromId], references: [id], onDelete: SetNull)
+  renewedContracts MaintenanceContract[]          @relation("MaintenanceContractRenewal")
   equipments       MaintenanceContractEquipment[]
   interventions    FieldIntervention[]
   recurringInvoice RecurringInvoice?
@@ -2294,6 +2303,8 @@ model MaintenanceContract {
   @@index([companyId, status, nextVisitAt])
   @@index([clientId])
   @@index([siteId])
+  @@index([companyId, renewalStatus, endDate])
+  @@index([renewedFromId])
 }
 
 model MaintenanceContractEquipment {

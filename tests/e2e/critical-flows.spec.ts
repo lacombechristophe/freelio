@@ -1058,6 +1058,7 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await page.getByLabel("Libellé du contrat").fill("Entretien annuel couverture QA")
   await page.getByLabel("Équipement couvert").selectOption({ label: "Client QA Piscine · Couverture QA installée" })
   await page.getByLabel("Début").fill("2026-08-20")
+  await page.getByLabel("Fin").fill("2027-08-19")
   await page.getByLabel("Prochaine visite").fill("2026-08-20")
   await page.getByLabel("Prix HT (€)").fill("240")
   await page.getByText("Facturation automatique").click()
@@ -1083,6 +1084,19 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
     await maintenanceInvoiceRow.getByRole("link", { name: /FACT-2026-/ }).click()
     await expect(page.getByText(/Contrat d’entretien ENT-2026-/)).toBeVisible()
   }
+  await page.goto("/dashboard/operations?tab=maintenance")
+  const maintenanceTerm = page.locator("details").filter({ hasText: "Entretien annuel couverture QA" }).first()
+  await maintenanceTerm.locator("summary").click()
+  await maintenanceTerm.getByLabel("Préavis (jours)").fill("90")
+  await maintenanceTerm.getByLabel("Indexation (%)").fill("5")
+  await maintenanceTerm.getByLabel("Décision").selectOption("ACCEPTED")
+  await maintenanceTerm.getByLabel("Notes de renouvellement").fill("Accord QA pour reconduction avec indexation annuelle.")
+  await maintenanceTerm.getByRole("button", { name: "Enregistrer le renouvellement" }).click()
+  await expect(page.getByText("Paramètres de renouvellement enregistrés.")).toBeVisible()
+  await maintenanceTerm.getByRole("button", { name: "Créer le nouveau terme" }).click()
+  await expect(page.getByText("Contrat renouvelé et nouveau terme créé.")).toBeVisible()
+  await expect(page.getByText(/Suite de ENT-2026-/)).toBeVisible()
+  await expect(page.getByText("252,00 €").last()).toBeVisible()
 })
 
 test("scores prospects and exposes the communication center", async ({ page }, testInfo) => {
