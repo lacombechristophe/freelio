@@ -24,6 +24,14 @@ async function assertHealthy(page: Page, pathName: string, heading: string) {
   await expect(page.getByText("Console Error")).toHaveCount(0)
 }
 
+async function selectOperationType(page: Page, label: string) {
+  const trigger = page.getByRole("combobox", { name: "Type d’opération" })
+  await trigger.click()
+  await page.getByRole("option", { name: label, exact: true }).focus()
+  await page.keyboard.press("Enter")
+  await expect(trigger).toContainText(label)
+}
+
 test.beforeEach(async ({ page }) => {
   const consoleErrors: string[] = []
   page.on("console", (message) => {
@@ -231,6 +239,43 @@ test("agencies connect teams, warehouses and operational records", async ({ page
     await warehouseRow.getByRole("checkbox").click()
     await agencyCard.getByRole("button", { name: "Enregistrer" }).click()
     await expect(page.getByText("Affectations enregistrées.")).toBeVisible()
+
+    await assertHealthy(page, "/dashboard/operations?tab=stock", "Opérations")
+    await expect(page.getByText("Périmètre opérationnel")).toBeVisible()
+    await expect(page.getByText("Comparaison des agences")).toBeVisible()
+    const destinationWarehouse = `Dépôt transfert QA ${suffix}`
+    await selectOperationType(page, "Dépôt")
+    await page.getByLabel("Agence", { exact: true }).selectOption({ label: "Agence QA · principale" })
+    await page.getByLabel("Nom du dépôt").fill(destinationWarehouse)
+    await page.getByLabel("Code *", { exact: true }).fill(`TR${suffix}`)
+    await page.getByRole("button", { name: "Enregistrer", exact: true }).click()
+    await expect(page.getByText("Dépôt enregistré.")).toBeVisible()
+
+    await selectOperationType(page, "Transfert de stock")
+    await page.getByLabel("Dépôt de départ").selectOption({ label: "Dépôt QA" })
+    await page.getByLabel("Dépôt d’arrivée").selectOption({ label: destinationWarehouse })
+    await page.getByLabel("Produit suivi").selectOption({ label: "QA-COVER · Couverture de test" })
+    await page.getByLabel("Quantité *", { exact: true }).fill("1")
+    await page.getByLabel("Référence", { exact: true }).fill(`TRF-QA-${suffix}`)
+    await page.getByRole("button", { name: "Enregistrer", exact: true }).click()
+    await expect(page.getByText("Transfert de stock enregistré.")).toBeVisible()
+    const transferSection = page.locator("section").filter({ has: page.getByRole("heading", { name: "Transferts récents" }) })
+    await expect(transferSection).toContainText(`Dépôt QA`)
+    await expect(transferSection).toContainText(destinationWarehouse)
+    await expect(transferSection).toContainText(`TRF-QA-${suffix}`)
+
+    await selectOperationType(page, "Transfert de stock")
+    await page.getByLabel("Dépôt de départ").selectOption({ label: destinationWarehouse })
+    await page.getByLabel("Dépôt d’arrivée").selectOption({ label: "Dépôt QA" })
+    await page.getByLabel("Produit suivi").selectOption({ label: "QA-COVER · Couverture de test" })
+    await page.getByLabel("Quantité *", { exact: true }).fill("1")
+    await page.getByRole("button", { name: "Enregistrer", exact: true }).click()
+    await expect(page.getByText("Transfert de stock enregistré.")).toBeVisible()
+
+    await page.getByRole("combobox", { name: "Filtrer par agence" }).click()
+    await page.getByRole("option", { name: agencyName }).click()
+    await expect(page.getByText(agencyName).first()).toBeVisible()
+    await expect(page.getByText("Transferts récents")).toBeVisible()
   }
 
   await assertHealthy(page, "/dashboard/projets", "Projets")

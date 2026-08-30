@@ -1,6 +1,6 @@
 # Rapport de vérification du candidat CRM/ERP
 
-Date : 30 août 2026
+Date : 31 août 2026
 Branche : `codex/diskoov-crm-replacement`
 Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
@@ -15,13 +15,13 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 40 fichiers, 160 tests réussis |
+| `npm run test:unit` | 40 fichiers, 162 tests réussis |
 | `npm run build` | build Next.js 16 de production réussi, 64 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 31 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants et multi-agences |
+| PostgreSQL | 32 migrations versionnées et appliquées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences et transferts de stock corrélés |
 | Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
 | Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
@@ -54,6 +54,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - commande fournisseur multi-lignes, approbation séparée, PDF, envoi, accusé et date confirmée ;
 - dossiers fournisseur et commande avec ponctualité, catalogue, reliquats, cycle d'approbation, réceptions, anomalies et retours ;
 - réception partielle puis finale, ligne libre sans mouvement de stock, non-conformité, avoir, retour physique et avoir du retour ;
+- création d’une agence, rattachement d’un dépôt, transfert de stock aller/retour entre deux dépôts et filtre opérationnel par agence ;
 - création, signature scellée et lecture PDF d’un bon de livraison ;
 - espace terrain installable, rechargement hors ligne depuis un cache borné à 24 heures et file locale de synchronisation ;
 - clôture terrain atomique et rejouable avec photo, stock, frais et justificatif, réserve, signature manuscrite, coût réel, résolution et PDF ;
@@ -94,6 +95,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 - migration des modèles et dépendances de chantier avec conservation d’un projet et d’un jalon historiques.
+- transfert inter-dépôts atomique, quantité totale conservée, coût figé et impossibilité de déplacer du stock indisponible ou réservé.
 
 ## Gates externes avant résiliation
 

@@ -142,6 +142,7 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   Warehouse: "operations.write",
   InventoryItem: "operations.write",
   StockMovement: "operations.write",
+  StockTransfer: "operations.write",
   PurchaseOrder: "operations.write",
   PurchaseOrderLine: "operations.write",
   PurchaseIssue: "operations.write",

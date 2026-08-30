@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { calculateStockBalance } from "@/lib/operations/stock"
+import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
 
 describe("stock operations", () => {
   it("tracks available and reserved quantities", () => {
@@ -15,5 +15,31 @@ describe("stock operations", () => {
 
   it("supports signed inventory adjustments", () => {
     expect(calculateStockBalance({ quantity: 5, reservedQuantity: 0, type: "ADJUST", movementQuantity: -2 })).toEqual({ quantity: 3, reservedQuantity: 0 })
+  })
+
+  it("moves the same quantity between two warehouses without changing the total", () => {
+    const result = calculateStockTransferBalances({
+      source: { quantity: 12, reservedQuantity: 2 },
+      destination: { quantity: 3, reservedQuantity: 1 },
+      transferQuantity: 4,
+    })
+    expect(result).toEqual({
+      source: { quantity: 8, reservedQuantity: 2 },
+      destination: { quantity: 7, reservedQuantity: 1 },
+    })
+    expect(result.source.quantity + result.destination.quantity).toBe(15)
+  })
+
+  it("refuses transfers that would move reserved or unavailable stock", () => {
+    expect(() => calculateStockTransferBalances({
+      source: { quantity: 5, reservedQuantity: 4 },
+      destination: { quantity: 0, reservedQuantity: 0 },
+      transferQuantity: 2,
+    })).toThrow("Réservation incompatible")
+    expect(() => calculateStockTransferBalances({
+      source: { quantity: 5, reservedQuantity: 0 },
+      destination: { quantity: 0, reservedQuantity: 0 },
+      transferQuantity: 0,
+    })).toThrow("entier positif")
   })
 })

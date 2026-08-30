@@ -23,3 +23,26 @@ export function calculateStockBalance(input: {
   if (reservedQuantity < 0 || reservedQuantity > quantity) throw new Error("Réservation incompatible avec le stock disponible")
   return { quantity, reservedQuantity }
 }
+
+export function calculateStockTransferBalances(input: {
+  source: { quantity: number; reservedQuantity: number }
+  destination: { quantity: number; reservedQuantity: number }
+  transferQuantity: number
+}) {
+  if (!Number.isInteger(input.transferQuantity) || input.transferQuantity <= 0) {
+    throw new Error("La quantité transférée doit être un entier positif")
+  }
+
+  return {
+    source: calculateStockBalance({
+      ...input.source,
+      type: "OUT",
+      movementQuantity: input.transferQuantity,
+    }),
+    destination: calculateStockBalance({
+      ...input.destination,
+      type: "IN",
+      movementQuantity: input.transferQuantity,
+    }),
+  }
+}

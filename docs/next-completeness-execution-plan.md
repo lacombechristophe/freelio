@@ -679,4 +679,16 @@ Seizième sous-lot livré — moteur financier et multi-agences :
 - export de réversibilité, permissions, audit, données de recette et parcours navigateur complétés ;
 - présentation publique repositionnée comme CRM/ERP pour piscinistes sans identité de l’entreprise pilote codée en dur.
 
-Prochaine extension multi-agences : transferts de stock corrélés, filtres de visibilité par agence et tableaux de bord comparatifs lorsque les règles de droits auront été validées avec les utilisateurs réels.
+Prochaine extension multi-agences : autorisations fines par agence après validation des règles de délégation, de remplacement temporaire et de visibilité transverse avec les utilisateurs réels.
+
+Dix-septième sous-lot livré — exploitation multi-agences :
+
+- transfert de stock modélisé comme une opération métier unique et auditable ;
+- sortie du dépôt source et entrée du dépôt destinataire corrélées et créées atomiquement ;
+- transaction sérialisable, contrôles multi-tenant et refus du stock négatif ou déjà réservé ;
+- coût d’achat figé, référence interne, notes et historique des transferts récents ;
+- filtre opérationnel par agence sur SAV, planning, entretien, commandes, stock, sites et parc ;
+- filtre explicitement séparé des permissions afin de ne pas simuler une sécurité par interface ;
+- comparaison homogène des sites, chantiers, dépôts, équipes, disponibilité et valeur d’achat ;
+- export de réversibilité, permissions, audit et migration PostgreSQL complétés ;
+- tests unitaires des invariants et parcours navigateur agence → dépôt → transfert aller/retour → filtre.
