@@ -28,6 +28,7 @@ type Contract = {
   number: string
   title: string
   status: string
+  kind: string
   validUntil?: Date | string | null
   createdAt: Date | string
   client: { id: string; name: string }
@@ -145,9 +146,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <Link href={`/dashboard/contrats/${contract.id}`} className="font-medium text-sm hover:underline">
-                          {contract.title}
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2"><Link href={`/dashboard/contrats/${contract.id}`} className="font-medium text-sm hover:underline">{contract.title}</Link>{contract.kind !== "STANDARD" && <Badge variant="outline" className="text-[10px]">{contract.kind === "AMENDMENT" ? "Avenant" : "Renouvellement"}</Badge>}</div>
                         <Link href={`/dashboard/clients/${contract.client.id}`} className="text-xs text-muted-foreground uppercase hover:underline">
                           {contract.client.name}
                         </Link>
@@ -173,7 +172,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                           <DropdownMenuItem className="gap-2" onClick={() => router.push(`/dashboard/contrats/${contract.id}`)}>
                             <Eye className="h-4 w-4 text-muted-foreground" /> Voir
                           </DropdownMenuItem>
-                          {contract.status !== "SIGNED" && (
+                          {contract.status !== "SIGNED" && contract.kind === "STANDARD" && (
                             <DropdownMenuItem className="gap-2" onClick={() => router.push(`/dashboard/contrats/${contract.id}/edit`)}>
                               Éditer
                             </DropdownMenuItem>

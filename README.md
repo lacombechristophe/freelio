@@ -9,13 +9,13 @@ L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliable
 - capture des prospects depuis `diskoov.fr`, sources/UTM, anti-doublon et preuve de consentement ;
 - modèles d’e-mail, séquences multi-étapes, règles CRM, journal d’envoi et désinscription automatique ;
 - clients, contacts, sites d'installation, activités et prochaines actions ;
-- pipeline commercial avec responsables, échéances, forecast pondéré et motifs de perte, devis versionnés, contrats et signature publique par jeton ;
+- pipeline commercial avec responsables, échéances, forecast pondéré et motifs de perte, devis versionnés, contrats, avenants structurés et signature publique par jeton ;
 - conversion devis → commande client → facture d'acompte ou de solde ;
 - projets, modèles de chantier, étapes datées, dépendances, responsables, relevé technique, documents et réception ;
 - fournisseurs, gammes, variantes, options, nomenclatures, tarifs historisés, dépôts, achats multi-lignes approuvés, accusés, réceptions, anomalies, retours, mouvements et réservations de stock ;
 - configurateur de devis avec options obligatoires, coût de nomenclature, remises contrôlées et marge unitaire ;
 - équipements installés, tickets SAV, planning anti-conflit, capacité, tournées chronologiques, coûts horaires et terrain PWA hors ligne avec photos, consommation atomique du stock, frais et justificatifs, réserves, signature manuscrite, rapports PDF et preuves client ;
-- contrats d’entretien avec visites et factures récurrentes idempotentes ;
+- contrats d’entretien avec visites et factures récurrentes idempotentes, préavis, indexation et propositions de renouvellement signables ;
 - factures, règlements, avoirs, relances, récurrence, dépenses, import bancaire et Factur-X ;
 - équipe multi-utilisateur avec rôles et permissions par domaine ;
 - centre de migration HubSpot/Extrabat : connexion, dépôt d'archives, analyse, simulation, import idempotent, rapprochement et rapport de vérification ;
@@ -187,7 +187,9 @@ Les analyses Service distinguent les tickets créés, les clôtures de la pério
 
 L’export des analyses reprend exactement ces filtres dans une archive ZIP privée : six CSV séparés et un manifeste JSON décrivent le résumé, l’équipe, les priorités, la tendance, les diagnostics et la santé. Chaque fichier possède sa taille et son empreinte SHA-256 ; le contenu CSV neutralise les cellules pouvant être interprétées comme des formules et chaque téléchargement est inscrit au journal d’audit.
 
-Les contrats d’entretien gèrent désormais leur renouvellement comme une nouvelle période liée à l’ancienne : préavis, indexation, autorisation automatique, décision et notes restent explicites. Une reconduction conserve le terme précédent, calcule les nouvelles dates et le tarif indexé, reprend les équipements et recrée la facturation récurrente lorsqu’elle était active. Une transaction sérialisable empêche les doubles renouvellements concurrents.
+Les contrats d’entretien gèrent désormais leur renouvellement comme une nouvelle période liée à l’ancienne : préavis, indexation, autorisation automatique, décision et notes restent explicites. La proposition possède son propre PDF et son lien de signature ; l’accord signé autorise ensuite la création du nouveau terme. Une reconduction conserve le terme précédent, calcule les nouvelles dates et le tarif indexé, reprend les équipements et recrée la facturation récurrente lorsqu’elle était active. Une transaction sérialisable empêche les doubles propositions ou renouvellements concurrents.
+
+Un contrat signé peut recevoir un avenant sans être modifié : chaque changement conserve sa catégorie, sa valeur avant/après, son impact financier éventuel et sa date d’effet. L’avenant possède un numéro, un PDF, une signature et une empreinte d’intégrité distincts, tandis que la fiche du contrat source garde la chaîne complète des documents associés.
 
 Les listes commencent à utiliser des vues enregistrées persistantes : une vue conserve recherche, filtres, tri et colonnes sous une configuration validée côté serveur, reste isolée par entreprise et peut être réappliquée après rechargement. Le partage équipe est réservé aux administrateurs.
 

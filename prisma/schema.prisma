@@ -2292,6 +2292,7 @@ model MaintenanceContract {
   renewedFromId    String?
   renewedFrom      MaintenanceContract?           @relation("MaintenanceContractRenewal", fields: [renewedFromId], references: [id], onDelete: SetNull)
   renewedContracts MaintenanceContract[]          @relation("MaintenanceContractRenewal")
+  renewalProposals Contract[]
   equipments       MaintenanceContractEquipment[]
   interventions    FieldIntervention[]
   recurringInvoice RecurringInvoice?
@@ -2559,16 +2560,28 @@ model Contract {
   clientId  String
   client    Client  @relation(fields: [clientId], references: [id])
 
-  number  String // CONT-YYYY-NNN
+  number  String // CONT/AVN/REN-YYYY-NNN
   title   String
   status  String @default("DRAFT") // DRAFT, SENT, SIGNED, EXPIRED
+  kind    String @default("STANDARD") // STANDARD, AMENDMENT, MAINTENANCE_RENEWAL
   content String
 
   validFrom  DateTime?
   validUntil DateTime?
 
+  parentContractId String?
+  parentContract   Contract?  @relation("ContractAmendments", fields: [parentContractId], references: [id], onDelete: Restrict)
+  amendments       Contract[] @relation("ContractAmendments")
+
+  maintenanceContractId String?
+  maintenanceContract   MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: Restrict)
+
+  amendmentReason String?
+  effectiveAt     DateTime?
+
   signatures    ContractSignature[]
   signingTokens ContractSigningToken[]
+  changes       ContractAmendmentChange[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2576,6 +2589,26 @@ model Contract {
   @@unique([companyId, number])
   @@index([companyId])
   @@index([clientId])
+  @@index([companyId, kind, status])
+  @@index([parentContractId])
+  @@index([maintenanceContractId])
+}
+
+model ContractAmendmentChange {
+  id         String   @id @default(cuid())
+  contractId String
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  category             String
+  label                String
+  previousValue        String?
+  nextValue            String
+  financialImpactCents Int?
+  order                 Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([contractId, order])
 }
 
 model ContractClause {

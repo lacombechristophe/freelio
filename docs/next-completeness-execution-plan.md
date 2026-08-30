@@ -651,4 +651,17 @@ Quatorzième sous-lot livré — renouvellement des contrats d’entretien :
 - transaction sérialisable et garde contre la double reconduction ;
 - audit, tests unitaires et parcours navigateur du cycle complet.
 
-Prochaine extension Contrats : avenants structurés et signature électronique de la proposition de renouvellement.
+Quinzième sous-lot livré — avenants et accord de renouvellement :
+
+- avenant créé uniquement depuis un document signé et conservation immuable du contrat source ;
+- numéro distinct, motif, date d’effet et modifications avant/après structurées ;
+- impact financier optionnel par modification et génération d’un contenu contractuel sûr ;
+- PDF, lien public, signature électronique et empreinte d’intégrité propres à l’avenant ;
+- traçabilité bidirectionnelle entre contrat source et avenants associés ;
+- proposition de renouvellement d’entretien générée depuis le terme, le site, le préavis et le tarif indexé ;
+- proposition réutilisée de manière idempotente en cas de double action concurrente ;
+- passage du renouvellement à « accepté » uniquement après signature publique effective ;
+- création du nouveau terme réservée à un accord signé ou à une autorisation de reconduction automatique ;
+- suppression contrôlée, audit, sauvegarde/réversibilité et parcours navigateur des deux cycles.
+
+Prochaine extension Contrats : circuit d’approbation interne avant envoi, comparaison visuelle de versions et politiques de conservation configurables.

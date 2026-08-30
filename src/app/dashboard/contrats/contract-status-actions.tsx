@@ -16,7 +16,7 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Erreur."
 }
 
-export function ContractStatusActions({ contractId, status }: { contractId: string; status: string }) {
+export function ContractStatusActions({ contractId, status, kind = "STANDARD" }: { contractId: string; status: string; kind?: string }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [pending, setPending] = React.useState(false)
@@ -62,7 +62,7 @@ export function ContractStatusActions({ contractId, status }: { contractId: stri
             <Send className="h-4 w-4" /> {status === "SENT" ? "Régénérer le lien" : "Envoyer pour signature"}
           </DropdownMenuItem>
         )}
-        {status !== "SIGNED" && (
+        {status !== "SIGNED" && kind === "STANDARD" && (
           <DropdownMenuItem onClick={() => changeStatus("SIGNED")} className="gap-2 text-success">
             <CheckCircle2 className="h-4 w-4" /> Marquer comme signé
           </DropdownMenuItem>

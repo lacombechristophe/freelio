@@ -169,6 +169,7 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   related("RecurringInvoiceOccurrence", { recurring: { companyId: "$companyId" } }),
   direct("ContractTemplate"),
   direct("Contract"),
+  related("ContractAmendmentChange", { contract: { companyId: "$companyId" } }),
   related("ContractClause", { template: { companyId: "$companyId" } }),
   related("ContractSignature", { contract: { companyId: "$companyId" } }),
   direct("Expense"),
@@ -655,6 +656,7 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       await tx.organisationTask.deleteMany({ where: { companyId } })
       await tx.organisationGoal.deleteMany({ where: { companyId } })
       await tx.contractSignature.deleteMany({ where: { contract: { companyId } } })
+      await tx.contractAmendmentChange.deleteMany({ where: { contract: { companyId } } })
       await tx.contractClause.deleteMany({ where: { template: { companyId } } })
       await tx.contract.deleteMany({ where: { companyId } })
       await tx.contractTemplate.deleteMany({ where: { companyId } })
@@ -748,9 +750,11 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       if (contractTemplates.length) await tx.contractTemplate.createMany({ data: contractTemplates.map((row: any) => normalizeRecord(row, ["clauses", "company"])) })
       const clauses = nestedRows(contractTemplates, "clauses")
       if (clauses.length) await tx.contractClause.createMany({ data: clauses.map((row: any) => normalizeRecord(row, ["template"])) })
-      if (contracts.length) await tx.contract.createMany({ data: contracts.map((row: any) => normalizeRecord(row, ["signatures", "company", "client"])) })
+      if (contracts.length) await tx.contract.createMany({ data: contracts.map((row: any) => normalizeRecord(row, ["signatures", "changes", "amendments", "parentContract", "maintenanceContract", "company", "client"])) })
       const signatures = nestedRows(contracts, "signatures")
       if (signatures.length) await tx.contractSignature.createMany({ data: signatures.map((row: any) => normalizeRecord(row, ["contract"])) })
+      const amendmentChanges = nestedRows(contracts, "changes")
+      if (amendmentChanges.length) await tx.contractAmendmentChange.createMany({ data: amendmentChanges.map((row: any) => normalizeRecord(row, ["contract"])) })
 
       if (expenses.length) await tx.expense.createMany({ data: expenses.map((row: any) => normalizeRecord(row, ["files", "company", "client", "project", "bankTransaction"])) })
       const expenseFiles = nestedRows(expenses, "files")

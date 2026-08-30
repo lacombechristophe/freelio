@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { getContractById } from "@/actions/contrats"
 import { getClientsMinimal } from "@/actions/clients"
 import { ContractForm } from "../../contract-form"
@@ -11,6 +11,7 @@ export default async function EditContractPage({ params }: { params: Promise<{ i
     getClientsMinimal(),
   ])
   if (!contract) notFound()
+  if (contract.kind !== "STANDARD") redirect(`/dashboard/contrats/${contract.id}`)
   if (contract.status === "SIGNED") {
     return (
       <div className="p-8 text-sm text-muted-foreground">
