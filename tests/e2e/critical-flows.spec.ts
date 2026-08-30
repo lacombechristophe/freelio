@@ -26,10 +26,13 @@ async function assertHealthy(page: Page, pathName: string, heading: string) {
 
 async function selectOperationType(page: Page, label: string) {
   const trigger = page.getByRole("combobox", { name: "Type d’opération" })
+  const option = page.getByRole("option", { name: label, exact: true })
   await trigger.click()
-  await page.getByRole("option", { name: label, exact: true }).focus()
+  await option.focus()
   await page.keyboard.press("Enter")
   await expect(trigger).toContainText(label)
+  await page.keyboard.press("Escape")
+  await expect(option).toBeHidden()
 }
 
 test.beforeEach(async ({ page }) => {
