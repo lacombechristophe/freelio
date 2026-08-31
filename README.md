@@ -90,7 +90,7 @@ npm run build
 npm run test:e2e
 ```
 
-Les tests E2E nécessitent une base isolée préparée avec `node scripts/seed-e2e.mjs`. Ne jamais pointer Playwright vers la base de production.
+Les tests E2E nécessitent une base isolée préparée avec `npx tsx scripts/seed-e2e.mjs`. Ne jamais pointer Playwright vers la base de production. Le compte de recette utilise `E2E_USER_EMAIL` et `E2E_USER_PASSWORD` (valeurs locales sûres par défaut).
 
 Le workflow GitHub Actions [`.github/workflows/ci.yml`](.github/workflows/ci.yml) reproduit cette chaîne sur une base SQLite éphémère à chaque push et pull request.
 
@@ -227,6 +227,7 @@ La plateforme peut sonder `GET /api/health/live` pour la vie du processus et `GE
 
 - [Plan directeur de remplacement](tasks/diskoov-crm-replacement-master-plan.md)
 - [Plan technique de reprise](tasks/diskoov-data-transfer-plan.md)
+- [Plan d’achèvement des automatisations et du durcissement](docs/automation-completeness-hardening-plan.md)
 - [Runbook de production](docs/production-runbook.md)
 - [Runbook de migration et bascule](docs/migration-cutover-runbook.md)
 - [Matrice de couverture et dépendances externes](docs/coverage-and-external-dependencies.md)

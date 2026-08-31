@@ -7,6 +7,10 @@ import { nextSequenceExecution, type SequenceSchedule } from "@/lib/automations/
 
 type ProgressionSequence = SequenceSchedule & { steps: Array<{ id: string; position: number; delayHours: number }> }
 
+export function enrollableSequenceWhere(sequenceId: string, companyId: string) {
+  return { id: sequenceId, companyId, status: "ACTIVE" } as const
+}
+
 function progressionData(sequence: ProgressionSequence, currentStepId: string, at: Date) {
   const stepIndex = sequence.steps.findIndex((item) => item.id === currentStepId)
   const nextStep = sequence.steps[stepIndex + 1]
@@ -18,12 +22,12 @@ function progressionData(sequence: ProgressionSequence, currentStepId: string, a
 export async function enrollLeadInSequenceInternal(input: { companyId: string; sequenceId: string; leadId: string }) {
   const [sequence, lead] = await Promise.all([
     prisma.emailSequence.findFirst({
-      where: { id: input.sequenceId, companyId: input.companyId },
+      where: enrollableSequenceWhere(input.sequenceId, input.companyId),
       include: { steps: { orderBy: { position: "asc" }, take: 1 } },
     }),
     prisma.leadCapture.findFirst({ where: { id: input.leadId, companyId: input.companyId }, select: { id: true, contactId: true, email: true, marketingOptIn: true } }),
   ])
-  if (!sequence) throw new Error("Séquence introuvable")
+  if (!sequence) throw new Error("Séquence inactive ou introuvable")
   if (!sequence.steps[0]) throw new Error("Ajoutez au moins une étape à la séquence")
   if (!lead?.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
   if (!lead.marketingOptIn) throw new Error("Le prospect n'a pas de consentement marketing actif")
@@ -39,10 +43,18 @@ async function stopEnrollment(id: string, reason: string) {
   await prisma.emailSequenceEnrollment.update({ where: { id }, data: { status: "STOPPED", stopReason: reason, nextSendAt: null, completedAt: new Date() } })
 }
 
-export async function processDueSequenceEmails(limit = 50) {
+export function dueSequenceEnrollmentWhere(now: Date, companyId?: string) {
+  return {
+    status: "ACTIVE",
+    nextSendAt: { lte: now },
+    sequence: { status: "ACTIVE", ...(companyId ? { companyId } : {}) },
+  } as const
+}
+
+export async function processDueSequenceEmails(limit = 50, companyId?: string) {
   const now = new Date()
   const due = await prisma.emailSequenceEnrollment.findMany({
-    where: { status: "ACTIVE", nextSendAt: { lte: now }, sequence: { status: "ACTIVE" } },
+    where: dueSequenceEnrollmentWhere(now, companyId),
     include: {
       sequence: { include: { company: { select: { id: true, name: true, email: true } }, steps: { orderBy: { position: "asc" } } } },
       leadCapture: { select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, marketingOptIn: true, status: true } },

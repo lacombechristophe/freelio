@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { renderEmailVariables, sanitizeSequenceEmailHtml, sendSequenceEmail } from "@/lib/automations/email"
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema } from "@/lib/automations/engine"
+import { dueSequenceEnrollmentWhere, enrollableSequenceWhere } from "@/lib/automations/sequences"
+import { safeEmailPreviewDocument } from "@/app/dashboard/automatisations/automation-model"
 
 const context = {
   company: { id: "company-1", name: "Entreprise & Associés", email: "contact@example.fr" },
@@ -25,6 +27,10 @@ describe("email automation", () => {
     expect(sanitized).not.toContain("onclick")
     expect(sanitized).not.toContain("javascript:")
     expect(sanitized).toContain('href="https://example.fr"')
+
+    const preview = safeEmailPreviewDocument('<img src=javascript:alert(1) onerror=alert(2)><a href="javascript:alert(3)">piège</a>')
+    expect(preview).not.toContain("javascript:")
+    expect(preview).not.toContain("onerror")
   })
 
   it("validates bounded, typed workflow actions", () => {
@@ -64,6 +70,21 @@ describe("email automation", () => {
     }
     expect(evaluateWorkflowConfiguration(workflow, null, { healthStatus: "RISK", healthScore: 42, previousHealthScore: 65 })).toMatchObject({ matches: true, actions: [{ type: "CREATE_TASK" }] })
     expect(evaluateWorkflowConfiguration(workflow, null, { healthStatus: "WATCH", healthScore: 60, previousHealthScore: 65 })).toMatchObject({ matches: false, actions: [] })
+  })
+
+  it("scopes manual sequence processing to the authenticated company", () => {
+    const now = new Date("2026-08-31T08:00:00.000Z")
+    expect(dueSequenceEnrollmentWhere(now, "company-1")).toEqual({
+      status: "ACTIVE",
+      nextSendAt: { lte: now },
+      sequence: { status: "ACTIVE", companyId: "company-1" },
+    })
+    expect(dueSequenceEnrollmentWhere(now)).toEqual({
+      status: "ACTIVE",
+      nextSendAt: { lte: now },
+      sequence: { status: "ACTIVE" },
+    })
+    expect(enrollableSequenceWhere("sequence-1", "company-1")).toEqual({ id: "sequence-1", companyId: "company-1", status: "ACTIVE" })
   })
 
   it("uses the company profile and adds one-click unsubscribe headers", async () => {

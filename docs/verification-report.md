@@ -15,7 +15,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 43 fichiers, 171 tests réussis |
+| `npm run test:unit` | 43 fichiers, 172 tests réussis |
 | `npm run build` | build Next.js 16 de production réussi, 65 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
@@ -38,6 +38,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - facturation récurrente, banque, organisation, migration, clients, projets et relevé technique ;
 - devis et aperçu PDF ;
 - création de modèle e-mail, séquence, étape et règle événementielle ;
+- studio d’automatisation maître-détail avec vue d’ensemble, audience consentie, modèles, séquences, workflows et journal filtrable ;
 - cadence de séquence avec jours ouvrés, fenêtre horaire, fuseau et métriques de livraison/ouverture/clic/erreur par étape ;
 - étape d’appel issue d’une séquence, tâche créée dans Organisation, pause de l’inscription, réalisation puis reprise/fin automatique vérifiées en navigateur ;
 - workflow conditionnel créé en brouillon, publication versionnée et simulation sans effet avec trace du chemin et actions prévues ;
@@ -76,6 +77,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 ## Invariants vérifiés dans le code et les tests
 
 - isolement société et permissions par rôle/domaines ;
+- traitement manuel des échéances borné à la société authentifiée, rate limit dédié et séquence active obligatoire à l’inscription ;
 - jetons de signature/désinscription signés et secrets hors URL en clair ;
 - désinscription marketing idempotente et prioritaire sur les séquences ;
 - contenu e-mail assaini, variables échappées, `List-Unsubscribe` one-click et clé d’idempotence Resend ;

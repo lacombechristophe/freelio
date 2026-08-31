@@ -236,10 +236,10 @@
     letter-spacing: 0 !important;
   }
   .app-surface h1 {
-    font-family: var(--font-instrument-sans), var(--font-geist-sans), system-ui, sans-serif;
-    font-size: clamp(1.75rem, 2vw, 2.125rem);
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-size: 1.875rem;
     font-weight: 650;
-    line-height: 1.1;
+    line-height: 1.15;
     letter-spacing: 0;
   }
   .app-surface h2,

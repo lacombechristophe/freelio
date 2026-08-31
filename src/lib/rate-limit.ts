@@ -133,3 +133,12 @@ export const portalRateLimit = createRateLimit({
   windowMs: 60 * 60 * 1000,
   prefix: "@crm/portal",
 })
+
+// Manual catch-up can create tasks and send e-mails. Keep it company-scoped and
+// bounded independently from the persistent worker/cron processors.
+export const automationProcessRateLimit = createRateLimit({
+  limit: 10,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@crm/automation-process",
+})

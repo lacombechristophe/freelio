@@ -6,6 +6,7 @@ const productionServer = process.env.E2E_USE_PRODUCTION_SERVER === "true"
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   timeout: 150_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
@@ -13,6 +14,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL,
+    storageState: "test-results/.auth/user.json",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -31,6 +33,7 @@ export default defineConfig({
         ...process.env,
         FILE_STORAGE_DRIVER: "local",
         PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "e2e-company",
+        PUBLIC_PRIVACY_NOTICE_URL: process.env.PUBLIC_PRIVACY_NOTICE_URL ?? "https://example.test/conformite",
         LEAD_ALLOWED_ORIGINS: process.env.LEAD_ALLOWED_ORIGINS ?? "https://example.test",
       },
       reuseExistingServer: true,
