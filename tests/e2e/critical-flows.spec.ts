@@ -142,7 +142,17 @@ test("new local-first surfaces load and their primary controls respond", async (
   }
   await assertHealthy(page, "/dashboard/revenue", "Facturation et trésorerie")
   await assertHealthy(page, "/dashboard/data", "Qualité et gouvernance")
-  await assertHealthy(page, "/dashboard/reports", "Piloter l’entreprise")
+  await assertHealthy(page, "/dashboard/reports", "Rapports de direction")
+  await expect(page.getByText("Décisions à prendre")).toBeVisible()
+  await page.getByRole("link", { name: "30 j" }).click()
+  await page.waitForURL(/\/dashboard\/reports\?period=30/)
+  await expect(page.getByRole("link", { name: "30 j" })).toHaveAttribute("aria-current", "page")
+  if (testInfo.project.name === "desktop") {
+    const reportExport = await page.request.get("/api/reports/export?period=30")
+    expect(reportExport.ok()).toBeTruthy()
+    expect(reportExport.headers()["content-type"]).toContain("text/csv")
+    expect(await reportExport.text()).toContain("Domaine")
+  }
 
   await assertHealthy(page, "/dashboard/projets", "Projets")
   const projectLink = page.locator('a[href^="/dashboard/projets/"]')

@@ -1,8 +1,11 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+
+vi.mock("server-only", () => ({}))
 
 import { assertAgencyAccess, canAccessAgency, resolveAgencyAccess } from "@/lib/agency-access"
 import { requestContext } from "@/lib/context"
 import prisma from "@/lib/prisma"
+import { loadExecutiveReport } from "@/lib/reporting-data"
 
 describe("agency authorization", () => {
   it("grants owners and administrators the whole company perimeter", () => {
@@ -68,5 +71,17 @@ describe("agency-scoped Prisma boundary", () => {
       const created = await prisma.project.create({ data: { id: "agency-scope-auto-project", companyId, clientId, name: "Assigned automatically" } })
       expect(created.agencyId).toBe(firstAgencyId)
     })
+  })
+
+  it("applies the agency boundary inside executive reports and exports", async () => {
+    const report = await loadExecutiveReport({
+      userId: "agency-test-user",
+      companyId,
+      membershipId: "agency-test-membership",
+      role: "TECHNICIAN",
+      agencyIds: [firstAgencyId],
+    }, 30)
+
+    expect(report.operations.activeProjects).toBe(2)
   })
 })

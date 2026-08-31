@@ -692,3 +692,17 @@ Dix-septième sous-lot livré — exploitation multi-agences :
 - comparaison homogène des sites, chantiers, dépôts, équipes, disponibilité et valeur d’achat ;
 - export de réversibilité, permissions, audit et migration PostgreSQL complétés ;
 - tests unitaires des invariants et parcours navigateur agence → dépôt → transfert aller/retour → filtre.
+
+Dix-huitième sous-lot livré — rapports de direction :
+
+- lecture transverse sur 30, 90 ou 365 jours avec comparaison automatique à la période précédente ;
+- indicateurs d'acquisition, pipeline, encaissement, chantiers, achats, terrain, SAV et engagement e-mail ;
+- pipeline ouvert et pondéré à partir de la probabilité réelle de chaque opportunité ;
+- chronologie en six périodes et signaux d'action reliés directement aux dossiers concernés ;
+- accès par domaine respectant les permissions : aucune source non autorisée n'est interrogée ni exportée ;
+- requêtes bornées, avertissement explicite en cas de troncature et absence de cascade de chargement côté client ;
+- export CSV UTF-8 protégé contre les formules, sans cache, nommé depuis le profil de l'entreprise et journalisé ;
+- mise en page responsive, navigation clavier, vérification du débordement et absence d'erreur console ;
+- moteur pur couvert unitairement et parcours production desktop/mobile avec export authentifié.
+
+Prochaine extension Reporting : constructeur de rapports sauvegardés, objectifs par équipe, drill-down filtré et envoi planifié après validation des indicateurs réellement utilisés par le gérant.
