@@ -90,6 +90,49 @@ const COMPANY_SCOPED_MODELS = new Set([
   "StockReservation",
 ])
 
+const DIRECT_AGENCY_MODELS = new Set(["CustomerSite", "Project", "Warehouse"])
+
+function agencyWhere(model: string, agencyIds: string[]) {
+  const direct = { agencyId: { in: agencyIds } }
+  const scopes: Record<string, Record<string, unknown>> = {
+    Agency: { id: { in: agencyIds } },
+    CustomerSite: direct,
+    Project: direct,
+    Warehouse: direct,
+    InventoryItem: { warehouse: direct },
+    StockMovement: { warehouse: direct },
+    StockTransfer: { AND: [{ fromWarehouse: direct }, { toWarehouse: direct }] },
+    PurchaseOrder: { project: direct },
+    GoodsReceipt: { warehouse: direct },
+    StockReservation: { warehouse: direct },
+    SupplierReturn: { warehouse: direct },
+    Equipment: { site: direct },
+    ServiceTicket: { site: direct },
+    FieldIntervention: { site: direct },
+    MaintenanceContract: { site: direct },
+    CustomerOrder: { project: direct },
+    DeliveryNote: { customerOrder: { project: direct } },
+  }
+  return scopes[model]
+}
+
+function enforceAgencyWrite(model: string, operation: string, args: any, agencyIds: string[]) {
+  if (!DIRECT_AGENCY_MODELS.has(model)) return
+  const validate = (data: Record<string, unknown>) => {
+    if (!data.agencyId && agencyIds.length === 1) data.agencyId = agencyIds[0]
+    if (typeof data.agencyId !== "string" || !agencyIds.includes(data.agencyId)) throw new Error("AGENCY_ACCESS_DENIED")
+  }
+  if (operation === "create") validate(args.data)
+  if (operation === "createMany") (Array.isArray(args.data) ? args.data : [args.data]).forEach(validate)
+  if (operation === "update" || operation === "updateMany") {
+    if (args.data?.agencyId !== undefined) validate(args.data)
+  }
+  if (operation === "upsert") {
+    validate(args.create)
+    if (args.update?.agencyId !== undefined) validate(args.update)
+  }
+}
+
 function prismaClientConstructor() {
   const databaseUrl = process.env.DATABASE_URL ?? ""
   if (databaseUrl.startsWith("postgresql://") || databaseUrl.startsWith("postgres://")) {
@@ -144,6 +187,20 @@ const prismaClientSingleton = () => {
             } else if (operation === "delete" || operation === "deleteMany") {
               args.where = { ...args.where, companyId: context.companyId }
             }
+          }
+
+
+          if (context?.agencyIds !== null && context?.agencyIds !== undefined) {
+            const scope = agencyWhere(model, context.agencyIds)
+            if (scope && operation !== "create" && operation !== "createMany") {
+              const scopedArgs = args as { where?: Record<string, unknown> }
+              const existingAnd = scopedArgs.where?.AND
+              scopedArgs.where = {
+                ...scopedArgs.where,
+                AND: [...(Array.isArray(existingAnd) ? existingAnd : existingAnd ? [existingAnd] : []), scope],
+              }
+            }
+            enforceAgencyWrite(model, operation, args, context.agencyIds)
           }
           
           return query(args)

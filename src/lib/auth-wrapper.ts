@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { requestContext } from "@/lib/context"
 import { hasPermission, normalizeCompanyRole, type Permission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
+import { resolveAgencyAccess, type AgencyAccess } from "@/lib/agency-access"
 
 export class AuthorizationError extends Error {
   constructor(message = "Accès refusé") {
@@ -15,6 +16,7 @@ export type AuthContext = {
   companyId: string
   membershipId: string
   role: ReturnType<typeof normalizeCompanyRole>
+  agencyIds: AgencyAccess
 }
 
 export async function resolveAuthContext(): Promise<AuthContext | null> {
@@ -45,18 +47,25 @@ export async function resolveAuthContext(): Promise<AuthContext | null> {
 
   const membership = await prisma.membership.findUnique({
     where: { companyId_userId: { companyId, userId } },
-    select: { id: true, role: true, status: true },
+    select: {
+      id: true,
+      role: true,
+      status: true,
+      agencyMemberships: { where: { agency: { active: true } }, select: { agencyId: true } },
+    },
   })
 
   if (!membership || membership.status !== "ACTIVE") {
     throw new AuthorizationError("Vous n'avez plus accès à cet espace de travail")
   }
 
+  const role = normalizeCompanyRole(membership.role)
   return {
     userId,
     companyId,
     membershipId: membership.id,
-    role: normalizeCompanyRole(membership.role),
+    role,
+    agencyIds: resolveAgencyAccess(role, membership.agencyMemberships.map((assignment) => assignment.agencyId)),
   }
 }
 

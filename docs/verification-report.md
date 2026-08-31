@@ -15,7 +15,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 42 fichiers, 167 tests réussis |
+| `npm run test:unit` | 43 fichiers, 171 tests réussis |
 | `npm run build` | build Next.js 16 de production réussi, 65 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
@@ -96,6 +96,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 - migration des modèles et dépendances de chantier avec conservation d’un projet et d’un jalon historiques.
 - transfert inter-dépôts atomique, quantité totale conservée, coût figé et impossibilité de déplacer du stock indisponible ou réservé.
+- périmètre d’agence résolu à chaque action : Owner/Admin globaux, autres rôles limités aux affectations actives, avec lecture et mutation inter-agences refusées au niveau Prisma.
 
 ## Gates externes avant résiliation
 
