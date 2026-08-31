@@ -85,10 +85,14 @@ function LoginContent() {
             </div>
 
             {method === "password" && <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Mot de passe</Label><Link href="/auth/login?mode=magic" onClick={(event) => { event.preventDefault(); setMethod("magic") }} className="text-xs font-medium text-freelio-accent hover:underline">Mot de passe oublié ?</Link></div>
+              <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Mot de passe</Label><Link href="/auth/forgot-password" className="text-xs font-medium text-freelio-accent hover:underline">Mot de passe oublié ?</Link></div>
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-freelio-muted" />
                 <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Votre mot de passe" className="h-11 border-freelio-line-strong bg-white pl-10 text-freelio-ink placeholder:text-[#98a2b3] focus-visible:border-freelio-accent focus-visible:ring-freelio-accent/20" />
+              </div>
+              <div className="space-y-2 pt-1">
+                <Label htmlFor="mfaCode">Code de sécurité <span className="font-normal text-freelio-muted">(si activé)</span></Label>
+                <Input id="mfaCode" name="mfaCode" inputMode="text" autoComplete="one-time-code" placeholder="123 456 ou code de secours" className="h-11 border-freelio-line-strong bg-white" />
               </div>
             </div>}
 

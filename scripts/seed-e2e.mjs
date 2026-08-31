@@ -24,7 +24,7 @@ async function main() {
   })
   const user = await prisma.user.upsert({
     where: { email },
-    update: { companyId: company.id, emailVerified: new Date() },
+    update: { companyId: company.id, name: "Utilisateur QA", emailVerified: new Date() },
     create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id },
   })
   const membership = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })

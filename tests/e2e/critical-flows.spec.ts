@@ -417,8 +417,11 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await page.getByLabel("Première réponse haute").fill("3")
     await page.getByLabel("Résolution haute").fill("12")
     await page.getByLabel("Jours de fermeture").fill("2026-12-25")
-    await page.getByRole("button", { name: "Enregistrer la politique SAV" }).click()
-    await expect(page.getByText("Politique de service sauvegardée.")).toBeVisible()
+  await page.getByRole("button", { name: "Enregistrer la politique SAV" }).click()
+  await expect(page.getByText("Politique de service sauvegardée.")).toBeVisible()
+    await page.getByRole("tab", { name: "Sécurité" }).click()
+    await expect(page.getByText("Double authentification")).toBeVisible()
+    await expect(page.getByText("Sessions actives")).toBeVisible()
   }
   // The desktop field workflow can resolve this seeded ticket before the mobile project starts.
   // Use the complete queue so the record-chain test is deterministic across both projects.

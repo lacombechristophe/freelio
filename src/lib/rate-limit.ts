@@ -85,6 +85,13 @@ export const authRateLimit = createRateLimit({
   prefix: "@crm/auth",
 })
 
+export const passwordResetRateLimit = createRateLimit({
+  limit: 5,
+  window: "1 h",
+  windowMs: 60 * 60 * 1000,
+  prefix: "@crm/password-reset",
+})
+
 // Standard public API limit: 100 per minute
 export const apiRateLimit = createRateLimit({
   limit: 100,
