@@ -104,7 +104,7 @@ Le fichier [.env.example](.env.example) décrit toutes les variables lues par l'
 - `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL` et `AUTOMATION_CRON_SECRET` pour les liens publics et le processeur de séquences ;
 - `SCHEDULER_CRON_SECRET` facultatif pour séparer le déclenchement des visites/factures récurrentes ; sans lui, la route utilise `AUTOMATION_CRON_SECRET` ;
 - `FILE_STORAGE_DRIVER=r2` et `MIGRATION_STORAGE_DRIVER=r2` avec les quatre paramètres R2 ;
-- `RESEND_API_KEY` et `EMAIL_FROM` ;
+- `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` uniquement pour l’e-mail plateforme ou le lien magique ; les boîtes BYOK/OAuth n’en dépendent pas ;
 - Upstash Redis pour un rate limiting partagé entre instances ;
 - Redis/BullMQ si les tâches documentaires asynchrones sont activées.
 
