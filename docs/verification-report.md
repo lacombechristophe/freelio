@@ -15,10 +15,10 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 47 fichiers, 185 tests réussis |
+| `npm run test:unit` | 48 fichiers, 190 tests réussis |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 69 sorties statiques générées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
-| Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
+| Playwright, build production et base isolée | 23 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (36 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
 | PostgreSQL | 34 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
@@ -73,6 +73,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - export calendrier, export comptable, export de réversibilité et suppression effective de la landing `/v2` ;
 - surfaces principales et navigation pipeline sur viewport mobile.
 - portail client temporaire/révocable avec suivi de dossier, PDF, messages et demandes de rendez-vous ; révocation vérifiée depuis une nouvelle session anonyme.
+- rapports de direction sur 30/90/365 jours avec comparaison, permissions par domaine, pipeline pondéré réel, signaux actionnables et export CSV authentifié ; lisibilité, absence de débordement et console propre validées sur desktop/mobile.
 
 ## Invariants vérifiés dans le code et les tests
 

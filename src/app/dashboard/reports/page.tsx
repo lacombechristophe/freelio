@@ -1,10 +1,37 @@
-import { BarChart3, Calculator, ChartNoAxesCombined, CircleDollarSign, HardHat, Headphones, Target } from "lucide-react"
-import { getWorkspaceOverview } from "@/actions/workspaces"
-import { OnboardingRequired } from "@/components/shared/onboarding-required"
-import { WorkspaceHub, formatWorkspaceEuro } from "@/app/dashboard/_components/workspace-hub"
+import { Download } from "lucide-react"
 
-export default async function ReportsWorkspacePage() {
-  const data = await getWorkspaceOverview()
+import { getExecutiveReport } from "@/actions/reports"
+import { ReportingCenter } from "@/app/dashboard/reports/reporting-center"
+import { OnboardingRequired } from "@/components/shared/onboarding-required"
+import { PageHeader } from "@/components/shared/page-header"
+import { buttonVariants } from "@/components/ui/button"
+import { normalizeReportPeriod } from "@/lib/reporting"
+import { cn } from "@/lib/utils"
+
+type ReportsPageProps = {
+  searchParams: Promise<{ period?: string }>
+}
+
+export default async function ReportsWorkspacePage({ searchParams }: ReportsPageProps) {
+  const query = await searchParams
+  const period = normalizeReportPeriod(query.period)
+  const data = await getExecutiveReport(period)
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de consulter les rapports." />
-  return <WorkspaceHub eyebrow="Espace reporting" title="Piloter l’entreprise" description="Une lecture transversale des ventes, opérations, revenus et objectifs à approfondir avec les rapports personnalisés." metrics={[{ label: "Pipeline", value: formatWorkspaceEuro(data.openDealValueCents), detail: `${data.openDeals} affaire(s) ouverte(s)` }, { label: "À encaisser", value: formatWorkspaceEuro(data.outstandingCents), detail: `${data.overdueInvoices} facture(s) en retard`, alert: data.overdueInvoices > 0 }, { label: "Chantiers actifs", value: data.activeProjects, detail: `${data.scheduledInterventions} intervention(s)` }, { label: "Actions proches", value: data.dueTasks, detail: "À réaliser sous 48 heures", alert: data.dueTasks > 0 }]} sections={[{ title: "Performance commerciale", description: "Comprendre le volume, la valeur et la conversion.", links: [{ name: "Vue d'ensemble", href: "/dashboard", icon: BarChart3, description: "Indicateurs opérationnels du jour." }, { name: "Pipeline et forecast", href: "/dashboard/pipeline", icon: ChartNoAxesCombined, description: "Valeur pondérée, responsables et clôtures." }, { name: "Objectifs", href: "/dashboard/organisation", icon: Target, description: "Progression et priorités partagées." }] }, { title: "Rentabilité", description: "Relier le vendu, le réalisé et l'encaissé.", links: [{ name: "Revenus", href: "/dashboard/revenue", icon: CircleDollarSign, description: "Facturation, paiements et trésorerie." }, { name: "Chantiers", href: "/dashboard/projets", icon: HardHat, description: "Budgets, temps et coûts terrain." }, { name: "Exports comptables", href: "/dashboard/comptabilite", icon: Calculator, description: "Journaux et contrôle des écritures." }] }, { title: "Qualité de service", description: "Mesurer délais, charge, diagnostics et fidélisation.", links: [{ name: "Analyses Service", href: "/dashboard/service/analytics", icon: Headphones, description: "SLA, équipe, satisfaction et santé client." }] }]} />
+
+  return (
+    <div className="space-y-7">
+      <PageHeader
+        eyebrow="Pilotage"
+        title="Rapports de direction"
+        description="Ventes, encaissements, chantiers et service réunis dans une lecture courte, comparable et actionnable."
+        actions={
+          <a href={`/api/reports/export?period=${period}`} className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+            <Download className="size-4" />
+            Exporter en CSV
+          </a>
+        }
+      />
+      <ReportingCenter report={data} />
+    </div>
+  )
 }
