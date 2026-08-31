@@ -117,5 +117,6 @@ Les éléments suivants ne peuvent pas être prouvés par le dépôt seul :
 7. autorisation et recette des boîtes/calendriers Google ou Microsoft réellement utilisés, ou décision formelle de rester sur le canal Resend ;
 8. décision sur les écarts encore partiels : campagnes de masse, live chat/social/publicité, workflows à branches complexes et optimisation routière ;
 9. recette de dix dossiers réels, deux cycles opérationnels complets et procès-verbal de go/no-go du gérant.
+10. Vercel Pro ou ordonnanceur externe supervisé pour exécuter les automatisations toutes les cinq minutes et les échéances horaires ; Vercel Hobby ne permet que le cron quotidien de sauvegarde.
 
 La procédure et les responsables attendus sont décrits dans le [runbook de migration](migration-cutover-runbook.md), le [runbook de production](production-runbook.md) et la [matrice de couverture](coverage-and-external-dependencies.md).
