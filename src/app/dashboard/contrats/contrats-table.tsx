@@ -4,19 +4,11 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import {
-  Plus, Search, MoreHorizontal, FileSignature, Clock,
-  CheckCircle2, Calendar, Eye, Trash2,
-} from "lucide-react"
+import { Plus, Search, MoreHorizontal, FileSignature, Clock, CheckCircle2, Calendar, Eye, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table"
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { deleteContract, updateContractStatus } from "@/actions/contrats"
@@ -58,12 +50,10 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
 
   const filtered = contracts.filter(
     (c) =>
-      c.number.toLowerCase().includes(search.toLowerCase()) ||
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.client.name.toLowerCase().includes(search.toLowerCase())
+      c.number.toLowerCase().includes(search.toLowerCase()) || c.title.toLowerCase().includes(search.toLowerCase()) || c.client.name.toLowerCase().includes(search.toLowerCase()),
   )
 
-  async function handleStatus(id: string, next: "SENT" | "SIGNED") {
+  async function handleStatus(id: string, next: "SENT") {
     try {
       const result = await updateContractStatus(id, next)
       if (result?.signingPath) {
@@ -73,21 +63,28 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
         toast.success("Statut mis à jour.")
       }
       router.refresh()
-    } catch (err) { toast.error(getErrorMessage(err)) }
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
   }
 
   async function handleDelete(id: string, number: string) {
-    if (!(await confirmDialog({
-      title: `Supprimer ${number} ?`,
-      description: "Ce contrat sera définitivement supprimé.",
-      confirmLabel: "Supprimer",
-      destructive: true,
-    }))) return
+    if (
+      !(await confirmDialog({
+        title: `Supprimer ${number} ?`,
+        description: "Ce contrat sera définitivement supprimé.",
+        confirmLabel: "Supprimer",
+        destructive: true,
+      }))
+    )
+      return
     try {
       await deleteContract(id)
       toast.success("Contrat supprimé.")
       router.refresh()
-    } catch (err) { toast.error(getErrorMessage(err)) }
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
   }
 
   return (
@@ -95,12 +92,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un contrat…"
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <Input placeholder="Rechercher un contrat…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Link href="/dashboard/contrats/new" className="sm:ml-auto">
           <Button className="gap-2">
@@ -129,8 +121,23 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                     compact
                     icon={FileSignature}
                     title={contracts.length === 0 ? "Aucun contrat enregistré" : "Aucun contrat trouvé"}
-                    description={contracts.length === 0 ? "Formalisez une première mission et conservez signatures, conditions et échéances au même endroit." : "Modifiez votre recherche pour afficher d’autres contrats."}
-                    action={contracts.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/contrats/new")}><Plus />Créer un contrat</Button> : <Button size="sm" variant="outline" onClick={() => setSearch("")}>Effacer la recherche</Button>}
+                    description={
+                      contracts.length === 0
+                        ? "Formalisez une première mission et conservez signatures, conditions et échéances au même endroit."
+                        : "Modifiez votre recherche pour afficher d’autres contrats."
+                    }
+                    action={
+                      contracts.length === 0 ? (
+                        <Button size="sm" onClick={() => router.push("/dashboard/contrats/new")}>
+                          <Plus />
+                          Créer un contrat
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setSearch("")}>
+                          Effacer la recherche
+                        </Button>
+                      )
+                    }
                   />
                 </TableCell>
               </TableRow>
@@ -146,7 +153,16 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <div className="flex flex-wrap items-center gap-2"><Link href={`/dashboard/contrats/${contract.id}`} className="font-medium text-sm hover:underline">{contract.title}</Link>{contract.kind !== "STANDARD" && <Badge variant="outline" className="text-[10px]">{contract.kind === "AMENDMENT" ? "Avenant" : "Renouvellement"}</Badge>}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/dashboard/contrats/${contract.id}`} className="font-medium text-sm hover:underline">
+                            {contract.title}
+                          </Link>
+                          {contract.kind !== "STANDARD" && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {contract.kind === "AMENDMENT" ? "Avenant" : "Renouvellement"}
+                            </Badge>
+                          )}
+                        </div>
                         <Link href={`/dashboard/clients/${contract.client.id}`} className="text-xs text-muted-foreground uppercase hover:underline">
                           {contract.client.name}
                         </Link>
@@ -181,11 +197,6 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                           {(contract.status === "DRAFT" || contract.status === "SENT") && (
                             <DropdownMenuItem className="gap-2" onClick={() => handleStatus(contract.id, "SENT")}>
                               <FileSignature className="h-4 w-4 text-muted-foreground" /> {contract.status === "SENT" ? "Régénérer le lien" : "Envoyer pour signature"}
-                            </DropdownMenuItem>
-                          )}
-                          {contract.status !== "SIGNED" && (
-                            <DropdownMenuItem className="gap-2 text-success" onClick={() => handleStatus(contract.id, "SIGNED")}>
-                              <CheckCircle2 className="h-4 w-4" /> Marquer comme signé
                             </DropdownMenuItem>
                           )}
                           {contract.status !== "SIGNED" && (

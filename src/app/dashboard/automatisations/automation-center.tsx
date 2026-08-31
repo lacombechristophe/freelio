@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import { Activity, FileText, LayoutDashboard, Send, Workflow } from "lucide-react"
 import { toast } from "sonner"
 
@@ -26,7 +26,22 @@ const navigation: NavigationItem[] = [
 export function AutomationCenter({ initialData }: { initialData: AutomationData }) {
   const [tab, setTab] = useState("overview")
   const [isPending, startTransition] = useTransition()
+  const tabsScrollerRef = useRef<HTMLDivElement>(null)
   const counts: Record<string, number> = { sequences: initialData.sequences.length, workflows: initialData.workflows.length, templates: initialData.templates.length, history: initialData.deliveries.length }
+
+  function selectTab(nextTab: string) {
+    setTab(nextTab)
+    window.requestAnimationFrame(() => {
+      const trigger = Array.from(tabsScrollerRef.current?.querySelectorAll<HTMLElement>("[data-automation-tab]") ?? []).find(
+        (item) => item.dataset.automationTab === nextTab,
+      )
+      trigger?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "nearest",
+        inline: "center",
+      })
+    })
+  }
 
   function run(operation: () => Promise<unknown>, successMessage: string, options?: { form?: HTMLFormElement; after?: () => void }) {
     startTransition(async () => {
@@ -41,10 +56,10 @@ export function AutomationCenter({ initialData }: { initialData: AutomationData 
     })
   }
 
-  return <Tabs value={tab} onValueChange={setTab} className="space-y-5">
-    <div className="sticky top-0 z-20 -mx-1 overflow-x-auto bg-background/95 px-1 py-1 backdrop-blur-sm">
-      <TabsList variant="line" className="min-w-max">
-        {navigation.map((item) => <TabsTrigger key={item.value} value={item.value}><item.icon />{item.label}{counts[item.value] !== undefined && <Badge variant="secondary" className="ml-1 min-w-5 justify-center px-1.5">{counts[item.value]}</Badge>}</TabsTrigger>)}
+  return <Tabs value={tab} onValueChange={selectTab} className="space-y-5">
+    <div ref={tabsScrollerRef} className="sticky top-0 z-20 -mx-1 overflow-x-auto border-b border-border/70 bg-background/95 px-1 py-1 backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <TabsList aria-label="Sections des automatisations" variant="line" className="min-w-max">
+        {navigation.map((item) => <TabsTrigger key={item.value} value={item.value} data-automation-tab={item.value}><item.icon />{item.label}{counts[item.value] !== undefined && <Badge variant="secondary" className="ml-1 min-w-5 justify-center px-1.5 tabular-nums">{counts[item.value]}</Badge>}</TabsTrigger>)}
       </TabsList>
     </div>
 

@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { CalendarRange, FileText, Link2, Plus, Ruler, Settings2, ShieldCheck, Trash2, Upload, UserRound } from "lucide-react"
 import { toast } from "sonner"
+import { uploadResourceFile } from "@/lib/client-file-upload"
 import {
   createProjectAcceptanceItem,
   createProjectMilestone,
@@ -111,10 +112,7 @@ export function ProjectWorkspace({ projectId, milestones, acceptanceItems, files
     if (!file) return
     setPending(true)
     try {
-      const formData = new FormData(); formData.set("file", file)
-      const response = await fetch(`/api/files/project/${projectId}`, { method: "POST", body: formData })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result?.error ?? "Import impossible")
+      await uploadResourceFile("project", projectId, file)
       toast.success("Document projet enregistré."); router.refresh()
     } catch (error) { toast.error(error instanceof Error ? error.message : "Import impossible.") }
     finally { setPending(false) }

@@ -2,12 +2,7 @@ import { z } from "zod"
 
 const EntityIdSchema = z.string().min(1, "Identifiant requis")
 
-export const PaymentTermsSchema = z.enum([
-  "UPON_RECEIPT",
-  "15_DAYS",
-  "30_DAYS",
-  "45_DAYS",
-])
+export const PaymentTermsSchema = z.enum(["UPON_RECEIPT", "15_DAYS", "30_DAYS", "45_DAYS"])
 
 export const PdfTemplateSchema = z.enum(["MINIMAL", "PROFESSIONAL", "MODERN"])
 
@@ -18,10 +13,7 @@ const optionalSiret = z
   .trim()
   .default("")
   .transform((value) => value.replace(/\s+/g, ""))
-  .refine(
-    (value) => value === "" || /^\d{14}$/.test(value),
-    "Le SIRET doit contenir 14 chiffres"
-  )
+  .refine((value) => value === "" || /^\d{14}$/.test(value), "Le SIRET doit contenir 14 chiffres")
 
 const optionalNumericRate = z
   .string()
@@ -55,10 +47,7 @@ export const OnboardingFormSchema = z.object({
   paymentTerms: PaymentTermsSchema,
   latePenaltyRate: optionalNumericRate,
   pdfTemplate: PdfTemplateSchema,
-  firstClientName: optionalMinLength(
-    2,
-    "Le nom du premier client doit contenir au moins 2 caractères"
-  ),
+  firstClientName: optionalMinLength(2, "Le nom du premier client doit contenir au moins 2 caractères"),
 })
 
 export type OnboardingFormInput = z.input<typeof OnboardingFormSchema>
@@ -122,14 +111,19 @@ export const ProjectTemplateSchema = z.object({
   worksiteType: z.string().trim().max(80).optional().or(z.literal("")),
   defaultBudgetCents: z.coerce.number().int().nonnegative().default(0),
   defaultDurationDays: z.coerce.number().int().min(0).max(730).default(0),
-  steps: z.array(z.object({
-    title: z.string().trim().min(2).max(180),
-    description: z.string().trim().max(1000).optional().or(z.literal("")),
-    kind: z.enum(["MILESTONE", "TASK", "CHECKPOINT"]).default("MILESTONE"),
-    offsetDays: z.coerce.number().int().min(0).max(730),
-    durationDays: z.coerce.number().int().min(0).max(365).default(1),
-    dependsOnIndex: z.coerce.number().int().min(-1).max(39).default(-1),
-  })).min(1).max(40),
+  steps: z
+    .array(
+      z.object({
+        title: z.string().trim().min(2).max(180),
+        description: z.string().trim().max(1000).optional().or(z.literal("")),
+        kind: z.enum(["MILESTONE", "TASK", "CHECKPOINT"]).default("MILESTONE"),
+        offsetDays: z.coerce.number().int().min(0).max(730),
+        durationDays: z.coerce.number().int().min(0).max(365).default(1),
+        dependsOnIndex: z.coerce.number().int().min(-1).max(39).default(-1),
+      }),
+    )
+    .min(1)
+    .max(40),
 })
 
 export const ProjectAcceptanceSchema = z.object({
@@ -137,15 +131,9 @@ export const ProjectAcceptanceSchema = z.object({
   dueDate: z.string().optional().or(z.literal("")),
 })
 
-const profileText = (max: number) => z.preprocess(
-  (value) => value == null ? "" : value,
-  z.string().trim().max(max),
-)
+const profileText = (max: number) => z.preprocess((value) => (value == null ? "" : value), z.string().trim().max(max))
 
-const profileMeasurement = (max: number) => z.preprocess(
-  (value) => value == null ? "" : value,
-  z.union([z.literal(""), z.coerce.number().int().min(0).max(max)]),
-)
+const profileMeasurement = (max: number) => z.preprocess((value) => (value == null ? "" : value), z.union([z.literal(""), z.coerce.number().int().min(0).max(max)]))
 
 export const ProjectTechnicalProfileSchema = z.object({
   surveyStatus: z.preprocess((value) => value ?? "DRAFT", z.enum(["DRAFT", "SURVEYED", "VALIDATED"])),
@@ -177,7 +165,10 @@ export const QuoteLineSchema = z.object({
   unitPriceCents: z.number().int().nonnegative(),
   tvaRate: z.number().min(0).max(100),
   productId: z.union([EntityIdSchema, z.literal(""), z.null()]).optional(),
-  configuration: z.object({ optionValueIds: z.array(EntityIdSchema).max(100) }).optional().nullable(),
+  configuration: z
+    .object({ optionValueIds: z.array(EntityIdSchema).max(100) })
+    .optional()
+    .nullable(),
   unitCostCents: z.number().int().nonnegative().optional().nullable(),
   listUnitPriceCents: z.number().int().nonnegative().optional().nullable(),
   discountRate: z.number().min(0).max(100).optional().default(0),
@@ -203,19 +194,19 @@ export const InvoiceSchema = z.object({
 
 export const ContractSchema = z.object({
   clientId: EntityIdSchema,
-  title: z.string().min(3, "Titre requis"),
-  content: z.string().min(10, "Contenu requis"),
-  validFrom: z.string().optional().or(z.literal("")),
-  validUntil: z.string().optional().or(z.literal("")),
+  title: z.string().trim().min(3, "Titre requis").max(200),
+  content: z.string().trim().min(10, "Contenu requis").max(100_000),
+  validFrom: z.string().date().optional().or(z.literal("")),
+  validUntil: z.string().date().optional().or(z.literal("")),
 })
 
 export const ExpenseSchema = z.object({
-  label: z.string().min(2, "Libellé requis"),
-  provider: z.string().optional().or(z.literal("")),
+  label: z.string().trim().min(2, "Libellé requis").max(200),
+  provider: z.string().trim().max(200).optional().or(z.literal("")),
   amountCents: z.number().int().nonnegative(),
   tvaCents: z.number().int().nonnegative().optional(),
-  date: z.string().min(1, "Date requise"),
-  category: z.string().min(1, "Catégorie requise"),
+  date: z.string().date("Date invalide"),
+  category: z.string().trim().min(1, "Catégorie requise").max(100),
   clientId: EntityIdSchema.optional().or(z.literal("")),
   projectId: EntityIdSchema.optional().or(z.literal("")),
 })
@@ -223,8 +214,8 @@ export const ExpenseSchema = z.object({
 export const TimeEntrySchema = z.object({
   projectId: EntityIdSchema,
   durationSec: z.number().int().positive("Durée > 0 requise"),
-  description: z.string().optional().or(z.literal("")),
-  date: z.string().optional().or(z.literal("")),
+  description: z.string().trim().max(2_000).optional().or(z.literal("")),
+  date: z.string().date().optional().or(z.literal("")),
   isBillable: z.boolean().optional(),
 })
 
@@ -246,7 +237,7 @@ export const PaymentSchema = z.object({
   invoiceId: EntityIdSchema,
   amountCents: z.number().int().positive(),
   method: z.enum(["TRANSFER", "STRIPE", "CASH", "CHECK", "OTHER"]),
-  reference: z.string().optional().or(z.literal("")),
+  reference: z.string().trim().max(120).optional().or(z.literal("")),
 })
 
 export const CreditNoteSchema = z.object({
@@ -273,10 +264,15 @@ export const ReminderSchema = z.object({
 })
 
 export const BankImportSchema = z.object({
-  rows: z.array(z.object({
-    date: z.string().min(1),
-    label: z.string().trim().min(1).max(500),
-    amountCents: z.number().int(),
-    reference: z.string().trim().max(250).optional().or(z.literal("")),
-  })).min(1).max(5000),
+  rows: z
+    .array(
+      z.object({
+        date: z.string().min(1),
+        label: z.string().trim().min(1).max(500),
+        amountCents: z.number().int(),
+        reference: z.string().trim().max(250).optional().or(z.literal("")),
+      }),
+    )
+    .min(1)
+    .max(5000),
 })

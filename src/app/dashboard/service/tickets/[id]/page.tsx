@@ -202,7 +202,7 @@ export default async function ServiceTicketDetailPage({
                     <Link
                       key={intervention.id}
                       href={`/dashboard/service/interventions/${intervention.id}`}
-                      className="block rounded-lg border p-4 transition hover:border-primary/30 hover:bg-muted/25"
+                      className="block rounded-lg border p-4 transition-[background-color,border-color] hover:border-primary/30 hover:bg-muted/25"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-sm font-semibold">

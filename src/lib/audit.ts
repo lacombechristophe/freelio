@@ -60,6 +60,7 @@ type AuditAction =
   | "UPDATE_AGENCY"
   | "UPDATE_AGENCY_ASSIGNMENTS"
   | "UPDATE_CONTRACT"
+  | "UPDATE_CONTRACT_STATUS"
   | "SIGN_CONTRACT"
   | "DELETE_CONTRACT"
   | "CREATE_EXPENSE"
@@ -136,14 +137,7 @@ interface AuditParams {
   ipAddress?: string
 }
 
-export async function logAction({
-  userId,
-  action,
-  resource,
-  resourceId,
-  payload,
-  ipAddress
-}: AuditParams) {
+export async function logAction({ userId, action, resource, resourceId, payload, ipAddress }: AuditParams) {
   try {
     return await prisma.auditLog.create({
       data: {
@@ -153,7 +147,7 @@ export async function logAction({
         resourceId,
         payload: payload ? JSON.parse(JSON.stringify(payload)) : undefined,
         ipAddress: ipAddress as string | undefined,
-      }
+      },
     })
   } catch (error) {
     console.error("Failed to log audit action:", error)

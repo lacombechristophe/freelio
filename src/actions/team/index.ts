@@ -2,12 +2,7 @@
 
 import { auth } from "@/auth"
 import { withAuth } from "@/lib/auth-wrapper"
-import {
-  canAssignRole,
-  COMPANY_ROLES,
-  normalizeCompanyRole,
-  type CompanyRole,
-} from "@/lib/permissions"
+import { canAssignRole, COMPANY_ROLES, normalizeCompanyRole, type CompanyRole } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 import { serviceRoutingTags } from "@/lib/operations/service-routing"
 import { createInvitationToken, hashInvitationToken } from "@/lib/team-invitations"
@@ -28,11 +23,13 @@ export async function getTeamOverview() {
         where: { companyId },
         include: { user: { select: { id: true, name: true, email: true, image: true } } },
         orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+        take: 500,
       }),
       prisma.companyInvitation.findMany({
         where: { companyId, acceptedAt: null, expiresAt: { gt: new Date() } },
         select: { id: true, email: true, role: true, expiresAt: true, createdAt: true },
         orderBy: { createdAt: "desc" },
+        take: 500,
       }),
     ])
 
@@ -130,9 +127,7 @@ export async function cancelTeamInvitation(invitationId: string) {
       where: { id: parsedId.data, companyId, acceptedAt: null },
     })
     revalidatePath("/dashboard/equipe")
-    return result.count === 1
-      ? { success: true as const }
-      : { success: false as const, error: "Invitation introuvable." }
+    return result.count === 1 ? { success: true as const } : { success: false as const, error: "Invitation introuvable." }
   }, "members.manage")
 }
 
@@ -169,12 +164,17 @@ export async function updateTeamMemberRole(memberId: string, nextRole: CompanyRo
 
 export async function updateTeamMemberWorkSettings(memberId: string, weeklyHours: number, hourlyCostCents: number) {
   return withAuth(async ({ companyId, role: actorRole }) => {
-    const parsed = z.object({ memberId: memberIdSchema, weeklyHours: z.coerce.number().min(1).max(168), hourlyCostCents: z.coerce.number().int().min(0).max(1_000_000) }).safeParse({ memberId, weeklyHours, hourlyCostCents })
+    const parsed = z
+      .object({ memberId: memberIdSchema, weeklyHours: z.coerce.number().min(1).max(168), hourlyCostCents: z.coerce.number().int().min(0).max(1_000_000) })
+      .safeParse({ memberId, weeklyHours, hourlyCostCents })
     if (!parsed.success) return { success: false as const, error: "Capacité ou coût horaire invalide." }
     const member = await prisma.membership.findFirst({ where: { id: parsed.data.memberId, companyId }, select: { id: true, role: true } })
     if (!member) return { success: false as const, error: "Membre introuvable." }
     if (!canAssignRole(actorRole, normalizeCompanyRole(member.role))) return { success: false as const, error: "Vous ne pouvez pas modifier ces paramètres." }
-    await prisma.membership.update({ where: { id: member.id }, data: { weeklyCapacityMinutes: Math.round(parsed.data.weeklyHours * 60), hourlyCostCents: parsed.data.hourlyCostCents } })
+    await prisma.membership.update({
+      where: { id: member.id },
+      data: { weeklyCapacityMinutes: Math.round(parsed.data.weeklyHours * 60), hourlyCostCents: parsed.data.hourlyCostCents },
+    })
     revalidatePath("/dashboard/equipe")
     revalidatePath("/dashboard/operations")
     return { success: true as const }
@@ -183,13 +183,15 @@ export async function updateTeamMemberWorkSettings(memberId: string, weeklyHours
 
 export async function updateTeamMemberServiceSettings(memberId: string, input: unknown) {
   return withAuth(async ({ companyId, role: actorRole }) => {
-    const parsed = z.object({
-      memberId: memberIdSchema,
-      available: z.boolean(),
-      ticketCapacity: z.coerce.number().int().min(1).max(500),
-      skills: z.array(z.string().trim().min(1).max(80)).max(50),
-      territories: z.array(z.string().trim().min(1).max(80)).max(50),
-    }).safeParse({ memberId, ...(typeof input === "object" && input ? input : {}) })
+    const parsed = z
+      .object({
+        memberId: memberIdSchema,
+        available: z.boolean(),
+        ticketCapacity: z.coerce.number().int().min(1).max(500),
+        skills: z.array(z.string().trim().min(1).max(80)).max(50),
+        territories: z.array(z.string().trim().min(1).max(80)).max(50),
+      })
+      .safeParse({ memberId, ...(typeof input === "object" && input ? input : {}) })
     if (!parsed.success) return { success: false as const, error: "Paramètres de routage invalides." }
     const member = await prisma.membership.findFirst({ where: { id: parsed.data.memberId, companyId }, select: { id: true, role: true } })
     if (!member) return { success: false as const, error: "Membre introuvable." }

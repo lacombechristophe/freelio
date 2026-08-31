@@ -9,11 +9,8 @@ import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
 import { calculateConfiguredProductPrice, resolveProductOptionSelection } from "@/lib/product-pricing"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
-import {
-  buildYearlyDocumentPrefix,
-  nextDocumentNumber,
-  withDocumentNumberRetry,
-} from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { boundedPageSize } from "@/lib/pagination"
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
@@ -28,20 +25,23 @@ type QuoteFinancialLine = {
 }
 
 function calculateQuoteTotals(lines: QuoteFinancialLine[]) {
-  return calculateCommercialDocument(lines.map((line) => ({
-    quantity: line.quantity,
-    unitPriceCents: line.listUnitPriceCents ?? line.unitPriceCents,
-    lineDiscountRate: line.discountRate ?? 0,
-    tvaRate: line.tvaRate,
-    unitCostCents: line.unitCostCents,
-  })))
+  return calculateCommercialDocument(
+    lines.map((line) => ({
+      quantity: line.quantity,
+      unitPriceCents: line.listUnitPriceCents ?? line.unitPriceCents,
+      lineDiscountRate: line.discountRate ?? 0,
+      tvaRate: line.tvaRate,
+      unitCostCents: line.unitCostCents,
+    })),
+  )
 }
 
 export async function getQuotes(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
+    const pageSize = boundedPageSize(limit, 50, 100)
     return await prisma.quote.findMany({
       where: { companyId },
-      take: limit,
+      take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: {
@@ -111,28 +111,27 @@ async function generateContractNumber(companyId: string) {
 
 function escapeContractHtml(value: string | null | undefined) {
   if (!value) return ""
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
 }
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
 }
 
-function buildContractContentFromQuote(quote: {
-  object: string
-  number: string
-  validUntil: Date | null
-}, lines: Array<{
-  label: string
-  description: string | null
-  quantity: number
-  unitPriceCents: number
-}>, totalTtcCents: number) {
+function buildContractContentFromQuote(
+  quote: {
+    object: string
+    number: string
+    validUntil: Date | null
+  },
+  lines: Array<{
+    label: string
+    description: string | null
+    quantity: number
+    unitPriceCents: number
+  }>,
+  totalTtcCents: number,
+) {
   const scope = lines
     .map((line) => {
       const description = line.description ? `<br><span>${escapeContractHtml(line.description)}</span>` : ""
@@ -168,28 +167,56 @@ function buildContractContentFromQuote(quote: {
 }
 
 async function resolveCatalogQuoteLines(companyId: string, inputLines: ValidatedQuoteLine[]) {
-  const productIds = [...new Set(inputLines.flatMap((line) => line.productId ? [line.productId] : []))]
-  const products = productIds.length ? await prisma.product.findMany({
-    where: { companyId, id: { in: productIds }, active: true },
-    include: {
-      optionGroups: { include: { values: { where: { active: true } } } },
-      assemblyComponents: { include: { componentProduct: { select: { purchasePriceCents: true } } } },
-      parentProduct: { include: { optionGroups: { include: { values: { where: { active: true } } } }, assemblyComponents: { include: { componentProduct: { select: { purchasePriceCents: true } } } } } },
-    },
-  }) : []
+  const productIds = [...new Set(inputLines.flatMap((line) => (line.productId ? [line.productId] : [])))]
+  const products = productIds.length
+    ? await prisma.product.findMany({
+        where: { companyId, id: { in: productIds }, active: true },
+        include: {
+          optionGroups: { include: { values: { where: { active: true } } } },
+          assemblyComponents: { include: { componentProduct: { select: { purchasePriceCents: true } } } },
+          parentProduct: {
+            include: {
+              optionGroups: { include: { values: { where: { active: true } } } },
+              assemblyComponents: { include: { componentProduct: { select: { purchasePriceCents: true } } } },
+            },
+          },
+        },
+      })
+    : []
   if (products.length !== productIds.length) throw new Error("Une référence catalogue est inactive ou introuvable")
   const byId = new Map(products.map((product) => [product.id, product]))
 
   return inputLines.map((line) => {
-    if (!line.productId) return { label: line.label, description: line.description || null, quantity: line.quantity, unitPriceCents: line.unitPriceCents, tvaRate: line.tvaRate, productId: null, configuration: undefined, unitCostCents: null, listUnitPriceCents: null, discountRate: 0 }
+    if (!line.productId)
+      return {
+        label: line.label,
+        description: line.description || null,
+        quantity: line.quantity,
+        unitPriceCents: line.unitPriceCents,
+        tvaRate: line.tvaRate,
+        productId: null,
+        configuration: undefined,
+        unitCostCents: null,
+        listUnitPriceCents: null,
+        discountRate: 0,
+      }
     const product = byId.get(line.productId)
     if (!product) throw new Error("Référence catalogue introuvable")
     const optionGroups = [...(product.parentProduct?.optionGroups ?? []), ...product.optionGroups]
     const optionValueIds = line.configuration?.optionValueIds ?? []
     const { uniqueIds, selectedValues, selections } = resolveProductOptionSelection(optionGroups, optionValueIds)
-    const components = product.assemblyComponents.length ? product.assemblyComponents : product.parentProduct?.assemblyComponents ?? []
-    const componentCost = components.reduce((sum, component) => sum + Math.round(component.quantity * component.componentProduct.purchasePriceCents * (1 + component.wastePercent / 100)), 0)
-    const pricing = calculateConfiguredProductPrice({ baseSalePriceCents: product.salePriceCents, baseCostCents: components.length ? componentCost : product.purchasePriceCents, optionSaleDeltasCents: selectedValues.map((value) => value.priceDeltaCents), optionCostDeltasCents: selectedValues.map((value) => value.costDeltaCents), discountRate: line.discountRate ?? 0 })
+    const components = product.assemblyComponents.length ? product.assemblyComponents : (product.parentProduct?.assemblyComponents ?? [])
+    const componentCost = components.reduce(
+      (sum, component) => sum + Math.round(component.quantity * component.componentProduct.purchasePriceCents * (1 + component.wastePercent / 100)),
+      0,
+    )
+    const pricing = calculateConfiguredProductPrice({
+      baseSalePriceCents: product.salePriceCents,
+      baseCostCents: components.length ? componentCost : product.purchasePriceCents,
+      optionSaleDeltasCents: selectedValues.map((value) => value.priceDeltaCents),
+      optionCostDeltasCents: selectedValues.map((value) => value.costDeltaCents),
+      discountRate: line.discountRate ?? 0,
+    })
     return {
       productId: product.id,
       label: [product.label, product.variantLabel].filter(Boolean).join(" · "),
@@ -206,78 +233,82 @@ async function resolveCatalogQuoteLines(companyId: string, inputLines: Validated
 }
 
 export async function createQuote(data: QuoteInput) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, agencyIds }) => {
     const validated = QuoteSchema.parse(data)
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { isTvaApplicable: true, quotePrefix: true }
+      select: { isTvaApplicable: true, quotePrefix: true },
     })
     if (!company) throw new Error("Entreprise introuvable")
+    if (agencyIds !== null && !validated.projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
     const [client, project] = await Promise.all([
       prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
       validated.projectId ? prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId }, select: { id: true } }) : null,
     ])
     if (!client) throw new Error("Client introuvable")
-    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client")
+    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client ou à votre agence")
 
     const resolvedLines = await resolveCatalogQuoteLines(companyId, validated.lines)
     const lines = company.isTvaApplicable ? resolvedLines : resolvedLines.map((line) => ({ ...line, tvaRate: 0 }))
 
     const totals = calculateQuoteTotals(lines)
 
-    const quote = await withDocumentNumberRetry(async () => {
-      const number = await generateQuoteNumber(companyId, company.quotePrefix)
-      const created = await prisma.quote.create({
-        data: {
-          companyId,
-          clientId: validated.clientId,
-          projectId: validated.projectId || null,
-          number,
-          object: validated.object,
-          status: "DRAFT",
-          validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
-          currentVersion: 1,
-          versions: {
-            create: {
-              version: 1,
-              totalHtCents: totals.totalHtCents,
-              totalTvaCents: totals.totalTvaCents,
-              totalTtcCents: totals.totalTtcCents,
-              sections: {
-                create: {
-                  title: null,
-                  order: 0,
-                  lines: {
-                    create: lines.map((l, i) => ({
-                      label: l.label,
-                      description: l.description || null,
-                      quantity: l.quantity,
-                      unitPriceCents: l.unitPriceCents,
-                      tvaRate: l.tvaRate,
-                      productId: l.productId,
-                      configuration: l.configuration,
-                      unitCostCents: l.unitCostCents,
-                      listUnitPriceCents: l.listUnitPriceCents,
-                      discountRate: l.discountRate,
-                      order: i,
-                    })),
+    const quote = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateQuoteNumber(companyId, company.quotePrefix)
+        const created = await prisma.quote.create({
+          data: {
+            companyId,
+            clientId: validated.clientId,
+            projectId: validated.projectId || null,
+            number,
+            object: validated.object,
+            status: "DRAFT",
+            validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
+            currentVersion: 1,
+            versions: {
+              create: {
+                version: 1,
+                totalHtCents: totals.totalHtCents,
+                totalTvaCents: totals.totalTvaCents,
+                totalTtcCents: totals.totalTtcCents,
+                sections: {
+                  create: {
+                    title: null,
+                    order: 0,
+                    lines: {
+                      create: lines.map((l, i) => ({
+                        label: l.label,
+                        description: l.description || null,
+                        quantity: l.quantity,
+                        unitPriceCents: l.unitPriceCents,
+                        tvaRate: l.tvaRate,
+                        productId: l.productId,
+                        configuration: l.configuration,
+                        unitCostCents: l.unitCostCents,
+                        listUnitPriceCents: l.listUnitPriceCents,
+                        discountRate: l.discountRate,
+                        order: i,
+                      })),
+                    },
                   },
                 },
               },
             },
           },
-        },
-      })
+        })
 
-      await logAction({
-        userId,
-        action: "CREATE_QUOTE",
-        resource: "QUOTE",
-        resourceId: created.id,
-        payload: { number, totalHtCents: totals.totalHtCents },
-      })
-      return created
-    }, { label: "le devis" })
+        await logAction({
+          userId,
+          action: "CREATE_QUOTE",
+          resource: "QUOTE",
+          resourceId: created.id,
+          payload: { number, totalHtCents: totals.totalHtCents },
+        })
+        return created
+      },
+      { label: "le devis" },
+    )
 
     revalidatePath("/dashboard/devis")
     return quote
@@ -285,7 +316,7 @@ export async function createQuote(data: QuoteInput) {
 }
 
 export async function updateQuote(id: string, data: QuoteInput) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, agencyIds }) => {
     const validated = QuoteSchema.parse(data)
     const existing = await prisma.quote.findFirst({
       where: { id, companyId },
@@ -296,15 +327,16 @@ export async function updateQuote(id: string, data: QuoteInput) {
 
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { isTvaApplicable: true }
+      select: { isTvaApplicable: true },
     })
     if (!company) throw new Error("Entreprise introuvable")
+    if (agencyIds !== null && !validated.projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
     const [client, project] = await Promise.all([
       prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
       validated.projectId ? prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId }, select: { id: true } }) : null,
     ])
     if (!client) throw new Error("Client introuvable")
-    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client")
+    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client ou à votre agence")
 
     const resolvedLines = await resolveCatalogQuoteLines(companyId, validated.lines)
     const lines = company.isTvaApplicable ? resolvedLines : resolvedLines.map((line) => ({ ...line, tvaRate: 0 }))
@@ -312,48 +344,52 @@ export async function updateQuote(id: string, data: QuoteInput) {
     const totals = calculateQuoteTotals(lines)
     const latestVersion = existing.versions[0]
 
-    // Replace the latest version's sections/lines
-    if (latestVersion) {
-      await prisma.quoteSection.deleteMany({ where: { versionId: latestVersion.id } })
-      await prisma.quoteVersion.update({
-        where: { id: latestVersion.id },
+    const quote = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.quote.updateMany({
+        where: { id, companyId, status: "DRAFT", updatedAt: existing.updatedAt },
         data: {
-          totalHtCents: totals.totalHtCents,
-          totalTvaCents: totals.totalTvaCents,
-          totalTtcCents: totals.totalTtcCents,
-          sections: {
-            create: {
-              title: null,
-              order: 0,
-              lines: {
-                create: lines.map((l, i) => ({
-                  label: l.label,
-                  description: l.description || null,
-                  quantity: l.quantity,
-                  unitPriceCents: l.unitPriceCents,
-                  tvaRate: l.tvaRate,
-                  productId: l.productId,
-                  configuration: l.configuration,
-                  unitCostCents: l.unitCostCents,
-                  listUnitPriceCents: l.listUnitPriceCents,
-                  discountRate: l.discountRate,
-                  order: i,
-                })),
+          clientId: validated.clientId,
+          projectId: validated.projectId || null,
+          object: validated.object,
+          validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
+        },
+      })
+      if (claimed.count !== 1) throw new Error("Le devis a changé pendant la modification. Rechargez-le puis réessayez.")
+
+      if (latestVersion) {
+        await tx.quoteSection.deleteMany({ where: { versionId: latestVersion.id } })
+        await tx.quoteVersion.update({
+          where: { id: latestVersion.id },
+          data: {
+            totalHtCents: totals.totalHtCents,
+            totalTvaCents: totals.totalTvaCents,
+            totalTtcCents: totals.totalTtcCents,
+            sections: {
+              create: {
+                title: null,
+                order: 0,
+                lines: {
+                  create: lines.map((line, order) => ({
+                    label: line.label,
+                    description: line.description || null,
+                    quantity: line.quantity,
+                    unitPriceCents: line.unitPriceCents,
+                    tvaRate: line.tvaRate,
+                    productId: line.productId,
+                    configuration: line.configuration,
+                    unitCostCents: line.unitCostCents,
+                    listUnitPriceCents: line.listUnitPriceCents,
+                    discountRate: line.discountRate,
+                    order,
+                  })),
+                },
               },
             },
           },
-        },
-      })
-    }
+        })
+      }
 
-    const quote = await prisma.quote.update({
-      where: { id },
-      data: {
-        clientId: validated.clientId,
-        projectId: validated.projectId || null,
-        object: validated.object,
-        validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
-      },
+      return tx.quote.findUniqueOrThrow({ where: { id } })
     })
 
     await logAction({
@@ -370,10 +406,7 @@ export async function updateQuote(id: string, data: QuoteInput) {
   }, "sales.write")
 }
 
-export async function updateQuoteStatus(
-  quoteId: string,
-  status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
-) {
+export async function updateQuoteStatus(quoteId: string, status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED") {
   return await withAuth(async ({ userId, companyId }) => {
     const existing = await prisma.quote.findFirst({
       where: { id: quoteId, companyId },
@@ -442,7 +475,7 @@ export async function convertQuoteToInvoice(quoteId: string) {
 
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { isTvaApplicable: true, invoicePrefix: true }
+      select: { isTvaApplicable: true, invoicePrefix: true },
     })
     if (!company) throw new Error("Entreprise introuvable")
 
@@ -458,34 +491,37 @@ export async function convertQuoteToInvoice(quoteId: string) {
       ? { totalHtCents: latest.totalHtCents, totalTvaCents: latest.totalTvaCents, totalTtcCents: latest.totalTtcCents }
       : calculateQuoteTotals(allLines)
 
-    const invoice = await withDocumentNumberRetry(async () => {
-      const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
-      return await prisma.invoice.create({
-        data: {
-          companyId,
-          clientId: quote.clientId,
-          projectId: quote.projectId,
-          number,
-          object: quote.object,
-          status: "DRAFT",
-          type: "STANDARD",
-          dueDate,
-          totalHtCents: totals.totalHtCents,
-          totalTvaCents: totals.totalTvaCents,
-          totalTtcCents: totals.totalTtcCents,
-          lines: {
-            create: allLines.map((l, i) => ({
-              label: l.label,
-              description: l.description,
-              quantity: l.quantity,
-              unitPriceCents: l.unitPriceCents,
-              tvaRate: l.tvaRate,
-              order: i,
-            })),
+    const invoice = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
+        return await prisma.invoice.create({
+          data: {
+            companyId,
+            clientId: quote.clientId,
+            projectId: quote.projectId,
+            number,
+            object: quote.object,
+            status: "DRAFT",
+            type: "STANDARD",
+            dueDate,
+            totalHtCents: totals.totalHtCents,
+            totalTvaCents: totals.totalTvaCents,
+            totalTtcCents: totals.totalTtcCents,
+            lines: {
+              create: allLines.map((l, i) => ({
+                label: l.label,
+                description: l.description,
+                quantity: l.quantity,
+                unitPriceCents: l.unitPriceCents,
+                tvaRate: l.tvaRate,
+                order: i,
+              })),
+            },
           },
-        },
-      })
-    }, { label: "la facture issue du devis" })
+        })
+      },
+      { label: "la facture issue du devis" },
+    )
 
     await prisma.quote.update({
       where: { id: quoteId },
@@ -530,33 +566,36 @@ export async function createContractFromQuote(quoteId: string) {
     const lines = latest.sections.flatMap((section) => section.lines)
     if (!lines.length) throw new Error("Le devis ne contient aucune ligne.")
 
-    const contract = await withDocumentNumberRetry(async () => {
-      const number = await generateContractNumber(companyId)
-      const title = `Contrat de prestation - ${quote.object}`
+    const contract = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateContractNumber(companyId)
+        const title = `Contrat de prestation - ${quote.object}`
 
-      const created = await prisma.contract.create({
-        data: {
-          companyId,
-          clientId: quote.clientId,
-          number,
-          title,
-          status: "DRAFT",
-          content: buildContractContentFromQuote(quote, lines, latest.totalTtcCents),
-          validFrom: new Date(),
-          validUntil: quote.validUntil,
-        },
-      })
+        const created = await prisma.contract.create({
+          data: {
+            companyId,
+            clientId: quote.clientId,
+            number,
+            title,
+            status: "DRAFT",
+            content: buildContractContentFromQuote(quote, lines, latest.totalTtcCents),
+            validFrom: new Date(),
+            validUntil: quote.validUntil,
+          },
+        })
 
-      await logAction({
-        userId,
-        action: "CREATE_CONTRACT",
-        resource: "CONTRACT",
-        resourceId: created.id,
-        payload: { fromQuote: quoteId, number },
-      })
+        await logAction({
+          userId,
+          action: "CREATE_CONTRACT",
+          resource: "CONTRACT",
+          resourceId: created.id,
+          payload: { fromQuote: quoteId, number },
+        })
 
-      return created
-    }, { label: "le contrat issu du devis" })
+        return created
+      },
+      { label: "le contrat issu du devis" },
+    )
 
     revalidatePath("/dashboard/devis")
     revalidatePath("/dashboard/contrats")

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ClipboardList, Plus, Sparkles, Trash2 } from "lucide-react"
+import { ArrowRight, FileStack, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -81,40 +81,45 @@ export function LineItemsEditor({
   return (
     <div className="space-y-3">
       {showPresets && (
-        <div className="rounded-lg border border-border bg-background p-3">
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Bases de prestations
+                <FileStack className="h-4 w-4 text-primary" />
+                Structures métier
               </div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Ajoutez une structure de prestation adaptée à un devis ou une facture.
+                Ajoutez un canevas, puis renseignez les références, prix et taux réellement applicables.
               </p>
             </div>
-            <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </div>
+            <span className="shrink-0 rounded-full border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              Prix non préremplis
+            </span>
+          </div>
               {!isTvaApplicable && (
                 <p className="mb-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
                   Franchise TVA active : les lignes restent à 0 %.
                 </p>
               )}
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-2 md:grid-cols-2">
                 {BILLING_LINE_PRESETS.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset.lines)}
                 className={cn(
-                  "rounded-md border border-border bg-muted/20 p-3 text-left transition-colors",
-                  "hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  "group min-h-32 rounded-lg border border-border bg-background p-3.5 text-left transition-[border-color,background-color,box-shadow]",
+                  "hover:border-primary/40 hover:bg-primary/[0.025] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 )}
               >
-                <span className="text-sm font-semibold text-foreground">{preset.label}</span>
+                <span className="flex items-center justify-between gap-3 text-sm font-semibold text-foreground">
+                  {preset.label}
+                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+                </span>
                 <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
                   {preset.description}
                 </span>
-                <span className="mt-2 block text-[11px] leading-relaxed text-muted-foreground">
+                <span className="mt-2 block border-t border-border/70 pt-2 text-[11px] leading-relaxed text-muted-foreground">
                   {preset.bestFor}
                 </span>
               </button>

@@ -27,12 +27,8 @@ function quantity(value: number) {
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 }).format(value)
 }
 
-function color(value: string | null | undefined) {
-  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#0b63f6"
-}
-
 export function renderDeliveryNoteHtml(doc: DeliveryDocument) {
-  const accent = color(doc.company.brandColor)
+  const accent = "#202630"
   const companyLine = [doc.company.address, doc.company.email, doc.company.phone, doc.company.siret ? `SIRET ${doc.company.siret}` : null].filter(Boolean).map((item) => escapeHtml(item || "")).join(" · ")
   const destination = doc.site
     ? [doc.site.label, doc.site.address1, doc.site.address2, [doc.site.postalCode, doc.site.city].filter(Boolean).join(" ")].filter(Boolean).map((item) => escapeHtml(item || "")).join("<br>")

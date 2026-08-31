@@ -1,9 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
-const developmentEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
-const upgradeInsecureRequests = process.env.NODE_ENV === "production" ? " upgrade-insecure-requests;" : "";
+const developmentEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
+const upgradeInsecureRequests = process.env.NODE_ENV === "production" ? " upgrade-insecure-requests;" : ""
+const r2AccountId = process.env.R2_ACCOUNT_ID?.trim() ?? ""
+const r2ConnectOrigin = /^[a-f0-9]{32}$/i.test(r2AccountId) ? ` https://${r2AccountId}.r2.cloudflarestorage.com` : ""
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: { sri: { algorithm: "sha384" } },
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["@prisma/client", "@crm/prisma-postgres"],
@@ -14,7 +17,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';${upgradeInsecureRequests}`,
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self'${r2ConnectOrigin}; frame-ancestors 'none';${upgradeInsecureRequests}`,
           },
           {
             key: "X-Frame-Options",
@@ -42,8 +45,8 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-    ];
+    ]
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

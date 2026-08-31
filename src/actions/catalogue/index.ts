@@ -11,6 +11,7 @@ export async function getServices() {
       where: { companyId },
       include: { category: true },
       orderBy: { label: "asc" },
+      take: 1_000,
     })
   }, "sales.read")
 }
@@ -20,6 +21,7 @@ export async function getServiceCategories() {
     return await prisma.serviceCategory.findMany({
       where: { companyId },
       orderBy: { name: "asc" },
+      take: 200,
     })
   }, "sales.read")
 }
@@ -27,7 +29,8 @@ export async function getServiceCategories() {
 export async function createService(data: unknown) {
   return await withAuth(async ({ companyId }) => {
     const validated = ServiceSchema.parse(data)
-    if (validated.categoryId && !await prisma.serviceCategory.findFirst({ where: { id: validated.categoryId, companyId }, select: { id: true } })) throw new Error("Catégorie introuvable")
+    if (validated.categoryId && !(await prisma.serviceCategory.findFirst({ where: { id: validated.categoryId, companyId }, select: { id: true } })))
+      throw new Error("Catégorie introuvable")
     const service = await prisma.service.create({
       data: {
         companyId,
@@ -50,7 +53,8 @@ export async function updateService(id: string, data: unknown) {
     const validated = ServiceSchema.parse(data)
     const existing = await prisma.service.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Service introuvable")
-    if (validated.categoryId && !await prisma.serviceCategory.findFirst({ where: { id: validated.categoryId, companyId }, select: { id: true } })) throw new Error("Catégorie introuvable")
+    if (validated.categoryId && !(await prisma.serviceCategory.findFirst({ where: { id: validated.categoryId, companyId }, select: { id: true } })))
+      throw new Error("Catégorie introuvable")
     const service = await prisma.service.update({
       where: { id },
       data: {

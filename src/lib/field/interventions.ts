@@ -20,8 +20,11 @@ export async function completeFieldInterventionForContext(input: unknown, contex
   if (!intervention) throw new Error("Intervention introuvable")
   if (intervention.status === "CANCELED") throw new Error("Une intervention annulée ne peut pas être clôturée")
   if (intervention.status === "COMPLETED") {
-    const expenses = await prisma.expense.findMany({ where: { companyId: context.companyId, interventionId: intervention.id, sourceId: { not: null } }, select: { id: true, sourceId: true } })
-    return { success: true as const, alreadyCompleted: true, expenses: expenses.flatMap((item) => item.sourceId ? [{ id: item.id, sourceId: item.sourceId }] : []) }
+    const expenses = await prisma.expense.findMany({
+      where: { companyId: context.companyId, interventionId: intervention.id, sourceId: { not: null } },
+      select: { id: true, sourceId: true },
+    })
+    return { success: true as const, alreadyCompleted: true, expenses: expenses.flatMap((item) => (item.sourceId ? [{ id: item.id, sourceId: item.sourceId }] : [])) }
   }
 
   const signedAt = new Date()
@@ -50,12 +53,27 @@ export async function completeFieldInterventionForContext(input: unknown, contex
     const movementIds: string[] = []
     for (const material of data.materials) {
       const inventory = await tx.inventoryItem.findFirst({
-        where: { companyId: context.companyId, warehouseId: material.warehouseId, productId: material.productId, warehouse: { active: true }, product: { active: true, stockTracked: true } },
+        where: {
+          companyId: context.companyId,
+          warehouseId: material.warehouseId,
+          productId: material.productId,
+          warehouse: { active: true },
+          product: { active: true, stockTracked: true },
+        },
         include: { product: { select: { label: true, purchasePriceCents: true } } },
       })
       if (!inventory) throw new Error("Un produit n’est pas disponible dans le dépôt sélectionné")
       const next = calculateStockBalance({ quantity: inventory.quantity, reservedQuantity: inventory.reservedQuantity, type: "OUT", movementQuantity: material.quantity })
-      await tx.inventoryItem.update({ where: { id: inventory.id }, data: next })
+      const claimedInventory = await tx.inventoryItem.updateMany({
+        where: {
+          id: inventory.id,
+          companyId: context.companyId,
+          quantity: inventory.quantity,
+          reservedQuantity: inventory.reservedQuantity,
+        },
+        data: next,
+      })
+      if (claimedInventory.count !== 1) throw new Error("Le stock a changé pendant la clôture. Rechargez la page puis réessayez.")
       const movement = await tx.stockMovement.create({
         data: {
           companyId: context.companyId,
@@ -99,7 +117,14 @@ export async function completeFieldInterventionForContext(input: unknown, contex
     const reservationIds: string[] = []
     for (const reservation of data.reservations) {
       const created = await tx.interventionReservation.create({
-        data: { companyId: context.companyId, interventionId: intervention.id, sourceId: reservation.sourceId, title: reservation.title, details: reservation.details, severity: reservation.severity },
+        data: {
+          companyId: context.companyId,
+          interventionId: intervention.id,
+          sourceId: reservation.sourceId,
+          title: reservation.title,
+          details: reservation.details,
+          severity: reservation.severity,
+        },
         select: { id: true },
       })
       reservationIds.push(created.id)
@@ -118,8 +143,23 @@ export async function completeFieldInterventionForContext(input: unknown, contex
     action: "COMPLETE_FIELD_INTERVENTION",
     resource: "FIELD_INTERVENTION",
     resourceId: intervention.id,
-    payload: { laborMinutes: data.laborMinutes, customerName: data.customerName, signatureSha256, signatureImageHash, materialMovementIds: result.movementIds, expenseIds: result.expenseMappings.map((item) => item.id), reservationIds: result.reservationIds },
+    payload: {
+      laborMinutes: data.laborMinutes,
+      customerName: data.customerName,
+      signatureSha256,
+      signatureImageHash,
+      materialMovementIds: result.movementIds,
+      expenseIds: result.expenseMappings.map((item) => item.id),
+      reservationIds: result.reservationIds,
+    },
   })
-  await runAutomationEvent({ companyId: context.companyId, event: "INTERVENTION_COMPLETED", subjectModel: "FieldIntervention", subjectId: intervention.id, eventKey: `${intervention.id}:completed`, clientId: intervention.site.clientId }).catch((error) => console.error("Intervention completion automation failed", error))
+  await runAutomationEvent({
+    companyId: context.companyId,
+    event: "INTERVENTION_COMPLETED",
+    subjectModel: "FieldIntervention",
+    subjectId: intervention.id,
+    eventKey: `${intervention.id}:completed`,
+    clientId: intervention.site.clientId,
+  }).catch((error) => console.error("Intervention completion automation failed", error))
   return { success: true as const, signatureSha256, expenses: result.expenseMappings }
 }

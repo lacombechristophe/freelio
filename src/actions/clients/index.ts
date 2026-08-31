@@ -5,12 +5,14 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { ClientActivitySchema, ClientNextActionSchema, ClientSchema, ContactSchema } from "@/lib/validations"
+import { boundedPageSize } from "@/lib/pagination"
 
 export async function getClients(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId }) => {
+    const pageSize = boundedPageSize(limit, 20, 100)
     const clients = await prisma.client.findMany({
       where: { companyId },
-      take: limit,
+      take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       orderBy: { createdAt: "desc" },
@@ -38,12 +40,7 @@ export async function getClients(cursor?: string, limit: number = 20) {
     ])
 
     const paidMap = new Map(paidAgg.map((r) => [r.clientId, r._sum.totalHtCents ?? 0]))
-    const unpaidMap = new Map(
-      unpaidAgg.map((r) => [
-        r.clientId,
-        (r._sum.totalTtcCents ?? 0) - (r._sum.paidAmountCents ?? 0),
-      ])
-    )
+    const unpaidMap = new Map(unpaidAgg.map((r) => [r.clientId, (r._sum.totalTtcCents ?? 0) - (r._sum.paidAmountCents ?? 0)]))
 
     return clients.map((c) => ({
       ...c,
@@ -60,8 +57,8 @@ export async function getClientById(id: string) {
       include: {
         contacts: true,
         activities: { orderBy: { happenedAt: "desc" }, take: 50 },
-        files: { orderBy: { createdAt: "desc" } },
-        projects: { orderBy: { createdAt: "desc" } },
+        files: { orderBy: { createdAt: "desc" }, take: 100 },
+        projects: { orderBy: { createdAt: "desc" }, take: 100 },
         quotes: {
           orderBy: { createdAt: "desc" },
           take: 10,
@@ -99,8 +96,7 @@ export async function getClientById(id: string) {
       }),
     ])
     const totalRevenueCents = paidAgg._sum.totalHtCents ?? 0
-    const totalUnpaidCents =
-      (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0)
+    const totalUnpaidCents = (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0)
 
     return { ...client, totalRevenueCents, totalUnpaidCents }
   })
@@ -112,11 +108,12 @@ export async function getClientsMinimal() {
       where: { companyId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+      take: 1_000,
     })
   })
 }
 
-export async function createClient(data: any) {
+export async function createClient(data: unknown) {
   return await withAuth(async ({ companyId, userId }) => {
     const validated = ClientSchema.parse(data)
     const client = await prisma.client.create({
@@ -136,7 +133,7 @@ export async function createClient(data: any) {
   })
 }
 
-export async function updateClient(id: string, data: any) {
+export async function updateClient(id: string, data: unknown) {
   return await withAuth(async ({ companyId, userId }) => {
     const validated = ClientSchema.parse(data)
     // Scope to companyId by checking first
@@ -181,9 +178,7 @@ export async function deleteClient(id: string) {
       if (_count.quotes > 0) parts.push(`${_count.quotes} devis`)
       if (_count.contracts > 0) parts.push(`${_count.contracts} contrat(s)`)
       if (_count.projects > 0) parts.push(`${_count.projects} projet(s)`)
-      throw new Error(
-        `Impossible de supprimer ce client : ${parts.join(", ")} lié(s). Supprimez-les ou archivez le client.`
-      )
+      throw new Error(`Impossible de supprimer ce client : ${parts.join(", ")} lié(s). Supprimez-les ou archivez le client.`)
     }
 
     await prisma.client.delete({ where: { id } })

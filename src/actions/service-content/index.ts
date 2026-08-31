@@ -21,20 +21,23 @@ const articleSchema = z.object({
   visibility: z.enum(["INTERNAL", "PORTAL"]).default("INTERNAL"),
   tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
 })
-const surveySchema = z.object({
-  name: z.string().trim().min(3).max(140),
-  type: z.enum(["CSAT", "NPS", "CES"]).default("CSAT"),
-  question: z.string().trim().min(5).max(300),
-  scaleMin: z.coerce.number().int().min(0).max(10),
-  scaleMax: z.coerce.number().int().min(1).max(10),
-  followUpQuestion: z.string().trim().max(300).optional(),
-  triggerEvent: z.enum(["TICKET_CLOSED", "INTERVENTION_COMPLETED", "MANUAL"]).default("TICKET_CLOSED"),
-  delayHours: z.coerce.number().int().min(0).max(720).default(2),
-  anonymous: z.boolean().default(false),
-}).superRefine((value, context) => {
-  if (value.scaleMax <= value.scaleMin) context.addIssue({ code: "custom", path: ["scaleMax"], message: "L’échelle maximale doit être supérieure au minimum" })
-  if (value.type === "NPS" && (value.scaleMin !== 0 || value.scaleMax !== 10)) context.addIssue({ code: "custom", path: ["scaleMax"], message: "Une enquête NPS utilise l’échelle 0 à 10" })
-})
+const surveySchema = z
+  .object({
+    name: z.string().trim().min(3).max(140),
+    type: z.enum(["CSAT", "NPS", "CES"]).default("CSAT"),
+    question: z.string().trim().min(5).max(300),
+    scaleMin: z.coerce.number().int().min(0).max(10),
+    scaleMax: z.coerce.number().int().min(1).max(10),
+    followUpQuestion: z.string().trim().max(300).optional(),
+    triggerEvent: z.enum(["TICKET_CLOSED", "INTERVENTION_COMPLETED", "MANUAL"]).default("TICKET_CLOSED"),
+    delayHours: z.coerce.number().int().min(0).max(720).default(2),
+    anonymous: z.boolean().default(false),
+  })
+  .superRefine((value, context) => {
+    if (value.scaleMax <= value.scaleMin) context.addIssue({ code: "custom", path: ["scaleMax"], message: "L’échelle maximale doit être supérieure au minimum" })
+    if (value.type === "NPS" && (value.scaleMin !== 0 || value.scaleMax !== 10))
+      context.addIssue({ code: "custom", path: ["scaleMax"], message: "Une enquête NPS utilise l’échelle 0 à 10" })
+  })
 const requestSchema = z.object({
   surveyId: cuid,
   clientId: cuid,
@@ -71,8 +74,14 @@ export async function getServiceContentDashboard() {
         where: { companyId, status: { not: "ARCHIVED" } },
         include: { authorMembership: { select: { user: { select: { name: true, email: true } } } } },
         orderBy: [{ updatedAt: "desc" }],
+        take: 300,
       }),
-      prisma.satisfactionSurvey.findMany({ where: { companyId, status: { not: "ARCHIVED" } }, include: { _count: { select: { requests: true } } }, orderBy: { updatedAt: "desc" } }),
+      prisma.satisfactionSurvey.findMany({
+        where: { companyId, status: { not: "ARCHIVED" } },
+        include: { _count: { select: { requests: true } } },
+        orderBy: { updatedAt: "desc" },
+        take: 300,
+      }),
       prisma.satisfactionRequest.findMany({
         where: { companyId },
         include: {
@@ -84,15 +93,43 @@ export async function getServiceContentDashboard() {
         orderBy: { createdAt: "desc" },
         take: 200,
       }),
-      prisma.client.findMany({ where: { companyId }, select: { id: true, name: true, contacts: { select: { id: true, firstName: true, lastName: true, email: true }, orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } }, orderBy: { name: "asc" }, take: 500 }),
-      prisma.serviceTicket.findMany({ where: { companyId }, select: { id: true, clientId: true, number: true, title: true, status: true }, orderBy: { requestedAt: "desc" }, take: 300 }),
+      prisma.client.findMany({
+        where: { companyId },
+        select: { id: true, name: true, contacts: { select: { id: true, firstName: true, lastName: true, email: true }, orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } },
+        orderBy: { name: "asc" },
+        take: 500,
+      }),
+      prisma.serviceTicket.findMany({
+        where: { companyId },
+        select: { id: true, clientId: true, number: true, title: true, status: true },
+        orderBy: { requestedAt: "desc" },
+        take: 300,
+      }),
     ])
-    const metrics = satisfactionMetrics(requests.flatMap((item) => item.score == null ? [] : [{ type: item.survey.type, scaleMin: item.survey.scaleMin, scaleMax: item.survey.scaleMax, score: item.score }]))
+    const metrics = satisfactionMetrics(
+      requests.flatMap((item) => (item.score == null ? [] : [{ type: item.survey.type, scaleMin: item.survey.scaleMin, scaleMax: item.survey.scaleMax, score: item.score }])),
+    )
     return {
       metrics,
-      articles: articles.map((item) => ({ ...item, tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === "string") : [], publishedAt: item.publishedAt?.toISOString() ?? null, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString() })),
+      articles: articles.map((item) => ({
+        ...item,
+        tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === "string") : [],
+        publishedAt: item.publishedAt?.toISOString() ?? null,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
       surveys: surveys.map((item) => ({ ...item, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString() })),
-      requests: requests.map((item) => ({ ...item, client: item.survey.anonymous ? { id: item.client.id, name: "Réponse anonyme" } : item.client, contact: item.survey.anonymous ? null : item.contact, serviceTicket: item.survey.anonymous ? null : item.serviceTicket, expiresAt: item.expiresAt.toISOString(), sentAt: item.sentAt?.toISOString() ?? null, respondedAt: item.respondedAt?.toISOString() ?? null, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString() })),
+      requests: requests.map((item) => ({
+        ...item,
+        client: item.survey.anonymous ? { id: item.client.id, name: "Réponse anonyme" } : item.client,
+        contact: item.survey.anonymous ? null : item.contact,
+        serviceTicket: item.survey.anonymous ? null : item.serviceTicket,
+        expiresAt: item.expiresAt.toISOString(),
+        sentAt: item.sentAt?.toISOString() ?? null,
+        respondedAt: item.respondedAt?.toISOString() ?? null,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
       clients,
       tickets,
     }
@@ -103,8 +140,28 @@ export async function createKnowledgeArticle(input: unknown) {
   return withAuth(async ({ companyId, membershipId, userId }) => {
     const data = articleSchema.parse(input)
     const slug = await uniqueSlug(companyId, data.slug || data.title)
-    const article = await prisma.knowledgeArticle.create({ data: { companyId, authorMembershipId: membershipId, title: data.title, slug, summary: data.summary || null, bodyHtml: sanitizeSequenceEmailHtml(data.bodyHtml), category: data.category || null, status: data.status, visibility: data.visibility, tags: data.tags, publishedAt: data.status === "PUBLISHED" ? new Date() : null } })
-    await logAction({ userId, action: "CREATE_KNOWLEDGE_ARTICLE", resource: "KNOWLEDGE_ARTICLE", resourceId: article.id, payload: { title: article.title, status: article.status, visibility: article.visibility } })
+    const article = await prisma.knowledgeArticle.create({
+      data: {
+        companyId,
+        authorMembershipId: membershipId,
+        title: data.title,
+        slug,
+        summary: data.summary || null,
+        bodyHtml: sanitizeSequenceEmailHtml(data.bodyHtml),
+        category: data.category || null,
+        status: data.status,
+        visibility: data.visibility,
+        tags: data.tags,
+        publishedAt: data.status === "PUBLISHED" ? new Date() : null,
+      },
+    })
+    await logAction({
+      userId,
+      action: "CREATE_KNOWLEDGE_ARTICLE",
+      resource: "KNOWLEDGE_ARTICLE",
+      resourceId: article.id,
+      payload: { title: article.title, status: article.status, visibility: article.visibility },
+    })
     revalidatePath("/dashboard/service/connaissance")
     revalidatePath("/portal")
     return { success: true as const, id: article.id }
@@ -118,8 +175,27 @@ export async function updateKnowledgeArticle(articleId: string, input: unknown) 
     const existing = await prisma.knowledgeArticle.findFirst({ where: { id, companyId }, select: { id: true, publishedAt: true } })
     if (!existing) throw new Error("Article introuvable")
     const slug = await uniqueSlug(companyId, data.slug || data.title, id)
-    const article = await prisma.knowledgeArticle.update({ where: { id }, data: { title: data.title, slug, summary: data.summary || null, bodyHtml: sanitizeSequenceEmailHtml(data.bodyHtml), category: data.category || null, status: data.status, visibility: data.visibility, tags: data.tags, publishedAt: data.status === "PUBLISHED" ? existing.publishedAt || new Date() : null } })
-    await logAction({ userId, action: "UPDATE_KNOWLEDGE_ARTICLE", resource: "KNOWLEDGE_ARTICLE", resourceId: article.id, payload: { title: article.title, status: article.status, visibility: article.visibility } })
+    const article = await prisma.knowledgeArticle.update({
+      where: { id },
+      data: {
+        title: data.title,
+        slug,
+        summary: data.summary || null,
+        bodyHtml: sanitizeSequenceEmailHtml(data.bodyHtml),
+        category: data.category || null,
+        status: data.status,
+        visibility: data.visibility,
+        tags: data.tags,
+        publishedAt: data.status === "PUBLISHED" ? existing.publishedAt || new Date() : null,
+      },
+    })
+    await logAction({
+      userId,
+      action: "UPDATE_KNOWLEDGE_ARTICLE",
+      resource: "KNOWLEDGE_ARTICLE",
+      resourceId: article.id,
+      payload: { title: article.title, status: article.status, visibility: article.visibility },
+    })
     revalidatePath("/dashboard/service/connaissance")
     revalidatePath("/portal")
     return { success: true as const }
@@ -143,14 +219,35 @@ export async function createSatisfactionRequest(input: unknown) {
       prisma.satisfactionSurvey.findFirst({ where: { id: data.surveyId, companyId, status: "ACTIVE" }, select: { id: true } }),
       prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
       data.contactId ? prisma.contact.findFirst({ where: { id: data.contactId, clientId: data.clientId, client: { companyId } }, select: { id: true } }) : null,
-      data.serviceTicketId ? prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, clientId: data.clientId, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }) : null,
+      data.serviceTicketId
+        ? prisma.serviceTicket.findFirst({
+            where: { id: data.serviceTicketId, clientId: data.clientId, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null },
+            select: { id: true },
+          })
+        : null,
     ])
     if (!survey || !client) throw new Error("Enquête ou client introuvable")
     if (data.contactId && !contact) throw new Error("Le contact ne correspond pas à ce client")
     if (data.serviceTicketId && !ticket) throw new Error("Le ticket ne correspond pas à ce client ou a déjà été fusionné")
     const token = randomBytes(32).toString("base64url")
-    const request = await prisma.satisfactionRequest.create({ data: { companyId, surveyId: survey.id, clientId: client.id, contactId: contact?.id || null, serviceTicketId: ticket?.id || null, tokenHash: tokenHash(token), expiresAt: new Date(Date.now() + data.expiresInDays * 86_400_000) } })
-    await logAction({ userId, action: "CREATE_SATISFACTION_REQUEST", resource: "SATISFACTION_REQUEST", resourceId: request.id, payload: { surveyId: survey.id, clientId: client.id, serviceTicketId: ticket?.id || null } })
+    const request = await prisma.satisfactionRequest.create({
+      data: {
+        companyId,
+        surveyId: survey.id,
+        clientId: client.id,
+        contactId: contact?.id || null,
+        serviceTicketId: ticket?.id || null,
+        tokenHash: tokenHash(token),
+        expiresAt: new Date(Date.now() + data.expiresInDays * 86_400_000),
+      },
+    })
+    await logAction({
+      userId,
+      action: "CREATE_SATISFACTION_REQUEST",
+      resource: "SATISFACTION_REQUEST",
+      resourceId: request.id,
+      payload: { surveyId: survey.id, clientId: client.id, serviceTicketId: ticket?.id || null },
+    })
     revalidatePath("/dashboard/service/satisfaction")
     return { success: true as const, id: request.id, url: `${appBaseUrl()}/feedback/${token}` }
   }, "service.write")
@@ -160,10 +257,28 @@ export async function getPublicSatisfactionRequest(token: string) {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return null
   const request = await prisma.satisfactionRequest.findUnique({
     where: { tokenHash: tokenHash(token) },
-    select: { id: true, status: true, expiresAt: true, respondedAt: true, createdAt: true, updatedAt: true, company: { select: { name: true, logo: true, brandColor: true } }, survey: { select: { name: true, type: true, question: true, followUpQuestion: true, scaleMin: true, scaleMax: true, anonymous: true } }, client: { select: { name: true } }, contact: { select: { firstName: true } }, serviceTicket: { select: { number: true, title: true } } },
+    select: {
+      id: true,
+      status: true,
+      expiresAt: true,
+      respondedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      company: { select: { name: true, logo: true, brandColor: true } },
+      survey: { select: { name: true, type: true, question: true, followUpQuestion: true, scaleMin: true, scaleMax: true, anonymous: true } },
+      client: { select: { name: true } },
+      contact: { select: { firstName: true } },
+      serviceTicket: { select: { number: true, title: true } },
+    },
   })
   if (!request) return null
-  return { ...request, expiresAt: request.expiresAt.toISOString(), respondedAt: request.respondedAt?.toISOString() ?? null, createdAt: request.createdAt.toISOString(), updatedAt: request.updatedAt.toISOString() }
+  return {
+    ...request,
+    expiresAt: request.expiresAt.toISOString(),
+    respondedAt: request.respondedAt?.toISOString() ?? null,
+    createdAt: request.createdAt.toISOString(),
+    updatedAt: request.updatedAt.toISOString(),
+  }
 }
 
 export async function submitPublicSatisfactionResponse(token: string, input: unknown) {
@@ -176,7 +291,10 @@ export async function submitPublicSatisfactionResponse(token: string, input: unk
     throw new Error("Cette enquête a expiré")
   }
   if (data.score < request.survey.scaleMin || data.score > request.survey.scaleMax) throw new Error("La note ne correspond pas à l’échelle de cette enquête")
-  const updated = await prisma.satisfactionRequest.updateMany({ where: { id: request.id, status: "PENDING" }, data: { status: "RESPONDED", score: data.score, comment: data.comment || null, respondedAt: new Date() } })
+  const updated = await prisma.satisfactionRequest.updateMany({
+    where: { id: request.id, status: "PENDING" },
+    data: { status: "RESPONDED", score: data.score, comment: data.comment || null, respondedAt: new Date() },
+  })
   if (updated.count !== 1) throw new Error("Cette enquête vient déjà d’être traitée")
   revalidatePath("/dashboard/service/satisfaction")
   return { success: true as const }

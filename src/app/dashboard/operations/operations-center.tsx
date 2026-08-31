@@ -6,6 +6,7 @@ import Link from "next/link"
 import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import { uploadResourceFile } from "@/lib/client-file-upload"
 
 import {
   createCustomerSite,
@@ -233,11 +234,7 @@ export function OperationsCenter({ initialData: sourceData }: { initialData: Ope
     if (!file) return
     startTransition(async () => {
       try {
-        const formData = new FormData()
-        formData.set("file", file)
-        const response = await fetch(`/api/files/intervention/${interventionId}`, { method: "POST", body: formData })
-        const result = await response.json()
-        if (!response.ok) throw new Error(result?.error || "Ajout impossible")
+        await uploadResourceFile("intervention", interventionId, file)
         toast.success("Pièce d’intervention ajoutée et contrôlée.")
         router.refresh()
       } catch (error) {

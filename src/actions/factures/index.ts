@@ -5,21 +5,12 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
-import {
-  CreditNoteSchema,
-  InvoiceSchema,
-  PaymentSchema,
-  RecurringInvoiceSchema,
-  ReminderSchema,
-} from "@/lib/validations"
-import {
-  buildYearlyDocumentPrefix,
-  nextDocumentNumber,
-  withDocumentNumberRetry,
-} from "@/lib/document-numbering"
+import { CreditNoteSchema, InvoiceSchema, PaymentSchema, RecurringInvoiceSchema, ReminderSchema } from "@/lib/validations"
+import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
 import { processDueRecurringInvoices } from "@/lib/scheduling/business"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { boundedPageSize } from "@/lib/pagination"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
 type PaymentInput = z.input<typeof PaymentSchema>
@@ -55,6 +46,7 @@ type TimeEntryForInvoice = {
 
 export async function getInvoices(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId, userId }) => {
+    const pageSize = boundedPageSize(limit, 50, 100)
     await processDueRecurringInvoices({ companyId, userId, limit: 20 })
     await prisma.invoice.updateMany({
       where: { companyId, status: "SENT", dueDate: { lt: new Date() } },
@@ -62,7 +54,7 @@ export async function getInvoices(cursor?: string, limit = 50) {
     })
     return await prisma.invoice.findMany({
       where: { companyId },
-      take: limit,
+      take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: {
@@ -120,12 +112,7 @@ function roundHours(durationSec: number) {
   return Math.round((durationSec / 3600) * 100) / 100
 }
 
-function buildProjectTimeLines(
-  entries: TimeEntryForInvoice[],
-  hourlyRateCents: number,
-  tvaRate: number,
-  lineMode: "GROUP_BY_PROJECT" | "DETAIL"
-) {
+function buildProjectTimeLines(entries: TimeEntryForInvoice[], hourlyRateCents: number, tvaRate: number, lineMode: "GROUP_BY_PROJECT" | "DETAIL") {
   if (lineMode === "DETAIL") {
     return entries
       .slice()
@@ -153,11 +140,12 @@ function buildProjectTimeLines(
     const durationSec = projectEntries.reduce((sum, entry) => sum + entry.durationSec, 0)
     const from = sorted[0]?.date
     const to = sorted[sorted.length - 1]?.date
-    const period = from && to
-      ? from.toDateString() === to.toDateString()
-        ? formatInvoiceDate(from)
-        : `${formatInvoiceDate(from)} - ${formatInvoiceDate(to)}`
-      : "P\u00e9riode non renseign\u00e9e"
+    const period =
+      from && to
+        ? from.toDateString() === to.toDateString()
+          ? formatInvoiceDate(from)
+          : `${formatInvoiceDate(from)} - ${formatInvoiceDate(to)}`
+        : "P\u00e9riode non renseign\u00e9e"
 
     return {
       label: `Temps pass\u00e9 - ${first.project.name}`,
@@ -228,56 +216,65 @@ export async function getUnbilledTimeEntries() {
 }
 
 export async function createInvoice(data: InvoiceInput) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, agencyIds }) => {
     const validated = InvoiceSchema.parse(data)
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { isTvaApplicable: true, invoicePrefix: true }
+      select: { isTvaApplicable: true, invoicePrefix: true },
     })
     if (!company) throw new Error("Entreprise introuvable")
+    if (agencyIds !== null && !validated.projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
 
-    const lines = company.isTvaApplicable
-      ? validated.lines
-      : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
+    const [client, project] = await Promise.all([
+      prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
+      validated.projectId ? prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId }, select: { id: true } }) : null,
+    ])
+    if (!client) throw new Error("Client introuvable")
+    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client ou à votre agence")
+
+    const lines = company.isTvaApplicable ? validated.lines : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
 
     const totals = calculateCommercialDocument(lines)
 
-    const invoice = await withDocumentNumberRetry(async () => {
-      const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
-      const created = await prisma.invoice.create({
-        data: {
-          companyId,
-          clientId: validated.clientId,
-          projectId: validated.projectId || null,
-          number,
-          object: validated.object,
-          status: "DRAFT",
-          type: validated.type ?? "STANDARD",
-          dueDate: new Date(validated.dueDate),
-          totalHtCents: totals.totalHtCents,
-          totalTvaCents: totals.totalTvaCents,
-          totalTtcCents: totals.totalTtcCents,
-          lines: {
-            create: lines.map((l, i) => ({
-              label: l.label,
-              description: l.description || null,
-              quantity: l.quantity,
-              unitPriceCents: l.unitPriceCents,
-              tvaRate: l.tvaRate,
-              order: i,
-            })),
+    const invoice = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
+        const created = await prisma.invoice.create({
+          data: {
+            companyId,
+            clientId: validated.clientId,
+            projectId: validated.projectId || null,
+            number,
+            object: validated.object,
+            status: "DRAFT",
+            type: validated.type ?? "STANDARD",
+            dueDate: new Date(validated.dueDate),
+            totalHtCents: totals.totalHtCents,
+            totalTvaCents: totals.totalTvaCents,
+            totalTtcCents: totals.totalTtcCents,
+            lines: {
+              create: lines.map((l, i) => ({
+                label: l.label,
+                description: l.description || null,
+                quantity: l.quantity,
+                unitPriceCents: l.unitPriceCents,
+                tvaRate: l.tvaRate,
+                order: i,
+              })),
+            },
           },
-        },
-      })
-      await logAction({
-        userId,
-        action: "CREATE_INVOICE",
-        resource: "INVOICE",
-        resourceId: created.id,
-        payload: { number, totalTtcCents: totals.totalTtcCents },
-      })
-      return created
-    }, { label: "la facture" })
+        })
+        await logAction({
+          userId,
+          action: "CREATE_INVOICE",
+          resource: "INVOICE",
+          resourceId: created.id,
+          payload: { number, totalTtcCents: totals.totalTtcCents },
+        })
+        return created
+      },
+      { label: "la facture" },
+    )
 
     revalidatePath("/dashboard/factures")
     return invoice
@@ -325,76 +322,74 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     const clientId = assertSingleClient(entries)
     const projectId = getSingleProjectId(entries)
     const tvaRate = company.isTvaApplicable ? 20 : 0
-    const lines = buildProjectTimeLines(
-      entries,
-      validated.hourlyRateCents,
-      tvaRate,
-      validated.lineMode
-    )
+    const lines = buildProjectTimeLines(entries, validated.hourlyRateCents, tvaRate, validated.lineMode)
     const totals = calculateCommercialDocument(lines)
     const clientName = entries[0].project.client.name
     const object = validated.object || `Temps pass\u00e9 - ${clientName}`
 
-    const invoice = await withDocumentNumberRetry(async () => {
-      const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
+    const invoice = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
 
-      return await prisma.$transaction(async (tx) => {
-        const created = await tx.invoice.create({
-          data: {
-            companyId,
-            clientId,
-            projectId,
-            number,
-            object,
-            status: "DRAFT",
-            type: "STANDARD",
-            dueDate: new Date(validated.dueDate),
-            totalHtCents: totals.totalHtCents,
-            totalTvaCents: totals.totalTvaCents,
-            totalTtcCents: totals.totalTtcCents,
-            lines: {
-              create: lines.map((line) => ({
-                label: line.label,
-                description: line.description,
-                quantity: line.quantity,
-                unitPriceCents: line.unitPriceCents,
-                tvaRate: line.tvaRate,
-                order: line.order,
-              })),
-            },
-          },
-        })
-
-        const updated = await tx.timeEntry.updateMany({
-          where: {
-            id: { in: uniqueEntryIds },
-            invoiceId: null,
-          },
-          data: { invoiceId: created.id },
-        })
-
-        if (updated.count !== uniqueEntryIds.length) {
-          throw new Error("Les temps ont chang\u00e9 pendant la cr\u00e9ation de la facture. R\u00e9essayez.")
-        }
-
-        await tx.auditLog.create({
-          data: {
-            userId,
-            action: "CREATE_INVOICE_FROM_TIME",
-            resource: "INVOICE",
-            resourceId: created.id,
-            payload: {
+        return await prisma.$transaction(async (tx) => {
+          const created = await tx.invoice.create({
+            data: {
+              companyId,
+              clientId,
+              projectId,
               number,
-              timeEntryIds: uniqueEntryIds,
+              object,
+              status: "DRAFT",
+              type: "STANDARD",
+              dueDate: new Date(validated.dueDate),
+              totalHtCents: totals.totalHtCents,
+              totalTvaCents: totals.totalTvaCents,
               totalTtcCents: totals.totalTtcCents,
-              lineMode: validated.lineMode,
+              lines: {
+                create: lines.map((line) => ({
+                  label: line.label,
+                  description: line.description,
+                  quantity: line.quantity,
+                  unitPriceCents: line.unitPriceCents,
+                  tvaRate: line.tvaRate,
+                  order: line.order,
+                })),
+              },
             },
-          },
-        })
+          })
 
-        return created
-      })
-    }, { label: "la facture issue des temps" })
+          const updated = await tx.timeEntry.updateMany({
+            where: {
+              id: { in: uniqueEntryIds },
+              invoiceId: null,
+            },
+            data: { invoiceId: created.id },
+          })
+
+          if (updated.count !== uniqueEntryIds.length) {
+            throw new Error("Les temps ont chang\u00e9 pendant la cr\u00e9ation de la facture. R\u00e9essayez.")
+          }
+
+          await tx.auditLog.create({
+            data: {
+              userId,
+              action: "CREATE_INVOICE_FROM_TIME",
+              resource: "INVOICE",
+              resourceId: created.id,
+              payload: {
+                number,
+                timeEntryIds: uniqueEntryIds,
+                totalTtcCents: totals.totalTtcCents,
+                lineMode: validated.lineMode,
+              },
+            },
+          })
+
+          return created
+        })
+      },
+      { label: "la facture issue des temps" },
+    )
 
     revalidatePath("/dashboard/factures")
     revalidatePath("/dashboard/factures/temps-non-facture")
@@ -405,7 +400,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
 }
 
 export async function updateInvoice(id: string, data: InvoiceInput) {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, agencyIds }) => {
     const validated = InvoiceSchema.parse(data)
     const existing = await prisma.invoice.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Facture introuvable")
@@ -415,40 +410,54 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
 
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      select: { isTvaApplicable: true }
+      select: { isTvaApplicable: true },
     })
     if (!company) throw new Error("Entreprise introuvable")
+    if (agencyIds !== null && !validated.projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
 
-    const lines = company.isTvaApplicable
-      ? validated.lines
-      : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
+    const [client, project] = await Promise.all([
+      prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
+      validated.projectId ? prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId }, select: { id: true } }) : null,
+    ])
+    if (!client) throw new Error("Client introuvable")
+    if (validated.projectId && !project) throw new Error("Le chantier ne correspond pas au client ou à votre agence")
+
+    const lines = company.isTvaApplicable ? validated.lines : validated.lines.map((l) => ({ ...l, tvaRate: 0 }))
 
     const totals = calculateCommercialDocument(lines)
 
-    await prisma.invoiceLine.deleteMany({ where: { invoiceId: id } })
-
-    const invoice = await prisma.invoice.update({
-      where: { id },
-      data: {
-        clientId: validated.clientId,
-        projectId: validated.projectId || null,
-        object: validated.object,
-        type: validated.type ?? existing.type,
-        dueDate: new Date(validated.dueDate),
-        totalHtCents: totals.totalHtCents,
-        totalTvaCents: totals.totalTvaCents,
-        totalTtcCents: totals.totalTtcCents,
-        lines: {
-          create: lines.map((l, i) => ({
-            label: l.label,
-            description: l.description || null,
-            quantity: l.quantity,
-            unitPriceCents: l.unitPriceCents,
-            tvaRate: l.tvaRate,
-            order: i,
-          })),
+    const invoice = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.invoice.updateMany({
+        where: { id, companyId, status: "DRAFT", updatedAt: existing.updatedAt },
+        data: {
+          clientId: validated.clientId,
+          projectId: validated.projectId || null,
+          object: validated.object,
+          type: validated.type ?? existing.type,
+          dueDate: new Date(validated.dueDate),
+          totalHtCents: totals.totalHtCents,
+          totalTvaCents: totals.totalTvaCents,
+          totalTtcCents: totals.totalTtcCents,
         },
-      },
+      })
+      if (claimed.count !== 1) throw new Error("La facture a changé pendant la modification. Rechargez-la puis réessayez.")
+
+      await tx.invoiceLine.deleteMany({ where: { invoiceId: id } })
+      await tx.invoiceLine.createMany({
+        data: lines.map((line, order) => ({
+          invoiceId: id,
+          label: line.label,
+          description: line.description || null,
+          quantity: line.quantity,
+          unitPriceCents: line.unitPriceCents,
+          tvaRate: line.tvaRate,
+          order,
+        })),
+      })
+      return tx.invoice.findUniqueOrThrow({
+        where: { id },
+        include: { lines: { orderBy: { order: "asc" } } },
+      })
     })
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${id}`)
@@ -456,10 +465,7 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
   })
 }
 
-export async function updateInvoiceStatus(
-  invoiceId: string,
-  status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED"
-) {
+export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED") {
   return await withAuth(async ({ userId, companyId }) => {
     const existing = await prisma.invoice.findFirst({
       where: { id: invoiceId, companyId },
@@ -481,22 +487,27 @@ export async function updateInvoiceStatus(
       throw new Error("Transition de statut non autorisée. Une facture émise se corrige avec un avoir.")
     }
 
-    const readiness = status === "SENT"
-      ? getEInvoiceReadiness({
-          companySiret: existing.company.siret,
-          clientSiret: existing.client.siret,
-          clientType: existing.client.type,
-        })
-      : null
+    const readiness =
+      status === "SENT"
+        ? getEInvoiceReadiness({
+            companySiret: existing.company.siret,
+            clientSiret: existing.client.siret,
+            clientType: existing.client.type,
+          })
+        : null
 
-    const invoice = await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        status,
-        lockedAt: status === "SENT" ? new Date() : existing.lockedAt,
-        eInvoiceStatus: readiness?.status ?? existing.eInvoiceStatus,
-        eInvoiceError: readiness?.error ?? existing.eInvoiceError,
-      },
+    const invoice = await prisma.$transaction(async (tx) => {
+      const updated = await tx.invoice.updateMany({
+        where: { id: invoiceId, companyId, status: existing.status, updatedAt: existing.updatedAt },
+        data: {
+          status,
+          lockedAt: status === "SENT" ? new Date() : existing.lockedAt,
+          eInvoiceStatus: readiness?.status ?? existing.eInvoiceStatus,
+          eInvoiceError: readiness?.error ?? existing.eInvoiceError,
+        },
+      })
+      if (updated.count !== 1) throw new Error("La facture a changé. Rechargez-la avant de modifier son statut.")
+      return tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } })
     })
     await logAction({
       userId,
@@ -544,7 +555,7 @@ export async function recordPayment(data: PaymentInput) {
       where: { id: validated.invoiceId, companyId },
     })
     if (!invoice) throw new Error("Facture introuvable")
-    if (!['SENT', 'OVERDUE'].includes(invoice.status)) {
+    if (!["SENT", "OVERDUE"].includes(invoice.status)) {
       throw new Error("Émettez la facture avant d'enregistrer un paiement.")
     }
     const remaining = invoice.totalTtcCents - invoice.paidAmountCents
@@ -555,7 +566,34 @@ export async function recordPayment(data: PaymentInput) {
     const newPaid = invoice.paidAmountCents + validated.amountCents
     const isPaid = newPaid >= invoice.totalTtcCents
 
-    const payment = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      if (validated.reference) {
+        const duplicate = await tx.invoicePayment.findFirst({
+          where: { invoiceId: validated.invoiceId, reference: validated.reference },
+        })
+        if (duplicate) {
+          if (duplicate.amountCents !== validated.amountCents || duplicate.method !== validated.method) {
+            throw new Error("Cette référence de paiement est déjà utilisée avec un autre montant ou mode.")
+          }
+          return { payment: duplicate, duplicate: true, isPaid: invoice.status === "PAID" }
+        }
+      }
+
+      const claimed = await tx.invoice.updateMany({
+        where: {
+          id: validated.invoiceId,
+          companyId,
+          status: invoice.status,
+          paidAmountCents: invoice.paidAmountCents,
+          updatedAt: invoice.updatedAt,
+        },
+        data: {
+          paidAmountCents: newPaid,
+          status: isPaid ? "PAID" : invoice.status,
+        },
+      })
+      if (claimed.count !== 1) throw new Error("La facture a reçu une autre opération. Rechargez-la puis réessayez.")
+
       const created = await tx.invoicePayment.create({
         data: {
           invoiceId: validated.invoiceId,
@@ -564,25 +602,20 @@ export async function recordPayment(data: PaymentInput) {
           reference: validated.reference || null,
         },
       })
-      await tx.invoice.update({
-        where: { id: validated.invoiceId },
+      await tx.auditLog.create({
         data: {
-          paidAmountCents: newPaid,
-          status: isPaid ? "PAID" : invoice.status,
+          userId,
+          action: "RECORD_PAYMENT",
+          resource: "INVOICE",
+          resourceId: validated.invoiceId,
+          payload: { payment: validated.amountCents, isPaid, method: validated.method, reference: validated.reference || null },
         },
       })
-      return created
-    })
-    await logAction({
-      userId,
-      action: "UPDATE_INVOICE_STATUS",
-      resource: "INVOICE",
-      resourceId: validated.invoiceId,
-      payload: { payment: validated.amountCents, isPaid },
+      return { payment: created, duplicate: false, isPaid }
     })
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${validated.invoiceId}`)
-    return payment
+    return result.payment
   })
 }
 
@@ -602,79 +635,81 @@ export async function createCreditNote(data: CreditNoteInput) {
       throw new Error("Un avoir ne peut être créé que depuis une facture émise.")
     }
 
-    const alreadyCredited = original.creditInvoices.reduce(
-      (sum, credit) => sum + Math.abs(credit.totalTtcCents),
-      0
-    )
+    const alreadyCredited = original.creditInvoices.reduce((sum, credit) => sum + Math.abs(credit.totalTtcCents), 0)
     const available = original.totalTtcCents - alreadyCredited
     if (validated.amountCents > available) {
       throw new Error("Le montant de l'avoir dépasse le montant encore disponible.")
     }
 
-    const { htCents, tvaCents, tvaRate } = computeCreditBreakdown(
-      original.totalTtcCents,
-      original.totalHtCents,
-      validated.amountCents
-    )
+    const { htCents, tvaCents, tvaRate } = computeCreditBreakdown(original.totalTtcCents, original.totalHtCents, validated.amountCents)
     const readiness = getEInvoiceReadiness({
       companySiret: original.company.siret,
       clientSiret: original.client.siret,
       clientType: original.client.type,
     })
 
-    const credit = await withDocumentNumberRetry(async () => {
-      const number = await generateCreditNoteNumber(companyId)
-      return prisma.$transaction(async (tx) => {
-        const created = await tx.invoice.create({
-          data: {
-            companyId,
-            clientId: original.clientId,
-            projectId: original.projectId,
-            originalInvoiceId: original.id,
-            number,
-            object: `Avoir sur ${original.number} - ${validated.reason}`,
-            status: "SENT",
-            type: "CREDIT_NOTE",
-            date: new Date(),
-            dueDate: new Date(),
-            totalHtCents: -htCents,
-            totalTvaCents: -tvaCents,
-            totalTtcCents: -validated.amountCents,
-            lockedAt: new Date(),
-            eInvoiceStatus: readiness.status,
-            eInvoiceError: readiness.error,
-            lines: {
-              create: {
-                label: `Avoir ${original.number}`,
-                description: validated.reason,
-                quantity: 1,
-                unitPriceCents: -htCents,
-                tvaRate,
-                order: 0,
+    const credit = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateCreditNoteNumber(companyId)
+        return prisma.$transaction(async (tx) => {
+          const claimed = await tx.invoice.updateMany({
+            where: { id: original.id, companyId, status: original.status, updatedAt: original.updatedAt },
+            data: { updatedAt: new Date(original.updatedAt.getTime() + 1) },
+          })
+          if (claimed.count !== 1) throw new Error("La facture a reçu une autre opération. Rechargez-la puis réessayez.")
+
+          const created = await tx.invoice.create({
+            data: {
+              companyId,
+              clientId: original.clientId,
+              projectId: original.projectId,
+              originalInvoiceId: original.id,
+              number,
+              object: `Avoir sur ${original.number} - ${validated.reason}`,
+              status: "SENT",
+              type: "CREDIT_NOTE",
+              date: new Date(),
+              dueDate: new Date(),
+              totalHtCents: -htCents,
+              totalTvaCents: -tvaCents,
+              totalTtcCents: -validated.amountCents,
+              lockedAt: new Date(),
+              eInvoiceStatus: readiness.status,
+              eInvoiceError: readiness.error,
+              lines: {
+                create: {
+                  label: `Avoir ${original.number}`,
+                  description: validated.reason,
+                  quantity: 1,
+                  unitPriceCents: -htCents,
+                  tvaRate,
+                  order: 0,
+                },
               },
             },
-          },
+          })
+          await tx.creditNote.create({
+            data: {
+              invoiceId: original.id,
+              number,
+              amountCents: validated.amountCents,
+              reason: validated.reason,
+            },
+          })
+          await tx.auditLog.create({
+            data: {
+              userId,
+              action: "CREATE_CREDIT_NOTE",
+              resource: "INVOICE",
+              resourceId: created.id,
+              payload: { originalInvoiceId: original.id, amountCents: validated.amountCents },
+            },
+          })
+          return created
         })
-        await tx.creditNote.create({
-          data: {
-            invoiceId: original.id,
-            number,
-            amountCents: validated.amountCents,
-            reason: validated.reason,
-          },
-        })
-        await tx.auditLog.create({
-          data: {
-            userId,
-            action: "CREATE_CREDIT_NOTE",
-            resource: "INVOICE",
-            resourceId: created.id,
-            payload: { originalInvoiceId: original.id, amountCents: validated.amountCents },
-          },
-        })
-        return created
-      })
-    }, { label: "l'avoir" })
+      },
+      { label: "l'avoir" },
+    )
 
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${original.id}`)
@@ -700,16 +735,18 @@ export async function prepareInvoiceReminder(data: ReminderInput) {
     const amount = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(remaining / 100)
     const dueDate = invoice.dueDate.toLocaleDateString("fr-FR")
     const subject = validated.subject || `Relance facture ${invoice.number}`
-    const message = validated.message || [
-      `Bonjour,`,
-      "",
-      `Sauf erreur de notre part, la facture ${invoice.number} d'un montant restant de ${amount}, échue le ${dueDate}, reste en attente de règlement.`,
-      "",
-      "Pouvez-vous nous confirmer sa date de mise en paiement ?",
-      "",
-      `Cordialement,`,
-      invoice.company.name,
-    ].join("\n")
+    const message =
+      validated.message ||
+      [
+        `Bonjour,`,
+        "",
+        `Sauf erreur de notre part, la facture ${invoice.number} d'un montant restant de ${amount}, échue le ${dueDate}, reste en attente de règlement.`,
+        "",
+        "Pouvez-vous nous confirmer sa date de mise en paiement ?",
+        "",
+        `Cordialement,`,
+        invoice.company.name,
+      ].join("\n")
     const reminder = await prisma.invoiceReminder.create({
       data: { companyId, invoiceId: invoice.id, subject, message },
     })
@@ -734,11 +771,13 @@ export async function markInvoiceReminderSent(id: string) {
 }
 
 export async function getRecurringInvoices() {
-  return withAuth(async ({ companyId }) => prisma.recurringInvoice.findMany({
-    where: { companyId },
-    include: { client: { select: { id: true, name: true } }, occurrences: true },
-    orderBy: [{ isActive: "desc" }, { nextGenDate: "asc" }],
-  }))
+  return withAuth(async ({ companyId }) =>
+    prisma.recurringInvoice.findMany({
+      where: { companyId },
+      include: { client: { select: { id: true, name: true } }, occurrences: true },
+      orderBy: [{ isActive: "desc" }, { nextGenDate: "asc" }],
+    }),
+  )
 }
 
 export async function createRecurringInvoice(data: RecurringInvoiceInput) {

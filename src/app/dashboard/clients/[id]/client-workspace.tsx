@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { CalendarClock, FileText, Mail, MessageSquarePlus, Phone, Plus, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
+import { uploadResourceFile } from "@/lib/client-file-upload"
 import {
   addClientActivity,
   createContact,
@@ -86,11 +87,7 @@ export function ClientWorkspace({
     if (!file) return
     setPending(true)
     try {
-      const formData = new FormData()
-      formData.set("file", file)
-      const response = await fetch(`/api/files/client/${clientId}`, { method: "POST", body: formData })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result?.error ?? "Import impossible")
+      await uploadResourceFile("client", clientId, file)
       toast.success("Document client enregistré.")
       router.refresh()
     } catch (error) {

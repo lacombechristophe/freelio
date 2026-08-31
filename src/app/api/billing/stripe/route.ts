@@ -4,12 +4,13 @@ import type Stripe from "stripe"
 import { planFromStripePrice } from "@/lib/billing/plans"
 import { stripeClient } from "@/lib/billing/stripe"
 import prisma from "@/lib/prisma"
+import { PayloadTooLargeError, readTextBody } from "@/lib/http-body"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function objectId(value: string | { id: string } | null | undefined) {
-  return typeof value === "string" ? value : value?.id ?? null
+  return typeof value === "string" ? value : (value?.id ?? null)
 }
 
 async function syncSubscription(subscription: Stripe.Subscription) {
@@ -72,7 +73,13 @@ export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature")
   if (!webhookSecret || !signature) return Response.json({ error: "Webhook non configuré" }, { status: 503 })
 
-  const rawBody = await request.text()
+  let rawBody: string
+  try {
+    rawBody = await readTextBody(request, 1024 * 1024)
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) return Response.json({ error: "Webhook trop volumineux" }, { status: 413 })
+    throw error
+  }
   let event: Stripe.Event
   try {
     event = stripeClient().webhooks.constructEvent(rawBody, signature, webhookSecret)

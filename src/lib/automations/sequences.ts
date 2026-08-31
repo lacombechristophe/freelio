@@ -169,6 +169,7 @@ export async function processDueSequenceEmails(limit = 50, companyId?: string) {
         contactId: enrollment.contactId,
         leadCaptureId: lead.id,
         deliveryId: delivery.id,
+        provider: sent.provider,
         providerId: sent.providerId,
         from: sent.from,
         to: [lead.email!],

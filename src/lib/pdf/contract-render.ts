@@ -66,17 +66,6 @@ function formatDate(value: Date | string | null | undefined) {
   })
 }
 
-function normalizeHexColor(color: string | null | undefined) {
-  if (!color) return "#3157d5"
-  const trimmed = color.trim()
-  if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed
-  if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
-    const [, red, green, blue] = trimmed
-    return `#${red}${red}${green}${green}${blue}${blue}`
-  }
-  return "#3157d5"
-}
-
 function safeImageSource(source: string | null | undefined, allowRemote = false) {
   if (!source) return null
   const trimmed = source.trim()
@@ -142,7 +131,7 @@ function signatureMarkup(doc: ContractPdfDocument) {
 
 export function renderContractHtml(doc: ContractPdfDocument) {
   const safeContent = sanitizeContractHtml(doc.contentHtml)
-  const primary = normalizeHexColor(doc.company.brandColor)
+  const primary = "#202630"
   const logo = safeImageSource(doc.company.logo, true)
   const companyLegal = [
     escapeHtml(doc.company.name),

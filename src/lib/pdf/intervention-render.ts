@@ -62,12 +62,8 @@ function signatureImage(value: string | null | undefined) {
   return value && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value) ? value : null
 }
 
-function color(value: string | null | undefined) {
-  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#0b63f6"
-}
-
 export function renderInterventionReportHtml(doc: InterventionReportDocument) {
-  const accent = color(doc.company.brandColor)
+  const accent = "#202630"
   const reference = doc.ticketNumber || `INT-${doc.id.slice(-8).toUpperCase()}`
   const siteAddress = [doc.site.address1, doc.site.address2, [doc.site.postalCode, doc.site.city].filter(Boolean).join(" ")].filter(Boolean).map((line) => escapeHtml(line || "")).join("<br>")
   const companyLine = [doc.company.address, doc.company.email, doc.company.phone, doc.company.siret ? `SIRET ${doc.company.siret}` : null].filter(Boolean).map((item) => escapeHtml(item || "")).join(" · ")

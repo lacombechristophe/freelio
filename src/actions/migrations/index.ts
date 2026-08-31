@@ -640,6 +640,10 @@ export async function analyzeMigrationRun(runId: string) {
     try {
       for (const document of run.documents) {
         const bytes = await readMigrationArtifact(document.storageKey)
+        const actualSha256 = createHash("sha256").update(bytes).digest("hex")
+        if (bytes.byteLength !== document.size || actualSha256 !== document.sha256) {
+          throw new Error(`L’archive ${document.fileName} ne correspond pas à son manifeste d’intégrité`)
+        }
         const parsed = await parseMigrationArtifact({
           fileName: document.fileName,
           bytes,

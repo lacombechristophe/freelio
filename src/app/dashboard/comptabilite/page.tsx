@@ -185,10 +185,15 @@ export default async function ComptabilitePage() {
         </CardContent>
       </Card>
 
-      <div className="p-4 rounded-lg bg-muted/20 border-l-4 border-primary text-xs text-muted-foreground">
-        <p className="font-bold text-primary mb-1 uppercase tracking-widest">Périmètre comptable</p>
-        L’archive téléchargée est un export précomptable équilibré accompagné de ses empreintes. Elle ne constitue pas un FEC réglementaire ni une comptabilité générale certifiée et doit être validée par le cabinet comptable avant import ou déclaration.
-      </div>
+      <aside className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-xs leading-5 text-muted-foreground shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <AlertCircle className="size-4" />
+        </span>
+        <div>
+          <p className="mb-1 font-semibold text-foreground">Périmètre comptable</p>
+          L’archive téléchargée est un export précomptable équilibré accompagné de ses empreintes. Elle ne constitue pas un FEC réglementaire ni une comptabilité générale certifiée et doit être validée par le cabinet comptable avant import ou déclaration.
+        </div>
+      </aside>
     </div>
   )
 }

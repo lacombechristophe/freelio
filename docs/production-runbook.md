@@ -77,9 +77,33 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires dès que plusieurs instances servent du trafic ou que la capture publique est ouverte ;
 - `REDIS_HOST` et `REDIS_PORT` : obligatoires pour BullMQ ;
 - `GEMINI_API_KEY` : seulement pour l'OCR des justificatifs.
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte/calendrier correspondant doit être autorisé ; ne jamais afficher un canal comme actif avant le consentement OAuth et un test de lecture/écriture.
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte correspondante doit être autorisée ; enregistrer exactement `https://<domaine>/api/integrations/email/oauth/callback`, conserver l’accès hors ligne et ne jamais afficher le canal comme actif avant le consentement OAuth et la vérification de l’identité.
+- `COMMUNICATIONS_CRON_SECRET` : secret Bearer dédié à la synchronisation planifiée des boîtes OAuth ; son absence replie explicitement sur `AUTOMATION_CRON_SECRET`.
 
 Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur présence, leur date de rotation et l'accès au service cible.
+
+### CORS du bucket R2 privé
+
+Les archives volumineuses sont envoyées directement du navigateur vers une URL `PUT` présignée afin de ne pas traverser la limite de taille des fonctions Vercel. Le bucket doit donc autoriser uniquement l’origine de production et les en-têtes signés utilisés par l’application. Exemple à adapter à `PUBLIC_APP_URL` (ajouter `http://localhost:3000` uniquement sur un bucket de développement) :
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://freelio-eight.vercel.app"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": [
+      "Content-Type",
+      "x-amz-meta-sha256",
+      "x-amz-meta-company",
+      "x-amz-meta-run"
+    ],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Ne pas utiliser `*` pour l’origine du bucket de production. Après modification, vérifier le prévol et un transfert réel depuis le domaine canonique ; les URL présignées expirent après quinze minutes et la règle CORS peut demander quelques secondes pour se propager.
 
 ### Rotation
 
@@ -137,9 +161,9 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker peut traiter les séquences e-mail. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Les traitements `GET /api/automations/process` (toutes les cinq minutes recommandé) et `GET /api/scheduling/process` (horaire recommandé) doivent être confiés à Vercel Pro, au worker BullMQ ou à un ordonnanceur externe approuvé. Les variantes `POST` restent disponibles avec le même contrôle Bearer. Ne pas ouvrir les séquences en production tant qu’un de ces mécanismes n’est pas observé et alerté.
+Le worker peut traiter les séquences e-mail et synchroniser les boîtes OAuth toutes les cinq minutes. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Les traitements `GET /api/automations/process` (toutes les cinq minutes recommandé), `GET /api/communications/sync/process` (toutes les cinq minutes recommandé) et `GET /api/scheduling/process` (horaire recommandé) doivent être confiés à Vercel Pro, au worker ou à un ordonnanceur externe approuvé. Les variantes `POST` restent disponibles avec le même contrôle Bearer. Ne pas ouvrir les séquences ni annoncer la synchronisation continue tant que ces mécanismes ne sont pas observés et alertés.
 
-Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive.
+Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive. La route de restauration web est désactivée par défaut en production ; `ENABLE_IN_APP_RESTORE=true` ne doit être utilisé que dans un environnement isolé, sans envoi d’e-mails ni trafic public, et reste limité à 4 Mo. Les archives plus grandes suivent exclusivement la recette de restauration ci-dessous.
 
 ### 4.5 Smoke test après déploiement
 
@@ -150,6 +174,7 @@ Effectuer avec un compte de recette non privilégié puis avec chaque rôle crit
 - création d’un compte de recette, connexion par mot de passe et rejet d’un mot de passe incorrect ;
 - si Resend est activé, lien magique reçu et utilisable une fois ;
 - si la réception e-mail est activée, webhook signé reçu, événement dédoublonné et réponse rattachée au bon client ;
+- si Google ou Microsoft est activé, consentement OAuth avec la bonne adresse, envoi test, synchronisation manuelle puis passage du cron contrôlés ;
 - dashboard, clients, pipeline, projets, opérations, factures et migrations chargent ;
 - isolation des rôles : un profil sans permission ne peut pas muter le domaine ;
 - création puis suppression d'un prospect de recette ;
@@ -209,6 +234,8 @@ Les durées exactes doivent être validées avec l'expert-comptable et le réfé
 6. Exécuter les scénarios P0.
 7. Mesurer le temps réel de restauration et le comparer au RTO.
 8. Faire signer le procès-verbal par l'opérateur et un représentant métier.
+
+Ne restaurez jamais une archive métier dans la base de production active via une requête navigateur. Le flux HTTP est volontairement borné ; les restaurations réelles partent d’un clone PostgreSQL isolé et d’un inventaire R2 vérifié.
 
 ## 7. Supervision et alertes
 

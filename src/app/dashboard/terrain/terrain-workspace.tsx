@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { AlertOctagon, CheckCircle2, CloudDownload, CloudOff, FileImage, FileText, Loader2, MapPin, PackageMinus, Plus, ReceiptText, RefreshCw, Save, Send, ShieldCheck, Trash2, Wifi } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { uploadResourceFile } from "@/lib/client-file-upload"
 
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -45,11 +46,7 @@ function siteAddress(assignment: FieldAssignment) {
 
 async function uploadDraftPhotos(draft: FieldDraft) {
   for (const photo of draft.photos) {
-    const formData = new FormData()
-    formData.set("file", new File([photo.blob], photo.name, { type: photo.type }))
-    const response = await fetch(`/api/files/intervention/${draft.interventionId}`, { method: "POST", body: formData })
-    const result = await response.json()
-    if (!response.ok) throw new Error(result?.error || `Envoi impossible : ${photo.name}`)
+    await uploadResourceFile("intervention", draft.interventionId, new File([photo.blob], photo.name, { type: photo.type }))
   }
 }
 
@@ -58,11 +55,7 @@ async function uploadDraftExpenseReceipts(draft: FieldDraft, mappings: Array<{ i
     if (!expense.receipt) continue
     const mapping = mappings.find((item) => item.sourceId === expense.id)
     if (!mapping) throw new Error(`Frais introuvable après clôture : ${expense.label}`)
-    const formData = new FormData()
-    formData.set("file", new File([expense.receipt.blob], expense.receipt.name, { type: expense.receipt.type }))
-    const response = await fetch(`/api/files/expense/${mapping.id}`, { method: "POST", body: formData })
-    const result = await response.json()
-    if (!response.ok) throw new Error(result?.error || `Justificatif impossible : ${expense.receipt.name}`)
+    await uploadResourceFile("expense", mapping.id, new File([expense.receipt.blob], expense.receipt.name, { type: expense.receipt.type }))
   }
 }
 

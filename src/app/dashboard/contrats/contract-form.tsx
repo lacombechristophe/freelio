@@ -223,7 +223,7 @@ export function ContractForm({
                 <Badge variant="secondary">{CONTRACT_TEMPLATE_PRESETS.length} modèles</Badge>
               </div>
               <CardDescription className="max-w-3xl text-xs">
-                Bases de rédaction structurées pour contrats, avenants, confidentialité, maintenance, conseil et missions opérationnelles.
+                Bases métier pour pose, rénovation, entretien, SAV, sous-traitance et avenants de chantier.
               </CardDescription>
             </div>
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-200 md:max-w-sm">

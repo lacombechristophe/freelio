@@ -1,9 +1,10 @@
 "use server"
 
 import { auth } from "@/auth"
+import logger from "@/lib/logger"
+import { DUPLICATE_SIRET_MESSAGE, onboardingErrorCode, onboardingErrorMessage } from "@/lib/onboarding-errors"
 import prisma from "@/lib/prisma"
 import { OnboardingFormSchema } from "@/lib/validations"
-import { Prisma } from "@prisma/client"
 import { redirect } from "next/navigation"
 import { encrypt } from "@/lib/crypto"
 
@@ -30,6 +31,14 @@ export async function completeOnboarding(data: unknown) {
 
     const payload = validated.data
     const latePenaltyRate = parseLatePenaltyRate(payload.latePenaltyRate)
+
+    if (payload.siret) {
+      const companyWithSiret = await prisma.company.findUnique({
+        where: { siret: payload.siret },
+        select: { id: true },
+      })
+      if (companyWithSiret) return { success: false, error: DUPLICATE_SIRET_MESSAGE }
+    }
 
     // Check if user already has a company to avoid duplicate onboarding
     const currentUser = await prisma.user.findUnique({
@@ -145,18 +154,17 @@ export async function completeOnboarding(data: unknown) {
     ) {
       throw error
     }
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return {
-        success: false,
-        error: "Ce SIRET est déjà associé à un espace entreprise.",
-      }
-    }
+    logger.error(
+      {
+        action: "onboarding.complete.failed",
+        errorCode: onboardingErrorCode(error),
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      },
+      "Onboarding completion failed",
+    )
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Une erreur fatale est survenue lors de la création de votre espace.",
+      error: onboardingErrorMessage(error),
     }
   }
 }

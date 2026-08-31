@@ -7,19 +7,13 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { ContractSchema } from "@/lib/validations"
-import {
-  buildYearlyDocumentPrefix,
-  nextDocumentNumber,
-  withDocumentNumberRetry,
-} from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { compileContractVariables } from "@/lib/contracts/html"
-import {
-  buildContractAmendmentContent,
-  buildMaintenanceRenewalContent,
-} from "@/lib/contracts/structured-documents"
+import { buildContractAmendmentContent, buildMaintenanceRenewalContent } from "@/lib/contracts/structured-documents"
 import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
 import { signatureRateLimit } from "@/lib/rate-limit"
 import { headers } from "next/headers"
+import { boundedPageSize } from "@/lib/pagination"
 
 type ContractInput = z.input<typeof ContractSchema>
 
@@ -28,20 +22,26 @@ const amendmentSchema = z.object({
   title: z.string().trim().min(3).max(200),
   reason: z.string().trim().min(5).max(2_000),
   effectiveAt: z.string().date(),
-  changes: z.array(z.object({
-    category: z.enum(["PÉRIMÈTRE", "DÉLAI", "PRIX", "FACTURATION", "GARANTIE", "AUTRE"]),
-    label: z.string().trim().min(2).max(150),
-    previousValue: z.string().trim().max(1_000).optional().or(z.literal("")),
-    nextValue: z.string().trim().min(1).max(1_000),
-    financialImpactCents: z.number().int().min(-100_000_000).max(100_000_000).nullable().optional(),
-  })).min(1).max(20),
+  changes: z
+    .array(
+      z.object({
+        category: z.enum(["PÉRIMÈTRE", "DÉLAI", "PRIX", "FACTURATION", "GARANTIE", "AUTRE"]),
+        label: z.string().trim().min(2).max(150),
+        previousValue: z.string().trim().max(1_000).optional().or(z.literal("")),
+        nextValue: z.string().trim().min(1).max(1_000),
+        financialImpactCents: z.number().int().min(-100_000_000).max(100_000_000).nullable().optional(),
+      }),
+    )
+    .min(1)
+    .max(20),
 })
 
 export async function getContracts(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
+    const pageSize = boundedPageSize(limit, 50, 100)
     return await prisma.contract.findMany({
       where: { companyId },
-      take: limit,
+      take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: {
@@ -98,27 +98,30 @@ export async function createContractAmendment(input: unknown) {
       effectiveAt,
       changes: data.changes,
     })
-    const contract = await withDocumentNumberRetry(async () => {
-      const number = await generateContractNumber(companyId, "AVN-")
-      return prisma.contract.create({
-        data: {
-          companyId,
-          clientId: parent.clientId,
-          number,
-          title: data.title,
-          status: "DRAFT",
-          kind: "AMENDMENT",
-          content,
-          validFrom: effectiveAt,
-          parentContractId: parent.id,
-          amendmentReason: data.reason,
-          effectiveAt,
-          changes: {
-            create: data.changes.map((change, order) => ({ ...change, previousValue: change.previousValue || null, order })),
+    const contract = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateContractNumber(companyId, "AVN-")
+        return prisma.contract.create({
+          data: {
+            companyId,
+            clientId: parent.clientId,
+            number,
+            title: data.title,
+            status: "DRAFT",
+            kind: "AMENDMENT",
+            content,
+            validFrom: effectiveAt,
+            parentContractId: parent.id,
+            amendmentReason: data.reason,
+            effectiveAt,
+            changes: {
+              create: data.changes.map((change, order) => ({ ...change, previousValue: change.previousValue || null, order })),
+            },
           },
-        },
-      })
-    }, { label: "l’avenant" })
+        })
+      },
+      { label: "l’avenant" },
+    )
 
     await logAction({
       userId,
@@ -169,42 +172,49 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
       frequency: maintenance.frequency,
       noticeDays: maintenance.noticeDays,
     })
-    const result = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
-      // Lock the maintenance row so concurrent clicks reuse the same active proposal.
-      await tx.maintenanceContract.update({ where: { id: maintenance.id }, data: { updatedAt: new Date() } })
-      const activeProposal = await tx.contract.findFirst({
-        where: {
-          maintenanceContractId: maintenance.id,
-          status: { in: ["DRAFT", "SENT", "SIGNED"] },
-        },
-        select: { id: true, number: true, status: true },
-        orderBy: { createdAt: "desc" },
-      })
-      if (activeProposal) return { contract: activeProposal, created: false as const }
+    const result = await withDocumentNumberRetry(
+      async () =>
+        prisma.$transaction(
+          async (tx) => {
+            // Lock the maintenance row so concurrent clicks reuse the same active proposal.
+            await tx.maintenanceContract.update({ where: { id: maintenance.id }, data: { updatedAt: new Date() } })
+            const activeProposal = await tx.contract.findFirst({
+              where: {
+                maintenanceContractId: maintenance.id,
+                status: { in: ["DRAFT", "SENT", "SIGNED"] },
+              },
+              select: { id: true, number: true, status: true },
+              orderBy: { createdAt: "desc" },
+            })
+            if (activeProposal) return { contract: activeProposal, created: false as const }
 
-      const prefix = buildYearlyDocumentPrefix("REN-", "REN-")
-      const last = await tx.contract.findFirst({
-        where: { companyId, number: { startsWith: prefix } },
-        orderBy: { number: "desc" },
-        select: { number: true },
-      })
-      const contract = await tx.contract.create({
-        data: {
-          companyId,
-          clientId: maintenance.clientId,
-          maintenanceContractId: maintenance.id,
-          number: nextDocumentNumber(last?.number, prefix),
-          title: `Renouvellement · ${maintenance.label}`,
-          status: "DRAFT",
-          kind: "MAINTENANCE_RENEWAL",
-          content,
-          validFrom: term.startDate,
-          validUntil: term.endDate,
-        },
-        select: { id: true, number: true, status: true },
-      })
-      return { contract, created: true as const }
-    }, { isolationLevel: "Serializable" }), { label: "la proposition de renouvellement" })
+            const prefix = buildYearlyDocumentPrefix("REN-", "REN-")
+            const last = await tx.contract.findFirst({
+              where: { companyId, number: { startsWith: prefix } },
+              orderBy: { number: "desc" },
+              select: { number: true },
+            })
+            const contract = await tx.contract.create({
+              data: {
+                companyId,
+                clientId: maintenance.clientId,
+                maintenanceContractId: maintenance.id,
+                number: nextDocumentNumber(last?.number, prefix),
+                title: `Renouvellement · ${maintenance.label}`,
+                status: "DRAFT",
+                kind: "MAINTENANCE_RENEWAL",
+                content,
+                validFrom: term.startDate,
+                validUntil: term.endDate,
+              },
+              select: { id: true, number: true, status: true },
+            })
+            return { contract, created: true as const }
+          },
+          { isolationLevel: "Serializable" },
+        ),
+      { label: "la proposition de renouvellement" },
+    )
     const contract = result.contract
 
     if (result.created) {
@@ -225,29 +235,34 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
 export async function createContract(data: ContractInput) {
   return await withAuth(async ({ companyId, userId }) => {
     const validated = ContractSchema.parse(data)
-    const contract = await withDocumentNumberRetry(async () => {
-      const number = await generateContractNumber(companyId)
-      const created = await prisma.contract.create({
-        data: {
-          companyId,
-          clientId: validated.clientId,
-          number,
-          title: validated.title,
-          status: "DRAFT",
-          content: validated.content,
-          validFrom: validated.validFrom ? new Date(validated.validFrom) : null,
-          validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
-        },
-      })
-      await logAction({
-        userId,
-        action: "CREATE_CONTRACT",
-        resource: "CONTRACT",
-        resourceId: created.id,
-        payload: { number },
-      })
-      return created
-    }, { label: "le contrat" })
+    const client = await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })
+    if (!client) throw new Error("Client introuvable")
+    const contract = await withDocumentNumberRetry(
+      async () => {
+        const number = await generateContractNumber(companyId)
+        const created = await prisma.contract.create({
+          data: {
+            companyId,
+            clientId: validated.clientId,
+            number,
+            title: validated.title,
+            status: "DRAFT",
+            content: validated.content,
+            validFrom: validated.validFrom ? new Date(validated.validFrom) : null,
+            validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
+          },
+        })
+        await logAction({
+          userId,
+          action: "CREATE_CONTRACT",
+          resource: "CONTRACT",
+          resourceId: created.id,
+          payload: { number },
+        })
+        return created
+      },
+      { label: "le contrat" },
+    )
     revalidatePath("/dashboard/contrats")
     return contract
   })
@@ -260,16 +275,22 @@ export async function updateContract(id: string, data: ContractInput) {
     if (!existing) throw new Error("Contrat introuvable")
     if (existing.kind !== "STANDARD") throw new Error("Ce document structuré doit être recréé pour conserver une piste d’audit cohérente.")
     if (existing.status === "SIGNED") throw new Error("Un contrat signé ne peut pas être modifié.")
+    const client = await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })
+    if (!client) throw new Error("Client introuvable")
 
-    const contract = await prisma.contract.update({
-      where: { id },
-      data: {
-        clientId: validated.clientId,
-        title: validated.title,
-        content: validated.content,
-        validFrom: validated.validFrom ? new Date(validated.validFrom) : null,
-        validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
-      },
+    const contract = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.contract.updateMany({
+        where: { id, companyId, status: existing.status, updatedAt: existing.updatedAt },
+        data: {
+          clientId: validated.clientId,
+          title: validated.title,
+          content: validated.content,
+          validFrom: validated.validFrom ? new Date(validated.validFrom) : null,
+          validUntil: validated.validUntil ? new Date(validated.validUntil) : null,
+        },
+      })
+      if (claimed.count !== 1) throw new Error("Le contrat a changé pendant la modification. Rechargez-le puis réessayez.")
+      return tx.contract.findUniqueOrThrow({ where: { id } })
     })
     await logAction({
       userId,
@@ -284,10 +305,7 @@ export async function updateContract(id: string, data: ContractInput) {
   })
 }
 
-export async function updateContractStatus(
-  contractId: string,
-  status: "DRAFT" | "SENT" | "SIGNED" | "EXPIRED"
-) {
+export async function updateContractStatus(contractId: string, status: "DRAFT" | "SENT" | "SIGNED" | "EXPIRED") {
   return await withAuth(async ({ userId, companyId }) => {
     const existing = await prisma.contract.findFirst({
       where: { id: contractId, companyId },
@@ -298,19 +316,27 @@ export async function updateContractStatus(
       },
     })
     if (!existing) throw new Error("Contrat introuvable")
-    if (status === "SIGNED" && existing.kind !== "STANDARD" && existing._count.signatures === 0) {
-      throw new Error("La signature électronique du client est requise pour ce document")
+    if (existing.status === "SIGNED") throw new Error("Un contrat signé est immuable")
+    if (status === "SIGNED") throw new Error("Utilisez le lien de signature électronique pour signer ce document")
+    const allowedTransitions: Record<string, string[]> = {
+      DRAFT: ["SENT"],
+      // Re-sending invalidates the previous token and creates a new one.
+      SENT: ["SENT", "EXPIRED"],
+      EXPIRED: [],
+      SIGNED: [],
     }
+    if (!allowedTransitions[existing.status]?.includes(status)) throw new Error("Transition de statut non autorisée")
     if (status === "SENT" && existing.maintenanceContract?.renewalStatus === "RENEWED") {
       throw new Error("Ce contrat d’entretien a déjà été renouvelé")
     }
 
     let signingPath: string | null = null
     const contract = await prisma.$transaction(async (tx) => {
-      const updated = await tx.contract.update({
-        where: { id: contractId },
+      const claimed = await tx.contract.updateMany({
+        where: { id: contractId, companyId, status: existing.status, updatedAt: existing.updatedAt },
         data: { status },
       })
+      if (claimed.count !== 1) throw new Error("Le contrat a changé. Rechargez-le puis réessayez.")
 
       if (status === "SENT") {
         await tx.contractSigningToken.deleteMany({
@@ -337,11 +363,11 @@ export async function updateContractStatus(
         await tx.contractSigningToken.deleteMany({ where: { contractId, usedAt: null } })
       }
 
-      return updated
+      return tx.contract.findUniqueOrThrow({ where: { id: contractId } })
     })
     await logAction({
       userId,
-      action: "SIGN_CONTRACT",
+      action: "UPDATE_CONTRACT_STATUS",
       resource: "CONTRACT",
       resourceId: contractId,
       payload: { status },
@@ -393,7 +419,7 @@ export async function compileContractContent(id: string) {
       where: { id, companyId },
       include: {
         client: {
-          include: { contacts: true }
+          include: { contacts: true },
         },
         company: true,
       },
@@ -424,10 +450,11 @@ export async function compileContractContent(id: string) {
 const publicSignatureSchema = z.object({
   signerName: z.string().trim().min(2).max(150),
   signerEmail: z.string().trim().toLowerCase().email().max(254),
-  canvasData: z.string().min(100).max(1_500_000).refine(
-    (value) => value.startsWith("data:image/png;base64,"),
-    "Format de signature invalide",
-  ),
+  canvasData: z
+    .string()
+    .min(100)
+    .max(1_500_000)
+    .refine((value) => value.startsWith("data:image/png;base64,"), "Format de signature invalide"),
 })
 
 function signingTokenHash(token: string) {
@@ -481,9 +508,7 @@ export async function signContractPublic(token: string, data: unknown) {
   if (token.length < 32 || token.length > 128) throw new Error("Lien de signature invalide.")
 
   const headerList = await headers()
-  const ipAddress = headerList.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || headerList.get("x-real-ip")
-    || "unknown"
+  const ipAddress = headerList.get("x-forwarded-for")?.split(",")[0]?.trim() || headerList.get("x-real-ip") || "unknown"
   const userAgent = (headerList.get("user-agent") || "unknown").slice(0, 500)
   const tokenHash = signingTokenHash(token)
   const rateLimit = await signatureRateLimit.limit(`${tokenHash}:${ipAddress}`)
@@ -502,16 +527,20 @@ export async function signContractPublic(token: string, data: unknown) {
   }
 
   const signedAt = new Date()
-  const integrityHash = createHash("sha256").update(JSON.stringify({
-    contractId: signingToken.contract.id,
-    contractContentHash: createHash("sha256").update(signingToken.contract.content).digest("hex"),
-    signerName: validated.signerName,
-    signerEmail: validated.signerEmail,
-    signedAt: signedAt.toISOString(),
-    ipAddress,
-    userAgent,
-    signatureImageHash: createHash("sha256").update(validated.canvasData).digest("hex"),
-  })).digest("hex")
+  const integrityHash = createHash("sha256")
+    .update(
+      JSON.stringify({
+        contractId: signingToken.contract.id,
+        contractContentHash: createHash("sha256").update(signingToken.contract.content).digest("hex"),
+        signerName: validated.signerName,
+        signerEmail: validated.signerEmail,
+        signedAt: signedAt.toISOString(),
+        ipAddress,
+        userAgent,
+        signatureImageHash: createHash("sha256").update(validated.canvasData).digest("hex"),
+      }),
+    )
+    .digest("hex")
 
   const signature = await prisma.$transaction(async (tx) => {
     const claimed = await tx.contractSigningToken.updateMany({

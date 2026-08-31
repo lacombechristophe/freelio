@@ -10,6 +10,7 @@
 import { docGenWorker } from "@/lib/bullmq/worker"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
+import { syncDueOAuthEmailChannels } from "@/lib/communications/email-sync"
 
 console.log("[Worker] Starting BullMQ workers...")
 console.log(`[Worker] Redis: ${process.env.REDIS_HOST ?? "localhost"}:${process.env.REDIS_PORT ?? "6379"}`)
@@ -48,10 +49,27 @@ const processScheduling = async () => {
 const schedulingInterval = setInterval(() => { void processScheduling() }, 5 * 60_000)
 void processScheduling()
 
+let communicationSyncRunning = false
+const processCommunicationSync = async () => {
+  if (communicationSyncRunning) return
+  communicationSyncRunning = true
+  try {
+    const result = await syncDueOAuthEmailChannels(10)
+    if (result.imported || result.failed) console.log(`[Worker] Mail sync: ${result.imported} imported, ${result.failed} failed.`)
+  } catch (error) {
+    console.error(`[Worker] Mail sync failed: ${error instanceof Error ? error.message : "unknown error"}`)
+  } finally {
+    communicationSyncRunning = false
+  }
+}
+const communicationSyncInterval = setInterval(() => { void processCommunicationSync() }, 5 * 60_000)
+void processCommunicationSync()
+
 process.on("SIGTERM", async () => {
   console.log("[Worker] SIGTERM received, closing workers...")
   if (automationInterval) clearInterval(automationInterval)
   clearInterval(schedulingInterval)
+  clearInterval(communicationSyncInterval)
   await docGenWorker.close()
   process.exit(0)
 })
@@ -60,6 +78,7 @@ process.on("SIGINT", async () => {
   console.log("[Worker] SIGINT received, closing workers...")
   if (automationInterval) clearInterval(automationInterval)
   clearInterval(schedulingInterval)
+  clearInterval(communicationSyncInterval)
   await docGenWorker.close()
   process.exit(0)
 })

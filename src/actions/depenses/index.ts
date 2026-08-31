@@ -6,12 +6,25 @@ import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { ExpenseSchema } from "@/lib/validations"
 import { removeLocalFile } from "@/lib/local-files"
+import { boundedPageSize } from "@/lib/pagination"
+
+async function validateExpenseRelations(companyId: string, clientId: string | null, projectId: string | null) {
+  const [client, project] = await Promise.all([
+    clientId ? prisma.client.findFirst({ where: { id: clientId, companyId }, select: { id: true } }) : null,
+    projectId ? prisma.project.findFirst({ where: { id: projectId, companyId }, select: { id: true, clientId: true } }) : null,
+  ])
+
+  if (clientId && !client) throw new Error("Client introuvable")
+  if (projectId && !project) throw new Error("Chantier introuvable ou inaccessible")
+  if (clientId && project && project.clientId !== clientId) throw new Error("Le chantier sélectionné n’appartient pas à ce client")
+}
 
 export async function getExpenses(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
+    const pageSize = boundedPageSize(limit, 50, 100)
     return await prisma.expense.findMany({
       where: { companyId },
-      take: limit,
+      take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: {
@@ -24,9 +37,13 @@ export async function getExpenses(cursor?: string, limit = 50) {
   })
 }
 
-export async function createExpense(data: any) {
-  return await withAuth(async ({ userId, companyId }) => {
+export async function createExpense(data: unknown) {
+  return await withAuth(async ({ userId, companyId, agencyIds }) => {
     const validated = ExpenseSchema.parse(data)
+    const clientId = validated.clientId || null
+    const projectId = validated.projectId || null
+    if (agencyIds !== null && !projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
+    await validateExpenseRelations(companyId, clientId, projectId)
     const expense = await prisma.expense.create({
       data: {
         companyId,
@@ -37,8 +54,8 @@ export async function createExpense(data: any) {
         date: new Date(validated.date),
         category: validated.category,
         status: "TO_JUSTIFY",
-        clientId: validated.clientId || null,
-        projectId: validated.projectId || null,
+        clientId,
+        projectId,
       },
     })
     await logAction({
@@ -53,11 +70,15 @@ export async function createExpense(data: any) {
   })
 }
 
-export async function updateExpense(id: string, data: any) {
-  return await withAuth(async ({ companyId, userId }) => {
+export async function updateExpense(id: string, data: unknown) {
+  return await withAuth(async ({ companyId, userId, agencyIds }) => {
     const validated = ExpenseSchema.parse(data)
     const existing = await prisma.expense.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Dépense introuvable")
+    const clientId = validated.clientId || null
+    const projectId = validated.projectId || null
+    if (agencyIds !== null && !projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
+    await validateExpenseRelations(companyId, clientId, projectId)
 
     const expense = await prisma.expense.update({
       where: { id },
@@ -68,8 +89,8 @@ export async function updateExpense(id: string, data: any) {
         tvaCents: validated.tvaCents ?? 0,
         date: new Date(validated.date),
         category: validated.category,
-        clientId: validated.clientId || null,
-        projectId: validated.projectId || null,
+        clientId,
+        projectId,
       },
     })
     await logAction({

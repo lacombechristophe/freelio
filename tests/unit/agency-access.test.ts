@@ -37,17 +37,64 @@ describe("agency-scoped Prisma boundary", () => {
   beforeAll(async () => {
     await prisma.company.create({ data: { id: companyId, name: "Agency scope test", isTvaApplicable: true } })
     await prisma.client.create({ data: { id: clientId, companyId, name: "Agency scope client" } })
-    await prisma.agency.createMany({ data: [
-      { id: firstAgencyId, companyId, name: "First", code: "FIRST", kind: "MIXED" },
-      { id: secondAgencyId, companyId, name: "Second", code: "SECOND", kind: "MIXED" },
-    ] })
-    await prisma.project.createMany({ data: [
-      { id: "agency-scope-project-first", companyId, clientId, agencyId: firstAgencyId, name: "Visible project" },
-      { id: "agency-scope-project-second", companyId, clientId, agencyId: secondAgencyId, name: "Hidden project" },
-    ] })
+    await prisma.agency.createMany({
+      data: [
+        { id: firstAgencyId, companyId, name: "First", code: "FIRST", kind: "MIXED" },
+        { id: secondAgencyId, companyId, name: "Second", code: "SECOND", kind: "MIXED" },
+      ],
+    })
+    await prisma.project.createMany({
+      data: [
+        { id: "agency-scope-project-first", companyId, clientId, agencyId: firstAgencyId, name: "Visible project" },
+        { id: "agency-scope-project-second", companyId, clientId, agencyId: secondAgencyId, name: "Hidden project" },
+      ],
+    })
+    await prisma.quote.createMany({
+      data: [
+        { id: "agency-scope-quote-first", companyId, clientId, projectId: "agency-scope-project-first", number: "AG-DEV-1", object: "Visible quote" },
+        { id: "agency-scope-quote-second", companyId, clientId, projectId: "agency-scope-project-second", number: "AG-DEV-2", object: "Hidden quote" },
+      ],
+    })
+    await prisma.invoice.createMany({
+      data: [
+        {
+          id: "agency-scope-invoice-first",
+          companyId,
+          clientId,
+          projectId: "agency-scope-project-first",
+          number: "AG-INV-1",
+          object: "Visible invoice",
+          dueDate: new Date("2030-01-01"),
+          totalHtCents: 100,
+          totalTvaCents: 20,
+          totalTtcCents: 120,
+        },
+        {
+          id: "agency-scope-invoice-second",
+          companyId,
+          clientId,
+          projectId: "agency-scope-project-second",
+          number: "AG-INV-2",
+          object: "Hidden invoice",
+          dueDate: new Date("2030-01-01"),
+          totalHtCents: 100,
+          totalTvaCents: 20,
+          totalTtcCents: 120,
+        },
+      ],
+    })
+    await prisma.projectFile.createMany({
+      data: [
+        { id: "agency-scope-file-first", projectId: "agency-scope-project-first", name: "Visible", url: "/visible.pdf" },
+        { id: "agency-scope-file-second", projectId: "agency-scope-project-second", name: "Hidden", url: "/hidden.pdf" },
+      ],
+    })
   })
 
   afterAll(async () => {
+    await prisma.projectFile.deleteMany({ where: { project: { companyId } } })
+    await prisma.invoice.deleteMany({ where: { companyId } })
+    await prisma.quote.deleteMany({ where: { companyId } })
     await prisma.project.deleteMany({ where: { companyId } })
     await prisma.agency.deleteMany({ where: { companyId } })
     await prisma.client.deleteMany({ where: { companyId } })
@@ -55,32 +102,41 @@ describe("agency-scoped Prisma boundary", () => {
   })
 
   it("filters reads, blocks cross-agency writes and assigns the sole agency", async () => {
-    await requestContext.run({
-      userId: "agency-test-user",
-      companyId,
-      membershipId: "agency-test-membership",
-      role: "TECHNICIAN",
-      agencyIds: [firstAgencyId],
-      actionPermission: "operations.write",
-    }, async () => {
-      const projects = await prisma.project.findMany({ where: { companyId }, select: { id: true } })
-      expect(projects).toEqual([{ id: "agency-scope-project-first" }])
-      await expect(prisma.project.findUnique({ where: { id: "agency-scope-project-second" } })).resolves.toBeNull()
-      await expect(prisma.project.updateMany({ where: { id: "agency-scope-project-second" }, data: { name: "Forbidden" } })).resolves.toMatchObject({ count: 0 })
-      await expect(prisma.project.create({ data: { companyId, clientId, agencyId: secondAgencyId, name: "Forbidden project" } })).rejects.toThrow("AGENCY_ACCESS_DENIED")
-      const created = await prisma.project.create({ data: { id: "agency-scope-auto-project", companyId, clientId, name: "Assigned automatically" } })
-      expect(created.agencyId).toBe(firstAgencyId)
-    })
+    await requestContext.run(
+      {
+        userId: "agency-test-user",
+        companyId,
+        membershipId: "agency-test-membership",
+        role: "TECHNICIAN",
+        agencyIds: [firstAgencyId],
+        actionPermission: "operations.write",
+      },
+      async () => {
+        const projects = await prisma.project.findMany({ where: { companyId }, select: { id: true } })
+        expect(projects).toEqual([{ id: "agency-scope-project-first" }])
+        await expect(prisma.quote.findMany({ where: { companyId }, select: { id: true } })).resolves.toEqual([{ id: "agency-scope-quote-first" }])
+        await expect(prisma.invoice.findMany({ where: { companyId }, select: { id: true } })).resolves.toEqual([{ id: "agency-scope-invoice-first" }])
+        await expect(prisma.projectFile.findMany({ select: { id: true } })).resolves.toEqual([{ id: "agency-scope-file-first" }])
+        await expect(prisma.project.findUnique({ where: { id: "agency-scope-project-second" } })).resolves.toBeNull()
+        await expect(prisma.project.updateMany({ where: { id: "agency-scope-project-second" }, data: { name: "Forbidden" } })).resolves.toMatchObject({ count: 0 })
+        await expect(prisma.project.create({ data: { companyId, clientId, agencyId: secondAgencyId, name: "Forbidden project" } })).rejects.toThrow("AGENCY_ACCESS_DENIED")
+        const created = await prisma.project.create({ data: { id: "agency-scope-auto-project", companyId, clientId, name: "Assigned automatically" } })
+        expect(created.agencyId).toBe(firstAgencyId)
+      },
+    )
   })
 
   it("applies the agency boundary inside executive reports and exports", async () => {
-    const report = await loadExecutiveReport({
-      userId: "agency-test-user",
-      companyId,
-      membershipId: "agency-test-membership",
-      role: "TECHNICIAN",
-      agencyIds: [firstAgencyId],
-    }, 30)
+    const report = await loadExecutiveReport(
+      {
+        userId: "agency-test-user",
+        companyId,
+        membershipId: "agency-test-membership",
+        role: "TECHNICIAN",
+        agencyIds: [firstAgencyId],
+      },
+      30,
+    )
 
     expect(report.operations.activeProjects).toBe(2)
   })

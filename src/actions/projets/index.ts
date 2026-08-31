@@ -4,14 +4,9 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
-import {
-  ProjectAcceptanceSchema,
-  ProjectMilestoneSchema,
-  ProjectSchema,
-  ProjectTemplateSchema,
-  ProjectTechnicalProfileSchema,
-} from "@/lib/validations"
+import { ProjectAcceptanceSchema, ProjectMilestoneSchema, ProjectSchema, ProjectTemplateSchema, ProjectTechnicalProfileSchema } from "@/lib/validations"
 import { removeLocalFile } from "@/lib/local-files"
+import { boundedPageSize } from "@/lib/pagination"
 
 function atNoon(value: string | undefined) {
   return value ? new Date(`${value}T12:00:00`) : null
@@ -25,9 +20,10 @@ function addCalendarDays(value: Date, days: number) {
 
 export async function getProjects(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId }) => {
+    const pageSize = boundedPageSize(limit, 20, 100)
     return await prisma.project.findMany({
       where: { companyId },
-      take: limit,
+      take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: { client: true, agency: { select: { id: true, name: true, code: true } }, projectTemplate: { select: { id: true, name: true } } },
@@ -37,11 +33,13 @@ export async function getProjects(cursor?: string, limit: number = 20) {
 }
 
 export async function getProjectTemplates() {
-  return withAuth(async ({ companyId }) => prisma.projectTemplate.findMany({
-    where: { companyId },
-    include: { steps: { include: { dependsOnStep: { select: { id: true, title: true } } }, orderBy: { order: "asc" } }, _count: { select: { projects: true } } },
-    orderBy: [{ active: "desc" }, { name: "asc" }],
-  }))
+  return withAuth(async ({ companyId }) =>
+    prisma.projectTemplate.findMany({
+      where: { companyId },
+      include: { steps: { include: { dependsOnStep: { select: { id: true, title: true } } }, orderBy: { order: "asc" } }, _count: { select: { projects: true } } },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+    }),
+  )
 }
 
 export async function getProjectById(id: string) {
@@ -52,7 +50,10 @@ export async function getProjectById(id: string) {
         include: {
           client: true,
           projectTemplate: { select: { id: true, name: true } },
-          milestones: { include: { dependsOn: { select: { id: true, title: true, status: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: [{ order: "asc" }, { dueDate: "asc" }] },
+          milestones: {
+            include: { dependsOn: { select: { id: true, title: true, status: true } }, assignedMembership: { include: { user: { select: { name: true, email: true } } } } },
+            orderBy: [{ order: "asc" }, { dueDate: "asc" }],
+          },
           files: true,
           timeEntries: { orderBy: { date: "desc" }, take: 20 },
           quotes: { orderBy: { createdAt: "desc" }, take: 10 },
@@ -75,15 +76,41 @@ export async function createProjectTemplate(input: unknown) {
       if (step.dependsOnIndex >= index) throw new Error("Une étape ne peut dépendre que d’une étape précédente")
     })
     const template = await prisma.$transaction(async (tx) => {
-      const created = await tx.projectTemplate.create({ data: { companyId, name: data.name, description: data.description || null, worksiteType: data.worksiteType || null, defaultBudgetCents: data.defaultBudgetCents, defaultDurationDays: data.defaultDurationDays } })
+      const created = await tx.projectTemplate.create({
+        data: {
+          companyId,
+          name: data.name,
+          description: data.description || null,
+          worksiteType: data.worksiteType || null,
+          defaultBudgetCents: data.defaultBudgetCents,
+          defaultDurationDays: data.defaultDurationDays,
+        },
+      })
       const stepIds: string[] = []
       for (const [order, step] of data.steps.entries()) {
-        const createdStep = await tx.projectTemplateStep.create({ data: { templateId: created.id, title: step.title, description: step.description || null, kind: step.kind, offsetDays: step.offsetDays, durationDays: step.durationDays, order, dependsOnStepId: step.dependsOnIndex >= 0 ? stepIds[step.dependsOnIndex] : null } })
+        const createdStep = await tx.projectTemplateStep.create({
+          data: {
+            templateId: created.id,
+            title: step.title,
+            description: step.description || null,
+            kind: step.kind,
+            offsetDays: step.offsetDays,
+            durationDays: step.durationDays,
+            order,
+            dependsOnStepId: step.dependsOnIndex >= 0 ? stepIds[step.dependsOnIndex] : null,
+          },
+        })
         stepIds.push(createdStep.id)
       }
       return created
     })
-    await logAction({ userId, action: "CREATE_PROJECT_TEMPLATE", resource: "PROJECT_TEMPLATE", resourceId: template.id, payload: { name: template.name, stepCount: data.steps.length } })
+    await logAction({
+      userId,
+      action: "CREATE_PROJECT_TEMPLATE",
+      resource: "PROJECT_TEMPLATE",
+      resourceId: template.id,
+      payload: { name: template.name, stepCount: data.steps.length },
+    })
     revalidatePath("/dashboard/projets")
     return { success: true as const, id: template.id }
   }, "operations.write")
@@ -107,21 +134,58 @@ export async function createProject(data: unknown) {
       validated.agencyId
         ? prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })
         : prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
-      validated.projectTemplateId ? prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: { order: "asc" } } } }) : null,
+      validated.projectTemplateId
+        ? prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: { order: "asc" } } } })
+        : null,
     ])
     if (!client) throw new Error("Client introuvable")
     if (validated.agencyId && !agency) throw new Error("Agence introuvable ou inactive")
     if (validated.projectTemplateId && !template) throw new Error("Modèle de chantier introuvable ou inactif")
     const requestedStartDate = atNoon(validated.startDate || undefined)
-    const startDate = requestedStartDate || (template ? (() => { const today = new Date(); today.setHours(12, 0, 0, 0); return today })() : null)
+    const startDate =
+      requestedStartDate ||
+      (template
+        ? (() => {
+            const today = new Date()
+            today.setHours(12, 0, 0, 0)
+            return today
+          })()
+        : null)
     const endDate = atNoon(validated.endDate || undefined) || (startDate && template?.defaultDurationDays ? addCalendarDays(startDate, template.defaultDurationDays) : null)
     const project = await prisma.$transaction(async (tx) => {
-      const created = await tx.project.create({ data: { companyId, clientId: validated.clientId, agencyId: agency?.id || null, projectTemplateId: template?.id || null, name: validated.name, description: validated.description || null, status: validated.status || "ACTIVE", worksiteType: validated.worksiteType || template?.worksiteType || null, budgetCents: validated.budgetCents, startDate, endDate } })
+      const created = await tx.project.create({
+        data: {
+          companyId,
+          clientId: validated.clientId,
+          agencyId: agency?.id || null,
+          projectTemplateId: template?.id || null,
+          name: validated.name,
+          description: validated.description || null,
+          status: validated.status || "ACTIVE",
+          worksiteType: validated.worksiteType || template?.worksiteType || null,
+          budgetCents: validated.budgetCents,
+          startDate,
+          endDate,
+        },
+      })
       if (template?.steps.length) {
         const milestoneIds = new Map<string, string>()
         for (const step of template.steps) {
           const plannedStartAt = addCalendarDays(startDate || new Date(), step.offsetDays)
-          const milestone = await tx.projectMilestone.create({ data: { projectId: created.id, templateStepId: step.id, title: step.title, description: step.description, kind: step.kind, plannedStartAt, dueDate: addCalendarDays(plannedStartAt, step.durationDays), durationDays: step.durationDays, order: step.order, dependsOnId: step.dependsOnStepId ? milestoneIds.get(step.dependsOnStepId) || null : null } })
+          const milestone = await tx.projectMilestone.create({
+            data: {
+              projectId: created.id,
+              templateStepId: step.id,
+              title: step.title,
+              description: step.description,
+              kind: step.kind,
+              plannedStartAt,
+              dueDate: addCalendarDays(plannedStartAt, step.durationDays),
+              durationDays: step.durationDays,
+              order: step.order,
+              dependsOnId: step.dependsOnStepId ? milestoneIds.get(step.dependsOnStepId) || null : null,
+            },
+          })
           milestoneIds.set(step.id, milestone.id)
         }
       }
@@ -144,13 +208,26 @@ export async function updateProject(id: string, data: unknown) {
     const validated = ProjectSchema.parse(data)
     const existing = await prisma.project.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Projet introuvable")
-    if (!await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })) throw new Error("Client introuvable")
-    if (validated.agencyId && !await prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })) throw new Error("Agence introuvable ou inactive")
-    if (validated.projectTemplateId && !await prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId }, select: { id: true } })) throw new Error("Modèle de chantier introuvable")
+    if (!(await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }))) throw new Error("Client introuvable")
+    if (validated.agencyId && !(await prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })))
+      throw new Error("Agence introuvable ou inactive")
+    if (validated.projectTemplateId && !(await prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId }, select: { id: true } })))
+      throw new Error("Modèle de chantier introuvable")
 
     const project = await prisma.project.update({
       where: { id },
-      data: { clientId: validated.clientId, agencyId: validated.agencyId || existing.agencyId, projectTemplateId: validated.projectTemplateId || null, name: validated.name, description: validated.description || null, status: validated.status, worksiteType: validated.worksiteType || null, budgetCents: validated.budgetCents, startDate: atNoon(validated.startDate || undefined), endDate: atNoon(validated.endDate || undefined) },
+      data: {
+        clientId: validated.clientId,
+        agencyId: validated.agencyId || existing.agencyId,
+        projectTemplateId: validated.projectTemplateId || null,
+        name: validated.name,
+        description: validated.description || null,
+        status: validated.status,
+        worksiteType: validated.worksiteType || null,
+        budgetCents: validated.budgetCents,
+        startDate: atNoon(validated.startDate || undefined),
+        endDate: atNoon(validated.endDate || undefined),
+      },
     })
     await logAction({
       userId,
@@ -181,9 +258,7 @@ export async function deleteProject(id: string) {
       const parts: string[] = []
       if (_count.invoices > 0) parts.push(`${_count.invoices} facture(s)`)
       if (_count.quotes > 0) parts.push(`${_count.quotes} devis`)
-      throw new Error(
-        `Impossible de supprimer ce projet : ${parts.join(", ")} lié(s). Archivez-le plutôt.`
-      )
+      throw new Error(`Impossible de supprimer ce projet : ${parts.join(", ")} lié(s). Archivez-le plutôt.`)
     }
 
     // TimeEntries don't cascade — delete them first.
@@ -249,7 +324,8 @@ export async function updateProjectMilestoneStatus(id: string, status: "PENDING"
   return withAuth(async ({ companyId }) => {
     const milestone = await prisma.projectMilestone.findFirst({ where: { id, project: { companyId } }, include: { dependsOn: { select: { status: true, title: true } } } })
     if (!milestone) throw new Error("Jalon introuvable")
-    if (status !== "PENDING" && milestone.dependsOn && milestone.dependsOn.status !== "DONE") return { success: false as const, error: `Terminez d’abord « ${milestone.dependsOn.title} »` }
+    if (status !== "PENDING" && milestone.dependsOn && milestone.dependsOn.status !== "DONE")
+      return { success: false as const, error: `Terminez d’abord « ${milestone.dependsOn.title} »` }
     const updated = await prisma.projectMilestone.update({ where: { id }, data: { status } })
     revalidatePath(`/dashboard/projets/${milestone.projectId}`)
     return { success: true as const, milestone: updated }
@@ -261,7 +337,8 @@ export async function updateProjectMilestonePlanning(id: string, input: unknown)
     const data = ProjectMilestoneSchema.pick({ plannedStartAt: true, dueDate: true, durationDays: true, dependsOnId: true, assignedMembershipId: true }).parse(input)
     const milestone = await prisma.projectMilestone.findFirst({ where: { id, project: { companyId } }, select: { id: true, projectId: true } })
     if (!milestone) throw new Error("Jalon introuvable")
-    if (data.assignedMembershipId && !await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Responsable introuvable")
+    if (data.assignedMembershipId && !(await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })))
+      throw new Error("Responsable introuvable")
     if (data.dependsOnId) {
       if (data.dependsOnId === milestone.id) throw new Error("Un jalon ne peut pas dépendre de lui-même")
       let cursor = await prisma.projectMilestone.findFirst({ where: { id: data.dependsOnId, projectId: milestone.projectId }, select: { id: true, dependsOnId: true } })
@@ -271,7 +348,16 @@ export async function updateProjectMilestonePlanning(id: string, input: unknown)
         cursor = await prisma.projectMilestone.findFirst({ where: { id: cursor.dependsOnId, projectId: milestone.projectId }, select: { id: true, dependsOnId: true } })
       }
     }
-    await prisma.projectMilestone.update({ where: { id: milestone.id }, data: { plannedStartAt: atNoon(data.plannedStartAt || undefined), dueDate: atNoon(data.dueDate || undefined), durationDays: data.durationDays, dependsOnId: data.dependsOnId || null, assignedMembershipId: data.assignedMembershipId || null } })
+    await prisma.projectMilestone.update({
+      where: { id: milestone.id },
+      data: {
+        plannedStartAt: atNoon(data.plannedStartAt || undefined),
+        dueDate: atNoon(data.dueDate || undefined),
+        durationDays: data.durationDays,
+        dependsOnId: data.dependsOnId || null,
+        assignedMembershipId: data.assignedMembershipId || null,
+      },
+    })
     await logAction({ userId, action: "UPDATE_PROJECT_MILESTONE_PLAN", resource: "PROJECT_MILESTONE", resourceId: milestone.id, payload: data })
     revalidatePath(`/dashboard/projets/${milestone.projectId}`)
     return { success: true as const }
@@ -330,7 +416,7 @@ export async function upsertProjectTechnicalProfile(projectId: string, data: unk
     const validated = ProjectTechnicalProfileSchema.parse(data)
     const project = await prisma.project.findFirst({ where: { id: projectId, companyId } })
     if (!project) throw new Error("Projet introuvable")
-    const measuredNumber = (value: number | "" | undefined) => value === "" || value === undefined ? null : value
+    const measuredNumber = (value: number | "" | undefined) => (value === "" || value === undefined ? null : value)
     const isValidated = validated.surveyStatus === "VALIDATED"
     const payload = {
       surveyStatus: validated.surveyStatus,

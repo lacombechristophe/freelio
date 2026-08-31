@@ -49,7 +49,7 @@ export function MaintenanceRenewalPanel({ contract }: { contract: Contract }) {
   }
 
   return <details className="group">
-    <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 transition hover:bg-muted/20 sm:flex-row sm:items-center">
+    <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{contract.number}</code><Badge variant="outline">{contract.status}</Badge><Badge variant={contract.renewalStatus === "DECLINED" ? "destructive" : renewed ? "secondary" : window.status === "OPEN" || window.status === "OVERDUE" ? "default" : "outline"}>{statusLabels[contract.renewalStatus] || contract.renewalStatus}</Badge>{contract.renewedFrom && <Badge variant="outline">Suite de {contract.renewedFrom.number}</Badge>}</div>
         <p className="mt-2 text-sm font-semibold">{contract.label}</p>

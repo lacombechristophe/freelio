@@ -2,13 +2,10 @@ import { pdfFontFaceCss } from "@/lib/pdf/typography"
 
 export const PDF_TEMPLATES = ["MINIMAL", "PROFESSIONAL", "MODERN"] as const
 export const PDF_DENSITIES = ["COMPACT", "BALANCED", "SPACIOUS"] as const
+export const PDF_DOCUMENT_INK = "#202630"
 
 export const PDF_ACCENT_OPTIONS = [
-  { value: "#3157d5", label: "Bleu signature" },
-  { value: "#0f766e", label: "Sarcelle" },
-  { value: "#9f1239", label: "Bordeaux" },
-  { value: "#92400e", label: "Cuivre" },
-  { value: "#202630", label: "Encre" },
+  { value: PDF_DOCUMENT_INK, label: "Encre" },
 ] as const
 
 export type PdfTemplate = (typeof PDF_TEMPLATES)[number]
@@ -145,7 +142,7 @@ function isValidHexColor(color: string | null | undefined) {
   return !!color && /^#[0-9a-f]{6}$/i.test(color.trim())
 }
 
-function normalizeHexColor(color: string | null | undefined, fallback = "#3157d5") {
+function normalizeHexColor(color: string | null | undefined, fallback = PDF_DOCUMENT_INK) {
   if (!color) return fallback
   const trimmed = color.trim()
   if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed
@@ -180,7 +177,7 @@ function safeImageSource(source: string | null | undefined) {
 
 export function normalizePdfTemplate(template: string | null | undefined): PdfTemplate {
   const candidate = template?.toUpperCase()
-  return PDF_TEMPLATES.includes(candidate as PdfTemplate) ? (candidate as PdfTemplate) : "MINIMAL"
+  return PDF_TEMPLATES.includes(candidate as PdfTemplate) ? (candidate as PdfTemplate) : "PROFESSIONAL"
 }
 
 export function normalizePdfDensity(density: string | null | undefined): PdfDensity {
@@ -209,11 +206,12 @@ function resolveSettings(
 ): RenderSettings {
   const optionObject = typeof options === "string" ? { template: options } : options ?? {}
   const template = normalizePdfTemplate(optionObject.template ?? doc.company.pdfTemplate)
-  const companyAccent = normalizeHexColor(doc.company.brandColor)
 
   return {
     template,
-    primary: normalizeHexColor(optionObject.accentColor, companyAccent),
+    // Billing and legal documents deliberately use a neutral ink. Company
+    // branding remains visible through the logo and identity block.
+    primary: PDF_DOCUMENT_INK,
     density: normalizePdfDensity(optionObject.density),
     showPayment: optionObject.showPayment ?? true,
     showReference: optionObject.showReference ?? true,
@@ -275,7 +273,7 @@ function companyMetaItems(doc: PdfDocument) {
 }
 
 function companyLegalItems(doc: PdfDocument) {
-  return [
+  const items = [
     escapeHtml(doc.company.name),
     doc.company.fullName ? escapeHtml(doc.company.fullName) : "",
     doc.company.siret ? `SIRET ${escapeHtml(doc.company.siret)}` : "",
@@ -284,6 +282,7 @@ function companyLegalItems(doc: PdfDocument) {
     doc.company.tvaNumber ? `TVA ${escapeHtml(doc.company.tvaNumber)}` : "",
     doc.company.email ? escapeHtml(doc.company.email) : "",
   ].filter(Boolean)
+  return items.filter((item, index) => items.findIndex((candidate) => candidate.toLocaleLowerCase("fr") === item.toLocaleLowerCase("fr")) === index)
 }
 
 function clientMeta(doc: PdfDocument) {
