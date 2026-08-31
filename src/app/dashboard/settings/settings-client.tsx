@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck
+  Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck, Mail, HardDrive
 } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -67,6 +67,7 @@ type Company = {
   pdfTemplate?: string | null
   eInvoicePlatform?: string | null
   eInvoiceRoutingId?: string | null
+  iban?: string | null
   serviceTimezone: string
   serviceDayStart: number
   serviceDayEnd: number
@@ -74,6 +75,7 @@ type Company = {
   serviceHolidays?: unknown
   serviceFirstResponseHours?: unknown
   serviceResolutionHours?: unknown
+  lastBackupAt?: Date | string | null
 }
 
 type User = {
@@ -81,6 +83,7 @@ type User = {
   hasPassword: boolean
   mfaEnabled: boolean
   recoveryCodesRemaining: number
+  integrations: { gemini: boolean; email: boolean; storage: boolean; billing: boolean }
 }
 
 function getErrorMessage(error: unknown, fallback = "Erreur.") {
@@ -105,6 +108,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
   )
   const [eInvoicePlatform, setEInvoicePlatform] = useState(company.eInvoicePlatform ?? "")
   const [eInvoiceRoutingId, setEInvoiceRoutingId] = useState(company.eInvoiceRoutingId ?? "")
+  const [iban, setIban] = useState(company.iban ?? "")
 
   function handleSaveEnterprise(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -144,6 +148,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         pdfTemplate,
         eInvoicePlatform,
         eInvoiceRoutingId,
+        iban,
       })
       if (result?.success) {
         toast.success("Paramètres de facturation sauvegardés.")
@@ -198,7 +203,12 @@ export function SettingsClient({ company, user }: { company: Company; user: User
 
   function handleLocalBackup() {
     toast.success("Préparation de la sauvegarde locale.")
-    window.location.assign("/api/backup/export")
+    const link = document.createElement("a")
+    link.href = "/api/backup/export"
+    link.download = ""
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
   }
 
   function handleDeleteAccount() {
@@ -409,6 +419,20 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                 </div>
               </div>
               <Separator />
+              <div className="space-y-1.5">
+                <Label htmlFor="iban" className="text-xs font-semibold">IBAN de règlement</Label>
+                <Input
+                  id="iban"
+                  value={iban}
+                  onChange={(event) => setIban(event.target.value)}
+                  autoComplete="off"
+                  inputMode="text"
+                  placeholder="FR76…"
+                  className="max-w-xl font-mono uppercase"
+                />
+                <p className="text-xs leading-normal text-muted-foreground">Affiché sur les factures et chiffré avant stockage. Videz le champ pour le supprimer.</p>
+              </div>
+              <Separator />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="penalty" className="text-xs font-semibold">Pénalités de retard par défaut (%) *</Label>
@@ -493,22 +517,16 @@ export function SettingsClient({ company, user }: { company: Company; user: User
       <TabsContent value="integrations" className="space-y-4">
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">Services Tiers</CardTitle>
-            <CardDescription className="text-xs">Connectez vos outils pour automatiser votre gestion.</CardDescription>
+            <CardTitle className="text-sm font-semibold">État des services externes</CardTitle>
+            <CardDescription className="text-xs">Un service est déclaré prêt uniquement lorsque sa configuration serveur obligatoire est présente.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-background/50 border-border">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 bg-primary/10 rounded flex items-center justify-center text-primary">
-                  <Database className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-foreground">Google Gemini AI</p>
-                  <p className="text-xs text-muted-foreground">Lecture intelligente des reçus & Aide à la rédaction légale</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="pointer-events-none">Actif</Button>
-            </div>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {[
+              { key: "gemini" as const, name: "Google Gemini", detail: "OCR des justificatifs", icon: Zap },
+              { key: "email" as const, name: "Resend", detail: "Envoi, réception et événements e-mail", icon: Mail },
+              { key: "storage" as const, name: "Cloudflare R2", detail: "Documents, archives et sauvegardes", icon: HardDrive },
+              { key: "billing" as const, name: "Stripe", detail: "Abonnements et portail de facturation", icon: CreditCard },
+            ].map(({ key, name, detail, icon: Icon }) => <div key={key} className="flex items-center justify-between gap-3 rounded-xl border bg-background/50 p-4"><div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" /></span><div className="min-w-0"><p className="truncate text-sm font-semibold">{name}</p><p className="mt-0.5 text-xs text-muted-foreground">{detail}</p></div></div><span className={cn("shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold", user.integrations[key] ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{user.integrations[key] ? "Prêt" : "À configurer"}</span></div>)}
           </CardContent>
         </Card>
       </TabsContent>
@@ -522,7 +540,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Sauvegardes et portabilité</CardTitle>
             <CardDescription className="text-xs">
-              Téléchargez vos données pour sécuriser votre installation locale.
+              Contrôlez la sauvegarde durable et téléchargez une copie portable de vos données.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -539,7 +557,8 @@ export function SettingsClient({ company, user }: { company: Company; user: User
             </div>
             <Separator />
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-xs leading-5 text-muted-foreground">
-              La restauration complète s&apos;effectue par PostgreSQL et R2 dans un environnement isolé, selon le runbook de production. L&apos;export JSON sert au contrôle de portabilité et à une reprise logique assistée ; il ne réinjecte jamais automatiquement des secrets ou des sessions.
+              <p className="font-semibold text-foreground">Sauvegarde durable : {company.lastBackupAt ? `dernière archive le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(company.lastBackupAt))}` : "aucune archive confirmée"}</p>
+              <p className="mt-1">Le traitement planifié compresse, chiffre puis stocke l’export logique dans R2. La restauration complète s&apos;effectue dans un environnement isolé, en complément des sauvegardes PostgreSQL natives.</p>
             </div>
             <Separator />
             <div className="flex items-center justify-between gap-4">

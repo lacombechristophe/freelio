@@ -2,93 +2,33 @@ import { PrismaClient } from "@prisma/client"
 import { PrismaClient as PostgreSQLPrismaClient } from "@crm/prisma-postgres"
 import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
+import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
 
 const MUTATION_OPERATIONS = new Set([
   "create",
   "createMany",
+  "createManyAndReturn",
   "update",
   "updateMany",
+  "updateManyAndReturn",
   "upsert",
   "delete",
   "deleteMany",
 ])
 
-const COMPANY_SCOPED_MODELS = new Set([
-  "Client",
-  "ClientPortalAccess",
-  "ClientPortalMessage",
-  "ClientPortalAppointmentRequest",
-  "Project",
-  "Pipeline",
-  "ServiceCategory",
-  "Service",
-  "Quote",
-  "Invoice",
-  "RecurringInvoice",
-  "ContractTemplate",
-  "Contract",
-  "Expense",
-  "WebhookEndpoint",
-  "RelanceConfig",
-  "OrganisationGoal",
-  "OrganisationTask",
-  "ProjectTemplate",
-  "InvoiceReminder",
-  "BankTransaction",
-  "DataSourceConnection",
-  "MigrationRun",
-  "SourceRecord",
-  "ExternalIdMap",
-  "DocumentManifest",
-  "CustomerSite",
-  "Supplier",
-  "Product",
-  "ProductOptionGroup",
-  "ProductOptionValue",
-  "ProductComponent",
-  "ProductPrice",
-  "Warehouse",
-  "InventoryItem",
-  "StockMovement",
-  "StockTransfer",
-  "PurchaseOrder",
-  "PurchaseIssue",
-  "SupplierReturn",
-  "Equipment",
-  "ServiceTicket",
-  "ServiceTicketNote",
-  "ServiceDiagnosticGuide",
-  "ServiceTicketDiagnostic",
-  "CustomerHealthRule",
-  "CustomerHealthSnapshot",
-  "KnowledgeArticle",
-  "SatisfactionSurvey",
-  "SatisfactionRequest",
-  "SavedView",
-  "FieldIntervention",
-  "InterventionReservation",
-  "MaintenanceContract",
-  "LeadCapture",
-  "MarketingConsent",
-  "EmailTemplate",
-  "EmailSequence",
-  "EmailSequenceTask",
-  "EmailDelivery",
-  "EmailThread",
-  "EmailMessage",
-  "EmailEvent",
-  "CommunicationChannel",
-  "LeadScoringRule",
-  "MarketingSegment",
-  "MarketingCampaign",
-  "AutomationWorkflow",
-  "AutomationWorkflowVersion",
-  "AutomationRun",
-  "CustomerOrder",
-  "DeliveryNote",
-  "GoodsReceipt",
-  "StockReservation",
+const TENANT_READ_OPERATIONS = new Set([
+  "aggregate",
+  "count",
+  "findFirst",
+  "findFirstOrThrow",
+  "findMany",
+  "findUnique",
+  "findUniqueOrThrow",
+  "groupBy",
 ])
+
+const TENANT_CREATE_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn"])
+const TENANT_UPDATE_OPERATIONS = new Set(["update", "updateMany", "updateManyAndReturn"])
 
 const DIRECT_AGENCY_MODELS = new Set(["CustomerSite", "Project", "Warehouse"])
 
@@ -123,8 +63,8 @@ function enforceAgencyWrite(model: string, operation: string, args: any, agencyI
     if (typeof data.agencyId !== "string" || !agencyIds.includes(data.agencyId)) throw new Error("AGENCY_ACCESS_DENIED")
   }
   if (operation === "create") validate(args.data)
-  if (operation === "createMany") (Array.isArray(args.data) ? args.data : [args.data]).forEach(validate)
-  if (operation === "update" || operation === "updateMany") {
+  if (operation === "createMany" || operation === "createManyAndReturn") (Array.isArray(args.data) ? args.data : [args.data]).forEach(validate)
+  if (operation === "update" || operation === "updateMany" || operation === "updateManyAndReturn") {
     if (args.data?.agencyId !== undefined) validate(args.data)
   }
   if (operation === "upsert") {
@@ -159,6 +99,10 @@ const prismaClientSingleton = () => {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
           const context = getContext()
+          // Prisma exposes a union of every model operation here. The operation
+          // guards below narrow it at runtime; a mutable view keeps the scoping
+          // code readable without weakening the public Prisma client types.
+          const mutableArgs = args as any
 
           const requiredPermission = requiredMutationPermission(model)
 
@@ -172,38 +116,52 @@ const prismaClientSingleton = () => {
             throw new Error(`FORBIDDEN:${requiredPermission}`)
           }
 
-          // Only these models own a direct companyId column in schema.prisma.
-          if (context?.companyId && COMPANY_SCOPED_MODELS.has(model)) {
-            if (operation === "findMany" || operation === "findFirst" || operation === "findUnique") {
-              args.where = { ...args.where, companyId: context.companyId }
-            } else if (operation === "create" || operation === "createMany") {
-              if (Array.isArray(args.data)) {
-                args.data = args.data.map((item: any) => ({ ...item, companyId: context.companyId }))
+          const directCompanyScope = context?.companyId && COMPANY_SCOPED_MODELS.has(model)
+            ? { companyId: context.companyId }
+            : null
+          const relationCompanyScope = context?.companyId
+            ? companyRelationScope(model, context.companyId, context.userId)
+            : null
+          const tenantScope = directCompanyScope ?? relationCompanyScope
+
+          if (context?.companyId && tenantScope) {
+            if (TENANT_READ_OPERATIONS.has(operation)) {
+              mutableArgs.where = { ...mutableArgs.where, ...tenantScope }
+            } else if (directCompanyScope && TENANT_CREATE_OPERATIONS.has(operation)) {
+              if (Array.isArray(mutableArgs.data)) {
+                mutableArgs.data = mutableArgs.data.map((item: any) => ({ ...item, companyId: context.companyId }))
               } else {
-                args.data = { ...args.data, companyId: context.companyId }
+                mutableArgs.data = { ...mutableArgs.data, companyId: context.companyId }
               }
-            } else if (operation === "update" || operation === "updateMany" || operation === "upsert") {
-              args.where = { ...args.where, companyId: context.companyId }
+            } else if (TENANT_UPDATE_OPERATIONS.has(operation)) {
+              mutableArgs.where = { ...mutableArgs.where, ...tenantScope }
+              if (directCompanyScope) mutableArgs.data = { ...mutableArgs.data, companyId: context.companyId }
+            } else if (operation === "upsert") {
+              mutableArgs.where = { ...mutableArgs.where, ...tenantScope }
+              if (directCompanyScope) {
+                mutableArgs.create = { ...mutableArgs.create, companyId: context.companyId }
+                mutableArgs.update = { ...mutableArgs.update, companyId: context.companyId }
+              }
             } else if (operation === "delete" || operation === "deleteMany") {
-              args.where = { ...args.where, companyId: context.companyId }
+              mutableArgs.where = { ...mutableArgs.where, ...tenantScope }
             }
           }
 
 
           if (context?.agencyIds !== null && context?.agencyIds !== undefined) {
             const scope = agencyWhere(model, context.agencyIds)
-            if (scope && operation !== "create" && operation !== "createMany") {
-              const scopedArgs = args as { where?: Record<string, unknown> }
+            if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) {
+              const scopedArgs = mutableArgs as { where?: Record<string, unknown> }
               const existingAnd = scopedArgs.where?.AND
               scopedArgs.where = {
                 ...scopedArgs.where,
                 AND: [...(Array.isArray(existingAnd) ? existingAnd : existingAnd ? [existingAnd] : []), scope],
               }
             }
-            enforceAgencyWrite(model, operation, args, context.agencyIds)
+            enforceAgencyWrite(model, operation, mutableArgs, context.agencyIds)
           }
           
-          return query(args)
+          return query(mutableArgs)
         },
       },
     },

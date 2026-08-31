@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DocumentStudio } from "@/components/shared/document-studio"
 import type { PdfDocument } from "@/lib/pdf/render"
+import { decryptSensitive } from "@/lib/crypto"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -59,7 +60,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
       tvaNumber: invoice.company.tvaNumber,
       apeCode: invoice.company.apeCode,
       rcsNumber: invoice.company.rcsNumber,
-      iban: invoice.company.iban,
+      iban: decryptSensitive(invoice.company.iban),
       isTvaApplicable: invoice.company.isTvaApplicable,
       latePenaltyRate: invoice.company.latePenaltyRate,
       brandColor: invoice.company.brandColor,

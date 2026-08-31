@@ -5,6 +5,7 @@ import { embedFacturX, generatePdfFromHtml } from "@/lib/pdf/generator"
 import { generateFacturX } from "@/lib/pdf/facturx"
 import { parsePdfRenderOptions, renderDocumentHtml } from "@/lib/pdf/render"
 import { getCurrentPortalAccess } from "@/lib/portal/session"
+import { decryptSensitive } from "@/lib/crypto"
 
 export const runtime = "nodejs"
 
@@ -25,7 +26,7 @@ function companyIdentity(company: {
   brandColor: string
   pdfTemplate: string
 }) {
-  return company
+  return { ...company, iban: decryptSensitive(company.iban) }
 }
 
 function clientIdentity(client: { name: string; address: string | null; siret: string | null; tvaNumber: string | null }) {

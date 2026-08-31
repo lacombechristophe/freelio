@@ -15,13 +15,13 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 43 fichiers, 172 tests réussis |
-| `npm run build` | build Next.js 16 de production réussi, 65 pages statiques analysées et routes dynamiques compilées |
+| `npm run test:unit` | 47 fichiers, 185 tests réussis |
+| `npm run build` | build Next.js 16.3.3 de production réussi, 69 sorties statiques générées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 33 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés et sécurité des comptes |
+| PostgreSQL | 34 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
 | Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
 | Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
@@ -76,7 +76,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 
 ## Invariants vérifiés dans le code et les tests
 
-- isolement société et permissions par rôle/domaines ;
+- isolement société direct et relationnel, classification exhaustive des modèles Prisma, opérations de lecture/agrégation cloisonnées et permissions par rôle/domaines ;
 - traitement manuel des échéances borné à la société authentifiée, rate limit dédié et séquence active obligatoire à l’inscription ;
 - jetons de signature/désinscription signés et secrets hors URL en clair ;
 - désinscription marketing idempotente et prioritaire sur les séquences ;
@@ -90,6 +90,10 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - journal précomptable équilibré et explicitement non présenté comme FEC ;
 - sauvegarde applicative sans IBAN chiffré, identifiants de connexion, secrets webhook, invitations ou jetons de signature ;
 - migrations HubSpot/Extrabat rejouables avec identifiants externes, archives et rapprochement technique.
+- IBAN chiffré en AES-GCM avec enveloppe versionnée, réécriture des valeurs historiques et déchiffrement limité aux rendus autorisés.
+- abonnement Stripe par entreprise, quotas membres/agences côté serveur, webhook signé/idempotent avec empreinte et rétention bornée.
+- sauvegarde logique quotidienne compressée/chiffrée dans R2, commande de déchiffrement hors production et contrôle du manifeste avant écriture.
+- acceptation des conditions et de la confidentialité horodatée/versionnée, CSP stricte sur les espaces sensibles et métriques Vercel limitées à l’hébergement Vercel.
 - engagements de résolution SAV déterministes par priorité, échéance manuelle prioritaire et ticket clos exclu des dépassements.
 - contenu de connaissance assaini côté serveur, articles portail bornés à la société et réponses de satisfaction à usage unique.
 - rattachement d’un fil e-mail refusé entre deux clients ou lorsqu’il appartient déjà à un autre ticket ; notes internes isolées par société et auteur.

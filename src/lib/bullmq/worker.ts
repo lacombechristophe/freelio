@@ -5,6 +5,7 @@ import { embedFacturX, generatePdfFromHtml } from "@/lib/pdf/generator"
 import { generateFacturX } from "@/lib/pdf/facturx"
 import { renderDocumentHtml, type PdfDocument } from "@/lib/pdf/render"
 import { storeFileBytes } from "@/lib/local-files"
+import { decryptSensitive } from "@/lib/crypto"
 
 const connection = {
   host: process.env.REDIS_HOST || "localhost",
@@ -45,7 +46,7 @@ function pdfCompany(company: {
     tvaNumber: company.tvaNumber,
     apeCode: company.apeCode,
     rcsNumber: company.rcsNumber,
-    iban: company.iban,
+    iban: decryptSensitive(company.iban),
     isTvaApplicable: company.isTvaApplicable,
     latePenaltyRate: company.latePenaltyRate,
     brandColor: company.brandColor,

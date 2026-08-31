@@ -1,18 +1,10 @@
-import { createHash, timingSafeEqual } from "node:crypto"
-
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
+import { cronRequestIsAuthorized } from "@/lib/cron-auth"
 
 export const runtime = "nodejs"
 
-function validSecret(request: Request) {
-  const expected = (process.env.SCHEDULER_CRON_SECRET || process.env.AUTOMATION_CRON_SECRET)?.trim()
-  if (!expected) return false
-  const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || ""
-  return timingSafeEqual(createHash("sha256").update(expected).digest(), createHash("sha256").update(provided).digest())
-}
-
-export async function POST(request: Request) {
-  if (!validSecret(request)) return Response.json({ error: "Accès refusé" }, { status: 401, headers: { "cache-control": "no-store" } })
+async function process(request: Request) {
+  if (!cronRequestIsAuthorized(request, "SCHEDULER_CRON_SECRET", "AUTOMATION_CRON_SECRET")) return Response.json({ error: "Accès refusé" }, { status: 401, headers: { "cache-control": "no-store" } })
   try {
     return Response.json({ success: true, ...(await processScheduledBusinessJobs()) }, { headers: { "cache-control": "no-store" } })
   } catch (error) {
@@ -20,3 +12,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Ordonnancement indisponible" }, { status: 503, headers: { "cache-control": "no-store" } })
   }
 }
+
+export const GET = process
+export const POST = process

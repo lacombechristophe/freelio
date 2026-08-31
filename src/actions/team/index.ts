@@ -14,6 +14,7 @@ import { createInvitationToken, hashInvitationToken } from "@/lib/team-invitatio
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
+import { assertWithinPlanLimit } from "@/lib/billing/subscription"
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254)
 const roleSchema = z.enum(COMPANY_ROLES)
@@ -70,6 +71,18 @@ export async function createTeamInvitation(data: unknown) {
 
     if (!canAssignRole(actorRole, parsed.data.role)) {
       return { success: false as const, error: "Vous ne pouvez pas attribuer ce rôle." }
+    }
+
+    const [activeMembers, otherPendingInvitations] = await Promise.all([
+      prisma.membership.count({ where: { companyId, status: "ACTIVE" } }),
+      prisma.companyInvitation.count({
+        where: { companyId, acceptedAt: null, expiresAt: { gt: new Date() }, email: { not: parsed.data.email } },
+      }),
+    ])
+    try {
+      await assertWithinPlanLimit(companyId, "seats", activeMembers + otherPendingInvitations)
+    } catch (error) {
+      return { success: false as const, error: error instanceof Error ? error.message : "Limite du forfait atteinte." }
     }
 
     const existingUser = await prisma.user.findUnique({

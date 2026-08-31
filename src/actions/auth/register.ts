@@ -8,6 +8,7 @@ import { signIn } from "@/auth"
 import { hashPassword, passwordIsStrong, passwordRequirements } from "@/lib/auth/password"
 import prisma from "@/lib/prisma"
 import { authRateLimit } from "@/lib/rate-limit"
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal"
 
 export type RegisterState = { success: boolean; error?: string }
 
@@ -17,6 +18,7 @@ const registerSchema = z.object({
   password: z.string().max(128),
   confirmPassword: z.string().max(128),
   acceptTerms: z.literal("on", { error: "Vous devez accepter les conditions d’utilisation" }),
+  website: z.string().max(0).optional(),
 }).superRefine((data, context) => {
   if (!passwordIsStrong(data.password)) context.addIssue({ code: "custom", path: ["password"], message: `Le mot de passe doit contenir ${passwordRequirements}.` })
   if (data.password !== data.confirmPassword) context.addIssue({ code: "custom", path: ["confirmPassword"], message: "Les mots de passe ne correspondent pas" })
@@ -35,11 +37,16 @@ export async function registerWithPassword(_previousState: RegisterState, formDa
   if (existing) return { success: false, error: "Un compte existe déjà pour cette adresse. Connectez-vous ou utilisez le lien de connexion." }
 
   const passwordHash = await hashPassword(result.data.password)
+  const acceptedAt = new Date()
   await prisma.user.create({
     data: {
       name: result.data.name,
       email: result.data.email,
       passwordHash,
+      termsAcceptedAt: acceptedAt,
+      termsVersion: TERMS_VERSION,
+      privacyAcceptedAt: acceptedAt,
+      privacyVersion: PRIVACY_VERSION,
     },
   })
 

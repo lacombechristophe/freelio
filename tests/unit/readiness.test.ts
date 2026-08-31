@@ -12,12 +12,19 @@ const validProductionEnvironment = {
   LEAD_HASH_SALT: "e".repeat(32),
   LEAD_INGEST_SECRET: "f".repeat(32),
   AUTOMATION_CRON_SECRET: "g".repeat(32),
+  CRON_SECRET: "i".repeat(32),
   SCHEDULER_CRON_SECRET: "h".repeat(32),
   RESEND_API_KEY: "resend-test-key",
   RESEND_WEBHOOK_SECRET: "whsec_test-key",
   EMAIL_FROM: "CRM <noreply@example.test>",
   PUBLIC_LEAD_COMPANY_ID: "company-id",
   LEAD_ALLOWED_ORIGINS: "https://example.test",
+  UPSTASH_REDIS_REST_URL: "https://redis.example.test",
+  UPSTASH_REDIS_REST_TOKEN: "redis-token",
+  STRIPE_SECRET_KEY: "sk_test_key",
+  STRIPE_WEBHOOK_SECRET: "j".repeat(32),
+  STRIPE_PRICE_ATELIER: "price_atelier",
+  STRIPE_PRICE_RESEAU: "price_reseau",
   AUTH_URL: "https://crm.example.test",
   PUBLIC_APP_URL: "https://crm.example.test",
   PUBLIC_PRIVACY_NOTICE_URL: "https://example.test/privacy",
@@ -36,6 +43,16 @@ describe("productionConfigurationIssues", () => {
 
   it("accepts a complete production configuration", () => {
     expect(productionConfigurationIssues(validProductionEnvironment)).toEqual([])
+  })
+
+  it("accepts the documented legacy R2 credential aliases during migration", () => {
+    expect(productionConfigurationIssues({
+      ...validProductionEnvironment,
+      R2_ACCESS_KEY_ID: undefined,
+      R2_SECRET_ACCESS_KEY: undefined,
+      R2_ACCESS_KEY: "access",
+      R2_SECRET_KEY: "secret",
+    })).toEqual([])
   })
 
   it("rejects unsafe production database, URL, secret and storage settings", () => {

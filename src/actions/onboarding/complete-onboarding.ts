@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma"
 import { OnboardingFormSchema } from "@/lib/validations"
 import { Prisma } from "@prisma/client"
 import { redirect } from "next/navigation"
+import { encrypt } from "@/lib/crypto"
 
 function parseLatePenaltyRate(value: string) {
   return value === "" ? 12.25 : Number(value.replace(",", "."))
@@ -49,7 +50,7 @@ export async function completeOnboarding(data: unknown) {
             isTvaApplicable: payload.isTvaApplicable,
             tvaNumber: payload.isTvaApplicable ? payload.tvaNumber || null : null,
             apeCode: payload.apeCode || null,
-            iban: payload.iban || null,
+            iban: payload.iban ? encrypt(payload.iban) : null,
             invoicePrefix: payload.invoicePrefix,
             paymentTerms: payload.paymentTerms,
             latePenaltyRate,
@@ -76,6 +77,10 @@ export async function completeOnboarding(data: unknown) {
             role: "OWNER",
             status: "ACTIVE",
           },
+        })
+
+        await tx.saasSubscription.create({
+          data: { companyId: company.id, plan: "ALPHA", status: "ACTIVE", seatQuantity: 1 },
         })
 
         const agency = await tx.agency.create({

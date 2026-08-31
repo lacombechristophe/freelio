@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   ContactRound,
+  CreditCard,
   Database,
   FileSignature,
   FileText,
@@ -175,6 +176,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
 ]
 
 export const dashboardUtilityItems: DashboardNavItem[] = [
+  { name: "Abonnement", href: "/dashboard/billing", icon: CreditCard },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { name: "Aide", href: "/dashboard/help", icon: HelpCircle },
 ]

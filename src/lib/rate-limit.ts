@@ -20,11 +20,24 @@ const hasUpstashConfig =
   !upstashToken.includes("your-token")
 
 const memoryBuckets = new Map<string, { count: number; reset: number }>()
+let memoryRequests = 0
+
+function pruneMemoryBuckets(now: number) {
+  memoryRequests += 1
+  if (memoryRequests % 1_000 !== 0 && memoryBuckets.size <= 10_000) return
+  for (const [key, bucket] of memoryBuckets) if (bucket.reset <= now) memoryBuckets.delete(key)
+  while (memoryBuckets.size > 10_000) {
+    const oldest = memoryBuckets.keys().next().value
+    if (!oldest) break
+    memoryBuckets.delete(oldest)
+  }
+}
 
 function createMemoryRateLimit(limit: number, windowMs: number, prefix: string): RateLimiter {
   return {
     async limit(identifier: string) {
       const now = Date.now()
+      pruneMemoryBuckets(now)
       const key = `${prefix}:${identifier}`
       let bucket = memoryBuckets.get(key)
 

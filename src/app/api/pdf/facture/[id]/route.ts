@@ -5,6 +5,7 @@ import { generatePdfFromHtml, embedFacturX } from "@/lib/pdf/generator"
 import { generateFacturX } from "@/lib/pdf/facturx"
 import { parsePdfRenderOptions, renderDocumentHtml } from "@/lib/pdf/render"
 import { logAction } from "@/lib/audit"
+import { decryptSensitive } from "@/lib/crypto"
 
 export async function GET(
   req: Request,
@@ -64,7 +65,7 @@ export async function GET(
       tvaNumber: invoice.company.tvaNumber,
       apeCode: invoice.company.apeCode,
       rcsNumber: invoice.company.rcsNumber,
-      iban: invoice.company.iban,
+      iban: decryptSensitive(invoice.company.iban),
       isTvaApplicable: invoice.company.isTvaApplicable,
       latePenaltyRate: invoice.company.latePenaltyRate,
       brandColor: invoice.company.brandColor,

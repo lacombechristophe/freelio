@@ -1,0 +1,160 @@
+/**
+ * Models that own a direct `companyId` column and must therefore be scoped by
+ * the request tenant in the Prisma extension.
+ *
+ * Keep this list explicit: it is part of the security boundary. A unit test
+ * compares it with the canonical Prisma schema so a newly added tenant model
+ * cannot silently bypass isolation.
+ */
+export const COMPANY_SCOPED_MODELS: ReadonlySet<string> = new Set([
+  "Agency",
+  "AutomationRun",
+  "AutomationWorkflow",
+  "AutomationWorkflowVersion",
+  "BankTransaction",
+  "Client",
+  "ClientPortalAccess",
+  "ClientPortalAppointmentRequest",
+  "ClientPortalMessage",
+  "CommunicationChannel",
+  "CompanyInvitation",
+  "Contract",
+  "ContractTemplate",
+  "CustomerHealthRule",
+  "CustomerHealthSnapshot",
+  "CustomerOrder",
+  "CustomerSite",
+  "DataSourceConnection",
+  "DeliveryNote",
+  "DocumentManifest",
+  "EmailDelivery",
+  "EmailEvent",
+  "EmailMessage",
+  "EmailSequence",
+  "EmailSequenceTask",
+  "EmailTemplate",
+  "EmailThread",
+  "Equipment",
+  "Expense",
+  "ExternalIdMap",
+  "FieldIntervention",
+  "GoodsReceipt",
+  "InterventionReservation",
+  "InventoryItem",
+  "Invoice",
+  "InvoiceReminder",
+  "KnowledgeArticle",
+  "LeadCapture",
+  "LeadScoringRule",
+  "MaintenanceContract",
+  "MarketingCampaign",
+  "MarketingConsent",
+  "MarketingSegment",
+  "Membership",
+  "MigrationRun",
+  "OrganisationGoal",
+  "OrganisationTask",
+  "Pipeline",
+  "Product",
+  "ProductComponent",
+  "ProductOptionGroup",
+  "ProductOptionValue",
+  "ProductPrice",
+  "Project",
+  "ProjectTemplate",
+  "PurchaseIssue",
+  "PurchaseOrder",
+  "Quote",
+  "RecurringInvoice",
+  "RelanceConfig",
+  "SatisfactionRequest",
+  "SatisfactionSurvey",
+  "SaasSubscription",
+  "SavedView",
+  "Service",
+  "ServiceCategory",
+  "ServiceDiagnosticGuide",
+  "ServiceTicket",
+  "ServiceTicketDiagnostic",
+  "ServiceTicketNote",
+  "SourceRecord",
+  "StockMovement",
+  "StockReservation",
+  "StockTransfer",
+  "Supplier",
+  "SupplierReturn",
+  "Warehouse",
+  "WebhookEndpoint",
+] as const)
+
+/** User.companyId is only the selected workspace; Membership owns access. */
+export const COMPANY_SCOPE_SCHEMA_EXCEPTIONS = new Set(["User"] as const)
+
+/**
+ * Tenant-owned models whose company is reached through a mandatory parent.
+ * These predicates protect reads and mutations by unique id even when a child
+ * table intentionally avoids duplicating `companyId`.
+ */
+const COMPANY_RELATION_SCOPE_BUILDERS: Record<string, (companyId: string, userId: string) => Record<string, unknown>> = {
+  AgencyMembership: (companyId) => ({ membership: { companyId } }),
+  ApiKey: (_companyId, userId) => ({ userId }),
+  AuditLog: (_companyId, userId) => ({ userId }),
+  ClientActivity: (companyId) => ({ client: { companyId } }),
+  ClientFile: (companyId) => ({ client: { companyId } }),
+  Company: (companyId) => ({ id: companyId }),
+  Contact: (companyId) => ({ client: { companyId } }),
+  ContractAmendmentChange: (companyId) => ({ contract: { companyId } }),
+  ContractClause: (companyId) => ({ template: { companyId } }),
+  ContractSignature: (companyId) => ({ contract: { companyId } }),
+  ContractSigningToken: (companyId) => ({ contract: { companyId } }),
+  CreditNote: (companyId) => ({ invoice: { companyId } }),
+  CustomerOrderLine: (companyId) => ({ customerOrder: { companyId } }),
+  DeliveryNoteLine: (companyId) => ({ deliveryNote: { companyId } }),
+  EInvoiceLog: (companyId) => ({ invoice: { companyId } }),
+  EmailSequenceEnrollment: (companyId) => ({ sequence: { companyId } }),
+  EmailSequenceStep: (companyId) => ({ sequence: { companyId } }),
+  ExpenseFile: (companyId) => ({ expense: { companyId } }),
+  GoodsReceiptLine: (companyId) => ({ goodsReceipt: { companyId } }),
+  InterventionFile: (companyId) => ({ intervention: { companyId } }),
+  InvoiceLine: (companyId) => ({ invoice: { companyId } }),
+  InvoicePayment: (companyId) => ({ invoice: { companyId } }),
+  MaintenanceContractEquipment: (companyId) => ({ contract: { companyId } }),
+  MarketingCampaignAsset: (companyId) => ({ campaign: { companyId } }),
+  MarketingSegmentMember: (companyId) => ({ segment: { companyId } }),
+  MigrationIssue: (companyId) => ({ run: { companyId } }),
+  MigrationMetric: (companyId) => ({ run: { companyId } }),
+  Notification: (_companyId, userId) => ({ userId }),
+  Opportunity: (companyId) => ({ pipeline: { companyId } }),
+  OpportunityActivity: (companyId) => ({ opportunity: { pipeline: { companyId } } }),
+  ProjectAcceptanceItem: (companyId) => ({ project: { companyId } }),
+  ProjectFile: (companyId) => ({ project: { companyId } }),
+  ProjectMilestone: (companyId) => ({ project: { companyId } }),
+  ProjectTechnicalProfile: (companyId) => ({ project: { companyId } }),
+  ProjectTemplateStep: (companyId) => ({ template: { companyId } }),
+  PurchaseOrderLine: (companyId) => ({ purchaseOrder: { companyId } }),
+  QuoteLine: (companyId) => ({ section: { version: { quote: { companyId } } } }),
+  QuoteSection: (companyId) => ({ version: { quote: { companyId } } }),
+  QuoteVersion: (companyId) => ({ quote: { companyId } }),
+  RecurringInvoiceOccurrence: (companyId) => ({ recurring: { companyId } }),
+  TimeEntry: (companyId) => ({ project: { companyId } }),
+  WebhookDelivery: (companyId) => ({ endpoint: { companyId } }),
+}
+
+export const COMPANY_RELATION_SCOPED_MODELS: ReadonlySet<string> = new Set(Object.keys(COMPANY_RELATION_SCOPE_BUILDERS))
+
+/** Global/auth tables never exposed as tenant business data. */
+export const GLOBAL_SCOPE_SCHEMA_EXCEPTIONS: ReadonlySet<string> = new Set([
+  "Account",
+  "BillingWebhookEvent",
+  "EmailLog",
+  "EReportingBatch",
+  "MfaRecoveryCode",
+  "PasswordResetToken",
+  "Session",
+  "User",
+  "VerificationToken",
+])
+
+export function companyRelationScope(model: string, companyId: string, userId: string) {
+  return COMPANY_RELATION_SCOPE_BUILDERS[model]?.(companyId, userId)
+}

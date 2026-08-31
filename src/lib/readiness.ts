@@ -24,11 +24,11 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
   const databaseUrl = environment.DATABASE_URL?.trim() ?? ""
   if (!databaseUrl.startsWith("postgresql://") && !databaseUrl.startsWith("postgres://")) issues.push("DATABASE_URL_POSTGRESQL")
 
-  for (const name of ["AUTH_SECRET", "ENCRYPTION_KEY", "JWT_SECRET", "CONSENT_TOKEN_SECRET", "LEAD_HASH_SALT", "LEAD_INGEST_SECRET", "AUTOMATION_CRON_SECRET"]) {
+  for (const name of ["AUTH_SECRET", "ENCRYPTION_KEY", "JWT_SECRET", "CONSENT_TOKEN_SECRET", "LEAD_HASH_SALT", "LEAD_INGEST_SECRET", "AUTOMATION_CRON_SECRET", "CRON_SECRET", "STRIPE_WEBHOOK_SECRET"]) {
     if (!hasSecret(environment, name)) issues.push(name)
   }
   if (hasValue(environment, "SCHEDULER_CRON_SECRET") && !hasSecret(environment, "SCHEDULER_CRON_SECRET")) issues.push("SCHEDULER_CRON_SECRET")
-  for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM", "LEAD_ALLOWED_ORIGINS"]) {
+  for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM", "LEAD_ALLOWED_ORIGINS", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "STRIPE_SECRET_KEY", "STRIPE_PRICE_ATELIER", "STRIPE_PRICE_RESEAU"]) {
     if (!hasValue(environment, name)) issues.push(name)
   }
   for (const name of ["AUTH_URL", "PUBLIC_APP_URL", "PUBLIC_PRIVACY_NOTICE_URL"]) {
@@ -37,9 +37,11 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
 
   if (environment.FILE_STORAGE_DRIVER?.trim().toLowerCase() !== "r2") issues.push("FILE_STORAGE_DRIVER_R2")
   if (environment.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() !== "r2") issues.push("MIGRATION_STORAGE_DRIVER_R2")
-  for (const name of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME"]) {
+  for (const name of ["R2_ACCOUNT_ID", "R2_BUCKET_NAME"]) {
     if (!hasValue(environment, name)) issues.push(name)
   }
+  if (!hasValue(environment, "R2_ACCESS_KEY_ID") && !hasValue(environment, "R2_ACCESS_KEY")) issues.push("R2_ACCESS_KEY_ID")
+  if (!hasValue(environment, "R2_SECRET_ACCESS_KEY") && !hasValue(environment, "R2_SECRET_KEY")) issues.push("R2_SECRET_ACCESS_KEY")
 
   return issues
 }

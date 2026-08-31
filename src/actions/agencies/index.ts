@@ -6,6 +6,7 @@ import { z } from "zod"
 import { logAction } from "@/lib/audit"
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
+import { assertWithinPlanLimit } from "@/lib/billing/subscription"
 
 const agencyIdSchema = z.string().cuid()
 const agencySchema = z.object({
@@ -88,6 +89,10 @@ export async function createAgency(input: unknown) {
   return withAuth(async ({ companyId, membershipId, userId }) => {
     const data = agencySchema.parse(input)
     const existingCount = await prisma.agency.count({ where: { companyId } })
+    if (data.active) {
+      const activeCount = await prisma.agency.count({ where: { companyId, active: true } })
+      await assertWithinPlanLimit(companyId, "agencies", activeCount)
+    }
     const makeDefault = existingCount === 0 || data.isDefault
     const agency = await prisma.$transaction(async (tx) => {
       if (makeDefault) {
@@ -126,6 +131,10 @@ export async function updateAgency(agencyId: string, input: unknown) {
     const existing = await prisma.agency.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Agence introuvable")
     if (existing.isDefault && !data.active) throw new Error("L’agence principale doit rester active")
+    if (!existing.active && data.active) {
+      const activeCount = await prisma.agency.count({ where: { companyId, active: true } })
+      await assertWithinPlanLimit(companyId, "agencies", activeCount)
+    }
 
     const agency = await prisma.$transaction(async (tx) => {
       if (data.isDefault && !existing.isDefault) {

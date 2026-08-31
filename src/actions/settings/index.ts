@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { encrypt } from "@/lib/crypto"
 
 function isValidTimeZone(value: string) {
   try { new Intl.DateTimeFormat("fr-FR", { timeZone: value }).format() } catch { return false }
@@ -35,6 +36,7 @@ const CompanySchema = z.object({
   tvaMajorThresholdCents: z.number().int().positive().optional(),
   eInvoicePlatform: z.string().trim().max(120).optional(),
   eInvoiceRoutingId: z.string().trim().max(180).optional(),
+  iban: z.string().trim().max(80).optional(),
   serviceTimezone: z.string().trim().min(1).max(100).refine(isValidTimeZone, "Fuseau horaire invalide").optional(),
   serviceDayStart: z.number().int().min(0).max(22).optional(),
   serviceDayEnd: z.number().int().min(1).max(23).optional(),
@@ -53,9 +55,14 @@ export async function updateCompany(data: unknown) {
       return { success: false, error: validated.error.issues[0]?.message ?? "Données invalides" }
     }
 
+    const { iban, ...companyData } = validated.data
     await prisma.company.update({
       where: { id: companyId },
-      data: { ...validated.data, logo: validated.data.logo === "" ? null : validated.data.logo },
+      data: {
+        ...companyData,
+        ...(iban !== undefined ? { iban: iban ? encrypt(iban.replace(/\s+/g, "").toUpperCase()) : null } : {}),
+        logo: validated.data.logo === "" ? null : validated.data.logo,
+      },
     })
 
     await logAction({
@@ -68,7 +75,7 @@ export async function updateCompany(data: unknown) {
 
     revalidatePath("/dashboard/settings")
     return { success: true }
-  })
+  }, "company.manage")
 }
 
 export async function getBillingSettings() {
