@@ -45,6 +45,31 @@ describe("productionConfigurationIssues", () => {
     expect(productionConfigurationIssues(validProductionEnvironment)).toEqual([])
   })
 
+  it("keeps optional platform email and SaaS billing out of core readiness", () => {
+    const environment = {
+      ...validProductionEnvironment,
+      RESEND_API_KEY: undefined,
+      RESEND_WEBHOOK_SECRET: undefined,
+      EMAIL_FROM: undefined,
+      STRIPE_SECRET_KEY: undefined,
+      STRIPE_WEBHOOK_SECRET: undefined,
+      STRIPE_PRICE_ATELIER: undefined,
+      STRIPE_PRICE_RESEAU: undefined,
+    }
+    expect(productionConfigurationIssues(environment)).toEqual([])
+  })
+
+  it("enforces optional providers when their production feature flag is enabled", () => {
+    const issues = productionConfigurationIssues({
+      ...validProductionEnvironment,
+      REQUIRE_PLATFORM_EMAIL: "true",
+      REQUIRE_BILLING: "true",
+      EMAIL_FROM: undefined,
+      STRIPE_WEBHOOK_SECRET: "short",
+    })
+    expect(issues).toEqual(expect.arrayContaining(["EMAIL_FROM", "STRIPE_WEBHOOK_SECRET"]))
+  })
+
   it("accepts the documented legacy R2 credential aliases during migration", () => {
     expect(productionConfigurationIssues({
       ...validProductionEnvironment,

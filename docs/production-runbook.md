@@ -63,22 +63,24 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `ENCRYPTION_KEY` : clé stable protégeant l'IBAN et les identifiants de sources ;
 - `JWT_SECRET` : secret indépendant pour les jetons applicatifs ;
 - `CONSENT_TOKEN_SECRET` : secret dédié d'au moins 32 caractères pour les liens publics de désinscription ; le repli technique sur `JWT_SECRET`/`AUTH_SECRET` ne doit pas être le choix de production ;
-- `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` pour les e-mails CRM, les événements et le lien magique optionnel ;
 - `PUBLIC_LEAD_COMPANY_ID` : facultatif tant que la base contient exactement une société, obligatoire dès qu’il faut router les demandes publiques entre plusieurs sociétés ;
 - `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL`, `CRON_SECRET` et `AUTOMATION_CRON_SECRET` ;
 - `SCHEDULER_CRON_SECRET` si une clé distincte est souhaitée pour l’ordonnanceur métier ; sinon la route utilise `AUTOMATION_CRON_SECRET` ;
 - `LEAD_HASH_SALT` et `LEAD_INGEST_SECRET` ;
 - `FILE_STORAGE_DRIVER=r2` et `MIGRATION_STORAGE_DRIVER=r2` ;
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` avant d’ouvrir les offres payantes.
 
 ### Requis selon la topologie
 
 - `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires dès que plusieurs instances servent du trafic ou que la capture publique est ouverte ;
 - `REDIS_HOST` et `REDIS_PORT` : obligatoires pour BullMQ ;
 - `GEMINI_API_KEY` : seulement pour l'OCR des justificatifs.
+- `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` : pour l’e-mail plateforme et le lien magique ; facultatifs si les entreprises utilisent exclusivement BYOK/OAuth et la connexion par mot de passe.
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` : obligatoires avant d’ouvrir les offres payantes.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte correspondante doit être autorisée ; enregistrer exactement `https://<domaine>/api/integrations/email/oauth/callback`, conserver l’accès hors ligne et ne jamais afficher le canal comme actif avant le consentement OAuth et la vérification de l’identité.
 - `COMMUNICATIONS_CRON_SECRET` : secret Bearer dédié à la synchronisation planifiée des boîtes OAuth ; son absence replie explicitement sur `AUTOMATION_CRON_SECRET`.
+- `REQUIRE_PLATFORM_EMAIL=true` fait échouer la readiness si `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` ou `EMAIL_FROM` manque. Le laisser à `false` lorsque chaque entreprise connecte sa propre messagerie.
+- `REQUIRE_BILLING=true` fait échouer la readiness si les quatre variables Stripe requises manquent. Ne l’activer qu’au moment d’ouvrir les abonnements payants.
 
 Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur présence, leur date de rotation et l'accès au service cible.
 
