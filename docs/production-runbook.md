@@ -137,7 +137,7 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker peut traiter les séquences e-mail. Sur Vercel, `vercel.json` programme les appels Bearer `GET /api/automations/process`, `GET /api/scheduling/process` et `GET /api/backup/process` avec `CRON_SECRET`. Les variantes `POST` restent disponibles pour un ordonnanceur externe approuvé.
+Le worker peut traiter les séquences e-mail. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Les traitements `GET /api/automations/process` (toutes les cinq minutes recommandé) et `GET /api/scheduling/process` (horaire recommandé) doivent être confiés à Vercel Pro, au worker BullMQ ou à un ordonnanceur externe approuvé. Les variantes `POST` restent disponibles avec le même contrôle Bearer. Ne pas ouvrir les séquences en production tant qu’un de ces mécanismes n’est pas observé et alerté.
 
 Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive.
 

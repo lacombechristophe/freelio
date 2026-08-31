@@ -63,6 +63,7 @@ Critère de sortie : totaux par objet rapprochés, échantillons fonctionnels va
 ## 7. Prérequis externes bloquants avant ouverture commerciale
 
 - Renseigner Resend, R2, Upstash, Stripe et `CRON_SECRET` dans Vercel.
+- Activer Vercel Pro ou un ordonnanceur externe supervisé pour les automatisations toutes les cinq minutes et les échéances horaires ; l’offre Hobby n’accepte que la sauvegarde quotidienne.
 - Activer sauvegarde/PITR PostgreSQL, politique de rétention R2 et alertes Vercel.
 - Faire valider CGU, politique de confidentialité, DPA, sous-traitants, mentions légales et durées de conservation.
 - Tester le domaine d’envoi (SPF, DKIM, DMARC), les rebonds/plaintes et le désabonnement.
