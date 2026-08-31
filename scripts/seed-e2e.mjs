@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { hashPassword } from "../src/lib/auth/password-core.ts"
 
 const databaseUrl = process.env.DATABASE_URL || ""
 const { PrismaClient } = databaseUrl.startsWith("postgres")
@@ -7,8 +8,10 @@ const { PrismaClient } = databaseUrl.startsWith("postgres")
 
 const prisma = new PrismaClient()
 const email = process.env.E2E_USER_EMAIL || "qa-crm@example.com"
+const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
 
 async function main() {
+  const passwordHash = await hashPassword(password)
   const company = await prisma.company.create({
     data: {
       id: "e2e-company",
@@ -24,8 +27,8 @@ async function main() {
   })
   const user = await prisma.user.upsert({
     where: { email },
-    update: { companyId: company.id, name: "Utilisateur QA", emailVerified: new Date() },
-    create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id },
+    update: { companyId: company.id, name: "Utilisateur QA", emailVerified: new Date(), passwordHash },
+    create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id, passwordHash },
   })
   const membership = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
   const agency = await prisma.agency.create({ data: { companyId: company.id, code: "PRINCIPALE", name: "Agence QA", kind: "MIXED", active: true, isDefault: true } })
