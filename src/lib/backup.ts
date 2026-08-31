@@ -501,20 +501,6 @@ export async function writeLocalBackup(payload: BackupPayload, label = "auto") {
   return destination
 }
 
-export async function ensureDailyBackup(userId: string, companyId: string) {
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-    select: { lastBackupAt: true },
-  })
-  const today = new Date().toISOString().slice(0, 10)
-  if (company?.lastBackupAt?.toISOString().slice(0, 10) === today) return false
-
-  const payload = await buildBackupPayload(userId, companyId)
-  await writeLocalBackup(payload)
-  await prisma.company.update({ where: { id: companyId }, data: { lastBackupAt: new Date() } })
-  return true
-}
-
 function validateLegacyPayload(input: unknown, companyId: string): asserts input is LegacyBackupPayload {
   if (!input || typeof input !== "object") throw new Error("Sauvegarde invalide")
   const payload = input as Partial<LegacyBackupPayload>

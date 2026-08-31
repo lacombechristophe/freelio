@@ -1,7 +1,7 @@
-# Runbook de production — Diskoov CRM/ERP
+# Runbook de production — Freelio CRM/ERP
 
 Date de référence : 24 août 2026
-Propriétaire opérationnel à nommer : responsable de production Diskoov
+Propriétaire opérationnel à nommer : responsable de production de l’entreprise cliente
 Périmètre : application Next.js, PostgreSQL, R2, Resend, Redis/BullMQ et Upstash.
 
 Ce document décrit l'exploitation du code présent dans ce dépôt. Il ne vaut pas preuve de mise en production : l'hébergeur, les accès, les objectifs de reprise et les alertes doivent encore être renseignés dans la fiche d'environnement.
@@ -27,7 +27,7 @@ Préproduction et production doivent utiliser des bases, buckets, clés et domai
 ## 2. Topologie attendue
 
 ```text
-Utilisateurs / diskoov.fr
+Utilisateurs / site public
           │ HTTPS
           ▼
    Application Next.js ───────────────► Resend
@@ -65,11 +65,12 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `CONSENT_TOKEN_SECRET` : secret dédié d'au moins 32 caractères pour les liens publics de désinscription ; le repli technique sur `JWT_SECRET`/`AUTH_SECRET` ne doit pas être le choix de production ;
 - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` pour les e-mails CRM, les événements et le lien magique optionnel ;
 - `PUBLIC_LEAD_COMPANY_ID` : facultatif tant que la base contient exactement une société, obligatoire dès qu’il faut router les demandes publiques entre plusieurs sociétés ;
-- `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL` et `AUTOMATION_CRON_SECRET` ;
+- `PUBLIC_APP_URL`, `PUBLIC_PRIVACY_NOTICE_URL`, `CRON_SECRET` et `AUTOMATION_CRON_SECRET` ;
 - `SCHEDULER_CRON_SECRET` si une clé distincte est souhaitée pour l’ordonnanceur métier ; sinon la route utilise `AUTOMATION_CRON_SECRET` ;
 - `LEAD_HASH_SALT` et `LEAD_INGEST_SECRET` ;
 - `FILE_STORAGE_DRIVER=r2` et `MIGRATION_STORAGE_DRIVER=r2` ;
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` avant d’ouvrir les offres payantes.
 
 ### Requis selon la topologie
 
@@ -136,7 +137,9 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker traite aussi les séquences e-mail et, toutes les cinq minutes, les visites d’entretien et factures récurrentes dues. À défaut de worker permanent, configurer des appels Bearer à `POST /api/automations/process` et `POST /api/scheduling/process` avec les secrets dédiés.
+Le worker peut traiter les séquences e-mail. Sur Vercel, `vercel.json` programme les appels Bearer `GET /api/automations/process`, `GET /api/scheduling/process` et `GET /api/backup/process` avec `CRON_SECRET`. Les variantes `POST` restent disponibles pour un ordonnanceur externe approuvé.
+
+Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive.
 
 ### 4.5 Smoke test après déploiement
 
@@ -270,7 +273,7 @@ Niveaux conseillés :
 ### Capture de leads interrompue
 
 - vérifier `PUBLIC_LEAD_COMPANY_ID`, les origines, Upstash et PostgreSQL ;
-- activer temporairement un canal de collecte approuvé sur `diskoov.fr` ;
+- activer temporairement un canal de collecte approuvé sur le site public ;
 - conserver l'heure et les demandes reçues hors outil pour reprise contrôlée ;
 - tester origine autorisée, secret serveur, honeypot, doublon et limite de débit avant réouverture.
 - tester aussi la création d'un lien depuis la file prospects, son retrait public, sa relecture idempotente et la preuve `WITHDRAWN` avant réouverture.
@@ -317,7 +320,7 @@ La production n'est approuvée que lorsque chaque ligne possède une preuve dat�
 - PostgreSQL/R2/Resend/Upstash/Redis validés ;
 - sauvegarde et restauration mesurées ;
 - rôles testés avec de vrais profils ;
-- capture `diskoov.fr` et parcours de signature testés ;
+- capture depuis le site public et parcours de signature testés ;
 - PDF et Factur-X relus ;
 - supervision et alertes reçues par un humain ;
 - procédure manuelle pour vente, stock, intervention et encaissement ;

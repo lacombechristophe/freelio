@@ -50,7 +50,7 @@ jobs:
 
       - name: Préparer la base E2E isolée
         run: |
-          npx prisma db push --schema prisma/schema.prisma --skip-generate
+          npm run db:bootstrap:sqlite
           node scripts/seed-e2e.mjs
 
       - name: Vérifier types, lint, tests et build

@@ -4,6 +4,7 @@ import { getRouteAuth } from "@/lib/route-auth"
 import { generatePdfFromHtml } from "@/lib/pdf/generator"
 import { parsePdfRenderOptions, renderDocumentHtml } from "@/lib/pdf/render"
 import { logAction } from "@/lib/audit"
+import { decryptSensitive } from "@/lib/crypto"
 
 export async function GET(
   req: Request,
@@ -72,7 +73,7 @@ export async function GET(
       tvaNumber: quote.company.tvaNumber,
       apeCode: quote.company.apeCode,
       rcsNumber: quote.company.rcsNumber,
-      iban: quote.company.iban,
+      iban: decryptSensitive(quote.company.iban),
       isTvaApplicable: quote.company.isTvaApplicable,
       latePenaltyRate: quote.company.latePenaltyRate,
       brandColor: quote.company.brandColor,

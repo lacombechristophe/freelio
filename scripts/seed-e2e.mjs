@@ -25,6 +25,9 @@ async function main() {
       brandColor: "#173B64",
     },
   })
+  await prisma.saasSubscription.create({
+    data: { companyId: company.id, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 },
+  })
   const user = await prisma.user.upsert({
     where: { email },
     update: { companyId: company.id, name: "Utilisateur QA", emailVerified: new Date(), passwordHash },

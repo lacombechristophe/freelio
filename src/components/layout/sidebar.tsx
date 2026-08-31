@@ -31,7 +31,7 @@ function formatTimer(seconds: number) {
 
 export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false)
-  const [projectsList, setProjectsList] = React.useState<any[]>([])
+  const [projectsList, setProjectsList] = React.useState<Array<{ id: string; name: string }>>([])
   const [saving, setSaving] = React.useState(false)
   const {
     isRunning,
@@ -52,7 +52,7 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
 
   React.useEffect(() => {
     getProjects(undefined, 100)
-      .then((projects) => setProjectsList(projects ?? []))
+      .then((projects) => setProjectsList((projects ?? []).map(({ id, name }) => ({ id, name }))))
       .catch(() => {})
   }, [])
 
@@ -124,6 +124,7 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
                 isRunning && "border-primary/30 bg-accent text-primary"
               )}
               title={isRunning ? `Suspendre le chronomètre (${formatTimer(elapsed)})` : "Démarrer le chronomètre"}
+              aria-label={isRunning ? `Suspendre le chronomètre à ${formatTimer(elapsed)}` : "Démarrer le chronomètre"}
             >
               <Clock className="size-[18px]" />
             </button>
@@ -166,10 +167,10 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
 
               {elapsed > 0 && (
                 <>
-                  <Button size="icon" variant="ghost" className="size-9 shrink-0 text-muted-foreground" onClick={resetTimer} disabled={saving} title="Réinitialiser">
+                  <Button size="icon" variant="ghost" className="size-9 shrink-0 text-muted-foreground" onClick={resetTimer} disabled={saving} title="Réinitialiser" aria-label="Réinitialiser le chronomètre">
                     <RotateCcw className="size-3.5" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="size-9 shrink-0 text-success hover:bg-success/10 hover:text-success" onClick={handleSave} disabled={saving || !projectId} title="Enregistrer le temps">
+                  <Button size="icon" variant="ghost" className="size-9 shrink-0 text-success hover:bg-success/10 hover:text-success" onClick={handleSave} disabled={saving || !projectId} title="Enregistrer le temps" aria-label="Enregistrer le temps">
                     <Save className="size-3.5" />
                   </Button>
                 </>
@@ -184,6 +185,7 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
           className={cn("w-full text-muted-foreground", isCollapsed ? "justify-center px-0" : "justify-start")}
           onClick={() => setIsCollapsed((value) => !value)}
           title={isCollapsed ? "Agrandir la navigation" : "Réduire la navigation"}
+          aria-label={isCollapsed ? "Agrandir la navigation" : "Réduire la navigation"}
         >
           {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
           {!isCollapsed && <span>Réduire</span>}

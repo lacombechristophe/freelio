@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { KeyRound, Loader2, LogOut, QrCode, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
@@ -14,15 +15,15 @@ import { Label } from "@/components/ui/label"
 type Setup = { secret: string; qrCodeDataUrl: string } | null
 
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : "Opération impossible" }
-function leaveSession() { window.location.assign("/auth/login") }
 
 export function AccountSecurityPanel({ mfaEnabled, recoveryCodesRemaining, hasPassword }: { mfaEnabled: boolean; recoveryCodesRemaining: number; hasPassword: boolean }) {
+  const router = useRouter()
   const [pending, start] = useTransition()
   const [setup, setSetup] = useState<Setup>(null)
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
   const run = (operation: () => Promise<unknown>, success: string, signOut = false) => start(async () => {
-    try { await operation(); toast.success(success); if (signOut) leaveSession() }
+    try { await operation(); toast.success(success); if (signOut) { router.replace("/auth/login"); router.refresh() } }
     catch (error) { toast.error(errorMessage(error)) }
   })
 

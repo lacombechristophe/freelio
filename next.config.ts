@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const developmentEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+const upgradeInsecureRequests = process.env.NODE_ENV === "production" ? " upgrade-insecure-requests;" : "";
 
 const nextConfig: NextConfig = {
+  experimental: { sri: { algorithm: "sha384" } },
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["@prisma/client", "@crm/prisma-postgres"],
   async headers() {
@@ -12,7 +14,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self' https://sentry.io; frame-ancestors 'none';`,
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';${upgradeInsecureRequests}`,
           },
           {
             key: "X-Frame-Options",
@@ -25,6 +27,14 @@ const nextConfig: NextConfig = {
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(self), geolocation=(self), microphone=(), payment=()",
+          },
+          {
+            key: "X-Permitted-Cross-Domain-Policies",
+            value: "none",
           },
           {
             key: "Strict-Transport-Security",

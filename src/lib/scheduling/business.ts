@@ -1,6 +1,6 @@
 import "server-only"
 
-import { addDays, addHours, addMonths, addYears } from "date-fns"
+import { addDays, addHours, addMonths, addYears, subDays } from "date-fns"
 import { z } from "zod"
 
 import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
@@ -152,6 +152,12 @@ export async function processDueMaintenanceVisits(input: { companyId?: string; u
 }
 
 export async function processScheduledBusinessJobs() {
-  const [recurringInvoices, maintenanceVisits] = await Promise.all([processDueRecurringInvoices(), processDueMaintenanceVisits()])
-  return { recurringInvoices, maintenanceVisits }
+  const [recurringInvoices, maintenanceVisits, deletedBillingWebhookEvents] = await Promise.all([
+    processDueRecurringInvoices(),
+    processDueMaintenanceVisits(),
+    prisma.billingWebhookEvent.deleteMany({
+      where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
+    }),
+  ])
+  return { recurringInvoices, maintenanceVisits, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
 }
