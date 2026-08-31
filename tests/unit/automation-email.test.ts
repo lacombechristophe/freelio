@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+vi.mock("server-only", () => ({}))
+vi.mock("@/lib/crypto", () => ({ decrypt: (value: string) => value, encrypt: (value: string) => value }))
+
 import { renderEmailVariables, sanitizeSequenceEmailHtml, sendSequenceEmail } from "@/lib/automations/email"
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema } from "@/lib/automations/engine"
 import { dueSequenceEnrollmentWhere, enrollableSequenceWhere } from "@/lib/automations/sequences"

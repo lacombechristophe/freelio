@@ -8,101 +8,65 @@ export type BillingLinePreset = {
   lines: Line[]
 }
 
+const unpricedLine = (label: string, description: string): Line => ({
+  label,
+  description,
+  quantity: 1,
+  unitPriceCents: 0,
+  tvaRate: 20,
+})
+
+/**
+ * Prices and reduced VAT rates are deliberately never guessed here. Catalogue
+ * pricing and the customer's tax situation must remain the source of truth.
+ */
 export const BILLING_LINE_PRESETS: BillingLinePreset[] = [
   {
-    id: "audit-technique",
-    label: "Audit technique",
-    description: "Diagnostic complet avec restitution exploitable.",
-    bestFor: "Avant refonte, reprise de projet, performance, dette technique.",
+    id: "fourniture-pose-equipement",
+    label: "Fourniture & pose",
+    description: "Une trame complète de la visite technique à la mise en service.",
+    bestFor: "Couverture, volet, abri, pompe, traitement ou équipement de sécurité.",
     lines: [
-      {
-        label: "Audit technique fullstack",
-        description: "Analyse architecture, code, performances, securite, dette technique et priorites.",
-        quantity: 1,
-        unitPriceCents: 90000,
-        tvaRate: 20,
-      },
-      {
-        label: "Restitution et plan d'action",
-        description: "Rapport priorise avec recommandations, risques, quick wins et feuille de route.",
-        quantity: 1,
-        unitPriceCents: 35000,
-        tvaRate: 20,
-      },
+      unpricedLine("Relevé technique et validation d’implantation", "Contrôle des dimensions, accès, supports, alimentations et contraintes du site."),
+      unpricedLine("Fourniture de l’équipement", "Référence, dimensions, finition, options et accessoires selon la configuration validée."),
+      unpricedLine("Préparation et pose", "Acheminement, préparation des supports, installation, fixations et raccordements prévus."),
+      unpricedLine("Réglages, essais et mise en service", "Contrôles fonctionnels, consignes d’utilisation et réception avec le client."),
     ],
   },
   {
-    id: "refonte-web",
-    label: "Refonte web",
-    description: "Pack clair pour site vitrine ou site marketing evolue.",
-    bestFor: "Landing, site vitrine, refonte front, SEO technique.",
+    id: "renovation-bassin",
+    label: "Rénovation de bassin",
+    description: "Sépare clairement diagnostic, dépose, travaux et remise en eau.",
+    bestFor: "Revêtement, filtration, pièces à sceller ou rénovation technique coordonnée.",
     lines: [
-      {
-        label: "Cadrage UX et structure des pages",
-        description: "Arborescence, parcours, contenus attendus et priorites de conversion.",
-        quantity: 1,
-        unitPriceCents: 45000,
-        tvaRate: 20,
-      },
-      {
-        label: "Design UI et integration responsive",
-        description: "Interface desktop/mobile, composants, animations sobres et accessibilite.",
-        quantity: 1,
-        unitPriceCents: 180000,
-        tvaRate: 20,
-      },
-      {
-        label: "Mise en ligne et recette",
-        description: "Tests finaux, corrections, configuration domaine et livraison.",
-        quantity: 1,
-        unitPriceCents: 50000,
-        tvaRate: 20,
-      },
+      unpricedLine("Diagnostic et préparation du chantier", "État des lieux, relevés, protection de la zone et validation du périmètre."),
+      unpricedLine("Dépose et évacuation", "Dépose des éléments prévus et évacuation des déchets selon les conditions du devis."),
+      unpricedLine("Travaux de rénovation", "Préparation des supports, fourniture et mise en œuvre des éléments définis."),
+      unpricedLine("Remise en service et réception", "Contrôles, nettoyage de fin de chantier, remise en eau si prévue et procès-verbal de réception."),
     ],
   },
   {
-    id: "mvp-saas",
-    label: "MVP applicatif",
-    description: "Base pour une application web ou un outil interne.",
-    bestFor: "Dashboard, CRM interne, SaaS MVP, backoffice.",
+    id: "entretien-saisonnier",
+    label: "Entretien saisonnier",
+    description: "Un cadre lisible pour les opérations récurrentes du bassin.",
+    bestFor: "Mise en route, visites périodiques, consommables et hivernage.",
     lines: [
-      {
-        label: "Cadrage produit et architecture",
-        description: "Specifications, modelisation des donnees, choix techniques et jalons.",
-        quantity: 1,
-        unitPriceCents: 75000,
-        tvaRate: 20,
-      },
-      {
-        label: "Developpement fullstack MVP",
-        description: "Interfaces, backend, base de donnees, authentification et workflows principaux.",
-        quantity: 1,
-        unitPriceCents: 420000,
-        tvaRate: 20,
-      },
-      {
-        label: "Deploiement, tests et passation",
-        description: "Recette, correction des anomalies, mise en production et documentation courte.",
-        quantity: 1,
-        unitPriceCents: 90000,
-        tvaRate: 20,
-      },
+      unpricedLine("Mise en service saisonnière", "Remise en route, contrôles visuels et fonctionnels, réglages initiaux."),
+      unpricedLine("Visites d’entretien planifiées", "Contrôles, nettoyage et réglages prévus au contrat, hors réparations et pièces."),
+      unpricedLine("Produits et consommables", "Fournitures utilisées ou laissées au client selon quantités réellement prévues."),
+      unpricedLine("Hivernage", "Préparation des équipements et du bassin selon la méthode convenue."),
     ],
   },
   {
-    id: "maintenance-mensuelle",
-    label: "Maintenance mensuelle",
-    description: "Forfait recurrent pour stabilite et petites evolutions.",
-    bestFor: "Client existant, production, support, petites evolutions.",
+    id: "intervention-sav",
+    label: "Intervention SAV",
+    description: "Distingue le diagnostic, le temps passé et les pièces remplacées.",
+    bestFor: "Dépannage, remise en service ou intervention hors garantie.",
     lines: [
-      {
-        label: "Forfait maintenance et support mensuel",
-        description: "Correctifs, mises a jour raisonnables, monitoring manuel et conseil technique.",
-        quantity: 1,
-        unitPriceCents: 75000,
-        tvaRate: 20,
-      },
+      unpricedLine("Déplacement et diagnostic", "Déplacement sur site, contrôles et identification de la cause probable."),
+      unpricedLine("Main-d’œuvre d’intervention", "Temps d’intervention estimé, démontage, réparation et remontage prévus."),
+      unpricedLine("Pièces et consommables", "Références et quantités à confirmer avant remplacement."),
+      unpricedLine("Essais et compte rendu", "Tests de fonctionnement, observations, réserves et recommandations au client."),
     ],
   },
 ]
-

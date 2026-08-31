@@ -78,11 +78,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            href="/dashboard/contrats"
-            aria-label="Retour aux contrats"
-            className={buttonVariants({ variant: "ghost", size: "icon" })}
-          >
+          <Link href="/dashboard/contrats" aria-label="Retour aux contrats" className={buttonVariants({ variant: "ghost", size: "icon" })}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="min-w-0 flex-1">
@@ -100,31 +96,20 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           </div>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
-          <a
-            href={`/api/pdf/contrat/${contract.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariants({ variant: "outline" })}
-          >
+          <a href={`/api/pdf/contrat/${contract.id}`} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
             <FileDown className="h-4 w-4" /> PDF
           </a>
           {contract.status !== "SIGNED" && contract.kind === "STANDARD" && (
-            <Link
-              href={`/dashboard/contrats/${contract.id}/edit`}
-              className={buttonVariants({ variant: "outline" })}
-            >
+            <Link href={`/dashboard/contrats/${contract.id}/edit`} className={buttonVariants({ variant: "outline" })}>
               <Pencil className="h-4 w-4" /> Éditer
             </Link>
           )}
           {contract.status === "SIGNED" && contract.kind !== "MAINTENANCE_RENEWAL" && (
-            <Link
-              href={`/dashboard/contrats/${contract.id}/amend`}
-              className={buttonVariants({ variant: "outline" })}
-            >
+            <Link href={`/dashboard/contrats/${contract.id}/amend`} className={buttonVariants({ variant: "outline" })}>
               <Plus className="h-4 w-4" /> Créer un avenant
             </Link>
           )}
-          <ContractStatusActions contractId={contract.id} status={contract.status} kind={contract.kind} />
+          <ContractStatusActions contractId={contract.id} status={contract.status} />
         </div>
       </div>
 
@@ -146,7 +131,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                 "mt-3 inline-flex rounded-full border px-2 py-1 text-xs font-semibold",
                 quality.status === "READY" && "border-success/30 bg-success/10 text-success",
                 quality.status === "TO_REVIEW" && "border-warning/30 bg-warning/10 text-warning",
-                quality.status === "BLOCKED" && "border-danger/30 bg-danger/10 text-danger"
+                quality.status === "BLOCKED" && "border-danger/30 bg-danger/10 text-danger",
               )}
             >
               {quality.label}
@@ -164,7 +149,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                         "mt-0.5 h-4 w-4 shrink-0",
                         issue.severity === "error" && "text-danger",
                         issue.severity === "warning" && "text-warning",
-                        issue.severity === "info" && "text-muted-foreground"
+                        issue.severity === "info" && "text-muted-foreground",
                       )}
                     />
                     <div>
@@ -215,10 +200,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
             {contract.parentContract && (
               <div className="rounded-lg border bg-muted/20 p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Contrat source</p>
-                <Link
-                  href={`/dashboard/contrats/${contract.parentContract.id}`}
-                  className="mt-1 inline-flex font-mono font-semibold text-primary hover:underline"
-                >
+                <Link href={`/dashboard/contrats/${contract.parentContract.id}`} className="mt-1 inline-flex font-mono font-semibold text-primary hover:underline">
                   {contract.parentContract.number}
                 </Link>
                 <p className="mt-1 text-xs text-muted-foreground">{contract.parentContract.title}</p>
@@ -230,10 +212,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                   <RefreshCw className="h-3.5 w-3.5" />
                   Renouvellement d’entretien
                 </p>
-                <Link
-                  href="/dashboard/operations?tab=maintenance"
-                  className="mt-1 inline-flex font-mono font-semibold text-primary hover:underline"
-                >
+                <Link href="/dashboard/operations?tab=maintenance" className="mt-1 inline-flex font-mono font-semibold text-primary hover:underline">
                   {contract.maintenanceContract.number}
                 </Link>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -253,9 +232,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">Avant : {change.previousValue || "Non applicable"}</p>
                       <p className="mt-1 text-xs">Après : {change.nextValue}</p>
-                      {change.financialImpactCents != null && (
-                        <p className="mt-2 text-xs font-semibold tabular-nums">Impact : {formatMoney(change.financialImpactCents)}</p>
-                      )}
+                      {change.financialImpactCents != null && <p className="mt-2 text-xs font-semibold tabular-nums">Impact : {formatMoney(change.financialImpactCents)}</p>}
                     </div>
                   ))}
                 </div>
@@ -286,23 +263,26 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-sm">Contenu</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-sm">Contenu</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div
-            className="prose prose-invert prose-sm max-w-none text-sm leading-relaxed text-foreground"
-            dangerouslySetInnerHTML={{ __html: safeContractHtml }}
-          />
+          <div className="prose prose-invert prose-sm max-w-none text-sm leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: safeContractHtml }} />
         </CardContent>
       </Card>
 
       {contract.signatures.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-sm">Signatures ({contract.signatures.length})</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm">Signatures ({contract.signatures.length})</CardTitle>
+          </CardHeader>
           <CardContent>
             <ul className="space-y-1 text-sm">
               {contract.signatures.map((s) => (
                 <li key={s.id} className="flex justify-between">
-                  <span>{s.signerName} <span className="text-muted-foreground">— {s.signerEmail}</span></span>
+                  <span>
+                    {s.signerName} <span className="text-muted-foreground">— {s.signerEmail}</span>
+                  </span>
                   <span className="text-muted-foreground text-xs">{formatDate(s.signedAt)}</span>
                 </li>
               ))}

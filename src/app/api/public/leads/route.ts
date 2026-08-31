@@ -3,11 +3,14 @@ import { ZodError } from "zod"
 
 import { capturePublicLead, hashLeadRequestValue, LeadConfigurationError } from "@/lib/leads/capture"
 import { leadRateLimit } from "@/lib/rate-limit"
+import { PayloadTooLargeError, readJsonBody, readTextBody } from "@/lib/http-body"
 
 export const runtime = "nodejs"
 
 function allowedOrigins() {
-  const configured = process.env.LEAD_ALLOWED_ORIGINS?.split(",").map((value) => value.trim()).filter(Boolean)
+  const configured = process.env.LEAD_ALLOWED_ORIGINS?.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
   return new Set(configured?.length ? configured : ["http://localhost:3000"])
 }
 
@@ -25,7 +28,7 @@ function requestOrigin(request: Request) {
 }
 
 function corsHeaders(origin: string | null) {
-  const headers = new Headers({ "Cache-Control": "no-store", "Vary": "Origin" })
+  const headers = new Headers({ "Cache-Control": "no-store", Vary: "Origin" })
   if (origin && allowedOrigins().has(origin)) {
     headers.set("Access-Control-Allow-Origin", origin)
     headers.set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -41,16 +44,16 @@ function isTrustedRequest(request: Request) {
 }
 
 function clientAddress(request: Request) {
-  return request.headers.get("cf-connecting-ip")
-    || request.headers.get("x-real-ip")
-    || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || "unknown"
+  return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
 }
 
 async function requestPayload(request: Request) {
   const contentType = request.headers.get("content-type") || ""
-  if (contentType.includes("application/json")) return request.json()
-  if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+  if (contentType.includes("application/json")) return readJsonBody(request, 64 * 1024)
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    return Object.fromEntries(new URLSearchParams(await readTextBody(request, 64 * 1024)))
+  }
+  if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData()
     return Object.fromEntries(formData.entries())
   }
@@ -68,8 +71,10 @@ export async function POST(request: Request) {
   const headers = corsHeaders(origin)
   if (!isTrustedRequest(request)) return Response.json({ error: "Origine non autorisée." }, { status: 403, headers })
 
-  const contentLength = Number(request.headers.get("content-length") || "0")
-  if (contentLength > 64 * 1024) return Response.json({ error: "Requête trop volumineuse." }, { status: 413, headers })
+  const contentLength = request.headers.get("content-length")
+  if (contentLength && /^\d+$/.test(contentLength) && Number(contentLength) > 64 * 1024) {
+    return Response.json({ error: "Requête trop volumineuse." }, { status: 413, headers })
+  }
 
   const ipHash = hashLeadRequestValue(clientAddress(request))
   const rateLimit = await leadRateLimit.limit(ipHash)
@@ -89,6 +94,9 @@ export async function POST(request: Request) {
     const result = await capturePublicLead(payload, { ipHash, userAgentHash: hashLeadRequestValue(userAgent) })
     return Response.json(result, { status: result.duplicate ? 200 : 201, headers })
   } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return Response.json({ error: "Requête trop volumineuse." }, { status: 413, headers })
+    }
     if (error instanceof ZodError) {
       return Response.json({ error: "Formulaire incomplet ou invalide.", fields: error.flatten().fieldErrors }, { status: 400, headers })
     }

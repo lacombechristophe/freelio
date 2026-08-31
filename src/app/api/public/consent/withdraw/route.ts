@@ -4,6 +4,7 @@ import { z } from "zod"
 import { verifyConsentWithdrawalToken } from "@/lib/leads/consent-token"
 import prisma from "@/lib/prisma"
 import { consentRateLimit } from "@/lib/rate-limit"
+import { PayloadTooLargeError, readJsonBody } from "@/lib/http-body"
 
 export const runtime = "nodejs"
 
@@ -14,10 +15,7 @@ function digest(value: string) {
 }
 
 function clientAddress(request: Request) {
-  return request.headers.get("cf-connecting-ip")
-    || request.headers.get("x-real-ip")
-    || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || "unknown"
+  return request.headers.get("cf-connecting-ip") || request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
 }
 
 function responseHeaders() {
@@ -30,13 +28,8 @@ function responseHeaders() {
 
 export async function POST(request: Request) {
   const headers = responseHeaders()
-  const contentLength = Number(request.headers.get("content-length") || "0")
-  if (contentLength > 8 * 1024) {
-    return Response.json({ error: "Requête trop volumineuse." }, { status: 413, headers })
-  }
-
   try {
-    const { token } = requestSchema.parse(await request.json())
+    const { token } = requestSchema.parse(await readJsonBody(request, 8 * 1024))
     const tokenHash = digest(token)
     const ipHash = digest(clientAddress(request))
     const rateLimit = await consentRateLimit.limit(`${tokenHash}:${ipHash}`)
@@ -61,15 +54,17 @@ export async function POST(request: Request) {
 
     const capturedAt = new Date()
     const userAgentHash = digest(request.headers.get("user-agent") || "unknown")
-    const proofHash = digest(JSON.stringify({
-      companyId: lead.companyId,
-      leadId: lead.id,
-      status: "WITHDRAWN",
-      capturedAt: capturedAt.toISOString(),
-      tokenHash,
-      ipHash,
-      userAgentHash,
-    }))
+    const proofHash = digest(
+      JSON.stringify({
+        companyId: lead.companyId,
+        leadId: lead.id,
+        status: "WITHDRAWN",
+        capturedAt: capturedAt.toISOString(),
+        tokenHash,
+        ipHash,
+        userAgentHash,
+      }),
+    )
 
     const withdrawn = await prisma.$transaction(async (tx) => {
       const updated = await tx.leadCapture.updateMany({
@@ -113,6 +108,9 @@ export async function POST(request: Request) {
 
     return Response.json({ success: true, alreadyWithdrawn: !withdrawn }, { headers })
   } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return Response.json({ error: "Requête trop volumineuse." }, { status: 413, headers })
+    }
     if (error instanceof z.ZodError || error instanceof SyntaxError) {
       return Response.json({ error: "Lien invalide." }, { status: 400, headers })
     }

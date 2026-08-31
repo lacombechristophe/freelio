@@ -1,13 +1,4 @@
-export const COMPANY_ROLES = [
-  "OWNER",
-  "ADMIN",
-  "SALES",
-  "OPERATIONS",
-  "TECHNICIAN",
-  "SERVICE",
-  "ACCOUNTING",
-  "VIEWER",
-] as const
+export const COMPANY_ROLES = ["OWNER", "ADMIN", "SALES", "OPERATIONS", "TECHNICIAN", "SERVICE", "ACCOUNTING", "VIEWER"] as const
 
 export type CompanyRole = (typeof COMPANY_ROLES)[number]
 
@@ -193,6 +184,9 @@ export function requiredMutationPermission(model: string): Permission | undefine
 }
 
 const ACTION_PERMISSION_MODEL_ALIASES: Partial<Record<Permission, ReadonlySet<string>>> = {
+  // Field technicians can attach and reconcile expenses for their own
+  // interventions without receiving company-wide finance permissions.
+  "operations.write": new Set(["Expense", "ExpenseFile"]),
   "purchases.approve": new Set(["PurchaseOrder"]),
   "service.write": new Set(["EmailTemplate"]),
 }

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { uploadResourceFile } from "@/lib/client-file-upload"
 import { useDropzone } from "react-dropzone"
 import { UploadCloud, FileText, Sparkles, Loader2 } from "lucide-react"
 import {
@@ -174,16 +175,9 @@ export function ExpenseFormDialog({
       } else {
         const created = await createExpense(payload)
         if (attachmentFile) {
-          const upload = new FormData()
-          upload.set("file", attachmentFile)
-          const response = await fetch(`/api/files/expense/${created.id}`, {
-            method: "POST",
-            body: upload,
+          await uploadResourceFile("expense", created.id, attachmentFile).catch((error) => {
+            toast.warning(error instanceof Error ? error.message : "Dépense créée, mais le justificatif n'a pas pu être enregistré.")
           })
-          if (!response.ok) {
-            const result = await response.json().catch(() => null)
-            toast.warning(result?.error ?? "Dépense créée, mais le justificatif n'a pas pu être enregistré.")
-          }
         }
         toast.success("Dépense créée.")
       }

@@ -68,6 +68,7 @@ export async function recordOutgoingEmail(input: {
   leadCaptureId?: string | null
   deliveryId?: string | null
   providerId: string
+  provider?: string
   from: string
   to: string[]
   cc?: string[]
@@ -81,15 +82,16 @@ export async function recordOutgoingEmail(input: {
   const thread = input.threadId
     ? await prisma.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId } })
     : await getOrCreateEmailThread({ ...input, occurredAt: sentAt })
+  const provider = input.provider || "RESEND"
   const message = await prisma.emailMessage.upsert({
-    where: { provider_providerId: { provider: "RESEND", providerId: input.providerId } },
+    where: { provider_providerId: { provider, providerId: input.providerId } },
     update: { status: "SENT" },
     create: {
       companyId: input.companyId,
       threadId: thread.id,
       deliveryId: input.deliveryId || null,
       direction: "OUTBOUND",
-      provider: "RESEND",
+      provider,
       providerId: input.providerId,
       fromAddress: input.from,
       toAddresses: input.to,

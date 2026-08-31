@@ -20,8 +20,24 @@ const viewSchema = z.object({
   }),
 })
 
-function serialize(view: { id: string; resource: string; name: string; visibility: string; isDefault: boolean; config: unknown; createdAt: Date; updatedAt: Date; lastUsedAt: Date | null }) {
-  return { ...view, config: view.config as Record<string, unknown>, createdAt: view.createdAt.toISOString(), updatedAt: view.updatedAt.toISOString(), lastUsedAt: view.lastUsedAt?.toISOString() ?? null }
+function serialize(view: {
+  id: string
+  resource: string
+  name: string
+  visibility: string
+  isDefault: boolean
+  config: unknown
+  createdAt: Date
+  updatedAt: Date
+  lastUsedAt: Date | null
+}) {
+  return {
+    ...view,
+    config: view.config as Record<string, unknown>,
+    createdAt: view.createdAt.toISOString(),
+    updatedAt: view.updatedAt.toISOString(),
+    lastUsedAt: view.lastUsedAt?.toISOString() ?? null,
+  }
 }
 
 export async function getSavedViews(resource: string) {
@@ -30,6 +46,7 @@ export async function getSavedViews(resource: string) {
     const views = await prisma.savedView.findMany({
       where: { companyId, resource: parsedResource, OR: [{ membershipId }, { visibility: "TEAM" }] },
       orderBy: [{ isDefault: "desc" }, { lastUsedAt: "desc" }, { name: "asc" }],
+      take: 100,
     })
     return views.map(serialize)
   }, "crm.read")

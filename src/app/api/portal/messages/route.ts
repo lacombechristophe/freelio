@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"
 import { notifyPortalTeam } from "@/lib/portal/notifications"
 import { getCurrentPortalAccess, isSameOriginPortalRequest } from "@/lib/portal/session"
 import { portalRateLimit } from "@/lib/rate-limit"
+import { PayloadTooLargeError, readJsonBody } from "@/lib/http-body"
 
 const messageSchema = z.object({
   authorName: z.string().trim().max(100).optional().default(""),
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   if (!rateLimit.success) return Response.json({ error: "Trop de messages. Réessayez plus tard." }, { status: 429 })
 
   try {
-    const data = messageSchema.parse(await request.json())
+    const data = messageSchema.parse(await readJsonBody(request, 16 * 1024))
     const defaultName = access.contact ? `${access.contact.firstName} ${access.contact.lastName}`.trim() : access.client.name
     const message = await prisma.clientPortalMessage.create({
       data: {
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
     await notifyPortalTeam(access.companyId, "Nouveau message client", `${access.client.name} a écrit depuis son espace client.`)
     return Response.json(message, { status: 201 })
   } catch (error) {
-    if (error instanceof z.ZodError) return Response.json({ error: error.issues[0]?.message || "Message invalide" }, { status: 400 })
+    if (error instanceof PayloadTooLargeError) return Response.json({ error: "Message trop volumineux" }, { status: 413 })
+    if (error instanceof z.ZodError || error instanceof SyntaxError)
+      return Response.json({ error: error instanceof z.ZodError ? error.issues[0]?.message || "Message invalide" : "Message invalide" }, { status: 400 })
     return Response.json({ error: "Envoi temporairement indisponible" }, { status: 500 })
   }
 }

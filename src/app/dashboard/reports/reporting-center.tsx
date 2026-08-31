@@ -73,7 +73,7 @@ export function ReportingCenter({ report }: { report: ExecutiveReport }) {
               {metric.delta !== null && <Delta value={metric.delta} />}
             </div>
             <p className="mt-3 truncate text-2xl font-semibold tabular-nums">{metric.value}</p>
-            <span className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span className="truncate">{metric.detail}</span><ArrowRight className="size-3.5 shrink-0 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" /></span>
+            <span className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span className="truncate">{metric.detail}</span><ArrowRight className="size-3.5 shrink-0 opacity-0 transition-[opacity,transform] group-hover:translate-x-0.5 group-hover:opacity-100" /></span>
           </Link>
         ))}
       </section>
@@ -101,7 +101,7 @@ export function ReportingCenter({ report }: { report: ExecutiveReport }) {
                   {insight.tone === "success" ? <CheckCircle2 className="size-4" /> : <AlertTriangle className="size-4" />}
                 </span>
                 <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{insight.label}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{insight.detail}</span></span>
-                <ArrowRight className="mt-2 size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+                <ArrowRight className="mt-2 size-4 shrink-0 text-muted-foreground transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-foreground" />
               </Link>
             ))}
           </CardContent>
@@ -140,7 +140,7 @@ function TrendRow({ bucket, report }: { bucket: ExecutiveReport["trend"][number]
 }
 
 function DomainPanel({ icon: Icon, title, description, href, children }: { icon: LucideIcon; title: string; description: string; href: string; children: React.ReactNode }) {
-  return <Card><CardHeader className="border-b"><div className="flex items-start justify-between gap-4"><div><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-primary" />{title}</CardTitle><CardDescription className="mt-1">{description}</CardDescription></div><Link href={href} aria-label={`Ouvrir ${title}`} className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowRight className="size-4" /></Link></div></CardHeader><CardContent className="p-0">{children}</CardContent></Card>
+  return <Card><CardHeader className="border-b"><div className="flex items-start justify-between gap-4"><div><CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-primary" />{title}</CardTitle><CardDescription className="mt-1">{description}</CardDescription></div><Link href={href} aria-label={`Ouvrir ${title}`} className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowRight className="size-4" /></Link></div></CardHeader><CardContent className="p-0">{children}</CardContent></Card>
 }
 
 function StatRows({ rows }: { rows: Array<[string, string | number]> }) {

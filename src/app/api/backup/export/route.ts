@@ -1,5 +1,5 @@
 import { buildBackupPayload } from "@/lib/backup"
-import { getRouteAuth } from "@/lib/route-auth"
+import { withRouteAuth } from "@/lib/route-auth"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -10,17 +10,25 @@ function backupFilename() {
 }
 
 export async function GET() {
-  const access = await getRouteAuth("company.manage")
-  if (!access.ok) return access.response
-
-  const payload = await buildBackupPayload(access.context.userId, access.context.companyId)
-  const json = JSON.stringify(payload)
-  return new Response(json, {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "content-disposition": `attachment; filename="${backupFilename()}"`,
-      "cache-control": "no-store",
-      "content-length": Buffer.byteLength(json, "utf8").toString(),
-    },
+  return withRouteAuth("company.manage", async ({ userId, companyId }) => {
+    const payload = await buildBackupPayload(userId, companyId)
+    const json = JSON.stringify(payload)
+    const bytes = new TextEncoder().encode(json)
+    const chunkSize = 64 * 1024
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+          controller.enqueue(bytes.subarray(offset, offset + chunkSize))
+        }
+        controller.close()
+      },
+    })
+    return new Response(body, {
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "content-disposition": `attachment; filename="${backupFilename()}"`,
+        "cache-control": "no-store",
+      },
+    })
   })
 }

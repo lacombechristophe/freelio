@@ -90,7 +90,9 @@ La [politique RGPD Extrabat](https://www.extrabat.com/politique-rgpd/) décrit u
 - création de lots manuels HubSpot ou Extrabat ;
 - dépôt de CSV, JSON, XLSX, XLS, ZIP et PDF ;
 - limite de 30 fichiers, 250 Mo par fichier et 500 Mo par dépôt ;
-- zone brute locale en développement ou R2 en production, taille et SHA-256 ;
+- transfert direct vers R2 par URL présignée en production, sans faire transiter les archives volumineuses par la fonction Vercel ;
+- repli local borné à 4 Mo pour le développement sans R2 ;
+- zone brute locale en développement ou R2 en production, taille contrôlée à la réception et SHA-256 recalculé avant analyse ;
 - extraction sûre des ZIP et archivage des fichiers intégrés ;
 - analyse, classification, échantillons et anomalies ;
 - simulation par type cible ;

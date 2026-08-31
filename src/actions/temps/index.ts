@@ -27,17 +27,12 @@ export async function getTimeEntries() {
       where: { project: { companyId } },
       include: { project: { include: { client: true } } },
       orderBy: { date: "desc" },
+      take: 500,
     })
   })
 }
 
-export async function createTimeEntry(data: {
-  projectId: string
-  durationSec: number
-  description?: string
-  date?: Date
-  isBillable?: boolean
-}) {
+export async function createTimeEntry(data: { projectId: string; durationSec: number; description?: string; date?: Date; isBillable?: boolean }) {
   return await withAuth(async ({ companyId }) => {
     const project = await prisma.project.findFirst({
       where: { id: data.projectId, companyId },
@@ -61,10 +56,7 @@ export async function createTimeEntry(data: {
   })
 }
 
-export async function updateTimeEntry(
-  id: string,
-  data: { durationSec?: number; description?: string; date?: Date; isBillable?: boolean }
-) {
+export async function updateTimeEntry(id: string, data: { durationSec?: number; description?: string; date?: Date; isBillable?: boolean }) {
   return await withAuth(async ({ companyId }) => {
     const existing = await prisma.timeEntry.findFirst({
       where: { id, project: { companyId } },

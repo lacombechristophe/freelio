@@ -1,17 +1,41 @@
 import pino from "pino"
 
 const logger = pino({
+  redact: {
+    paths: [
+      "authorization",
+      "cookie",
+      "password",
+      "passwordHash",
+      "apiKey",
+      "token",
+      "secret",
+      "credentialsEncrypted",
+      "*.authorization",
+      "*.cookie",
+      "*.password",
+      "*.passwordHash",
+      "*.apiKey",
+      "*.token",
+      "*.secret",
+      "*.credentialsEncrypted",
+    ],
+    censor: "[REDACTED]",
+  },
   browser: {
-    asObject: true
+    asObject: true,
   },
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
-  transport: process.env.NODE_ENV !== "production" ? {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      ignore: "pid,hostname"
-    }
-  } : undefined
+  transport:
+    process.env.NODE_ENV !== "production"
+      ? {
+          target: "pino-pretty",
+          options: {
+            colorize: true,
+            ignore: "pid,hostname",
+          },
+        }
+      : undefined,
 })
 
 export default logger
@@ -20,10 +44,10 @@ export default logger
  * Standard log helper to include userId and action metadata
  * compliant with L868.
  */
-export function logEvent(action: string, metadata: any) {
+export function logEvent(action: string, metadata: Record<string, unknown>) {
   logger.info({
     action,
     timestamp: new Date().toISOString(),
-    ...metadata
+    ...metadata,
   })
 }

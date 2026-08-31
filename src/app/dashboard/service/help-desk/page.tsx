@@ -220,7 +220,7 @@ export default async function HelpDeskPage({
                 <Link
                   key={ticket.id}
                   href={`/dashboard/service/tickets/${ticket.id}`}
-                  className="grid gap-4 px-5 py-4 transition hover:bg-muted/30 lg:grid-cols-[minmax(0,1.2fr)_minmax(190px,0.65fr)_minmax(170px,0.55fr)] lg:items-center"
+                  className="grid gap-4 px-5 py-4 transition-colors hover:bg-muted/30 lg:grid-cols-[minmax(0,1.2fr)_minmax(190px,0.65fr)_minmax(170px,0.55fr)] lg:items-center"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -391,7 +391,7 @@ function FilterLink({
   return (
     <Link
       href={href}
-      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${active ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:border-primary/35 hover:bg-muted"}`}
+      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-[color,background-color,border-color] ${active ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:border-primary/35 hover:bg-muted"}`}
     >
       {children}
     </Link>

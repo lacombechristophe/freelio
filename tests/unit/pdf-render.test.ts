@@ -121,6 +121,15 @@ describe("billing PDF templates", () => {
     expect(html).not.toContain('<img class="brand-logo"')
   })
 
+  it("does not repeat an identical trade name and legal name in the footer", () => {
+    const html = renderDocumentHtml({
+      ...documentFixture("DEVIS"),
+      company: { ...baseDocument.company, fullName: baseDocument.company.name },
+    })
+
+    expect(html).not.toContain("Studio Freelio &middot; Studio Freelio")
+  })
+
   it("normalizes URL controls without accepting arbitrary colors", () => {
     const options = parsePdfRenderOptions(
       new URLSearchParams("template=modern&density=spacious&accent=javascript:alert(1)&payment=0&reference=0")

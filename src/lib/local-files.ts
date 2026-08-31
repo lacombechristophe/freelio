@@ -3,7 +3,16 @@ import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
-import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import {
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 export const MAX_LOCAL_FILE_BYTES = 15 * 1024 * 1024
 
@@ -42,6 +51,8 @@ function r2Config(): R2Config | null {
   const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_KEY)?.trim()
   const bucket = process.env.R2_BUCKET_NAME?.trim()
   if (!accountId || !accessKeyId || !secretAccessKey || !bucket) return null
+  if (!/^[a-f0-9]{32}$/i.test(accountId)) return null
+  if ([accessKeyId, secretAccessKey].some((value) => /^(your-|change-?me|example|placeholder)/i.test(value))) return null
   return { accountId, accessKeyId, secretAccessKey, bucket }
 }
 
@@ -85,6 +96,21 @@ function resolveInsideFilesRoot(relativePath: string) {
 function safeExtension(name: string) {
   const extension = path.extname(name).toLowerCase().replace(/[^a-z0-9.]/g, "")
   return extension.slice(0, 12)
+}
+
+function safeFileName(value: string) {
+  return path.basename(value).replace(/[^a-zA-Z0-9._ -]/g, "_").slice(0, 180) || "document"
+}
+
+function assertFileMetadata(input: { name: string; type: string; size: number; sha256?: string }) {
+  if (!Number.isSafeInteger(input.size) || input.size <= 0) throw new Error("Le fichier est vide")
+  if (input.size > MAX_LOCAL_FILE_BYTES) throw new Error("Le fichier dépasse 15 Mo")
+  if (!ALLOWED_MIME_TYPES.has(input.type)) throw new Error("Type de fichier non autorisé")
+  if (input.sha256 !== undefined && !/^[a-f0-9]{64}$/i.test(input.sha256)) throw new Error("Empreinte de fichier invalide")
+}
+
+function encodeCopySource(bucket: string, key: string) {
+  return `${encodeURIComponent(bucket)}/${key.split("/").map(encodeURIComponent).join("/")}`
 }
 
 function hasExpectedSignature(type: string, bytes: Buffer) {
@@ -152,10 +178,135 @@ export async function storeLocalFile(input: {
   file: File
 }): Promise<StoredLocalFile> {
   const { file } = input
-  if (file.size <= 0) throw new Error("Le fichier est vide")
-  if (file.size > MAX_LOCAL_FILE_BYTES) throw new Error("Le fichier dépasse 15 Mo")
-  if (!ALLOWED_MIME_TYPES.has(file.type)) throw new Error("Type de fichier non autorisé")
+  assertFileMetadata({ name: file.name, type: file.type, size: file.size })
   return storeFileBytes({ ...input, originalName: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })
+}
+
+export function directFileUploadAvailable() {
+  const configured = process.env.FILE_STORAGE_DRIVER?.trim().toLowerCase()
+  if (configured === "local") return false
+  return Boolean(r2Config())
+}
+
+export async function createDirectFileUpload(input: {
+  companyId: string
+  kind: LocalFileKind
+  resourceId: string
+  originalName: string
+  type: string
+  size: number
+  sha256: string
+}) {
+  assertFileMetadata({ name: input.originalName, type: input.type, size: input.size, sha256: input.sha256 })
+  if (storageDriver() !== "r2") throw new Error("L’envoi direct nécessite le stockage R2")
+  const config = r2Config()
+  if (!config) throw new Error("Configuration R2 indisponible")
+
+  const safeCompanyId = safeSegment(input.companyId)
+  const safeResourceId = safeSegment(input.resourceId)
+  const objectName = `${randomUUID()}${safeExtension(input.originalName)}`
+  const objectKey = ["_pending", safeCompanyId, input.kind, safeResourceId, objectName].join("/")
+  const sha256 = input.sha256.toLowerCase()
+  const metadata = { sha256, company: safeCompanyId, resource: safeResourceId, kind: input.kind }
+  const command = new PutObjectCommand({
+    Bucket: config.bucket,
+    Key: objectKey,
+    ContentLength: input.size,
+    ContentType: input.type,
+    Metadata: metadata,
+  })
+  const uploadUrl = await getSignedUrl(r2Client(config), command, { expiresIn: 15 * 60 })
+
+  return {
+    uploadUrl,
+    storageKey: `${R2_PREFIX}${objectKey}`,
+    headers: {
+      "content-type": input.type,
+      "x-amz-meta-sha256": sha256,
+      "x-amz-meta-company": safeCompanyId,
+      "x-amz-meta-resource": safeResourceId,
+      "x-amz-meta-kind": input.kind,
+    },
+  }
+}
+
+export async function confirmDirectFileUpload(input: {
+  companyId: string
+  kind: LocalFileKind
+  resourceId: string
+  originalName: string
+  type: string
+  size: number
+  sha256: string
+  storageKey: string
+}): Promise<StoredLocalFile> {
+  assertFileMetadata({ name: input.originalName, type: input.type, size: input.size, sha256: input.sha256 })
+  if (storageDriver() !== "r2") throw new Error("La confirmation directe nécessite le stockage R2")
+  const config = r2Config()
+  if (!config) throw new Error("Configuration R2 indisponible")
+  if (!input.storageKey.startsWith(R2_PREFIX)) throw new Error("Clé de transfert invalide")
+
+  const safeCompanyId = safeSegment(input.companyId)
+  const safeResourceId = safeSegment(input.resourceId)
+  const objectKey = input.storageKey.slice(R2_PREFIX.length)
+  const expectedPrefix = `_pending/${safeCompanyId}/${input.kind}/${safeResourceId}/`
+  if (!objectKey.startsWith(expectedPrefix)) throw new Error("Ce transfert n’appartient pas à cette ressource")
+
+  const expectedSha256 = input.sha256.toLowerCase()
+  const object = await r2Client(config).send(new HeadObjectCommand({ Bucket: config.bucket, Key: objectKey }))
+  if (object.ContentLength !== input.size || object.ContentType !== input.type) throw new Error("Les caractéristiques du fichier transféré ne correspondent pas")
+  if (
+    object.Metadata?.sha256 !== expectedSha256 ||
+    object.Metadata?.company !== safeCompanyId ||
+    object.Metadata?.resource !== safeResourceId ||
+    object.Metadata?.kind !== input.kind
+  ) {
+    throw new Error("Les métadonnées du fichier transféré ne correspondent pas")
+  }
+
+  const uploaded = await r2Client(config).send(new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }))
+  if (!uploaded.Body) throw new Error("Le fichier transféré est vide ou introuvable")
+  const bytes = Buffer.from(await uploaded.Body.transformToByteArray())
+  if (bytes.length !== input.size) throw new Error("La taille réelle du fichier ne correspond pas")
+  if (createHash("sha256").update(bytes).digest("hex") !== expectedSha256) throw new Error("L’intégrité du fichier transféré est invalide")
+  if (!hasExpectedSignature(input.type, bytes)) throw new Error("Le contenu du fichier ne correspond pas à son type")
+
+  const fileName = safeFileName(input.originalName)
+  const finalKey = [safeCompanyId, input.kind, safeResourceId, path.basename(objectKey)].join("/")
+  await r2Client(config).send(
+    new CopyObjectCommand({
+      Bucket: config.bucket,
+      CopySource: encodeCopySource(config.bucket, objectKey),
+      Key: finalKey,
+      ContentType: input.type,
+      Metadata: { sha256: expectedSha256, company: safeCompanyId, resource: safeResourceId, kind: input.kind },
+      MetadataDirective: "REPLACE",
+    }),
+  )
+  await r2Client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey })).catch(() => {})
+
+  return {
+    relativePath: `${R2_PREFIX}${finalKey}`,
+    originalName: fileName,
+    size: input.size,
+    type: input.type,
+    sha256: expectedSha256,
+  }
+}
+
+export async function abortDirectFileUpload(input: {
+  companyId: string
+  kind: LocalFileKind
+  resourceId: string
+  storageKey: string
+}) {
+  if (!input.storageKey.startsWith(R2_PREFIX)) throw new Error("Clé de transfert invalide")
+  const objectKey = input.storageKey.slice(R2_PREFIX.length)
+  const expectedPrefix = `_pending/${safeSegment(input.companyId)}/${input.kind}/${safeSegment(input.resourceId)}/`
+  if (!objectKey.startsWith(expectedPrefix)) throw new Error("Ce transfert n’appartient pas à cette ressource")
+  const config = r2Config()
+  if (!config) throw new Error("Configuration R2 indisponible")
+  await r2Client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }))
 }
 
 export async function readLocalFile(relativePath: string) {

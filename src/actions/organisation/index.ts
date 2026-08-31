@@ -28,7 +28,13 @@ const taskSchema = z.object({
   status: z.enum(TASK_STATUSES).default("TODO"),
   priority: z.coerce.number().int().min(1).max(3).default(2),
   category: z.enum(TASK_CATEGORIES).default("DEV"),
-  estimateMin: z.coerce.number().int().min(0).max(24 * 60).optional().nullable(),
+  estimateMin: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(24 * 60)
+    .optional()
+    .nullable(),
   isBillable: z.boolean().optional(),
   dueDate: z.string().optional().nullable(),
   scheduledDate: z.string().optional().nullable(),
@@ -165,24 +171,11 @@ export async function getOrganisationDashboardData() {
     const yearStart = startOfYear(now)
     const yearEnd = endOfYear(now)
 
-    const [
-      goals,
-      tasks,
-      projects,
-      clients,
-      weekTimeEntries,
-      invoices,
-      quotes,
-      milestones,
-    ] = await Promise.all([
+    const [goals, tasks, projects, clients, weekTimeEntries, invoices, quotes, milestones] = await Promise.all([
       prisma.organisationGoal.findMany({
         where: {
           companyId,
-          OR: [
-            { status: { not: "DONE" } },
-            { updatedAt: { gte: weekStart } },
-            { periodStart: { gte: yearStart, lt: yearEnd } },
-          ],
+          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { periodStart: { gte: yearStart, lt: yearEnd } }],
         },
         include: {
           tasks: {
@@ -195,12 +188,7 @@ export async function getOrganisationDashboardData() {
       prisma.organisationTask.findMany({
         where: {
           companyId,
-          OR: [
-            { status: { not: "DONE" } },
-            { updatedAt: { gte: weekStart } },
-            { dueDate: { gte: monthStart, lt: monthEnd } },
-            { scheduledDate: { gte: weekStart, lt: weekEnd } },
-          ],
+          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { dueDate: { gte: monthStart, lt: monthEnd } }, { scheduledDate: { gte: weekStart, lt: weekEnd } }],
         },
         include: {
           client: { select: { id: true, name: true } },
@@ -239,6 +227,7 @@ export async function getOrganisationDashboardData() {
           project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
         },
         orderBy: { date: "desc" },
+        take: 5_000,
       }),
       prisma.invoice.findMany({
         where: {
@@ -546,11 +535,7 @@ export async function createTimeEntryFromOrganisationTask(id: string, durationMi
       data: { status: "DONE" },
     })
     await recomputeProjectConsumed(task.projectId)
-    revalidateOrganisation([
-      "/dashboard/temps",
-      "/dashboard/projets",
-      `/dashboard/projets/${task.projectId}`,
-    ])
+    revalidateOrganisation(["/dashboard/temps", "/dashboard/projets", `/dashboard/projets/${task.projectId}`])
     return { ok: true }
   })
 }
