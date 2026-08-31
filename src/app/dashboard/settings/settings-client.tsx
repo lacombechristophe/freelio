@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned
+  Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck
 } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +22,7 @@ import { updateCompany } from "@/actions/settings"
 import { anonymizeAccount } from "@/actions/compliance"
 import { exportUserData } from "@/actions/compliance"
 import { cn } from "@/lib/utils"
+import { AccountSecurityPanel } from "./account-security-panel"
 
 type PdfTemplate = "MINIMAL" | "PROFESSIONAL" | "MODERN"
 
@@ -77,6 +78,9 @@ type Company = {
 
 type User = {
   aiUsageCount?: number
+  hasPassword: boolean
+  mfaEnabled: boolean
+  recoveryCodesRemaining: number
 }
 
 function getErrorMessage(error: unknown, fallback = "Erreur.") {
@@ -231,6 +235,9 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         </TabsTrigger>
         <TabsTrigger value="integrations" className="gap-2">
           <Zap className="h-4 w-4" /> Intégrations
+        </TabsTrigger>
+        <TabsTrigger value="security" className="gap-2">
+          <ShieldCheck className="h-4 w-4" /> Sécurité
         </TabsTrigger>
         <TabsTrigger value="account" className="gap-2">
           <User className="h-4 w-4" /> Compte
@@ -504,6 +511,10 @@ export function SettingsClient({ company, user }: { company: Company; user: User
             </div>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="security" className="space-y-4">
+        <AccountSecurityPanel mfaEnabled={user.mfaEnabled} recoveryCodesRemaining={user.recoveryCodesRemaining} hasPassword={user.hasPassword} />
       </TabsContent>
 
       <TabsContent value="account" className="space-y-4">

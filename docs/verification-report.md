@@ -15,13 +15,13 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 40 fichiers, 162 tests réussis |
-| `npm run build` | build Next.js 16 de production réussi, 64 pages statiques analysées et routes dynamiques compilées |
+| `npm run test:unit` | 42 fichiers, 167 tests réussis |
+| `npm run build` | build Next.js 16 de production réussi, 65 pages statiques analysées et routes dynamiques compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, base isolée | 21 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (34 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 32 migrations versionnées et appliquées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences et transferts de stock corrélés |
+| PostgreSQL | 33 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés et sécurité des comptes |
 | Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
 | Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
@@ -82,7 +82,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - verrou d’envoi persistant avec reprise après expiration ;
 - règles CRM idempotentes par clé d’événement ;
 - arrêt des séquences sur réponse entrante et déclencheurs e-mail/portail/intervention ;
-- mot de passe scrypt salé, politique minimale contrôlée et compte créé sans identité d’entreprise codée en dur ;
+- mot de passe scrypt salé, récupération à jeton hashé/expirable, MFA TOTP avec codes de secours hashés, révocation versionnée de tous les JWT et compte créé sans identité d’entreprise codée en dur ;
 - jetons de portail conservés uniquement sous forme hashée, retirés de l’URL après activation et révocables ;
 - exports tableur protégés contre l’injection de formule ;
 - journal précomptable équilibré et explicitement non présenté comme FEC ;

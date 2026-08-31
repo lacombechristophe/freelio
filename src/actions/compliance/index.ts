@@ -12,7 +12,15 @@ export async function exportUserData() {
   return await withAuth(async ({ userId }) => {
     const data = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        emailVerified: true,
+        image: true,
+        createdAt: true,
+        updatedAt: true,
+        aiUsageCount: true,
         company: {
           include: {
             clients: { include: { contacts: true, projects: true } },
@@ -24,7 +32,7 @@ export async function exportUserData() {
           }
         },
         auditLogs: true,
-        notifications: true
+        notifications: true,
       }
     })
 
@@ -57,6 +65,10 @@ export async function anonymizeAccount() {
           name: "[Supprimé]",
           email: `supprime-${userId}@anonymise.crm.local`,
           image: null,
+          passwordHash: null,
+          mfaSecretEncrypted: null,
+          mfaEnabledAt: null,
+          sessionVersion: { increment: 1 },
         },
       }),
       // 2. Anonymize Company personal data (SIRET/address kept for 10-year legal retention)
@@ -80,6 +92,9 @@ export async function anonymizeAccount() {
           phone: null,
         },
       }),
+      prisma.passwordResetToken.deleteMany({ where: { userId } }),
+      prisma.mfaRecoveryCode.deleteMany({ where: { userId } }),
+      prisma.session.deleteMany({ where: { userId } }),
     ])
 
     await logAction({

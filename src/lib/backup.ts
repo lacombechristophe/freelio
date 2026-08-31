@@ -195,6 +195,8 @@ const EXCLUDED_MODELS = [
   { model: "Account", reason: "Jetons OAuth exclus pour éviter de réactiver des accès externes lors d’une reprise." },
   { model: "Session", reason: "Sessions actives exclues volontairement pour des raisons de sécurité." },
   { model: "VerificationToken", reason: "Jetons de connexion à usage unique exclus volontairement pour des raisons de sécurité." },
+  { model: "PasswordResetToken", reason: "Jetons de réinitialisation exclus volontairement pour des raisons de sécurité." },
+  { model: "MfaRecoveryCode", reason: "Codes de secours hachés exclus volontairement pour des raisons de sécurité." },
   { model: "ClientPortalAccess", reason: "Liens d'accès porteurs exclus ; ils doivent être réémis après une reprise." },
   { model: "Notification", reason: "Le schéma actuel ne porte pas de companyId ; une extraction multi-tenant sûre est impossible." },
   { model: "ApiKey", reason: "Clés personnelles non rattachées à une entreprise et exclues volontairement." },

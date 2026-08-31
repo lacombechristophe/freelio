@@ -10,7 +10,13 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: { company: true },
+    select: {
+      aiUsageCount: true,
+      passwordHash: true,
+      mfaEnabledAt: true,
+      company: true,
+      _count: { select: { mfaRecoveryCodes: { where: { usedAt: null } } } },
+    },
   })
 
   if (!user || !user.company) redirect("/onboarding")
@@ -18,7 +24,12 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-7">
       <PageHeader eyebrow="Espace de travail" title="Paramètres" description="Configurez votre identité, la facturation, les documents, les sauvegardes et les intégrations." />
-      <SettingsClient company={user.company} user={{ aiUsageCount: user.aiUsageCount }} />
+      <SettingsClient company={user.company} user={{
+        aiUsageCount: user.aiUsageCount,
+        hasPassword: Boolean(user.passwordHash),
+        mfaEnabled: Boolean(user.mfaEnabledAt),
+        recoveryCodesRemaining: user._count.mfaRecoveryCodes,
+      }} />
     </div>
   )
 }

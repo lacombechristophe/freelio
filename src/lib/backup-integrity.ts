@@ -97,6 +97,7 @@ const SENSITIVE_EXPORT_KEYS = new Set([
   "apikey",
   "authorization",
   "credentialsencrypted",
+  "mfasecretencrypted",
   "iban",
   "idtoken",
   "id_token",

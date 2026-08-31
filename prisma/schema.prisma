@@ -12,14 +12,19 @@ generator client {
 // ══════════════════════════════════════════════════════════
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  accounts      Account[]
-  sessions      Session[]
+  id                  String               @id @default(cuid())
+  name                String?
+  email               String?              @unique
+  emailVerified       DateTime?
+  image               String?
+  passwordHash        String?
+  sessionVersion      Int                  @default(0)
+  mfaSecretEncrypted  String?
+  mfaEnabledAt        DateTime?
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  mfaRecoveryCodes    MfaRecoveryCode[]
 
   // App Logic
   // Active workspace. Memberships hold the durable access rights.
@@ -73,6 +78,30 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model MfaRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, codeHash])
+  @@index([userId, usedAt])
+}
+
 // ══════════════════════════════════════════════════════════
 //  IDENTITY & SETTINGS
 // ══════════════════════════════════════════════════════════
@@ -120,84 +149,84 @@ model Company {
   tvaThresholdCents      Int    @default(3970000)
   tvaMajorThresholdCents Int    @default(4770000)
 
-  users                User[]                 @relation("ActiveCompany")
-  memberships          Membership[]
-  agencies             Agency[]
-  invitations          CompanyInvitation[]
-  clients              Client[]
-  services             Service[]
-  serviceCats          ServiceCategory[]
-  projects             Project[]
-  projectTemplates     ProjectTemplate[]
-  quotes               Quote[]
-  invoices             Invoice[]
-  recurring            RecurringInvoice[]
-  contracts            Contract[]
-  contractTemplates    ContractTemplate[]
-  expenses             Expense[]
-  pipelines            Pipeline[]
-  organisationGoals    OrganisationGoal[]
-  organisationTasks    OrganisationTask[]
-  webhooks             WebhookEndpoint[]
-  relanceConfig        RelanceConfig?
-  bankTransactions     BankTransaction[]
-  invoiceReminders     InvoiceReminder[]
-  dataConnections      DataSourceConnection[]
-  migrationRuns        MigrationRun[]
-  sourceRecords        SourceRecord[]
-  externalIdMaps       ExternalIdMap[]
-  documentManifests    DocumentManifest[]
-  customerSites        CustomerSite[]
-  suppliers            Supplier[]
-  products             Product[]
-  productOptionGroups  ProductOptionGroup[]
-  productOptionValues  ProductOptionValue[]
-  productComponents    ProductComponent[]
-  productPrices        ProductPrice[]
-  warehouses           Warehouse[]
-  inventoryItems       InventoryItem[]
-  stockMovements       StockMovement[]
-  stockTransfers       StockTransfer[]
-  purchaseOrders       PurchaseOrder[]
-  purchaseIssues       PurchaseIssue[]
-  supplierReturns      SupplierReturn[]
-  equipments           Equipment[]
-  serviceTickets       ServiceTicket[]
-  serviceTicketNotes   ServiceTicketNote[]
-  interventions        FieldIntervention[]
-  interventionReservations InterventionReservation[]
-  maintenanceContracts MaintenanceContract[]
-  leadCaptures         LeadCapture[]
-  marketingConsents    MarketingConsent[]
-  customerOrders       CustomerOrder[]
-  portalAccesses       ClientPortalAccess[]
-  portalMessages       ClientPortalMessage[]
-  portalAppointmentRequests ClientPortalAppointmentRequest[]
-  deliveryNotes        DeliveryNote[]
-  goodsReceipts        GoodsReceipt[]
-  stockReservations    StockReservation[]
-  emailTemplates       EmailTemplate[]
-  emailSequences       EmailSequence[]
-  emailDeliveries      EmailDelivery[]
-  emailSequenceTasks   EmailSequenceTask[]
-  emailThreads         EmailThread[]
-  emailMessages        EmailMessage[]
-  emailEvents          EmailEvent[]
-  communicationChannels CommunicationChannel[]
-  leadScoringRules     LeadScoringRule[]
-  marketingSegments    MarketingSegment[]
-  marketingCampaigns   MarketingCampaign[]
-  automationWorkflows  AutomationWorkflow[]
+  users                      User[]                           @relation("ActiveCompany")
+  memberships                Membership[]
+  agencies                   Agency[]
+  invitations                CompanyInvitation[]
+  clients                    Client[]
+  services                   Service[]
+  serviceCats                ServiceCategory[]
+  projects                   Project[]
+  projectTemplates           ProjectTemplate[]
+  quotes                     Quote[]
+  invoices                   Invoice[]
+  recurring                  RecurringInvoice[]
+  contracts                  Contract[]
+  contractTemplates          ContractTemplate[]
+  expenses                   Expense[]
+  pipelines                  Pipeline[]
+  organisationGoals          OrganisationGoal[]
+  organisationTasks          OrganisationTask[]
+  webhooks                   WebhookEndpoint[]
+  relanceConfig              RelanceConfig?
+  bankTransactions           BankTransaction[]
+  invoiceReminders           InvoiceReminder[]
+  dataConnections            DataSourceConnection[]
+  migrationRuns              MigrationRun[]
+  sourceRecords              SourceRecord[]
+  externalIdMaps             ExternalIdMap[]
+  documentManifests          DocumentManifest[]
+  customerSites              CustomerSite[]
+  suppliers                  Supplier[]
+  products                   Product[]
+  productOptionGroups        ProductOptionGroup[]
+  productOptionValues        ProductOptionValue[]
+  productComponents          ProductComponent[]
+  productPrices              ProductPrice[]
+  warehouses                 Warehouse[]
+  inventoryItems             InventoryItem[]
+  stockMovements             StockMovement[]
+  stockTransfers             StockTransfer[]
+  purchaseOrders             PurchaseOrder[]
+  purchaseIssues             PurchaseIssue[]
+  supplierReturns            SupplierReturn[]
+  equipments                 Equipment[]
+  serviceTickets             ServiceTicket[]
+  serviceTicketNotes         ServiceTicketNote[]
+  interventions              FieldIntervention[]
+  interventionReservations   InterventionReservation[]
+  maintenanceContracts       MaintenanceContract[]
+  leadCaptures               LeadCapture[]
+  marketingConsents          MarketingConsent[]
+  customerOrders             CustomerOrder[]
+  portalAccesses             ClientPortalAccess[]
+  portalMessages             ClientPortalMessage[]
+  portalAppointmentRequests  ClientPortalAppointmentRequest[]
+  deliveryNotes              DeliveryNote[]
+  goodsReceipts              GoodsReceipt[]
+  stockReservations          StockReservation[]
+  emailTemplates             EmailTemplate[]
+  emailSequences             EmailSequence[]
+  emailDeliveries            EmailDelivery[]
+  emailSequenceTasks         EmailSequenceTask[]
+  emailThreads               EmailThread[]
+  emailMessages              EmailMessage[]
+  emailEvents                EmailEvent[]
+  communicationChannels      CommunicationChannel[]
+  leadScoringRules           LeadScoringRule[]
+  marketingSegments          MarketingSegment[]
+  marketingCampaigns         MarketingCampaign[]
+  automationWorkflows        AutomationWorkflow[]
   automationWorkflowVersions AutomationWorkflowVersion[]
-  automationRuns       AutomationRun[]
-  knowledgeArticles    KnowledgeArticle[]
-  satisfactionSurveys  SatisfactionSurvey[]
-  satisfactionRequests SatisfactionRequest[]
-  serviceDiagnosticGuides ServiceDiagnosticGuide[]
-  serviceTicketDiagnostics ServiceTicketDiagnostic[]
-  customerHealthRules CustomerHealthRule[]
-  customerHealthSnapshots CustomerHealthSnapshot[]
-  savedViews           SavedView[]
+  automationRuns             AutomationRun[]
+  knowledgeArticles          KnowledgeArticle[]
+  satisfactionSurveys        SatisfactionSurvey[]
+  satisfactionRequests       SatisfactionRequest[]
+  serviceDiagnosticGuides    ServiceDiagnosticGuide[]
+  serviceTicketDiagnostics   ServiceTicketDiagnostic[]
+  customerHealthRules        CustomerHealthRule[]
+  customerHealthSnapshots    CustomerHealthSnapshot[]
+  savedViews                 SavedView[]
 }
 
 model Membership {
@@ -220,19 +249,19 @@ model Membership {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedTickets        ServiceTicket[]     @relation("TicketAssignee")
-  assignedInterventions  FieldIntervention[] @relation("InterventionAssignee")
-  ownedOpportunities     Opportunity[]       @relation("OpportunityOwner")
-  approvedPurchaseOrders PurchaseOrder[]     @relation("PurchaseOrderApprover")
-  assignedProjectMilestones ProjectMilestone[] @relation("ProjectMilestoneAssignee")
-  ownedMarketingCampaigns MarketingCampaign[] @relation("MarketingCampaignOwner")
-  ownedCampaignAssets MarketingCampaignAsset[] @relation("MarketingCampaignAssetOwner")
-  authoredKnowledgeArticles KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
-  authoredServiceTicketNotes ServiceTicketNote[] @relation("ServiceTicketNoteAuthor")
+  assignedTickets                   ServiceTicket[]           @relation("TicketAssignee")
+  assignedInterventions             FieldIntervention[]       @relation("InterventionAssignee")
+  ownedOpportunities                Opportunity[]             @relation("OpportunityOwner")
+  approvedPurchaseOrders            PurchaseOrder[]           @relation("PurchaseOrderApprover")
+  assignedProjectMilestones         ProjectMilestone[]        @relation("ProjectMilestoneAssignee")
+  ownedMarketingCampaigns           MarketingCampaign[]       @relation("MarketingCampaignOwner")
+  ownedCampaignAssets               MarketingCampaignAsset[]  @relation("MarketingCampaignAssetOwner")
+  authoredKnowledgeArticles         KnowledgeArticle[]        @relation("KnowledgeArticleAuthor")
+  authoredServiceTicketNotes        ServiceTicketNote[]       @relation("ServiceTicketNoteAuthor")
   performedServiceTicketDiagnostics ServiceTicketDiagnostic[] @relation("ServiceTicketDiagnosticPerformer")
-  ownedSuccessClients Client[] @relation("ClientSuccessOwner")
-  savedViews SavedView[]
-  agencyMemberships AgencyMembership[]
+  ownedSuccessClients               Client[]                  @relation("ClientSuccessOwner")
+  savedViews                        SavedView[]
+  agencyMemberships                 AgencyMembership[]
 
   @@unique([companyId, userId])
   @@index([userId, status])
@@ -244,21 +273,21 @@ model Agency {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  code      String
-  name      String
-  kind      String  @default("MIXED") // STORE, INSTALLATION, SERVICE, MIXED
-  address   String?
+  code       String
+  name       String
+  kind       String  @default("MIXED") // STORE, INSTALLATION, SERVICE, MIXED
+  address    String?
   postalCode String?
-  city      String?
-  phone     String?
-  email     String?
-  active    Boolean @default(true)
-  isDefault Boolean @default(false)
+  city       String?
+  phone      String?
+  email      String?
+  active     Boolean @default(true)
+  isDefault  Boolean @default(false)
 
-  memberships  AgencyMembership[]
-  warehouses   Warehouse[]
+  memberships   AgencyMembership[]
+  warehouses    Warehouse[]
   customerSites CustomerSite[]
-  projects     Project[]
+  projects      Project[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -321,40 +350,40 @@ model Client {
   customFields   Json?
 
   // Financial Summary (Cached)
-  totalRevenueCents Int       @default(0)
-  totalUnpaidCents  Int       @default(0)
-  relationScore     Int       @default(100)
-  nextActionAt      DateTime?
-  nextActionLabel   String?
+  totalRevenueCents        Int         @default(0)
+  totalUnpaidCents         Int         @default(0)
+  relationScore            Int         @default(100)
+  nextActionAt             DateTime?
+  nextActionLabel          String?
   successOwnerMembershipId String?
   successOwnerMembership   Membership? @relation("ClientSuccessOwner", fields: [successOwnerMembershipId], references: [id], onDelete: SetNull)
-  renewalAt         DateTime?
-  renewalAmountCents Int      @default(0)
-  successPlan       String?
-  expansionNotes    String?
-  healthLastComputedAt DateTime?
+  renewalAt                DateTime?
+  renewalAmountCents       Int         @default(0)
+  successPlan              String?
+  expansionNotes           String?
+  healthLastComputedAt     DateTime?
 
-  contacts             Contact[]
-  activities           ClientActivity[]
-  files                ClientFile[]
-  projects             Project[]
-  quotes               Quote[]
-  invoices             Invoice[]
-  opportunities        Opportunity[]
-  contracts            Contract[]
-  organisationTasks    OrganisationTask[]
-  sites                CustomerSite[]
-  serviceTickets       ServiceTicket[]
-  maintenanceContracts MaintenanceContract[]
-  leadCaptures         LeadCapture[]
-  marketingConsents    MarketingConsent[]
-  customerOrders       CustomerOrder[]
-  portalAccesses       ClientPortalAccess[]
-  portalMessages       ClientPortalMessage[]
+  contacts                  Contact[]
+  activities                ClientActivity[]
+  files                     ClientFile[]
+  projects                  Project[]
+  quotes                    Quote[]
+  invoices                  Invoice[]
+  opportunities             Opportunity[]
+  contracts                 Contract[]
+  organisationTasks         OrganisationTask[]
+  sites                     CustomerSite[]
+  serviceTickets            ServiceTicket[]
+  maintenanceContracts      MaintenanceContract[]
+  leadCaptures              LeadCapture[]
+  marketingConsents         MarketingConsent[]
+  customerOrders            CustomerOrder[]
+  portalAccesses            ClientPortalAccess[]
+  portalMessages            ClientPortalMessage[]
   portalAppointmentRequests ClientPortalAppointmentRequest[]
-  emailThreads        EmailThread[]
-  satisfactionRequests SatisfactionRequest[]
-  healthSnapshots CustomerHealthSnapshot[]
+  emailThreads              EmailThread[]
+  satisfactionRequests      SatisfactionRequest[]
+  healthSnapshots           CustomerHealthSnapshot[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -378,7 +407,7 @@ model CustomerHealthRule {
   operator  String
   threshold Float
   impact    Int
-  priority  Int @default(0)
+  priority  Int    @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -392,7 +421,7 @@ model CustomerHealthSnapshot {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   clientId  String
-  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   score      Int
   status     String
@@ -435,21 +464,21 @@ model Contact {
 }
 
 model ClientPortalAccess {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   clientId  String
-  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contactId String?
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   label      String?
-  tokenHash  String   @unique
+  tokenHash  String    @unique
   expiresAt  DateTime
   lastUsedAt DateTime?
   revokedAt  DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([companyId, clientId, revokedAt])
   @@index([expiresAt])
@@ -466,7 +495,7 @@ model ClientPortalMessage {
   authorName String
   body       String
   readAt     DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([companyId, clientId, createdAt])
   @@index([companyId, direction, readAt])
@@ -479,15 +508,15 @@ model ClientPortalAppointmentRequest {
   clientId  String
   client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  subject           String
-  preferredStart    DateTime
-  alternativeStart  DateTime?
-  durationMinutes   Int      @default(60)
-  notes             String?
-  status            String   @default("PENDING")
-  response          String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  subject          String
+  preferredStart   DateTime
+  alternativeStart DateTime?
+  durationMinutes  Int       @default(60)
+  notes            String?
+  status           String    @default("PENDING")
+  response         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([companyId, clientId, status, preferredStart], map: "ClientPortalAppointmentRequest_company_client_status_start_idx")
 }
@@ -541,8 +570,8 @@ model LeadCapture {
   utmTerm     String?
 
   privacyAccepted Boolean
-  marketingOptIn  Boolean @default(false)
-  status          String  @default("NEW")
+  marketingOptIn  Boolean   @default(false)
+  status          String    @default("NEW")
   fingerprint     String
   ipHash          String?
   userAgentHash   String?
@@ -600,15 +629,15 @@ model MarketingConsent {
 }
 
 model LeadScoringRule {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name      String
   field     String
   operator  String
   value     String
   points    Int
-  status    String  @default("ACTIVE")
+  status    String   @default("ACTIVE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -617,47 +646,47 @@ model LeadScoringRule {
 }
 
 model MarketingSegment {
-  id          String  @id @default(cuid())
+  id          String                   @id @default(cuid())
   companyId   String
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company     Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  kind        String  @default("ACTIVE")
+  kind        String                   @default("ACTIVE")
   filters     Json
-  status      String  @default("ACTIVE")
+  status      String                   @default("ACTIVE")
   lastBuiltAt DateTime?
   memberships MarketingSegmentMember[]
-  campaigns  MarketingCampaign[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  campaigns   MarketingCampaign[]
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
 
   @@unique([companyId, name])
   @@index([companyId, status])
 }
 
 model MarketingCampaign {
-  id          String  @id @default(cuid())
-  companyId   String
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  segmentId   String?
-  segment     MarketingSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  id                String            @id @default(cuid())
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  segmentId         String?
+  segment           MarketingSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
   ownerMembershipId String?
-  ownerMembership Membership? @relation("MarketingCampaignOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  ownerMembership   Membership?       @relation("MarketingCampaignOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
 
   name        String
   objective   String
-  status      String   @default("DRAFT")
+  status      String    @default("DRAFT")
   channels    Json
   startAt     DateTime?
   endAt       DateTime?
-  budgetCents Int      @default(0)
+  budgetCents Int       @default(0)
   utmCampaign String?
   notes       String?
 
-  assets      MarketingCampaignAsset[]
-  sequences   EmailSequence[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  assets    MarketingCampaignAsset[]
+  sequences EmailSequence[]
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
 
   @@unique([companyId, name])
   @@index([companyId, status, startAt])
@@ -666,20 +695,20 @@ model MarketingCampaign {
 }
 
 model MarketingCampaignAsset {
-  id          String  @id @default(cuid())
-  campaignId  String
-  campaign    MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  campaignId        String
+  campaign          MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   ownerMembershipId String?
-  ownerMembership Membership? @relation("MarketingCampaignAssetOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+  ownerMembership   Membership?       @relation("MarketingCampaignAssetOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
 
-  type        String
-  name        String
-  status      String   @default("TODO")
-  url         String?
-  dueAt       DateTime?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  type      String
+  name      String
+  status    String    @default("TODO")
+  url       String?
+  dueAt     DateTime?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([campaignId, status])
   @@index([ownerMembershipId, dueAt])
@@ -720,15 +749,15 @@ model EmailTemplate {
 }
 
 model EmailSequence {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id         String             @id @default(cuid())
+  companyId  String
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   campaignId String?
   campaign   MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
-  name        String
-  description String?
-  status      String  @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
+  name             String
+  description      String?
+  status           String  @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
   businessDaysOnly Boolean @default(true)
   sendWindowStart  Int     @default(8)
   sendWindowEnd    Int     @default(18)
@@ -751,17 +780,17 @@ model EmailSequenceStep {
   sequenceId String
   sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
 
-  position   Int
-  delayHours Int    @default(0)
-  type       String @default("EMAIL")
-  subject    String
-  bodyHtml   String
-  taskTitle         String?
-  taskNotes         String?
-  taskPriority      Int     @default(2)
+  position           Int
+  delayHours         Int     @default(0)
+  type               String  @default("EMAIL")
+  subject            String
+  bodyHtml           String
+  taskTitle          String?
+  taskNotes          String?
+  taskPriority       Int     @default(2)
   pauseUntilComplete Boolean @default(false)
 
-  deliveries EmailDelivery[]
+  deliveries     EmailDelivery[]
   taskExecutions EmailSequenceTask[]
 
   createdAt DateTime @default(now())
@@ -789,7 +818,7 @@ model EmailSequenceEnrollment {
   completedAt      DateTime?
   updatedAt        DateTime  @updatedAt
 
-  deliveries EmailDelivery[]
+  deliveries     EmailDelivery[]
   taskExecutions EmailSequenceTask[]
 
   @@unique([sequenceId, leadCaptureId])
@@ -815,14 +844,14 @@ model EmailDelivery {
 
   recipientEmail String
   subject        String
-  status         String    @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
+  status         String        @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
   providerId     String?
   error          String?
   scheduledAt    DateTime
   sentAt         DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  message         EmailMessage?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  message        EmailMessage?
 
   @@unique([enrollmentId, stepId])
   @@index([companyId, createdAt])
@@ -835,16 +864,16 @@ model EmailSequenceTask {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  enrollmentId String
-  enrollment   EmailSequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  stepId       String
-  step         EmailSequenceStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  organisationTaskId String @unique
-  organisationTask   OrganisationTask @relation(fields: [organisationTaskId], references: [id], onDelete: Cascade)
+  enrollmentId       String
+  enrollment         EmailSequenceEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  stepId             String
+  step               EmailSequenceStep       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  organisationTaskId String                  @unique
+  organisationTask   OrganisationTask        @relation(fields: [organisationTaskId], references: [id], onDelete: Cascade)
 
   completedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([enrollmentId, stepId])
   @@index([companyId, createdAt])
@@ -859,13 +888,13 @@ model CommunicationChannel {
   provider             String
   emailAddress         String
   displayName          String?
-  status               String   @default("PENDING")
+  status               String    @default("PENDING")
   credentialsEncrypted String?
   config               Json?
   lastSyncAt           DateTime?
   lastError            String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([companyId, provider, emailAddress])
   @@index([companyId, status])
@@ -873,26 +902,26 @@ model CommunicationChannel {
 }
 
 model EmailThread {
-  id            String       @id @default(cuid())
-  companyId     String
-  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  clientId      String?
-  client        Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  contactId     String?
-  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  leadCaptureId String?
-  leadCapture   LeadCapture? @relation(fields: [leadCaptureId], references: [id], onDelete: SetNull)
+  id              String         @id @default(cuid())
+  companyId       String
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId        String?
+  client          Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  contactId       String?
+  contact         Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  leadCaptureId   String?
+  leadCapture     LeadCapture?   @relation(fields: [leadCaptureId], references: [id], onDelete: SetNull)
   serviceTicketId String?
   serviceTicket   ServiceTicket? @relation(fields: [serviceTicketId], references: [id], onDelete: SetNull)
 
-  subject       String
-  status        String   @default("OPEN")
+  subject        String
+  status         String         @default("OPEN")
   assignedUserId String?
-  unreadCount   Int      @default(0)
-  lastMessageAt DateTime @default(now())
-  messages      EmailMessage[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  unreadCount    Int            @default(0)
+  lastMessageAt  DateTime       @default(now())
+  messages       EmailMessage[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([companyId, status, lastMessageAt])
   @@index([clientId])
@@ -902,12 +931,12 @@ model EmailThread {
 }
 
 model EmailMessage {
-  id        String      @id @default(cuid())
-  companyId String
-  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  threadId  String
-  thread    EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  deliveryId String?      @unique
+  id         String         @id @default(cuid())
+  companyId  String
+  company    Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  threadId   String
+  thread     EmailThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  deliveryId String?        @unique
   delivery   EmailDelivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
 
   direction         String
@@ -923,11 +952,11 @@ model EmailMessage {
   bodyHtml          String?
   bodyText          String?
   attachments       Json?
-  status            String   @default("SENT")
+  status            String       @default("SENT")
   sentAt            DateTime?
   receivedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
   events            EmailEvent[]
 
   @@unique([provider, providerId])
@@ -960,14 +989,14 @@ model AutomationWorkflow {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  name       String
-  trigger    String // LEAD_CREATED, LEAD_STATUS_CHANGED, QUOTE_STATUS_CHANGED, MANUAL
-  status     String @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
-  conditions Json?
-  actions    Json
+  name             String
+  trigger          String // LEAD_CREATED, LEAD_STATUS_CHANGED, QUOTE_STATUS_CHANGED, MANUAL
+  status           String @default("DRAFT") // DRAFT, ACTIVE, PAUSED, ARCHIVED
+  conditions       Json?
+  actions          Json
   publishedVersion Int?
 
-  runs AutomationRun[]
+  runs     AutomationRun[]
   versions AutomationWorkflowVersion[]
 
   createdAt DateTime @default(now())
@@ -984,13 +1013,13 @@ model AutomationWorkflowVersion {
   workflowId String
   workflow   AutomationWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
-  version    Int
-  status     String @default("DRAFT")
-  trigger    String
-  conditions Json?
-  actions    Json
+  version     Int
+  status      String    @default("DRAFT")
+  trigger     String
+  conditions  Json?
+  actions     Json
   publishedAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@unique([workflowId, version])
   @@index([companyId, createdAt])
@@ -1036,15 +1065,15 @@ model ClientFile {
 // ══════════════════════════════════════════════════════════
 
 model Project {
-  id        String        @id @default(cuid())
-  companyId String
-  company   Company       @relation(fields: [companyId], references: [id])
-  clientId  String
-  client    Client        @relation(fields: [clientId], references: [id])
-  siteId    String?
-  site      CustomerSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  agencyId  String?
-  agency    Agency?       @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  id                String           @id @default(cuid())
+  companyId         String
+  company           Company          @relation(fields: [companyId], references: [id])
+  clientId          String
+  client            Client           @relation(fields: [clientId], references: [id])
+  siteId            String?
+  site              CustomerSite?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  agencyId          String?
+  agency            Agency?          @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   projectTemplateId String?
   projectTemplate   ProjectTemplate? @relation(fields: [projectTemplateId], references: [id], onDelete: SetNull)
 
@@ -1115,10 +1144,10 @@ model ProjectTemplateStep {
 
   title           String
   description     String?
-  kind            String @default("MILESTONE")
-  offsetDays      Int    @default(0)
-  durationDays    Int    @default(1)
-  order           Int    @default(0)
+  kind            String                @default("MILESTONE")
+  offsetDays      Int                   @default(0)
+  durationDays    Int                   @default(1)
+  order           Int                   @default(0)
   dependsOnStepId String?
   dependsOnStep   ProjectTemplateStep?  @relation("ProjectTemplateStepDependency", fields: [dependsOnStepId], references: [id], onDelete: SetNull)
   dependentSteps  ProjectTemplateStep[] @relation("ProjectTemplateStepDependency")
@@ -1130,26 +1159,26 @@ model ProjectTemplateStep {
 }
 
 model ProjectMilestone {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  kind        String    @default("MILESTONE")
-  status      String    @default("PENDING")
-  plannedStartAt DateTime?
-  dueDate     DateTime?
-  durationDays Int      @default(1)
-  order       Int       @default(0)
-  templateStepId String?
-  templateStep   ProjectTemplateStep? @relation(fields: [templateStepId], references: [id], onDelete: SetNull)
-  dependsOnId    String?
-  dependsOn      ProjectMilestone?  @relation("ProjectMilestoneDependency", fields: [dependsOnId], references: [id], onDelete: SetNull)
-  dependentMilestones ProjectMilestone[] @relation("ProjectMilestoneDependency")
+  id                   String               @id @default(cuid())
+  projectId            String
+  project              Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title                String
+  description          String?
+  kind                 String               @default("MILESTONE")
+  status               String               @default("PENDING")
+  plannedStartAt       DateTime?
+  dueDate              DateTime?
+  durationDays         Int                  @default(1)
+  order                Int                  @default(0)
+  templateStepId       String?
+  templateStep         ProjectTemplateStep? @relation(fields: [templateStepId], references: [id], onDelete: SetNull)
+  dependsOnId          String?
+  dependsOn            ProjectMilestone?    @relation("ProjectMilestoneDependency", fields: [dependsOnId], references: [id], onDelete: SetNull)
+  dependentMilestones  ProjectMilestone[]   @relation("ProjectMilestoneDependency")
   assignedMembershipId String?
-  assignedMembership   Membership? @relation("ProjectMilestoneAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  assignedMembership   Membership?          @relation("ProjectMilestoneAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@unique([projectId, templateStepId])
   @@index([projectId, order])
@@ -1338,12 +1367,12 @@ model OrganisationTask {
   recurrenceEnd      DateTime?
   recurrenceSourceId String?
 
-  clientId  String?
-  client    Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  projectId String?
-  project   Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  goalId    String?
-  goal      OrganisationGoal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  clientId          String?
+  client            Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId         String?
+  project           Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  goalId            String?
+  goal              OrganisationGoal?  @relation(fields: [goalId], references: [id], onDelete: SetNull)
   sequenceExecution EmailSequenceTask?
 
   createdAt DateTime @default(now())
@@ -2034,25 +2063,25 @@ model ServiceTicket {
   assignedMembershipId String?
   assignedMembership   Membership?   @relation("TicketAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
 
-  number       String
-  title        String
-  description  String
-  type         String    @default("SAV")
-  priority     String    @default("NORMAL")
-  status       String    @default("OPEN")
-  source       String    @default("INTERNAL")
-  requestedAt  DateTime  @default(now())
-  dueAt        DateTime?
+  number           String
+  title            String
+  description      String
+  type             String    @default("SAV")
+  priority         String    @default("NORMAL")
+  status           String    @default("OPEN")
+  source           String    @default("INTERNAL")
+  requestedAt      DateTime  @default(now())
+  dueAt            DateTime?
   firstRespondedAt DateTime?
   waitingSince     DateTime?
-  pausedMinutes    Int      @default(0)
-  closedAt     DateTime?
-  resolution   String?
-  requiredSkill String?
-  territory     String?
-  routingReason String?
-  routedAt      DateTime?
-  customFields Json?
+  pausedMinutes    Int       @default(0)
+  closedAt         DateTime?
+  resolution       String?
+  requiredSkill    String?
+  territory        String?
+  routingReason    String?
+  routedAt         DateTime?
+  customFields     Json?
 
   // A merge is intentionally non-destructive: the source ticket remains
   // readable and can be restored without reconstructing its child records.
@@ -2062,11 +2091,11 @@ model ServiceTicket {
   preMergeStatus     String?
   mergedAt           DateTime?
 
-  interventions FieldIntervention[]
+  interventions        FieldIntervention[]
   satisfactionRequests SatisfactionRequest[]
-  emailThreads EmailThread[]
-  notes ServiceTicketNote[]
-  diagnostics ServiceTicketDiagnostic[]
+  emailThreads         EmailThread[]
+  notes                ServiceTicketNote[]
+  diagnostics          ServiceTicketDiagnostic[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2086,18 +2115,18 @@ model ServiceDiagnosticGuide {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  name              String
-  status            String @default("ACTIVE")
-  productCategory   String?
-  manufacturer      String?
-  modelPattern      String?
-  symptom           String
-  keywords          Json?
-  steps             Json
-  resolutionHints   Json?
-  warrantyInstructions String?
+  name                      String
+  status                    String  @default("ACTIVE")
+  productCategory           String?
+  manufacturer              String?
+  modelPattern              String?
+  symptom                   String
+  keywords                  Json?
+  steps                     Json
+  resolutionHints           Json?
+  warrantyInstructions      String?
   outOfWarrantyInstructions String?
-  priority          Int @default(0)
+  priority                  Int     @default(0)
 
   diagnostics ServiceTicketDiagnostic[]
 
@@ -2109,15 +2138,15 @@ model ServiceDiagnosticGuide {
 }
 
 model ServiceTicketDiagnostic {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  ticketId  String
-  ticket    ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  guideId   String?
-  guide     ServiceDiagnosticGuide? @relation(fields: [guideId], references: [id], onDelete: SetNull)
+  id                      String                  @id @default(cuid())
+  companyId               String
+  company                 Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ticketId                String
+  ticket                  ServiceTicket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  guideId                 String?
+  guide                   ServiceDiagnosticGuide? @relation(fields: [guideId], references: [id], onDelete: SetNull)
   performedByMembershipId String?
-  performedByMembership   Membership? @relation("ServiceTicketDiagnosticPerformer", fields: [performedByMembershipId], references: [id], onDelete: SetNull)
+  performedByMembership   Membership?             @relation("ServiceTicketDiagnosticPerformer", fields: [performedByMembershipId], references: [id], onDelete: SetNull)
 
   guideSnapshot     Json
   completedStepIds  Json
@@ -2125,7 +2154,7 @@ model ServiceTicketDiagnostic {
   symptom           String
   outcome           String
   recommendedAction String?
-  status            String @default("COMPLETED")
+  status            String   @default("COMPLETED")
   completedAt       DateTime @default(now())
 
   createdAt DateTime @default(now())
@@ -2138,13 +2167,13 @@ model ServiceTicketDiagnostic {
 }
 
 model ServiceTicketNote {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  ticketId  String
-  ticket    ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id                 String        @id @default(cuid())
+  companyId          String
+  company            Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  ticketId           String
+  ticket             ServiceTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   authorMembershipId String?
-  authorMembership   Membership? @relation("ServiceTicketNoteAuthor", fields: [authorMembershipId], references: [id], onDelete: SetNull)
+  authorMembership   Membership?   @relation("ServiceTicketNoteAuthor", fields: [authorMembershipId], references: [id], onDelete: SetNull)
 
   body      String
   createdAt DateTime @default(now())
@@ -2165,15 +2194,15 @@ model KnowledgeArticle {
   summary    String?
   bodyHtml   String
   category   String?
-  status     String   @default("DRAFT")
-  visibility String   @default("INTERNAL")
+  status     String  @default("DRAFT")
+  visibility String  @default("INTERNAL")
   tags       Json?
 
   authorMembershipId String?
   authorMembership   Membership? @relation("KnowledgeArticleAuthor", fields: [authorMembershipId], references: [id], onDelete: SetNull)
-  publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  publishedAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@unique([companyId, slug])
   @@index([companyId, status, visibility])
@@ -2207,21 +2236,21 @@ model SatisfactionSurvey {
 }
 
 model SatisfactionRequest {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  surveyId  String
-  survey    SatisfactionSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  clientId  String
-  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  id              String             @id @default(cuid())
+  companyId       String
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  surveyId        String
+  survey          SatisfactionSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contactId       String?
+  contact         Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
   serviceTicketId String?
-  serviceTicket   ServiceTicket? @relation(fields: [serviceTicketId], references: [id], onDelete: SetNull)
+  serviceTicket   ServiceTicket?     @relation(fields: [serviceTicketId], references: [id], onDelete: SetNull)
 
-  tokenHash   String   @unique
-  status      String   @default("PENDING")
-  channel     String   @default("LINK")
+  tokenHash   String    @unique
+  status      String    @default("PENDING")
+  channel     String    @default("LINK")
   expiresAt   DateTime
   sentAt      DateTime?
   respondedAt DateTime?
@@ -2249,12 +2278,12 @@ model SavedView {
 
   resource   String
   name       String
-  visibility String @default("PERSONAL")
+  visibility String  @default("PERSONAL")
   isDefault  Boolean @default(false)
   config     Json
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   lastUsedAt DateTime?
 
   @@unique([companyId, membershipId, resource, name])
@@ -2278,20 +2307,20 @@ model FieldIntervention {
   maintenanceContract     MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: SetNull)
   maintenanceScheduledFor DateTime?
 
-  title           String
-  type            String    @default("SAV")
-  status          String    @default("PLANNED")
-  scheduledStart  DateTime
-  scheduledEnd    DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  report          String?
-  laborMinutes    Int       @default(0)
-  customerName    String?
-  signedAt        DateTime?
-  signatureSha256 String?
+  title                 String
+  type                  String    @default("SAV")
+  status                String    @default("PLANNED")
+  scheduledStart        DateTime
+  scheduledEnd          DateTime?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  report                String?
+  laborMinutes          Int       @default(0)
+  customerName          String?
+  signedAt              DateTime?
+  signatureSha256       String?
   customerSignatureData String?
-  customFields    Json?
+  customFields          Json?
 
   files          InterventionFile[]
   stockMovements StockMovement[]
@@ -2335,12 +2364,12 @@ model InterventionReservation {
 
   title      String
   details    String?
-  severity   String   @default("MINOR")
-  status     String   @default("OPEN")
+  severity   String    @default("MINOR")
+  status     String    @default("OPEN")
   dueAt      DateTime?
   resolvedAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([interventionId, sourceId])
   @@index([companyId, status, createdAt])
@@ -2689,7 +2718,7 @@ model ContractAmendmentChange {
   previousValue        String?
   nextValue            String
   financialImpactCents Int?
-  order                 Int      @default(0)
+  order                Int     @default(0)
 
   createdAt DateTime @default(now())
 
@@ -2737,13 +2766,13 @@ model ContractSigningToken {
 // ══════════════════════════════════════════════════════════
 
 model Expense {
-  id        String   @id @default(cuid())
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  clientId  String?
-  client    Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id             String             @id @default(cuid())
+  companyId      String
+  company        Company            @relation(fields: [companyId], references: [id])
+  clientId       String?
+  client         Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId      String?
+  project        Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
   interventionId String?
   intervention   FieldIntervention? @relation(fields: [interventionId], references: [id], onDelete: SetNull)
   sourceId       String?
@@ -2763,11 +2792,11 @@ model Expense {
 
   createdAt DateTime @default(now())
 
+  @@unique([interventionId, sourceId])
   @@index([companyId])
   @@index([clientId])
   @@index([projectId])
   @@index([interventionId])
-  @@unique([interventionId, sourceId])
 }
 
 model ExpenseFile {

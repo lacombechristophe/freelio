@@ -21,6 +21,7 @@ export async function submitSignInWithEmail(
 export async function signInWithEmail(formData: FormData) {
   const email = formData.get("email") as string
   const password = String(formData.get("password") ?? "")
+  const mfaCode = String(formData.get("mfaCode") ?? "")
   const method: "magic" | "password" = formData.get("method") === "magic" ? "magic" : "password"
   const requestedRedirect = String(formData.get("redirectTo") ?? "")
   const redirectTo = requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//")
@@ -52,13 +53,13 @@ export async function signInWithEmail(formData: FormData) {
   try {
     await signIn(
       method === "magic" ? "resend" : "credentials",
-      { email: email.trim().toLowerCase(), password, redirectTo }
+      { email: email.trim().toLowerCase(), password, mfaCode, redirectTo }
     )
     return { success: true, method }
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
-        return { success: false, method, error: "Adresse e-mail ou mot de passe incorrect." }
+        return { success: false, method, error: "Identifiants ou code de sécurité incorrects." }
       }
       return { success: false, method, error: "Une erreur est survenue lors de la connexion." }
     }

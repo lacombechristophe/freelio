@@ -7,6 +7,7 @@ import Credentials from "next-auth/providers/credentials"
 import { MagicLinkEmail } from "@/emails/MagicLinkEmail"
 import { render } from "@react-email/render"
 import { verifyPassword } from "@/lib/auth/password"
+import { verifyAndConsumeSecondFactor } from "@/lib/auth/mfa"
 
 const emailFrom = process.env.EMAIL_FROM?.trim() || "CRM <noreply@example.invalid>"
 const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true"
@@ -65,11 +66,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Mot de passe", type: "password" },
+        mfaCode: { label: "Code de sécurité", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email) return null
         const email = String(credentials.email).trim().toLowerCase()
         const password = typeof credentials.password === "string" ? credentials.password : ""
+        const mfaCode = typeof credentials.mfaCode === "string" ? credentials.mfaCode : ""
         if (ciCredentialsAuth && !password && email !== process.env.E2E_USER_EMAIL?.toLowerCase()) return null
 
         try {
@@ -82,6 +85,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
           const user = await prisma.user.findUnique({ where: { email } })
           if (!user || !await verifyPassword(password, user.passwordHash)) return null
+          if (user.mfaEnabledAt && !await verifyAndConsumeSecondFactor({
+            userId: user.id,
+            secretEncrypted: user.mfaSecretEncrypted,
+            code: mfaCode,
+          })) return null
           return user
         } catch {
           return null
@@ -90,22 +98,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider !== "resend" || !user.email) return true
+      const security = await prisma.user.findUnique({ where: { email: user.email }, select: { mfaEnabledAt: true } })
+      return !security?.mfaEnabledAt
+    },
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id
-        // Cache companyId in the JWT to avoid a DB round-trip on every server action
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { companyId: true },
+          select: { companyId: true, sessionVersion: true },
         })
         token.companyId = dbUser?.companyId ?? null
+        token.sessionVersion = dbUser?.sessionVersion ?? 0
+        return token
+      }
+      if (token.sub) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { companyId: true, sessionVersion: true },
+        })
+        if (!dbUser || token.sessionVersion !== dbUser.sessionVersion) {
+          token.sessionInvalid = true
+          delete token.sub
+          token.companyId = null
+        } else {
+          token.companyId = dbUser.companyId
+        }
       }
       return token
     },
     async session({ session, token }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub
-      }
+      if (token.sessionInvalid || !token.sub) return { ...session, user: undefined, companyId: null } as unknown as typeof session
+      if (session.user) session.user.id = token.sub
       ;(session as any).companyId = token.companyId ?? null
       return session
     },
