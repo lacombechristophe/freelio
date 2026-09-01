@@ -435,8 +435,9 @@ test("configurable CRM properties use business presets and retain a visible hist
   await page.getByLabel("Budget estimé").fill("45000")
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click()
   await expect(page.getByText("2 propriété(s) mise(s) à jour.")).toBeVisible()
-  await expect(page.getByText("Site web", { exact: true })).toBeVisible()
-  await expect(page.getByText("45 000,00 €")).toBeVisible()
+  const persistedProperties = page.locator("dl")
+  await expect(persistedProperties.getByText("Site web", { exact: true })).toBeVisible()
+  await expect(persistedProperties.getByText("45 000,00 €")).toBeVisible()
 
   await page.getByRole("button", { name: "Historique" }).click()
   const propertyHistory = page.getByRole("dialog", { name: "Historique des propriétés" })
