@@ -15,15 +15,15 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 56 fichiers, 215 tests réussis |
-| `npm run build` | build Next.js 16.3.3 de production réussi, 72 routes compilées |
-| `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
+| `npm run test:unit` | 57 fichiers, 223 tests réussis |
+| `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
+| `npm audit --omit=dev` | 0 vulnérabilité déclarée |
 | Playwright, build production et base isolée | 23 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (36 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
 | PostgreSQL | 37 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
 | Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
-| Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
+| Connexion production | création d’un compte de recette, onboarding, cockpit, pipeline, propriétés CRM et clients chargés, nouvelle session puis reconnexion par mot de passe ; anonymisation RGPD ciblée réussie et ancien identifiant devenu inutilisable |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
