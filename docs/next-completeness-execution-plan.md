@@ -16,6 +16,8 @@ Le principal risque n’est donc plus l’absence d’écrans. Il est triple :
 
 La cible n’est pas de reproduire chaque option de HubSpot ou Extrabat. La cible est de couvrir, avec moins de friction, les processus effectivement utiles : acquisition, qualification, vente sur mesure, achat fabricant, planification, pose, facturation, SAV, entretien et fidélisation.
 
+Mise à jour du 1er septembre 2026 : l’activation contrôlée d’un segment de campagne vers une séquence et les relances de facture réellement envoyées (manuelles ou planifiées, idempotentes et journalisées) sont livrées. Les mentions correspondantes ci-dessous décrivent désormais l’historique du plan ; les gates restantes portent sur les très gros volumes, l’A/B, l’ordonnanceur supervisé et la délivrabilité réelle.
+
 ## 2. Sources officielles et enseignements
 
 ### HubSpot

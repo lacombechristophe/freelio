@@ -10,6 +10,8 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
 import { processDueRecurringInvoices } from "@/lib/scheduling/business"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { buildInvoiceReminderContent } from "@/lib/finance/invoice-reminders"
+import { sendInvoiceReminderRecord } from "@/lib/finance/invoice-reminder-sender"
 import { boundedPageSize } from "@/lib/pagination"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
@@ -731,22 +733,17 @@ export async function prepareInvoiceReminder(data: ReminderInput) {
     if (!["SENT", "OVERDUE"].includes(invoice.status)) {
       throw new Error("Cette facture ne nécessite pas de relance.")
     }
-    const remaining = invoice.totalTtcCents - invoice.paidAmountCents
-    const amount = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(remaining / 100)
-    const dueDate = invoice.dueDate.toLocaleDateString("fr-FR")
-    const subject = validated.subject || `Relance facture ${invoice.number}`
-    const message =
-      validated.message ||
-      [
-        `Bonjour,`,
-        "",
-        `Sauf erreur de notre part, la facture ${invoice.number} d'un montant restant de ${amount}, échue le ${dueDate}, reste en attente de règlement.`,
-        "",
-        "Pouvez-vous nous confirmer sa date de mise en paiement ?",
-        "",
-        `Cordialement,`,
-        invoice.company.name,
-      ].join("\n")
+    if (invoice.totalTtcCents - invoice.paidAmountCents <= 0) {
+      throw new Error("Cette facture est déjà réglée.")
+    }
+    const content = buildInvoiceReminderContent({
+      companyName: invoice.company.name,
+      invoiceNumber: invoice.number,
+      remainingCents: invoice.totalTtcCents - invoice.paidAmountCents,
+      dueDate: invoice.dueDate,
+    })
+    const subject = validated.subject || content.subject
+    const message = validated.message || content.message
     const reminder = await prisma.invoiceReminder.create({
       data: { companyId, invoiceId: invoice.id, subject, message },
     })
@@ -757,17 +754,34 @@ export async function prepareInvoiceReminder(data: ReminderInput) {
   })
 }
 
-export async function markInvoiceReminderSent(id: string) {
-  return withAuth(async ({ companyId }) => {
-    const reminder = await prisma.invoiceReminder.findFirst({ where: { id, companyId } })
-    if (!reminder) throw new Error("Relance introuvable")
-    const updated = await prisma.invoiceReminder.update({
-      where: { id },
-      data: { status: "SENT", sentAt: new Date() },
+const SendReminderSchema = z.object({
+  reminderId: z.string().cuid(),
+  subject: z.string().trim().min(3).max(180),
+  message: z.string().trim().min(10).max(5_000),
+  channelId: z.string().cuid().optional().or(z.literal("")),
+})
+
+export async function sendInvoiceReminder(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = SendReminderSchema.parse(input)
+    const result = await sendInvoiceReminderRecord({
+      companyId,
+      reminderId: data.reminderId,
+      channelId: data.channelId || null,
+      subject: data.subject,
+      message: data.message,
     })
-    revalidatePath(`/dashboard/factures/${reminder.invoiceId}`)
-    return updated
-  })
+    await logAction({
+      userId,
+      action: "SEND_INVOICE_REMINDER",
+      resource: "INVOICE_REMINDER",
+      resourceId: data.reminderId,
+      payload: { alreadySent: result.alreadySent },
+    })
+    revalidatePath(`/dashboard/factures/${result.reminder.invoiceId}`)
+    revalidatePath("/dashboard/communications")
+    return { success: true as const, alreadySent: result.alreadySent }
+  }, "finance.write")
 }
 
 export async function getRecurringInvoices() {

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck, Mail, HardDrive
+  BellRing, Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck, Mail, HardDrive
 } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,13 +18,13 @@ import {
   DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { updateCompany } from "@/actions/settings"
+import { updateCompany, updateInvoiceReminderSettings } from "@/actions/settings"
 import { anonymizeAccount } from "@/actions/compliance"
 import { exportUserData } from "@/actions/compliance"
 import { cn } from "@/lib/utils"
 import { AccountSecurityPanel } from "./account-security-panel"
 
-type PdfTemplate = "MINIMAL" | "PROFESSIONAL" | "MODERN"
+type PdfTemplate = "MINIMAL" | "PROFESSIONAL"
 
 const PDF_TEMPLATE_OPTIONS: Array<{
   value: PdfTemplate
@@ -33,18 +33,13 @@ const PDF_TEMPLATE_OPTIONS: Array<{
 }> = [
   {
     value: "MINIMAL",
-    label: "Minimal",
-    description: "Sobre, lisible, proche d'une facture classique.",
+    label: "Essentiel",
+    description: "Lecture aérée et hiérarchie minimale pour les documents courants.",
   },
   {
     value: "PROFESSIONAL",
-    label: "Professionnel",
-    description: "En-tête structuré et présentation plus corporate.",
-  },
-  {
-    value: "MODERN",
-    label: "Moderne",
-    description: "Bandeau fort, montant mis en avant, rendu premium.",
+    label: "Standard",
+    description: "Structure administrative classique, adaptée aux dossiers détaillés.",
   },
 ]
 
@@ -76,6 +71,7 @@ type Company = {
   serviceFirstResponseHours?: unknown
   serviceResolutionHours?: unknown
   lastBackupAt?: Date | string | null
+  relanceConfig?: { enabled: boolean; steps: unknown } | null
 }
 
 type User = {
@@ -109,6 +105,13 @@ export function SettingsClient({ company, user }: { company: Company; user: User
   const [eInvoicePlatform, setEInvoicePlatform] = useState(company.eInvoicePlatform ?? "")
   const [eInvoiceRoutingId, setEInvoiceRoutingId] = useState(company.eInvoiceRoutingId ?? "")
   const [iban, setIban] = useState(company.iban ?? "")
+  const storedReminderSteps = Array.isArray(company.relanceConfig?.steps)
+    ? company.relanceConfig.steps.flatMap((step) => typeof step === "object" && step !== null && "daysAfterDue" in step && typeof step.daysAfterDue === "number" ? [step.daysAfterDue] : [])
+    : []
+  const [remindersEnabled, setRemindersEnabled] = useState(company.relanceConfig?.enabled ?? false)
+  const [reminderDays, setReminderDays] = useState<number[]>(storedReminderSteps.length ? storedReminderSteps : [3, 10, 20])
+  const reminderDaysInvalid = reminderDays.some((days) => !Number.isInteger(days) || days < 0 || days > 365)
+    || new Set(reminderDays).size !== reminderDays.length
 
   function handleSaveEnterprise(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -176,6 +179,20 @@ export function SettingsClient({ company, user }: { company: Company; user: User
       })
       if (result?.success) toast.success("Politique de service sauvegardée.")
       else toast.error(result?.error ?? "Erreur lors de la sauvegarde.")
+    })
+  }
+
+  function handleSaveReminders(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    startTransition(async () => {
+      try {
+        const result = await updateInvoiceReminderSettings({ enabled: remindersEnabled, steps: reminderDays.map((daysAfterDue) => ({ daysAfterDue })) })
+        setReminderDays(result.settings.steps.map((step) => step.daysAfterDue))
+        toast.success(remindersEnabled ? "Relances automatiques activées." : "Relances automatiques désactivées.")
+        router.refresh()
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Configuration des relances impossible."))
+      }
     })
   }
 
@@ -356,7 +373,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                     Ce modèle est utilisé pour les factures et devis générés en PDF.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid max-w-3xl grid-cols-1 gap-3 md:grid-cols-2">
                   {PDF_TEMPLATE_OPTIONS.map((option) => {
                     const active = pdfTemplate === option.value
                     return (
@@ -385,16 +402,11 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                             active ? "border-primary/30" : "border-border"
                           )}
                         >
-                          <div
-                            className={cn(
-                              "h-2 w-16 rounded-sm",
-                              option.value === "MODERN" ? "bg-foreground" : "bg-primary"
-                            )}
-                          />
+                          <div className="h-2 w-16 rounded-sm bg-foreground" />
                           <div className="mt-3 grid grid-cols-3 gap-1.5">
                             <div className="h-8 rounded-sm bg-muted" />
                             <div className="h-8 rounded-sm bg-muted" />
-                            <div className="h-8 rounded-sm bg-primary/20" />
+                            <div className="h-8 rounded-sm bg-muted" />
                           </div>
                           <div className="mt-3 h-1.5 w-full rounded-sm bg-muted" />
                           <div className="mt-1.5 h-1.5 w-2/3 rounded-sm bg-muted" />
@@ -490,6 +502,31 @@ export function SettingsClient({ company, user }: { company: Company; user: User
 
         <Card className="bg-card border-border">
           <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div><CardTitle className="flex items-center gap-2 text-sm font-semibold"><BellRing className="size-4 text-primary" />Relances de factures</CardTitle><CardDescription className="mt-1 text-xs">Envoyez des rappels progressifs par la messagerie active, avec historique dans la fiche facture et Communications.</CardDescription></div>
+              <Switch aria-label="Activer les relances automatiques" checked={remindersEnabled} onCheckedChange={setRemindersEnabled} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveReminders} className="space-y-5">
+              <div className="rounded-[10px] border bg-muted/25 p-4">
+                <p className="text-sm font-semibold">Cadence recommandée</p>
+                <p className="mt-1 max-w-3xl text-xs leading-5 text-muted-foreground">Trois rappels après l’échéance. Une facture réglée, annulée ou sans adresse e-mail est automatiquement exclue. Un même palier ne peut être envoyé qu’une fois.</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {reminderDays.map((days, index) => <div key={index} className="space-y-1.5"><Label htmlFor={`reminder-day-${index}`}>Rappel {index + 1}</Label><div className="relative"><Input id={`reminder-day-${index}`} type="number" min="0" max="365" value={days} onChange={(event) => setReminderDays((current) => current.map((value, position) => position === index ? Number(event.target.value) : value))} className="pr-16 tabular-nums" /><span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">jour(s)</span></div></div>)}
+                </div>
+                {new Set(reminderDays).size !== reminderDays.length ? <p className="mt-3 text-xs text-destructive">Chaque rappel doit utiliser un jour différent.</p> : null}
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-5 text-muted-foreground">La tâche planifiée doit être active et une boîte doit être connectée. En cas d’échec, la relance reste visible avec son erreur et pourra être retentée.</p>
+                <Button type="submit" disabled={isPending || reminderDaysInvalid} className="shrink-0"><Save />Enregistrer les relances</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader>
             <CardTitle className="text-sm font-semibold">Assistant IA</CardTitle>
             <CardDescription className="text-xs">Consommation de ressources d&apos;intelligence artificielle.</CardDescription>
           </CardHeader>
@@ -523,7 +560,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
           <CardContent className="grid gap-3 sm:grid-cols-2">
             {[
               { key: "gemini" as const, name: "Google Gemini", detail: "OCR des justificatifs", icon: Zap },
-              { key: "email" as const, name: "Resend", detail: "Envoi, réception et événements e-mail", icon: Mail },
+              { key: "email" as const, name: "Messagerie", detail: "Resend, Google Workspace ou Microsoft 365", icon: Mail },
               { key: "storage" as const, name: "Cloudflare R2", detail: "Documents, archives et sauvegardes", icon: HardDrive },
               { key: "billing" as const, name: "Stripe", detail: "Abonnements et portail de facturation", icon: CreditCard },
             ].map(({ key, name, detail, icon: Icon }) => <div key={key} className="flex items-center justify-between gap-3 rounded-xl border bg-background/50 p-4"><div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" /></span><div className="min-w-0"><p className="truncate text-sm font-semibold">{name}</p><p className="mt-0.5 text-xs text-muted-foreground">{detail}</p></div></div><span className={cn("shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold", user.integrations[key] ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{user.integrations[key] ? "Prêt" : "À configurer"}</span></div>)}

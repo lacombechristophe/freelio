@@ -5,6 +5,8 @@ import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
 import { withAuth } from "@/lib/auth-wrapper"
+import { nextSequenceExecution } from "@/lib/automations/schedule"
+import { evaluateCampaignAudience } from "@/lib/marketing/campaign-audience"
 import prisma from "@/lib/prisma"
 
 const cuid = z.string().cuid()
@@ -220,5 +222,106 @@ export async function attachSequenceToCampaign(campaignId: string, sequenceId: s
     await logAction({ userId, action: "UPDATE_MARKETING_CAMPAIGN", resource: "MARKETING_CAMPAIGN", resourceId: campaign.id, payload: { sequenceId: sequence.id } })
     revalidatePath("/dashboard/campagnes")
     return { success: true as const }
+  }, "automation.write")
+}
+
+const campaignAudienceSchema = z.object({ campaignId: cuid, sequenceId: cuid })
+
+export async function enrollCampaignAudience(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const data = campaignAudienceSchema.parse(input)
+    const [campaign, sequence] = await Promise.all([
+      prisma.marketingCampaign.findFirst({
+        where: { id: data.campaignId, companyId },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          segment: {
+            select: {
+              _count: { select: { memberships: { where: { leadCapture: { companyId } } } } },
+              memberships: {
+                where: { leadCapture: { companyId } },
+                orderBy: { addedAt: "asc" },
+                take: 5_000,
+                select: {
+                  leadCapture: {
+                    select: {
+                      id: true,
+                      email: true,
+                      marketingOptIn: true,
+                      status: true,
+                      contactId: true,
+                      contact: { select: { marketingStatus: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.emailSequence.findFirst({
+        where: { id: data.sequenceId, companyId, campaignId: data.campaignId, status: "ACTIVE" },
+        include: { steps: { orderBy: { position: "asc" }, take: 1 } },
+      }),
+    ])
+    if (!campaign) throw new Error("Campagne introuvable")
+    if (!campaign.segment) throw new Error("Associez un segment à la campagne avant de lancer l’audience")
+    if (campaign.segment._count.memberships > 5_000) throw new Error("Ce segment dépasse 5 000 prospects. Créez des sous-segments pour préserver la délivrabilité et le suivi des lots")
+    if (!sequence) throw new Error("Choisissez une séquence active rattachée à cette campagne")
+    if (!sequence.steps[0]) throw new Error("La séquence ne contient aucune étape")
+    if (!["PLANNED", "ACTIVE"].includes(campaign.status)) throw new Error("Planifiez ou activez la campagne avant d’inscrire son audience")
+
+    const leads = campaign.segment.memberships.map((membership) => membership.leadCapture)
+    const existing = leads.length
+      ? await prisma.emailSequenceEnrollment.findMany({
+          where: { sequenceId: sequence.id, leadCaptureId: { in: leads.map((lead) => lead.id) } },
+          select: { leadCaptureId: true },
+        })
+      : []
+    const readiness = evaluateCampaignAudience(leads, existing.map((enrollment) => enrollment.leadCaptureId))
+    const { eligibleIds, ...audienceCounts } = readiness
+    const leadsById = new Map(leads.map((lead) => [lead.id, lead]))
+    const firstStep = sequence.steps[0]
+    const enrolledAt = new Date()
+    const nextSendAt = nextSequenceExecution(enrolledAt, firstStep.delayHours, sequence)
+
+    if (eligibleIds.length) {
+      for (let offset = 0; offset < eligibleIds.length; offset += 200) {
+        const batch = eligibleIds.slice(offset, offset + 200)
+        await prisma.$transaction(
+          batch.map((leadCaptureId) => {
+            const lead = leadsById.get(leadCaptureId)
+            return prisma.emailSequenceEnrollment.upsert({
+              where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId } },
+              update: {},
+              create: {
+                sequenceId: sequence.id,
+                leadCaptureId,
+                contactId: lead?.contactId || null,
+                status: "ACTIVE",
+                nextStepPosition: firstStep.position,
+                nextSendAt,
+              },
+            })
+          }),
+        )
+      }
+    }
+
+    await Promise.all([
+      prisma.marketingCampaign.update({ where: { id: campaign.id }, data: { status: "ACTIVE" } }),
+      logAction({
+        userId,
+        action: "ENROLL_MARKETING_CAMPAIGN_AUDIENCE",
+        resource: "MARKETING_CAMPAIGN",
+        resourceId: campaign.id,
+        payload: { sequenceId: sequence.id, enrolled: eligibleIds.length, ...audienceCounts },
+      }),
+    ])
+    revalidatePath("/dashboard/campagnes")
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const, enrolled: eligibleIds.length, ...audienceCounts }
   }, "automation.write")
 }

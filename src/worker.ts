@@ -38,8 +38,8 @@ const processScheduling = async () => {
   schedulingRunning = true
   try {
     const result = await processScheduledBusinessJobs()
-    const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled
-    if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s).`)
+    const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled + result.invoiceReminders.sent + result.invoiceReminders.failed
+    if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s).`)
   } catch (error) {
     console.error(`[Worker] Business scheduling failed: ${error instanceof Error ? error.message : "unknown error"}`)
   } finally {

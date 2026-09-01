@@ -21,6 +21,14 @@ function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
 }
 
+const reminderStatusLabels: Record<string, string> = {
+  PREPARED: "Préparée",
+  SENDING: "Envoi en cours",
+  SENT: "Envoyée",
+  FAILED: "Échec",
+  SKIPPED: "Ignorée",
+}
+
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const invoice = await getInvoiceById(id)
@@ -238,9 +246,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <CardHeader><CardTitle className="text-sm">Historique des relances</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             {invoice.reminders.map((reminder) => (
-              <div key={reminder.id} className="flex justify-between rounded-md border px-3 py-2">
-                <span>{reminder.subject}</span>
-                <span className="text-muted-foreground">{reminder.status} · {formatDate(reminder.createdAt)}</span>
+              <div key={reminder.id} className="flex flex-col gap-2 rounded-[10px] border px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0"><p className="truncate font-medium">{reminder.subject}</p>{reminder.error ? <p className="mt-1 text-xs text-destructive">{reminder.error}</p> : null}</div>
+                <div className="flex shrink-0 items-center gap-2"><Badge variant={reminder.status === "SENT" ? "secondary" : reminder.status === "FAILED" ? "destructive" : "outline"}>{reminderStatusLabels[reminder.status] || reminder.status}</Badge><span className="text-xs text-muted-foreground">{formatDate(reminder.sentAt || reminder.createdAt)}</span></div>
               </div>
             ))}
           </CardContent>

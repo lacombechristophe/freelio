@@ -6,6 +6,7 @@ import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { encrypt } from "@/lib/crypto"
+import { invoiceReminderSettingsSchema } from "@/lib/finance/invoice-reminders"
 
 function isValidTimeZone(value: string) {
   try { new Intl.DateTimeFormat("fr-FR", { timeZone: value }).format() } catch { return false }
@@ -85,4 +86,25 @@ export async function getBillingSettings() {
       select: { isTvaApplicable: true },
     })
   })
+}
+
+export async function updateInvoiceReminderSettings(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    const settings = invoiceReminderSettingsSchema.parse(input)
+    await prisma.relanceConfig.upsert({
+      where: { companyId },
+      create: { companyId, enabled: settings.enabled, steps: settings.steps },
+      update: { enabled: settings.enabled, steps: settings.steps },
+    })
+    await logAction({
+      userId,
+      action: "UPDATE_SETTINGS",
+      resource: "INVOICE_REMINDER_SETTINGS",
+      resourceId: companyId,
+      payload: { enabled: settings.enabled, steps: settings.steps },
+    })
+    revalidatePath("/dashboard/settings")
+    revalidatePath("/dashboard/factures")
+    return { success: true as const, settings }
+  }, "finance.write")
 }

@@ -132,95 +132,9 @@ function SelectContent({
     | "collisionPadding"
     | "disableAnchorTracking"
   >) {
-  const [positionerElement, setPositionerElement] = React.useState<HTMLDivElement | null>(null)
-
-  React.useEffect(() => {
-    if (!positionerElement) return
-    const currentPositioner = positionerElement
-
-    let frame = 0
-    let trackingFrame = 0
-    let trackedTrigger: HTMLElement | null = null
-    let offset: { x: number; y: number } | null = null
-
-    function getTrigger() {
-      const list = currentPositioner.querySelector<HTMLElement>("[role='listbox'][id]")
-      const listId = list?.id
-      const openTriggers = Array.from(
-        document.querySelectorAll<HTMLElement>("[data-slot='select-trigger'][aria-expanded='true']")
-      )
-
-      if (listId) {
-        return openTriggers.find((trigger) => trigger.getAttribute("aria-controls") === listId) ?? null
-      }
-
-      return openTriggers.at(-1) ?? null
-    }
-
-    function syncPosition(resetOffset = false) {
-      frame = 0
-      if (!currentPositioner.matches("[data-open]")) return
-
-      const trigger = getTrigger()
-      if (!trigger) return
-
-      if (resetOffset || trigger !== trackedTrigger || !offset) {
-        const positionerRect = currentPositioner.getBoundingClientRect()
-        const triggerRect = trigger.getBoundingClientRect()
-        if (positionerRect.left === 0 && Math.abs(triggerRect.left) > 1) return
-
-        trackedTrigger = trigger
-        offset = {
-          x: positionerRect.left - triggerRect.left,
-          y: positionerRect.top - triggerRect.top,
-        }
-      }
-
-      const triggerRect = trigger.getBoundingClientRect()
-      currentPositioner.style.left = `${triggerRect.left + offset.x}px`
-      currentPositioner.style.top = `${triggerRect.top + offset.y}px`
-    }
-
-    function scheduleSync(resetOffset = false) {
-      if (frame) cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => syncPosition(resetOffset))
-    }
-
-    function startTracking(resetOffset = false) {
-      if (trackingFrame) cancelAnimationFrame(trackingFrame)
-      syncPosition(resetOffset)
-
-      const tick = () => {
-        syncPosition()
-        trackingFrame = currentPositioner.matches("[data-open]") ? requestAnimationFrame(tick) : 0
-      }
-
-      trackingFrame = requestAnimationFrame(tick)
-    }
-
-    const observer = new MutationObserver(() => startTracking(true))
-    observer.observe(currentPositioner, { attributes: true, attributeFilter: ["data-open"] })
-
-    const handleScroll = () => scheduleSync()
-    const handleResize = () => scheduleSync(true)
-
-    startTracking(true)
-    document.addEventListener("scroll", handleScroll, true)
-    window.addEventListener("resize", handleResize)
-
-    return () => {
-      if (frame) cancelAnimationFrame(frame)
-      if (trackingFrame) cancelAnimationFrame(trackingFrame)
-      observer.disconnect()
-      document.removeEventListener("scroll", handleScroll, true)
-      window.removeEventListener("resize", handleResize)
-    }
-  }, [positionerElement])
-
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Positioner
-        ref={setPositionerElement}
         side={side}
         sideOffset={sideOffset}
         align={align}

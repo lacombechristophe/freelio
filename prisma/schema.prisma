@@ -2644,12 +2644,16 @@ model InvoiceReminder {
   invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   channel   String    @default("EMAIL_DRAFT")
-  status    String    @default("PREPARED") // PREPARED, SENT, SKIPPED
+  status    String    @default("PREPARED") // PREPARED, SENDING, SENT, FAILED, SKIPPED
+  sourceKey String?
   subject   String
   message   String
+  error     String?
   sentAt    DateTime?
   createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
+  @@unique([invoiceId, sourceKey])
   @@index([companyId, createdAt])
   @@index([invoiceId])
 }
@@ -3110,8 +3114,11 @@ model RelanceConfig {
   companyId String  @unique
   company   Company @relation(fields: [companyId], references: [id])
 
-  enabled Boolean @default(false)
-  steps   Json // e.g. [{ days: 7, template: 'reminder-1' }]
+  enabled         Boolean   @default(false)
+  steps           Json // [{ daysAfterDue: 3 }, { daysAfterDue: 10 }, ...]
+  lastProcessedAt DateTime?
+
+  @@index([enabled, lastProcessedAt])
 }
 
 model EInvoiceLog {
