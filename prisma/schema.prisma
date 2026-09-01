@@ -1369,7 +1369,7 @@ model Pipeline {
   isDefault Boolean  @default(false)
   position  Int      @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   opportunities Opportunity[]
 
@@ -2563,9 +2563,15 @@ model Quote {
   date       DateTime  @default(now())
   validUntil DateTime?
 
-  currentVersion Int            @default(1)
-  versions       QuoteVersion[]
-  customerOrder  CustomerOrder?
+  currentVersion    Int            @default(1)
+  versions          QuoteVersion[]
+  customerOrder     CustomerOrder?
+  generatedContract Contract?
+
+  sentAt     DateTime?
+  acceptedAt DateTime?
+  rejectedAt DateTime?
+  expiredAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2782,11 +2788,13 @@ model ContractTemplate {
 }
 
 model Contract {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-  clientId  String
-  client    Client  @relation(fields: [clientId], references: [id])
+  id            String  @id @default(cuid())
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id])
+  clientId      String
+  client        Client  @relation(fields: [clientId], references: [id])
+  sourceQuoteId String? @unique
+  sourceQuote   Quote?  @relation(fields: [sourceQuoteId], references: [id], onDelete: SetNull)
 
   number  String // CONT/AVN/REN-YYYY-NNN
   title   String

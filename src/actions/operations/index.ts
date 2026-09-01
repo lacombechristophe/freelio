@@ -6,7 +6,7 @@ import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
-import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
@@ -328,6 +328,15 @@ const customerOrderSchema = z.object({
   unitPriceCents: z.coerce.number().int().min(0).max(2_000_000_000),
   tvaRate: z.coerce.number().min(0).max(100).default(20),
   depositCents: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
+})
+
+const quoteToCustomerOrderSchema = z.object({
+  quoteId: id,
+  depositRate: z.coerce.number().min(0).max(100).default(0),
+  expectedInstallationAt: z
+    .union([z.string().date(), z.literal("")])
+    .optional()
+    .transform((value) => (value ? new Date(`${value}T12:00:00.000Z`) : null)),
 })
 
 const goodsReceiptSchema = z.object({
@@ -1638,11 +1647,11 @@ export async function createCustomerOrder(input: unknown) {
   }, "operations.write")
 }
 
-export async function convertQuoteToCustomerOrder(quoteId: string) {
+export async function convertQuoteToCustomerOrder(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
-    const parsedQuoteId = id.parse(quoteId)
+    const data = quoteToCustomerOrderSchema.parse(typeof input === "string" ? { quoteId: input } : input)
     const quote = await prisma.quote.findFirst({
-      where: { id: parsedQuoteId, companyId },
+      where: { id: data.quoteId, companyId },
       include: {
         customerOrder: { select: { id: true, number: true } },
         versions: {
@@ -1654,66 +1663,84 @@ export async function convertQuoteToCustomerOrder(quoteId: string) {
     })
     if (!quote) throw new Error("Devis introuvable")
     if (quote.customerOrder) return { success: true as const, id: quote.customerOrder.id, number: quote.customerOrder.number, existing: true as const }
-    if (!["SENT", "ACCEPTED"].includes(quote.status)) throw new Error("Envoyez ou acceptez le devis avant de créer la commande")
+    if (quote.status !== "ACCEPTED") throw new Error("Enregistrez l’accord du client avant de lancer la commande")
     const version = quote.versions[0]
     if (!version) throw new Error("Le devis ne contient aucune version")
     const lines = version.sections.flatMap((section) => section.lines)
     if (!lines.length) throw new Error("Le devis ne contient aucune ligne")
 
+    const depositCents = Math.round((version.totalTtcCents * data.depositRate) / 100)
+
     const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
-    const order = await withDocumentNumberRetry(
-      async () => {
-        const last = await prisma.customerOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
-        return prisma.$transaction(async (tx) => {
-          const projectId =
-            quote.projectId ??
-            (
-              await tx.project.create({
-                data: {
-                  companyId,
-                  clientId: quote.clientId,
-                  name: `Chantier · ${quote.object}`,
-                  description: `Créé depuis le devis ${quote.number}`,
-                  worksiteType: "INSTALLATION",
-                  worksiteStage: "COMMANDE_CONFIRMEE",
-                  budgetCents: version.totalHtCents,
-                  startDate: new Date(),
+    let order
+    try {
+      order = await withDocumentNumberRetry(
+        async () => {
+          const last = await prisma.customerOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+          return prisma.$transaction(async (tx) => {
+            const projectId =
+              quote.projectId ??
+              (
+                await tx.project.create({
+                  data: {
+                    companyId,
+                    clientId: quote.clientId,
+                    name: `Chantier · ${quote.object}`,
+                    description: `Créé depuis le devis ${quote.number}`,
+                    worksiteType: "INSTALLATION",
+                    worksiteStage: "COMMANDE_CONFIRMEE",
+                    budgetCents: version.totalHtCents,
+                    startDate: new Date(),
+                  },
+                  select: { id: true },
+                })
+              ).id
+            const created = await tx.customerOrder.create({
+              data: {
+                companyId,
+                clientId: quote.clientId,
+                projectId,
+                quoteId: quote.id,
+                number: nextDocumentNumber(last?.number, prefix),
+                status: "CONFIRMED",
+                acceptedAt: new Date(),
+                expectedInstallationAt: data.expectedInstallationAt,
+                totalHtCents: version.totalHtCents,
+                totalTvaCents: version.totalTvaCents,
+                totalTtcCents: version.totalTtcCents,
+                depositCents,
+                lines: {
+                  create: lines.map((line, index) => ({
+                    productId: line.productId,
+                    label: line.label,
+                    description: line.description,
+                    quantity: line.quantity,
+                    unitPriceCents: line.unitPriceCents,
+                    tvaRate: line.tvaRate,
+                    order: index,
+                  })),
                 },
-                select: { id: true },
-              })
-            ).id
-          const created = await tx.customerOrder.create({
-            data: {
-              companyId,
-              clientId: quote.clientId,
-              projectId,
-              quoteId: quote.id,
-              number: nextDocumentNumber(last?.number, prefix),
-              status: "CONFIRMED",
-              acceptedAt: new Date(),
-              totalHtCents: version.totalHtCents,
-              totalTvaCents: version.totalTvaCents,
-              totalTtcCents: version.totalTtcCents,
-              lines: {
-                create: lines.map((line, index) => ({
-                  productId: line.productId,
-                  label: line.label,
-                  description: line.description,
-                  quantity: line.quantity,
-                  unitPriceCents: line.unitPriceCents,
-                  tvaRate: line.tvaRate,
-                  order: index,
-                })),
               },
-            },
+            })
+            await tx.quote.update({ where: { id: quote.id }, data: { projectId } })
+            return created
           })
-          await tx.quote.update({ where: { id: quote.id }, data: { status: "ACCEPTED", projectId } })
-          return created
-        })
-      },
-      { label: "la commande issue du devis" },
-    )
-    await logAction({ userId, action: "CREATE_CUSTOMER_ORDER", resource: "CUSTOMER_ORDER", resourceId: order.id, payload: { quoteId: quote.id, number: order.number } })
+        },
+        { label: "la commande issue du devis" },
+      )
+    } catch (error) {
+      if (!isUniqueConstraintConflict(error, "quoteId")) throw error
+      const concurrentOrder = await prisma.customerOrder.findFirst({ where: { companyId, quoteId: quote.id }, select: { id: true, number: true } })
+      if (!concurrentOrder) throw error
+      return { success: true as const, id: concurrentOrder.id, number: concurrentOrder.number, existing: true as const }
+    }
+    await logAction({
+      userId,
+      action: "CREATE_CUSTOMER_ORDER",
+      resource: "CUSTOMER_ORDER",
+      resourceId: order.id,
+      payload: { quoteId: quote.id, number: order.number, depositRate: data.depositRate, depositCents },
+    })
     revalidateOperations()
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${quote.id}`)

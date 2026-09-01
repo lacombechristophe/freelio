@@ -16,6 +16,10 @@ export function nextDocumentNumber(lastNumber: string | null | undefined, prefix
 }
 
 export function isDocumentNumberConflict(error: unknown) {
+  return isUniqueConstraintConflict(error, "number", true)
+}
+
+export function isUniqueConstraintConflict(error: unknown, field: string, acceptUnknownTarget = false) {
   if (!error || typeof error !== "object") return false
 
   const maybePrismaError = error as {
@@ -26,11 +30,11 @@ export function isDocumentNumberConflict(error: unknown) {
   if (maybePrismaError.code !== "P2002") return false
 
   const target = maybePrismaError.meta?.target
-  if (!target) return true
-  if (Array.isArray(target)) return target.includes("number")
-  if (typeof target === "string") return target.includes("number")
+  if (!target) return acceptUnknownTarget
+  if (Array.isArray(target)) return target.includes(field)
+  if (typeof target === "string") return target.includes(field)
 
-  return true
+  return acceptUnknownTarget
 }
 
 export async function withDocumentNumberRetry<T>(

@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { convertQuoteToInvoice, deleteQuote, updateQuoteStatus } from "@/actions/devis"
-import { convertQuoteToCustomerOrder } from "@/actions/operations"
+import { deleteQuote, updateQuoteStatus } from "@/actions/devis"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { EmptyState } from "@/components/shared/empty-state"
 import { SavedViewBar } from "@/components/shared/saved-view-bar"
@@ -74,22 +73,6 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
     } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
   }
 
-  async function handleConvert(id: string) {
-    try {
-      const inv = await convertQuoteToInvoice(id)
-      toast.success("Facture créée.")
-      router.push(`/dashboard/factures/${inv.id}`)
-    } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
-  }
-
-  async function handleCreateOrder(id: string) {
-    try {
-      const order = await convertQuoteToCustomerOrder(id)
-      toast.success(order.existing ? `Commande ${order.number} déjà créée.` : `Commande ${order.number} créée.`)
-      router.push("/dashboard/operations?tab=orders")
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Erreur.") }
-  }
-
   async function handleDelete(id: string, number: string) {
     if (!(await confirmDialog({
       title: `Supprimer ${number} ?`,
@@ -120,7 +103,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
         <Link href="/dashboard/devis/new" className="sm:ml-auto">
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
-            Nouveau Devis
+            Nouveau devis
           </Button>
         </Link>
       </div>
@@ -228,14 +211,9 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                               </DropdownMenuItem>
                             </>
                           )}
-                          {(quote.status === "SENT" || quote.status === "ACCEPTED") && (
-                            <DropdownMenuItem className="gap-2" onClick={() => handleCreateOrder(quote.id)}>
-                              <ShoppingCart className="h-4 w-4 text-muted-foreground" /> Créer la commande
-                            </DropdownMenuItem>
-                          )}
-                          {(quote.status === "SENT" || quote.status === "ACCEPTED") && (
-                            <DropdownMenuItem className="gap-2" onClick={() => handleConvert(quote.id)}>
-                              <FileText className="h-4 w-4 text-muted-foreground" /> Convertir en facture
+                          {quote.status === "ACCEPTED" && (
+                            <DropdownMenuItem className="gap-2" onClick={() => router.push(`/dashboard/devis/${quote.id}#suite-du-dossier`)}>
+                              <ShoppingCart className="h-4 w-4 text-muted-foreground" /> Préparer le dossier
                             </DropdownMenuItem>
                           )}
                           {quote.status === "DRAFT" && (
