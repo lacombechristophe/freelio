@@ -97,22 +97,28 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) 
   )
 }
 
-function FormControl({ ...props }: React.ComponentProps<"div">) {
+function FormControl({
+  children,
+  ...props
+}: Omit<React.ComponentProps<"div">, "children"> & {
+  children: React.ReactElement<Record<string, unknown>>
+}) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const child = React.Children.only(children)
+  const existingDescription = typeof child.props["aria-describedby"] === "string"
+    ? child.props["aria-describedby"]
+    : ""
+  const describedBy = [existingDescription, formDescriptionId, error ? formMessageId : ""]
+    .filter(Boolean)
+    .join(" ")
 
-  return (
-    <div
-      data-slot="form-control"
-      id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
-      {...props}
-    />
-  )
+  return React.cloneElement(child, {
+    ...props,
+    id: formItemId,
+    "aria-describedby": describedBy,
+    "aria-invalid": Boolean(error),
+    "data-form-control": "",
+  })
 }
 
 function FormDescription({ className, ...props }: React.ComponentProps<"p">) {

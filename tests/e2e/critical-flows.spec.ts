@@ -1387,5 +1387,6 @@ test("creates and signs in a production account with a password", async ({ brows
   await page.getByRole("button", { name: "Créer mon espace" }).click()
   await page.waitForURL(/\/onboarding/)
   await expect(page.getByRole("heading", { name: "Un espace prêt pour vos ventes et vos chantiers." })).toBeVisible()
+  await expect(page.getByLabel("Nom commercial / Raison sociale")).toBeVisible()
   await context.close()
 })
