@@ -22,7 +22,9 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
 | PostgreSQL | 38 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS et intégrité devis/contrat/commande |
-| Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
+| Production Vercel | déploiement `dpl_5tn4W1k21KrU4vWN33hMx8cwWF56` prêt, alias public actif sur `https://freelio-eight.vercel.app`, commit `b10f86a` poussé et identique à l'origine |
+| Smoke HTTP public | `/` et `/auth/login` en 200, `/api/health/live` et `/api/health/ready` en 200 avec base/configuration prêtes, `/dashboard` en 307 vers `/auth/login`, `/v2` en 404 |
+| Recette visuelle publique | landing métier restaurée et formulaire de connexion complet rendus à 1512×982 et 1440×1000 dans Chromium sans régression de structure visible |
 | Connexion production | création d’un compte de recette, onboarding, cockpit, pipeline, propriétés CRM et clients chargés, nouvelle session puis reconnexion par mot de passe ; anonymisation RGPD ciblée réussie et ancien identifiant devenu inutilisable |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
