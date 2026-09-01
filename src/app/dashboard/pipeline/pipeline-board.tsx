@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Euro, Target, UserRound } from "lucide-react"
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Euro, Target, UserRound, Settings2, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OpportunityFormDialog } from "./opportunity-form-dialog"
+import { PipelineSettingsDialog } from "./pipeline-settings-dialog"
 import { deleteOpportunity, updateOpportunity } from "@/actions/pipeline"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import styles from "./pipeline-board.module.css"
@@ -34,8 +36,11 @@ type Opportunity = {
 }
 
 type Pipeline = {
-  id: string | null
+  id: string
+  name: string
+  isDefault: boolean
   stages: Array<{ id: string; title: string }>
+  pipelines: Array<{ id: string; name: string; isDefault: boolean; opportunityCount: number }>
   members: Array<{ id: string; name: string }>
   opportunities: Opportunity[]
 } | null
@@ -47,14 +52,6 @@ function formatEuro(cents: number) {
 function formatShortDate(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00.000Z`))
 }
-
-const DEFAULT_STAGES = [
-  { id: "PROSPECT", title: "Prospect" },
-  { id: "CONTACTED", title: "Contact pris" },
-  { id: "QUALIFIED", title: "Besoin qualifié" },
-  { id: "SENT", title: "Devis envoyé" },
-  { id: "WON", title: "Gagné" },
-]
 
 const SCROLL_EDGE_TOLERANCE = 2
 
@@ -238,13 +235,14 @@ export function PipelineBoard({
   const confirmDialog = useConfirm()
   const stages = Array.isArray(pipeline?.stages)
     ? (pipeline.stages as Array<{ id: string; title: string }>)
-    : DEFAULT_STAGES
+    : []
   const displayStages = stages.some((stage) => stage.id === "LOST") ? stages : [...stages, { id: "LOST", title: "Perdu" }]
   const opportunities = pipeline?.opportunities ?? []
   const members = pipeline?.members ?? []
 
   const [createOpen, setCreateOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<Opportunity | null>(null)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   const {
     viewportRef,
     scrollByViewport,
@@ -289,11 +287,35 @@ export function PipelineBoard({
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-4">
       <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm">
-          <div><span className="text-muted-foreground">Ouvert</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(totalValue)}</span></div>
-          <div><span className="text-muted-foreground">Pondéré</span><span className="ml-2 font-mono font-semibold tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
-          <div><span className="text-muted-foreground">Prévu ce mois</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(currentMonthForecast)}</span></div>
-          <div><span className="text-muted-foreground">Sans responsable</span><span className={`ml-2 font-mono font-semibold tabular-nums ${unassigned ? "text-warning" : ""}`}>{unassigned}</span></div>
+        <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="flex shrink-0 items-center gap-2">
+            <Select value={pipeline?.id} onValueChange={(value) => value && router.replace(`/dashboard/pipeline?pipeline=${encodeURIComponent(value)}`, { scroll: false })}>
+              <SelectTrigger className="w-[230px]" aria-label="Pipeline commercial">
+                <SelectValue placeholder="Choisir un pipeline" />
+              </SelectTrigger>
+              <SelectContent>
+                {(pipeline?.pipelines ?? []).map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    <span className="flex items-center gap-2">
+                      {item.isDefault ? <Star className="size-3 fill-current text-warning" /> : null}
+                      <span>{item.name}</span>
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground">{item.opportunityCount}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="button" variant="outline" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Configurer les pipelines" title="Configurer les pipelines">
+              <Settings2 className="size-4" />
+            </Button>
+          </div>
+          <div className="hidden h-8 w-px bg-border xl:block" />
+          <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm">
+            <div><span className="text-muted-foreground">Ouvert</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(totalValue)}</span></div>
+            <div><span className="text-muted-foreground">Pondéré</span><span className="ml-2 font-mono font-semibold tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
+            <div><span className="text-muted-foreground">Prévu ce mois</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(currentMonthForecast)}</span></div>
+            <div><span className="text-muted-foreground">Sans responsable</span><span className={`ml-2 font-mono font-semibold tabular-nums ${unassigned ? "text-warning" : ""}`}>{unassigned}</span></div>
+          </div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
           <div
@@ -332,6 +354,7 @@ export function PipelineBoard({
       <OpportunityFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        pipelineId={pipeline?.id ?? ""}
         stages={stages}
         clients={clients}
         members={members}
@@ -340,12 +363,20 @@ export function PipelineBoard({
         <OpportunityFormDialog
           open={!!editTarget}
           onOpenChange={(o) => !o && setEditTarget(null)}
+          pipelineId={pipeline?.id ?? ""}
           stages={stages}
           clients={clients}
           members={members}
           opportunity={editTarget}
         />
       )}
+      {pipeline ? (
+        <PipelineSettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          pipeline={pipeline}
+        />
+      ) : null}
 
       <div className="min-h-0 flex-1">
         <div

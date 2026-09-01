@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react"
+import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, MapPin, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
@@ -128,10 +128,11 @@ function filterOperationsByAgency(data: OperationsData, agencyId: string): Opera
   }
 }
 
-export function OperationsCenter({ initialData: sourceData }: { initialData: OperationsData }) {
+export function OperationsCenter({ initialData: serverData }: { initialData: OperationsData }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
+  const [sourceData, setSourceData] = useState(serverData)
   const [createKind, setCreateKind] = useState<CreateKind>("TICKET")
   const [completionId, setCompletionId] = useState<string | null>(null)
   const [completionSignatureData, setCompletionSignatureData] = useState("")
@@ -139,6 +140,7 @@ export function OperationsCenter({ initialData: sourceData }: { initialData: Ope
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
   const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
   const [agencyId, setAgencyId] = useState("ALL")
+  useEffect(() => setSourceData(serverData), [serverData])
   const data = useMemo(() => filterOperationsByAgency(sourceData, agencyId), [sourceData, agencyId])
   const initialData = data
 
@@ -175,7 +177,13 @@ export function OperationsCenter({ initialData: sourceData }: { initialData: Ope
           const result = await createFieldIntervention({ ticketId: optional(form, "ticketId"), projectId: optional(form, "projectId"), siteId: value(form, "siteId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), type: value(form, "type") || "SAV", scheduledStart: isoDate(form, "scheduledStart"), scheduledEnd: isoDate(form, "scheduledEnd") })
           if (!result.success) throw new Error(result.error)
         }
-        else if (createKind === "MAINTENANCE") await createMaintenanceContract({ clientId: value(form, "clientId"), siteId: value(form, "siteId"), label: value(form, "label"), startDate: value(form, "startDate"), endDate: optional(form, "endDate"), frequency: value(form, "frequency") || "ANNUAL", nextVisitAt: optional(form, "nextVisitAt"), priceCents: cents(form, "price"), autoInvoice: form.get("autoInvoice") === "on", tvaRate: Number(value(form, "tvaRate") || "20"), invoiceDueDays: Number(value(form, "invoiceDueDays") || "30"), equipmentIds: optional(form, "equipmentId") ? [value(form, "equipmentId")] : [], notes: optional(form, "notes") })
+        else if (createKind === "MAINTENANCE") {
+          const result = await createMaintenanceContract({ clientId: value(form, "clientId"), siteId: value(form, "siteId"), label: value(form, "label"), startDate: value(form, "startDate"), endDate: optional(form, "endDate"), frequency: value(form, "frequency") || "ANNUAL", nextVisitAt: optional(form, "nextVisitAt"), priceCents: cents(form, "price"), autoInvoice: form.get("autoInvoice") === "on", tvaRate: Number(value(form, "tvaRate") || "20"), invoiceDueDays: Number(value(form, "invoiceDueDays") || "30"), equipmentIds: optional(form, "equipmentId") ? [value(form, "equipmentId")] : [], notes: optional(form, "notes") })
+          setSourceData((current) => ({
+            ...current,
+            contracts: [result.contract, ...current.contracts.filter((item) => item.id !== result.contract.id)],
+          }))
+        }
         else if (createKind === "STOCK") await createStockMovement({ warehouseId: value(form, "warehouseId"), productId: value(form, "productId"), projectId: optional(form, "projectId"), type: value(form, "type"), quantity: Number(value(form, "quantity")), unitCostCents: cents(form, "unitCost"), reference: optional(form, "reference"), notes: optional(form, "notes") })
         else if (createKind === "TRANSFER") await createStockTransfer({ fromWarehouseId: value(form, "fromWarehouseId"), toWarehouseId: value(form, "toWarehouseId"), productId: value(form, "productId"), quantity: Number(value(form, "quantity")), reference: optional(form, "reference"), notes: optional(form, "notes") })
         else if (createKind === "CUSTOMER_ORDER") await createCustomerOrder({ clientId: value(form, "clientId"), projectId: optional(form, "projectId"), expectedInstallationAt: isoDate(form, "expectedInstallationAt"), notes: optional(form, "notes"), productId: optional(form, "productId"), label: value(form, "label"), quantity: Number(value(form, "quantity")), unitPriceCents: cents(form, "unitPrice"), tvaRate: Number(value(form, "tvaRate") || "20"), depositCents: cents(form, "deposit") })

@@ -4,7 +4,7 @@ import { ClientsTable } from "./clients-table"
 import { PageHeader } from "@/components/shared/page-header"
 
 export default async function ClientsPage() {
-  const [clients, views] = await Promise.all([getClients(), getSavedViews("CLIENTS")])
+  const [directory, views] = await Promise.all([getClients(undefined, 100), getSavedViews("CLIENTS")])
 
   return (
     <div className="space-y-7">
@@ -13,7 +13,7 @@ export default async function ClientsPage() {
         title="Clients"
         description="Centralisez les contacts, le chiffre d’affaires, les impayés et l’historique de chaque relation."
       />
-      <ClientsTable clients={clients ?? []} savedViews={views ?? []} />
+      <ClientsTable clients={directory?.clients ?? []} propertyDefinitions={directory?.propertyDefinitions ?? []} savedViews={views ?? []} />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
 import { decrypt, encrypt } from "@/lib/crypto"
+import { DEFAULT_PIPELINE_STAGES } from "@/lib/pipeline-rules"
 import {
   discoverHubSpot,
   downloadHubSpotExport,
@@ -531,21 +532,13 @@ function migrationCollisionNumber(base: string, provider: string, objectType: st
 }
 
 async function ensureMigrationPipeline(companyId: string) {
-  return prisma.pipeline.upsert({
+  const existing = await prisma.pipeline.findFirst({
     where: { companyId },
-    update: {},
-    create: {
-      companyId,
-      name: "Pipeline commercial",
-      stages: [
-        { id: "PROSPECT", title: "Prospect" },
-        { id: "CONTACTED", title: "Contact pris" },
-        { id: "QUALIFIED", title: "Besoin qualifié" },
-        { id: "SENT", title: "Devis envoyé" },
-        { id: "WON", title: "Gagné" },
-        { id: "LOST", title: "Perdu" },
-      ],
-    },
+    orderBy: [{ isDefault: "desc" }, { position: "asc" }, { createdAt: "asc" }],
+  })
+  if (existing) return existing
+  return prisma.pipeline.create({
+    data: { companyId, name: "Pipeline commercial", stages: DEFAULT_PIPELINE_STAGES, isDefault: true },
   })
 }
 

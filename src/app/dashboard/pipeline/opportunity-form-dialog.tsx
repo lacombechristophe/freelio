@@ -28,6 +28,7 @@ type Opportunity = {
 
 export function OpportunityFormDialog({
   opportunity,
+  pipelineId,
   stages,
   clients,
   members,
@@ -35,6 +36,7 @@ export function OpportunityFormDialog({
   onOpenChange,
 }: {
   opportunity?: Opportunity
+  pipelineId: string
   stages: Array<{ id: string; title: string }>
   clients: Array<{ id: string; name: string }>
   members: Array<{ id: string; name: string }>
@@ -74,6 +76,7 @@ export function OpportunityFormDialog({
     setPending(true)
     try {
       const payload = {
+        pipelineId,
         title: form.title,
         clientId: form.clientId,
         status: form.status,

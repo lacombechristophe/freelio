@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 import { ArrowLeft, Building2, Inbox, Mail, Phone, Send, ShieldCheck, UserRoundSearch } from "lucide-react"
 
 import { getContactDetail } from "@/actions/contacts"
+import { getRecordCrmProperties } from "@/actions/crm-properties"
+import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +12,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 function formatDate(value: string) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) }
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const contact = await getContactDetail((await params).id)
+  const { id } = await params
+  const [contact, crmProperties] = await Promise.all([
+    getContactDetail(id),
+    getRecordCrmProperties("CONTACT", id),
+  ])
   if (!contact) notFound()
   const sent = contact.sequenceEnrollments.flatMap((item) => item.deliveries).filter((item) => item.status !== "SCHEDULED").length
   const activeSequences = contact.sequenceEnrollments.filter((item) => item.status === "ACTIVE").length
@@ -20,6 +26,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"><div className="flex items-start gap-3"><Button nativeButton={false} variant="ghost" size="icon" render={<Link href="/dashboard/contacts" />} aria-label="Retour aux contacts"><ArrowLeft /></Button><div><div className="flex flex-wrap items-center gap-2"><h1>{contact.firstName} {contact.lastName}</h1>{contact.isPrimary && <Badge variant="secondary">Contact principal</Badge>}{contact.lifecycleStage && <Badge variant="outline">{contact.lifecycleStage}</Badge>}</div><p className="mt-2 text-sm text-muted-foreground">{contact.role || "Fonction non renseignée"} · <Link href={`/dashboard/clients/${contact.client.id}`} className="font-medium text-foreground hover:text-primary hover:underline">{contact.client.name}</Link></p></div></div><div className="flex flex-wrap gap-2">{contact.phone && <Button nativeButton={false} variant="outline" render={<a href={`tel:${contact.phone}`} />}><Phone />Appeler</Button>}{contact.email && <Button nativeButton={false} render={<a href={`mailto:${contact.email}`} />}><Mail />Écrire</Button>}</div></header>
 
     <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4"><Metric label="Conversations" value={contact.emailThreads.length} detail="Fils rattachés" /><Metric label="E-mails envoyés" value={sent} detail="Via les séquences" /><Metric label="Séquences actives" value={activeSequences} detail="Suivis en cours" /><Metric label="Accès portail" value={contact.portalAccesses.length} detail="Liens actifs" /></section>
+
+    {crmProperties ? <RecordPropertiesPanel objectType="CONTACT" recordId={contact.id} data={crmProperties} /> : null}
 
     <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
       <div className="space-y-6">

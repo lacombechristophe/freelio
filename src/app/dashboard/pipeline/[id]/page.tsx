@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 
 import { getOpportunityDetail } from "@/actions/pipeline";
+import { getRecordCrmProperties } from "@/actions/crm-properties";
+import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,7 +57,11 @@ export default async function OpportunityDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const opportunity = await getOpportunityDetail((await params).id);
+  const { id } = await params;
+  const [opportunity, crmProperties] = await Promise.all([
+    getOpportunityDetail(id),
+    getRecordCrmProperties("OPPORTUNITY", id),
+  ]);
   if (!opportunity) notFound();
   const latestVersion = (quote: (typeof opportunity.client.quotes)[number]) =>
     quote.versions[0];
@@ -153,6 +159,10 @@ export default async function OpportunityDetailPage({
           detail="Propriétaire commercial"
         />
       </section>
+
+      {crmProperties ? (
+        <RecordPropertiesPanel objectType="OPPORTUNITY" recordId={opportunity.id} data={crmProperties} />
+      ) : null}
 
       {opportunity.status === "LOST" && opportunity.lostReason ? (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">

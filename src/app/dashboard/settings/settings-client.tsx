@@ -4,7 +4,7 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  BellRing, Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck, Mail, HardDrive
+  BellRing, Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck, Mail, HardDrive, Braces
 } from "lucide-react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -272,6 +272,12 @@ export function SettingsClient({ company, user }: { company: Company; user: User
       </TabsList>
 
       <TabsContent value="enterprise" className="space-y-4">
+        <Card className="border-primary/20 bg-primary/[0.03]">
+          <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Braces className="size-4" /></span><div><p className="text-sm font-semibold">Propriétés CRM personnalisées</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Ajoutez des champs métier typés et historisés aux clients, contacts, ventes, chantiers, tickets et équipements.</p></div></div>
+            <Link href="/dashboard/settings/properties" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0")}>Configurer</Link>
+          </CardContent>
+        </Card>
         <Card className="border-primary/20 bg-primary/[0.03]">
           <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><MapPinned className="size-4" /></span><div><p className="text-sm font-semibold">Agences, équipes et dépôts</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Organisez plusieurs magasins, secteurs de pose ou équipes SAV sous la même entreprise légale.</p></div></div>
