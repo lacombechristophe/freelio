@@ -11,7 +11,16 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { QuoteStatusActions } from "../quote-status-actions"
+import { QuoteFulfillmentCard } from "../quote-fulfillment-card"
 import { decryptSensitive } from "@/lib/crypto"
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Brouillon",
+  SENT: "Envoyé",
+  ACCEPTED: "Accepté",
+  REJECTED: "Refusé",
+  EXPIRED: "Expiré",
+}
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -81,7 +90,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <h1 className="break-all text-2xl font-bold tracking-tight font-mono">{quote.number}</h1>
-            <Badge variant="secondary">{quote.status}</Badge>
+            <Badge variant="secondary">{STATUS_LABELS[quote.status] ?? quote.status}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
             {quote.object} —{" "}
@@ -109,7 +118,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               </Button>
             </Link>
           )}
-          <QuoteStatusActions quoteId={quote.id} status={quote.status} />
+          <QuoteStatusActions quoteId={quote.id} status={quote.status} hasOrder={Boolean(quote.customerOrder)} hasContract={Boolean(quote.generatedContract)} />
         </div>
       </div>
 
@@ -127,6 +136,13 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           <CardContent><p className="text-2xl font-bold">{latest ? formatEuro(latest.totalTtcCents) : "—"}</p></CardContent>
         </Card>
       </div>
+
+      <QuoteFulfillmentCard
+        accepted={quote.status === "ACCEPTED"}
+        order={quote.customerOrder}
+        project={quote.project}
+        contract={quote.generatedContract}
+      />
 
       {pdfDocument && (
         <DocumentStudio
@@ -177,6 +193,8 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
       <div className="text-xs text-muted-foreground flex gap-4">
         <span>Créé le {formatDate(quote.createdAt)}</span>
+        {quote.sentAt ? <span>Envoyé le {formatDate(quote.sentAt)}</span> : null}
+        {quote.acceptedAt ? <span>Accepté le {formatDate(quote.acceptedAt)}</span> : null}
         {quote.validUntil && <span>Valide jusqu'au {formatDate(quote.validUntil)}</span>}
       </div>
     </div>

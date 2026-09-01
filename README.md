@@ -70,6 +70,7 @@ Ne jamais committer `.env`, `.env.local`, une clé HubSpot/Extrabat, une sauvega
 | `npm start` | serveur de production après build |
 | `npm run worker` | worker BullMQ de génération de devis/factures |
 | `npm run db:generate` | synchronise les deux schémas et génère les clients Prisma |
+| `npm run db:prepare:dev` | initialise une nouvelle base SQLite ou synchronise une base locale existante ; contrôle seulement les migrations si l’URL cible PostgreSQL |
 | `npm run db:status:postgres` | affiche l'état des migrations PostgreSQL |
 | `npm run db:deploy:postgres` | applique les migrations PostgreSQL déjà versionnées |
 | `npm run db:backfill-memberships` | crée les memberships à partir des anciens rattachements utilisateur/société |

@@ -12,6 +12,22 @@ const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
 
 async function main() {
   const passwordHash = await hashPassword(password)
+  const existingCompany = await prisma.company.findUnique({ where: { id: "e2e-company" }, select: { id: true } })
+  if (existingCompany) {
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { companyId: existingCompany.id, name: "Utilisateur QA", emailVerified: new Date(), passwordHash },
+      create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: existingCompany.id, passwordHash },
+    })
+    await prisma.membership.upsert({
+      where: { companyId_userId: { companyId: existingCompany.id, userId: user.id } },
+      update: { role: "OWNER", status: "ACTIVE" },
+      create: { companyId: existingCompany.id, userId: user.id, role: "OWNER", status: "ACTIVE" },
+    })
+    console.log(JSON.stringify({ companyId: existingCompany.id, userId: user.id, email, reused: true }))
+    return
+  }
+
   const company = await prisma.company.create({
     data: {
       id: "e2e-company",

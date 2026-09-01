@@ -1,6 +1,6 @@
 "use server"
 
-import type { z } from "zod"
+import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { runAutomationEvent } from "@/lib/automations/engine"
@@ -9,11 +9,14 @@ import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
 import { calculateConfiguredProductPrice, resolveProductOptionSelection } from "@/lib/product-pricing"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
-import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { boundedPageSize } from "@/lib/pagination"
+import { CONTRACT_TEMPLATE_PRESETS } from "@/lib/contracts/templates"
+import { assertQuoteStatusTransition, quoteStatusDates, type QuoteStatus } from "@/lib/quotes/workflow"
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
+const quoteIdSchema = z.string().cuid()
 
 type QuoteFinancialLine = {
   quantity: number
@@ -64,7 +67,17 @@ export async function getQuoteById(id: string) {
       include: {
         client: true,
         company: true,
-        project: true,
+        project: {
+          include: {
+            purchaseOrders: { select: { id: true, number: true, status: true } },
+          },
+        },
+        customerOrder: {
+          include: {
+            invoices: { select: { id: true, number: true, status: true, type: true } },
+          },
+        },
+        generatedContract: { select: { id: true, number: true, status: true } },
         versions: {
           orderBy: { version: "desc" },
           include: {
@@ -82,16 +95,6 @@ export async function getQuoteById(id: string) {
 async function generateQuoteNumber(companyId: string, customPrefix?: string) {
   const prefix = buildYearlyDocumentPrefix(customPrefix, "DEV-")
   const last = await prisma.quote.findFirst({
-    where: { companyId, number: { startsWith: prefix } },
-    orderBy: { number: "desc" },
-    select: { number: true },
-  })
-  return nextDocumentNumber(last?.number, prefix)
-}
-
-async function generateInvoiceNumber(companyId: string, customPrefix?: string) {
-  const prefix = buildYearlyDocumentPrefix(customPrefix, "FACT-")
-  const last = await prisma.invoice.findFirst({
     where: { companyId, number: { startsWith: prefix } },
     orderBy: { number: "desc" },
     select: { number: true },
@@ -139,31 +142,17 @@ function buildContractContentFromQuote(
     })
     .join("")
 
-  return [
-    "<h1>{{contract.title}}</h1>",
-    "<p><strong>Entre les soussignes :</strong></p>",
-    '<p>{{entreprise.name}}, immatriculee sous le SIRET {{entreprise.siret}}, ci-apres "le Prestataire",</p>',
-    '<p>Et {{client.name}}, ci-apres "le Client".</p>',
-    "<h2>1. Objet</h2>",
-    `<p>Le present contrat encadre la mission de prestation relative a : <strong>${escapeContractHtml(quote.object)}</strong>, issue du devis ${escapeContractHtml(quote.number)}.</p>`,
-    "<h2>2. Perimetre et livrables</h2>",
+  const template = CONTRACT_TEMPLATE_PRESETS.find((preset) => preset.id === "vertical-fourniture-pose")
+  if (!template) throw new Error("Le modèle métier de fourniture et pose est indisponible")
+
+  const quoteAppendix = [
+    "<h2>Annexe — périmètre accepté</h2>",
+    `<p>Objet : <strong>${escapeContractHtml(quote.object)}</strong>. Devis de référence : <strong>${escapeContractHtml(quote.number)}</strong>.</p>`,
     `<ul>${scope}</ul>`,
-    "<p>Toute demande non prevue dans ce perimetre fait l'objet d'une validation ecrite et d'une estimation complementaire avant execution.</p>",
-    "<h2>3. Prix et facturation</h2>",
-    `<p>Le montant total de reference issu du devis est de <strong>${formatEuro(totalTtcCents)}</strong>. Les modalites de paiement, acomptes et echeances sont celles convenues au devis ou par ecrit entre les Parties.</p>`,
-    "<h2>4. Collaboration et acces</h2>",
-    "<p>Le Client fournit les contenus, acces, identifiants, decisions et validations necessaires dans des delais compatibles avec le planning. Les retards imputables au Client decalent les echeances a due concurrence.</p>",
-    "<h2>5. Recette et validation</h2>",
-    "<p>Les livrables sont soumis a validation. A defaut de retour motive dans un delai de sept jours ouvrables apres mise a disposition, ils sont reputes acceptes.</p>",
-    "<h2>6. Propriete intellectuelle</h2>",
-    "<p>Sous reserve du paiement integral des sommes dues, les droits d'exploitation sur les livrables specifiquement crees pour le Client sont cedes dans la limite des usages convenus. Les methodes, outils, composants generiques et savoir-faire preexistants du Prestataire restent sa propriete.</p>",
-    "<h2>7. Confidentialite</h2>",
-    "<p>Chaque Partie conserve confidentielles les informations non publiques recues de l'autre Partie et ne les utilise que pour l'execution de la mission.</p>",
-    "<h2>8. Responsabilite</h2>",
-    "<p>La responsabilite du Prestataire est limitee aux dommages directs, certains et prouves, a l'exclusion des pertes d'exploitation, pertes de donnees indirectes ou prejudice commercial indirect.</p>",
-    "<h2>9. Signature electronique</h2>",
-    "<p>Les Parties reconnaissent que la signature electronique du present contrat produit les memes effets qu'une signature manuscrite, sous reserve de l'identification du signataire et de la conservation de la preuve de signature.</p>",
+    `<p>Montant total de référence : <strong>${formatEuro(totalTtcCents)}</strong>. Toute fourniture ou intervention hors de ce périmètre nécessite un avenant ou un devis complémentaire accepté.</p>`,
   ].join("")
+
+  return template.content.replace("<h2>Signature électronique</h2>", `${quoteAppendix}<h2>Signature électronique</h2>`)
 }
 
 async function resolveCatalogQuoteLines(companyId: string, inputLines: ValidatedQuoteLine[]) {
@@ -406,147 +395,71 @@ export async function updateQuote(id: string, data: QuoteInput) {
   }, "sales.write")
 }
 
-export async function updateQuoteStatus(quoteId: string, status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED") {
+export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteStatus) {
   return await withAuth(async ({ userId, companyId }) => {
+    const parsedQuoteId = quoteIdSchema.parse(quoteId)
     const existing = await prisma.quote.findFirst({
-      where: { id: quoteId, companyId },
+      where: { id: parsedQuoteId, companyId },
       include: { client: { select: { leadCaptures: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true } } } } },
     })
     if (!existing) throw new Error("Devis introuvable")
 
-    const quote = await prisma.quote.update({
-      where: { id: quoteId },
-      data: { status },
+    const transition = assertQuoteStatusTransition(existing.status, requestedStatus)
+    if (!transition.changed) return existing
+
+    const claimed = await prisma.quote.updateMany({
+      where: { id: parsedQuoteId, companyId, status: transition.current, updatedAt: existing.updatedAt },
+      data: { status: transition.next, ...quoteStatusDates(transition.next) },
     })
+    if (claimed.count !== 1) throw new Error("Le devis a changé. Rechargez-le avant de modifier son statut.")
+    const quote = await prisma.quote.findUniqueOrThrow({ where: { id: parsedQuoteId } })
     await logAction({
       userId,
       action: "UPDATE_QUOTE_STATUS",
       resource: "QUOTE",
-      resourceId: quoteId,
-      payload: { status },
+      resourceId: parsedQuoteId,
+      payload: { previousStatus: transition.current, status: transition.next },
     })
     await runAutomationEvent({
       companyId,
       event: "QUOTE_STATUS_CHANGED",
-      eventKey: `${quote.id}:status:${status}`,
+      eventKey: `${quote.id}:status:${transition.next}`,
       subjectModel: "Quote",
       subjectId: quote.id,
       leadId: existing.client.leadCaptures[0]?.id,
     }).catch((error) => console.error("Quote automation failed", error))
     revalidatePath("/dashboard/devis")
-    revalidatePath(`/dashboard/devis/${quoteId}`)
+    revalidatePath(`/dashboard/devis/${parsedQuoteId}`)
     return quote
-  })
+  }, "sales.write")
 }
 
 export async function deleteQuote(id: string) {
   return await withAuth(async ({ companyId, userId }) => {
-    const existing = await prisma.quote.findFirst({ where: { id, companyId } })
+    const parsedId = quoteIdSchema.parse(id)
+    const existing = await prisma.quote.findFirst({ where: { id: parsedId, companyId } })
     if (!existing) throw new Error("Devis introuvable")
     if (existing.status !== "DRAFT") throw new Error("Seuls les brouillons peuvent être supprimés.")
-    await prisma.quote.delete({ where: { id } })
+    await prisma.quote.delete({ where: { id: parsedId } })
     await logAction({
       userId,
       action: "DELETE_QUOTE",
       resource: "QUOTE",
-      resourceId: id,
+      resourceId: parsedId,
       payload: { number: existing.number },
     })
     revalidatePath("/dashboard/devis")
     return { ok: true }
-  })
-}
-
-export async function convertQuoteToInvoice(quoteId: string) {
-  return await withAuth(async ({ companyId, userId }) => {
-    const quote = await prisma.quote.findFirst({
-      where: { id: quoteId, companyId },
-      include: {
-        versions: {
-          orderBy: { version: "desc" },
-          take: 1,
-          include: { sections: { include: { lines: true } } },
-        },
-      },
-    })
-    if (!quote) throw new Error("Devis introuvable")
-    const latest = quote.versions[0]
-    if (!latest) throw new Error("Aucune version disponible")
-
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { isTvaApplicable: true, invoicePrefix: true },
-    })
-    if (!company) throw new Error("Entreprise introuvable")
-
-    let allLines = latest.sections.flatMap((s) => s.lines)
-    if (!company.isTvaApplicable) {
-      allLines = allLines.map((l) => ({ ...l, tvaRate: 0 }))
-    }
-
-    const dueDate = new Date()
-    dueDate.setDate(dueDate.getDate() + 30)
-
-    const totals = company.isTvaApplicable
-      ? { totalHtCents: latest.totalHtCents, totalTvaCents: latest.totalTvaCents, totalTtcCents: latest.totalTtcCents }
-      : calculateQuoteTotals(allLines)
-
-    const invoice = await withDocumentNumberRetry(
-      async () => {
-        const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
-        return await prisma.invoice.create({
-          data: {
-            companyId,
-            clientId: quote.clientId,
-            projectId: quote.projectId,
-            number,
-            object: quote.object,
-            status: "DRAFT",
-            type: "STANDARD",
-            dueDate,
-            totalHtCents: totals.totalHtCents,
-            totalTvaCents: totals.totalTvaCents,
-            totalTtcCents: totals.totalTtcCents,
-            lines: {
-              create: allLines.map((l, i) => ({
-                label: l.label,
-                description: l.description,
-                quantity: l.quantity,
-                unitPriceCents: l.unitPriceCents,
-                tvaRate: l.tvaRate,
-                order: i,
-              })),
-            },
-          },
-        })
-      },
-      { label: "la facture issue du devis" },
-    )
-
-    await prisma.quote.update({
-      where: { id: quoteId },
-      data: { status: "ACCEPTED" },
-    })
-
-    await logAction({
-      userId,
-      action: "CREATE_INVOICE",
-      resource: "INVOICE",
-      resourceId: invoice.id,
-      payload: { fromQuote: quoteId },
-    })
-
-    revalidatePath("/dashboard/devis")
-    revalidatePath("/dashboard/factures")
-    return invoice
-  })
+  }, "sales.write")
 }
 
 export async function createContractFromQuote(quoteId: string) {
   return await withAuth(async ({ companyId, userId }) => {
+    const parsedQuoteId = quoteIdSchema.parse(quoteId)
     const quote = await prisma.quote.findFirst({
-      where: { id: quoteId, companyId },
+      where: { id: parsedQuoteId, companyId },
       include: {
+        generatedContract: true,
         versions: {
           orderBy: { version: "desc" },
           take: 1,
@@ -560,45 +473,58 @@ export async function createContractFromQuote(quoteId: string) {
       },
     })
     if (!quote) throw new Error("Devis introuvable")
+    if (quote.generatedContract) return quote.generatedContract
+    if (quote.status !== "ACCEPTED") throw new Error("Le devis doit être accepté avant de préparer le contrat")
 
     const latest = quote.versions[0]
     if (!latest) throw new Error("Aucune version disponible")
     const lines = latest.sections.flatMap((section) => section.lines)
     if (!lines.length) throw new Error("Le devis ne contient aucune ligne.")
 
-    const contract = await withDocumentNumberRetry(
-      async () => {
-        const number = await generateContractNumber(companyId)
-        const title = `Contrat de prestation - ${quote.object}`
+    let contract
+    try {
+      contract = await withDocumentNumberRetry(
+        async () => {
+          const number = await generateContractNumber(companyId)
+          const title = `Contrat de fourniture et pose — ${quote.object}`
 
-        const created = await prisma.contract.create({
-          data: {
-            companyId,
-            clientId: quote.clientId,
-            number,
-            title,
-            status: "DRAFT",
-            content: buildContractContentFromQuote(quote, lines, latest.totalTtcCents),
-            validFrom: new Date(),
-            validUntil: quote.validUntil,
-          },
-        })
+          const created = await prisma.contract.upsert({
+            where: { sourceQuoteId: quote.id },
+            update: {},
+            create: {
+              companyId,
+              clientId: quote.clientId,
+              sourceQuoteId: quote.id,
+              number,
+              title,
+              status: "DRAFT",
+              content: buildContractContentFromQuote(quote, lines, latest.totalTtcCents),
+              validFrom: new Date(),
+              validUntil: quote.validUntil,
+            },
+          })
 
-        await logAction({
-          userId,
-          action: "CREATE_CONTRACT",
-          resource: "CONTRACT",
-          resourceId: created.id,
-          payload: { fromQuote: quoteId, number },
-        })
+          await logAction({
+            userId,
+            action: "CREATE_CONTRACT",
+            resource: "CONTRACT",
+            resourceId: created.id,
+            payload: { fromQuote: parsedQuoteId, number },
+          })
 
-        return created
-      },
-      { label: "le contrat issu du devis" },
-    )
+          return created
+        },
+        { label: "le contrat issu du devis" },
+      )
+    } catch (error) {
+      if (!isUniqueConstraintConflict(error, "sourceQuoteId")) throw error
+      const concurrentContract = await prisma.contract.findFirst({ where: { companyId, sourceQuoteId: quote.id } })
+      if (!concurrentContract) throw error
+      return concurrentContract
+    }
 
     revalidatePath("/dashboard/devis")
     revalidatePath("/dashboard/contrats")
     return contract
-  })
+  }, "sales.write")
 }

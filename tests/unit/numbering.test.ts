@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import prisma from "@/lib/prisma"
-import { nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 
 describe("Document numbering", () => {
   const companyId = "test-company-id"
@@ -41,6 +41,12 @@ describe("Document numbering", () => {
     expect(nextDocumentNumber(null, prefix)).toBe("FACT-2026-001")
     expect(nextDocumentNumber("FACT-2026-009", prefix)).toBe("FACT-2026-010")
     expect(nextDocumentNumber("FACT-2026-099", prefix)).toBe("FACT-2026-100")
+  })
+
+  it("distinguishes the business idempotency key from a document number collision", () => {
+    const quoteConflict = { code: "P2002", meta: { target: ["quoteId"] } }
+    expect(isUniqueConstraintConflict(quoteConflict, "quoteId")).toBe(true)
+    expect(isUniqueConstraintConflict(quoteConflict, "number")).toBe(false)
   })
 
   it("retries after a unique document number collision", async () => {
