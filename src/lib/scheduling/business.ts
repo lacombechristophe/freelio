@@ -7,6 +7,7 @@ import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry 
 import prisma from "@/lib/prisma"
 import { getNextRecurringDate } from "@/lib/workflow-rules"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { processDueInvoiceReminders } from "@/lib/finance/invoice-reminder-sender"
 
 const storedTemplateSchema = z.object({
   object: z.string().min(3),
@@ -152,12 +153,13 @@ export async function processDueMaintenanceVisits(input: { companyId?: string; u
 }
 
 export async function processScheduledBusinessJobs() {
-  const [recurringInvoices, maintenanceVisits, deletedBillingWebhookEvents] = await Promise.all([
+  const [recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents] = await Promise.all([
     processDueRecurringInvoices(),
     processDueMaintenanceVisits(),
+    processDueInvoiceReminders(),
     prisma.billingWebhookEvent.deleteMany({
       where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
     }),
   ])
-  return { recurringInvoices, maintenanceVisits, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
+  return { recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
 }

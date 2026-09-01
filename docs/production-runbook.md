@@ -163,7 +163,7 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker peut traiter les séquences e-mail et synchroniser les boîtes OAuth toutes les cinq minutes. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Les traitements `GET /api/automations/process` (toutes les cinq minutes recommandé), `GET /api/communications/sync/process` (toutes les cinq minutes recommandé) et `GET /api/scheduling/process` (horaire recommandé) doivent être confiés à Vercel Pro, au worker ou à un ordonnanceur externe approuvé. Les variantes `POST` restent disponibles avec le même contrôle Bearer. Ne pas ouvrir les séquences ni annoncer la synchronisation continue tant que ces mécanismes ne sont pas observés et alertés.
+Le worker peut traiter les séquences e-mail et synchroniser les boîtes OAuth toutes les cinq minutes. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Les traitements `GET /api/automations/process` (toutes les cinq minutes recommandé), `GET /api/communications/sync/process` (toutes les cinq minutes recommandé) et `GET /api/scheduling/process` (horaire recommandé pour visites, factures récurrentes et relances) doivent être confiés à Vercel Pro, au worker ou à un ordonnanceur externe approuvé. Les variantes `POST` restent disponibles avec le même contrôle Bearer. Ne pas activer les séquences ou les relances automatiques, ni annoncer la synchronisation continue, tant que ces mécanismes ne sont pas observés et alertés.
 
 Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive. La route de restauration web est désactivée par défaut en production ; `ENABLE_IN_APP_RESTORE=true` ne doit être utilisé que dans un environnement isolé, sans envoi d’e-mails ni trafic public, et reste limité à 4 Mo. Les archives plus grandes suivent exclusivement la recette de restauration ci-dessous.
 
@@ -251,7 +251,7 @@ Le code journalise côté serveur, mais n'intègre pas à lui seul une plateform
 - échecs Resend et taux de livraison des liens magiques ;
 - volume de leads accepté et chute anormale de capture ;
 - lots de migration en `FAILED`, `PARTIAL` ou `VERIFICATION_FAILED` ;
-- échéances récurrentes en retard, erreurs du planificateur et absence de passage du worker/cron ;
+- échéances récurrentes en retard, relances au statut `FAILED` ou `SENDING` anormalement ancien, erreurs du planificateur et absence de passage du worker/cron ;
 - espace et coûts anormaux ;
 - erreurs CSP et tentatives répétées sur les liens publics.
 
@@ -297,7 +297,7 @@ Niveaux conseillés :
 - redémarrer un seul worker, observer les doublons et les jobs échoués ;
 - le même processus exécute le worker documentaire et le processeur des séquences e-mail ; après reprise, contrôler les échéances en attente et les envois idempotents ;
 - la route `POST /api/automations/process` protégée par `AUTOMATION_CRON_SECRET` permet un déclenchement de secours par un ordonnanceur approuvé.
-- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites et factures récurrentes ; son rejeu doit rester idempotent.
+- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites, factures récurrentes et relances ; son rejeu doit rester idempotent et ne doit jamais envoyer plusieurs paliers de rattrapage à la même facture dans un passage.
 
 ### Capture de leads interrompue
 

@@ -1,6 +1,6 @@
 # Rapport de vérification du candidat CRM/ERP
 
-Date : 31 août 2026
+Date : 1er septembre 2026
 Branche : `codex/diskoov-crm-replacement`
 Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
@@ -15,13 +15,13 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 48 fichiers, 190 tests réussis |
-| `npm run build` | build Next.js 16.3.3 de production réussi, 69 sorties statiques générées et routes dynamiques compilées |
+| `npm run test:unit` | 56 fichiers, 215 tests réussis |
+| `npm run build` | build Next.js 16.3.3 de production réussi, 72 routes compilées |
 | `npm audit --audit-level=moderate` | 0 vulnérabilité déclarée |
 | Playwright, build production et base isolée | 23 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (36 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 34 migrations versionnées, dont réparation historique idempotente, campagnes marketing, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
+| PostgreSQL | 35 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
 | Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
 | Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
@@ -38,6 +38,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - facturation récurrente, banque, organisation, migration, clients, projets et relevé technique ;
 - devis et aperçu PDF ;
 - création de modèle e-mail, séquence, étape et règle événementielle ;
+- campagne rattachée à un segment et une séquence puis activation de l’audience avec inscription consentie et sans doublon ;
 - studio d’automatisation maître-détail avec vue d’ensemble, audience consentie, modèles, séquences, workflows et journal filtrable ;
 - cadence de séquence avec jours ouvrés, fenêtre horaire, fuseau et métriques de livraison/ouverture/clic/erreur par étape ;
 - étape d’appel issue d’une séquence, tâche créée dans Organisation, pause de l’inscription, réalisation puis reprise/fin automatique vérifiées en navigateur ;
@@ -49,6 +50,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - génération du lien de désinscription, retrait public et relecture idempotente ;
 - arrêt de l’inscription et passage du contact en opposition ;
 - devis vers commande, facture de solde, réservation puis consommation du stock ;
+- configuration des paliers de relance de facture, envoi réel via la boîte active et double journal facture/Communications couverts par code et tests ;
 - opportunité attribuée, forecast pondéré, clôture prévue et perte avec motif obligatoire ;
 - fiche opportunité reliée au client, devis, chantiers, interlocuteurs et chronologie ; ajout d'activité répliqué dans l'historique client ;
 - gamme configurable, option obligatoire, supplément vente/coût, nomenclature, remise et devis recalculé côté serveur ;
@@ -83,6 +85,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - désinscription marketing idempotente et prioritaire sur les séquences ;
 - contenu e-mail assaini, variables échappées, `List-Unsubscribe` one-click et clé d’idempotence Resend ;
 - verrou d’envoi persistant avec reprise après expiration ;
+- un seul palier de relance automatique par facture et passage, sélection du palier pertinent en activation tardive, rotation entre sociétés et temporisation des échecs ;
 - règles CRM idempotentes par clé d’événement ;
 - arrêt des séquences sur réponse entrante et déclencheurs e-mail/portail/intervention ;
 - mot de passe scrypt salé, récupération à jeton hashé/expirable, MFA TOTP avec codes de secours hashés, révocation versionnée de tous les JWT et compte créé sans identité d’entreprise codée en dur ;

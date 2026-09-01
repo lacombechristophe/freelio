@@ -44,6 +44,8 @@ export default async function SettingsPage() {
           serviceFirstResponseHours: true,
           serviceResolutionHours: true,
           lastBackupAt: true,
+          relanceConfig: { select: { enabled: true, steps: true } },
+          _count: { select: { communicationChannels: { where: { status: "ACTIVE" } } } },
         },
       },
       _count: { select: { mfaRecoveryCodes: { where: { usedAt: null } } } },
@@ -62,7 +64,7 @@ export default async function SettingsPage() {
         recoveryCodesRemaining: user._count.mfaRecoveryCodes,
         integrations: {
           gemini: Boolean(process.env.GEMINI_API_KEY?.trim()),
-          email: Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_WEBHOOK_SECRET?.trim()),
+          email: user.company._count.communicationChannels > 0 || Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_WEBHOOK_SECRET?.trim()),
           storage: Boolean(
             process.env.R2_ACCOUNT_ID?.trim()
             && process.env.R2_BUCKET_NAME?.trim()

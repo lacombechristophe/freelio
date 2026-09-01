@@ -12,8 +12,8 @@ import {
 import {
   createCreditNote,
   deleteInvoice,
-  markInvoiceReminderSent,
   prepareInvoiceReminder,
+  sendInvoiceReminder,
   updateInvoiceStatus,
 } from "@/actions/factures"
 import { PaymentDialog } from "./payment-dialog"
@@ -101,13 +101,29 @@ export function InvoiceActions({
     finally { setPending(false) }
   }
 
-  async function handleOpenEmail() {
+  function handleOpenLocalEmail() {
     if (!reminder) return
     window.location.href = `mailto:${encodeURIComponent(reminder.to)}?subject=${encodeURIComponent(reminder.subject)}&body=${encodeURIComponent(reminder.message)}`
-    await markInvoiceReminderSent(reminder.id)
-    toast.success("Relance ouverte dans votre messagerie.")
-    setReminderOpen(false)
-    router.refresh()
+    toast.success("Brouillon ouvert dans votre messagerie locale.")
+  }
+
+  async function handleSendReminder() {
+    if (!reminder) return
+    setPending(true)
+    try {
+      const result = await sendInvoiceReminder(reminder)
+      toast.success(result.alreadySent ? "Cette relance avait déjà été envoyée." : "Relance envoyée et ajoutée aux communications.")
+      setReminderOpen(false)
+      router.refresh()
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setPending(false)
+    }
+  }
+
+  function updateReminder(field: "subject" | "message", value: string) {
+    setReminder((current) => current ? { ...current, [field]: value } : current)
   }
 
   return (
@@ -179,13 +195,18 @@ export function InvoiceActions({
 
       <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
         <DialogContent className="max-w-xl">
-          <DialogHeader><DialogTitle>Relance {invoiceNumber}</DialogTitle></DialogHeader>
-          {reminder && <div className="space-y-3 text-sm">
-            <div><span className="text-muted-foreground">Destinataire : </span>{reminder.to || "Aucun email client"}</div>
-            <div><span className="text-muted-foreground">Objet : </span>{reminder.subject}</div>
-            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/30 p-3 font-sans">{reminder.message}</pre>
+          <DialogHeader><DialogTitle>Envoyer la relance {invoiceNumber}</DialogTitle></DialogHeader>
+          {reminder && <div className="space-y-4 text-sm">
+            <div className="rounded-[10px] border bg-muted/25 p-3"><span className="text-muted-foreground">Destinataire : </span><span className="font-medium">{reminder.to || "Aucun e-mail client"}</span></div>
+            <div className="space-y-1.5"><Label htmlFor="reminderSubject">Objet</Label><Input id="reminderSubject" value={reminder.subject} maxLength={180} onChange={(event) => updateReminder("subject", event.target.value)} /></div>
+            <div className="space-y-1.5"><Label htmlFor="reminderMessage">Message</Label><textarea id="reminderMessage" value={reminder.message} maxLength={5000} onChange={(event) => updateReminder("message", event.target.value)} className="min-h-56 w-full resize-y rounded-[10px] border bg-background p-3 text-sm leading-6 outline-none focus-visible:ring-3 focus-visible:ring-ring/50" /></div>
+            <p className="text-xs leading-5 text-muted-foreground">L’envoi utilise la messagerie active de l’entreprise et sera visible dans Communications. Le bouton local reste disponible comme solution manuelle.</p>
           </div>}
-          <DialogFooter><Button variant="outline" onClick={() => setReminderOpen(false)}>Fermer</Button><Button className="gap-2" onClick={handleOpenEmail} disabled={!reminder?.to}><Mail /> Ouvrir dans la messagerie</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReminderOpen(false)}>Fermer</Button>
+            <Button variant="outline" onClick={handleOpenLocalEmail} disabled={!reminder?.to || pending}><Mail />Ouvrir localement</Button>
+            <Button onClick={handleSendReminder} disabled={!reminder?.to || pending || (reminder?.subject.trim().length ?? 0) < 3 || (reminder?.message.trim().length ?? 0) < 10}>{pending ? "Envoi…" : "Envoyer maintenant"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

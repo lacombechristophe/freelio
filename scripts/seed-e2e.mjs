@@ -38,7 +38,9 @@ async function main() {
   await prisma.agencyMembership.create({ data: { agencyId: agency.id, membershipId: membership.id, isPrimary: true } })
   const client = await prisma.client.create({ data: { companyId: company.id, name: "Client QA Piscine", type: "INDIVIDUAL", address: "2 rue du Bassin, 44000 Nantes" } })
   const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", isPrimary: true } })
-  await prisma.leadCapture.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", city: "Nantes", projectType: "Couverture QA", source: "E2E_SEED", privacyAccepted: true, marketingOptIn: true, fingerprint: "e2e-seeded-lead" } })
+  const lead = await prisma.leadCapture.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", city: "Nantes", projectType: "Couverture QA", source: "E2E_SEED", privacyAccepted: true, marketingOptIn: true, fingerprint: "e2e-seeded-lead" } })
+  const marketingSegment = await prisma.marketingSegment.create({ data: { companyId: company.id, name: "Prospects consentis QA", description: "Audience de recette autorisée", kind: "STATIC", filters: { marketingOptIn: true } } })
+  await prisma.marketingSegmentMember.create({ data: { segmentId: marketingSegment.id, leadCaptureId: lead.id } })
   const site = await prisma.customerSite.create({ data: { companyId: company.id, clientId: client.id, agencyId: agency.id, label: "Bassin QA", kind: "INSTALLATION", address1: "2 rue du Bassin", postalCode: "44000", city: "Nantes", latitude: 47.2184, longitude: -1.5536 } })
   const project = await prisma.project.create({ data: { companyId: company.id, clientId: client.id, agencyId: agency.id, siteId: site.id, name: "Chantier QA existant", status: "ACTIVE", worksiteType: "INSTALLATION" } })
   await prisma.quote.create({
