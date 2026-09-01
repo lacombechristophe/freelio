@@ -40,9 +40,16 @@ import {
 } from "@/lib/validations"
 
 const PDF_TEMPLATE_OPTIONS = [
-  { value: "MINIMAL", label: "Minimal" },
-  { value: "PROFESSIONAL", label: "Professionnel" },
-  { value: "MODERN", label: "Moderne" },
+  {
+    value: "MINIMAL",
+    label: "Essentiel",
+    description: "Lecture aérée et hiérarchie minimale pour les documents courants.",
+  },
+  {
+    value: "PROFESSIONAL",
+    label: "Standard",
+    description: "Structure administrative classique, adaptée aux dossiers détaillés.",
+  },
 ] as const
 
 const TOTAL_STEPS = 5
@@ -431,7 +438,7 @@ export function OnboardingForm() {
                 </div>
 
                 <div className={cn(step !== 4 && "hidden")}>
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {PDF_TEMPLATE_OPTIONS.map((template) => (
                       <button
                         type="button"
@@ -442,19 +449,20 @@ export function OnboardingForm() {
                           shouldValidate: true,
                         })}
                         className={cn(
-                          "flex flex-col items-center gap-3 rounded-xl border p-3 text-left outline-none transition-[border-color,background-color,box-shadow,transform] focus-visible:ring-3 focus-visible:ring-ring/25 active:scale-[0.99]",
+                          "flex flex-col items-stretch gap-3 rounded-xl border p-3 text-left outline-none transition-[border-color,background-color,box-shadow,transform] focus-visible:ring-3 focus-visible:ring-ring/25 active:scale-[0.99]",
                           selectedPdfTemplate === template.value 
                             ? "border-primary bg-primary/5 shadow-[0_0_0_2px_rgba(11,99,246,0.12)]" 
                             : "border-freelio-line hover:border-freelio-line-strong hover:bg-freelio-canvas"
                         )}
                       >
-                        <div className={cn("relative h-28 w-full overflow-hidden rounded-lg border border-freelio-line bg-white p-3", template.value === "MODERN" && "border-t-4 border-t-primary", template.value === "PROFESSIONAL" && "bg-[#fbfcfe]")}>
-                          <div className={cn("h-2 w-12 rounded-sm", template.value === "MINIMAL" ? "bg-freelio-ink" : "bg-primary")} />
+                        <div className={cn("relative h-28 w-full overflow-hidden rounded-lg border border-freelio-line bg-white p-3", template.value === "PROFESSIONAL" && "bg-[#fbfcfe]")}>
+                          <div className="h-2 w-12 rounded-sm bg-freelio-ink" />
                           <div className="mt-3 h-1.5 w-4/5 rounded-sm bg-freelio-line" />
                           <div className="mt-1.5 h-1.5 w-3/5 rounded-sm bg-freelio-line" />
-                          <div className="absolute inset-x-3 bottom-3 grid grid-cols-3 gap-1"><span className="h-5 rounded bg-freelio-surface-2" /><span className="h-5 rounded bg-freelio-surface-2" /><span className="h-5 rounded bg-freelio-accent-soft" /></div>
+                          <div className="absolute inset-x-3 bottom-3 grid grid-cols-3 gap-1"><span className="h-5 rounded bg-freelio-surface-2" /><span className="h-5 rounded bg-freelio-surface-2" /><span className="h-5 rounded bg-freelio-surface-2" /></div>
                         </div>
-                        <span className="text-sm font-medium">{template.label}</span>
+                        <span className="text-sm font-semibold">{template.label}</span>
+                        <span className="text-xs leading-5 text-freelio-muted">{template.description}</span>
                       </button>
                     ))}
                   </div>
