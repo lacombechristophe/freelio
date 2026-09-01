@@ -88,6 +88,9 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   AutomationWorkflow: "automation.write",
   AutomationWorkflowVersion: "automation.write",
   AutomationRun: "automation.write",
+  CrmPropertyDefinition: "company.manage",
+  CrmPropertyValue: "crm.write",
+  CrmPropertyHistory: "crm.write",
 
   Client: "crm.write",
   Contact: "crm.write",
@@ -186,9 +189,10 @@ export function requiredMutationPermission(model: string): Permission | undefine
 const ACTION_PERMISSION_MODEL_ALIASES: Partial<Record<Permission, ReadonlySet<string>>> = {
   // Field technicians can attach and reconcile expenses for their own
   // interventions without receiving company-wide finance permissions.
-  "operations.write": new Set(["Expense", "ExpenseFile"]),
+  "operations.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "Expense", "ExpenseFile"]),
   "purchases.approve": new Set(["PurchaseOrder"]),
-  "service.write": new Set(["EmailTemplate"]),
+  "service.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "EmailTemplate"]),
+  "sales.write": new Set(["CrmPropertyValue", "CrmPropertyHistory"]),
 }
 
 export function canActionPermissionMutateModel(permission: Permission | undefined, model: string): boolean {

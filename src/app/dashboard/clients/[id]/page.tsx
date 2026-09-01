@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Building2, MapPin } from "lucide-react"
 import { getClientById } from "@/actions/clients"
+import { getRecordCrmProperties } from "@/actions/crm-properties"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { ClientWorkspace } from "./client-workspace"
 import { ClientPortalPanel } from "./client-portal-panel"
+import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel"
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -21,7 +23,10 @@ function formatDate(d: Date | string) {
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const client = await getClientById(id)
+  const [client, crmProperties] = await Promise.all([
+    getClientById(id),
+    getRecordCrmProperties("CLIENT", id),
+  ])
 
   if (!client) notFound()
 
@@ -76,6 +81,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </CardContent>
         </Card>
       </div>
+
+      {crmProperties ? <RecordPropertiesPanel objectType="CLIENT" recordId={client.id} data={crmProperties} /> : null}
 
       <ClientWorkspace
         clientId={client.id}

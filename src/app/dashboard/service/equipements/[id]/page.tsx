@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 import { getEquipmentDetail } from "@/actions/operations";
+import { getRecordCrmProperties } from "@/actions/crm-properties";
+import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel";
 import {
   DefinitionList,
   EmptyRecord,
@@ -32,7 +34,11 @@ export default async function EquipmentDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const equipment = await getEquipmentDetail((await params).id);
+  const { id } = await params;
+  const [equipment, crmProperties] = await Promise.all([
+    getEquipmentDetail(id),
+    getRecordCrmProperties("EQUIPMENT", id),
+  ]);
   if (!equipment) notFound();
   const openTickets = equipment.tickets.filter(
     (ticket) => !["RESOLVED", "CLOSED", "MERGED"].includes(ticket.status),
@@ -110,6 +116,9 @@ export default async function EquipmentDetailPage({
           detail={`${equipment.tickets.length} ticket(s) au total`}
         />
       </section>
+      {crmProperties ? (
+        <RecordPropertiesPanel objectType="EQUIPMENT" recordId={equipment.id} data={crmProperties} />
+      ) : null}
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <div className="space-y-6">
           <Card>

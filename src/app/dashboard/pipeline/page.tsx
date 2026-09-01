@@ -3,9 +3,11 @@ import { getClientsMinimal } from "@/actions/clients"
 import { PipelineBoard } from "./pipeline-board"
 import { PageHeader } from "@/components/shared/page-header"
 
-export default async function PipelinePage() {
+export default async function PipelinePage({ searchParams }: PageProps<"/dashboard/pipeline">) {
+  const query = await searchParams
+  const pipelineId = typeof query.pipeline === "string" ? query.pipeline : undefined
   const [pipeline, clients] = await Promise.all([
-    getPipeline(),
+    getPipeline(pipelineId),
     getClientsMinimal(),
   ])
 

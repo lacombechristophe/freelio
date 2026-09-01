@@ -21,7 +21,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | Playwright, build production et base isolée | 23 scénarios desktop/mobile réussis et 13 mutations volontairement ignorées sur mobile après preuve desktop (36 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 35 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
+| PostgreSQL | 37 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes et socle d’abonnement SaaS |
 | Production Vercel | déploiement prêt, alias public actif, landing et authentification vérifiées dans Chromium |
 | Connexion production | création d’un compte QA, fermeture de session, reconnexion par mot de passe puis suppression ciblée du compte réussies |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |

@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client"
 import { publicLeadSchema, normalizePhone, type PublicLeadInput } from "@/lib/leads/schema"
 import { runAutomationEvent } from "@/lib/automations/engine"
 import { refreshSingleLeadIntelligence } from "@/lib/marketing/intelligence"
+import { DEFAULT_PIPELINE_STAGES } from "@/lib/pipeline-rules"
 import prisma from "@/lib/prisma"
 
 export class LeadConfigurationError extends Error {
@@ -154,20 +155,16 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
       },
     })
 
-    const pipeline = await tx.pipeline.upsert({
+    const pipeline = await tx.pipeline.findFirst({
       where: { companyId: company.id },
-      update: {},
-      create: {
+      orderBy: [{ isDefault: "desc" }, { position: "asc" }, { createdAt: "asc" }],
+      select: { id: true },
+    }) ?? await tx.pipeline.create({
+      data: {
         companyId: company.id,
         name: "Pipeline commercial",
-        stages: [
-          { id: "PROSPECT", title: "Prospect" },
-          { id: "CONTACTED", title: "Contact pris" },
-          { id: "QUALIFIED", title: "Besoin qualifié" },
-          { id: "SENT", title: "Devis envoyé" },
-          { id: "WON", title: "Gagné" },
-          { id: "LOST", title: "Perdu" },
-        ],
+        stages: DEFAULT_PIPELINE_STAGES,
+        isDefault: true,
       },
       select: { id: true },
     })

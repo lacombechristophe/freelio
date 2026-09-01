@@ -231,6 +231,9 @@ model Company {
   customerHealthRules        CustomerHealthRule[]
   customerHealthSnapshots    CustomerHealthSnapshot[]
   savedViews                 SavedView[]
+  crmPropertyDefinitions     CrmPropertyDefinition[]
+  crmPropertyValues          CrmPropertyValue[]
+  crmPropertyHistory         CrmPropertyHistory[]
   subscription               SaasSubscription?
 }
 
@@ -501,6 +504,66 @@ model Contact {
   updatedAt DateTime @updatedAt
 
   @@index([clientId])
+}
+
+model CrmPropertyDefinition {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  objectType  String
+  key         String
+  label       String
+  type        String
+  groupName   String   @default("Informations complémentaires")
+  description String?
+  options     Json?
+  required    Boolean  @default(false)
+  position    Int      @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  values  CrmPropertyValue[]
+  history CrmPropertyHistory[]
+
+  @@unique([companyId, objectType, key])
+  @@index([companyId, objectType, archivedAt, position])
+}
+
+model CrmPropertyValue {
+  id           String                @id @default(cuid())
+  companyId    String
+  company      Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  definitionId String
+  definition   CrmPropertyDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  recordId     String
+  value        Json
+  updatedById  String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@unique([definitionId, recordId])
+  @@index([companyId, recordId])
+}
+
+model CrmPropertyHistory {
+  id            String                 @id @default(cuid())
+  companyId     String
+  company       Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  definitionId  String?
+  definition    CrmPropertyDefinition? @relation(fields: [definitionId], references: [id], onDelete: SetNull)
+  objectType    String
+  recordId      String
+  propertyKey   String
+  propertyLabel String
+  previousValue String?
+  nextValue     String?
+  changedById   String
+  createdAt     DateTime @default(now())
+
+  @@index([companyId, objectType, recordId, createdAt])
+  @@index([definitionId, createdAt])
 }
 
 model ClientPortalAccess {
@@ -1298,13 +1361,20 @@ model ProjectAcceptanceItem {
 
 model Pipeline {
   id        String  @id @default(cuid())
-  companyId String  @unique
+  companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
-  name   String @default("Pipeline Commercial")
-  stages Json // Custom stages definition
+  name      String   @default("Pipeline commercial")
+  stages    Json // Custom stages definition
+  isDefault Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   opportunities Opportunity[]
+
+  @@unique([companyId, name])
+  @@index([companyId, isDefault, position])
 }
 
 model Opportunity {

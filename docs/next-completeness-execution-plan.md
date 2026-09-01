@@ -16,7 +16,7 @@ Le principal risque n’est donc plus l’absence d’écrans. Il est triple :
 
 La cible n’est pas de reproduire chaque option de HubSpot ou Extrabat. La cible est de couvrir, avec moins de friction, les processus effectivement utiles : acquisition, qualification, vente sur mesure, achat fabricant, planification, pose, facturation, SAV, entretien et fidélisation.
 
-Mise à jour du 1er septembre 2026 : l’activation contrôlée d’un segment de campagne vers une séquence et les relances de facture réellement envoyées (manuelles ou planifiées, idempotentes et journalisées) sont livrées. Les mentions correspondantes ci-dessous décrivent désormais l’historique du plan ; les gates restantes portent sur les très gros volumes, l’A/B, l’ordonnanceur supervisé et la délivrabilité réelle.
+Mise à jour du 1er septembre 2026 : l’activation contrôlée d’un segment de campagne vers une séquence, les relances de facture réellement envoyées, les propriétés CRM configurables et historisées, les pipelines multiples configurables et la première liste CRM entièrement composable (Clients) sont livrés. Les gates restantes portent notamment sur la généralisation des listes, les très gros volumes, l’A/B, le forecast avancé, l’ordonnanceur supervisé et la délivrabilité réelle.
 
 ## 2. Sources officielles et enseignements
 
@@ -53,13 +53,13 @@ Le site public de l’entreprise cible présente une vente conseil de couverture
 
 | Domaine | Existant | Écart principal | Priorité |
 |---|---|---|---|
-| Modèle CRM | clients, contacts, leads, champs JSON, associations métier codées | propriétés configurables, associations étiquetées, historique de propriété, fusion et vues sauvegardées | P0 |
-| Vues de listes | recherche et filtres ponctuels | filtres composables, colonnes, tri, pagination, sélection et actions en masse persistées par utilisateur | P0 |
+| Modèle CRM | clients, contacts, leads et propriétés configurables typées/historisées sur six objets métier | associations étiquetées, formules, propriété utilisateur, fusion et qualité des doublons | P0/P1 |
+| Vues de listes | Clients : filtres composables, colonnes, tri, sélection, export et vue persistée ; vues simples sur contacts/devis | pagination serveur, actions de modification en masse et généralisation aux autres index | P0 |
 | E-mail individuel | envoi/réception Resend, fils, événements, aperçu | vraie boîte Google/Microsoft, pièces jointes, brouillons, destinataires multiples, signature utilisateur, recherche | P0 externe/produit |
 | Séquences | modèles, délais, inscriptions, arrêt sur réponse | tâches/appels, jours ouvrés, fenêtres horaires, A/B, version, performance par étape, limite d’envoi | P0 |
 | Workflows | déclencheurs et actions linéaires | branches si/alors, temporisations, objectifs, versions, test sur enregistrement, reprise et éditeur graphique | P0 |
 | Rendez-vous | tâches, demandes portail, ICS | pages de réservation, disponibilités, rappels, confirmation/annulation, Google/Microsoft bidirectionnel | P0 externe/produit |
-| Pipeline | opportunités, propriétaire, probabilité, motif de perte, forecast du mois | pipelines configurables, règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
+| Pipeline | plusieurs pipelines, étapes configurables/réordonnables, propriétaire, probabilité, motif de perte et forecast du mois | règles d’étape, approbations, quotas, périodes, vélocité et forecast engagé/meilleur cas | P0 |
 | Marketing | campagnes, assets, UTM, segments | e-mail collectif réel, destinataires/exclusions, programmation, test, préférences, A/B et attribution | P0/P1 |
 | Service | tickets, files, conversation e-mail, notes internes, connaissance, satisfaction, SLA ouvrés, macros, routage, fusion réversible, diagnostics guidés et analyses équipe/SLA | canaux temps réel et rapports programmés | P0/P1 |
 | Customer Success | portefeuille, score configurable, alertes explicables, historique, plans de succès, renouvellements et opportunités d’extension | règles temporelles avancées, cohortes et automatisations proactives | P1 |
@@ -486,6 +486,17 @@ Premier sous-lot livré :
 - test navigateur création → rechargement → réapplication ;
 - correction des avertissements d’accessibilité Base UI sur plusieurs liens-boutons ;
 - correction des clés React dupliquées dans les hubs et sous-menus.
+
+Extension du sous-lot livrée :
+
+- propriétés CRM typées, groupées et ordonnées sur clients, contacts, opportunités, chantiers, tickets et équipements ;
+- presets métier génériques, archivage des définitions et historique avant/après avec auteur ;
+- panneau réutilisable d’édition et d’historique sur les six fiches concernées ;
+- plusieurs pipelines commerciaux, choix persistant dans l’URL, pipeline par défaut et étapes réordonnables ;
+- protections serveur contre la suppression d’un pipeline ou d’une étape encore utilisés ;
+- liste Clients avec filtres typés cumulables, colonnes personnalisées, tri, sélection et export CSV ;
+- chiffrement initialisé à l’usage pour permettre un build sans secret tout en refusant toute opération sensible sans `ENCRYPTION_KEY` ;
+- tests unitaires et parcours navigateur dédiés, puis pipeline complet TypeScript, lint, 223 tests et build de 73 pages.
 
 Extension livrée dans ce checkpoint : la barre est également active sur Contacts (recherche + consentement) et Devis (recherche), avec couverture navigateur de la persistance après rechargement.
 

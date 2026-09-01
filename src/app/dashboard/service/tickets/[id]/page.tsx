@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { getServiceTicketDetail } from "@/actions/operations";
+import { getRecordCrmProperties } from "@/actions/crm-properties";
+import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -53,7 +55,11 @@ export default async function ServiceTicketDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const ticket = await getServiceTicketDetail((await params).id);
+  const { id } = await params;
+  const [ticket, crmProperties] = await Promise.all([
+    getServiceTicketDetail(id),
+    getRecordCrmProperties("TICKET", id),
+  ]);
   if (!ticket) notFound();
   const readOnly = ticket.status === "MERGED" || Boolean(ticket.mergedInto);
   const overdue = Boolean(
@@ -139,6 +145,9 @@ export default async function ServiceTicketDetailPage({
           detail="Reprises à suivre"
         />
       </section>
+      {crmProperties ? (
+        <RecordPropertiesPanel objectType="TICKET" recordId={ticket.id} data={crmProperties} />
+      ) : null}
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
           <TicketDuplicateManager ticketId={ticket.id} ticketNumber={ticket.number} duplicateCandidates={ticket.duplicateCandidates} mergedTickets={ticket.mergedTickets} mergedInto={ticket.mergedInto} />

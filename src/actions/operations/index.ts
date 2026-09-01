@@ -1330,8 +1330,19 @@ export async function createMaintenanceContract(input: unknown) {
       resourceId: contract.id,
       payload: { number: contract.number, clientId: contract.clientId, siteId: contract.siteId },
     })
+    const createdContract = await prisma.maintenanceContract.findFirstOrThrow({
+      where: { id: contract.id, companyId },
+      include: {
+        client: { select: { name: true } },
+        site: { select: { label: true, agencyId: true } },
+        recurringInvoice: { select: { id: true, isActive: true } },
+        renewedFrom: { select: { id: true, number: true } },
+        renewalProposals: { select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
+        _count: { select: { equipments: true, renewedContracts: true } },
+      },
+    })
     revalidateOperations()
-    return { success: true as const, id: contract.id, number: contract.number }
+    return { success: true as const, id: contract.id, number: contract.number, contract: createdContract }
   }, "service.write")
 }
 

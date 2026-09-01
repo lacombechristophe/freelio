@@ -10,23 +10,30 @@ import { boundedPageSize } from "@/lib/pagination"
 export async function getClients(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId }) => {
     const pageSize = boundedPageSize(limit, 20, 100)
-    const clients = await prisma.client.findMany({
-      where: { companyId },
-      take: pageSize,
-      cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0,
-      orderBy: { createdAt: "desc" },
-      include: {
-        contacts: { where: { isPrimary: true }, take: 1 },
-      },
-    })
+    const [clients, propertyDefinitions] = await Promise.all([
+      prisma.client.findMany({
+        where: { companyId },
+        take: pageSize,
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
+        orderBy: { createdAt: "desc" },
+        include: {
+          contacts: { where: { isPrimary: true }, take: 1 },
+        },
+      }),
+      prisma.crmPropertyDefinition.findMany({
+        where: { companyId, objectType: "CLIENT", archivedAt: null },
+        select: { id: true, key: true, label: true, type: true, groupName: true, options: true },
+        orderBy: [{ groupName: "asc" }, { position: "asc" }, { label: "asc" }],
+      }),
+    ])
 
     // Compute aggregates live so the cached `totalRevenueCents` / `totalUnpaidCents`
     // columns don't drift from reality (they're never maintained on mutations).
     const ids = clients.map((c) => c.id)
-    if (ids.length === 0) return clients
+    if (ids.length === 0) return { clients: [], propertyDefinitions }
 
-    const [paidAgg, unpaidAgg] = await Promise.all([
+    const [paidAgg, unpaidAgg, propertyValues] = await Promise.all([
       prisma.invoice.groupBy({
         by: ["clientId"],
         where: { companyId, clientId: { in: ids }, status: "PAID" },
@@ -37,16 +44,32 @@ export async function getClients(cursor?: string, limit: number = 20) {
         where: { companyId, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } },
         _sum: { totalTtcCents: true, paidAmountCents: true },
       }),
+      prisma.crmPropertyValue.findMany({
+        where: { companyId, recordId: { in: ids }, definition: { objectType: "CLIENT", archivedAt: null } },
+        select: { recordId: true, definitionId: true, value: true },
+      }),
     ])
 
     const paidMap = new Map(paidAgg.map((r) => [r.clientId, r._sum.totalHtCents ?? 0]))
     const unpaidMap = new Map(unpaidAgg.map((r) => [r.clientId, (r._sum.totalTtcCents ?? 0) - (r._sum.paidAmountCents ?? 0)]))
 
-    return clients.map((c) => ({
-      ...c,
-      totalRevenueCents: paidMap.get(c.id) ?? 0,
-      totalUnpaidCents: unpaidMap.get(c.id) ?? 0,
-    }))
+    const propertyValuesByClient = new Map<string, Record<string, unknown>>()
+    for (const property of propertyValues) {
+      propertyValuesByClient.set(property.recordId, {
+        ...(propertyValuesByClient.get(property.recordId) ?? {}),
+        [property.definitionId]: property.value,
+      })
+    }
+
+    return {
+      propertyDefinitions,
+      clients: clients.map((c) => ({
+        ...c,
+        totalRevenueCents: paidMap.get(c.id) ?? 0,
+        totalUnpaidCents: unpaidMap.get(c.id) ?? 0,
+        propertyValues: propertyValuesByClient.get(c.id) ?? {},
+      })),
+    }
   })
 }
 

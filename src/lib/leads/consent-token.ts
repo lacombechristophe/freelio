@@ -11,10 +11,12 @@ export type ConsentWithdrawalToken = {
 }
 
 function consentSecret(secretOverride?: string) {
-  const configured = secretOverride
-    ?? process.env.CONSENT_TOKEN_SECRET
-    ?? process.env.JWT_SECRET
-    ?? process.env.AUTH_SECRET
+  const configured = [
+    secretOverride,
+    process.env.CONSENT_TOKEN_SECRET,
+    process.env.JWT_SECRET,
+    process.env.AUTH_SECRET,
+  ].map((value) => value?.trim()).find(Boolean)
 
   if (!configured && process.env.NODE_ENV === "production") {
     throw new Error("CONSENT_TOKEN_SECRET, JWT_SECRET or AUTH_SECRET is required in production")

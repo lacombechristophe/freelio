@@ -2,6 +2,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Clock, FileText, Receipt } from "lucide-react"
 import { getProjectById } from "@/actions/projets"
+import { getRecordCrmProperties } from "@/actions/crm-properties"
+import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +29,10 @@ function formatDuration(sec: number) {
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const project = await getProjectById(id)
+  const [project, crmProperties] = await Promise.all([
+    getProjectById(id),
+    getRecordCrmProperties("PROJECT", id),
+  ])
   if (!project) notFound()
 
   const progress = project.budgetCents > 0
@@ -70,6 +75,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <Progress value={progress} className="h-2" />
         </CardContent>
       </Card>
+
+      {crmProperties ? <RecordPropertiesPanel objectType="PROJECT" recordId={project.id} data={crmProperties} /> : null}
 
       <ProjectWorkspace
         projectId={project.id}

@@ -1,6 +1,6 @@
 # Matrice de couverture et dépendances externes
 
-Date de l'audit du code : 31 août 2026
+Date de l'audit du code : 1er septembre 2026
 Portée : état du dépôt et recette technique de la production ; la configuration réelle des comptes métier et des fournisseurs externes reste à valider.
 
 ## 1. Légende
@@ -22,9 +22,10 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Source et UTM | **Disponible** | source, landing page, referrer et paramètres UTM conservés sur lead/opportunité | tableaux d'attribution avancés absents |
 | Consentement | **Disponible** | événements et preuve hashée, retrait interne, lien public signé généré depuis la file prospects, retrait idempotent | pas de centre de préférences multicanal ; durées et texte RGPD à valider |
 | Clients et contacts | **Disponible** | fiches entreprise/particulier, contacts, coordonnées, activités, fichiers et prochaine action | dédoublonnage global/humain encore limité |
-| Vues de listes | **Partiel** | vues personnelles persistées sur clients, contacts et devis, configuration JSON bornée et réapplication après rechargement | colonnes, filtres avancés, partage équipe et actions en masse à généraliser aux autres index |
+| Vues de listes | **Partiel** | vue Clients composée avec recherche, filtres typés cumulables, colonnes standard/personnalisées, tri, sélection, export CSV et vues persistées ; vues personnelles également présentes sur contacts et devis | pagination serveur, partage équipe et actions en masse de modification à généraliser aux autres index |
 | Sites/adresses multiples | **Disponible** | `CustomerSite` structuré avec accès et coordonnées | géocodage/cartographie non intégrés |
-| Pipeline commercial | **Partiel** | étapes, opportunités, responsable lié à l’équipe, montant, probabilité, clôture prévue/réelle, motif de perte obligatoire et forecast pondéré du mois | prévisions multi-périodes, quotas et statistiques de vélocité à approfondir |
+| Pipeline commercial | **Partiel** | plusieurs pipelines nommés, pipeline par défaut, étapes configurables et réordonnables, protections des étapes occupées, opportunités, responsable, montant, probabilité, clôture prévue/réelle, motif de perte obligatoire et forecast pondéré du mois | règles conditionnelles d’étape, approbations, prévisions multi-périodes, quotas et statistiques de vélocité à approfondir |
+| Propriétés CRM | **Disponible** | définitions multi-objets pour clients, contacts, opportunités, chantiers, tickets et équipements ; texte, nombre, devise, date, booléen, choix simple/multiple ; groupes, ordre, presets, édition de fiche et historique avant/après avec auteur | formules calculées, propriété utilisateur, dépendances conditionnelles et administration en masse restent à approfondir |
 | Chronologie commerciale | **Partiel** | activités manuelles/importées et conversations e-mail rattachées aux clients, contacts ou prospects | appels et réunions externes non synchronisés tant qu’un connecteur Google/Microsoft n’est pas autorisé |
 | Tâches et agenda | **Partiel** | objectifs, tâches, récurrence et export ICS | pas de synchronisation calendrier bidirectionnelle, invitations ou disponibilité |
 | E-mails individuels | **Disponible sous configuration** | composition, aperçu HTML isolé, fils entrants/sortants, rattachement CRM, réponses, événements signés de livraison/ouverture/clic/rejet/plainte, statistiques à 30 jours et envoi par clé Resend ou OAuth Google/Microsoft | domaine et webhook Resend, ou consentement OAuth de la boîte retenue, à configurer et recetter avec de vrais messages |
@@ -100,7 +101,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Permissions | **Partiel** | lecture/écriture par domaine, isolation `companyId`, administration des agences et refus serveur des lectures/mutations opérationnelles inter-agences | les clients restent volontairement partagés à l’échelle société ; audit de sécurité/pentest externe nécessaire |
 | Authentification | **Disponible** | création de compte, scrypt salé, récupération par jeton hashé à usage unique, MFA TOTP, codes de secours hashés/consommables, révocation globale versionnée des JWT et journal d’audit ; le lien magique est refusé quand le MFA est actif | Resend et domaine d’envoi doivent être configurés pour distribuer les liens de récupération ; pentest externe requis avant données réelles |
 | Signature publique | **Disponible** | jeton hashé, expiration, usage unique et rate limiting | revue de sécurité et niveau de preuve métier |
-| PostgreSQL | **Disponible** | schéma miroir, client dédié et 35 migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
+| PostgreSQL | **Disponible** | schéma miroir, client dédié et 37 migrations versionnées ; réparation idempotente documentée pour l’ancien schéma Vercel | hébergeur, haute disponibilité, sauvegardes et restauration à mettre en service |
 | Stockage objet | **Disponible** | R2 privé obligatoire en production, hash et accès authentifié | versioning/rétention/sauvegarde fournisseur à configurer |
 | Rate limiting | **Disponible** | Upstash distribué ou mémoire locale | Upstash requis en production multi-instance |
 | Files de travaux | **Partiel** | BullMQ pour les documents, processeur persistant des séquences e-mail et ordonnanceur entretien/factures récurrentes/relances dans le worker, avec rotation équitable entre sociétés et routes de cron protégées | supervision, alertes, quotas et procédure de rejeu à configurer |
