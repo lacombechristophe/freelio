@@ -39,4 +39,16 @@ describe("email OAuth state", () => {
     const { createEmailOAuthCodeChallenge } = await import("@/lib/integrations/email-oauth")
     expect(createEmailOAuthCodeChallenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")).toBe("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
   })
+
+  it("requests mail and calendar scopes for both providers", async () => {
+    process.env.GOOGLE_CLIENT_ID = "google-client"
+    process.env.GOOGLE_CLIENT_SECRET = "google-secret"
+    process.env.MICROSOFT_CLIENT_ID = "microsoft-client"
+    process.env.MICROSOFT_CLIENT_SECRET = "microsoft-secret"
+    const { buildEmailAuthorizationUrl } = await import("@/lib/integrations/email-oauth")
+    const google = buildEmailAuthorizationUrl("GOOGLE", "https://crm.example.test/callback", "state", "challenge")
+    const microsoft = buildEmailAuthorizationUrl("MICROSOFT", "https://crm.example.test/callback", "state", "challenge")
+    expect(google.searchParams.get("scope")).toContain("calendar.events")
+    expect(microsoft.searchParams.get("scope")).toContain("Calendars.ReadWrite")
+  })
 })

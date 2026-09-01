@@ -16,7 +16,7 @@ Le principal risque n’est donc plus l’absence d’écrans. Il est triple :
 
 La cible n’est pas de reproduire chaque option de HubSpot ou Extrabat. La cible est de couvrir, avec moins de friction, les processus effectivement utiles : acquisition, qualification, vente sur mesure, achat fabricant, planification, pose, facturation, SAV, entretien et fidélisation.
 
-Mise à jour du 1er septembre 2026 : l’activation contrôlée d’un segment de campagne vers une séquence, les relances de facture réellement envoyées, les propriétés CRM configurables et historisées, les pipelines multiples configurables et la première liste CRM entièrement composable (Clients) sont livrés. Les gates restantes portent notamment sur la généralisation des listes, les très gros volumes, l’A/B, le forecast avancé, l’ordonnanceur supervisé et la délivrabilité réelle.
+Mise à jour du 1er septembre 2026 : l’activation contrôlée d’un segment de campagne vers une séquence, les relances de facture réellement envoyées, les propriétés CRM configurables et historisées, les pipelines multiples configurables, la première liste CRM entièrement composable (Clients) et la synchronisation calendrier incrémentale Google/Microsoft sont livrés. Les gates restantes portent notamment sur la généralisation des listes, les invitations/free-busy avancés, les très gros volumes, l’A/B, le forecast avancé, l’ordonnanceur supervisé et la délivrabilité réelle.
 
 ## 2. Sources officielles et enseignements
 
@@ -108,7 +108,7 @@ Nouvelles capacités :
 - composeur avec To/Cc/Cci, pièces jointes, signature, brouillon et réponse dans le fil ;
 - boîte partagée avec affectation, statut, collision de réponse et recherche ;
 - pages de réservation avec durée, tampon, fuseau, disponibilité et questions ;
-- événements calendrier bidirectionnels et rappels ;
+- événements calendrier bidirectionnels (livrés) puis invitations, free-busy et rappels fournisseur ;
 - centre de préférences par finalité e-mail/SMS ;
 - SMS transactionnel pour rendez-vous, intervention et contrat, après choix d’un fournisseur.
 
@@ -469,7 +469,7 @@ Une fonction n’est pas terminée parce qu’un écran existe. Elle est termin�
 5. Planning semaine verrouillable et prévu/réel terrain.
 6. Catalogue fournisseur versionné et génération de besoins d’achat.
 7. Forecast, quotas et marge affaire/chantier.
-8. Connecteurs Google/Microsoft dès que les identifiants OAuth sont disponibles.
+8. Recette réelle des connecteurs Google/Microsoft livrés dès que les identifiants OAuth sont disponibles.
 9. Reporting configurable.
 10. Migration à blanc dès réception des exports réels, en parallèle des lots produit.
 

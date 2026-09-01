@@ -10,7 +10,7 @@
 import { docGenWorker } from "@/lib/bullmq/worker"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
-import { syncDueOAuthEmailChannels } from "@/lib/communications/email-sync"
+import { syncDueOAuthCommunicationChannels } from "@/lib/communications/communication-sync"
 
 console.log("[Worker] Starting BullMQ workers...")
 console.log(`[Worker] Redis: ${process.env.REDIS_HOST ?? "localhost"}:${process.env.REDIS_PORT ?? "6379"}`)
@@ -54,8 +54,8 @@ const processCommunicationSync = async () => {
   if (communicationSyncRunning) return
   communicationSyncRunning = true
   try {
-    const result = await syncDueOAuthEmailChannels(10)
-    if (result.imported || result.failed) console.log(`[Worker] Mail sync: ${result.imported} imported, ${result.failed} failed.`)
+    const result = await syncDueOAuthCommunicationChannels(10)
+    if (result.messagesImported || result.calendarEventsImported || result.failed) console.log(`[Worker] Communication sync: ${result.messagesImported} message(s), ${result.calendarEventsImported} événement(s), ${result.failed} échec(s).`)
   } catch (error) {
     console.error(`[Worker] Mail sync failed: ${error instanceof Error ? error.message : "unknown error"}`)
   } finally {
@@ -83,4 +83,4 @@ process.on("SIGINT", async () => {
   process.exit(0)
 })
 
-console.log("[Worker] Document, email sequence and business scheduling processors are ready.")
+console.log("[Worker] Document, email, calendar and business scheduling processors are ready.")

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
   CalendarDays,
+  CalendarSync,
   CheckCircle2,
   Circle,
   Clock3,
@@ -53,7 +54,7 @@ import { PageHeader } from "@/components/shared/page-header"
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED"
 type GoalScope = "DAY" | "WEEK" | "MONTH" | "YEAR"
-type TaskCategory = "DEV" | "ADMIN" | "SALES" | "SUPPORT" | "LEARNING"
+type TaskCategory = "DEV" | "ADMIN" | "SALES" | "SUPPORT" | "LEARNING" | "MEETING"
 
 type OrganisationData = {
   generatedAt: string
@@ -100,6 +101,20 @@ type OrganisationData = {
     recurrence: string | null
     recurrenceInterval: number
     recurrenceEnd: string | null
+    calendarChannelId: string | null
+    calendarProvider: string | null
+    calendarExternalId: string | null
+    calendarSyncStatus: string | null
+    calendarLastError: string | null
+    calendarLastSyncedAt: string | null
+  }>
+  calendarChannels: Array<{
+    id: string
+    provider: string
+    emailAddress: string
+    displayName: string | null
+    lastSyncAt: string | null
+    lastError: string | null
   }>
   projects: Array<{
     id: string
@@ -168,6 +183,7 @@ const categoryLabels: Record<TaskCategory, string> = {
   SALES: "Vente",
   SUPPORT: "Support",
   LEARNING: "Veille",
+  MEETING: "Rendez-vous",
 }
 
 const priorityLabels: Record<number, string> = {
@@ -201,11 +217,13 @@ function displayDate(value: string | null | undefined, fallback = "Sans date") {
 
 function displayLongDate(value: string | null | undefined) {
   if (!value) return "Non planifié"
-  return new Date(value).toLocaleDateString("fr-FR", {
+  const date = new Date(value)
+  const label = date.toLocaleDateString("fr-FR", {
     weekday: "short",
     day: "2-digit",
     month: "short",
   })
+  return `${label} · ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
 }
 
 function formatDuration(seconds: number) {
@@ -247,7 +265,7 @@ function compareByPriority<T extends { priority: number; dueDate?: string | null
 
 const TASK_STATUSES: TaskStatus[] = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"]
 const GOAL_SCOPES: GoalScope[] = ["DAY", "WEEK", "MONTH", "YEAR"]
-const TASK_CATEGORIES: TaskCategory[] = ["DEV", "ADMIN", "SALES", "SUPPORT", "LEARNING"]
+const TASK_CATEGORIES: TaskCategory[] = ["DEV", "ADMIN", "SALES", "SUPPORT", "LEARNING", "MEETING"]
 
 export function OrganisationView({ data }: { data: OrganisationData }) {
   const router = useRouter()
@@ -299,12 +317,13 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
     ? 0
     : Math.round((doneThisWeek / (openTasks.length + doneThisWeek)) * 100)
 
-  async function runAction(key: string, action: () => Promise<unknown>, success: string) {
+  async function runAction<T>(key: string, action: () => Promise<T>, success: string): Promise<T | undefined> {
     setPendingKey(key)
     try {
-      await action()
+      const result = await action()
       toast.success(success)
       router.refresh()
+      return result
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur.")
     } finally {
@@ -500,7 +519,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                           <div key={task.id} className="rounded-md border border-border/80 bg-card/70 px-2 py-1.5">
                             <p className="line-clamp-2 text-xs font-medium leading-snug">{task.title}</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {formatMinutes(task.estimateMin)}
+                              {task.scheduledDate ? new Date(task.scheduledDate).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "Échéance"} · {formatMinutes(task.estimateMin)}
                             </p>
                           </div>
                         ))
@@ -623,9 +642,12 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
         projects={data.projects}
         clients={data.clients}
         goals={activeGoals}
+        calendarChannels={data.calendarChannels}
         defaultDate={inputDate(data.periods.todayStart)}
         onCreate={async (payload) => {
-          await runAction("create-task", () => createOrganisationTask(payload), "Tâche créée.")
+          const result = await runAction("create-task", () => createOrganisationTask(payload), "Tâche créée.")
+          if (!result) return
+          if (result.calendarWarning) toast.warning(`Tâche conservée, calendrier à corriger : ${result.calendarWarning}`)
           setTaskDialogOpen(false)
         }}
         pending={pendingKey === "create-task"}
@@ -635,8 +657,8 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
         onOpenChange={setGoalDialogOpen}
         defaultDate={inputDate(data.periods.todayStart)}
         onCreate={async (payload) => {
-          await runAction("create-goal", () => createOrganisationGoal(payload), "Objectif créé.")
-          setGoalDialogOpen(false)
+          const result = await runAction("create-goal", () => createOrganisationGoal(payload), "Objectif créé.")
+          if (result) setGoalDialogOpen(false)
         }}
         pending={pendingKey === "create-goal"}
       />
@@ -726,6 +748,7 @@ function TaskRow({
             <Badge variant={status === "BLOCKED" ? "destructive" : "outline"} className="h-4 px-1.5 text-xs">
               {statusLabels[status]}
             </Badge>
+            {task.calendarProvider && <Badge variant={task.calendarSyncStatus === "ERROR" ? "destructive" : "secondary"} className="h-4 px-1.5 text-xs" title={task.calendarLastError || "Synchronisé avec le calendrier externe"}><CalendarSync className="size-3" />{task.calendarProvider === "GOOGLE" ? "Google" : "Microsoft"}</Badge>}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span>{categoryLabels[category]}</span>
@@ -895,6 +918,7 @@ function TaskDialog({
   projects,
   clients,
   goals,
+  calendarChannels,
   defaultDate,
   onCreate,
   pending,
@@ -904,6 +928,7 @@ function TaskDialog({
   projects: OrganisationData["projects"]
   clients: OrganisationData["clients"]
   goals: OrganisationData["goals"]
+  calendarChannels: OrganisationData["calendarChannels"]
   defaultDate: string
   onCreate: (payload: Parameters<typeof createOrganisationTask>[0]) => Promise<void>
   pending: boolean
@@ -915,6 +940,7 @@ function TaskDialog({
   const [category, setCategory] = React.useState<TaskCategory>("DEV")
   const [priority, setPriority] = React.useState("2")
   const [scheduledDate, setScheduledDate] = React.useState(defaultDate)
+  const [scheduledTime, setScheduledTime] = React.useState("09:00")
   const [dueDate, setDueDate] = React.useState("")
   const [estimateMin, setEstimateMin] = React.useState("60")
   const [notes, setNotes] = React.useState("")
@@ -922,6 +948,7 @@ function TaskDialog({
   const [recurrence, setRecurrence] = React.useState("")
   const [recurrenceInterval, setRecurrenceInterval] = React.useState("1")
   const [recurrenceEnd, setRecurrenceEnd] = React.useState("")
+  const [calendarChannelId, setCalendarChannelId] = React.useState("")
 
   React.useEffect(() => {
     if (open) setScheduledDate(defaultDate)
@@ -937,7 +964,7 @@ function TaskDialog({
       goalId: goalId || null,
       category,
       priority: Number(priority),
-      scheduledDate: scheduledDate || null,
+      scheduledDate: scheduledDate ? `${scheduledDate}T${scheduledTime || "09:00"}` : null,
       dueDate: dueDate || null,
       estimateMin: estimateMin ? Number(estimateMin) : null,
       isBillable,
@@ -945,6 +972,7 @@ function TaskDialog({
       recurrence: (recurrence || null) as "DAILY" | "WEEKLY" | "MONTHLY" | null,
       recurrenceInterval: Number(recurrenceInterval),
       recurrenceEnd: recurrenceEnd || null,
+      calendarChannelId: calendarChannelId || null,
     })
     setTitle("")
     setProjectId("")
@@ -959,6 +987,7 @@ function TaskDialog({
     setRecurrence("")
     setRecurrenceInterval("1")
     setRecurrenceEnd("")
+    setCalendarChannelId("")
   }
 
   return (
@@ -1018,7 +1047,7 @@ function TaskDialog({
             </FieldSelect>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
             <div className="space-y-1.5">
               <Label htmlFor="task-priority">Priorité</Label>
               <select id="task-priority" value={priority} onChange={(event) => setPriority(event.target.value)} className="h-8 w-full rounded-lg border border-input bg-background px-2 text-sm outline-none focus:border-primary">
@@ -1032,12 +1061,26 @@ function TaskDialog({
               <Input id="task-scheduled" type="date" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} />
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="task-scheduled-time">Heure</Label>
+              <Input id="task-scheduled-time" type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} disabled={!scheduledDate} />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="task-due">Échéance</Label>
               <Input id="task-due" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="task-estimate">Est. min</Label>
               <Input id="task-estimate" type="number" min="0" max="1440" value={estimateMin} onChange={(event) => setEstimateMin(event.target.value)} />
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-muted/20 p-3">
+            <div className="flex items-start gap-3">
+              <CalendarSync className="mt-0.5 size-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div><p className="text-sm font-medium">Calendrier externe</p><p className="text-xs leading-5 text-muted-foreground">Crée le rendez-vous dans Google ou Microsoft et conserve les modifications reçues lors des synchronisations.</p></div>
+                {calendarChannels.length ? <select aria-label="Calendrier externe" value={calendarChannelId} onChange={(event) => setCalendarChannelId(event.target.value)} disabled={!scheduledDate} className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary"><option value="">Ne pas synchroniser</option>{calendarChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.provider === "GOOGLE" ? "Google" : "Microsoft"} · {channel.displayName || channel.emailAddress}</option>)}</select> : <Link href="/dashboard/communications?tab=integrations" className="inline-flex text-xs font-medium text-primary hover:underline">Connecter Google Workspace ou Microsoft 365</Link>}
+              </div>
             </div>
           </div>
 

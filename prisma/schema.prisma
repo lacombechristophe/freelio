@@ -1477,6 +1477,17 @@ model OrganisationTask {
   recurrenceEnd      DateTime?
   recurrenceSourceId String?
 
+  // Optional two-way Google/Microsoft calendar mapping. OAuth credentials and
+  // provider cursors stay encrypted on CommunicationChannel; tasks only keep
+  // the non-secret remote identifier and the last synchronization outcome.
+  calendarChannelId    String?
+  calendarProvider     String?
+  calendarExternalId   String?
+  calendarEtag         String?
+  calendarSyncStatus   String?
+  calendarLastError    String?
+  calendarLastSyncedAt DateTime?
+
   clientId          String?
   client            Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
   projectId         String?
@@ -1488,9 +1499,11 @@ model OrganisationTask {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([companyId, calendarChannelId, calendarExternalId])
   @@index([companyId, status])
   @@index([companyId, dueDate])
   @@index([companyId, scheduledDate])
+  @@index([companyId, calendarSyncStatus])
   @@index([clientId])
   @@index([projectId])
   @@index([goalId])

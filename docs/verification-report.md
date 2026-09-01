@@ -6,7 +6,7 @@ Portée : code, bases de recette locales, migration PostgreSQL, déploiement Ver
 
 ## Résultat synthétique
 
-Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. Les flux centraux CRM, vente, opérations, finance, migration, e-mails, automatisations, scoring, portail et réversibilité ont des preuves automatisées. La résiliation réelle de HubSpot et Extrabat demeure un **no-go** tant que les exports réels, rapprochements, services externes et décisions métier de la matrice de couverture ne sont pas signés.
+Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. Les flux centraux CRM, vente, opérations, finance, migration, e-mails, calendriers, automatisations, scoring, portail et réversibilité ont des preuves automatisées. La résiliation réelle de HubSpot et Extrabat demeure un **no-go** tant que les exports réels, rapprochements, services externes et décisions métier de la matrice de couverture ne sont pas signés.
 
 ## Preuves exécutées
 
@@ -15,13 +15,13 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 58 fichiers, 229 tests réussis |
+| `npm run test:unit` | 59 fichiers, 235 tests réussis |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
 | `npm audit --omit=dev` | 0 vulnérabilité déclarée |
 | Playwright, build production et base isolée | 25 scénarios desktop/mobile réussis et 15 mutations volontairement ignorées sur mobile après preuve desktop (40 exécutions) |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 38 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS et intégrité devis/contrat/commande |
+| PostgreSQL | 39 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS, intégrité devis/contrat/commande et synchronisation calendrier |
 | Production Vercel | déploiement `dpl_5tn4W1k21KrU4vWN33hMx8cwWF56` prêt, alias public actif sur `https://freelio-eight.vercel.app`, commit `b10f86a` poussé et identique à l'origine |
 | Smoke HTTP public | `/` et `/auth/login` en 200, `/api/health/live` et `/api/health/ready` en 200 avec base/configuration prêtes, `/dashboard` en 307 vers `/auth/login`, `/v2` en 404 |
 | Recette visuelle publique | landing métier restaurée et formulaire de connexion complet rendus à 1512×982 et 1440×1000 dans Chromium sans régression de structure visible |
@@ -46,6 +46,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - étape d’appel issue d’une séquence, tâche créée dans Organisation, pause de l’inscription, réalisation puis reprise/fin automatique vérifiées en navigateur ;
 - workflow conditionnel créé en brouillon, publication versionnée et simulation sans effet avec trace du chemin et actions prévues ;
 - aperçu HTML isolé, boîte e-mail CRM, statistiques et écrans d’intégration sans faux statut actif ;
+- connexion calendrier Google/Microsoft avec scopes minimaux, import incrémental borné, curseurs chiffrés, création/suppression distante, annulations et conversion déterministe du fuseau société ;
 - scoring explicable, règles personnalisées, file priorisée et segments actifs/statiques ;
 - capture publique d’un prospect avec consentement ;
 - inscription automatique à la séquence ;
@@ -104,6 +105,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - contenu de connaissance assaini côté serveur, articles portail bornés à la société et réponses de satisfaction à usage unique.
 - rattachement d’un fil e-mail refusé entre deux clients ou lorsqu’il appartient déjà à un autre ticket ; notes internes isolées par société et auteur.
 - vues persistées bornées à la société et au membre, configuration JSON validée côté serveur et réapplication après rechargement.
+- événements calendrier distants dédoublonnés par société, boîte et identifiant fournisseur ; URL de continuation Microsoft contrainte au domaine Graph et erreurs de consentement affichées sans simuler une connexion.
 - migration du catalogue existant avec reprise automatique des prix achat/vente dans deux périodes historiques.
 - migration du workflow achats avec conservation des réceptions historiques et rétroalimentation de leur quantité acceptée.
 - migration des modèles et dépendances de chantier avec conservation d’un projet et d’un jalon historiques.
