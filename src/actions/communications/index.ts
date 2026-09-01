@@ -9,7 +9,7 @@ import { sanitizeSequenceEmailHtml } from "@/lib/automations/email"
 import { withAuth } from "@/lib/auth-wrapper"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
-import { syncOAuthEmailChannel } from "@/lib/communications/email-sync"
+import { syncOAuthCommunicationChannel } from "@/lib/communications/communication-sync"
 import { jsonValue, recordOutgoingEmail } from "@/lib/communications/threads"
 import { encrypt } from "@/lib/crypto"
 import prisma from "@/lib/prisma"
@@ -147,7 +147,7 @@ export async function disconnectCommunicationChannel(channelId: string) {
 export async function syncCommunicationChannel(channelId: string) {
   return withAuth(async ({ companyId, userId }) => {
     const id = cuid.parse(channelId)
-    const result = await syncOAuthEmailChannel(companyId, id)
+    const result = await syncOAuthCommunicationChannel(companyId, id)
     await logAction({ userId, action: "UPDATE_COMMUNICATION_CHANNEL", resource: "COMMUNICATION_CHANNEL", resourceId: id, payload: { operation: "SYNC", ...result } })
     revalidatePath("/dashboard/communications")
     return { success: true as const, ...result }

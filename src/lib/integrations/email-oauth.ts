@@ -100,8 +100,8 @@ export function buildEmailAuthorizationUrl(provider: EmailOAuthProvider, redirec
     ? "https://accounts.google.com/o/oauth2/v2/auth"
     : "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize")
   const scopes = provider === "GOOGLE"
-    ? ["https://www.googleapis.com/auth/gmail.modify"]
-    : ["openid", "profile", "offline_access", "User.Read", "Mail.ReadWrite", "Mail.Send"]
+    ? ["https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/calendar.events"]
+    : ["openid", "profile", "offline_access", "User.Read", "Mail.ReadWrite", "Mail.Send", "Calendars.ReadWrite"]
   url.searchParams.set("client_id", clientId)
   url.searchParams.set("redirect_uri", redirectUri)
   url.searchParams.set("response_type", "code")

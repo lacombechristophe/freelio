@@ -76,6 +76,8 @@ test("new local-first surfaces load and their primary controls respond", async (
   await assertHealthy(page, "/dashboard/organisation", "Organisation")
   await page.getByRole("button", { name: "Nouvelle tâche" }).click()
   await expect(page.getByRole("heading", { name: "Nouvelle tâche" })).toBeVisible()
+  await expect(page.getByLabel("Heure", { exact: true })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Connecter Google Workspace ou Microsoft 365" })).toBeVisible()
   await page.getByLabel("Récurrence", { exact: true }).selectOption("WEEKLY")
   await expect(page.getByLabel("Tous les")).toBeEnabled()
   await page.getByRole("button", { name: "Annuler" }).click()

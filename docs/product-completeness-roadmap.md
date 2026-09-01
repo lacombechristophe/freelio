@@ -126,7 +126,7 @@ Le site de l'entreprise met en avant des solutions sur mesure, plusieurs fabrica
 
 ### P0 — nécessaire avant résiliation
 
-- vraies connexions Google Workspace/Microsoft 365 : OAuth, synchronisation incrémentale, envoi, réponses et calendriers ;
+- activation et recette des applications Google Workspace/Microsoft 365 réelles : le code couvre OAuth, synchronisation incrémentale, envoi, réponses et calendriers ;
 - activation Resend/R2/Upstash et supervision de production ;
 - récupération de mot de passe, MFA optionnelle et révocation de sessions ;
 - reprise réelle et rapprochée des données/archives HubSpot et Extrabat ;
@@ -181,5 +181,6 @@ Livré dans le produit :
 - résolution SAV documentée obligatoire, preuves terrain, signature, pièces, coûts réels, réserves, garantie, anomalies fournisseur et retours ;
 - campagnes marketing structurées, assets, audiences, budgets, UTM, séquences et métriques d'attribution.
 - premières vues de listes persistées par membre, avec partage équipe réservé aux administrateurs et réapplication après rechargement.
+- synchronisation calendrier Google/Microsoft : création et suppression distante depuis Organisation, import incrémental idempotent, annulations, curseurs chiffrés et fuseau société.
 
 Toujours bloquant avant résiliation : connecteurs OAuth réels et recette des boîtes/calendriers, activation des fournisseurs de production, migrations à blanc sur les exports réels, e-facturation agréée, sauvegarde/restauration mesurée, puis recette métier et procès-verbal de bascule.

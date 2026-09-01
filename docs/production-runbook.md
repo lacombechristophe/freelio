@@ -77,7 +77,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 - `GEMINI_API_KEY` : seulement pour l'OCR des justificatifs.
 - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` : pour l’e-mail plateforme et le lien magique ; facultatifs si les entreprises utilisent exclusivement BYOK/OAuth et la connexion par mot de passe.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` : obligatoires avant d’ouvrir les offres payantes.
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte correspondante doit être autorisée ; enregistrer exactement `https://<domaine>/api/integrations/email/oauth/callback`, conserver l’accès hors ligne et ne jamais afficher le canal comme actif avant le consentement OAuth et la vérification de l’identité.
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte et son calendrier doivent être autorisés ; enregistrer exactement `https://<domaine>/api/integrations/email/oauth/callback`, conserver l’accès hors ligne, demander les scopes mail/calendrier minimaux documentés et ne jamais afficher le canal comme actif avant le consentement OAuth et la vérification de l’identité.
 - `COMMUNICATIONS_CRON_SECRET` : secret Bearer dédié à la synchronisation planifiée des boîtes OAuth ; son absence replie explicitement sur `AUTOMATION_CRON_SECRET`.
 - `REQUIRE_PLATFORM_EMAIL=true` fait échouer la readiness si `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` ou `EMAIL_FROM` manque. Le laisser à `false` lorsque chaque entreprise connecte sa propre messagerie.
 - `REQUIRE_BILLING=true` fait échouer la readiness si les quatre variables Stripe requises manquent. Ne l’activer qu’au moment d’ouvrir les abonnements payants.
@@ -176,7 +176,7 @@ Effectuer avec un compte de recette non privilégié puis avec chaque rôle crit
 - création d’un compte de recette, connexion par mot de passe et rejet d’un mot de passe incorrect ;
 - si Resend est activé, lien magique reçu et utilisable une fois ;
 - si la réception e-mail est activée, webhook signé reçu, événement dédoublonné et réponse rattachée au bon client ;
-- si Google ou Microsoft est activé, consentement OAuth avec la bonne adresse, envoi test, synchronisation manuelle puis passage du cron contrôlés ;
+- si Google ou Microsoft est activé, consentement OAuth avec la bonne adresse, envoi test, événement calendrier aller/retour, annulation distante, synchronisation manuelle puis passage du cron contrôlés ;
 - dashboard, clients, pipeline, projets, opérations, factures et migrations chargent ;
 - isolation des rôles : un profil sans permission ne peut pas muter le domaine ;
 - création puis suppression d'un prospect de recette ;

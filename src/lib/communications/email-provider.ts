@@ -14,7 +14,11 @@ const oauthCredentialsSchema = z.object({
   tokenType: z.string().default("Bearer"),
   scope: z.string().default(""),
   expiresAt: z.string().datetime(),
+  calendarCursor: z.string().max(20_000).optional(),
+  calendarCursorKind: z.enum(["GOOGLE_SYNC_TOKEN", "MICROSOFT_DELTA_LINK"]).optional(),
 })
+
+export type OAuthCredentials = z.infer<typeof oauthCredentialsSchema>
 
 export type ActiveChannel = {
   id: string
@@ -44,11 +48,16 @@ export async function activeCommunicationChannel(companyId: string, channelId?: 
   return channel
 }
 
-export async function validOAuthAccessToken(channel: ActiveChannel) {
+export function readOAuthCredentials(channel: ActiveChannel): OAuthCredentials {
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider) || !channel.credentialsEncrypted) throw new Error("Autorisation OAuth absente")
+  return oauthCredentialsSchema.parse(JSON.parse(decrypt(channel.credentialsEncrypted)))
+}
+
+export async function validOAuthCredentials(channel: ActiveChannel) {
+  if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Autorisation OAuth absente")
   const provider = channel.provider as EmailOAuthProvider
-  const credentials = oauthCredentialsSchema.parse(JSON.parse(decrypt(channel.credentialsEncrypted)))
-  if (new Date(credentials.expiresAt).getTime() > Date.now() + 5 * 60_000) return credentials.accessToken
+  const credentials = readOAuthCredentials(channel)
+  if (new Date(credentials.expiresAt).getTime() > Date.now() + 5 * 60_000) return credentials
   const refreshed = await refreshEmailOAuthAccessToken(provider, credentials.refreshToken)
   const updated = {
     mode: "OAUTH" as const,
@@ -57,9 +66,35 @@ export async function validOAuthAccessToken(channel: ActiveChannel) {
     tokenType: refreshed.token_type || credentials.tokenType,
     scope: refreshed.scope || credentials.scope,
     expiresAt: new Date(Date.now() + Math.max(60, refreshed.expires_in ?? 3600) * 1000).toISOString(),
+    calendarCursor: credentials.calendarCursor,
+    calendarCursorKind: credentials.calendarCursorKind,
   }
   await prisma.communicationChannel.update({ where: { id: channel.id }, data: { credentialsEncrypted: encrypt(JSON.stringify(updated)), lastError: null } })
-  return updated.accessToken
+  return updated
+}
+
+export async function validOAuthAccessToken(channel: ActiveChannel) {
+  return (await validOAuthCredentials(channel)).accessToken
+}
+
+export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: string | null) {
+  const current = await prisma.communicationChannel.findUnique({
+    where: { id: channel.id },
+    select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true },
+  })
+  if (!current) throw new Error("Messagerie introuvable")
+  const credentials = readOAuthCredentials(current)
+  const updated: OAuthCredentials = {
+    ...credentials,
+    calendarCursor: cursor || undefined,
+    calendarCursorKind: cursor
+      ? channel.provider === "GOOGLE" ? "GOOGLE_SYNC_TOKEN" : "MICROSOFT_DELTA_LINK"
+      : undefined,
+  }
+  await prisma.communicationChannel.update({
+    where: { id: channel.id },
+    data: { credentialsEncrypted: encrypt(JSON.stringify(updated)) },
+  })
 }
 
 function mimeMessage(input: { from: string; to: string; replyTo?: string | null; subject: string; html: string; headers?: Record<string, string> }) {

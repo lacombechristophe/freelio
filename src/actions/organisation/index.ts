@@ -7,10 +7,12 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { advanceTaskRecurrence } from "@/lib/workflow-rules"
 import { completeSequenceTaskFromOrganisationTask } from "@/lib/automations/sequences"
+import { deleteOrganisationTaskFromCalendar, pushOrganisationTaskToCalendar } from "@/lib/communications/calendar-sync"
+import { localDateTimeInZone } from "@/lib/integrations/calendar-event"
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as const
 const GOAL_SCOPES = ["DAY", "WEEK", "MONTH", "YEAR"] as const
-const TASK_CATEGORIES = ["DEV", "ADMIN", "SALES", "SUPPORT", "LEARNING"] as const
+const TASK_CATEGORIES = ["DEV", "ADMIN", "SALES", "SUPPORT", "LEARNING", "MEETING"] as const
 
 const goalSchema = z.object({
   title: z.string().trim().min(1, "Titre requis").max(180),
@@ -44,6 +46,7 @@ const taskSchema = z.object({
   recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).optional().nullable(),
   recurrenceInterval: z.coerce.number().int().min(1).max(52).optional(),
   recurrenceEnd: z.string().optional().nullable(),
+  calendarChannelId: z.string().cuid().optional().nullable(),
 })
 
 type TaskInput = z.input<typeof taskSchema>
@@ -55,8 +58,9 @@ function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null
 }
 
-function parseDate(value: string | null | undefined) {
+function parseDate(value: string | null | undefined, timeZone?: string) {
   if (!value) return null
+  if (timeZone && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return localDateTimeInZone(value, timeZone)
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
 }
@@ -171,7 +175,7 @@ export async function getOrganisationDashboardData() {
     const yearStart = startOfYear(now)
     const yearEnd = endOfYear(now)
 
-    const [goals, tasks, projects, clients, weekTimeEntries, invoices, quotes, milestones] = await Promise.all([
+    const [goals, tasks, projects, clients, weekTimeEntries, invoices, quotes, milestones, calendarChannels] = await Promise.all([
       prisma.organisationGoal.findMany({
         where: {
           companyId,
@@ -266,6 +270,11 @@ export async function getOrganisationDashboardData() {
         orderBy: { dueDate: "asc" },
         take: 12,
       }),
+      prisma.communicationChannel.findMany({
+        where: { companyId, status: "ACTIVE", provider: { in: ["GOOGLE", "MICROSOFT"] } },
+        select: { id: true, provider: true, emailAddress: true, displayName: true, lastSyncAt: true, lastError: true },
+        orderBy: { updatedAt: "desc" },
+      }),
     ])
 
     return {
@@ -319,6 +328,16 @@ export async function getOrganisationDashboardData() {
         recurrence: task.recurrence,
         recurrenceInterval: task.recurrenceInterval,
         recurrenceEnd: toIso(task.recurrenceEnd),
+        calendarChannelId: task.calendarChannelId,
+        calendarProvider: task.calendarProvider,
+        calendarExternalId: task.calendarExternalId,
+        calendarSyncStatus: task.calendarSyncStatus,
+        calendarLastError: task.calendarLastError,
+        calendarLastSyncedAt: toIso(task.calendarLastSyncedAt),
+      })),
+      calendarChannels: calendarChannels.map((channel) => ({
+        ...channel,
+        lastSyncAt: toIso(channel.lastSyncAt),
       })),
       projects: projects.map((project) => ({
         id: project.id,
@@ -422,6 +441,14 @@ export async function createOrganisationTask(data: TaskInput) {
   return await withAuth(async ({ companyId }) => {
     const validated = taskSchema.parse(data)
     const relations = await resolveTaskRelations(companyId, validated)
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const calendarChannelId = cleanId(validated.calendarChannelId)
+    if (calendarChannelId && !parseDate(validated.scheduledDate, company.serviceTimezone)) throw new Error("Planifiez la tâche avant de la synchroniser au calendrier")
+    const calendarChannel = calendarChannelId ? await prisma.communicationChannel.findFirst({
+      where: { id: calendarChannelId, companyId, status: "ACTIVE", provider: { in: ["GOOGLE", "MICROSOFT"] } },
+      select: { id: true, provider: true },
+    }) : null
+    if (calendarChannelId && !calendarChannel) throw new Error("Calendrier connecté introuvable")
 
     const task = await prisma.organisationTask.create({
       data: {
@@ -434,17 +461,29 @@ export async function createOrganisationTask(data: TaskInput) {
         estimateMin: validated.estimateMin || null,
         isBillable: validated.isBillable ?? true,
         dueDate: parseDate(validated.dueDate),
-        scheduledDate: parseDate(validated.scheduledDate),
+        scheduledDate: parseDate(validated.scheduledDate, company.serviceTimezone),
         clientId: relations.clientId,
         projectId: relations.projectId,
         goalId: relations.goalId,
         recurrence: validated.recurrence || null,
         recurrenceInterval: validated.recurrenceInterval ?? 1,
         recurrenceEnd: parseDate(validated.recurrenceEnd),
+        calendarChannelId: calendarChannel?.id || null,
+        calendarProvider: calendarChannel?.provider || null,
+        calendarSyncStatus: calendarChannel ? "PENDING" : null,
       },
     })
+    let calendarWarning: string | null = null
+    if (calendarChannel) {
+      try {
+        await pushOrganisationTaskToCalendar(companyId, task.id, calendarChannel.id)
+      } catch (error) {
+        calendarWarning = (error instanceof Error ? error.message : "Synchronisation du calendrier impossible").slice(0, 500)
+        await prisma.organisationTask.update({ where: { id: task.id }, data: { calendarSyncStatus: "ERROR", calendarLastError: calendarWarning } })
+      }
+    }
     revalidateOrganisation()
-    return task
+    return { ...task, calendarWarning }
   })
 }
 
@@ -503,6 +542,7 @@ export async function deleteOrganisationTask(id: string) {
     const existing = await prisma.organisationTask.findFirst({ where: { id, companyId } })
     if (!existing) throw new Error("Tache introuvable")
 
+    await deleteOrganisationTaskFromCalendar(companyId, id)
     await prisma.organisationTask.delete({ where: { id } })
     revalidateOrganisation()
     return { ok: true }

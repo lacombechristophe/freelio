@@ -1,4 +1,4 @@
-import { syncDueOAuthEmailChannels } from "@/lib/communications/email-sync"
+import { syncDueOAuthCommunicationChannels } from "@/lib/communications/communication-sync"
 import { cronRequestIsAuthorized } from "@/lib/cron-auth"
 
 export const runtime = "nodejs"
@@ -8,7 +8,7 @@ async function processSync(request: Request) {
   if (!cronRequestIsAuthorized(request, "COMMUNICATIONS_CRON_SECRET", "AUTOMATION_CRON_SECRET")) {
     return Response.json({ error: "Accès refusé" }, { status: 401, headers: { "cache-control": "no-store" } })
   }
-  const result = await syncDueOAuthEmailChannels(10)
+  const result = await syncDueOAuthCommunicationChannels(10)
   return Response.json(result, { headers: { "cache-control": "no-store" } })
 }
 
