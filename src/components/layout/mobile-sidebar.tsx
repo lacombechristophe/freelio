@@ -67,7 +67,7 @@ export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
             className="relative h-full w-[304px] max-w-[88vw] overscroll-contain border-r border-sidebar-border bg-sidebar shadow-[0_24px_60px_rgba(16,24,40,0.2)]"
           >
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-              <AppBrand brand={brand} />
+              <AppBrand brand={brand} inverted />
               <Button
                 type="button"
                 variant="ghost"
@@ -75,18 +75,18 @@ export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
                 aria-label="Fermer la navigation"
                 onClick={() => setOpen(false)}
               >
-                <X aria-hidden="true" className="h-5 w-5" />
+                <X aria-hidden="true" className="h-5 w-5 text-white" />
               </Button>
             </div>
 
             <div className="h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto px-3 py-4">
-              <Link href={dashboardHome.href} onClick={() => setOpen(false)} className={cn("flex h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-semibold", pathname === dashboardHome.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><dashboardHome.icon className="size-5" />{dashboardHome.name}</Link>
+              <Link href={dashboardHome.href} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-3 rounded-[9px] px-3 text-sm font-semibold", pathname === dashboardHome.href ? "bg-sidebar-accent text-white" : "text-sidebar-foreground hover:bg-white/8 hover:text-white")}><dashboardHome.icon className="size-5" />{dashboardHome.name}</Link>
               <div className="pt-2">{dashboardNavGroups.map((group) => {
                 const active = group.items.some((item) => navigationItemIsActive(pathname, item, currentQuery))
                 const groupOpen = openGroups.has(group.name)
-                return <section key={group.name} className="mb-1"><button type="button" onClick={() => setOpenGroups((current) => { const next = new Set(current); if (next.has(group.name)) next.delete(group.name); else next.add(group.name); return next })} aria-expanded={groupOpen} className={cn("flex h-11 w-full items-center gap-3 rounded-[10px] px-3 text-sm font-semibold", active ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><group.icon className={cn("size-5", active && "text-primary")} /><span className="flex-1 text-left">{group.name}</span><ChevronDown className={cn("size-4 transition-transform", groupOpen && "rotate-180")} /></button>{groupOpen && <div className="ml-5 border-l py-1 pl-2">{group.items.map((item) => { const itemActive = navigationItemIsActive(pathname, item, currentQuery); return <Link key={`${item.href}-${item.name}`} href={item.href} onClick={() => setOpen(false)} className={cn("flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm", itemActive ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><item.icon className={cn("size-4 shrink-0", itemActive && "text-primary")} />{item.name}</Link> })}</div>}</section>
+                return <section key={group.name} className="mb-1"><button type="button" onClick={() => setOpenGroups((current) => { const next = new Set(current); if (next.has(group.name)) next.delete(group.name); else next.add(group.name); return next })} aria-expanded={groupOpen} className={cn("flex h-9 w-full items-center gap-3 rounded-[9px] px-3 text-[11px] font-semibold uppercase", active ? "text-white" : "text-sidebar-foreground/65 hover:bg-white/7 hover:text-white")}><group.icon className={cn("size-4", active && "text-sidebar-primary")} /><span className="flex-1 text-left">{group.name}</span><ChevronDown className={cn("size-4 transition-transform", groupOpen && "rotate-180")} /></button>{groupOpen && <div className="py-1">{group.items.map((item) => { const itemActive = navigationItemIsActive(pathname, item, currentQuery); return <Link key={`${item.href}-${item.name}`} href={item.href} onClick={() => setOpen(false)} className={cn("flex min-h-9 items-center gap-2.5 rounded-lg px-3 py-2 text-sm", itemActive ? "bg-sidebar-accent font-medium text-white" : "text-sidebar-foreground/85 hover:bg-white/7 hover:text-white")}><item.icon className="size-4 shrink-0" />{item.name}</Link> })}</div>}</section>
               })}</div>
-              <div className="border-t pt-3">{dashboardUtilityItems.map((item) => <Link key={`${item.href}-${item.name}`} href={item.href} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm", navigationItemIsActive(pathname, item, currentQuery) ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><item.icon className="size-4" />{item.name}</Link>)}</div>
+              <div className="border-t border-sidebar-border pt-3">{dashboardUtilityItems.map((item) => <Link key={`${item.href}-${item.name}`} href={item.href} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm", navigationItemIsActive(pathname, item, currentQuery) ? "bg-sidebar-accent font-medium text-white" : "text-sidebar-foreground/85 hover:bg-white/7 hover:text-white")}><item.icon className="size-4" />{item.name}</Link>)}</div>
             </div>
           </nav>
         </div>

@@ -1,0 +1,27 @@
+import { expect, test } from "@playwright/test"
+
+const workspaceEntrances = [
+  { path: "/dashboard", heading: "Vue d’ensemble" },
+  { path: "/dashboard/crm", heading: "Clients et relations" },
+  { path: "/dashboard/sales", heading: "Transformer les projets en commandes" },
+  { path: "/dashboard/marketing/overview", heading: "Acquisition et engagement" },
+  { path: "/dashboard/operations", heading: "Centre des opérations" },
+  { path: "/dashboard/service", heading: "SAV et fidélisation" },
+  { path: "/dashboard/revenue", heading: "Facturation et trésorerie" },
+] as const
+
+test("le nouveau shell et les cockpits métier restent cohérents", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Contrôle visuel de référence sur le viewport bureau")
+  await page.setViewportSize({ width: 1600, height: 1000 })
+
+  for (const entrance of workspaceEntrances) {
+    await page.goto(entrance.path)
+    await expect(page.getByRole("heading", { name: entrance.heading, exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Ouvrir le menu de création" })).toBeVisible()
+    await expect(page.getByText("Chronomètre", { exact: true })).toHaveCount(0)
+    const screenshotName = entrance.path === "/dashboard"
+      ? "overview"
+      : entrance.path.split("/").filter(Boolean).slice(1).join("-")
+    await page.screenshot({ path: `test-results/${screenshotName}-visual-direction.png`, fullPage: true })
+  }
+})

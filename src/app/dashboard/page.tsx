@@ -16,6 +16,7 @@ import {
   Wrench,
 } from "lucide-react"
 
+import { auth } from "@/auth"
 import { getDashboardStats, getOperationsCockpitData } from "@/actions/accounting"
 import { getNotifications } from "@/actions/notifications"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -68,7 +69,8 @@ function riskToneClass(level: CockpitData["projectRisks"][number]["risk"]["level
 }
 
 export default async function DashboardPage() {
-  const [stats, notifications, cockpit] = await Promise.all([
+  const [session, stats, notifications, cockpit] = await Promise.all([
+    auth(),
     getDashboardStats(),
     getNotifications(),
     getOperationsCockpitData(),
@@ -91,7 +93,7 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow="Cockpit du jour"
         title="Vue d’ensemble"
-        description="Les priorités, les montants et les risques qui demandent une décision aujourd’hui."
+        description={`Bonjour ${session?.user?.name?.split(" ")[0] ?? ""} 👋 Voici les priorités, les montants et les risques qui demandent une décision aujourd’hui.`}
         actions={
           <>
           <Link href="/dashboard/organisation">
@@ -263,16 +265,19 @@ function MetricCard({
   }[tone]
 
   return (
-    <Card className="bg-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">{label}</CardTitle>
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", toneClass)}>
+    <Card className="min-h-[128px] bg-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+        <CardTitle className="text-xs font-medium text-foreground/85">{label}</CardTitle>
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", toneClass)}>
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold tabular-nums">{value}</div>
-        <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        <div className="text-[22px] font-semibold leading-none tabular-nums">{value}</div>
+        <div className="mt-5 flex items-center gap-2 border-t pt-2.5">
+          <span className={cn("size-1.5 rounded-full", tone === "danger" ? "bg-danger" : tone === "warning" ? "bg-warning" : "bg-success")} />
+          <p className="truncate text-[11px] text-muted-foreground">{detail}</p>
+        </div>
       </CardContent>
     </Card>
   )
@@ -307,12 +312,12 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
             {cockpit.today.tasks.length === 0 ? (
               <EmptyState text="Aucune priorité aujourd'hui. Tu peux planifier ta journée depuis Organisation." />
             ) : (
-              <div className="space-y-2">
-                {cockpit.today.tasks.slice(0, 5).map((task) => (
-                  <Link
+            <div className="divide-y overflow-hidden rounded-lg border">
+              {cockpit.today.tasks.slice(0, 5).map((task) => (
+                <Link
                     key={task.id}
                     href="/dashboard/organisation"
-                    className="block rounded-lg border bg-background/70 p-3 transition-colors hover:bg-muted/40"
+                    className="block px-3.5 py-3 transition-colors hover:bg-muted/40"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -325,7 +330,7 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
                         P{task.priority}
                       </Badge>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <div className="mt-1.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                       <span>{task.category}</span>
                       <span>{task.estimateMin ? formatMinutes(task.estimateMin) : "Non estimé"}</span>
                       <span>{shortDate(task.scheduledDate ?? task.dueDate)}</span>
@@ -372,7 +377,7 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
           <CardDescription>Actions générées à partir des données CRM.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-4">
-          <div className="space-y-2">
+            <div className="divide-y rounded-lg border">
             {cockpit.suggestedActions.length === 0 ? (
               <EmptyState text="Rien d'urgent détecté. Bon moment pour vendre ou documenter." />
             ) : (
@@ -380,14 +385,14 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
                 <Link
                   key={action.id}
                   href={action.href}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/40",
-                    actionToneClass(action.tone)
-                  )}
+                  className="flex items-center justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-muted/40"
                 >
-                  <span className="min-w-0">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full border", actionToneClass(action.tone))} />
+                    <span className="min-w-0">
                     <span className="block text-sm font-bold">{action.label}</span>
                     <span className="block truncate text-xs opacity-80">{action.detail}</span>
+                    </span>
                   </span>
                   <ArrowRight className="h-4 w-4 shrink-0" />
                 </Link>
@@ -400,27 +405,25 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
             {cockpit.projectRisks.length === 0 ? (
               <EmptyState text="Aucun projet actif en zone de risque." />
             ) : (
-              cockpit.projectRisks.map((project) => (
+              <div className="divide-y rounded-lg border">{cockpit.projectRisks.map((project) => (
                 <Link
                   key={project.id}
                   href={`/dashboard/projets/${project.id}`}
-                  className={cn(
-                    "block rounded-lg border p-3 transition-colors hover:bg-muted/40",
-                    riskToneClass(project.risk.level)
-                  )}
+                  className="block px-3.5 py-3 transition-colors hover:bg-muted/40"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold">{project.name}</p>
                       <p className="mt-1 text-xs opacity-80">{project.clientName}</p>
                     </div>
-                    <span className="text-sm font-black tabular-nums">{project.risk.budgetUsagePct}%</span>
+                    <span className={cn("rounded-md border px-2 py-0.5 text-xs font-semibold tabular-nums", riskToneClass(project.risk.level))}>{project.risk.budgetUsagePct}%</span>
                   </div>
-                  <p className="mt-2 line-clamp-1 text-xs opacity-80">
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className={cn("h-full rounded-full", project.risk.level === "critical" ? "bg-danger" : project.risk.level === "warning" ? "bg-warning" : "bg-success")} style={{ width: `${Math.min(project.risk.budgetUsagePct, 100)}%` }} /></div>
+                  <p className="mt-1.5 line-clamp-1 text-xs text-muted-foreground">
                     {project.risk.reasons.join(" · ") || "À surveiller"}
                   </p>
                 </Link>
-              ))
+              ))}</div>
             )}
           </div>
         </CardContent>
@@ -443,12 +446,12 @@ function CockpitMiniStat({
   href: string
 }) {
   return (
-    <Link href={href} className="flex items-center gap-3 rounded-lg border bg-background/70 p-3 transition-colors hover:bg-muted/40">
+    <Link href={href} className="flex items-center gap-3 border-b px-1 py-3 transition-colors last:border-b-0 hover:bg-muted/30">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <p className="mt-1 text-lg font-black tabular-nums">{value}</p>
         <p className="truncate text-xs text-muted-foreground">{detail}</p>
       </div>

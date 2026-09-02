@@ -65,7 +65,7 @@ export type DashboardNavGroup = {
   items: DashboardNavItem[]
 }
 
-export const dashboardHome: DashboardNavItem = { name: "Accueil", href: "/dashboard", icon: LayoutDashboard }
+export const dashboardHome: DashboardNavItem = { name: "Vue d’ensemble", href: "/dashboard", icon: LayoutDashboard }
 
 export const dashboardNavGroups: DashboardNavGroup[] = [
   {
@@ -87,7 +87,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     items: [
       { name: "Vue marketing", href: "/dashboard/marketing/overview", icon: ChartNoAxesCombined, description: "Performance et actions prioritaires" },
       { name: "Campagnes", href: "/dashboard/campagnes", icon: Megaphone, description: "Planification et performance multicanale" },
-      { name: "Segments & scoring", href: "/dashboard/marketing", icon: Gauge, description: "Audiences et qualification" },
+      { name: "Segments & scoring", href: "/dashboard/marketing", icon: Gauge, description: "Audiences et qualification", exactMatch: true },
       { name: "Automatisations", href: "/dashboard/automatisations", icon: Workflow, description: "Déclencheurs et actions" },
     ],
   },
