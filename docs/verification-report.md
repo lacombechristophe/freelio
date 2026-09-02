@@ -18,14 +18,15 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run test:unit` | 59 fichiers, 235 tests réussis |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
 | `npm audit --omit=dev` | 0 vulnérabilité déclarée |
-| Playwright, build production et base isolée | 25 scénarios desktop/mobile réussis et 15 mutations volontairement ignorées sur mobile après preuve desktop (40 exécutions) |
+| Playwright, build production et base isolée | 26 scénarios desktop/mobile réussis et 16 mutations volontairement ignorées sur mobile après preuve desktop (42 exécutions) |
+| Direction UI/UX | shell, navigation et sept cockpits métier contrôlés en navigateur ; aucune occurrence d’identité client dans l’interface et aucun anti-pattern détecté par le contrôle Impeccable |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
 | PostgreSQL | 39 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS, intégrité devis/contrat/commande et synchronisation calendrier |
-| Production Vercel | déploiement `dpl_7hczby4W6PjUJ78pXuVzrXh8ETiY` prêt, alias public actif sur `https://freelio-eight.vercel.app`, code applicatif du commit `8584596` poussé |
+| Production Vercel | déploiement `dpl_CPPn5PoxkZSjHFfo9qU45XemQqvk` prêt, alias public actif sur `https://freelio-eight.vercel.app`, code applicatif du commit `954fd12` poussé |
 | Smoke HTTP public | `/` et `/auth/login` en 200, `/api/health/live` et `/api/health/ready` en 200 avec base/configuration prêtes, `/dashboard` en 307 vers `/auth/login`, `/v2` en 404 |
 | Recette visuelle publique | landing métier restaurée et formulaire de connexion complet rendus à 1512×982 et 1440×1000 dans Chromium sans régression de structure visible |
-| Connexion production | création d’un compte de recette, onboarding, cockpit, pipeline, propriétés CRM et clients chargés, nouvelle session puis reconnexion par mot de passe ; anonymisation RGPD ciblée réussie et ancien identifiant devenu inutilisable |
+| Connexion production | création d’un compte de recette éphémère, nouvelle session puis reconnexion par mot de passe, onboarding et cockpit chargés ; anonymisation RGPD réussie, ancien identifiant devenu inutilisable et comptes de smoke résiduels nettoyés |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
 | `/v2` | réponse HTTP 404 vérifiée |
 | Export précomptable | archive ZIP et signature `PK` vérifiées en E2E |
