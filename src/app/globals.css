@@ -129,7 +129,7 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: #f7f9fc;
+    --background: #f4f7fb;
     --foreground: #0b1930;
     --card: #ffffff;
     --card-foreground: #0b1930;
@@ -140,13 +140,13 @@
     --secondary: #edf3fa;
     --secondary-foreground: #0b1930;
     --muted: #f1f5f9;
-    --muted-foreground: #5c6d86;
+    --muted-foreground: #526680;
     --accent: #e8f2ff;
     --accent-foreground: #075bd4;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --border: #dce4ee;
-    --input: #cbd6e4;
+    --border: #d7e0eb;
+    --input: #c4d0df;
     --ring: #0768f7;
     --chart-1: #0768f7;
     --chart-2: #0aa38f;
@@ -207,6 +207,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    line-height: 1.5;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   html,
@@ -231,16 +232,14 @@
   .app-surface {
     letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
-  }
-  .app-surface * {
-    letter-spacing: 0 !important;
+    color: var(--foreground);
   }
   .app-surface h1 {
     font-family: var(--font-geist-sans), system-ui, sans-serif;
-    font-size: 1.625rem;
+    font-size: 1.75rem;
     font-weight: 650;
-    line-height: 1.15;
-    letter-spacing: 0;
+    line-height: 1.12;
+    letter-spacing: -0.025em;
   }
   .app-surface h2,
   .app-surface h3 {
@@ -249,12 +248,89 @@
   .app-surface p {
     text-wrap: pretty;
   }
+  /* Product UI keeps supporting text readable at normal desktop zoom. */
+  .app-surface .text-\[11px\] {
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+  }
+  .app-surface .text-\[10px\] {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+  }
+  .app-surface .text-muted-foreground {
+    color: #526680;
+  }
+  .app-surface :where(a, button, input, select, textarea) {
+    touch-action: manipulation;
+  }
+  .app-surface :where(h1, h2, h3, h4) {
+    scroll-margin-top: 5rem;
+  }
+  .app-surface :where(input, select, textarea)::placeholder {
+    color: #657792;
+    opacity: 1;
+  }
   .app-surface ::selection {
     background: color-mix(in srgb, var(--primary) 20%, transparent);
   }
   .app-page-enter {
     animation: app-page-enter 220ms cubic-bezier(0.2, 0, 0, 1) both;
     will-change: opacity, transform;
+  }
+  .workspace-page {
+    --workspace-gap: 1rem;
+    display: grid;
+    gap: var(--workspace-gap);
+  }
+  .workspace-page > * {
+    min-width: 0;
+  }
+  .workspace-page .workspace-page-header {
+    margin-bottom: 0.25rem;
+  }
+  .workspace-page .workspace-metrics {
+    align-items: stretch;
+  }
+  .workspace-page .workspace-metric {
+    min-height: 7.25rem;
+    border-color: #d6e0eb;
+    box-shadow: 0 1px 2px rgba(13, 36, 66, 0.035);
+  }
+  .workspace-page .workspace-metric:hover {
+    border-color: #c2d1e1;
+  }
+  .workspace-page .workspace-panel,
+  .workspace-page .workspace-directory,
+  .workspace-page .workspace-trend,
+  .workspace-page .workspace-distribution,
+  .workspace-page .workspace-pipeline {
+    border-color: #d6e0eb;
+    box-shadow: 0 1px 2px rgba(13, 36, 66, 0.035);
+  }
+  .workspace-page .workspace-panel header,
+  .workspace-page .workspace-trend header,
+  .workspace-page .workspace-distribution header,
+  .workspace-page .workspace-pipeline header,
+  .workspace-page .workspace-directory > header {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(248,250,253,0.9));
+  }
+  .workspace-page .workspace-row {
+    min-height: 4.25rem;
+  }
+  .workspace-page .workspace-row:hover,
+  .workspace-page .workspace-directory a:hover {
+    background: #f5f8fc;
+  }
+  .workspace-page .workspace-empty {
+    min-height: 8.5rem;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    text-align: center;
+    background: #fbfcfe;
+  }
+  .workspace-page .workspace-link {
+    min-height: 2.75rem;
   }
   .marketing-surface {
     --freelio-radius-control: 0.625rem;

@@ -324,9 +324,9 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <p className="text-xs font-medium text-muted-foreground">Périmètre opérationnel</p>
+    <div className="workspace-page">
+      <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-end">
+          <p className="text-[13px] font-medium text-muted-foreground">Périmètre opérationnel</p>
           <div className="w-full sm:w-72">
             <Select value={agencyId} onValueChange={(next) => setAgencyId(next || "ALL")}>
               <SelectTrigger aria-label="Filtrer par agence"><SelectValue /></SelectTrigger>
@@ -335,8 +335,8 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
           </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map(({ icon: Icon, label, metric, detail }, index) => <Card key={label} className="min-h-[124px]"><CardContent className="flex h-full items-start justify-between gap-4 p-4"><div><p className="text-xs font-medium text-foreground/85">{label}</p><p className="mt-2 text-[22px] font-semibold leading-none tabular-nums">{metric}</p><div className="mt-5 flex items-center gap-2 border-t pt-2.5"><span className={`size-1.5 rounded-full ${metric > 0 && index >= 2 ? "bg-warning" : "bg-success"}`} /><p className="truncate text-[11px] text-muted-foreground">{detail}</p></div></div><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${index === 1 ? "bg-teal-50 text-teal-600" : index >= 2 ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}><Icon className="size-4" /></span></CardContent></Card>)}
+      <div className="workspace-metrics grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map(({ icon: Icon, label, metric, detail }, index) => <Card key={label} className="workspace-metric min-h-[116px]"><CardContent className="flex h-full items-start justify-between gap-4 p-4"><div><p className="text-[13px] font-medium text-foreground/85">{label}</p><p className="mt-2 text-[25px] font-semibold leading-none tracking-[-0.02em] tabular-nums">{metric}</p><div className="mt-4 flex items-center gap-2 border-t pt-2.5"><span className={`size-1.5 rounded-full ${metric > 0 && index >= 2 ? "bg-warning" : "bg-success"}`} /><p className="truncate text-xs text-muted-foreground">{detail}</p></div></div><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${index === 1 ? "bg-teal-50 text-teal-600" : index >= 2 ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}><Icon className="size-4" /></span></CardContent></Card>)}
       </div>
 
       <details data-testid="operation-composer" open={createOpen} onToggle={(event) => setCreateOpen(event.currentTarget.open)} className="group rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">

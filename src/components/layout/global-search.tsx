@@ -73,13 +73,15 @@ export function GlobalSearch() {
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
               autoFocus
+              name="globalSearch"
+              autoComplete="off"
               className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0"
               placeholder="Rechercher clients, contacts, dossiers, tickets, campagnes…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <div className="max-h-[420px] min-h-36 overflow-y-auto p-2">
+          <div className="max-h-[420px] min-h-36 overflow-y-auto p-2" aria-live="polite" aria-busy={loading}>
             {query.length < 2 ? (
               <div className="grid min-h-32 place-items-center px-4 text-center"><div><Search className="mx-auto mb-3 size-5 text-muted-foreground" /><p className="text-sm font-medium">Recherchez dans tout l’espace</p><p className="mt-1 text-xs text-muted-foreground">Clients, contacts, documents, tickets, équipements et campagnes.</p></div></div>
             ) : loading ? (

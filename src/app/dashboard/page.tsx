@@ -89,8 +89,9 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="workspace-page">
       <PageHeader
+        className="workspace-page-header"
         eyebrow="Cockpit du jour"
         title="Vue d’ensemble"
         description={`Bonjour ${session?.user?.name?.split(" ")[0] ?? ""} 👋 Voici les priorités, les montants et les risques qui demandent une décision aujourd’hui.`}
@@ -110,7 +111,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="workspace-metrics grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Euro}
           label="CA encaissé"
@@ -144,7 +145,7 @@ export default async function DashboardPage() {
       {cockpit && <OperationsCockpit cockpit={cockpit} />}
 
       <div className="grid gap-6 lg:grid-cols-7">
-        <Card className="bg-card lg:col-span-4">
+        <Card className="workspace-panel bg-card lg:col-span-4">
           <CardHeader>
             <CardTitle>Exécution opérationnelle</CardTitle>
             <CardDescription>Signaux directs issus des commandes, chantiers, stocks et interventions.</CardDescription>
@@ -174,7 +175,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card lg:col-span-3">
+        <Card className="workspace-panel bg-card lg:col-span-3">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Notifications</CardTitle>
@@ -213,7 +214,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-4 border-t pt-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 border-t border-border/80 pt-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <h2 className="text-lg font-bold">Actions rapides</h2>
           <p className="text-sm text-muted-foreground">Créer une opportunité commerciale ou transformer du travail en cash.</p>
@@ -265,18 +266,18 @@ function MetricCard({
   }[tone]
 
   return (
-    <Card className="min-h-[128px] bg-card">
+    <Card className="workspace-metric min-h-[128px] bg-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-        <CardTitle className="text-xs font-medium text-foreground/85">{label}</CardTitle>
+        <CardTitle className="text-[13px] font-medium text-foreground/85">{label}</CardTitle>
         <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", toneClass)}>
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-[22px] font-semibold leading-none tabular-nums">{value}</div>
+        <div className="text-[25px] font-semibold leading-none tracking-[-0.02em] tabular-nums">{value}</div>
         <div className="mt-5 flex items-center gap-2 border-t pt-2.5">
           <span className={cn("size-1.5 rounded-full", tone === "danger" ? "bg-danger" : tone === "warning" ? "bg-warning" : "bg-success")} />
-          <p className="truncate text-[11px] text-muted-foreground">{detail}</p>
+          <p className="truncate text-xs text-muted-foreground">{detail}</p>
         </div>
       </CardContent>
     </Card>
@@ -288,7 +289,7 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-      <Card className="bg-card">
+      <Card className="workspace-panel bg-card">
         <CardHeader className="border-b pb-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -368,7 +369,7 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-card">
+      <Card className="workspace-panel bg-card">
         <CardHeader className="border-b pb-4">
           <CardTitle className="flex items-center gap-2">
             <Gauge className="h-4 w-4 text-primary" />
