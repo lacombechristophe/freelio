@@ -7,8 +7,8 @@ export default async function AutomationsPage() {
   const data = await getAutomationDashboard()
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez d’abord le profil entreprise avant de préparer des automatisations." />
   return (
-    <div className="space-y-7">
-      <PageHeader eyebrow="Relation client" title="Automatisations & e-mails" description="Préparez des modèles, orchestrez des séquences consenties et déclenchez des actions CRM traçables." />
+    <div className="workspace-page">
+      <PageHeader className="workspace-page-header" eyebrow="Relation client" title="Automatisations & e-mails" description="Préparez des modèles, orchestrez des séquences consenties et déclenchez des actions CRM traçables." />
       <AutomationCenter initialData={data} />
     </div>
   )

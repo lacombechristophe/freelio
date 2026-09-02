@@ -14,7 +14,7 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
     <div
       className={cn(
         "relative flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out",
-        isCollapsed ? "w-[72px]" : "w-[232px]"
+        isCollapsed ? "w-[72px]" : "w-[244px]"
       )}
     >
       <div className={cn("flex h-[58px] shrink-0 items-center border-b border-sidebar-border", isCollapsed ? "justify-center px-2" : "px-4")}>

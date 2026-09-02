@@ -18,9 +18,9 @@ export function PageHeader({
   return (
     <header className={cn("flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between", className)}>
       <div className="min-w-0 max-w-3xl">
-        {eyebrow && <p className="mb-1.5 flex items-center gap-2 text-xs font-medium text-muted-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />{eyebrow}</p>}
+        {eyebrow && <p className="mb-1.5 flex items-center gap-2 text-[13px] font-medium text-muted-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />{eyebrow}</p>}
         <h1>{title}</h1>
-        {description && <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>}
+        {description && <p className="mt-1.5 max-w-2xl text-[15px] leading-6 text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>

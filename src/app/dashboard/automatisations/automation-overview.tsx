@@ -25,8 +25,8 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
     { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active" },
   ]
 
-  return <div className="space-y-5">
-    <section aria-label="Indicateurs des automatisations" className="overflow-hidden rounded-xl border bg-card">
+  return <div className="workspace-page">
+    <section aria-label="Indicateurs des automatisations" className="workspace-metrics overflow-hidden rounded-xl border bg-card">
       <div className="grid sm:grid-cols-2 xl:grid-cols-5">
         <Stat label="Séquences actives" value={activeSequences} detail={`${activeEnrollments} inscription(s) en cours`} icon={Send} />
         <Stat label="Règles actives" value={activeWorkflows} detail={`${data.stats.runs.COMPLETED ?? 0} exécution(s) réussie(s)`} icon={Workflow} />
@@ -37,7 +37,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
     </section>
 
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-      <Card>
+      <Card className="workspace-panel">
         <CardHeader className="border-b">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><CardTitle className="text-base">Activité récente</CardTitle><CardDescription>Derniers envois et règles exécutées, avec les erreurs immédiatement visibles.</CardDescription></div>
@@ -54,7 +54,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="workspace-panel">
         <CardHeader><CardTitle className="text-base">Mise en service</CardTitle><CardDescription>Les quatre contrôles à valider avant de laisser le moteur travailler seul.</CardDescription></CardHeader>
         <CardContent className="space-y-1">
           {readiness.map((item) => <div key={item.label} className="flex gap-3 border-b py-3 last:border-b-0"><span className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full ${item.ready ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"}`}>{item.ready ? <CheckCircle2 className="size-3.5" /> : <Clock3 className="size-3.5" />}</span><div><p className="text-sm font-medium">{item.label}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{item.detail}</p></div></div>)}
@@ -63,7 +63,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
       </Card>
     </div>
 
-    <Card>
+    <Card className="workspace-panel">
       <CardHeader className="border-b">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><CardTitle className="text-base">Audience exploitable</CardTitle><CardDescription>Prospects récents avec adresse e-mail et consentement marketing actif.</CardDescription></div>
@@ -75,11 +75,11 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
       </CardContent>
     </Card>
 
-    {data.workflows.length > 0 && <Card><CardHeader><CardTitle className="text-base">Règles surveillées</CardTitle><CardDescription>État de publication et dernier résultat connu.</CardDescription></CardHeader><CardContent className="grid gap-x-6 gap-y-3 md:grid-cols-2">{data.workflows.slice(0, 6).map((workflow) => <button type="button" key={workflow.id} onClick={() => onNavigate("workflows")} className="flex min-w-0 items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted"><Workflow className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{workflow.name}</span><span className="block truncate text-xs text-muted-foreground">{TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger}</span></span><Badge variant={workflow.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[workflow.status] ?? workflow.status}</Badge></button>)}</CardContent></Card>}
+    {data.workflows.length > 0 && <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Règles surveillées</CardTitle><CardDescription>État de publication et dernier résultat connu.</CardDescription></CardHeader><CardContent className="grid gap-x-6 gap-y-3 md:grid-cols-2">{data.workflows.slice(0, 6).map((workflow) => <button type="button" key={workflow.id} onClick={() => onNavigate("workflows")} className="flex min-w-0 items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted"><Workflow className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{workflow.name}</span><span className="block truncate text-xs text-muted-foreground">{TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger}</span></span><Badge variant={workflow.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[workflow.status] ?? workflow.status}</Badge></button>)}</CardContent></Card>}
   </div>
 }
 
 function Stat({ label, value, detail, icon: Icon, tone = "default" }: { label: string; value: number | string; detail: string; icon: typeof Mail; tone?: "default" | "danger" | "success" }) {
   const iconTone = tone === "danger" ? "bg-destructive/10 text-destructive" : tone === "success" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-primary/10 text-primary"
-  return <div className="flex min-w-0 items-center gap-3 border-b p-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(4)]:border-r-0 xl:border-b-0 xl:border-r xl:last:border-r-0 xl:[&:nth-child(odd)]:border-r"><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${iconTone}`}><Icon className="size-4" /></span><div className="min-w-0"><p className="text-lg font-semibold tabular-nums">{value}</p><p className="truncate text-xs font-medium">{label}</p><p className="truncate text-[11px] text-muted-foreground">{detail}</p></div></div>
+  return <div className="workspace-metric flex min-w-0 items-center gap-3 border-b p-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(4)]:border-r-0 xl:border-b-0 xl:border-r xl:last:border-r-0 xl:[&:nth-child(odd)]:border-r"><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${iconTone}`}><Icon className="size-4" /></span><div className="min-w-0"><p className="text-[25px] font-semibold leading-none tabular-nums tracking-tight">{value}</p><p className="mt-1 truncate text-[13px] font-medium">{label}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p></div></div>
 }
