@@ -1,4 +1,6 @@
 import * as React from "react"
+import Link from "next/link"
+import { CalendarDays, CircleHelp } from "lucide-react"
 import { auth } from "@/auth"
 import { Sidebar } from "./sidebar"
 import { GlobalSearch } from "./global-search"
@@ -9,6 +11,7 @@ import { MobileSidebar } from "./mobile-sidebar"
 import { getNotifications, getUnreadCount } from "@/actions/notifications"
 import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 import { AppPageTransition } from "./app-page-transition"
+import { QuickCreateMenu } from "./quick-create-menu"
 
 interface ShellProps {
   children: React.ReactNode
@@ -45,7 +48,7 @@ export async function Shell({ children, brand }: ShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="relative z-40 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/95 px-3 backdrop-blur-xl sm:px-5 lg:px-6">
+        <header className="relative z-40 flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-5 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <MobileSidebar brand={brand} />
             <AppBrand brand={brand} className="lg:hidden" />
@@ -53,17 +56,24 @@ export async function Shell({ children, brand }: ShellProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <div className="hidden sm:block"><ThemeToggle /></div>
+            <QuickCreateMenu />
+            <Link href="/dashboard/organisation" aria-label="Ouvrir l’agenda" title="Agenda" className="hidden size-9 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted sm:grid">
+              <CalendarDays className="size-[17px]" />
+            </Link>
             <NotificationBell
               notifications={(notifications ?? []) as any}
               unreadCount={unreadCount ?? 0}
             />
-            <UserMenu email={session?.user?.email} name={session?.user?.name} />
+            <Link href="/dashboard/help" aria-label="Ouvrir l’aide" title="Aide" className="hidden size-9 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted md:grid">
+              <CircleHelp className="size-[17px]" />
+            </Link>
+            <div className="hidden 2xl:block"><ThemeToggle /></div>
+            <UserMenu email={session?.user?.email} name={session?.user?.name} companyName={brand.name} />
           </div>
         </header>
 
-        <main id="dashboard-main" className="relative flex-1 overflow-x-hidden overflow-y-auto px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
-          <div className="mx-auto w-full max-w-[1440px]">
+        <main id="dashboard-main" className="relative flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-5">
+          <div className="mx-auto w-full max-w-[1520px]">
             <AppPageTransition>{children}</AppPageTransition>
           </div>
         </main>

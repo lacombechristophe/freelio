@@ -68,11 +68,11 @@ describe("migration normalization", () => {
   })
 
   it("maps common French client and contact fields without dropping the source", () => {
-    const payload = { "Raison sociale": "Diskoov", Adresse: "1 rue Test", "Code postal": "44000", Ville: "Nantes", Prénom: "Alice", Email: "alice@example.com" }
+    const payload = { "Raison sociale": "Entreprise exemple", Adresse: "1 rue Test", "Code postal": "44000", Ville: "Nantes", Prénom: "Alice", Email: "alice@example.com" }
     const client = clientCandidate(payload)
     const contact = contactCandidate(payload)
 
-    expect(client).toMatchObject({ name: "Diskoov", type: "ENTERPRISE", address: "1 rue Test, 44000 Nantes" })
+    expect(client).toMatchObject({ name: "Entreprise exemple", type: "ENTERPRISE", address: "1 rue Test, 44000 Nantes" })
     expect(contact).toMatchObject({ firstName: "Alice", email: "alice@example.com" })
     expect(client.customFields).toBe(payload)
   })

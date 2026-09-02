@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { ArrowDownAZ, ArrowUpAZ, Building2, Columns3, Download, Mail, MoreHorizontal, Plus, Search, SlidersHorizontal, User, X } from "lucide-react"
 
@@ -169,13 +169,14 @@ export function ClientsTable({
   savedViews: SavedView[]
 }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const confirmDialog = useConfirm()
   const [search, setSearch] = React.useState("")
   const [filters, setFilters] = React.useState<ListFilter[]>([])
   const [sort, setSort] = React.useState<SortConfig>({ field: "name", direction: "asc" })
   const [visibleColumns, setVisibleColumns] = React.useState<string[]>([...BUILTIN_COLUMNS.map((column) => column.id), ...propertyDefinitions.slice(0, 2).map((definition) => definition.id)])
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
-  const [createOpen, setCreateOpen] = React.useState(false)
+  const [createOpen, setCreateOpen] = React.useState(() => searchParams.get("create") === "1")
   const [editTarget, setEditTarget] = React.useState<Client | null>(null)
 
   const fields = React.useMemo(() => [

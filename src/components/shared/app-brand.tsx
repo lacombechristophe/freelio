@@ -24,11 +24,13 @@ export function AppBrand({
   brand = DEFAULT_BRAND,
   href = "/dashboard",
   compact = false,
+  inverted = false,
   className,
 }: {
   brand?: WorkspaceBrand
   href?: string
   compact?: boolean
+  inverted?: boolean
   className?: string
 }) {
   const name = brand.name.trim() || DEFAULT_BRAND.name
@@ -55,7 +57,7 @@ export function AppBrand({
           <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-[9px] text-sm font-semibold text-white" style={{ backgroundColor: color }}>
             {name.charAt(0).toUpperCase()}
           </span>
-          {!compact ? <span className="truncate text-sm font-semibold text-foreground">{name}</span> : null}
+          {!compact ? <span className={cn("truncate text-sm font-semibold", inverted ? "text-white" : "text-foreground")}>{name}</span> : null}
         </>
       )}
     </Link>

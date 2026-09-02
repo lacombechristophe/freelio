@@ -140,6 +140,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
   const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
   const [agencyId, setAgencyId] = useState("ALL")
+  const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1")
   useEffect(() => setSourceData(serverData), [serverData])
   const data = useMemo(() => filterOperationsByAgency(sourceData, agencyId), [sourceData, agencyId])
   const initialData = data
@@ -324,34 +325,31 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold"><Building2 className="size-4 text-primary" />Périmètre opérationnel</p>
-            <p className="mt-1 text-xs text-muted-foreground">Le filtre adapte les indicateurs et les listes. Les autorisations restent gérées séparément dans les paramètres.</p>
-          </div>
-          <div className="w-full lg:w-72">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <p className="text-xs font-medium text-muted-foreground">Périmètre opérationnel</p>
+          <div className="w-full sm:w-72">
             <Select value={agencyId} onValueChange={(next) => setAgencyId(next || "ALL")}>
               <SelectTrigger aria-label="Filtrer par agence"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="ALL">Toutes les agences</SelectItem>{sourceData.agencies.map((agency) => <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map(({ icon: Icon, label, metric, detail }) => <Card key={label}><CardContent className="flex items-center gap-4 p-5"><span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-4" /></span><div><p className="text-2xl font-semibold tabular-nums">{metric}</p><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{detail}</p></div></CardContent></Card>)}
       </div>
 
-      <AgencyComparison data={sourceData} selectedAgencyId={agencyId} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map(({ icon: Icon, label, metric, detail }, index) => <Card key={label} className="min-h-[124px]"><CardContent className="flex h-full items-start justify-between gap-4 p-4"><div><p className="text-xs font-medium text-foreground/85">{label}</p><p className="mt-2 text-[22px] font-semibold leading-none tabular-nums">{metric}</p><div className="mt-5 flex items-center gap-2 border-t pt-2.5"><span className={`size-1.5 rounded-full ${metric > 0 && index >= 2 ? "bg-warning" : "bg-success"}`} /><p className="truncate text-[11px] text-muted-foreground">{detail}</p></div></div><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${index === 1 ? "bg-teal-50 text-teal-600" : index >= 2 ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}><Icon className="size-4" /></span></CardContent></Card>)}
+      </div>
 
-      <Card>
+      <details data-testid="operation-composer" open={createOpen} onToggle={(event) => setCreateOpen(event.currentTarget.open)} className="group rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4.5 text-sm font-semibold transition-colors hover:bg-muted/35 [&::-webkit-details-marker]:hidden"><Plus className="size-4 text-primary" />Créer ou enregistrer une opération<span className="ml-auto text-xs font-normal text-muted-foreground">Ticket, intervention, achat, stock…</span></summary>
+      <Card className="rounded-none border-x-0 border-b-0 shadow-none">
         <CardHeader className="pb-4"><div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><CardTitle className="flex items-center gap-2 text-base"><Plus className="size-4 text-primary" />Créer une opération</CardTitle><CardDescription>Les rattachements sont contrôlés côté serveur avant chaque écriture.</CardDescription></div><div className="w-full lg:w-64"><Select value={createKind} onValueChange={(next) => setCreateKind(next as CreateKind)}><SelectTrigger aria-label="Type d’opération"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(CREATE_LABELS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent></Select></div></div></CardHeader>
         <CardContent><form key={createKind} onSubmit={submit} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{renderForm(createKind, sourceData)}<div className="flex items-end"><Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? <Loader2 className="animate-spin" /> : <Plus />}Enregistrer</Button></div></form></CardContent>
       </Card>
+      </details>
 
-      <Tabs defaultValue={(["sav", "planning", "maintenance", "orders", "stock", "assets"].includes(searchParams.get("tab") || "") ? searchParams.get("tab") : "sav") ?? "sav"} className="space-y-4">
-        <TabsList className="max-w-full overflow-x-auto"><TabsTrigger value="sav"><Wrench />SAV</TabsTrigger><TabsTrigger value="planning"><CalendarDays />Planning</TabsTrigger><TabsTrigger value="maintenance"><ClipboardCheck />Entretien</TabsTrigger><TabsTrigger value="orders"><ClipboardList />Commandes</TabsTrigger><TabsTrigger value="stock"><Boxes />Stock & achats</TabsTrigger><TabsTrigger value="assets"><PackageCheck />Sites & parc</TabsTrigger></TabsList>
+      <Tabs defaultValue={(["overview", "sav", "planning", "maintenance", "orders", "stock", "assets"].includes(searchParams.get("tab") || "") ? searchParams.get("tab") : "overview") ?? "overview"} className="space-y-4">
+        <TabsList className="max-w-full overflow-x-auto"><TabsTrigger value="overview"><Building2 />Vue opérations</TabsTrigger><TabsTrigger value="sav"><Wrench />SAV</TabsTrigger><TabsTrigger value="planning"><CalendarDays />Planning</TabsTrigger><TabsTrigger value="maintenance"><ClipboardCheck />Entretien</TabsTrigger><TabsTrigger value="orders"><ClipboardList />Commandes</TabsTrigger><TabsTrigger value="stock"><Boxes />Stock & achats</TabsTrigger><TabsTrigger value="assets"><PackageCheck />Sites & parc</TabsTrigger></TabsList>
+        <TabsContent value="overview"><div className="space-y-4"><OperationsOverview data={initialData} /><AgencyComparison data={sourceData} selectedAgencyId={agencyId} /></div></TabsContent>
         <TabsContent value="sav"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Tickets SAV</h2></div>{initialData.tickets.length ? <div className="divide-y">{initialData.tickets.map((ticket) => <div key={ticket.id} className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{ticket.number}</code><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge><Badge variant={ticket.status === "CLOSED" ? "secondary" : "outline"}>{TICKET_STATUS[ticket.status] ?? ticket.status}</Badge></div><Link href={`/dashboard/service/tickets/${ticket.id}`} className="mt-2 block text-sm font-semibold hover:text-primary hover:underline">{ticket.title}</Link><p className="mt-1 text-xs text-muted-foreground">{ticket.client.name}{ticket.site ? ` · ${ticket.site.label}` : ""}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""} · {ticket._count.interventions} intervention{ticket._count.interventions > 1 ? "s" : ""}</p></div><div className="flex gap-2"><Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/dashboard/service/tickets/${ticket.id}`} />}>Traiter le dossier</Button></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun ticket SAV.</p>}</section></TabsContent>
         <TabsContent value="planning">
           <div className="space-y-4">
@@ -440,6 +438,54 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   )
 }
 
+function OperationsOverview({ data }: { data: OperationsData }) {
+  const today = new Date()
+  const dayEnd = new Date(today)
+  dayEnd.setHours(23, 59, 59, 999)
+  const upcomingInterventions = data.interventions
+    .filter((item) => !["COMPLETED", "CANCELED"].includes(item.status) && new Date(item.scheduledStart) <= dayEnd)
+    .slice(0, 6)
+  const priorityTickets = data.tickets
+    .filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status))
+    .slice(0, 6)
+  const criticalProducts = data.products
+    .map((product) => {
+      const quantity = product.inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
+      const reserved = product.inventoryItems.reduce((sum, item) => sum + item.reservedQuantity, 0)
+      const threshold = product.inventoryItems.reduce((sum, item) => sum + item.reorderPoint, 0)
+      return { ...product, available: quantity - reserved, threshold }
+    })
+    .filter((product) => product.stockTracked && product.available <= product.threshold)
+    .slice(0, 5)
+  const activeOrders = data.purchaseOrders
+    .filter((order) => !["RECEIVED", "CANCELED"].includes(order.status))
+    .slice(0, 5)
+
+  return (
+    <div className="grid gap-3 xl:grid-cols-2">
+      <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
+        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">Interventions du jour</h2><p className="mt-0.5 text-xs text-muted-foreground">Créneaux arrivés ou planifiés aujourd’hui.</p></div><Badge variant="secondary">{upcomingInterventions.length}</Badge></header>
+        {upcomingInterventions.length ? <div className="divide-y">{upcomingInterventions.map((item) => <Link key={item.id} href={`/dashboard/service/interventions/${item.id}`} className="grid gap-2 px-4.5 py-3 transition-colors hover:bg-muted/35 sm:grid-cols-[64px_minmax(0,1fr)_130px] sm:items-center"><span className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.scheduledStart))}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">{item.site.client.name} · {item.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.site.label}</span></span><span className="truncate text-xs text-muted-foreground sm:text-right">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"}</span></Link>)}</div> : <p className="px-4.5 py-10 text-center text-sm text-muted-foreground">Aucune intervention à traiter aujourd’hui.</p>}
+      </section>
+
+      <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
+        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">File SAV prioritaire</h2><p className="mt-0.5 text-xs text-muted-foreground">Tickets ouverts classés par priorité et activité récente.</p></div><Badge variant="secondary">{priorityTickets.length}</Badge></header>
+        {priorityTickets.length ? <div className="divide-y">{priorityTickets.map((ticket) => <Link key={ticket.id} href={`/dashboard/service/tickets/${ticket.id}`} className="flex items-center gap-3 px-4.5 py-3 transition-colors hover:bg-muted/35"><span className={`size-2 shrink-0 rounded-full ${ticket.priority === "URGENT" ? "bg-danger" : ticket.priority === "HIGH" ? "bg-warning" : "bg-primary"}`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{ticket.client.name} · {ticket.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{ticket.number}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""}</span></span><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge></Link>)}</div> : <p className="px-4.5 py-10 text-center text-sm text-muted-foreground">Aucun ticket SAV ouvert.</p>}
+      </section>
+
+      <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
+        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">Stock critique</h2><p className="mt-0.5 text-xs text-muted-foreground">Disponibilité nette inférieure ou égale au seuil.</p></div><Badge variant={criticalProducts.length ? "destructive" : "secondary"}>{criticalProducts.length}</Badge></header>
+        {criticalProducts.length ? <div className="divide-y">{criticalProducts.map((product) => <div key={product.id} className="grid grid-cols-[minmax(0,1fr)_80px_80px] items-center gap-3 px-4.5 py-3"><span className="min-w-0"><span className="block truncate text-sm font-medium">{product.label}</span><span className="mt-0.5 block truncate font-mono text-[10px] text-muted-foreground">{product.sku}</span></span><span className="text-right text-xs font-semibold tabular-nums text-danger">{product.available} dispo.</span><span className="text-right text-xs text-muted-foreground">seuil {product.threshold}</span></div>)}</div> : <p className="px-4.5 py-10 text-center text-sm text-muted-foreground">Aucune rupture ou alerte de stock.</p>}
+      </section>
+
+      <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
+        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">Commandes fournisseurs</h2><p className="mt-0.5 text-xs text-muted-foreground">Achats non réceptionnés à suivre.</p></div><Badge variant="secondary">{activeOrders.length}</Badge></header>
+        {activeOrders.length ? <div className="divide-y">{activeOrders.map((order) => <Link key={order.id} href={`/dashboard/operations/achats/${order.id}`} className="grid gap-2 px-4.5 py-3 transition-colors hover:bg-muted/35 sm:grid-cols-[110px_minmax(0,1fr)_110px] sm:items-center"><span className="font-mono text-xs font-semibold">{order.number}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">{order.supplier.name}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{order.project?.name || "Sans chantier"}</span></span><Badge variant="outline" className="justify-self-start sm:justify-self-end">{order.status}</Badge></Link>)}</div> : <p className="px-4.5 py-10 text-center text-sm text-muted-foreground">Aucune commande fournisseur active.</p>}
+      </section>
+    </div>
+  )
+}
+
 function AgencyComparison({ data, selectedAgencyId }: { data: OperationsData; selectedAgencyId: string }) {
   const rows = data.agencies.map((agency) => {
     const warehouseIds = new Set(data.warehouses.filter((warehouse) => warehouse.agencyId === agency.id).map((warehouse) => warehouse.id))
@@ -458,11 +504,11 @@ function AgencyComparison({ data, selectedAgencyId }: { data: OperationsData; se
       stockValueCents: inventory.reduce((sum, item) => sum + item.quantity * item.purchasePriceCents, 0),
     }
   })
-  if (!rows.length) return null
+  if (rows.length <= 1) return null
   return (
     <section className="overflow-hidden rounded-xl border bg-card">
       <div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Comparaison des agences</h2><p className="mt-1 text-xs text-muted-foreground">Charge opérationnelle et stock physique, calculés à partir des rattachements actuels.</p></div>
-      <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-px bg-border [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
         {rows.map((row) => <article key={row.id} className={`bg-card p-5 ${selectedAgencyId === row.id ? "ring-2 ring-inset ring-primary" : ""}`}><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-semibold">{row.name}</p>{row.isDefault ? <Badge variant="secondary">Principale</Badge> : null}</div><dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-muted-foreground">Sites / chantiers</dt><dd className="mt-1 font-semibold tabular-nums">{row.sites} / {row.projects}</dd></div><div><dt className="text-muted-foreground">Dépôts / équipe</dt><dd className="mt-1 font-semibold tabular-nums">{row.warehouses} / {row.members}</dd></div><div><dt className="text-muted-foreground">Disponible</dt><dd className="mt-1 font-semibold tabular-nums">{row.available} unités</dd></div><div><dt className="text-muted-foreground">Valeur achat</dt><dd className="mt-1 font-semibold tabular-nums">{formatMoney(row.stockValueCents)}</dd></div></dl></article>)}
       </div>
     </section>

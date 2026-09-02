@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { buildPreAccountingJournal, journalBalance, PRE_ACCOUNTING_COLUMNS, rowsToCsv } from "@/lib/accounting/export"
 
-describe("export précomptable Diskoov", () => {
+describe("export précomptable entreprise", () => {
   it("produit des écritures équilibrées pour vente, paiement, avoir et achat", () => {
     const invoices = [
       { id: "inv-1", number: "FACT-2026-001", object: "Couverture", type: "STANDARD", date: new Date("2026-01-10T00:00:00Z"), lockedAt: new Date("2026-01-10T00:00:00Z"), totalHtCents: 10_000, totalTvaCents: 2_000, totalTtcCents: 12_000, client: { id: "client-1", name: "Client test" }, payments: [{ id: "pay-1", amountCents: 12_000, date: new Date("2026-01-20T00:00:00Z"), method: "TRANSFER", reference: "VIR-1" }] },

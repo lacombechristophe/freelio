@@ -23,7 +23,7 @@ function baseExport(): ReversibilityExportBase {
     },
     collectionWarnings: [],
     tables: [
-      { model: "Company", rows: [{ name: "Diskoov", id: "company-1" }] },
+      { model: "Company", rows: [{ name: "Entreprise exemple", id: "company-1" }] },
       { model: "CustomerOrder", rows: [{ id: "order-1", totalTtcCents: 125_000 }] },
     ],
     files: [{

@@ -15,6 +15,7 @@ async function assertHealthy(page: Page, pathName: string, heading: string) {
 }
 
 async function selectOperationType(page: Page, label: string) {
+  await openOperationComposer(page)
   const trigger = page.getByRole("combobox", { name: "Type d’opération" })
   const option = page.getByRole("option", { name: label, exact: true })
   await trigger.click()
@@ -23,6 +24,12 @@ async function selectOperationType(page: Page, label: string) {
   await expect(trigger).toContainText(label)
   await page.keyboard.press("Escape")
   await expect(option).toBeHidden()
+}
+
+async function openOperationComposer(page: Page) {
+  const composer = page.getByTestId("operation-composer")
+  if (await composer.getAttribute("open") === null) await composer.locator("summary").click()
+  await expect(page.getByRole("combobox", { name: "Type d’opération" })).toBeVisible()
 }
 
 test.beforeEach(async ({ page }) => {
@@ -262,9 +269,10 @@ test("agencies connect teams, warehouses and operational records", async ({ page
     await agencyCard.getByRole("button", { name: "Enregistrer" }).click()
     await expect(page.getByText("Affectations enregistrées.")).toBeVisible()
 
-    await assertHealthy(page, "/dashboard/operations?tab=stock", "Opérations")
+    await assertHealthy(page, "/dashboard/operations", "Opérations")
     await expect(page.getByText("Périmètre opérationnel")).toBeVisible()
     await expect(page.getByText("Comparaison des agences")).toBeVisible()
+    await page.getByRole("tab", { name: "Stock & achats" }).click()
     const destinationWarehouse = `Dépôt transfert QA ${suffix}`
     await selectOperationType(page, "Dépôt")
     await page.getByLabel("Agence", { exact: true }).selectOption({ label: "Agence QA · principale" })
@@ -579,6 +587,7 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await expect(diagnosticHistory.getByText("Réglage contrôlé, aucun point dur constaté pendant le cycle complet.")).toBeVisible()
 
     await assertHealthy(page, "/dashboard/operations?tab=sav", "Opérations")
+    await openOperationComposer(page)
     await page.getByLabel("Client *").selectOption({ label: "Client QA Piscine" })
     await page.getByLabel("Site").selectOption({ label: "Client QA Piscine · Bassin QA" })
     await page.getByLabel("Équipement").selectOption({ label: "Client QA Piscine · Couverture QA installée" })
@@ -1113,6 +1122,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await expect(page.getByText(/Solde de la commande CMD-2026-/).first()).toBeVisible()
 
   await page.goto("/dashboard/operations?tab=orders")
+  await openOperationComposer(page)
   const operationType = page.getByRole("combobox", { name: "Type d’opération" })
   await operationType.click()
   await page.getByRole("option", { name: "Réservation de stock" }).focus()
@@ -1177,6 +1187,7 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await expect(planningPanel.getByText("Tournées à venir")).toBeVisible()
 
   const operationTypeForConflict = page.getByRole("combobox", { name: "Type d’opération" })
+  await openOperationComposer(page)
   await operationTypeForConflict.click()
   await page.getByRole("option", { name: "Intervention", exact: true }).click()
   await page.getByLabel("Site").selectOption({ label: "Client QA Piscine · Bassin QA" })
@@ -1279,6 +1290,7 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   expect(reportHtml).toContain("Signature manuscrite du client")
 
   const operationType = page.getByRole("combobox", { name: "Type d’opération" })
+  await openOperationComposer(page)
   await operationType.click()
   await page.getByRole("option", { name: "Contrat d’entretien" }).click()
   await page.getByLabel("Client").selectOption({ label: "Client QA Piscine" })
