@@ -4,12 +4,14 @@ const developmentEval = process.env.NODE_ENV === "development" ? " 'unsafe-eval'
 const upgradeInsecureRequests = process.env.NODE_ENV === "production" ? " upgrade-insecure-requests;" : ""
 const r2AccountId = process.env.R2_ACCOUNT_ID?.trim() ?? ""
 const r2ConnectOrigin = /^[a-f0-9]{32}$/i.test(r2AccountId) ? ` https://${r2AccountId}.r2.cloudflarestorage.com` : ""
+const distDir = process.env.NEXT_DIST_DIR?.trim()
 
 const nextConfig: NextConfig = {
+  ...(distDir ? { distDir } : {}),
   poweredByHeader: false,
   experimental: { sri: { algorithm: "sha384" } },
   allowedDevOrigins: ["127.0.0.1"],
-  serverExternalPackages: ["@prisma/client", "@crm/prisma-postgres"],
+  serverExternalPackages: ["@prisma/client"],
   async headers() {
     return [
       {

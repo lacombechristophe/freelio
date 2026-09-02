@@ -133,14 +133,18 @@ export function contactCandidate(payload: SourcePayload) {
 
 export function numericValue(value: string) {
   if (!value) return 0
-  let normalized = value.replace(/[^0-9,.-]/g, "")
+  const trimmed = value.trim()
+  const accountingNegative = /^\(.*\)$/.test(trimmed)
+  let normalized = trimmed.replace(/[^0-9,.-]/g, "")
   if (normalized.includes(",") && normalized.includes(".")) {
     normalized = normalized.lastIndexOf(",") > normalized.lastIndexOf(".")
       ? normalized.replace(/\./g, "").replace(",", ".")
       : normalized.replace(/,/g, "")
   } else normalized = normalized.replace(",", ".")
+  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(normalized)) return 0
   const result = Number(normalized)
-  return Number.isFinite(result) ? result : 0
+  if (!Number.isFinite(result)) return 0
+  return accountingNegative ? -Math.abs(result) : result
 }
 
 function integerValue(payload: SourcePayload, aliases: string[], fallback = 0) {
