@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto"
 import { hashPassword } from "../src/lib/auth/password-core.ts"
 
-const databaseUrl = process.env.DATABASE_URL || ""
-const { PrismaClient } = databaseUrl.startsWith("postgres")
-  ? await import("@crm/prisma-postgres")
-  : await import("@prisma/client")
+const { PrismaClient } = await import("@prisma/client")
 
 const prisma = new PrismaClient()
 const email = process.env.E2E_USER_EMAIL || "qa-crm@example.com"

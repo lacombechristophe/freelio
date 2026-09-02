@@ -1,7 +1,7 @@
 import { strToU8, zipSync } from "fflate"
 import { describe, expect, it } from "vitest"
 
-import { parseMigrationArtifact } from "@/lib/migrations/ingest"
+import { decodeDelimitedText, parseMigrationArtifact } from "@/lib/migrations/ingest"
 
 describe("migration artifact ingestion", () => {
   it("parses semicolon CSV rows and keeps a stable source id", async () => {
@@ -14,6 +14,33 @@ describe("migration artifact ingestion", () => {
     expect(result.records).toHaveLength(1)
     expect(result.records[0]).toMatchObject({ objectType: "CLIENTS", sourceId: "42" })
     expect(result.records[0].payload.Note).toBe("ligne 1\nligne 2")
+  })
+
+  it("decodes Windows-1252 exports without corrupting French characters", async () => {
+    const bytes = Uint8Array.from([
+      ...Buffer.from("ID;Nom;Montant\n42;Fran", "ascii"),
+      0xe7, 0x6f, 0x69, 0x73, 0x3b, 0x31, 0x20, 0x32, 0x35, 0x30, 0x2c, 0x35, 0x30, 0x20, 0x80, 0x0a,
+    ])
+    const decoded = decodeDelimitedText(bytes)
+    expect(decoded.encoding).toBe("windows-1252")
+    expect(decoded.usedFallback).toBe(true)
+    expect(decoded.text).toContain("François")
+    expect(decoded.text).toContain("€")
+
+    const result = await parseMigrationArtifact({ fileName: "clients.csv", bytes })
+    expect(result.records[0].payload.Nom).toBe("François")
+    expect(result.records[0].payload.Montant).toBe("1 250,50 €")
+    expect(result.issues).toEqual([
+      expect.objectContaining({ code: "INGEST_CSV_ENCODING_FALLBACK", severity: "WARNING" }),
+    ])
+  })
+
+  it("supports UTF-16LE exports with a BOM", async () => {
+    const body = Buffer.from("ID\tNom\n1\tÉtang", "utf16le")
+    const bytes = Uint8Array.from([0xff, 0xfe, ...body])
+    const decoded = decodeDelimitedText(bytes)
+    expect(decoded.encoding).toBe("utf-16le")
+    expect(decoded.text).toContain("Étang")
   })
 
   it("extracts result arrays from JSON exports", async () => {

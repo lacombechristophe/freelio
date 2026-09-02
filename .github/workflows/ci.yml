@@ -48,6 +48,9 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
 
+      - name: Auditer les dépendances
+        run: npm audit --audit-level=moderate
+
       - name: Préparer la base E2E isolée
         run: |
           npm run db:bootstrap:sqlite
@@ -55,6 +58,9 @@ jobs:
 
       - name: Vérifier types, lint, tests et build
         run: npm run verify
+
+      - name: Mesurer la couverture métier critique
+        run: npm run test:coverage
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
@@ -71,3 +77,56 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  postgres-integration:
+    name: Intégration PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: crm
+          POSTGRES_PASSWORD: crm
+          POSTGRES_DB: crm_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U crm -d crm_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://crm:crm@localhost:5432/crm_test?schema=public
+      AUTH_SECRET: ci-auth-secret-longer-than-thirty-two-characters
+      JWT_SECRET: ci-jwt-secret-longer-than-thirty-two-characters
+      CONSENT_TOKEN_SECRET: ci-consent-secret-longer-than-thirty-two-characters
+      ENCRYPTION_KEY: ci-encryption-secret-longer-than-thirty-two-characters
+      LEAD_HASH_SALT: ci-lead-hash-salt-longer-than-thirty-two-characters
+      SCHEDULER_CRON_SECRET: ci-scheduler-secret-longer-than-thirty-two-characters
+      FILE_STORAGE_DRIVER: local
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Auditer les dépendances
+        run: npm audit --audit-level=moderate
+
+      - name: Générer le client PostgreSQL
+        run: npm run db:generate
+
+      - name: Appliquer les migrations PostgreSQL
+        run: npm run db:deploy:postgres
+
+      - name: Exécuter les tests unitaires sur PostgreSQL
+        run: npm run test:unit

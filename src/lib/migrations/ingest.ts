@@ -105,6 +105,31 @@ function uniqueHeaders(values: unknown[]) {
   })
 }
 
+export type DecodedDelimitedText = {
+  text: string
+  encoding: "utf-8" | "utf-16le" | "utf-16be" | "windows-1252"
+  usedFallback: boolean
+}
+
+/**
+ * Decode exports produced by the desktop tools commonly used by pool
+ * contractors.  UTF-8 is preferred, but a fatal probe prevents Windows-1252
+ * bytes such as € and é from being silently replaced by U+FFFD.
+ */
+export function decodeDelimitedText(bytes: Uint8Array): DecodedDelimitedText {
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return { text: new TextDecoder("utf-16le").decode(bytes).replace(/^\uFEFF/, ""), encoding: "utf-16le", usedFallback: false }
+  }
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+    return { text: new TextDecoder("utf-16be").decode(bytes).replace(/^\uFEFF/, ""), encoding: "utf-16be", usedFallback: false }
+  }
+  try {
+    return { text: new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^\uFEFF/, ""), encoding: "utf-8", usedFallback: false }
+  } catch {
+    return { text: new TextDecoder("windows-1252").decode(bytes).replace(/^\uFEFF/, ""), encoding: "windows-1252", usedFallback: true }
+  }
+}
+
 function jsonValue(value: unknown): MigrationPayload {
   if (value === null || value === undefined) return null
   if (value instanceof Date) return value.toISOString()
@@ -179,16 +204,20 @@ function parseCsv(bytes: Uint8Array, fileName: string, objectTypeHint?: string):
     }
   }
 
-  const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes).replace(/^\uFEFF/, "")
+  const decoded = decodeDelimitedText(bytes)
+  const text = decoded.text
   const parsed = Papa.parse<string[]>(text, { skipEmptyLines: "greedy" })
   const objectType = objectTypeHint || normalizedObjectType(fileName)
   const records = rowsToRecords(parsed.data, objectType)
-  const issues: MigrationParseIssue[] = parsed.errors.slice(0, 50).map((error) => ({
+  const issues: MigrationParseIssue[] = decoded.usedFallback
+    ? [{ severity: "WARNING", code: "INGEST_CSV_ENCODING_FALLBACK", message: `${fileName} a été décodé en Windows-1252 après échec du décodage UTF-8. Vérifiez les caractères accentués avant import.`, objectType }]
+    : []
+  issues.push(...parsed.errors.slice(0, 50).map((error): MigrationParseIssue => ({
     severity: "WARNING",
     code: "INGEST_CSV_PARSE_WARNING",
     message: `${fileName}, ligne ${(error.row ?? 0) + 1} : ${error.message}`,
     objectType,
-  }))
+  })))
   if (parsed.data.length - 1 > MAX_ROWS_PER_FILE) {
     issues.push({ severity: "ERROR", code: "INGEST_ROW_LIMIT", message: `${fileName} contient plus de ${MAX_ROWS_PER_FILE.toLocaleString("fr-FR")} lignes. Le fichier brut reste archivé mais doit être découpé.`, objectType })
   }

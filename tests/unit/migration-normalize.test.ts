@@ -11,6 +11,7 @@ import {
   opportunityCandidate,
   paymentCandidate,
   productCandidate,
+  numericValue,
   stockMovementCandidate,
 } from "@/lib/migrations/normalize"
 
@@ -90,5 +91,12 @@ describe("migration normalization", () => {
     expect(opportunity.probability).toBe(75)
     expect(associationIds(payload, "company")).toEqual(["123"])
     expect(associationIds(payload, "contact")).toEqual(["456"])
+  })
+
+  it("parses European accounting amounts and rejects malformed values", () => {
+    expect(numericValue("1\u00a0250,50 €")).toBe(1250.5)
+    expect(numericValue("1.250,50 €")).toBe(1250.5)
+    expect(numericValue("(1 250,50 €)")).toBe(-1250.5)
+    expect(numericValue("1,2,3")).toBe(0)
   })
 })

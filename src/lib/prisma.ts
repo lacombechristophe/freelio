@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client"
-import { PrismaClient as PostgreSQLPrismaClient } from "@crm/prisma-postgres"
 import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
@@ -81,15 +80,11 @@ function enforceAgencyWrite(model: string, operation: string, args: any, agencyI
   }
 }
 
-function prismaClientConstructor() {
+function validateDatabaseUrl() {
   const databaseUrl = process.env.DATABASE_URL ?? ""
-  if (databaseUrl.startsWith("postgresql://") || databaseUrl.startsWith("postgres://")) {
-    return PostgreSQLPrismaClient as unknown as typeof PrismaClient
-  }
-  if (databaseUrl && !databaseUrl.startsWith("file:")) {
+  if (databaseUrl && !databaseUrl.startsWith("file:") && !databaseUrl.startsWith("postgresql://") && !databaseUrl.startsWith("postgres://")) {
     throw new Error("DATABASE_URL doit utiliser SQLite (file:) ou PostgreSQL")
   }
-  return PrismaClient
 }
 
 /**
@@ -101,8 +96,8 @@ function prismaClientConstructor() {
  */
 
 const prismaClientSingleton = () => {
-  const RuntimePrismaClient = prismaClientConstructor()
-  return new RuntimePrismaClient().$extends({
+  validateDatabaseUrl()
+  return new PrismaClient().$extends({
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {

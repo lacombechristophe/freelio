@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL,
-    storageState: "test-results/.auth/user.json",
+    storageState: "playwright/.auth/user.json",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

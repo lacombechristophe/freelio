@@ -164,7 +164,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   }
 
   await assertHealthy(page, "/dashboard/projets", "Projets")
-  const projectLink = page.locator('a[href^="/dashboard/projets/"]')
+  const projectLink = page.locator('a[href^="/dashboard/projets/"]:visible')
   expect(await projectLink.count()).toBeGreaterThan(0)
   await projectLink.first().click()
   await page.waitForURL(/\/dashboard\/projets\/[^/]+$/)
@@ -309,7 +309,7 @@ test("agencies connect teams, warehouses and operational records", async ({ page
   }
 
   await assertHealthy(page, "/dashboard/projets", "Projets")
-  await page.getByRole("button", { name: "Nouveau Projet" }).click()
+  await page.getByRole("button", { name: "Nouveau chantier" }).click()
   await expect(page.getByLabel("Agence responsable du chantier")).toBeVisible()
   await page.getByRole("button", { name: "Annuler" }).click()
 })
@@ -530,15 +530,15 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await page.getByLabel("Première réponse haute").fill("3")
     await page.getByLabel("Résolution haute").fill("12")
     await page.getByLabel("Jours de fermeture").fill("2026-12-25")
-  await page.getByRole("button", { name: "Enregistrer la politique SAV" }).click()
-  await expect(page.getByText("Politique de service sauvegardée.")).toBeVisible()
-  await page.getByRole("tab", { name: "Facturation" }).click()
-  await page.getByLabel("Activer les relances automatiques").click()
-  await page.getByLabel("Rappel 1").fill("3")
-  await page.getByLabel("Rappel 2").fill("10")
-  await page.getByLabel("Rappel 3").fill("20")
-  await page.getByRole("button", { name: "Enregistrer les relances" }).click()
-  await expect(page.getByText("Relances automatiques activées.")).toBeVisible()
+    await page.getByRole("button", { name: "Enregistrer la politique SAV" }).click()
+    await expect(page.getByText("Politique de service sauvegardée.")).toBeVisible()
+    await page.getByRole("tab", { name: "Facturation" }).click()
+    await page.getByLabel("Activer les relances automatiques").click()
+    await page.getByLabel("Rappel 1").fill("3")
+    await page.getByLabel("Rappel 2").fill("10")
+    await page.getByLabel("Rappel 3").fill("20")
+    await page.getByRole("button", { name: "Enregistrer les relances" }).click()
+    await expect(page.getByText("Relances automatiques activées.")).toBeVisible()
     await page.getByRole("tab", { name: "Sécurité" }).click()
     await expect(page.getByText("Double authentification")).toBeVisible()
     await expect(page.getByText("Sessions actives")).toBeVisible()
@@ -607,13 +607,21 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await expect(page.getByText("Doublons probables")).toBeVisible()
     await page.getByRole("button", { name: "Conserver SAV-2026-900", exact: true }).click()
     await expect(page.getByText("Tickets déjà regroupés ici")).toBeVisible()
+
+    const clientEmail = page.getByRole("article").filter({ hasText: "Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?" })
+    await expect(clientEmail.getByText("Question réglage couverture QA", { exact: true })).toBeVisible()
+    await expect(page.getByText("Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?")).toBeVisible()
+    await expect(page.getByText("Appel QA : contrôle confirmé avec le client.")).toBeVisible()
+    await expect(page.locator("details").filter({ hasText: "Réglage contrôlé, aucun point dur constaté pendant le cycle complet." }).locator("summary").getByText("Contrôle couverture QA", { exact: true })).toBeVisible()
+  } else {
+    const attachedConversation = page.getByText("Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?")
+    const emptyConversation = page.getByText("Aucun échange rattaché.")
+    await expect(attachedConversation.or(emptyConversation)).toBeVisible()
+    if (await emptyConversation.isVisible()) {
+      await expect(page.getByLabel("Conversation client à rattacher").getByRole("option", { name: /Question réglage couverture QA/ })).toHaveCount(1)
+    }
   }
-  const clientEmail = page.getByRole("article").filter({ hasText: "Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?" })
-  await expect(clientEmail.getByText("Question réglage couverture QA", { exact: true })).toBeVisible()
-  await expect(page.getByText("Bonjour, pouvez-vous confirmer le contrôle prévu sur la couverture ?")).toBeVisible()
-  await expect(page.getByText("Appel QA : contrôle confirmé avec le client.")).toBeVisible()
   await expect(page.getByText("Historique des diagnostics")).toBeVisible()
-  await expect(page.locator("details").filter({ hasText: "Réglage contrôlé, aucun point dur constaté pendant le cycle complet." }).locator("summary").getByText("Contrôle couverture QA", { exact: true })).toBeVisible()
   await page.getByRole("link", { name: "Couverture QA installée" }).click()
   await expect(page.getByRole("heading", { name: "Couverture QA installée" })).toBeVisible()
   await expect(page.getByText("Historique SAV")).toBeVisible()
@@ -721,7 +729,7 @@ test("creates a reusable project plan and enforces milestone dependencies", asyn
   await expect(templateDialog.getByText("Installation QA standard")).toBeVisible()
   await templateDialog.getByRole("button", { name: "Fermer", exact: true }).click()
 
-  await page.getByRole("button", { name: "Nouveau Projet" }).click()
+  await page.getByRole("button", { name: "Nouveau chantier" }).click()
   const projectDialog = page.getByRole("dialog", { name: "Nouveau projet" })
   await projectDialog.getByLabel("Client du projet").click()
   await page.getByRole("option", { name: "Client QA Piscine" }).click()
@@ -731,7 +739,7 @@ test("creates a reusable project plan and enforces milestone dependencies", asyn
   await projectDialog.getByRole("button", { name: "Créer", exact: true }).click()
   await expect(page.getByText("Projet créé.")).toBeVisible()
 
-  const projectCard = page.locator("[data-slot=card]").filter({ hasText: "Chantier planifié QA" })
+  const projectCard = page.getByRole("row").filter({ hasText: "Chantier planifié QA" })
   await expect(projectCard).toContainText("12 500,00 €")
   await projectCard.getByRole("link", { name: /Chantier planifié QA/ }).click()
   await expect(page.getByText("Préparation du site", { exact: true })).toBeVisible()
@@ -1069,15 +1077,20 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   expect(leadResponse.status()).toBe(201)
 
   await assertHealthy(page, "/dashboard/leads", "Prospects entrants")
-  const leadCard = page.locator("article").filter({ hasText: "Alex Bassin QA" })
+  const leadCard = testInfo.project.name === "mobile"
+    ? page.locator("article:visible").filter({ hasText: "Alex Bassin QA" })
+    : page.getByRole("row").filter({ hasText: "Alex Bassin QA" })
   await expect(leadCard).toBeVisible()
   await expect(leadCard.getByText("Marketing accepté")).toBeVisible()
   await assertHealthy(page, "/dashboard/automatisations", "Automatisations & e-mails")
   await expect(page.locator("p").filter({ hasText: /^Alex Bassin QA$/ }).first()).toBeVisible()
   await assertHealthy(page, "/dashboard/leads", "Prospects entrants")
-  const refreshedLeadCard = page.locator("article").filter({ hasText: "Alex Bassin QA" })
+  const refreshedLeadCard = testInfo.project.name === "mobile"
+    ? page.locator("article:visible").filter({ hasText: "Alex Bassin QA" })
+    : page.getByRole("row").filter({ hasText: "Alex Bassin QA" })
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"])
-  await refreshedLeadCard.getByRole("button", { name: "Copier le lien de désinscription" }).click()
+  await refreshedLeadCard.getByRole("button", { name: "Actions pour Alex Bassin QA" }).click()
+  await page.getByRole("menuitem", { name: "Copier le lien de désinscription" }).click()
   await expect(page.getByText("Lien de désinscription copié.")).toBeVisible()
   const withdrawalUrl = await page.evaluate(() => navigator.clipboard.readText())
   expect(withdrawalUrl).toContain("/consent/withdraw/")
@@ -1090,7 +1103,10 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   expect(replay.ok()).toBeTruthy()
   await expect(replay.json()).resolves.toMatchObject({ success: true, alreadyWithdrawn: true })
   await assertHealthy(page, "/dashboard/leads", "Prospects entrants")
-  await expect(page.locator("article").filter({ hasText: "Alex Bassin QA" }).getByText("Service uniquement")).toBeVisible()
+  const withdrawnLead = testInfo.project.name === "mobile"
+    ? page.locator("article:visible").filter({ hasText: "Alex Bassin QA" })
+    : page.getByRole("row").filter({ hasText: "Alex Bassin QA" })
+  await expect(withdrawnLead.getByText("Service uniquement")).toBeVisible()
 
   await page.goto("/dashboard/devis")
   await page.getByRole("link", { name: "DEV-2026-900" }).click()

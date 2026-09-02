@@ -1,5 +1,5 @@
 import puppeteer from "puppeteer"
-import { PDFDocument } from "pdf-lib"
+import { AFRelationship, PDFDocument } from "pdf-lib"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { PDF_FONT_FILES } from "@/lib/pdf/typography"
@@ -70,11 +70,14 @@ export async function embedFacturX(pdfBuffer: Buffer, xmlContent: string) {
     const pdfDoc = await PDFDocument.load(pdfBuffer)
     
     // Keep the structured invoice payload alongside the human-readable document.
-    await pdfDoc.attach(xmlContent, "factur-x.xml", {
-      mimeType: "text/xml",
+    // pdf-lib interprets a string attachment as base64. Pass UTF-8 bytes so
+    // the CII document is embedded verbatim (including accented French text).
+    await pdfDoc.attach(Buffer.from(xmlContent, "utf8"), "factur-x.xml", {
+      mimeType: "application/xml",
       description: "Factur-X / ZUGFeRD XML Invoice Metadata (EN 16931)",
       creationDate: new Date(),
       modificationDate: new Date(),
+      afRelationship: AFRelationship.Alternative,
     })
     
     const pdfBytes = await pdfDoc.save()
