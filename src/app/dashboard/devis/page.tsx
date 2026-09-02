@@ -7,8 +7,8 @@ export default async function DevisPage() {
   const [quotes, views] = await Promise.all([getQuotes(), getSavedViews("QUOTES")])
 
   return (
-    <div className="space-y-7">
-      <PageHeader eyebrow="Vente" title="Devis" description="Préparez vos propositions, suivez leur statut et transformez les accords en factures sans ressaisie." />
+    <div className="workspace-page">
+      <PageHeader className="workspace-page-header" eyebrow="Vente" title="Devis" description="Préparez vos propositions, suivez leur statut et transformez les accords en factures sans ressaisie." />
       <DevisTable quotes={quotes ?? []} savedViews={views ?? []} />
     </div>
   )

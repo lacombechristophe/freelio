@@ -5,7 +5,7 @@ import { ServiceDiagnosticsManager } from "./service-diagnostics-manager"
 
 export default async function ServiceDiagnosticsPage() {
   const guides = await getServiceDiagnosticGuides()
-  return <div className="space-y-7">
+  return <div className="workspace-page">
     <PageHeader
       eyebrow="Service"
       title="Guides de diagnostic"

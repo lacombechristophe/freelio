@@ -48,7 +48,7 @@ export default async function SupplierDetailPage({
     .filter((issue) => issue.status !== "RESOLVED").length;
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <RecordHeader
         backHref="/dashboard/operations?tab=stock"
         eyebrow="Approvisionnement"

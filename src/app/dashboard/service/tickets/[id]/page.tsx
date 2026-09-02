@@ -72,7 +72,7 @@ export default async function ServiceTicketDetailPage({
     .filter((item) => item.status !== "RESOLVED").length;
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <RecordHeader
         backHref="/dashboard/operations?tab=sav"
         eyebrow="Service client"

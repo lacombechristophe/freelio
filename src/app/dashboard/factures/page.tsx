@@ -10,8 +10,9 @@ export default async function FacturesPage() {
     .reduce((sum, i) => sum + (i.totalTtcCents - i.paidAmountCents), 0)
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
+        className="workspace-page-header"
         eyebrow="Encaissements"
         title="Factures"
         description="Émettez des factures Factur-X, suivez les règlements et identifiez immédiatement ce qui reste à encaisser."

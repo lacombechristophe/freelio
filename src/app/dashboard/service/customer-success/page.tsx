@@ -5,7 +5,7 @@ import { CustomerSuccessCenter } from "./customer-success-center"
 
 export default async function CustomerSuccessPage() {
   const data = await getCustomerSuccessWorkspace()
-  return <div className="space-y-7">
+  return <div className="workspace-page">
     <PageHeader
       eyebrow="Service"
       title="Portefeuille clients"

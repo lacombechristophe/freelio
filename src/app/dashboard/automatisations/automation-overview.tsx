@@ -1,13 +1,24 @@
 "use client"
 
-import { AlertTriangle, Bot, CheckCircle2, CircleDashed, Clock3, Mail, Play, Send, Users, Workflow } from "lucide-react"
+import Link from "next/link"
+import { AlertTriangle, ArrowRight, Bot, CheckCircle2, CircleDashed, Clock3, Mail, Play, Send, Users, Workflow } from "lucide-react"
 
 import { processSequenceEmailsNow } from "@/actions/automations"
 import type { AutomationData, AutomationRunner } from "@/app/dashboard/automatisations/automation-model"
 import { formatAutomationDate, STATUS_LABELS, TRIGGER_LABELS } from "@/app/dashboard/automatisations/automation-model"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
+type ReadinessItem = {
+  label: string
+  ready: boolean
+  detail: string
+  actionLabel: string
+  href?: string
+  tab?: string
+  onAction?: () => void
+}
 
 export function AutomationOverview({ data, pending, run, onNavigate }: { data: AutomationData; pending: boolean; run: AutomationRunner; onNavigate: (tab: string) => void }) {
   const deliveryCounts = data.stats.deliveries
@@ -18,12 +29,13 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
   const activeSequences = data.sequences.filter((item) => item.status === "ACTIVE").length
   const activeWorkflows = data.workflows.filter((item) => item.status === "ACTIVE").length
   const activeEnrollments = data.sequences.reduce((sum, sequence) => sum + sequence.enrollments.filter((item) => item.status === "ACTIVE").length, 0)
-  const readiness = [
-    { label: "Fournisseur d’e-mail", ready: data.readiness.emailProviderConfigured && data.readiness.channel?.status === "ACTIVE", detail: data.readiness.channel?.emailAddress || "Canal Resend à activer" },
-    { label: "Traitement automatique", ready: data.readiness.processorConfigured, detail: data.readiness.processorConfigured ? "Route cron protégée configurée" : "Secret de traitement à configurer" },
-    { label: "Contenu prêt", ready: data.templates.length > 0 && data.sequences.some((item) => item.steps.length > 0), detail: `${data.templates.length} modèle(s), ${data.sequences.reduce((sum, item) => sum + item.steps.length, 0)} étape(s)` },
-    { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active" },
+  const readiness: ReadinessItem[] = [
+    { label: "Fournisseur d’e-mail", ready: data.readiness.emailProviderConfigured && data.readiness.channel?.status === "ACTIVE", detail: data.readiness.channel?.emailAddress || "Aucune messagerie d’envoi active", actionLabel: "Configurer", href: "/dashboard/communications?tab=integrations" },
+    { label: "Traitement automatique", ready: data.readiness.processorConfigured, detail: data.readiness.processorConfigured ? "Traitement planifié protégé et disponible" : "Le traitement peut être testé manuellement avant configuration du cron", actionLabel: "Tester", onAction: () => run(async () => processSequenceEmailsNow(), "Test du moteur terminé.") },
+    { label: "Contenu prêt", ready: data.templates.length > 0 && data.sequences.some((item) => item.steps.length > 0), detail: `${data.templates.length} modèle(s), ${data.sequences.reduce((sum, item) => sum + item.steps.length, 0)} étape(s) configurée(s)`, actionLabel: data.templates.length ? "Séquences" : "Créer un modèle", tab: data.templates.length ? "sequences" : "templates" },
+    { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active", actionLabel: "Workflows", tab: "workflows" },
   ]
+  const readinessReadyCount = readiness.filter((item) => item.ready).length
 
   return <div className="workspace-page">
     <section aria-label="Indicateurs des automatisations" className="workspace-metrics overflow-hidden rounded-xl border bg-card">
@@ -55,9 +67,9 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
       </Card>
 
       <Card className="workspace-panel">
-        <CardHeader><CardTitle className="text-base">Mise en service</CardTitle><CardDescription>Les quatre contrôles à valider avant de laisser le moteur travailler seul.</CardDescription></CardHeader>
+        <CardHeader className="border-b"><div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base">Mise en service</CardTitle><CardDescription>Les quatre contrôles à valider avant de laisser le moteur travailler seul.</CardDescription></div><Badge variant={readinessReadyCount === readiness.length ? "default" : "secondary"}>{readinessReadyCount}/{readiness.length} prêts</Badge></div></CardHeader>
         <CardContent className="space-y-1">
-          {readiness.map((item) => <div key={item.label} className="flex gap-3 border-b py-3 last:border-b-0"><span className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full ${item.ready ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"}`}>{item.ready ? <CheckCircle2 className="size-3.5" /> : <Clock3 className="size-3.5" />}</span><div><p className="text-sm font-medium">{item.label}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{item.detail}</p></div></div>)}
+          {readiness.map((item) => <div key={item.label} className="flex items-center gap-3 border-b py-3 last:border-b-0"><span className={`grid size-6 shrink-0 place-items-center rounded-full ${item.ready ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"}`}>{item.ready ? <CheckCircle2 className="size-3.5" /> : <Clock3 className="size-3.5" />}</span><div className="min-w-0 flex-1"><p className="text-sm font-medium">{item.label}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{item.detail}</p></div>{item.href ? <Link href={item.href} className={buttonVariants({ variant: item.ready ? "ghost" : "outline", size: "sm" })}>{item.actionLabel}<ArrowRight /></Link> : <Button type="button" variant={item.ready ? "ghost" : "outline"} size="sm" disabled={pending} onClick={item.onAction ?? (() => item.tab && onNavigate(item.tab))}>{item.actionLabel}<ArrowRight /></Button>}</div>)}
           {data.readiness.channel?.lastError && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">{data.readiness.channel.lastError}</p>}
         </CardContent>
       </Card>

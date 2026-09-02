@@ -54,7 +54,7 @@ export default async function ServiceAnalyticsPage({ searchParams }: { searchPar
   if (data.filters.assignedMembershipId) exportParams.set("assignedMembershipId", data.filters.assignedMembershipId)
   if (data.filters.priority) exportParams.set("priority", data.filters.priority)
 
-  return <div className="space-y-7">
+  return <div className="workspace-page">
     <PageHeader eyebrow="Service" title="Analyses Service" description="Mesurez le volume, les délais, la qualité des diagnostics et les risques clients sans masquer les dossiers en retard." />
 
     <form className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 xl:grid-cols-[180px_minmax(220px,1fr)_180px_auto] xl:items-end">

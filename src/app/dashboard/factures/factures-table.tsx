@@ -91,7 +91,7 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="workspace-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -129,7 +129,7 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
         />
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+      <div className="workspace-panel overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
@@ -179,7 +179,7 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDate(invoice.dueDate)}</TableCell>
                     <TableCell>
-                      <Badge className={cn("gap-1.5 px-2 py-0.5 rounded-full text-xs uppercase font-bold border", status.class)}>
+                      <Badge variant="outline" className={cn("gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium", status.class)}>
                         <status.icon className="h-3 w-3" />
                         {status.label}
                       </Badge>

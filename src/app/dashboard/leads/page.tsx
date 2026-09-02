@@ -6,8 +6,9 @@ import { LeadInbox } from "./lead-inbox"
 export default async function LeadsPage() {
   const data = await getLeadDashboard()
   return (
-    <div className="space-y-6">
+    <div className="workspace-page">
       <PageHeader
+        className="workspace-page-header"
         eyebrow="Acquisition"
         title="Prospects entrants"
         description="Centralisez les demandes du site public, leur attribution commerciale et la preuve de consentement."

@@ -55,7 +55,7 @@ export default async function SettingsPage() {
   if (!user || !user.company) redirect("/onboarding")
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader eyebrow="Espace de travail" title="Paramètres" description="Configurez votre identité, la facturation, les documents, les sauvegardes et les intégrations." />
       <SettingsClient company={{ ...user.company, iban: decryptSensitive(user.company.iban) }} user={{
         aiUsageCount: user.aiUsageCount,

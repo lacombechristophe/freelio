@@ -21,7 +21,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const current = overview.plans[overview.plan]
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Abonnement SaaS"
         title="Abonnement et capacité"

@@ -85,8 +85,9 @@ export function CatalogueView({ services, categories, productData }: {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
+        className="workspace-page-header"
         eyebrow="Offre"
         title="Catalogue"
         description="Structurez prestations, produits sur mesure, variantes, options, composants et tarifs sans perdre l’historique fournisseur."
@@ -102,13 +103,13 @@ export function CatalogueView({ services, categories, productData }: {
         <TabsList><TabsTrigger value="products"><Boxes />Produits & configurations</TabsTrigger><TabsTrigger value="services"><Wrench />Prestations</TabsTrigger></TabsList>
 
         <TabsContent value="products" className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center">
+          <div className="workspace-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
             <div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Rechercher un produit" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Référence, gamme, fabricant, variante…" className="pl-9" /></div>
             <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground"><span><strong className="text-foreground">{productData.products.filter((product) => product.active).length}</strong> références actives</span><span><strong className="text-foreground">{productData.products.filter((product) => product.parentProductId).length}</strong> variantes</span><span><strong className="text-foreground">{productData.products.reduce((sum, product) => sum + product.counts.optionGroups, 0)}</strong> groupes d’options</span></div>
           </div>
 
           {!filteredProducts.length ? (
-            <div className="rounded-xl border bg-card"><EmptyState icon={Package} title={productData.products.length ? "Aucun produit ne correspond" : "Aucun produit configuré"} description={productData.products.length ? "Modifiez la recherche pour retrouver une référence." : "Créez une gamme, puis ajoutez ses variantes, options, composants et tarifs."} action={productData.canManage && !productData.products.length ? <Button onClick={() => setProductCreateOpen(true)}><Plus />Créer le premier produit</Button> : undefined} /></div>
+            <div className="workspace-panel"><EmptyState icon={Package} title={productData.products.length ? "Aucun produit ne correspond" : "Aucun produit configuré"} description={productData.products.length ? "Modifiez la recherche pour retrouver une référence." : "Créez une gamme, puis ajoutez ses variantes, options, composants et tarifs."} action={productData.canManage && !productData.products.length ? <Button onClick={() => setProductCreateOpen(true)}><Plus />Créer le premier produit</Button> : undefined} /></div>
           ) : <>
             <div className="space-y-3 md:hidden">
               {filteredProducts.map((product) => <article key={product.id} className={`rounded-xl border bg-card p-4 ${!product.active ? "opacity-55" : ""}`}>
@@ -117,7 +118,7 @@ export function CatalogueView({ services, categories, productData }: {
                 <div className="mt-4 flex items-end justify-between gap-3 border-t pt-3"><div><p className="text-sm font-semibold tabular-nums">{formatEuro(product.salePriceCents)}</p><p className="mt-1 text-xs text-muted-foreground">{product.stockTracked ? `${product.availableQuantity} ${product.unit} disponible` : "Sur mesure"}</p></div><div className="flex gap-1"><Link href={`/dashboard/catalogue/produits/${product.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}><Settings2 />Configurer</Link>{productData.canManage ? <Button variant="ghost" size="icon-sm" aria-label={`Modifier ${product.label}`} onClick={() => setProductEditTarget(product)}><Pencil /></Button> : null}</div></div>
               </article>)}
             </div>
-            <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+            <div className="workspace-panel hidden overflow-hidden md:block">
               <Table>
                 <TableHeader className="bg-muted/50"><TableRow><TableHead>Référence</TableHead><TableHead>Produit</TableHead><TableHead>Structure</TableHead><TableHead>Tarifs HT</TableHead><TableHead>Stock</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                 <TableBody>{filteredProducts.map((product) => <TableRow key={product.id} className={!product.active ? "opacity-55" : undefined}>
@@ -135,9 +136,9 @@ export function CatalogueView({ services, categories, productData }: {
 
         <TabsContent value="services">
           {!services.length ? (
-            <div className="rounded-xl border bg-card"><EmptyState icon={Wrench} title="Aucune prestation" description="Ajoutez une prestation avec son tarif et son unité pour la réutiliser dans les devis." action={<Button onClick={() => setServiceCreateOpen(true)}><Plus />Ajouter une prestation</Button>} /></div>
+            <div className="workspace-panel"><EmptyState icon={Wrench} title="Aucune prestation" description="Ajoutez une prestation avec son tarif et son unité pour la réutiliser dans les devis." action={<Button onClick={() => setServiceCreateOpen(true)}><Plus />Ajouter une prestation</Button>} /></div>
           ) : (
-            <div className="overflow-hidden rounded-xl border bg-card">
+            <div className="workspace-panel overflow-hidden">
               <Table><TableHeader className="bg-muted/50"><TableRow><TableHead>Code</TableHead><TableHead>Libellé</TableHead><TableHead>Catégorie</TableHead><TableHead>Prix</TableHead><TableHead>Unité</TableHead><TableHead>TVA</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                 <TableBody>{services.map((service) => <TableRow key={service.id}><TableCell className="font-mono text-xs">{service.code ?? "—"}</TableCell><TableCell><p className="font-medium">{service.label}</p>{service.description ? <p className="mt-1 max-w-md truncate text-xs text-muted-foreground">{service.description}</p> : null}</TableCell><TableCell>{service.category ? <Badge variant="secondary">{service.category.name}</Badge> : "—"}</TableCell><TableCell className="font-semibold">{formatEuro(service.priceCents)}</TableCell><TableCell className="text-xs uppercase">{service.unit}</TableCell><TableCell className="text-xs">{service.tvaRate}%</TableCell><TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Ouvrir les actions du service"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => setServiceEditTarget(service)}>Modifier</DropdownMenuItem><DropdownMenuItem className="text-danger" onClick={() => void handleDeleteService(service.id, service.label)}>Supprimer</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell></TableRow>)}</TableBody>
               </Table>

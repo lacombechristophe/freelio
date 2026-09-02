@@ -56,7 +56,7 @@ export default async function EquipmentDetailPage({
     .join(" ");
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <RecordHeader
         backHref="/dashboard/operations?tab=assets"
         eyebrow="Parc installé"
