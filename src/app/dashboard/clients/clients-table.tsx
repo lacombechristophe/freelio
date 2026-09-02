@@ -260,7 +260,7 @@ export function ClientsTable({
     <div className="space-y-4">
       <SavedViewBar resource="CLIENTS" views={savedViews} config={{ search, filters: { custom: JSON.stringify(filters) }, sort, columns: visibleColumns }} onApply={applySavedView} />
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+      <div className="workspace-panel flex flex-col gap-3 p-3 xl:flex-row xl:items-center">
         <div className="relative w-full xl:max-w-sm"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Rechercher dans les clients" placeholder="Nom, contact, e-mail, SIRET…" className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
         <div className="flex flex-1 flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={addFilter}><SlidersHorizontal />Ajouter un filtre{filters.length ? <Badge variant="secondary" className="ml-1">{filters.length}</Badge> : null}</Button>
@@ -272,7 +272,7 @@ export function ClientsTable({
         <Button className="gap-2" onClick={() => setCreateOpen(true)}><Plus />Ajouter un client</Button>
       </div>
 
-      {filters.length ? <div className="space-y-2 rounded-xl border bg-muted/25 p-3">{filters.map((filter) => {
+      {filters.length ? <div className="workspace-panel space-y-2 bg-muted/25 p-3">{filters.map((filter) => {
         const field = fields.find((candidate) => candidate.id === filter.field) || fields[0]
         const operators = operatorsFor(field.type)
         const needsValue = !["is_empty", "is_not_empty"].includes(filter.operator)
@@ -289,7 +289,7 @@ export function ClientsTable({
       <ClientFormDialog open={createOpen} onOpenChange={setCreateOpen} />
       {editTarget ? <ClientFormDialog client={editTarget} open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)} /> : null}
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+      <div className="workspace-panel overflow-hidden">
         <Table>
           <TableHeader><TableRow><TableHead className="w-12"><Checkbox aria-label="Sélectionner tous les clients visibles" aria-checked={!selectedVisible && selected.size > 0 && filtered.some((client) => selected.has(client.id)) ? "mixed" : selectedVisible} checked={selectedVisible} onCheckedChange={(checked) => setSelected((current) => { const next = new Set(current); for (const client of filtered) { if (checked === true) next.add(client.id); else next.delete(client.id) } return next })} /></TableHead><TableHead className="min-w-[280px]">Nom / Contact</TableHead>{visibleColumns.map((columnId) => <TableHead key={columnId}>{BUILTIN_COLUMNS.find((column) => column.id === columnId)?.label || columnDefinitions.get(columnId)?.label || columnId}</TableHead>)}<TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>

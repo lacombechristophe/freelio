@@ -8,8 +8,8 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const data = await getCommunicationDashboard()
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez d’abord le profil entreprise avant de connecter une messagerie." />
   return (
-    <div className="space-y-7">
-      <PageHeader eyebrow="Relation client" title="Communications" description="Centralisez les e-mails reçus et envoyés, leurs performances et les réponses clients." />
+    <div className="workspace-page">
+      <PageHeader className="workspace-page-header" eyebrow="Relation client" title="Communications" description="Centralisez les e-mails reçus et envoyés, leurs performances et les réponses clients." />
       <CommunicationCenter initialTab={["inbox", "compose", "analytics", "integrations"].includes(requestedTab || "") ? requestedTab : "inbox"} initialData={{
         ...data,
         channels: data.channels.map((item) => ({ ...item, lastSyncAt: item.lastSyncAt?.toISOString() ?? null })),

@@ -19,7 +19,7 @@ export default async function ReportsWorkspacePage({ searchParams }: ReportsPage
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de consulter les rapports." />
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Pilotage"
         title="Rapports de direction"

@@ -76,7 +76,7 @@ export default async function PurchaseOrderDetailPage({
   );
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <RecordHeader
         backHref="/dashboard/operations?tab=stock"
         eyebrow="Commande fournisseur"

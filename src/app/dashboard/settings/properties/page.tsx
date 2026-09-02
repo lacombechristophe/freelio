@@ -10,7 +10,7 @@ export default async function CrmPropertiesSettingsPage() {
   const definitions = await getCrmPropertyDefinitions(undefined, true)
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Données CRM"
         title="Propriétés personnalisées"

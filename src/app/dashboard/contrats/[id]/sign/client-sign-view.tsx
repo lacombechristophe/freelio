@@ -82,7 +82,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
     setPending(true)
     try {
       // Get base64 PNG data from canvas signature
-      const canvasData = sigCanvasRef.current.getTrimmedCanvas().toDataURL("image/png")
+      const canvasData = sigCanvasRef.current.getCanvas().toDataURL("image/png")
 
       // Perform signature request
       const res = await signContractPublic(token, {

@@ -72,7 +72,7 @@ export default async function OpportunityDetailPage({
           ?.title || opportunity.status;
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <Button

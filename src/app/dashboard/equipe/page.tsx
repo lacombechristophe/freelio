@@ -6,7 +6,7 @@ export default async function TeamPage() {
   const data = await getTeamOverview()
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Accès et responsabilités"
         title="Équipe"

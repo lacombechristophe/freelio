@@ -10,7 +10,7 @@ export default async function AgenciesSettingsPage() {
   const data = await getAgencyManagement()
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Organisation"
         title="Agences, équipes et dépôts"

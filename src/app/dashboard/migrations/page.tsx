@@ -5,7 +5,7 @@ import { MigrationCenter } from "./migration-center"
 export default async function MigrationsPage() {
   const data = await getMigrationDashboard()
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Reprise contrôlée"
         title="Migration des données"

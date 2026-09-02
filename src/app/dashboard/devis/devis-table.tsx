@@ -70,7 +70,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
       await updateQuoteStatus(id, next)
       toast.success("Statut mis à jour.")
       router.refresh()
-    } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Action impossible.") }
   }
 
   async function handleDelete(id: string, number: string) {
@@ -84,16 +84,17 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
       await deleteQuote(id)
       toast.success("Devis supprimé.")
       router.refresh()
-    } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Action impossible.") }
   }
 
   return (
     <div className="space-y-4">
       <SavedViewBar resource="QUOTES" views={savedViews} config={{ search }} onApply={(config) => setSearch(typeof config.search === "string" ? config.search : "")} />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="workspace-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            aria-label="Rechercher un devis"
             placeholder="Rechercher un devis…"
             className="pl-9"
             value={search}
@@ -108,7 +109,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+      <div className="workspace-panel overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
@@ -162,7 +163,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                       {formatDate(quote.date)}
                     </TableCell>
                     <TableCell>
-                      <Badge className={cn("gap-1.5 px-2 py-0.5 rounded-full text-xs uppercase font-bold border", status.class)}>
+                      <Badge variant="outline" className={cn("gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium", status.class)}>
                         <status.icon className="h-3 w-3" />
                         {status.label}
                       </Badge>

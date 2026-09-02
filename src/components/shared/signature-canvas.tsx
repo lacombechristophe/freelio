@@ -22,7 +22,11 @@ export function SignatureCanvas({ onSave, onClear, disabled }: SignatureCanvasPr
 
   const save = () => {
     if (sigPad.current?.isEmpty()) return
-    const data = sigPad.current?.getTrimmedCanvas().toDataURL("image/png")
+    // getTrimmedCanvas() depends on the legacy CommonJS-only `trim-canvas`
+    // package and breaks once bundled as ESM. The original canvas is already
+    // bounded to the signature frame and produces a stable PNG without that
+    // unsafe interop path.
+    const data = sigPad.current?.getCanvas().toDataURL("image/png")
     if (data) onSave(data)
   }
 

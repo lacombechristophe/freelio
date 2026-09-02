@@ -13,8 +13,9 @@ export default async function ProjetsPage() {
   ])
 
   return (
-    <div className="space-y-7">
+    <div className="workspace-page">
       <PageHeader
+        className="workspace-page-header"
         eyebrow="Missions"
         title="Projets"
         description="Pilotez les budgets, le temps consommé et l’avancement de chaque chantier actif."
