@@ -2,3 +2,28 @@
 .env.*
 !.env.example
 
+# Dependencies and build/test artifacts are recreated by Vercel.
+node_modules/
+.next/
+.next-*/
+coverage/
+playwright-report/
+test-results/
+playwright/
+tmp/
+data/
+
+# Local tooling, drafts and repository metadata are never runtime inputs.
+.git/
+.vercel/
+design-concepts/
+scratch/
+build_log.txt
+.codex-next-build.log
+*.tsbuildinfo
+
+# Local SQLite files must never leave the workstation.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
