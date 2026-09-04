@@ -16,8 +16,8 @@ export default async function ProjetsPage() {
     <div className="workspace-page">
       <PageHeader
         className="workspace-page-header"
-        eyebrow="Missions"
-        title="Projets"
+        eyebrow="Opérations"
+        title="Chantiers"
         description="Pilotez les budgets, le temps consommé et l’avancement de chaque chantier actif."
       />
       <ProjetsGrid projects={projects ?? []} clients={clients ?? []} templates={templates ?? []} agencies={agencies ?? []} />

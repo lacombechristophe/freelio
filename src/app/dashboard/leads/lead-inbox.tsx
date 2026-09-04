@@ -93,7 +93,7 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
   return (
     <div className="space-y-5">
       <section aria-label="Indicateurs des prospects" className="workspace-metrics overflow-hidden rounded-xl border bg-card">
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4">
+        <div className="record-metrics grid grid-cols-2 xl:grid-cols-4">
           <LeadMetric icon={Clock3} label="À traiter" value={initialData.counts.NEW} detail="Rappel attendu sous 48 h" />
           <LeadMetric icon={Phone} label="Contactés" value={initialData.counts.CONTACTED} detail="Premier échange effectué" />
           <LeadMetric icon={CheckCircle2} label="Qualifiés" value={initialData.counts.QUALIFIED} detail="Besoin confirmé" />

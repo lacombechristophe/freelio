@@ -12,12 +12,12 @@ import { dashboardHome, dashboardNavGroups, dashboardUtilityItems, navigationIte
 const FAVORITES_KEY = "crm-navigation-favorites-v1"
 
 function NavLink({ item, active, compact = false, onFavorite, favorite }: { item: DashboardNavItem; active: boolean; compact?: boolean; onFavorite?: () => void; favorite?: boolean }) {
-  return <div className="group/nav-item flex items-center gap-1">
-    <Link href={item.href} aria-current={active ? "page" : undefined} className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] leading-5 transition-[color,background-color]", compact ? "h-9" : "h-10", active ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" : "text-sidebar-foreground/88 hover:bg-white/7 hover:text-white")}>
+  return <div className="group/nav-item relative flex items-center">
+    <Link href={item.href} aria-current={active ? "page" : undefined} className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] leading-5 transition-[color,background-color]", compact ? "min-h-9 py-1.5" : "min-h-10 py-2", onFavorite && "group-hover/nav-item:pr-10 group-focus-within/nav-item:pr-10", favorite && "pr-10", active ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" : "text-sidebar-foreground/88 hover:bg-white/7 hover:text-white")}>
       <item.icon className={cn("size-4 shrink-0", active ? "text-white" : "text-sidebar-foreground/72")} />
-      <span className="truncate">{item.name}</span>
+      <span className="break-words">{item.name}</span>
     </Link>
-    {onFavorite && <button type="button" onClick={onFavorite} aria-label={favorite ? `Retirer ${item.name} des favoris` : `Ajouter ${item.name} aux favoris`} className={cn("grid size-8.5 shrink-0 place-items-center rounded-lg text-sidebar-foreground/50 transition-[color,background-color,opacity] hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring", !favorite && "opacity-0 group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100")}><Star className={cn("size-3.5", favorite && "fill-sidebar-primary text-sidebar-primary")} /></button>}
+    {onFavorite && <button type="button" onClick={onFavorite} aria-label={favorite ? `Retirer ${item.name} des favoris` : `Ajouter ${item.name} aux favoris`} className={cn("absolute right-0 top-1/2 grid size-8.5 -translate-y-1/2 place-items-center rounded-lg text-sidebar-foreground/50 transition-[color,background-color,opacity] hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring", !favorite && "opacity-0 group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100")}><Star className={cn("size-3.5", favorite && "fill-sidebar-primary text-sidebar-primary")} /></button>}
   </div>
 }
 

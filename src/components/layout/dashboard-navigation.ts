@@ -56,6 +56,7 @@ export type DashboardNavItem = {
   activeMatch?: boolean
   exactMatch?: boolean
   requireEmptyQuery?: boolean
+  activePaths?: string[]
 }
 
 export type DashboardNavGroup = {
@@ -109,10 +110,10 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     icon: HardHat,
     description: "Chantiers, achats et terrain",
     items: [
-      { name: "Centre opérationnel", href: "/dashboard/operations", icon: HardHat, description: "Commandes, stock et interventions", requireEmptyQuery: true },
+      { name: "Centre opérationnel", href: "/dashboard/operations", icon: HardHat, description: "Commandes, stock et interventions", requireEmptyQuery: true, exactMatch: true },
       { name: "Chantiers", href: "/dashboard/projets", icon: BriefcaseBusiness, description: "Dossiers, jalons et budgets" },
-      { name: "Achats fournisseurs", href: "/dashboard/operations?tab=stock", icon: ShoppingCart, description: "Commandes et réceptions" },
-      { name: "Planning", href: "/dashboard/operations?tab=planning", icon: CalendarDays, description: "Affectations et capacité" },
+      { name: "Achats fournisseurs", href: "/dashboard/operations?tab=stock", icon: ShoppingCart, description: "Commandes et réceptions", activePaths: ["/dashboard/operations/achats", "/dashboard/operations/fournisseurs"] },
+      { name: "Planning", href: "/dashboard/operations?tab=planning", icon: CalendarDays, description: "Affectations et capacité", activePaths: ["/dashboard/service/interventions"] },
       { name: "Terrain", href: "/dashboard/terrain", icon: TabletSmartphone, description: "Interventions hors ligne" },
       { name: "Temps", href: "/dashboard/temps", icon: Timer, description: "Pointage et facturable" },
     ],
@@ -123,7 +124,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     description: "SAV, parc et fidélisation",
     items: [
       { name: "Vue service", href: "/dashboard/service", icon: Headphones, description: "Tickets, urgences et contrats", exactMatch: true },
-      { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Inbox, description: "Files, délais et affectations" },
+      { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Inbox, description: "Files, délais et affectations", activePaths: ["/dashboard/service/tickets"] },
       { name: "Diagnostics SAV", href: "/dashboard/service/diagnostics", icon: ClipboardCheck, description: "Playbooks, symptômes et garantie" },
       { name: "Portefeuille clients", href: "/dashboard/service/customer-success", icon: Gauge, description: "Santé, risques et renouvellements" },
       { name: "Analyses Service", href: "/dashboard/service/analytics", icon: BarChart3, description: "SLA, charge, diagnostics et santé" },
@@ -132,7 +133,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { name: "Satisfaction", href: "/dashboard/service/satisfaction", icon: MessageSquareHeart, description: "CSAT, NPS et verbatims" },
       { name: "Tickets SAV", href: "/dashboard/operations?tab=sav", icon: Tickets, description: "Demandes et résolutions" },
       { name: "Interventions", href: "/dashboard/operations?tab=planning", icon: Wrench, description: "Planning et comptes rendus", activeMatch: false },
-      { name: "Parc installé", href: "/dashboard/operations?tab=assets", icon: SlidersHorizontal, description: "Équipements et garanties" },
+      { name: "Parc installé", href: "/dashboard/operations?tab=assets", icon: SlidersHorizontal, description: "Équipements et garanties", activePaths: ["/dashboard/service/equipements"] },
       { name: "Contrats d'entretien", href: "/dashboard/operations?tab=maintenance", icon: Repeat2, description: "Échéances et renouvellements" },
     ],
   },
@@ -185,8 +186,9 @@ export function navigationPath(href: string) {
   return href.split("?")[0]
 }
 
-export function navigationItemIsActive(pathname: string, item: DashboardNavItem, currentQuery = "") {
+function matchesNavigationItem(pathname: string, item: DashboardNavItem, currentQuery: string) {
   if (item.activeMatch === false) return false
+  if (item.activePaths?.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return true
   const path = navigationPath(item.href)
   const itemQuery = item.href.split("?")[1]
   if (itemQuery) {
@@ -199,4 +201,14 @@ export function navigationItemIsActive(pathname: string, item: DashboardNavItem,
   if (item.exactMatch) return pathname === path
   if (path === "/dashboard") return pathname === path
   return pathname === path || pathname.startsWith(`${path}/`)
+}
+
+export function navigationItemIsActive(pathname: string, item: DashboardNavItem, currentQuery = "") {
+  if (!matchesNavigationItem(pathname, item, currentQuery)) return false
+  const path = navigationPath(item.href)
+  // A dedicated subpage owns its selection; detail routes still belong to their list.
+  return !dashboardNavGroups.some((group) => group.items.some((candidate) =>
+    navigationPath(candidate.href).startsWith(`${path}/`)
+    && matchesNavigationItem(pathname, candidate, currentQuery)
+  ))
 }

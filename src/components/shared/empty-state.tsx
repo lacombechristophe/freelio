@@ -19,7 +19,7 @@ export function EmptyState({
   className?: string
 }) {
   return (
-    <div className={cn("mx-auto flex max-w-md flex-col items-center text-center", compact ? "py-8" : "py-12 sm:py-14", className)}>
+    <div data-slot="empty-state" className={cn("mx-auto flex max-w-md flex-col items-center whitespace-normal px-4 text-center", compact ? "py-8" : "py-10 sm:py-14", className)}>
       <span className="grid size-11 place-items-center rounded-xl border border-primary/15 bg-accent text-primary">
         <Icon className="size-5" />
       </span>

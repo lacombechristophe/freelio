@@ -64,7 +64,7 @@ export default async function ServiceAnalyticsPage({ searchParams }: { searchPar
       <div className="flex flex-wrap gap-2"><Button type="submit"><BarChart3 />Appliquer</Button><a href={`/api/service/analytics/export?${exportParams}`} className={buttonVariants({ variant: "outline" })}><Download />Exporter l’analyse</a></div>
     </form>
 
-    <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-6">
+    <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-6">
       <Metric icon={Tickets} label="Tickets créés" value={data.summary.created} detail={`Depuis le ${shortDate(data.startAt)}`} />
       <Metric icon={CheckCircle2} label="Tickets clos" value={data.summary.closed} detail="Clôturés dans la période" />
       <Metric icon={Activity} label="Backlog actif" value={data.summary.backlog} detail="Ouverts, qualifiés, planifiés ou en attente" alert={data.summary.backlog > 0} />

@@ -97,7 +97,7 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
 
   return (
     <div className="space-y-6">
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={Megaphone} label="Campagnes actives" value={active} detail={`${initialData.campaigns.length} campagne(s) suivie(s)`} />
         <Metric icon={Target} label="Prospects attribués" value={attributedLeads} detail="Via le paramètre UTM" />
         <Metric icon={Send} label="E-mails suivis" value={deliveries} detail="Séquences rattachées" />

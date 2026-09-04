@@ -75,7 +75,7 @@ export default async function SupplierDetailPage({
           </>
         }
       />
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
         <RecordMetric
           icon={ReceiptText}
           label="Achats cumulés"

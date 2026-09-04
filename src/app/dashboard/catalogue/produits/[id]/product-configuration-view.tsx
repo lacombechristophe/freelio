@@ -70,7 +70,7 @@ export function ProductConfigurationView({ detail }: { detail: Detail }) {
       <ProductFormDialog open={editOpen} onOpenChange={setEditOpen} product={product as CatalogProductFormValue} products={references} suppliers={detail.suppliers} />
       <ProductFormDialog open={variantOpen} onOpenChange={setVariantOpen} products={[{ id: product.id, sku: product.sku, label: product.label, parentProductId: product.parentProductId }, ...references]} suppliers={detail.suppliers} defaultParentProductId={product.id} defaultKind="VARIANT" />
 
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 lg:grid-cols-4">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 lg:grid-cols-4">
         <div className="p-4"><p className="text-xs text-muted-foreground">Prix de vente HT</p><p className="mt-1 text-lg font-semibold tabular-nums">{formatEuro(product.salePriceCents)}</p></div>
         <div className="border-t p-4 sm:border-l sm:border-t-0"><p className="text-xs text-muted-foreground">Coût de référence</p><p className="mt-1 text-lg font-semibold tabular-nums">{formatEuro(product.purchasePriceCents)}</p></div>
         <div className="border-t p-4 lg:border-l lg:border-t-0"><p className="text-xs text-muted-foreground">Marge unitaire prévue</p><p className={`mt-1 text-lg font-semibold tabular-nums ${margin < 0 ? "text-danger" : "text-success"}`}>{formatEuro(margin)}</p></div>

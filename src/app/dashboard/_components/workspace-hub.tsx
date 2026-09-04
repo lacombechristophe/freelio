@@ -21,7 +21,7 @@ export type WorkspaceSection = { title: string; description: string; links: Work
 export type WorkspacePanelRow = { title: string; detail: string; meta?: string; status?: string; href: string; icon?: LucideIcon; tone?: "blue" | "teal" | "amber" | "red" }
 export type WorkspacePanel = { title: string; description: string; rows: WorkspacePanelRow[]; empty: string; href: string; linkLabel: string }
 
-export function WorkspaceHub({ eyebrow, title, description, metrics, featured, panels, sections, primaryAction }: { eyebrow: string; title: string; description: string; metrics: WorkspaceMetric[]; featured?: ReactNode; panels?: WorkspacePanel[]; sections: WorkspaceSection[]; primaryAction?: WorkspaceLink }) {
+export function WorkspaceHub({ eyebrow, title, description, metrics, featured, featuredPosition = "before-panels", panels, sections, primaryAction }: { eyebrow: string; title: string; description: string; metrics: WorkspaceMetric[]; featured?: ReactNode; featuredPosition?: "before-panels" | "after-panels"; panels?: WorkspacePanel[]; sections: WorkspaceSection[]; primaryAction?: WorkspaceLink }) {
   return <div className="workspace-page">
     <PageHeader className="workspace-page-header" eyebrow={eyebrow} title={title} description={description} actions={primaryAction ? <Button nativeButton={false} render={<Link href={primaryAction.href} />}><primaryAction.icon />{primaryAction.name}</Button> : undefined} />
 
@@ -29,9 +29,11 @@ export function WorkspaceHub({ eyebrow, title, description, metrics, featured, p
       {metrics.map((metric) => <WorkspaceMetricCard key={metric.label} metric={metric} />)}
     </section>
 
-    {featured}
+    {featuredPosition === "before-panels" ? featured : null}
 
     {panels?.length ? <div className="grid gap-3 xl:grid-cols-2">{panels.map((panel) => <WorkspaceDataPanel key={panel.title} panel={panel} />)}</div> : null}
+
+    {featuredPosition === "after-panels" ? featured : null}
 
     <div className="grid gap-3 xl:grid-cols-2">{sections.map((section, sectionIndex) => <section key={section.title} className={sections.length % 2 === 1 && sectionIndex === sections.length - 1 ? "workspace-directory overflow-hidden rounded-xl border bg-card xl:col-span-2" : "workspace-directory overflow-hidden rounded-xl border bg-card"}><header className="flex items-start justify-between gap-4 border-b px-4.5 py-3.5"><div><h2 className="text-[15px] font-semibold">{section.title}</h2><p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">{section.description}</p></div><span className="rounded-md bg-muted px-2 py-1 text-xs font-semibold tabular-nums text-muted-foreground">{section.links.length}</span></header><div className="divide-y">{section.links.map((item) => <Link key={`${item.href}-${item.name}`} href={item.href} className="group flex min-h-[68px] items-center gap-3 px-4.5 py-3 transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><span className="grid size-8.5 shrink-0 place-items-center rounded-lg bg-primary/9 text-primary"><item.icon className="size-4" /></span><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="text-sm font-semibold">{item.name}</span>{item.badge && <Badge variant="outline">{item.badge}</Badge>}</span><span className="mt-0.5 block line-clamp-2 text-[13px] leading-5 text-muted-foreground sm:line-clamp-1">{item.description}</span></span><ArrowRight className="size-4 shrink-0 text-muted-foreground/60 transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-primary" /></Link>)}</div></section>)}</div>
   </div>
@@ -55,7 +57,7 @@ function WorkspaceDataPanel({ panel }: { panel: WorkspacePanel }) {
   )
 }
 
-function WorkspaceMetricCard({ metric }: { metric: WorkspaceMetric }) {
+export function WorkspaceMetricCard({ metric }: { metric: WorkspaceMetric }) {
   const Icon = metric.icon ?? Activity
   const tone = metric.alert ? "red" : metric.tone ?? "blue"
   const tones = {
@@ -69,16 +71,16 @@ function WorkspaceMetricCard({ metric }: { metric: WorkspaceMetric }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="line-clamp-2 text-[13px] font-medium leading-4 text-foreground/85">{metric.label}</p>
-          <p className="mt-2.5 text-[26px] font-semibold leading-none tracking-[-0.025em] tabular-nums text-foreground">{metric.value}</p>
+          <p className="mt-2.5 break-words text-[22px] font-semibold leading-tight tracking-[-0.025em] tabular-nums text-foreground sm:text-[26px]">{metric.value}</p>
         </div>
-        <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${tones}`}>
+        <span className={`hidden size-9 shrink-0 place-items-center rounded-lg sm:grid ${tones}`}>
           {metric.alert ? <CircleAlert className="size-4" /> : <Icon className="size-4" />}
         </span>
       </div>
-      <div className="relative z-10 mt-5 flex min-w-0 items-center gap-2 border-t border-border/70 pt-2.5">
+      <div className="relative z-10 mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/70 pt-2.5 sm:mt-5">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--metric-accent)]" />
         <p className="line-clamp-2 text-xs leading-4 text-muted-foreground">{metric.detail}</p>
-        {metric.status ? <span className="ml-auto shrink-0 text-[11px] font-semibold text-[var(--metric-ink)] dark:text-[var(--metric-accent)]">{metric.status}</span> : null}
+        {metric.status ? <span className="text-[11px] font-semibold text-[var(--metric-ink)] sm:ml-auto dark:text-[var(--metric-accent)]">{metric.status}</span> : null}
         {metric.href ? <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" /> : null}
       </div>
     </>

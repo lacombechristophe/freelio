@@ -97,6 +97,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   await assertHealthy(page, "/dashboard/clients", "Clients")
   if (testInfo.project.name === "desktop") {
     await page.getByLabel("Rechercher dans les clients").fill("Client QA")
+    await page.getByRole("button", { name: "Enregistrer cette vue", exact: true }).click()
     await page.getByLabel("Enregistrer la vue actuelle").fill("Clients QA")
     await page.getByRole("button", { name: "Enregistrer la vue" }).click()
     await expect(page.getByText("Vue enregistrée.")).toBeVisible()
@@ -117,6 +118,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   await assertHealthy(page, "/dashboard/contacts", "Contacts")
   if (testInfo.project.name === "desktop") {
     await page.getByLabel("Rechercher un contact").fill("Camille")
+    await page.getByRole("button", { name: "Enregistrer cette vue", exact: true }).click()
     await page.getByLabel("Enregistrer la vue actuelle").fill("Contacts QA")
     await page.getByRole("button", { name: "Enregistrer la vue" }).click()
     await expect(page.getByText("Vue enregistrée.")).toBeVisible()
@@ -161,7 +163,7 @@ test("new local-first surfaces load and their primary controls respond", async (
     expect(await reportExport.text()).toContain("Domaine")
   }
 
-  await assertHealthy(page, "/dashboard/projets", "Projets")
+  await assertHealthy(page, "/dashboard/projets", "Chantiers")
   const projectLink = page.locator('a[href^="/dashboard/projets/"]:visible')
   expect(await projectLink.count()).toBeGreaterThan(0)
   await projectLink.first().click()
@@ -306,7 +308,7 @@ test("agencies connect teams, warehouses and operational records", async ({ page
     await expect(page.getByText("Transferts récents")).toBeVisible()
   }
 
-  await assertHealthy(page, "/dashboard/projets", "Projets")
+  await assertHealthy(page, "/dashboard/projets", "Chantiers")
   await page.getByRole("button", { name: "Nouveau chantier" }).click()
   await expect(page.getByLabel("Agence responsable du chantier")).toBeVisible()
   await page.getByRole("button", { name: "Annuler" }).click()
@@ -464,6 +466,7 @@ test("configurable CRM properties use business presets and retain a visible hist
   if (await sourceColumn.getAttribute("aria-checked") !== "true") await sourceColumn.click()
   await page.keyboard.press("Escape")
   await expect(page.getByRole("columnheader", { name: "Source d’acquisition" })).toBeVisible()
+  await page.getByRole("button", { name: "Enregistrer cette vue", exact: true }).click()
   await page.getByLabel("Enregistrer la vue actuelle").fill("Clients web QA")
   await page.getByRole("button", { name: "Enregistrer la vue" }).click()
   await expect(page.getByText("Vue enregistrée.")).toBeVisible()
@@ -709,7 +712,7 @@ test("configures a product, its options and its bill of materials into a quote",
 
 test("creates a reusable project plan and enforces milestone dependencies", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Le modèle est créé une fois ; les vues projets restent couvertes sur mobile.")
-  await assertHealthy(page, "/dashboard/projets", "Projets")
+  await assertHealthy(page, "/dashboard/projets", "Chantiers")
   await page.getByRole("button", { name: "Modèles" }).click()
   const templateDialog = page.getByRole("dialog", { name: "Modèles de chantier" })
   await templateDialog.getByLabel("Nom").fill("Installation QA standard")

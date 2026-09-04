@@ -24,6 +24,7 @@ export default async function RevenueWorkspacePage() {
 
   return (
     <WorkspaceHub
+      featuredPosition="after-panels"
       eyebrow="Espace revenus"
       title="Facturation et trésorerie"
       description="Suivez ce qui doit être facturé, encaissé, rapproché ou transmis à la comptabilité."

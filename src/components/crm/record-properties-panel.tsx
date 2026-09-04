@@ -115,6 +115,13 @@ export function RecordPropertiesPanel({
     }
   }
 
+  if (!data.definitions.length && !data.history.length) {
+    return <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+      <span className="flex items-center gap-2"><Braces className="size-4" />Champs personnalisés non configurés</span>
+      <Button nativeButton={false} variant="ghost" size="sm" render={<Link href="/dashboard/settings/properties" />}><Settings2 />Configurer</Button>
+    </div>
+  }
+
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-4">
