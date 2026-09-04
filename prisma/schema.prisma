@@ -212,6 +212,7 @@ model Company {
   emailTemplates             EmailTemplate[]
   emailSequences             EmailSequence[]
   emailDeliveries            EmailDelivery[]
+  emailSuppressions          EmailSuppression[]
   emailSequenceTasks         EmailSequenceTask[]
   emailThreads               EmailThread[]
   emailMessages              EmailMessage[]
@@ -270,6 +271,19 @@ model BillingWebhookEvent {
   updatedAt     DateTime  @updatedAt
 
   @@index([status, createdAt])
+}
+
+model ProcessorLease {
+  name            String    @id
+  ownerId         String
+  leaseUntil      DateTime
+  lastStartedAt   DateTime  @default(now())
+  lastSucceededAt DateTime?
+  lastFailedAt    DateTime?
+  lastError       String?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([leaseUntil])
 }
 
 model Membership {
@@ -949,9 +963,20 @@ model EmailDelivery {
   subject        String
   status         String        @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
   providerId     String?
+  provider       String?
+  channelId      String?
+  channel        CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  providerDraftId   String?
+  providerMessageId String?
   error          String?
   scheduledAt    DateTime
   sentAt         DateTime?
+  attempts       Int           @default(0)
+  maxAttempts    Int           @default(5)
+  nextAttemptAt  DateTime?
+  lastAttemptAt  DateTime?
+  lastEventAt    DateTime?
+  deadLetteredAt DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   message        EmailMessage?
@@ -959,7 +984,28 @@ model EmailDelivery {
   @@unique([enrollmentId, stepId])
   @@index([companyId, createdAt])
   @@index([status, scheduledAt])
+  @@index([status, nextAttemptAt])
   @@index([leadCaptureId])
+}
+
+model EmailSuppression {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  email           String
+  reason          String
+  provider        String?
+  providerEventId String?
+  details         Json?
+  active          Boolean   @default(true)
+  suppressedAt    DateTime  @default(now())
+  clearedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([companyId, email])
+  @@index([companyId, active, suppressedAt])
 }
 
 model EmailSequenceTask {
@@ -994,6 +1040,7 @@ model CommunicationChannel {
   status               String    @default("PENDING")
   credentialsEncrypted String?
   config               Json?
+  emailDeliveries      EmailDelivery[]
   lastSyncAt           DateTime?
   lastError            String?
   createdAt            DateTime  @default(now())
@@ -1058,6 +1105,7 @@ model EmailMessage {
   status            String       @default("SENT")
   sentAt            DateTime?
   receivedAt        DateTime?
+  lastEventAt       DateTime?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   events            EmailEvent[]

@@ -16,12 +16,12 @@ export default async function ServiceWorkspacePage() {
       description="Priorisez les demandes, interventions, garanties et échéances qui protègent la satisfaction client."
       primaryAction={{ name: "Nouveau ticket", href: "/dashboard/operations?create=1", icon: Headphones, description: "Ouvrir une demande" }}
       metrics={[
-        { label: "Tickets ouverts", value: data.openTickets, detail: "À diagnostiquer ou résoudre", icon: Tickets, tone: "blue", alert: data.openTickets > 0 },
-        { label: "Interventions", value: data.scheduledInterventions, detail: "Planifiées ou en cours", icon: CalendarDays, tone: "teal" },
-        { label: "Contrats actifs", value: data.maintenanceContracts, detail: "Entretien et maintenance", icon: Repeat2, tone: "amber" },
-        { label: "Messages non lus", value: data.unreadEmail, detail: "Conversations ouvertes", icon: Inbox, tone: "red", alert: data.unreadEmail > 0 },
+        { label: "Tickets ouverts", value: data.openTickets, detail: "À diagnostiquer ou résoudre", icon: Tickets, tone: "blue", alert: data.openTickets > 0, status: data.openTickets ? "À traiter" : "À jour", href: "/dashboard/service/help-desk" },
+        { label: "Interventions", value: data.scheduledInterventions, detail: "Planifiées ou en cours", icon: CalendarDays, tone: "teal", href: "/dashboard/operations?tab=planning" },
+        { label: "Contrats actifs", value: data.maintenanceContracts, detail: "Entretien et maintenance", icon: Repeat2, tone: "amber", href: "/dashboard/operations?tab=maintenance" },
+        { label: "Messages non lus", value: data.unreadEmail, detail: "Conversations ouvertes", icon: Inbox, tone: "red", alert: data.unreadEmail > 0, status: data.unreadEmail ? "À lire" : "À jour", href: "/dashboard/communications" },
       ]}
-      featured={<div className="grid gap-3 xl:grid-cols-2"><WorkspaceDistributionPanel title="Santé du portefeuille" description="Clients répartis par score relationnel calculé." items={[{ label: "Relation saine", value: data.clientHealth.healthy }, { label: "À surveiller", value: data.clientHealth.watch }, { label: "À risque", value: data.clientHealth.risk }]} href="/dashboard/service/customer-success" linkLabel="Ouvrir l’analyse de santé" /><WorkspaceDistributionPanel title="File SAV" description="Tickets ouverts par niveau de priorité." items={["URGENT", "HIGH", "NORMAL", "LOW"].map((priority) => ({ label: priority === "URGENT" ? "Urgent" : priority === "HIGH" ? "Haute" : priority === "NORMAL" ? "Normale" : "Faible", value: data.priorityTickets.filter((ticket) => ticket.priority === priority).length }))} href="/dashboard/service/help-desk" linkLabel="Ouvrir le centre de support" /></div>}
+      featured={<div className="grid gap-3 xl:grid-cols-2"><WorkspaceDistributionPanel title="Couverture relationnelle" description="Répartition du portefeuille selon le score de santé calculé." items={[{ label: "Relation saine", value: data.clientHealth.healthy }, { label: "À surveiller", value: data.clientHealth.watch }, { label: "À risque", value: data.clientHealth.risk }]} href="/dashboard/service/customer-success" linkLabel="Ouvrir l’analyse de santé" /><WorkspaceDistributionPanel title="Répartition de la file SAV" description="Volume ouvert par niveau de priorité." items={["URGENT", "HIGH", "NORMAL", "LOW"].map((priority) => ({ label: priority === "URGENT" ? "Urgent" : priority === "HIGH" ? "Haute" : priority === "NORMAL" ? "Normale" : "Faible", value: data.priorityTickets.filter((ticket) => ticket.priority === priority).length }))} href="/dashboard/service/help-desk" linkLabel="Ouvrir le centre de support" /></div>}
       panels={[
         {
           title: "File SAV prioritaire",
@@ -40,7 +40,7 @@ export default async function ServiceWorkspacePage() {
           linkLabel: "Voir tous les tickets",
         },
         {
-          title: "Santé du portefeuille",
+          title: "Dossiers clients suivis",
           description: "Clients récemment actifs, classés par score relationnel.",
           rows: [...data.recentClients].sort((left, right) => left.relationScore - right.relationScore).map((client) => ({
             title: client.name,
@@ -58,7 +58,7 @@ export default async function ServiceWorkspacePage() {
       ]}
       sections={[
         {
-          title: "File SAV prioritaire",
+          title: "Outils SAV",
           description: "Répondre, diagnostiquer et résoudre avec les engagements visibles.",
           links: [
             { name: "Centre de support", href: "/dashboard/service/help-desk", icon: Tickets, description: "Files, priorités, engagements de résolution et affectations." },

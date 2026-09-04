@@ -1,6 +1,6 @@
 # Rapport de vérification du candidat CRM/ERP
 
-Date : 1er septembre 2026
+Date : 4 septembre 2026
 Branche : `codex/diskoov-crm-replacement`
 Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
@@ -15,14 +15,15 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 59 fichiers, 235 tests réussis |
+| `npm run test:unit` | 69 fichiers, 272 tests réussis |
+| `npm run test:coverage` | seuils franchis : 80,49 % instructions, 55,21 % branches, 83,18 % fonctions et 84,08 % lignes sur le noyau finance/import/Factur-X et les politiques de reprise e-mail |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
 | `npm audit --omit=dev` | 0 vulnérabilité déclarée |
 | Playwright, build production et base isolée | 26 scénarios desktop/mobile réussis et 16 mutations volontairement ignorées sur mobile après preuve desktop (42 exécutions) |
-| Direction UI/UX | shell, navigation et sept cockpits métier contrôlés en navigateur ; aucune occurrence d’identité client dans l’interface et aucun anti-pattern détecté par le contrôle Impeccable |
+| Direction UI/UX | shell, navigation et 23 entrées métier capturés en pleine page à 1600×1000 ; navigation, états vides, densité, repli des colonnes étroites et absence du chronomètre contrôlés |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
-| PostgreSQL | 39 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS, intégrité devis/contrat/commande et synchronisation calendrier |
+| PostgreSQL | 40 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS, intégrité devis/contrat/commande, synchronisation calendrier et reprise durable des e-mails |
 | Production Vercel | déploiement `dpl_CPPn5PoxkZSjHFfo9qU45XemQqvk` prêt, alias public actif sur `https://freelio-eight.vercel.app`, code applicatif du commit `954fd12` poussé |
 | Smoke HTTP public | `/` et `/auth/login` en 200, `/api/health/live` et `/api/health/ready` en 200 avec base/configuration prêtes, `/dashboard` en 307 vers `/auth/login`, `/v2` en 404 |
 | Recette visuelle publique | landing métier restaurée et formulaire de connexion complet rendus à 1512×982 et 1440×1000 dans Chromium sans régression de structure visible |
@@ -88,7 +89,10 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 - jetons de signature/désinscription signés et secrets hors URL en clair ;
 - désinscription marketing idempotente et prioritaire sur les séquences ;
 - contenu e-mail assaini, variables échappées, `List-Unsubscribe` one-click et clé d’idempotence Resend ;
-- verrou d’envoi persistant avec reprise après expiration ;
+- verrou d’envoi persistant avec reprise après expiration, bail PostgreSQL entre processeurs et heartbeat exploitable ;
+- brouillon Google/Microsoft persisté avant envoi, recherche par `Message-ID` après interruption et refus de recréer tant que l’état fournisseur reste incertain ;
+- retries temporisés, file d’échecs terminaux, reprise humaine auditée et suppression centrale des rejets permanents/plaintes ;
+- événements de livraison dédoublonnés et ordonnés sans régression d’un état final par un webhook ancien ;
 - un seul palier de relance automatique par facture et passage, sélection du palier pertinent en activation tardive, rotation entre sociétés et temporisation des échecs ;
 - règles CRM idempotentes par clé d’événement ;
 - arrêt des séquences sur réponse entrante et déclencheurs e-mail/portail/intervention ;
@@ -126,6 +130,6 @@ Les éléments suivants ne peuvent pas être prouvés par le dépôt seul :
 7. autorisation et recette des boîtes/calendriers Google ou Microsoft réellement utilisés, ou décision formelle de rester sur le canal Resend ;
 8. décision sur les écarts encore partiels : campagnes de masse, live chat/social/publicité, workflows à branches complexes et optimisation routière ;
 9. recette de dix dossiers réels, deux cycles opérationnels complets et procès-verbal de go/no-go du gérant.
-10. Vercel Pro ou ordonnanceur externe supervisé pour exécuter les automatisations toutes les cinq minutes et les échéances horaires ; Vercel Hobby ne permet que le cron quotidien de sauvegarde.
+10. surveillance et alertes humaines du workflow GitHub Actions chargé d’exécuter les trois processeurs toutes les cinq minutes sur Vercel Hobby.
 
 La procédure et les responsables attendus sont décrits dans le [runbook de migration](migration-cutover-runbook.md), le [runbook de production](production-runbook.md) et la [matrice de couverture](coverage-and-external-dependencies.md).

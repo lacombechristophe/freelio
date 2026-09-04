@@ -517,7 +517,7 @@ export function OnboardingForm() {
                       void form.handleSubmit(onSubmit, onInvalidSubmit)()
                     }}
                   >
-                    {isSubmitting ? "Initialisation..." : "Terminer"}
+                    {isSubmitting ? "Initialisation…" : "Terminer"}
                     {!isSubmitting && <Check className="h-4 w-4" />}
                   </Button>
                 )}

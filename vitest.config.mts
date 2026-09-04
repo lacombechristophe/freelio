@@ -18,6 +18,8 @@ export default defineConfig({
       // UI and provider SDKs are covered by integration/E2E checks instead.
       include: [
         "src/lib/finance/commercial-calculation.ts",
+        "src/lib/automations/delivery-retry.ts",
+        "src/lib/communications/delivery-events.ts",
         "src/lib/migrations/ingest.ts",
         "src/lib/migrations/normalize.ts",
         "src/lib/pdf/facturx.ts",

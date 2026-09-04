@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useTransition } from "react"
-import { Archive, CheckCircle2, Database, FileArchive, FlaskConical, Import, KeyRound, Loader2, RefreshCw, Search, ShieldCheck, Upload } from "lucide-react"
+import { Archive, CheckCircle2, Database, FileArchive, FlaskConical, Import, KeyRound, Loader2, RefreshCw, Search, ShieldCheck, Upload, type LucideIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -75,6 +75,13 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
   const [archiveProvider, setArchiveProvider] = useState<Provider>("EXTRABAT")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState("")
+  const verifiedRuns = initialData.runs.filter((run) => run.status === "VERIFIED").length
+  const migrationSteps: Array<{ label: string; detail: string; ready: boolean; icon: LucideIcon }> = [
+    { label: "1. Connecter", detail: "Clé chiffrée ou exports déposés", ready: initialData.connections.length > 0 || initialData.runs.some((run) => run.documents > 0), icon: KeyRound },
+    { label: "2. Inventorier", detail: "Schéma et archives analysés", ready: initialData.runs.some((run) => ["ANALYZED", "SIMULATED", "IMPORTED", "VERIFIED"].includes(run.status)), icon: Search },
+    { label: "3. Simuler", detail: "Doublons et rejets contrôlés", ready: initialData.runs.some((run) => ["SIMULATED", "IMPORTED", "VERIFIED"].includes(run.status)), icon: FlaskConical },
+    { label: "4. Vérifier", detail: verifiedRuns ? `${verifiedRuns} lot${verifiedRuns > 1 ? "s" : ""} rapproché${verifiedRuns > 1 ? "s" : ""}` : "Import et rapport d’intégrité", ready: verifiedRuns > 0, icon: ShieldCheck },
+  ]
 
   function saveConnection() {
     startTransition(async () => {
@@ -180,6 +187,16 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
 
   return (
     <div className="space-y-6">
+      <section className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex flex-col gap-3 border-b px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div><h2 className="text-sm font-semibold">Parcours de reprise sécurisé</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Chaque lot reste réversible et traçable. Aucune donnée n’est écrite avant la simulation.</p></div>
+          <Badge variant={verifiedRuns ? "default" : "secondary"}>{migrationSteps.filter((step) => step.ready).length}/4 étapes franchies</Badge>
+        </div>
+        <ol className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
+          {migrationSteps.map((step) => <li key={step.label} className="flex min-h-20 items-center gap-3 bg-card px-4 py-3"><span className={`grid size-8 shrink-0 place-items-center rounded-lg ${step.ready ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>{step.ready ? <CheckCircle2 className="size-4" /> : <step.icon className="size-4" />}</span><span className="min-w-0"><span className="block text-sm font-semibold">{step.label}</span><span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{step.detail}</span></span></li>)}
+        </ol>
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
         <Card>
           <CardHeader>
@@ -187,7 +204,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
               <KeyRound className="size-4 text-primary" />
               Connecter une source
             </CardTitle>
-            <CardDescription>La clé est chiffrée côté serveur et n'est jamais réaffichée.</CardDescription>
+            <CardDescription>Le client renseigne lui-même son accès. La clé est chiffrée côté serveur et n’est jamais réaffichée.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -250,7 +267,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
               <FileArchive className="size-4 text-primary" />
               Déposer des exports
             </CardTitle>
-            <CardDescription>Solution de repli officielle pour les modules non couverts par API.</CardDescription>
+            <CardDescription>Solution de repli pour les objets absents de l’API ou lorsque le compte source ne permet pas une connexion directe.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

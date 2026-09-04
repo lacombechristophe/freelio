@@ -1,0 +1,38 @@
+name: Traitements de production
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: production-processors
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_URL: https://freelio-eight.vercel.app
+      PROCESSOR_SECRET: ${{ secrets.PROCESSOR_CRON_SECRET }}
+    steps:
+      - name: Vérifier la configuration
+        run: test -n "$PROCESSOR_SECRET"
+
+      - name: Traiter les séquences, échéances et synchronisations
+        shell: bash
+        run: |
+          set -euo pipefail
+          call_processor() {
+            curl --silent --show-error --fail-with-body \
+              --retry 3 --retry-all-errors --max-time 240 \
+              --request POST \
+              --header "Authorization: Bearer ${PROCESSOR_SECRET}" \
+              "${APP_URL}${1}"
+          }
+          call_processor "/api/automations/process"
+          call_processor "/api/scheduling/process"
+          call_processor "/api/communications/sync/process"

@@ -134,7 +134,7 @@ export function ProductFormDialog({ product, products, suppliers, defaultParentP
           <section className="space-y-4">
             <div className="flex items-center gap-2 border-b pb-2"><Boxes className="size-4 text-primary" /><div><h3 className="text-sm font-semibold">Identité commerciale</h3><p className="text-[11px] text-muted-foreground">Informations visibles dans le catalogue et les documents client.</p></div></div>
             <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <div className="space-y-1.5"><Label htmlFor="product-sku">Référence / SKU *</Label><Input id="product-sku" value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} required autoFocus /></div>
+              <div className="space-y-1.5"><Label htmlFor="product-sku">Référence / SKU *</Label><Input id="product-sku" value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} required /></div>
               <div className="space-y-1.5"><Label htmlFor="product-label">Libellé *</Label><Input id="product-label" value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} required /></div>
             </div>
             <div className="space-y-1.5"><Label htmlFor="product-description">Description commerciale et technique</Label><textarea id="product-description" className="min-h-24 w-full resize-y rounded-[10px] border bg-background px-3 py-2 text-sm leading-6 outline-none focus:border-ring focus:ring-3 focus:ring-ring/20" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Usage, caractéristiques, limites et éléments inclus…" /></div>

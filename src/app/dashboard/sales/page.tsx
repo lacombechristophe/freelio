@@ -16,10 +16,10 @@ export default async function SalesWorkspacePage() {
       description="Une vue commerciale centrée sur les affaires, les rendez-vous, les offres et la signature."
       primaryAction={{ name: "Nouveau devis", href: "/dashboard/devis/new", icon: FileText, description: "Préparer une proposition" }}
       metrics={[
-        { label: "Pipeline ouvert", value: formatWorkspaceEuro(data.openDealValueCents), detail: `${data.openDeals} affaire(s)`, icon: Kanban, tone: "blue" },
-        { label: "Prospects actifs", value: data.activeLeads, detail: "À qualifier ou relancer", icon: Target, tone: "teal" },
-        { label: "Devis", value: data.quotes, detail: "Tous statuts hors archives", icon: FileText, tone: "amber" },
-        { label: "Actions sous 48 h", value: data.dueTasks, detail: "Tâches non terminées", icon: CalendarDays, tone: "red", alert: data.dueTasks > 0 },
+        { label: "Pipeline ouvert", value: formatWorkspaceEuro(data.openDealValueCents), detail: `${data.openDeals} affaire(s)`, icon: Kanban, tone: "blue", href: "/dashboard/pipeline" },
+        { label: "Prospects actifs", value: data.activeLeads, detail: "À qualifier ou relancer", icon: Target, tone: "teal", href: "/dashboard/leads" },
+        { label: "Devis", value: data.quotes, detail: "Tous statuts hors archives", icon: FileText, tone: "amber", href: "/dashboard/devis" },
+        { label: "Actions sous 48 h", value: data.dueTasks, detail: "Tâches non terminées", icon: CalendarDays, tone: "red", alert: data.dueTasks > 0, status: data.dueTasks ? "À traiter" : "À jour", href: "/dashboard/organisation" },
       ]}
       featured={<SalesPipelineBoard opportunities={data.opportunities} />}
       panels={[

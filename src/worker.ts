@@ -11,6 +11,7 @@ import { docGenWorker } from "@/lib/bullmq/worker"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
 import { syncDueOAuthCommunicationChannels } from "@/lib/communications/communication-sync"
+import { withProcessorLease } from "@/lib/processing/lease"
 
 console.log("[Worker] Starting BullMQ workers...")
 console.log(`[Worker] Redis: ${process.env.REDIS_HOST ?? "localhost"}:${process.env.REDIS_PORT ?? "6379"}`)
@@ -37,7 +38,9 @@ const processScheduling = async () => {
   if (schedulingRunning) return
   schedulingRunning = true
   try {
-    const result = await processScheduledBusinessJobs()
+    const lease = await withProcessorLease("business-scheduling", processScheduledBusinessJobs)
+    if (!lease.acquired) return
+    const result = lease.value
     const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled + result.invoiceReminders.sent + result.invoiceReminders.failed
     if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s).`)
   } catch (error) {
@@ -54,7 +57,9 @@ const processCommunicationSync = async () => {
   if (communicationSyncRunning) return
   communicationSyncRunning = true
   try {
-    const result = await syncDueOAuthCommunicationChannels(10)
+    const lease = await withProcessorLease("communication-sync", () => syncDueOAuthCommunicationChannels(10))
+    if (!lease.acquired) return
+    const result = lease.value
     if (result.messagesImported || result.calendarEventsImported || result.failed) console.log(`[Worker] Communication sync: ${result.messagesImported} message(s), ${result.calendarEventsImported} événement(s), ${result.failed} échec(s).`)
   } catch (error) {
     console.error(`[Worker] Mail sync failed: ${error instanceof Error ? error.message : "unknown error"}`)

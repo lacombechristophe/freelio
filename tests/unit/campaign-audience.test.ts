@@ -13,16 +13,18 @@ describe("campaign audience readiness", () => {
       { id: "opposed", email: "opposed@example.com", marketingOptIn: true, status: "NEW", contact: { marketingStatus: "OPTED_OUT" } },
       { id: "spam", email: "spam@example.com", marketingOptIn: true, status: "SPAM" },
       { id: "existing", email: "existing@example.com", marketingOptIn: true, status: "NEW" },
-    ], ["existing"])
+      { id: "suppressed", email: "BLOCKED@example.com", marketingOptIn: true, status: "NEW" },
+    ], ["existing"], ["blocked@example.com"])
 
     expect(result).toEqual({
-      total: 8,
+      total: 9,
       eligibleIds: ["eligible"],
       missingEmail: 2,
       missingConsent: 2,
       optedOut: 1,
       excludedStatus: 1,
       alreadyEnrolled: 1,
+      suppressed: 1,
     })
   })
 })

@@ -10,8 +10,8 @@ Ce document décrit l'exploitation du code présent dans ce dépôt. Il ne vaut 
 
 | Élément | Production | Préproduction |
 |---|---|---|
-| URL publique | à renseigner | à renseigner |
-| Hébergeur application | à renseigner | à renseigner |
+| URL publique | `https://freelio-eight.vercel.app` | à renseigner |
+| Hébergeur application | Vercel | à renseigner |
 | Projet PostgreSQL | à renseigner | à renseigner |
 | Bucket R2 | à renseigner | à renseigner |
 | Instance Redis/BullMQ | à renseigner | à renseigner |
@@ -163,7 +163,7 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker peut traiter les séquences e-mail et synchroniser les boîtes OAuth toutes les cinq minutes. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Les traitements `GET /api/automations/process` (toutes les cinq minutes recommandé), `GET /api/communications/sync/process` (toutes les cinq minutes recommandé) et `GET /api/scheduling/process` (horaire recommandé pour visites, factures récurrentes et relances) doivent être confiés à Vercel Pro, au worker ou à un ordonnanceur externe approuvé. Les variantes `POST` restent disponibles avec le même contrôle Bearer. Ne pas activer les séquences ou les relances automatiques, ni annoncer la synchronisation continue, tant que ces mécanismes ne sont pas observés et alertés.
+Le worker peut traiter les séquences e-mail et synchroniser les boîtes OAuth toutes les cinq minutes. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Le workflow GitHub Actions `.github/workflows/production-processors.yml` appelle en `POST` les traitements d’automatisation, d’échéances métier et de synchronisation toutes les cinq minutes ; `PROCESSOR_CRON_SECRET` côté GitHub doit correspondre à `AUTOMATION_CRON_SECRET` côté Vercel. Les trois routes conservent leur contrôle Bearer et prennent un bail PostgreSQL avant de travailler, de sorte qu’un déclenchement concurrent est ignoré proprement. Après déploiement, lancer une exécution manuelle, contrôler son succès et vérifier dans Automatisations que le dernier passage réussi est récent. Ne pas activer les séquences ou les relances automatiques tant que ce premier passage et les alertes GitHub ne sont pas observés.
 
 Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive. La route de restauration web est désactivée par défaut en production ; `ENABLE_IN_APP_RESTORE=true` ne doit être utilisé que dans un environnement isolé, sans envoi d’e-mails ni trafic public, et reste limité à 4 Mo. Les archives plus grandes suivent exclusivement la recette de restauration ci-dessous.
 
@@ -187,6 +187,8 @@ Effectuer avec un compte de recette non privilégié puis avec chaque rôle crit
 - une requête depuis une origine non autorisée reçoit `403` ;
 - logs application et worker sans boucle d'erreurs ;
 - un passage des deux ordonnanceurs crée les échéances dues et un second passage ne crée aucun doublon ;
+- un doublon de webhook e-mail ne crée pas un second événement, un événement ancien ne rétrograde pas l’état de livraison et un rejet permanent bloque les prochains envois ;
+- une erreur fournisseur temporaire planifie une reprise, cinq échecs placent l’envoi dans la file de reprise manuelle et aucun appel concurrent ne reprend le même lot ;
 - aucun secret, e-mail complet ou donnée client sensible dans les logs.
 
 Noter le commit, l'heure, les opérateurs et le résultat de chaque contrôle.

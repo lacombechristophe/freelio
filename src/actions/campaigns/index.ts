@@ -280,7 +280,11 @@ export async function enrollCampaignAudience(input: unknown) {
           select: { leadCaptureId: true },
         })
       : []
-    const readiness = evaluateCampaignAudience(leads, existing.map((enrollment) => enrollment.leadCaptureId))
+    const suppressedEmails = await prisma.emailSuppression.findMany({
+      where: { companyId, active: true, email: { in: leads.flatMap((lead) => lead.email ? [lead.email.trim().toLowerCase()] : []) } },
+      select: { email: true },
+    })
+    const readiness = evaluateCampaignAudience(leads, existing.map((enrollment) => enrollment.leadCaptureId), suppressedEmails.map((suppression) => suppression.email))
     const { eligibleIds, ...audienceCounts } = readiness
     const leadsById = new Map(leads.map((lead) => [lead.id, lead]))
     const firstStep = sequence.steps[0]
