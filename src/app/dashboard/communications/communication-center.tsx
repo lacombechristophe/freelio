@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Activity, Archive, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
+import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
 import { configureCommunicationChannel, disconnectCommunicationChannel, sendCrmEmail, syncCommunicationChannel, updateEmailThread } from "@/actions/communications"
@@ -62,6 +62,9 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [isPending, startTransition] = React.useTransition()
   const [tab, setTab] = React.useState(initialTab)
   const [selectedId, setSelectedId] = React.useState(initialData.threads[0]?.id ?? "")
+  const [mobileThreadOpen, setMobileThreadOpen] = React.useState(false)
+  const threadListRef = React.useRef<HTMLDivElement>(null)
+  const backToListRef = React.useRef<HTMLButtonElement>(null)
   const [previewMessage, setPreviewMessage] = React.useState<CommunicationData["threads"][number]["messages"][number] | null>(null)
   const selected = initialData.threads.find((thread) => thread.id === selectedId) ?? initialData.threads[0]
   const [contactId, setContactId] = React.useState("")
@@ -121,7 +124,10 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   }
 
   function run(task: () => Promise<void>) {
-    startTransition(() => void task().catch((error) => toast.error(error instanceof Error ? error.message : "Action impossible.")))
+    startTransition(async () => {
+      try { await task() }
+      catch (error) { toast.error(error instanceof Error ? error.message : "Action impossible.") }
+    })
   }
 
   function handleTabChange(value: string) {
@@ -131,6 +137,10 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
 
   function selectThread(thread: CommunicationData["threads"][number]) {
     setSelectedId(thread.id)
+    setMobileThreadOpen(true)
+    requestAnimationFrame(() => {
+      if (window.matchMedia("(max-width: 1023px)").matches) backToListRef.current?.focus()
+    })
     if (thread.unreadCount) run(async () => { await updateEmailThread(thread.id, { markRead: true }); router.refresh() })
   }
 
@@ -143,15 +153,6 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   }
 
   return <div className="space-y-5">
-    <section aria-label="Indicateurs des communications" className="workspace-metrics overflow-hidden rounded-xl border bg-card">
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4">
-      <Metric icon={Send} label="E-mails envoyés" value={initialData.stats.sent} hint="30 derniers jours" />
-      <Metric icon={Inbox} label="E-mails reçus" value={initialData.stats.received} hint="30 derniers jours" />
-      <Metric icon={MailOpen} label="Taux d’ouverture" value={delivered ? `${Math.round(opened / delivered * 100)} %` : "—"} hint={`${opened} ouverture(s) mesurée(s)`} />
-      <Metric icon={MousePointerClick} label="Taux de clic" value={delivered ? `${Math.round(clicked / delivered * 100)} %` : "—"} hint={`${bounced} rejet(s)`} />
-      </div>
-    </section>
-
     <Tabs value={tab} onValueChange={handleTabChange} className="space-y-5">
       <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="inbox">Boîte de réception{initialData.threads.reduce((sum, item) => sum + item.unreadCount, 0) ? <Badge className="ml-1">{initialData.threads.reduce((sum, item) => sum + item.unreadCount, 0)}</Badge> : null}</TabsTrigger>
@@ -161,19 +162,24 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
       </TabsList>
 
       <TabsContent value="inbox">
-        <Card className="workspace-panel overflow-hidden"><CardContent className="grid min-h-[620px] p-0 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="border-b lg:border-b-0 lg:border-r">
+        <Card className="workspace-panel overflow-hidden"><CardContent className="grid min-h-[420px] grid-cols-1 p-0 lg:min-h-[620px] lg:grid-cols-[340px_minmax(0,1fr)]">
+          <div ref={threadListRef} className={cn("min-w-0 border-b lg:block lg:border-b-0 lg:border-r", mobileThreadOpen && "hidden")}>
             <div className="flex items-center justify-between border-b p-4"><div><p className="text-sm font-semibold">Conversations</p><p className="text-xs text-muted-foreground">{initialData.threads.length} fil(s)</p></div><Button variant="ghost" size="icon" aria-label="Actualiser les conversations" onClick={() => router.refresh()}><RefreshCw /></Button></div>
             <div className="max-h-[555px] overflow-y-auto">{initialData.threads.length ? initialData.threads.map((thread) => {
               const party = thread.contact ? `${thread.contact.firstName} ${thread.contact.lastName}` : thread.leadCapture ? `${thread.leadCapture.firstName} ${thread.leadCapture.lastName}` : thread.client?.name || "Expéditeur non identifié"
               const last = thread.messages.at(-1)
-              return <button type="button" key={thread.id} onClick={() => selectThread(thread)} className={cn("flex w-full items-start gap-3 border-b p-4 text-left transition-colors hover:bg-muted/40", selected?.id === thread.id && "bg-primary/[0.055]")}>
+              return <button type="button" key={thread.id} data-selected={selected?.id === thread.id} aria-pressed={selected?.id === thread.id} onClick={() => selectThread(thread)} className={cn("flex w-full items-start gap-3 border-b p-4 text-left transition-colors hover:bg-muted/40", selected?.id === thread.id && "bg-primary/[0.055]")}>
                 <span className={cn("mt-1 size-2 shrink-0 rounded-full", thread.unreadCount ? "bg-primary" : "bg-transparent")} />
                 <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={cn("truncate text-sm", thread.unreadCount && "font-semibold")}>{party}</span><time className="shrink-0 text-[10px] text-muted-foreground">{new Date(thread.lastMessageAt).toLocaleDateString("fr-FR")}</time></span><span className="mt-1 block truncate text-xs font-medium">{thread.subject}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{last?.bodyText || last?.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun aperçu"}</span></span><ChevronRight className="mt-3 size-3.5 shrink-0 text-muted-foreground" />
               </button>
             }) : <div className="p-8 text-center"><Inbox className="mx-auto size-8 text-muted-foreground/50" /><p className="mt-3 text-sm font-medium">Aucune conversation</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Connectez une boîte ou envoyez un premier e-mail.</p></div>}</div>
           </div>
-          <div className="min-w-0">{selected ? <>
+          <div className={cn("min-w-0 break-words lg:block", !mobileThreadOpen && "hidden")}>
+            <div className="border-b p-2 lg:hidden"><Button ref={backToListRef} variant="ghost" size="sm" onClick={() => {
+              setMobileThreadOpen(false)
+              requestAnimationFrame(() => threadListRef.current?.querySelector<HTMLButtonElement>('[data-selected="true"]')?.focus())
+            }}><ArrowLeft />Retour aux conversations</Button></div>
+            {selected ? <>
             <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" onClick={prepareReply}><Reply />Répondre</Button></div></div>
             <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{selected.messages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold">{message.direction === "OUTBOUND" ? initialData.company.name : message.fromAddress}</p><Badge variant="outline">{message.direction === "OUTBOUND" ? "Sortant" : "Entrant"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">À : {recipients(message.toAddresses)}</p></div><time className="text-xs text-muted-foreground">{formatDate(message.sentAt || message.receivedAt || message.createdAt)}</time></div>
@@ -197,6 +203,12 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
       </TabsContent>
 
       <TabsContent value="analytics" className="space-y-5">
+        <section aria-label="Indicateurs des communications" className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card xl:grid-cols-4">
+          <Metric icon={Send} label="E-mails envoyés" value={initialData.stats.sent} hint="30 derniers jours" />
+          <Metric icon={Inbox} label="E-mails reçus" value={initialData.stats.received} hint="30 derniers jours" />
+          <Metric icon={MailOpen} label="Taux d’ouverture" value={delivered ? `${Math.round(opened / delivered * 100)} %` : "—"} hint={`${opened} ouverture(s) mesurée(s)`} />
+          <Metric icon={MousePointerClick} label="Taux de clic" value={delivered ? `${Math.round(clicked / delivered * 100)} %` : "—"} hint={`${bounced} rejet(s)`} />
+        </section>
         <Card className="workspace-panel"><CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Performance sur 30 jours</CardTitle><HelpTip label="Comprendre les statistiques">Une ouverture peut être déclenchée par les protections de messagerie. Les clics et réponses restent généralement plus fiables pour mesurer l’intérêt.</HelpTip></div><CardDescription>Mesures issues des événements signés du fournisseur d’envoi.</CardDescription></CardHeader><CardContent className="grid gap-5 lg:grid-cols-2"><FunnelRow label="Envoyés" value={initialData.stats.sent} total={Math.max(initialData.stats.sent, 1)} icon={Send} /><FunnelRow label="Livrés" value={delivered} total={Math.max(initialData.stats.sent, 1)} icon={MailCheck} /><FunnelRow label="Ouverts" value={opened} total={Math.max(delivered, 1)} icon={MailOpen} /><FunnelRow label="Cliqués" value={clicked} total={Math.max(delivered, 1)} icon={MousePointerClick} /><FunnelRow label="Rejetés" value={bounced} total={Math.max(initialData.stats.sent, 1)} icon={XCircle} /></CardContent></Card>
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900"><Info className="mr-2 inline size-4" />Conseil : surveillez surtout les rejets et plaintes, puis comparez les réponses et clics entre modèles. Un taux d’ouverture seul ne suffit pas à juger une campagne.</div>
       </TabsContent>

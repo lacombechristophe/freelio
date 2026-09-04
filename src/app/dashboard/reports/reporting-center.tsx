@@ -65,7 +65,7 @@ export function ReportingCenter({ report }: { report: ExecutiveReport }) {
         </div>
       </div>
 
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-5" aria-label="Indicateurs essentiels">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-5" aria-label="Indicateurs essentiels">
         {headlineMetrics.map((metric, index) => (
           <Link key={metric.label} href={metric.href} className={cn("group min-w-0 p-5 transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", index > 0 && "border-t sm:border-l sm:border-t-0")}>
             <div className="flex items-center justify-between gap-3">

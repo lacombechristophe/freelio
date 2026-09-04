@@ -11,6 +11,7 @@ export default async function ServiceWorkspacePage() {
 
   return (
     <WorkspaceHub
+      featuredPosition="after-panels"
       eyebrow="Espace service"
       title="SAV et fidélisation"
       description="Priorisez les demandes, interventions, garanties et échéances qui protègent la satisfaction client."

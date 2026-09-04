@@ -4,6 +4,8 @@ Date : 4 septembre 2026
 Branche livrée : `main` (miroir de travail : `codex/diskoov-crm-replacement`)
 Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
+**Réévaluation du 5 septembre :** la recette visuelle ci-dessous est historique. Ses captures `fullPage` ne parcouraient pas le défilement interne du dashboard ; elles ne prouvent donc pas une inspection visuelle intégrale. La [nouvelle revue UI/UX](ui-ux-review-2026-09-05.md) distingue premiers écrans, défilement, onglets et modales, recense les écarts observés et suit leurs corrections. Les résultats automatisés précédents restent des résultats techniques, pas une certification de parité visuelle ou fonctionnelle.
+
 ## Résultat synthétique
 
 Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. Les flux centraux CRM, vente, opérations, finance, migration, e-mails, calendriers, automatisations, scoring, portail et réversibilité ont des preuves automatisées. La résiliation réelle de HubSpot et Extrabat demeure un **no-go** tant que les exports réels, rapprochements, services externes et décisions métier de la matrice de couverture ne sont pas signés.

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getAccountingSnapshot } from "@/actions/accounting"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
 import { PageHeader } from "@/components/shared/page-header"
+import { WorkspaceMetricCard } from "@/app/dashboard/_components/workspace-hub"
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -31,59 +32,24 @@ export default async function ComptabilitePage() {
 
   const year = new Date().getFullYear()
   return (
-    <div className="space-y-8">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Pilotage financier"
         title="Finance & comptabilité"
         description="Pilotez facturation, encaissements, encours, TVA et rentabilité, puis transmettez un export contrôlé au cabinet comptable."
         actions={<>
-          <a href="/api/accounting/export"><Button variant="outline" className="gap-2"><Download className="h-4 w-4" /> Export comptable</Button></a>
-          <Link href="/dashboard/comptabilite/banque"><Button variant="outline" className="gap-2"><Landmark className="h-4 w-4" /> Banque</Button></Link>
-          <Link href="/dashboard/factures"><Button variant="outline" className="gap-2"><Receipt className="h-4 w-4" /> Voir les factures</Button></Link>
+          <Button nativeButton={false} variant="outline" render={<a href="/api/accounting/export" />}><Download />Export comptable</Button>
+          <Button nativeButton={false} variant="outline" render={<Link href="/dashboard/comptabilite/banque" />}><Landmark />Banque</Button>
+          <Button nativeButton={false} variant="outline" render={<Link href="/dashboard/factures" />}><Receipt />Voir les factures</Button>
         </>}
       />
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-              Facturé HT ({year})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatEuro(snapshot.caYearCents)}</div>
-            <p className="mt-2 text-xs text-muted-foreground">{formatEuro(snapshot.billedYearTtcCents)} TTC, avoirs déduits</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-primary/70">Encaissé ({year})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatEuro(snapshot.paidYearCents)}</div>
-            <p className="mt-2 text-xs text-muted-foreground">Tous règlements enregistrés sur la période</p>
-          </CardContent>
-        </Card>
-
-        <Card className={snapshot.overdueCount ? "border-danger/40" : undefined}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Encours client</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatEuro(snapshot.outstandingCents)}</div>
-            <p className={snapshot.overdueCount ? "mt-2 flex items-center gap-1 text-xs text-danger" : "mt-2 text-xs text-muted-foreground"}>{snapshot.overdueCount ? <AlertCircle className="size-3.5" /> : null}{snapshot.overdueCount} échéance{snapshot.overdueCount > 1 ? "s" : ""} dépassée{snapshot.overdueCount > 1 ? "s" : ""} · {formatEuro(snapshot.overdueCents)}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">TVA indicative</CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{snapshot.isTvaApplicable ? formatEuro(snapshot.tvaBalanceCents) : "Non applicable"}</div>
-            <p className="mt-2 text-xs text-muted-foreground">Collectée {formatEuro(snapshot.tvaCollectedCents)} · déductible {formatEuro(snapshot.tvaDeductibleCents)}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <section aria-label="Synthèse comptable" className="workspace-metrics grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <WorkspaceMetricCard metric={{ label: `Facturé HT (${year})`, value: formatEuro(snapshot.caYearCents), detail: `${formatEuro(snapshot.billedYearTtcCents)} TTC, avoirs déduits`, icon: Receipt }} />
+        <WorkspaceMetricCard metric={{ label: `Encaissé (${year})`, value: formatEuro(snapshot.paidYearCents), detail: "Règlements enregistrés sur la période", icon: CheckCircle2, tone: "teal" }} />
+        <WorkspaceMetricCard metric={{ label: "Encours client", value: formatEuro(snapshot.outstandingCents), detail: `${snapshot.overdueCount} échéance(s) dépassée(s) · ${formatEuro(snapshot.overdueCents)}`, icon: AlertCircle, alert: snapshot.overdueCount > 0 }} />
+        <WorkspaceMetricCard metric={{ label: "TVA indicative", value: snapshot.isTvaApplicable ? formatEuro(snapshot.tvaBalanceCents) : "Non applicable", detail: `Collectée ${formatEuro(snapshot.tvaCollectedCents)} · déductible ${formatEuro(snapshot.tvaDeductibleCents)}`, icon: Landmark }} />
+      </section>
 
       <Card>
         <CardHeader>

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import { mkdir, readdir, writeFile } from "node:fs/promises"
 import path from "node:path"
+import { captureScrollablePage } from "./helpers/visual-evidence"
 
 type Severity = "P0" | "P1" | "P2" | "P3"
 
@@ -198,6 +199,14 @@ async function auditPage(page: Page, mobile: boolean): Promise<PageAudit> {
           .slice(0, 20)
       : ["Contenu principal absent"]
 
+    // An empty table is not tabular data: its explanation/action must never require
+    // sideways scrolling, even when the table intentionally allows it for rows.
+    for (const empty of document.querySelectorAll<HTMLElement>('[data-slot="empty-state"]')) {
+      if (!visible(empty)) continue
+      const rect = empty.getBoundingClientRect()
+      if (rect.left < -2 || rect.right > viewportWidth + 2) overflow.push(`État vide hors écran : ${label(empty)}`)
+    }
+
     const targetElements = Array.from(document.querySelectorAll<HTMLElement>(
       "button, a[href], input:not([type=hidden]), select, textarea, summary, [role=button]"
     )).filter(visible)
@@ -270,6 +279,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
   const routes = await staticDashboardRoutes()
   const queue = [...routes]
   const visited = new Set<string>()
+  const evidence: Array<{ route: string } & Awaited<ReturnType<typeof captureScrollablePage>>> = []
   let currentRoute = "/dashboard"
 
   page.on("console", (message) => {
@@ -344,12 +354,9 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     }
 
     const fileName = actualRoute.replace(/^\/dashboard\/?/, "").replaceAll("/", "--") || "overview"
-    await page.screenshot({
-      path: path.join(artifactDirectory, `${fileName}.jpg`),
-      fullPage: true,
-      quality: 76,
-      type: "jpeg",
-    })
+    const capture = await captureScrollablePage(page, artifactDirectory, fileName)
+    evidence.push({ route: actualRoute, ...capture })
+    if (!capture.complete) findings.push({ severity: "P2", category: "content", route: actualRoute, message: "Capture interrompue après 40 écrans : contenu restant non inspecté" })
   }
 
   for (const [title, titleRoutes] of titles) {
@@ -368,6 +375,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     generatedAt: new Date().toISOString(),
     project: testInfo.project.name,
     routesAudited: [...visited],
+    evidence,
     summary: {
       P0: findings.filter((finding) => finding.severity === "P0").length,
       P1: findings.filter((finding) => finding.severity === "P1").length,

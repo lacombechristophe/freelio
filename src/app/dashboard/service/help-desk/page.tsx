@@ -3,23 +3,19 @@ import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
-  CircleHelp,
+  ChevronDown,
   Clock3,
   Headphones,
   ShieldAlert,
+  SlidersHorizontal,
+  Plus,
   UserRound,
   Wrench,
 } from "lucide-react";
 
 import { getHelpDeskDashboard } from "@/actions/operations";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 
 const PRIORITY: Record<string, string> = {
@@ -50,7 +46,7 @@ function queryHref(
 ) {
   const query = new URLSearchParams();
   for (const [name, item] of Object.entries({ ...current, [key]: value }))
-    if (item && item !== "ALL") query.set(name, item);
+    if (item && (item !== "ALL" || name === "status")) query.set(name, item);
   return `/dashboard/service/help-desk${query.size ? `?${query}` : ""}`;
 }
 
@@ -89,13 +85,14 @@ export default async function HelpDeskPage({
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Service client"
         title="Centre de support"
-        description="Une file SAV exploitable : priorité, propriétaire, engagement de résolution, équipement, garantie et prochaine intervention."
+        description="Traitez les demandes prioritaires et suivez les engagements de réponse de votre équipe."
+        actions={<Button nativeButton={false} render={<Link href="/dashboard/operations?tab=sav&create=1" />}><Plus />Nouveau ticket</Button>}
       />
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           icon={ShieldAlert}
           label="Hors délai"
@@ -124,22 +121,15 @@ export default async function HelpDeskPage({
           detail="Horloge SLA suspendue"
         />
       </section>
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="text-base">Filtres de la file</CardTitle>
-              <CardDescription>
-                Les objectifs utilisent les heures et jours ouverts définis dans Paramètres → Service. Une échéance manuelle remplace l’objectif de résolution ; le statut En attente suspend les horloges.
-              </CardDescription>
-            </div>
-            <CircleHelp
-              className="size-4 shrink-0 text-primary"
-              aria-label="Aide sur les engagements"
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <details className="group/filters rounded-xl border bg-card" open={selected.status !== "ACTIVE" || selected.priority !== "ALL" || selected.assignedMembershipId !== "ALL"}>
+        <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <SlidersHorizontal className="size-4 text-muted-foreground" />
+          <span className="font-medium">Ajuster les filtres</span>
+          <span className="text-xs text-muted-foreground">{selected.status === "ACTIVE" ? "Tickets actifs" : selected.status === "ALL" ? "Tous les statuts" : STATUS[selected.status]} · {selected.priority === "ALL" ? "Toutes les priorités" : PRIORITY[selected.priority]}</span>
+          {selected.assignedMembershipId !== "ALL" && <Badge variant="secondary">Responsable filtré</Badge>}
+          <ChevronDown className="ml-auto size-4 transition-transform group-open/filters:rotate-180" />
+        </summary>
+        <div className="space-y-4 border-t p-4">
           <FilterRow
             label="Statut"
             current={selected.status}
@@ -195,8 +185,9 @@ export default async function HelpDeskPage({
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <p className="border-t pt-3 text-xs leading-5 text-muted-foreground">Les délais suivent les heures et jours ouverts de Paramètres → Service. Une échéance manuelle remplace l’objectif de résolution ; le statut En attente suspend les horloges.</p>
+        </div>
+      </details>
       <section className="overflow-hidden rounded-xl border bg-card">
         <div className="flex flex-col gap-2 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

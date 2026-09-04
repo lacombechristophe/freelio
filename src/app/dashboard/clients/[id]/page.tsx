@@ -43,7 +43,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
             <Badge variant="secondary" className="text-xs uppercase">
               <Building2 className="h-3 w-3 mr-1" />
-              {client.type}
+              {client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}
             </Badge>
           </div>
           {client.address && (

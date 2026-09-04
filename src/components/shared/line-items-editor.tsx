@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowRight, FileStack, Plus, Trash2 } from "lucide-react"
+import { ArrowRight, ChevronDown, FileStack, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,6 +48,9 @@ export function LineItemsEditor({
   showPresets?: boolean
   isTvaApplicable?: boolean
 }) {
+  const editorRef = React.useRef<HTMLDivElement>(null)
+  const presetsRef = React.useRef<HTMLDetailsElement>(null)
+
   function normalizeLine(line: Line): Line {
     return isTvaApplicable ? line : { ...line, tvaRate: 0 }
   }
@@ -73,29 +76,25 @@ export function LineItemsEditor({
       lines[0].unitPriceCents === 0
 
     onChange(hasOnlyBlankLine ? normalizedPresetLines : [...lines.map(normalizeLine), ...normalizedPresetLines])
+    if (presetsRef.current) presetsRef.current.open = false
+    requestAnimationFrame(() => {
+      editorRef.current?.querySelectorAll<HTMLInputElement>("[data-billing-line-label]")[hasOnlyBlankLine ? 0 : lines.length]?.focus()
+    })
   }
 
   const effectiveLines = lines.map(normalizeLine)
   const totals = computeLineTotals(effectiveLines)
 
   return (
-    <div className="space-y-3">
+    <div ref={editorRef} className="space-y-3">
       {showPresets && (
-        <div className="rounded-xl border border-border bg-muted/20 p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <FileStack className="h-4 w-4 text-primary" />
-                Structures métier
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Ajoutez un canevas, puis renseignez les références, prix et taux réellement applicables.
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              Prix non préremplis
-            </span>
-          </div>
+        <details ref={presetsRef} className="group/presets rounded-lg border border-border bg-muted/20">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <FileStack className="size-4 shrink-0 text-primary" />Utiliser une structure métier
+            <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-open/presets:rotate-180" />
+          </summary>
+          <div className="border-t p-3">
+            <p className="mb-3 text-xs leading-5 text-muted-foreground">Les lignes sont ajoutées sans effacer votre saisie. Renseignez ensuite vos références, prix et taux de TVA.</p>
               {!isTvaApplicable && (
                 <p className="mb-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
                   Franchise TVA active : les lignes restent à 0 %.
@@ -108,7 +107,7 @@ export function LineItemsEditor({
                 type="button"
                 onClick={() => applyPreset(preset.lines)}
                 className={cn(
-                  "group min-h-32 rounded-lg border border-border bg-background p-3.5 text-left transition-[border-color,background-color,box-shadow]",
+                  "group rounded-lg border border-border bg-background p-3.5 text-left transition-[border-color,background-color,box-shadow]",
                   "hover:border-primary/40 hover:bg-primary/[0.025] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 )}
               >
@@ -125,7 +124,8 @@ export function LineItemsEditor({
               </button>
             ))}
           </div>
-        </div>
+          </div>
+        </details>
       )}
 
       <div className="space-y-2">
@@ -142,6 +142,7 @@ export function LineItemsEditor({
                   Libellé
                 </Label>
                 <Input
+                  data-billing-line-label
                   aria-label={`Libellé de la ligne ${index + 1}`}
                   value={line.label}
                   onChange={(event) => update(index, { label: event.target.value })}

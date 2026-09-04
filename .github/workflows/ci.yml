@@ -84,7 +84,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ui-audit-reports
-          path: test-results/full-ui-audit/*/report.json
+          path: |
+            test-results/full-ui-audit/
+            test-results/task-usability/
           if-no-files-found: ignore
           retention-days: 14
 

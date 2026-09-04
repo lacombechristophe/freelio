@@ -13,7 +13,7 @@ const workspaceEntrances = [
   { path: "/dashboard/leads", heading: "Prospects entrants" },
   { path: "/dashboard/devis", heading: "Devis" },
   { path: "/dashboard/factures", heading: "Factures" },
-  { path: "/dashboard/projets", heading: "Projets" },
+  { path: "/dashboard/projets", heading: "Chantiers" },
   { path: "/dashboard/catalogue", heading: "Catalogue" },
   { path: "/dashboard/communications", heading: "Communications" },
   { path: "/dashboard/automatisations", heading: "Automatisations & e-mails" },

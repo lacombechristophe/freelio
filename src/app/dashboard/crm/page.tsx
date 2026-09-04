@@ -11,6 +11,7 @@ export default async function CrmWorkspacePage() {
 
   return (
     <WorkspaceHub
+      featuredPosition="after-panels"
       eyebrow="Espace CRM"
       title="Clients et relations"
       description="Retrouvez les personnes, entreprises, demandes et conversations qui nécessitent une action."
@@ -24,7 +25,7 @@ export default async function CrmWorkspacePage() {
       featured={<div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.7fr)]"><WorkspaceTrendPanel title="Activité relationnelle" description="Prospects, interactions CRM et e-mails enregistrés sur les 30 derniers jours." labels={data.activitySeries.labels} series={data.activitySeries.series} href="/dashboard/reports" linkLabel="Ouvrir le reporting CRM" /><WorkspaceDistributionPanel title="Santé du portefeuille" description="Répartition réelle des clients par score relationnel." items={[{ label: "Relation saine", value: data.clientHealth.healthy }, { label: "À surveiller", value: data.clientHealth.watch }, { label: "À risque", value: data.clientHealth.risk }]} href="/dashboard/service/customer-success" linkLabel="Analyser le portefeuille" /></div>}
       panels={[
         {
-          title: "Référentiel CRM",
+          title: "Portefeuille clients",
           description: "Derniers dossiers actifs et qualité de la relation.",
           rows: data.recentClients.map((client) => ({
             title: client.name,
@@ -74,7 +75,7 @@ export default async function CrmWorkspacePage() {
       ]}
       sections={[
         {
-          title: "Portefeuille clients",
+          title: "Outils relation client",
           description: "Les dossiers, interlocuteurs et informations qui font vivre la relation.",
           links: [
             { name: "Clients", href: "/dashboard/clients", icon: Building2, description: "Fiches, documents, projets, portail et données financières." },

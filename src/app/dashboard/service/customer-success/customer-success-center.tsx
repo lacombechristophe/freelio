@@ -130,7 +130,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
   const run = (task: () => Promise<unknown>, success: string, reset?: HTMLFormElement) => startTransition(() => void task().then(() => { reset?.reset(); toast.success(success); router.refresh() }).catch((error) => toast.error(error instanceof Error ? error.message : "Action impossible.")))
 
   return <div className="space-y-6">
-    <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+    <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
       <Metric icon={CheckCircle2} label="Clients sains" value={initialData.metrics.healthy} detail="Score supérieur ou égal à 75" />
       <Metric icon={Gauge} label="À surveiller" value={initialData.metrics.watch} detail="Score entre 50 et 74" />
       <Metric icon={AlertTriangle} label="À risque" value={initialData.metrics.risk} detail="Score inférieur à 50" alert={initialData.metrics.risk > 0} />

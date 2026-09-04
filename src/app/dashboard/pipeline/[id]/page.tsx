@@ -120,7 +120,7 @@ export default async function OpportunityDetailPage({
         </Button>
       </header>
 
-      <section className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           icon={CircleDollarSign}
           label="Montant"
