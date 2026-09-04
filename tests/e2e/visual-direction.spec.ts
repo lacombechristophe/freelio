@@ -17,6 +17,13 @@ const workspaceEntrances = [
   { path: "/dashboard/catalogue", heading: "Catalogue" },
   { path: "/dashboard/communications", heading: "Communications" },
   { path: "/dashboard/automatisations", heading: "Automatisations & e-mails" },
+  { path: "/dashboard/devis/new", heading: "Nouveau devis" },
+  { path: "/dashboard/factures/new", heading: "Nouvelle facture" },
+  { path: "/dashboard/contrats/new", heading: "Nouveau contrat" },
+  { path: "/dashboard/organisation", heading: "Organisation" },
+  { path: "/dashboard/migrations", heading: "Migration des données" },
+  { path: "/dashboard/settings", heading: "Paramètres" },
+  { path: "/dashboard/terrain", heading: "Terrain hors ligne" },
 ] as const
 
 test("le nouveau shell et les cockpits métier restent cohérents", async ({ page }, testInfo) => {

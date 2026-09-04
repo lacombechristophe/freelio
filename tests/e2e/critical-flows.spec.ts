@@ -19,10 +19,8 @@ async function selectOperationType(page: Page, label: string) {
   const trigger = page.getByRole("combobox", { name: "Type d’opération" })
   const option = page.getByRole("option", { name: label, exact: true })
   await trigger.click()
-  await option.focus()
-  await page.keyboard.press("Enter")
+  await option.click()
   await expect(trigger).toContainText(label)
-  await page.keyboard.press("Escape")
   await expect(option).toBeHidden()
 }
 
@@ -1141,8 +1139,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await openOperationComposer(page)
   const operationType = page.getByRole("combobox", { name: "Type d’opération" })
   await operationType.click()
-  await page.getByRole("option", { name: "Réservation de stock" }).focus()
-  await page.keyboard.press("Enter")
+  await page.getByRole("option", { name: "Réservation de stock" }).click()
   await expect(operationType).toContainText("Réservation de stock")
   await page.getByLabel("Dépôt").selectOption({ label: "Dépôt QA" })
   await page.getByLabel("Produit").selectOption({ label: "QA-COVER · Couverture de test" })

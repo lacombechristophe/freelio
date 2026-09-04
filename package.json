@@ -25,7 +25,7 @@
     "test": "vitest",
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "verify": "npm run db:generate && npm run typecheck && npm run lint && npm run test:unit && npm run build",
+    "verify": "npm run db:prepare:dev && npm run typecheck && npm run lint && npm run test:unit && npm run build",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -57,7 +57,7 @@ export function AutomationCenter({ initialData }: { initialData: AutomationData 
   }
 
   return <Tabs value={tab} onValueChange={selectTab} className="space-y-5">
-    <div ref={tabsScrollerRef} className="sticky top-0 z-20 -mx-1 overflow-x-auto border-b border-border/70 bg-background/95 px-1 py-1 backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div ref={tabsScrollerRef} className="scrollbar-none sticky top-0 z-20 -mx-1 overflow-x-auto border-b border-border/70 bg-background/95 px-1 py-1 backdrop-blur-sm">
       <TabsList aria-label="Sections des automatisations" variant="line" className="min-w-max">
         {navigation.map((item) => <TabsTrigger key={item.value} value={item.value} data-automation-tab={item.value}><item.icon />{item.label}{counts[item.value] !== undefined && <Badge variant="secondary" className="ml-1 min-w-5 justify-center px-1.5 tabular-nums">{counts[item.value]}</Badge>}</TabsTrigger>)}
       </TabsList>

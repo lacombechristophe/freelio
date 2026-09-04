@@ -57,12 +57,14 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("ALL")
 
   const filtered = quotes.filter(
     (q) =>
-      q.number.toLowerCase().includes(search.toLowerCase()) ||
+      (statusFilter === "ALL" || q.status === statusFilter) &&
+      (q.number.toLowerCase().includes(search.toLowerCase()) ||
       q.object.toLowerCase().includes(search.toLowerCase()) ||
-      q.client.name.toLowerCase().includes(search.toLowerCase())
+      q.client.name.toLowerCase().includes(search.toLowerCase()))
   )
 
   async function handleStatus(id: string, next: "SENT" | "ACCEPTED" | "REJECTED") {
@@ -89,8 +91,16 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
 
   return (
     <div className="space-y-4">
-      <SavedViewBar resource="QUOTES" views={savedViews} config={{ search }} onApply={(config) => setSearch(typeof config.search === "string" ? config.search : "")} />
-      <div className="workspace-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
+      <SavedViewBar
+        resource="QUOTES"
+        views={savedViews}
+        config={{ search, status: statusFilter }}
+        onApply={(config) => {
+          setSearch(typeof config.search === "string" ? config.search : "")
+          setStatusFilter(typeof config.status === "string" ? config.status : "ALL")
+        }}
+      />
+      <div className="workspace-panel flex flex-col gap-3 p-3 lg:flex-row lg:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -101,7 +111,13 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Link href="/dashboard/devis/new" className="sm:ml-auto">
+        <div role="group" aria-label="Filtrer les devis par statut" className="flex min-w-0 flex-wrap items-center gap-1 rounded-lg bg-muted/65 p-1">
+          {[{ value: "ALL", label: "Tous" }, { value: "DRAFT", label: "Brouillons" }, { value: "SENT", label: "Envoyés" }, { value: "ACCEPTED", label: "Acceptés" }].map((item) => {
+            const count = item.value === "ALL" ? quotes.length : quotes.filter((quote) => quote.status === item.value).length
+            return <button key={item.value} type="button" aria-pressed={statusFilter === item.value} onClick={() => setStatusFilter(item.value)} className={cn("h-8 rounded-md px-2.5 text-xs font-medium transition-[color,background-color,box-shadow]", statusFilter === item.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{item.label}<span className="ml-1.5 tabular-nums opacity-70">{count}</span></button>
+          })}
+        </div>
+        <Link href="/dashboard/devis/new" className="lg:ml-auto">
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Nouveau devis
@@ -130,8 +146,8 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                     compact
                     icon={FileText}
                     title={quotes.length === 0 ? "Aucun devis pour le moment" : "Aucun devis trouvé"}
-                    description={quotes.length === 0 ? "Composez une première proposition à partir d’un client et de votre catalogue." : "Modifiez votre recherche pour afficher d’autres devis."}
-                    action={quotes.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/devis/new")}><Plus />Créer un devis</Button> : <Button size="sm" variant="outline" onClick={() => setSearch("")}>Effacer la recherche</Button>}
+                    description={quotes.length === 0 ? "Composez une première proposition à partir d’un client et de votre catalogue." : "Modifiez la recherche ou le statut pour afficher d’autres devis."}
+                    action={quotes.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/devis/new")}><Plus />Créer un devis</Button> : <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("ALL") }}>Réinitialiser la vue</Button>}
                   />
                 </TableCell>
               </TableRow>

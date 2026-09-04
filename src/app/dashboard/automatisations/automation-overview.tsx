@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { AlertTriangle, ArrowRight, Bot, CheckCircle2, CircleDashed, Clock3, Mail, Play, Send, Users, Workflow } from "lucide-react"
+import { AlertTriangle, ArrowRight, Bot, CheckCircle2, CircleDashed, Clock3, Mail, PhoneCall, Play, Send, Users, Workflow } from "lucide-react"
 
 import { processSequenceEmailsNow } from "@/actions/automations"
 import type { AutomationData, AutomationRunner } from "@/app/dashboard/automatisations/automation-model"
-import { formatAutomationDate, STATUS_LABELS, TRIGGER_LABELS } from "@/app/dashboard/automatisations/automation-model"
+import { formatAutomationDate, STATUS_LABELS, STEP_LABELS, TRIGGER_LABELS } from "@/app/dashboard/automatisations/automation-model"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,17 +38,36 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
   const readinessReadyCount = readiness.filter((item) => item.ready).length
 
   return <div className="workspace-page">
-    <section aria-label="Indicateurs des automatisations" className="workspace-metrics overflow-hidden rounded-xl border bg-card">
-      <div className="grid sm:grid-cols-2 xl:grid-cols-5">
-        <Stat label="Séquences actives" value={activeSequences} detail={`${activeEnrollments} inscription(s) en cours`} icon={Send} />
-        <Stat label="Règles actives" value={activeWorkflows} detail={`${data.stats.runs.COMPLETED ?? 0} exécution(s) réussie(s)`} icon={Workflow} />
-        <Stat label="E-mails envoyés" value={sent} detail="30 derniers jours" icon={Mail} />
-        <Stat label="Taux d’ouverture" value={delivered ? `${Math.round(opened / delivered * 100)} %` : "—"} detail={`${opened} ouverture(s) mesurée(s)`} icon={Bot} />
-        <Stat label="Incidents d’envoi" value={failures} detail={failures ? "À examiner dans le journal" : "Aucun incident récent"} icon={failures ? AlertTriangle : CheckCircle2} tone={failures ? "danger" : "success"} />
-      </div>
+    <section aria-label="Indicateurs des automatisations" className="workspace-metrics grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <Stat label="Séquences actives" value={activeSequences} detail={`${activeEnrollments} inscription(s) en cours`} icon={Send} tone="blue" />
+      <Stat label="Règles actives" value={activeWorkflows} detail={`${data.stats.runs.COMPLETED ?? 0} exécution(s) réussie(s)`} icon={Workflow} tone="teal" />
+      <Stat label="E-mails envoyés" value={sent} detail="30 derniers jours" icon={Mail} tone="blue" />
+      <Stat label="Taux d’ouverture" value={delivered ? `${Math.round(opened / delivered * 100)} %` : "—"} detail={`${opened} ouverture(s) mesurée(s)`} icon={Bot} tone="amber" />
+      <Stat label="Incidents d’envoi" value={failures} detail={failures ? "À examiner dans le journal" : "Aucun incident récent"} icon={failures ? AlertTriangle : CheckCircle2} tone={failures ? "red" : "teal"} />
     </section>
 
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+    {data.sequences.length > 0 && <Card className="workspace-panel">
+      <CardHeader className="border-b">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>Parcours en production</CardTitle><CardDescription>Une lecture immédiate des étapes, délais et inscriptions de vos séquences prioritaires.</CardDescription></div><Button variant="outline" size="sm" onClick={() => onNavigate("sequences")}><Send />Ouvrir le studio</Button></div>
+      </CardHeader>
+      <CardContent className="grid gap-0 p-0 lg:grid-cols-2 lg:divide-x lg:divide-border/80">
+        {data.sequences.slice(0, 2).map((sequence) => {
+          const sequenceActiveEnrollments = sequence.enrollments.filter((item) => item.status === "ACTIVE").length
+          return <button type="button" key={sequence.id} onClick={() => onNavigate("sequences")} className="group p-4 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/20">
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm font-semibold">{sequence.name}</p><p className="mt-1 text-xs text-muted-foreground">{sequence.steps.length} étape(s) · {sequenceActiveEnrollments} inscription(s) active(s)</p></div><Badge variant={sequence.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[sequence.status] ?? sequence.status}</Badge></div>
+            <div className="mt-4 flex min-w-0 items-center gap-1.5 overflow-hidden" aria-label={`Étapes de ${sequence.name}`}>
+              {sequence.steps.slice(0, 4).map((step, index) => {
+                const StepIcon = step.type === "EMAIL" || step.type === "MANUAL_EMAIL" ? Mail : step.type === "CALL_TASK" ? PhoneCall : CheckCircle2
+                return <div key={step.id} className="contents"><span className="flex min-w-0 flex-1 items-center gap-2 rounded-lg bg-muted/50 px-2.5 py-2"><span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary/9 text-primary"><StepIcon className="size-3.5" /></span><span className="min-w-0"><span className="block truncate text-xs font-semibold">{STEP_LABELS[step.type] ?? step.type}</span><span className="block truncate text-[11px] text-muted-foreground">{step.delayHours ? `+ ${step.delayHours} h` : "Immédiat"}</span></span></span>{index < Math.min(sequence.steps.length, 4) - 1 && <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60" />}</div>
+              })}
+              {!sequence.steps.length && <span className="w-full rounded-lg border border-dashed px-3 py-3 text-center text-xs text-muted-foreground">Aucune étape configurée</span>}
+            </div>
+          </button>
+        })}
+      </CardContent>
+    </Card>}
+
+    <div className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
       <Card className="workspace-panel">
         <CardHeader className="border-b">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -87,11 +106,11 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
       </CardContent>
     </Card>
 
-    {data.workflows.length > 0 && <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Règles surveillées</CardTitle><CardDescription>État de publication et dernier résultat connu.</CardDescription></CardHeader><CardContent className="grid gap-x-6 gap-y-3 md:grid-cols-2">{data.workflows.slice(0, 6).map((workflow) => <button type="button" key={workflow.id} onClick={() => onNavigate("workflows")} className="flex min-w-0 items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted"><Workflow className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{workflow.name}</span><span className="block truncate text-xs text-muted-foreground">{TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger}</span></span><Badge variant={workflow.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[workflow.status] ?? workflow.status}</Badge></button>)}</CardContent></Card>}
+    {data.workflows.length > 0 && <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Règles surveillées</CardTitle><CardDescription>État de publication et dernier résultat connu.</CardDescription></CardHeader><CardContent className="divide-y p-0">{data.workflows.slice(0, 6).map((workflow) => <button type="button" key={workflow.id} onClick={() => onNavigate("workflows")} className="flex w-full min-w-0 items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted"><Workflow className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{workflow.name}</span><span className="block truncate text-xs text-muted-foreground">{TRIGGER_LABELS[workflow.trigger] ?? workflow.trigger}</span></span><Badge variant={workflow.status === "ACTIVE" ? "default" : "outline"}>{STATUS_LABELS[workflow.status] ?? workflow.status}</Badge></button>)}</CardContent></Card>}
   </div>
 }
 
-function Stat({ label, value, detail, icon: Icon, tone = "default" }: { label: string; value: number | string; detail: string; icon: typeof Mail; tone?: "default" | "danger" | "success" }) {
-  const iconTone = tone === "danger" ? "bg-destructive/10 text-destructive" : tone === "success" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-primary/10 text-primary"
-  return <div className="workspace-metric flex min-w-0 items-center gap-3 border-b p-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(4)]:border-r-0 xl:border-b-0 xl:border-r xl:last:border-r-0 xl:[&:nth-child(odd)]:border-r"><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${iconTone}`}><Icon className="size-4" /></span><div className="min-w-0"><p className="text-[25px] font-semibold leading-none tabular-nums tracking-tight">{value}</p><p className="mt-1 truncate text-[13px] font-medium">{label}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p></div></div>
+function Stat({ label, value, detail, icon: Icon, tone }: { label: string; value: number | string; detail: string; icon: typeof Mail; tone: "blue" | "teal" | "amber" | "red" }) {
+  const iconTone = { blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300", teal: "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300", amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300", red: "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300" }[tone]
+  return <article className="workspace-metric flex min-w-0 items-center gap-3 rounded-xl border bg-card p-4" data-tone={tone}><span className={`relative z-10 grid size-9 shrink-0 place-items-center rounded-lg ${iconTone}`}><Icon className="size-4" /></span><div className="relative z-10 min-w-0"><p className="text-[25px] font-semibold leading-none tabular-nums tracking-tight">{value}</p><p className="mt-1 truncate text-[13px] font-medium">{label}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p></div></article>
 }

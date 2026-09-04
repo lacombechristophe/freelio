@@ -2,17 +2,21 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { Building2, MapPin, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
+
+import { createClient, updateClient } from "@/actions/clients"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -22,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { createClient, updateClient } from "@/actions/clients"
 
 type Client = {
   id: string
@@ -59,15 +62,14 @@ export function ClientFormDialog({
   })
 
   React.useEffect(() => {
-    if (open && client) {
-      setForm({
-        name: client.name,
-        type: client.type,
-        siret: client.siret ?? "",
-        tvaNumber: client.tvaNumber ?? "",
-        address: client.address ?? "",
-      })
-    }
+    if (!open) return
+    setForm({
+      name: client?.name ?? "",
+      type: client?.type ?? "ENTERPRISE",
+      siret: client?.siret ?? "",
+      tvaNumber: client?.tvaNumber ?? "",
+      address: client?.address ?? "",
+    })
   }, [open, client])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -83,8 +85,8 @@ export function ClientFormDialog({
       }
       setOpen(false)
       router.refresh()
-    } catch (err: any) {
-      toast.error(err?.message ?? "Erreur lors de l'enregistrement.")
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Erreur lors de l'enregistrement.")
     } finally {
       setPending(false)
     }
@@ -95,58 +97,86 @@ export function ClientFormDialog({
       {trigger && <DialogTrigger render={<span />}>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
+          <div className="mb-1 grid size-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+            <Building2 className="size-4" />
+          </div>
           <DialogTitle>{client ? "Éditer le client" : "Nouveau client"}</DialogTitle>
+          <DialogDescription>Créez le dossier de référence qui reliera contacts, bassin, devis, chantier, factures et SAV.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="name">Nom *</Label>
-            <Input
-              id="name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Type *</Label>
-            <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v ?? "ENTERPRISE" })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ENTERPRISE">Entreprise</SelectItem>
-                <SelectItem value="INDIVIDUAL">Particulier</SelectItem>
-                <SelectItem value="ADMINISTRATION">Administration</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="siret">SIRET</Label>
-            <Input
-              id="siret"
-              value={form.siret}
-              onChange={(e) => setForm({ ...form, siret: e.target.value })}
-              maxLength={14}
-              placeholder="14 chiffres"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="tvaNumber">N° TVA</Label>
-            <Input
-              id="tvaNumber"
-              value={form.tvaNumber}
-              onChange={(e) => setForm({ ...form, tvaNumber: e.target.value })}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="address">Adresse *</Label>
-            <Input
-              id="address"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="size-4 text-primary" />
+              <div>
+                <h3 className="text-sm font-semibold">Identité du dossier</h3>
+                <p className="text-xs text-muted-foreground">Nom affiché partout dans l’espace de travail.</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Nom *</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type *</Label>
+              <Select value={form.type} onValueChange={(value) => setForm({ ...form, type: value ?? "ENTERPRISE" })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ENTERPRISE">Entreprise</SelectItem>
+                  <SelectItem value="INDIVIDUAL">Particulier</SelectItem>
+                  <SelectItem value="ADMINISTRATION">Administration</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+          <section className="space-y-4 border-t border-border/80 pt-5">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-4 text-primary" />
+              <div>
+                <h3 className="text-sm font-semibold">Informations administratives</h3>
+                <p className="text-xs text-muted-foreground">Utilisées pour les documents commerciaux et fiscaux.</p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="siret">SIRET</Label>
+                <Input
+                  id="siret"
+                  inputMode="numeric"
+                  value={form.siret}
+                  onChange={(event) => setForm({ ...form, siret: event.target.value.replace(/\D/g, "").slice(0, 14) })}
+                  maxLength={14}
+                  placeholder="14 chiffres"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="tvaNumber">N° TVA</Label>
+                <Input
+                  id="tvaNumber"
+                  value={form.tvaNumber}
+                  onChange={(event) => setForm({ ...form, tvaNumber: event.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="address" className="flex items-center gap-1.5">
+                <MapPin className="size-3.5 text-muted-foreground" />
+                Adresse *
+              </Label>
+              <Input
+                id="address"
+                value={form.address}
+                onChange={(event) => setForm({ ...form, address: event.target.value })}
+                required
+              />
+            </div>
+          </section>
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
             <Button type="submit" disabled={pending}>

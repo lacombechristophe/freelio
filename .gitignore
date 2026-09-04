@@ -15,8 +15,7 @@
 
 # next.js
 /.next/
-/.next-stale-*/
-/.next-e2e/
+/.next-*/
 /out/
 
 # production

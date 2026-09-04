@@ -48,7 +48,7 @@ export async function Shell({ children, brand }: ShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="relative z-40 flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-5 lg:px-6">
+        <header className="relative z-40 flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-border/90 bg-card/95 px-3 shadow-[0_1px_2px_rgba(13,36,66,0.035)] backdrop-blur-xl sm:px-5 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <MobileSidebar brand={brand} />
             <AppBrand brand={brand} className="lg:hidden" />

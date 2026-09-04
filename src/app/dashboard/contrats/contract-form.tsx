@@ -198,13 +198,14 @@ export function ContractForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center gap-2">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-xl border border-border/80 bg-background/95 p-2 shadow-sm backdrop-blur-sm">
         <Link href="/dashboard/contrats">
           <Button type="button" variant="ghost" size="icon" aria-label="Retour aux contrats">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
+        <div className="min-w-0"><p className="truncate text-sm font-semibold">{contract ? "Modifier le contrat" : "Préparer le contrat"}</p><p className="text-xs text-muted-foreground">{selectedTemplateId ? "Modèle métier appliqué" : "Brouillon juridique à compléter"}</p></div>
         <div className="ml-auto">
           <Button type="submit" disabled={pending} className="gap-2">
             <Save className="h-4 w-4" />

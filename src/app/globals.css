@@ -129,8 +129,8 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: #f4f7fb;
-    --foreground: #0b1930;
+    --background: #f3f6fa;
+    --foreground: #0d1b2f;
     --card: #ffffff;
     --card-foreground: #0b1930;
     --popover: #ffffff;
@@ -145,8 +145,8 @@
     --accent-foreground: #075bd4;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --border: #d7e0eb;
-    --input: #c4d0df;
+    --border: #d5dfeb;
+    --input: #bdcad9;
     --ring: #0768f7;
     --chart-1: #0768f7;
     --chart-2: #0aa38f;
@@ -278,48 +278,61 @@
     will-change: opacity, transform;
   }
   .workspace-page {
-    --workspace-gap: 1rem;
+    --workspace-gap: 0.875rem;
     display: grid;
     gap: var(--workspace-gap);
+    padding-bottom: 1.5rem;
   }
   .workspace-page > * {
     min-width: 0;
   }
   .workspace-page .workspace-page-header {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.375rem;
   }
   .workspace-page .workspace-metrics {
     align-items: stretch;
   }
   .workspace-page .workspace-metric {
-    min-height: 7.25rem;
-    border-color: #d6e0eb;
-    box-shadow: 0 1px 2px rgba(13, 36, 66, 0.035);
+    position: relative;
+    min-height: 7.75rem;
+    overflow: hidden;
+    border-color: #d3deea;
+    background: var(--card);
+    box-shadow: 0 1px 3px rgba(13, 36, 66, 0.055);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
   }
+  .workspace-page .workspace-metric[data-tone="teal"] { --metric-accent: #0aa38f; }
+  .workspace-page .workspace-metric[data-tone="amber"] { --metric-accent: #e79009; }
+  .workspace-page .workspace-metric[data-tone="red"] { --metric-accent: #e5484d; }
+  .workspace-page .workspace-metric[data-tone="blue"] { --metric-accent: #1677ff; }
   .workspace-page .workspace-metric:hover {
-    border-color: #c2d1e1;
+    border-color: #b9c9dc;
+    box-shadow: 0 2px 6px rgba(13, 36, 66, 0.065);
   }
   .workspace-page .workspace-panel,
   .workspace-page .workspace-directory,
   .workspace-page .workspace-trend,
   .workspace-page .workspace-distribution,
   .workspace-page .workspace-pipeline {
-    border-color: #d6e0eb;
-    box-shadow: 0 1px 2px rgba(13, 36, 66, 0.035);
+    overflow: hidden;
+    border: 1px solid #d3deea;
+    border-radius: 0.75rem;
+    background: var(--card);
+    box-shadow: 0 1px 3px rgba(13, 36, 66, 0.05);
   }
   .workspace-page .workspace-panel header,
   .workspace-page .workspace-trend header,
   .workspace-page .workspace-distribution header,
   .workspace-page .workspace-pipeline header,
   .workspace-page .workspace-directory > header {
-    background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(248,250,253,0.9));
+    background: linear-gradient(to bottom, #ffffff, #fafcff);
   }
   .workspace-page .workspace-row {
     min-height: 4.25rem;
   }
   .workspace-page .workspace-row:hover,
   .workspace-page .workspace-directory a:hover {
-    background: #f5f8fc;
+    background: #f4f8fd;
   }
   .workspace-page .workspace-empty {
     min-height: 8.5rem;
@@ -331,6 +344,52 @@
   }
   .workspace-page .workspace-link {
     min-height: 2.75rem;
+    background: #fbfcfe;
+  }
+  .workspace-page [data-slot="table-container"] {
+    background: var(--card);
+  }
+  .workspace-page [data-slot="table-header"] {
+    background: #f7f9fc;
+  }
+  .workspace-page [data-slot="table-head"] {
+    color: #53657d;
+  }
+  .workspace-page [data-slot="table-row"] {
+    border-color: #e0e7ef;
+  }
+  .workspace-page [data-slot="table-body"] [data-slot="table-row"]:hover {
+    background: #f5f8fc;
+  }
+  .dark .workspace-page .workspace-metric {
+    border-color: var(--border);
+    background: var(--card);
+  }
+  .dark .workspace-page .workspace-panel,
+  .dark .workspace-page .workspace-directory,
+  .dark .workspace-page .workspace-trend,
+  .dark .workspace-page .workspace-distribution,
+  .dark .workspace-page .workspace-pipeline {
+    border-color: var(--border);
+    background: var(--card);
+  }
+  .dark .workspace-page .workspace-panel header,
+  .dark .workspace-page .workspace-trend header,
+  .dark .workspace-page .workspace-distribution header,
+  .dark .workspace-page .workspace-pipeline header,
+  .dark .workspace-page .workspace-directory > header,
+  .dark .workspace-page .workspace-link,
+  .dark .workspace-page [data-slot="table-header"] {
+    background: color-mix(in srgb, var(--card) 82%, white 3%);
+  }
+  .dark .workspace-page .workspace-empty {
+    background: color-mix(in srgb, var(--card) 90%, black 10%);
+  }
+  .dark .workspace-page [data-slot="table-head"] {
+    color: var(--muted-foreground);
+  }
+  .dark .workspace-page [data-slot="table-body"] [data-slot="table-row"]:hover {
+    background: color-mix(in srgb, var(--card) 76%, white 5%);
   }
   .marketing-surface {
     --freelio-radius-control: 0.625rem;
@@ -384,6 +443,18 @@
 }
 
 @layer components {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .details-summary::-webkit-details-marker {
+    display: none;
+  }
+  .details-summary::marker {
+    content: "";
+  }
   .marketing-kicker {
     color: var(--color-freelio-accent);
     font-size: 0.75rem;
