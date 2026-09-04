@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { titleForPath } from "./route-titles"
+import { documentTitleForPath } from "./route-titles"
 
 export function RouteDocumentTitle() {
   const pathname = usePathname()
@@ -10,17 +10,16 @@ export function RouteDocumentTitle() {
   useEffect(() => {
     const syncTitle = () => {
       const heading = document.querySelector("#dashboard-main h1")?.textContent?.trim().replace(/\s+/g, " ")
-      const routeTitle = titleForPath(pathname)
-      const contextualTitle = heading && heading !== routeTitle
-        ? `${routeTitle} · ${heading.slice(0, 64)}`
-        : routeTitle
-      const nextTitle = `${contextualTitle} | Freelio`
+      const nextTitle = documentTitleForPath(pathname, heading)
       if (document.title !== nextTitle) document.title = nextTitle
     }
     syncTitle()
     const frame = requestAnimationFrame(syncTitle)
     const observer = new MutationObserver(syncTitle)
-    observer.observe(document.documentElement, { childList: true, subtree: true })
+    // Next.js can stream metadata after hydration by updating the existing
+    // title text node. Watching characterData prevents that late update from
+    // replacing the contextual record title.
+    observer.observe(document.documentElement, { characterData: true, childList: true, subtree: true })
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()

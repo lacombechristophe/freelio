@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { titleForPath } from "@/components/layout/route-titles"
+import { documentTitleForPath, titleForPath } from "@/components/layout/route-titles"
 
 describe("dashboard document titles", () => {
   it("returns the dedicated title for a static route", () => {
@@ -14,5 +14,12 @@ describe("dashboard document titles", () => {
 
   it("uses a neutral fallback for an unknown workspace route", () => {
     expect(titleForPath("/dashboard/route-future")).toBe("Espace de travail")
+  })
+
+  it("puts the business record first in a contextual browser title", () => {
+    expect(documentTitleForPath("/dashboard/clients/client-1", "  Résidence du Lac  ")).toBe(
+      "Résidence du Lac · Fiche client | Freelio",
+    )
+    expect(documentTitleForPath("/dashboard/clients", "Clients")).toBe("Clients | Freelio")
   })
 })
