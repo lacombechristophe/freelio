@@ -111,7 +111,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="workspace-metrics grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="workspace-metrics grid gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Euro}
           label="CA encaissé"

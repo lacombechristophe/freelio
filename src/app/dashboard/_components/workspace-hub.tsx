@@ -23,7 +23,7 @@ export function WorkspaceHub({ eyebrow, title, description, metrics, featured, p
   return <div className="workspace-page">
     <PageHeader className="workspace-page-header" eyebrow={eyebrow} title={title} description={description} actions={primaryAction ? <Button nativeButton={false} render={<Link href={primaryAction.href} />}><primaryAction.icon />{primaryAction.name}</Button> : undefined} />
 
-    <section aria-label="Indicateurs clés" className="workspace-metrics grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Indicateurs clés" className="workspace-metrics grid gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => <WorkspaceMetricCard key={metric.label} metric={metric} />)}
     </section>
 

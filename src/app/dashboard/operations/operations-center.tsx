@@ -335,7 +335,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
           </div>
       </div>
 
-      <div className="workspace-metrics grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="workspace-metrics grid gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ icon: Icon, label, metric, detail }, index) => <Card key={label} className="workspace-metric min-h-[116px]"><CardContent className="flex h-full items-start justify-between gap-4 p-4"><div><p className="text-[13px] font-medium text-foreground/85">{label}</p><p className="mt-2 text-[25px] font-semibold leading-none tracking-[-0.02em] tabular-nums">{metric}</p><div className="mt-4 flex items-center gap-2 border-t pt-2.5"><span className={`size-1.5 rounded-full ${metric > 0 && index >= 2 ? "bg-warning" : "bg-success"}`} /><p className="truncate text-xs text-muted-foreground">{detail}</p></div></div><span className={`grid size-9 shrink-0 place-items-center rounded-lg ${index === 1 ? "bg-teal-50 text-teal-600" : index >= 2 ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}><Icon className="size-4" /></span></CardContent></Card>)}
       </div>
 
