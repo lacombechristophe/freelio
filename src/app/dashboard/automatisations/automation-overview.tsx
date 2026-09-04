@@ -38,12 +38,12 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
   const readinessReadyCount = readiness.filter((item) => item.ready).length
 
   return <div className="workspace-page">
-    <section aria-label="Indicateurs des automatisations" className="workspace-metrics grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <section aria-label="Indicateurs des automatisations" className="workspace-metrics grid gap-3 min-[380px]:grid-cols-2 xl:grid-cols-5">
       <Stat label="Séquences actives" value={activeSequences} detail={`${activeEnrollments} inscription(s) en cours`} icon={Send} tone="blue" />
       <Stat label="Règles actives" value={activeWorkflows} detail={`${data.stats.runs.COMPLETED ?? 0} exécution(s) réussie(s)`} icon={Workflow} tone="teal" />
       <Stat label="E-mails envoyés" value={sent} detail="30 derniers jours" icon={Mail} tone="blue" />
       <Stat label="Taux d’ouverture" value={delivered ? `${Math.round(opened / delivered * 100)} %` : "—"} detail={`${opened} ouverture(s) mesurée(s)`} icon={Bot} tone="amber" />
-      <Stat label="Incidents d’envoi" value={failures} detail={failures ? "À examiner dans le journal" : "Aucun incident récent"} icon={failures ? AlertTriangle : CheckCircle2} tone={failures ? "red" : "teal"} />
+      <Stat className="min-[380px]:col-span-2 xl:col-span-1" label="Incidents d’envoi" value={failures} detail={failures ? "À examiner dans le journal" : "Aucun incident récent"} icon={failures ? AlertTriangle : CheckCircle2} tone={failures ? "red" : "teal"} />
     </section>
 
     {data.sequences.length > 0 && <Card className="workspace-panel">
@@ -110,7 +110,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
   </div>
 }
 
-function Stat({ label, value, detail, icon: Icon, tone }: { label: string; value: number | string; detail: string; icon: typeof Mail; tone: "blue" | "teal" | "amber" | "red" }) {
+function Stat({ label, value, detail, icon: Icon, tone, className = "" }: { label: string; value: number | string; detail: string; icon: typeof Mail; tone: "blue" | "teal" | "amber" | "red"; className?: string }) {
   const iconTone = { blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300", teal: "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300", amber: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300", red: "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-300" }[tone]
-  return <article className="workspace-metric flex min-w-0 items-center gap-3 rounded-xl border bg-card p-4" data-tone={tone}><span className={`relative z-10 grid size-9 shrink-0 place-items-center rounded-lg ${iconTone}`}><Icon className="size-4" /></span><div className="relative z-10 min-w-0"><p className="text-[25px] font-semibold leading-none tabular-nums tracking-tight">{value}</p><p className="mt-1 truncate text-[13px] font-medium">{label}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p></div></article>
+  return <article className={`workspace-metric flex min-w-0 items-center gap-3 rounded-xl border bg-card p-4 ${className}`} data-tone={tone}><span className={`relative z-10 grid size-9 shrink-0 place-items-center rounded-lg ${iconTone}`}><Icon className="size-4" /></span><div className="relative z-10 min-w-0"><p className="text-[25px] font-semibold leading-none tabular-nums tracking-tight">{value}</p><p className="mt-1 truncate text-[13px] font-medium">{label}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p></div></article>
 }
