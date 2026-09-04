@@ -12,6 +12,7 @@ import { getNotifications, getUnreadCount } from "@/actions/notifications"
 import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 import { AppPageTransition } from "./app-page-transition"
 import { QuickCreateMenu } from "./quick-create-menu"
+import { RouteDocumentTitle } from "./route-document-title"
 
 interface ShellProps {
   children: React.ReactNode
@@ -37,6 +38,7 @@ export async function Shell({ children, brand }: ShellProps) {
 
   return (
     <div className="app-surface flex h-dvh overflow-hidden bg-background">
+      <RouteDocumentTitle />
       <a
         href="#dashboard-main"
         className="sr-only fixed left-4 top-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only"

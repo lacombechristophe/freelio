@@ -77,7 +77,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{client.relationScore}%</p>
-            <Link href="/dashboard/service/customer-success" className="mt-2 inline-block text-xs font-medium text-primary hover:underline">Voir dans le portefeuille</Link>
+            <Link href="/dashboard/service/customer-success" className="mt-2 inline-flex min-h-6 items-center text-xs font-medium text-primary hover:underline">Voir dans le portefeuille</Link>
           </CardContent>
         </Card>
       </div>

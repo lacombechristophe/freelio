@@ -197,7 +197,7 @@ export default async function DashboardPage() {
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="truncate text-sm font-bold leading-none">{notification.title}</p>
                       <p className="line-clamp-1 text-xs text-muted-foreground">{notification.message}</p>
-                      <p className="text-xs font-bold uppercase tracking-tight text-muted-foreground/70">
+                      <p className="text-xs font-bold uppercase tracking-tight text-muted-foreground">
                         {new Date(notification.createdAt).toLocaleDateString("fr-FR")}
                       </p>
                     </div>

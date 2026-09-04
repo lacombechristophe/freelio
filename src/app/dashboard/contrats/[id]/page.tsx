@@ -267,7 +267,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           <CardTitle className="text-sm">Contenu</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-invert prose-sm max-w-none text-sm leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: safeContractHtml }} />
+          <div role="document" aria-label={`Contenu du contrat ${contract.number}`} className="prose prose-invert prose-sm max-w-none text-sm leading-relaxed text-foreground" dangerouslySetInnerHTML={{ __html: safeContractHtml }} />
         </CardContent>
       </Card>
 

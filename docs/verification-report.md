@@ -15,14 +15,15 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 69 fichiers, 272 tests réussis |
+| `npm run test:unit` | 70 fichiers, 275 tests réussis |
 | `npm run test:coverage` | seuils franchis : 80,49 % instructions, 55,21 % branches, 83,18 % fonctions et 84,08 % lignes sur le noyau finance/import/Factur-X et les politiques de reprise e-mail |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
 | `npm audit --omit=dev` | 0 vulnérabilité déclarée |
 | CI GitHub, branche de travail | exécution `33835280002` réussie : qualité/E2E et intégration PostgreSQL |
 | CI GitHub, `main` | exécution `33835725041` réussie : qualité/E2E et intégration PostgreSQL |
-| Playwright, build production et base isolée | 26 scénarios desktop/mobile réussis et 16 mutations volontairement ignorées sur mobile après preuve desktop (42 exécutions) |
-| Direction UI/UX | shell, navigation et 23 entrées métier capturés en pleine page à 1600×1000 ; navigation, états vides, densité, repli des colonnes étroites et absence du chronomètre contrôlés |
+| Playwright, build production et base isolée | 25 scénarios fonctionnels desktop/mobile réussis et 19 variantes volontairement non dupliquées ; connexion, automatisations, ventes, stock, terrain, SAV, contrats, portail et reporting couverts |
+| Audit UI exhaustif | 80 routes et dossiers métier sur desktop, puis les mêmes 80 sur mobile : 160 captures, zéro P0/P1/P2/P3 sur exécution, accessibilité, contraste, débordement, cible tactile, titre et structure ; audit désormais bloquant en CI |
+| Direction UI/UX | shell, cockpits, listes, formulaires, studios, modales et fiches dynamiques contrôlés en pleine page ; hiérarchie, densité, états vides, lisibilité, repli mobile, cibles tactiles et absence du chronomètre vérifiés |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
 | PostgreSQL | 40 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS, intégrité devis/contrat/commande, synchronisation calendrier et reprise durable des e-mails |

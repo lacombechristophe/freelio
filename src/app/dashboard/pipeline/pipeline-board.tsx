@@ -411,7 +411,7 @@ export function PipelineBoard({
                     <Card key={deal.id} className="py-0 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_8px_20px_rgba(16,24,40,0.07)]">
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-start justify-between gap-1">
-                          <Link className="text-sm font-semibold leading-tight hover:text-primary hover:underline" href={`/dashboard/pipeline/${deal.id}`}>
+                          <Link className="inline-flex min-h-6 items-center text-sm font-semibold leading-tight hover:text-primary hover:underline" href={`/dashboard/pipeline/${deal.id}`}>
                             {deal.title}
                           </Link>
                           <DropdownMenu>

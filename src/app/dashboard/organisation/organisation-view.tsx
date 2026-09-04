@@ -513,7 +513,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                     </div>
                     <div className="mt-3 space-y-1.5">
                       {dayTasks.length === 0 ? (
-                        <p className="text-xs text-muted-foreground/70">Libre</p>
+                        <p className="text-xs text-muted-foreground">Libre</p>
                       ) : (
                         dayTasks.slice(0, 3).map((task) => (
                           <div key={task.id} className="rounded-md border border-border/80 bg-card/70 px-2 py-1.5">
@@ -737,7 +737,7 @@ function TaskRow({
           type="button"
           onClick={() => onStatus(status === "DONE" ? "TODO" : "DONE")}
           disabled={pending}
-          className="mt-0.5 text-muted-foreground transition-colors hover:text-success disabled:opacity-50"
+          className="-m-1.5 grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-success disabled:opacity-50"
           aria-label={status === "DONE" ? "Réouvrir la tâche" : "Terminer la tâche"}
         >
           {status === "DONE" ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Circle className="h-4 w-4" />}

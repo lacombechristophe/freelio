@@ -44,6 +44,7 @@ export default auth((request) => {
   const contentSecurityPolicy = buildStrictCsp(nonce)
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set("x-nonce", nonce)
+  requestHeaders.set("x-freelio-pathname", request.nextUrl.pathname)
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy)
 
   const response = NextResponse.next({ request: { headers: requestHeaders } })

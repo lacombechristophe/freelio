@@ -186,7 +186,7 @@ export function RecurringInvoicesView({
                 <TableCell>{new Date(item.nextGenDate).toLocaleDateString("fr-FR")}</TableCell>
                 <TableCell>{item.occurrences.length}</TableCell>
                 <TableCell>
-                  <Switch checked={item.isActive} onCheckedChange={(checked) => toggle(item, checked)} />
+                  <Switch aria-label={`${item.isActive ? "Désactiver" : "Activer"} la récurrence ${item.label}`} checked={item.isActive} onCheckedChange={(checked) => toggle(item, checked)} />
                 </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" title="Supprimer" onClick={() => remove(item)}><Trash2 className="text-danger" /></Button>

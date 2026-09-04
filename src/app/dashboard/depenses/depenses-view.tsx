@@ -151,6 +151,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            aria-label="Rechercher une dépense"
             placeholder="Rechercher une dépense…"
             className="pl-9"
             value={search}
