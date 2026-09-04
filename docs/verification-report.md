@@ -15,7 +15,7 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run db:generate` | clients SQLite et PostgreSQL générés |
 | `npm run typecheck` | réussi |
 | `npm run lint` | réussi |
-| `npm run test:unit` | 70 fichiers, 275 tests réussis |
+| `npm run test:unit` | 70 fichiers, 276 tests réussis |
 | `npm run test:coverage` | seuils franchis : 80,49 % instructions, 55,21 % branches, 83,18 % fonctions et 84,08 % lignes sur le noyau finance/import/Factur-X et les politiques de reprise e-mail |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
 | `npm audit --omit=dev` | 0 vulnérabilité déclarée |

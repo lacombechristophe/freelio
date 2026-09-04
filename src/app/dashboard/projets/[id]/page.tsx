@@ -41,13 +41,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-start gap-3 sm:items-center">
         <Link href="/dashboard/projets">
           <Button variant="ghost" size="icon" aria-label="Retour aux projets"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="min-w-0 break-words text-2xl font-bold tracking-tight">{project.name}</h1>
             <Badge variant="secondary">{project.status === "ACTIVE" ? "En cours" : project.status === "COMPLETED" ? "Terminé" : "Archivé"}</Badge>
             {project.projectTemplate ? <Badge variant="outline">{project.projectTemplate.name}</Badge> : null}
           </div>
