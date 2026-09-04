@@ -1,7 +1,7 @@
 # Rapport de vérification du candidat CRM/ERP
 
 Date : 4 septembre 2026
-Branche : `codex/diskoov-crm-replacement`
+Branche livrée : `main` (miroir de travail : `codex/diskoov-crm-replacement`)
 Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
 ## Résultat synthétique
@@ -19,13 +19,16 @@ Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. 
 | `npm run test:coverage` | seuils franchis : 80,49 % instructions, 55,21 % branches, 83,18 % fonctions et 84,08 % lignes sur le noyau finance/import/Factur-X et les politiques de reprise e-mail |
 | `npm run build` | build Next.js 16.3.3 de production réussi, 73 pages statiques générées |
 | `npm audit --omit=dev` | 0 vulnérabilité déclarée |
+| CI GitHub, branche de travail | exécution `33835280002` réussie : qualité/E2E et intégration PostgreSQL |
+| CI GitHub, `main` | exécution `33835725041` réussie : qualité/E2E et intégration PostgreSQL |
 | Playwright, build production et base isolée | 26 scénarios desktop/mobile réussis et 16 mutations volontairement ignorées sur mobile après preuve desktop (42 exécutions) |
 | Direction UI/UX | shell, navigation et 23 entrées métier capturés en pleine page à 1600×1000 ; navigation, états vides, densité, repli des colonnes étroites et absence du chronomètre contrôlés |
 | Playwright ciblé, lot dossiers métier | fiche opportunité et activité (desktop), chaîne help desk → ticket → équipement → intervention (desktop et mobile), workflow achat → dossier commande → dossier fournisseur (desktop) réussis |
 | Playwright ciblé, contrats | proposition de renouvellement → signature → nouveau terme et contrat signé → avenant structuré → PDF/traçabilité réussis sur desktop |
 | PostgreSQL | 40 migrations versionnées, dont réparation historique idempotente, campagnes marketing, relances envoyées, connaissance, satisfaction, vues persistées, automatisations avancées, conversations SAV, renouvellements, avenants, multi-agences, pipelines multiples, propriétés CRM historisées, transferts de stock corrélés, sécurité des comptes, socle d’abonnement SaaS, intégrité devis/contrat/commande, synchronisation calendrier et reprise durable des e-mails |
-| Production Vercel | déploiement `dpl_CPPn5PoxkZSjHFfo9qU45XemQqvk` prêt, alias public actif sur `https://freelio-eight.vercel.app`, code applicatif du commit `954fd12` poussé |
-| Smoke HTTP public | `/` et `/auth/login` en 200, `/api/health/live` et `/api/health/ready` en 200 avec base/configuration prêtes, `/dashboard` en 307 vers `/auth/login`, `/v2` en 404 |
+| Production Vercel | déploiement `dpl_7pqbir28PQeBk6ULtig3tAWJA3JN` prêt, alias public actif sur `https://freelio-eight.vercel.app`, code applicatif du commit `0d446ff` livré sur `main` |
+| Smoke HTTP public | `/`, `/auth/login`, `/auth/register`, `/api/auth/providers`, `/api/health/live` et `/api/health/ready` en 200 ; `/dashboard` en 307 vers l’authentification ; `/v2` en 404 ; processeur sans secret en 401 |
+| Processeurs de production | workflow manuel `33836046601` réussi en 11 s ; séquences e-mail, échéances métier et synchronisations ont chacun écrit un heartbeat réussi, sans erreur |
 | Recette visuelle publique | landing métier restaurée et formulaire de connexion complet rendus à 1512×982 et 1440×1000 dans Chromium sans régression de structure visible |
 | Connexion production | création d’un compte de recette éphémère, nouvelle session puis reconnexion par mot de passe, onboarding et cockpit chargés ; anonymisation RGPD réussie, ancien identifiant devenu inutilisable et comptes de smoke résiduels nettoyés |
 | Smoke PostgreSQL métier | séquence, inscription, workflow et exécution créés et relus |
