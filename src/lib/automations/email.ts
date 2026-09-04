@@ -1,5 +1,5 @@
 import { createConsentWithdrawalToken } from "@/lib/leads/consent-token"
-import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
+import { sendEmailThroughChannel, type EmailProviderState, type PreparedEmailProviderState } from "@/lib/communications/email-provider"
 
 type EmailContext = {
   company: { id: string; name: string; email: string | null }
@@ -66,7 +66,13 @@ export function senderFor(companyName: string) {
   return `${companyName.replace(/[<>\r\n]/g, "")} <${address}>`
 }
 
-export async function sendSequenceEmail(input: EmailContext & { subjectTemplate: string; bodyTemplate: string; idempotencyKey: string }) {
+export async function sendSequenceEmail(input: EmailContext & {
+  subjectTemplate: string
+  bodyTemplate: string
+  idempotencyKey: string
+  resume?: EmailProviderState
+  onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
+}) {
   if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
 
   const token = await createConsentWithdrawalToken({ companyId: input.company.id, leadId: input.lead.id })
@@ -76,6 +82,6 @@ export async function sendSequenceEmail(input: EmailContext & { subjectTemplate:
   const content = sanitizeSequenceEmailHtml(renderEmailVariables(input.bodyTemplate, input, true))
   const html = `<!doctype html><html lang="fr"><body><main>${content}</main><hr><p style="color:#667085;font-size:12px;line-height:1.5">Vous recevez cet e-mail selon vos préférences de communication. <a href="${escapeHtml(unsubscribeUrl)}">Se désinscrire</a>.</p></body></html>`
 
-  const sent = await sendEmailThroughChannel({ companyId: input.company.id, companyName: input.company.name, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } })
-  return { providerId: sent.providerId, provider: sent.provider, subject, html, from: sent.from }
+  const sent = await sendEmailThroughChannel({ companyId: input.company.id, companyName: input.company.name, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } })
+  return { ...sent, subject, html }
 }

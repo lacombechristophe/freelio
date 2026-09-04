@@ -79,6 +79,7 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   EmailThread: "automation.write",
   EmailMessage: "automation.write",
   EmailEvent: "automation.write",
+  EmailSuppression: "automation.write",
   CommunicationChannel: "company.manage",
   LeadScoringRule: "automation.write",
   MarketingSegment: "automation.write",

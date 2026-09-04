@@ -16,10 +16,10 @@ export default async function MarketingWorkspacePage() {
       description="Structurez les audiences, messages et automatisations qui transforment les demandes en projets qualifiés."
       primaryAction={{ name: "Créer une campagne", href: "/dashboard/campagnes", icon: Megaphone, description: "Préparer une campagne" }}
       metrics={[
-        { label: "Prospects actifs", value: data.activeLeads, detail: "À qualifier ou nourrir", icon: ChartNoAxesCombined, tone: "blue" },
-        { label: "Segments", value: data.activeSegments, detail: "Audiences actives", icon: Gauge, tone: "teal" },
-        { label: "Automatisations", value: data.activeWorkflows, detail: "Règles en production", icon: Workflow, tone: "amber" },
-        { label: "Réponses non lues", value: data.unreadEmail, detail: "Conversations à traiter", icon: Inbox, tone: "red", alert: data.unreadEmail > 0 },
+        { label: "Prospects actifs", value: data.activeLeads, detail: "À qualifier ou nourrir", icon: ChartNoAxesCombined, tone: "blue", href: "/dashboard/leads" },
+        { label: "Segments", value: data.activeSegments, detail: "Audiences actives", icon: Gauge, tone: "teal", href: "/dashboard/marketing" },
+        { label: "Automatisations", value: data.activeWorkflows, detail: "Règles en production", icon: Workflow, tone: "amber", href: "/dashboard/automatisations" },
+        { label: "Réponses non lues", value: data.unreadEmail, detail: "Conversations à traiter", icon: Inbox, tone: "red", alert: data.unreadEmail > 0, status: data.unreadEmail ? "À traiter" : "À jour", href: "/dashboard/communications" },
       ]}
       featured={<div className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.75fr)]"><WorkspaceTrendPanel title="Performance d’acquisition" description="Demandes, interactions et e-mails enregistrés sur les 30 derniers jours." labels={data.activitySeries.labels} series={data.activitySeries.series} href="/dashboard/reports" linkLabel="Voir le détail d’acquisition" /><WorkspaceDistributionPanel title="Sources des demandes" description="Origine déclarée ou UTM des prospects sur 90 jours." items={data.leadSources.map((source) => ({ label: source.name, value: source.value }))} href="/dashboard/leads" linkLabel="Analyser les prospects" /></div>}
       panels={[

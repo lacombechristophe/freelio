@@ -29,10 +29,10 @@ export default async function RevenueWorkspacePage() {
       description="Suivez ce qui doit être facturé, encaissé, rapproché ou transmis à la comptabilité."
       primaryAction={{ name: "Nouvelle facture", href: "/dashboard/factures/new", icon: Receipt, description: "Émettre une facture" }}
       metrics={[
-        { label: "Reste à encaisser", value: formatWorkspaceEuro(data.outstandingCents), detail: "Factures émises non soldées", icon: CircleDollarSign, tone: "teal" },
-        { label: "Factures en retard", value: data.overdueInvoices, detail: "Échéance dépassée", icon: TriangleAlert, tone: "red", alert: data.overdueInvoices > 0 },
-        { label: "Contrats actifs", value: data.maintenanceContracts, detail: "Entretien et récurrence", icon: Repeat2, tone: "blue" },
-        { label: "Achats à suivre", value: data.pendingPurchases, detail: "Commandes non clôturées", icon: Wallet, tone: "amber" },
+        { label: "Reste à encaisser", value: formatWorkspaceEuro(data.outstandingCents), detail: "Factures émises non soldées", icon: CircleDollarSign, tone: "teal", href: "/dashboard/factures" },
+        { label: "Factures en retard", value: data.overdueInvoices, detail: "Échéance dépassée", icon: TriangleAlert, tone: "red", alert: data.overdueInvoices > 0, status: data.overdueInvoices ? "À relancer" : "À jour", href: "/dashboard/factures" },
+        { label: "Contrats actifs", value: data.maintenanceContracts, detail: "Entretien et récurrence", icon: Repeat2, tone: "blue", href: "/dashboard/factures/recurrentes" },
+        { label: "Achats à suivre", value: data.pendingPurchases, detail: "Commandes non clôturées", icon: Wallet, tone: "amber", href: "/dashboard/operations?tab=stock" },
       ]}
       featured={<div className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.75fr)]"><WorkspaceTrendPanel title="Encaissements enregistrés" description={`Flux de règlements réels sur 30 jours · ${formatWorkspaceEuro(data.paymentsLast90DaysCents)} sur 90 jours.`} labels={data.paymentSeries.labels} series={data.paymentSeries.series} valueSuffix=" €" href="/dashboard/comptabilite/banque" linkLabel="Ouvrir le rapprochement bancaire" /><WorkspaceDistributionPanel title="Balance âgée" description="Reste à encaisser, ventilé selon l’ancienneté de l’échéance." items={aging.map((bucket) => ({ ...bucket, detail: `${formatWorkspaceEuro(Math.round(bucket.value * 100))} restant` }))} href="/dashboard/factures" linkLabel="Voir le détail de la balance" /></div>}
       panels={[

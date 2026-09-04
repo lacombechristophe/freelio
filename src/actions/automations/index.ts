@@ -1,9 +1,11 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { Prisma } from "@prisma/client"
 import { z } from "zod"
 
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
+import { POOL_AUTOMATION_SEQUENCES, POOL_AUTOMATION_WORKFLOWS, POOL_EMAIL_TEMPLATES } from "@/lib/automations/presets"
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
@@ -11,6 +13,7 @@ import { nextSequenceExecution, sequenceTimezoneIsValid } from "@/lib/automation
 import { customerHealthStatus } from "@/lib/operations/customer-health"
 import { automationProcessRateLimit } from "@/lib/rate-limit"
 import { logAction } from "@/lib/audit"
+import { activeEmailSuppression, clearEmailSuppression } from "@/lib/communications/suppressions"
 
 const idSchema = z.string().cuid()
 const templateSchema = z.object({
@@ -95,7 +98,7 @@ function assertWorkflowCompatibility(trigger: z.infer<typeof automationTriggerSc
 export async function getAutomationDashboard() {
   return withAuth(async ({ companyId }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-    const [templates, sequences, workflows, deliveries, leads, clients, deliveryStats, runStats, emailChannel, stepDeliveryStats] = await Promise.all([
+    const [templates, sequences, workflows, deliveries, leads, clients, deliveryStats, runStats, emailChannel, stepDeliveryStats, suppressions, processor] = await Promise.all([
       prisma.emailTemplate.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.emailSequence.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
@@ -138,8 +141,10 @@ export async function getAutomationDashboard() {
       }),
       prisma.emailDelivery.groupBy({ where: { companyId, createdAt: { gte: since } }, by: ["status"], _count: { _all: true } }),
       prisma.automationRun.groupBy({ where: { companyId, startedAt: { gte: since } }, by: ["status"], _count: { _all: true } }),
-      prisma.communicationChannel.findFirst({ where: { companyId, provider: "RESEND" }, select: { status: true, emailAddress: true, lastError: true } }),
+      prisma.communicationChannel.findFirst({ where: { companyId, status: "ACTIVE" }, select: { provider: true, status: true, emailAddress: true, lastError: true }, orderBy: { updatedAt: "desc" } }),
       prisma.emailDelivery.groupBy({ where: { companyId, stepId: { not: null } }, by: ["stepId", "status"], _count: { _all: true } }),
+      prisma.emailSuppression.findMany({ where: { companyId, active: true }, orderBy: { suppressedAt: "desc" }, take: 100 }),
+      prisma.processorLease.findUnique({ where: { name: "email-sequences" } }),
     ])
     const deliveryStatsByStep = new Map<string, Record<string, number>>()
     for (const item of stepDeliveryStats) {
@@ -234,12 +239,24 @@ export async function getAutomationDashboard() {
         subject: delivery.subject,
         status: delivery.status,
         error: delivery.error,
+        attempts: delivery.attempts,
+        maxAttempts: delivery.maxAttempts,
+        nextAttemptAt: delivery.nextAttemptAt?.toISOString() ?? null,
+        deadLetteredAt: delivery.deadLetteredAt?.toISOString() ?? null,
+        provider: delivery.provider,
         scheduledAt: delivery.scheduledAt.toISOString(),
         sentAt: delivery.sentAt?.toISOString() ?? null,
         createdAt: delivery.createdAt.toISOString(),
         sequence: delivery.sequence,
       })),
-      leads,
+      leads: leads.filter((lead) => !suppressions.some((suppression) => suppression.email === lead.email?.trim().toLowerCase())),
+      suppressions: suppressions.map((suppression) => ({
+        id: suppression.id,
+        email: suppression.email,
+        reason: suppression.reason,
+        provider: suppression.provider,
+        suppressedAt: suppression.suppressedAt.toISOString(),
+      })),
       clients: clients.map((client) => ({
         id: client.id,
         name: client.name,
@@ -253,11 +270,112 @@ export async function getAutomationDashboard() {
       },
       readiness: {
         emailProviderConfigured: emailChannel?.status === "ACTIVE" || Boolean(process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim()),
-        processorConfigured: Boolean(process.env.AUTOMATION_CRON_SECRET?.trim()),
+        processorConfigured: Boolean(process.env.AUTOMATION_CRON_SECRET?.trim() && processor?.lastSucceededAt && processor.lastSucceededAt.getTime() > Date.now() - 20 * 60_000),
+        processor: processor ? {
+          lastStartedAt: processor.lastStartedAt.toISOString(),
+          lastSucceededAt: processor.lastSucceededAt?.toISOString() ?? null,
+          lastFailedAt: processor.lastFailedAt?.toISOString() ?? null,
+          lastError: processor.lastError,
+        } : null,
         channel: emailChannel,
       },
     }
   }, "automation.read")
+}
+
+export async function installPoolAutomationPresets() {
+  return withAuth(async ({ companyId, userId }) => {
+    const [existingTemplates, existingSequences, existingWorkflows] = await Promise.all([
+      prisma.emailTemplate.findMany({ where: { companyId, name: { in: POOL_EMAIL_TEMPLATES.map((item) => item.name) } }, select: { name: true } }),
+      prisma.emailSequence.findMany({ where: { companyId, name: { in: POOL_AUTOMATION_SEQUENCES.map((item) => item.name) } }, select: { name: true } }),
+      prisma.automationWorkflow.findMany({ where: { companyId, name: { in: POOL_AUTOMATION_WORKFLOWS.map((item) => item.name) } }, select: { name: true } }),
+    ])
+    const existingTemplateNames = new Set(existingTemplates.map((item) => item.name))
+    const existingSequenceNames = new Set(existingSequences.map((item) => item.name))
+    const existingWorkflowNames = new Set(existingWorkflows.map((item) => item.name))
+
+    const installed = await prisma.$transaction(async (tx) => {
+      for (const template of POOL_EMAIL_TEMPLATES) {
+        await tx.emailTemplate.upsert({
+          where: { companyId_name: { companyId, name: template.name } },
+          update: {},
+          create: { companyId, name: template.name, category: template.category, subject: template.subject, bodyHtml: template.bodyHtml },
+        })
+      }
+
+      const sequenceIds = new Map<string, string>()
+      const archivedSequenceNames = new Set<string>()
+      for (const sequence of POOL_AUTOMATION_SEQUENCES) {
+        const record = await tx.emailSequence.upsert({
+          where: { companyId_name: { companyId, name: sequence.name } },
+          update: {},
+          create: {
+            companyId,
+            name: sequence.name,
+            description: sequence.description,
+            status: "DRAFT",
+            businessDaysOnly: true,
+            sendWindowStart: 8,
+            sendWindowEnd: 18,
+            timezone: "Europe/Paris",
+            steps: { create: sequence.steps.map((step, position) => ({ ...step, position, taskTitle: step.taskTitle ?? null, taskNotes: step.taskNotes ?? null, taskPriority: step.taskPriority ?? 2, pauseUntilComplete: step.pauseUntilComplete ?? false })) },
+          },
+        })
+        if (record.status === "ARCHIVED") archivedSequenceNames.add(sequence.name)
+        else sequenceIds.set(sequence.name, record.id)
+      }
+
+      let skippedWorkflows = 0
+      for (const preset of POOL_AUTOMATION_WORKFLOWS) {
+        const archivedDependency = preset.actions.find((action) => action.type === "ENROLL_PRESET_SEQUENCE" && archivedSequenceNames.has(String(action.sequenceName)))
+        if (archivedDependency) {
+          if (!existingWorkflowNames.has(preset.name)) skippedWorkflows += 1
+          continue
+        }
+        const actions = preset.actions.map((action) => {
+          if (action.type !== "ENROLL_PRESET_SEQUENCE") return action
+          const sequenceId = sequenceIds.get(String(action.sequenceName))
+          if (!sequenceId) throw new Error(`Séquence de preset introuvable : ${String(action.sequenceName)}`)
+          return { type: "ENROLL_SEQUENCE", sequenceId }
+        })
+        const configuration = workflowConfigurationSchema.parse({ conditions: preset.conditions, actions })
+        assertWorkflowCompatibility(preset.trigger, configuration)
+        await tx.automationWorkflow.upsert({
+          where: { companyId_name: { companyId, name: preset.name } },
+          update: {},
+          create: {
+            companyId,
+            name: preset.name,
+            trigger: preset.trigger,
+            status: "DRAFT",
+            conditions: configuration.conditions as Prisma.InputJsonValue | undefined,
+            actions: configuration.actions as Prisma.InputJsonValue,
+            versions: {
+              create: {
+                companyId,
+                version: 1,
+                status: "DRAFT",
+                trigger: preset.trigger,
+                conditions: configuration.conditions as Prisma.InputJsonValue | undefined,
+                actions: configuration.actions as Prisma.InputJsonValue,
+              },
+            },
+          },
+        })
+      }
+
+      return {
+        templates: POOL_EMAIL_TEMPLATES.length - existingTemplateNames.size,
+        sequences: POOL_AUTOMATION_SEQUENCES.length - existingSequenceNames.size,
+        workflows: Math.max(0, POOL_AUTOMATION_WORKFLOWS.length - existingWorkflowNames.size - skippedWorkflows),
+        skippedWorkflows,
+      }
+    })
+
+    await logAction({ userId, action: "INSTALL_AUTOMATION_PRESETS", resource: "AUTOMATION_WORKFLOW", payload: installed })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const, installed }
+  }, "automation.write")
 }
 
 export async function createEmailTemplate(input: unknown) {
@@ -731,5 +849,37 @@ export async function processSequenceEmailsNow() {
     await logAction({ userId, action: "PROCESS_EMAIL_SEQUENCES", resource: "EMAIL_SEQUENCE", payload: summary })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const, summary }
+  }, "automation.write")
+}
+
+export async function retryEmailDelivery(deliveryId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const id = idSchema.parse(deliveryId)
+    const delivery = await prisma.emailDelivery.findFirst({
+      where: { id, companyId, status: { in: ["FAILED", "DEAD_LETTER"] } },
+      select: { id: true, enrollmentId: true, recipientEmail: true, status: true },
+    })
+    if (!delivery) throw new Error("Envoi en échec introuvable")
+    if (!delivery.enrollmentId) throw new Error("Seuls les envois rattachés à une séquence peuvent être relancés depuis ce journal")
+    if (await activeEmailSuppression(companyId, delivery.recipientEmail)) throw new Error("Cette adresse est bloquée. Le blocage doit d’abord être levé explicitement.")
+    const now = new Date()
+    const enrollmentId = delivery.enrollmentId
+    await prisma.$transaction([
+      prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", attempts: 0, nextAttemptAt: now, lastAttemptAt: null, deadLetteredAt: null, error: null } }),
+      prisma.emailSequenceEnrollment.update({ where: { id: enrollmentId }, data: { status: "ACTIVE", stopReason: null, completedAt: null, nextSendAt: now } }),
+    ])
+    await logAction({ userId, action: "RETRY_EMAIL_DELIVERY", resource: "EMAIL_DELIVERY", resourceId: delivery.id, payload: { previousStatus: delivery.status } })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
+  }, "automation.write")
+}
+
+export async function reactivateEmailAddress(suppressionId: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const id = idSchema.parse(suppressionId)
+    if (!await clearEmailSuppression(companyId, id)) throw new Error("Adresse bloquée introuvable")
+    await logAction({ userId, action: "CLEAR_EMAIL_SUPPRESSION", resource: "EMAIL_SUPPRESSION", resourceId: id })
+    revalidatePath("/dashboard/automatisations")
+    return { success: true as const }
   }, "automation.write")
 }

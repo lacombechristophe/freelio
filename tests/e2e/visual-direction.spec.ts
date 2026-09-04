@@ -34,6 +34,10 @@ test("le nouveau shell et les cockpits métier restent cohérents", async ({ pag
     await page.goto(entrance.path)
     await expect(page.getByRole("heading", { name: entrance.heading, exact: true })).toBeVisible()
     await expect(page.getByRole("button", { name: "Ouvrir le menu de création" })).toBeVisible()
+    await page.evaluate(async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    })
     await expect(page.getByText("Chronomètre", { exact: true })).toHaveCount(0)
     const screenshotName = entrance.path === "/dashboard"
       ? "overview"

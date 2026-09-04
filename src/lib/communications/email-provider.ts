@@ -6,6 +6,7 @@ import { formatMailboxSender, getResendTransport } from "@/lib/communications/pr
 import { decrypt, encrypt } from "@/lib/crypto"
 import { EMAIL_OAUTH_PROVIDERS, refreshEmailOAuthAccessToken, type EmailOAuthProvider } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
+import { activeEmailSuppression } from "@/lib/communications/suppressions"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -97,12 +98,27 @@ export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: s
   })
 }
 
-function mimeMessage(input: { from: string; to: string; replyTo?: string | null; subject: string; html: string; headers?: Record<string, string> }) {
+export type EmailProviderState = {
+  provider?: string | null
+  channelId?: string | null
+  providerDraftId?: string | null
+  providerMessageId?: string | null
+}
+
+export type PreparedEmailProviderState = Required<Pick<EmailProviderState, "provider" | "channelId" | "providerDraftId" | "providerMessageId">>
+
+function deterministicMessageId(idempotencyKey: string) {
+  const local = idempotencyKey.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120) || "message"
+  return `<${local}@mail.freelio.app>`
+}
+
+function mimeMessage(input: { from: string; to: string; replyTo?: string | null; subject: string; html: string; messageId: string; headers?: Record<string, string> }) {
   const subject = Buffer.from(input.subject, "utf8").toString("base64")
   const body = Buffer.from(input.html, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n")
   return [
     `From: ${input.from}`,
     `To: ${input.to}`,
+    `Message-ID: ${input.messageId}`,
     ...(input.replyTo ? [`Reply-To: ${input.replyTo}`] : []),
     ...Object.entries(input.headers || {}).filter(([name]) => /^[A-Za-z0-9-]+$/.test(name)).map(([name, value]) => `${name}: ${value.replace(/[\r\n]+/g, " ")}`),
     `Subject: =?UTF-8?B?${subject}?=`,
@@ -124,9 +140,15 @@ export async function sendEmailThroughChannel(input: {
   html: string
   idempotencyKey: string
   headers?: Record<string, string>
+  resume?: EmailProviderState
+  onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
 }) {
-  const channel = await activeCommunicationChannel(input.companyId, input.channelId)
+  const suppression = await activeEmailSuppression(input.companyId, input.to)
+  if (suppression) throw new Error(`Envoi bloqué : adresse supprimée de la diffusion (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
+  const channel = await activeCommunicationChannel(input.companyId, input.resume?.channelId || input.channelId)
+  if (input.resume?.provider && input.resume.provider !== channel.provider) throw new Error("La messagerie de reprise ne correspond plus au fournisseur initial")
   const from = formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress)
+  const messageId = input.resume?.providerMessageId || deterministicMessageId(input.idempotencyKey)
 
   if (channel.provider === "RESEND") {
     const transport = await getResendTransport(input.companyId, channel.id === "platform" ? null : channel.id)
@@ -137,39 +159,88 @@ export async function sendEmailThroughChannel(input: {
     })
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
-    return { provider: "RESEND", providerId: payload.id, from }
+    return { provider: "RESEND", providerId: payload.id, providerDraftId: null, providerMessageId: payload.id, channelId: channel.id, from }
   }
 
   const provider = channel.provider as EmailOAuthProvider
   const accessToken = await validOAuthAccessToken(channel)
   if (provider === "GOOGLE") {
-    const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, headers: input.headers }), "utf8").toString("base64url")
-    const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-      method: "POST",
-      headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
-      body: JSON.stringify({ raw }),
-    })
+    const headers = { authorization: `Bearer ${accessToken}`, "content-type": "application/json" }
+    let draftId = input.resume?.providerDraftId || null
+    let persistedDraftDisappeared = false
+    if (draftId) {
+      const draftCheck = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${encodeURIComponent(draftId)}`, { headers })
+      if (draftCheck.status === 404) {
+        persistedDraftDisappeared = true
+        draftId = null
+      }
+      else if (!draftCheck.ok) throw new Error(`Vérification du brouillon Google refusée (${draftCheck.status})`)
+    }
+    if (!draftId) {
+      const query = new URLSearchParams({ q: `rfc822msgid:${messageId}`, maxResults: "1" })
+      const sentCheck = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${query}`, { headers })
+      const sentPayload = await sentCheck.json().catch(() => ({})) as { messages?: Array<{ id: string }>; error?: { message?: string } }
+      if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Google refusée (${sentCheck.status})`)
+      const alreadySentId = sentPayload.messages?.[0]?.id
+      if (alreadySentId) return { provider, providerId: `${channel.id}:${alreadySentId}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
+      if (persistedDraftDisappeared) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
+
+      const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: input.headers }), "utf8").toString("base64url")
+      const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw } }) })
+      const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
+      if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du brouillon Google refusée (${draftResponse.status})`)
+      draftId = draft.id
+      await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
+    }
+    const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts/send", { method: "POST", headers, body: JSON.stringify({ id: draftId }) })
     const payload = await response.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
     if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Envoi Google refusé (${response.status})`)
-    return { provider, providerId: `${channel.id}:${payload.id}`, from }
+    return { provider, providerId: `${channel.id}:${payload.id}`, providerDraftId: draftId, providerMessageId: messageId, channelId: channel.id, from }
   }
 
-  // Creating the draft first gives us a stable provider identifier. Requesting
-  // immutable IDs prevents the identifier changing when Graph moves it to Sent.
-  const draftResponse = await fetch("https://graph.microsoft.com/v1.0/me/messages", {
+  const graphHeaders = { authorization: `Bearer ${accessToken}`, Prefer: 'IdType="ImmutableId"' }
+  let draftId = input.resume?.providerDraftId || null
+  let persistedDraftDisappeared = false
+  if (draftId) {
+    const check = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}?$select=id,isDraft,internetMessageId`, { headers: graphHeaders })
+    if (check.status === 404) {
+      persistedDraftDisappeared = true
+      draftId = null
+    }
+    else {
+      const state = await check.json().catch(() => ({})) as { id?: string; isDraft?: boolean; error?: { message?: string } }
+      if (!check.ok) throw new Error(state.error?.message || `Vérification Microsoft refusée (${check.status})`)
+      if (state.isDraft === false) return { provider, providerId: `${channel.id}:${state.id || draftId}`, providerDraftId: draftId, providerMessageId: messageId, channelId: channel.id, from }
+    }
+  }
+  if (!draftId) {
+    const filter = `internetMessageId eq '${messageId.replaceAll("'", "''")}'`
+    const query = new URLSearchParams({ "$filter": filter, "$select": "id,isDraft,internetMessageId", "$top": "1" })
+    const sentCheck = await fetch(`https://graph.microsoft.com/v1.0/me/messages?${query}`, { headers: graphHeaders })
+    const sentPayload = await sentCheck.json().catch(() => ({})) as { value?: Array<{ id: string; isDraft?: boolean }>; error?: { message?: string } }
+    if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Microsoft refusée (${sentCheck.status})`)
+    const existing = sentPayload.value?.find((message) => message.isDraft === false)
+    if (existing) return { provider, providerId: `${channel.id}:${existing.id}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
+    if (persistedDraftDisappeared) throw new Error("État d’envoi Microsoft incertain : vérification différée avant toute nouvelle création")
+
+    const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: input.headers }), "utf8").toString("base64")
+    const draftResponse = await fetch("https://graph.microsoft.com/v1.0/me/messages", {
+      method: "POST",
+      headers: { ...graphHeaders, "content-type": "text/plain" },
+      body: raw,
+    })
+    const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
+    if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du message Microsoft refusée (${draftResponse.status})`)
+    draftId = draft.id
+    await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
+  }
+  const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}/send`, {
     method: "POST",
-    headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json", Prefer: 'IdType="ImmutableId"' },
-    body: JSON.stringify({ subject: input.subject, body: { contentType: "HTML", content: input.html }, toRecipients: [{ emailAddress: { address: input.to } }], ...(input.replyTo ? { replyTo: [{ emailAddress: { address: input.replyTo } }] } : {}) }),
-  })
-  const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
-  if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du message Microsoft refusée (${draftResponse.status})`)
-  const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draft.id)}/send`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${accessToken}`, Prefer: 'IdType="ImmutableId"' },
+    headers: graphHeaders,
   })
   if (!response.ok) {
     const payload = await response.json().catch(() => ({})) as { error?: { message?: string } }
     throw new Error(payload.error?.message || `Envoi Microsoft refusé (${response.status})`)
   }
-  return { provider, providerId: `${channel.id}:${draft.id}`, from }
+  return { provider, providerId: `${channel.id}:${draftId}`, providerDraftId: draftId, providerMessageId: messageId, channelId: channel.id, from }
 }

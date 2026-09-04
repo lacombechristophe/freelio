@@ -16,10 +16,10 @@ export default async function CrmWorkspacePage() {
       description="Retrouvez les personnes, entreprises, demandes et conversations qui nécessitent une action."
       primaryAction={{ name: "Ajouter un client", href: "/dashboard/clients", icon: Building2, description: "Créer une fiche" }}
       metrics={[
-        { label: "Clients", value: data.clients, detail: `${data.contacts} contact(s) associé(s)`, icon: Users, tone: "blue" },
-        { label: "Prospects actifs", value: data.activeLeads, detail: "Hors spam et archives", icon: UserRoundSearch, tone: "teal" },
-        { label: "Affaires ouvertes", value: data.openDeals, detail: "Opportunités non closes", icon: Kanban, tone: "amber" },
-        { label: "Messages non lus", value: data.unreadEmail, detail: "Dans la boîte partagée", icon: Inbox, tone: "red", alert: data.unreadEmail > 0 },
+        { label: "Clients", value: data.clients, detail: `${data.contacts} contact(s) associé(s)`, icon: Users, tone: "blue", href: "/dashboard/clients" },
+        { label: "Prospects actifs", value: data.activeLeads, detail: "Hors spam et archives", icon: UserRoundSearch, tone: "teal", href: "/dashboard/leads" },
+        { label: "Affaires ouvertes", value: data.openDeals, detail: "Opportunités non closes", icon: Kanban, tone: "amber", href: "/dashboard/pipeline" },
+        { label: "Messages non lus", value: data.unreadEmail, detail: "Dans la boîte partagée", icon: Inbox, tone: "red", alert: data.unreadEmail > 0, status: data.unreadEmail ? "À traiter" : "À jour", href: "/dashboard/communications" },
       ]}
       featured={<div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.7fr)]"><WorkspaceTrendPanel title="Activité relationnelle" description="Prospects, interactions CRM et e-mails enregistrés sur les 30 derniers jours." labels={data.activitySeries.labels} series={data.activitySeries.series} href="/dashboard/reports" linkLabel="Ouvrir le reporting CRM" /><WorkspaceDistributionPanel title="Santé du portefeuille" description="Répartition réelle des clients par score relationnel." items={[{ label: "Relation saine", value: data.clientHealth.healthy }, { label: "À surveiller", value: data.clientHealth.watch }, { label: "À risque", value: data.clientHealth.risk }]} href="/dashboard/service/customer-success" linkLabel="Analyser le portefeuille" /></div>}
       panels={[

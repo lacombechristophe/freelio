@@ -6,8 +6,9 @@ function digest(value: string) {
 
 export function cronRequestIsAuthorized(request: Request, ...fallbackNames: string[]) {
   const names = ["CRON_SECRET", ...fallbackNames]
-  const expected = names.map((name) => process.env[name]?.trim()).find(Boolean)
-  if (!expected) return false
+  const expected = names.map((name) => process.env[name]?.trim()).filter((value): value is string => Boolean(value))
+  if (!expected.length) return false
   const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() || ""
-  return timingSafeEqual(digest(expected), digest(provided))
+  const providedDigest = digest(provided)
+  return expected.some((secret) => timingSafeEqual(digest(secret), providedDigest))
 }

@@ -18,13 +18,16 @@ export type CampaignAudienceReadiness = {
   optedOut: number
   excludedStatus: number
   alreadyEnrolled: number
+  suppressed: number
 }
 
 export function evaluateCampaignAudience(
   leads: CampaignAudienceLead[],
   existingEnrollmentLeadIds: Iterable<string> = [],
+  suppressedEmails: Iterable<string> = [],
 ): CampaignAudienceReadiness {
   const existing = new Set(existingEnrollmentLeadIds)
+  const suppressed = new Set([...suppressedEmails].map((email) => email.trim().toLowerCase()))
   const result: CampaignAudienceReadiness = {
     total: leads.length,
     eligibleIds: [],
@@ -33,6 +36,7 @@ export function evaluateCampaignAudience(
     optedOut: 0,
     excludedStatus: 0,
     alreadyEnrolled: 0,
+    suppressed: 0,
   }
 
   for (const lead of leads) {
@@ -46,6 +50,10 @@ export function evaluateCampaignAudience(
     }
     if (!reachableEmailSchema.safeParse(lead.email).success) {
       result.missingEmail += 1
+      continue
+    }
+    if (suppressed.has(lead.email!.trim().toLowerCase())) {
+      result.suppressed += 1
       continue
     }
     if (!lead.marketingOptIn) {

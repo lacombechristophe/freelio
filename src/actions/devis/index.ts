@@ -427,6 +427,7 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
       subjectModel: "Quote",
       subjectId: quote.id,
       leadId: existing.client.leadCaptures[0]?.id,
+      clientId: existing.clientId,
     }).catch((error) => console.error("Quote automation failed", error))
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${parsedQuoteId}`)

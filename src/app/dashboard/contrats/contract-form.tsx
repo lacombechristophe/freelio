@@ -265,7 +265,7 @@ export function ContractForm({
             </div>
           </div>
 
-          <div className="grid max-h-[520px] gap-3 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
+          <div className="max-h-[520px] overflow-y-auto rounded-lg border bg-background">
             {filteredTemplates.map((template) => {
               const selected = selectedTemplateId === template.id
               return (
@@ -274,35 +274,19 @@ export function ContractForm({
                   type="button"
                   onClick={() => applyTemplate(template)}
                   className={cn(
-                    "flex min-h-[190px] flex-col rounded-lg border bg-background p-4 text-left transition-colors hover:border-primary/60 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    selected && "border-primary bg-primary/5"
+                    "group grid w-full gap-3 border-b px-4 py-3.5 text-left transition-colors last:border-b-0 hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:grid-cols-[170px_minmax(0,1fr)_minmax(210px,0.7fr)_90px] md:items-center",
+                    selected && "bg-primary/5"
                   )}
                 >
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <Badge variant="outline">{CONTRACT_TEMPLATE_CATEGORY_LABELS[template.category]}</Badge>
-                    <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                      {template.sections} sections
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-semibold leading-snug text-foreground">{template.name}</h3>
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{template.description}</p>
-                  <div className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-                    <ClipboardList className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>{template.bestFor}</span>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between pt-4 text-xs font-medium">
-                    <span className="text-primary">Appliquer</span>
-                    {selected ? (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Plus className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
+                  <span className="flex items-center gap-2"><Badge variant="outline">{CONTRACT_TEMPLATE_CATEGORY_LABELS[template.category]}</Badge><span className="text-xs tabular-nums text-muted-foreground">{template.sections} sections</span></span>
+                  <span className="min-w-0"><span className="block text-sm font-semibold leading-snug text-foreground">{template.name}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{template.description}</span></span>
+                  <span className="flex min-w-0 items-start gap-2 text-xs leading-5 text-muted-foreground"><ClipboardList className="mt-0.5 size-3.5 shrink-0 text-primary" /><span>{template.bestFor}</span></span>
+                  <span className="flex items-center justify-end gap-1.5 text-xs font-semibold text-primary">{selected ? "Appliqué" : "Appliquer"}{selected ? <CheckCircle2 className="size-4" /> : <Plus className="size-4 transition-transform group-hover:rotate-90" />}</span>
                 </button>
               )
             })}
             {filteredTemplates.length === 0 && (
-              <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+              <div className="p-6 text-sm text-muted-foreground">
                 Aucun modèle ne correspond à cette recherche.
               </div>
             )}

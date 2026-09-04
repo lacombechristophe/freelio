@@ -6,27 +6,13 @@ import { getOrCreateEmailThread, jsonValue, resolveEmailParty } from "@/lib/comm
 import prisma from "@/lib/prisma"
 import { runAutomationEvent } from "@/lib/automations/engine"
 import { PayloadTooLargeError, readTextBody } from "@/lib/http-body"
+import { resendSuppressionReason, suppressEmailAddress } from "@/lib/communications/suppressions"
+import { emailDeliveryStatusForEvent, emailEventUpdateGuard } from "@/lib/communications/delivery-events"
 
 export const runtime = "nodejs"
 
 function normalizedAddress(value: string) {
   return (value.match(/<([^>]+)>/)?.[1] || value).trim().toLowerCase()
-}
-
-function eventStatus(type: string) {
-  return (
-    {
-      "email.sent": "SENT",
-      "email.delivered": "DELIVERED",
-      "email.delivery_delayed": "DELAYED",
-      "email.opened": "OPENED",
-      "email.clicked": "CLICKED",
-      "email.bounced": "BOUNCED",
-      "email.failed": "FAILED",
-      "email.complained": "COMPLAINED",
-      "email.suppressed": "SUPPRESSED",
-    } as Record<string, string>
-  )[type]
 }
 
 async function resolveWebhookCredentials(payload: string) {
@@ -135,15 +121,18 @@ async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
 
 async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) {
   if (event.type === "email.received" || !("email_id" in event.data)) return
+  const previousEvent = await prisma.emailEvent.findUnique({ where: { providerEventId: eventId }, select: { id: true } })
+  if (previousEvent) return
   const providerMessageId = event.data.email_id
   const message = await prisma.emailMessage.findUnique({
     where: { provider_providerId: { provider: "RESEND", providerId: providerMessageId } },
-    select: { id: true, companyId: true, deliveryId: true, thread: { select: { leadCaptureId: true, clientId: true } } },
+    select: { id: true, companyId: true, deliveryId: true, toAddresses: true, thread: { select: { leadCaptureId: true, contactId: true, clientId: true } } },
   })
-  const delivery = message?.deliveryId ? null : await prisma.emailDelivery.findFirst({ where: { providerId: providerMessageId }, select: { id: true, companyId: true } })
+  const delivery = message?.deliveryId ? null : await prisma.emailDelivery.findFirst({ where: { providerId: providerMessageId }, select: { id: true, companyId: true, recipientEmail: true, leadCaptureId: true, contactId: true } })
   const companyId = message?.companyId || delivery?.companyId
   if (!companyId) return
-  const status = eventStatus(event.type)
+  const status = emailDeliveryStatusForEvent(event.type)
+  const occurredAt = new Date(event.created_at)
   await prisma.$transaction(async (tx) => {
     await tx.emailEvent.upsert({
       where: { providerEventId: eventId },
@@ -156,12 +145,37 @@ async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) 
         providerMessageId,
         type: event.type,
         payload: jsonValue(event.data),
-        occurredAt: new Date(event.created_at),
+        occurredAt,
       },
     })
-    if (message && status) await tx.emailMessage.update({ where: { id: message.id }, data: { status } })
-    if (status && (message?.deliveryId || delivery?.id)) await tx.emailDelivery.update({ where: { id: message?.deliveryId || delivery!.id }, data: { status } })
+    if (message && status) await tx.emailMessage.updateMany({
+      where: { id: message.id, ...emailEventUpdateGuard(status, occurredAt) },
+      data: { status, lastEventAt: occurredAt },
+    })
+    if (status && (message?.deliveryId || delivery?.id)) await tx.emailDelivery.updateMany({
+      where: { id: message?.deliveryId || delivery!.id, ...emailEventUpdateGuard(status, occurredAt) },
+      data: { status, lastEventAt: occurredAt },
+    })
   })
+  const suppressionReason = resendSuppressionReason(event as Parameters<typeof resendSuppressionReason>[0])
+  if (suppressionReason) {
+    const rawRecipients = delivery?.recipientEmail
+      ? [delivery.recipientEmail]
+      : Array.isArray(message?.toAddresses)
+        ? message.toAddresses.filter((value): value is string => typeof value === "string")
+        : []
+    await Promise.all([...new Set(rawRecipients.map(normalizedAddress))].map((email) => suppressEmailAddress({
+      companyId,
+      email,
+      reason: suppressionReason,
+      provider: "RESEND",
+      providerEventId: eventId,
+      details: jsonValue(event.data),
+      leadCaptureId: message?.thread.leadCaptureId || delivery?.leadCaptureId,
+      contactId: message?.thread.contactId || delivery?.contactId,
+      occurredAt,
+    })))
+  }
   const trigger = event.type === "email.opened" ? "EMAIL_OPENED" : event.type === "email.clicked" ? "EMAIL_CLICKED" : null
   if (trigger && message)
     await runAutomationEvent({
