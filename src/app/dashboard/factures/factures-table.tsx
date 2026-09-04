@@ -59,12 +59,14 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [search, setSearch] = React.useState("")
+  const [statusFilter, setStatusFilter] = React.useState("ALL")
   const [payTarget, setPayTarget] = React.useState<{ id: string; unpaid: number } | null>(null)
 
   const filtered = invoices.filter(
     (i) =>
-      i.number.toLowerCase().includes(search.toLowerCase()) ||
-      i.client.name.toLowerCase().includes(search.toLowerCase())
+      (statusFilter === "ALL" || i.status === statusFilter) &&
+      (i.number.toLowerCase().includes(search.toLowerCase()) ||
+      i.client.name.toLowerCase().includes(search.toLowerCase()))
   )
 
   async function handleStatus(id: string, next: "SENT" | "CANCELLED") {
@@ -91,17 +93,24 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="workspace-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
+      <div className="workspace-panel flex flex-col gap-3 p-3 xl:flex-row xl:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            aria-label="Rechercher une facture"
             placeholder="Rechercher une facture…"
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Filtrer les factures par statut" className="flex min-w-0 flex-wrap items-center gap-1 rounded-lg bg-muted/65 p-1">
+          {[{ value: "ALL", label: "Toutes" }, { value: "DRAFT", label: "Brouillons" }, { value: "SENT", label: "À encaisser" }, { value: "OVERDUE", label: "En retard" }, { value: "PAID", label: "Payées" }].map((item) => {
+            const count = item.value === "ALL" ? invoices.length : invoices.filter((invoice) => invoice.status === item.value).length
+            return <button key={item.value} type="button" aria-pressed={statusFilter === item.value} onClick={() => setStatusFilter(item.value)} className={cn("h-8 rounded-md px-2.5 text-xs font-medium transition-[color,background-color,box-shadow]", statusFilter === item.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{item.label}<span className="ml-1.5 tabular-nums opacity-70">{count}</span></button>
+          })}
+        </div>
+        <div className="flex flex-wrap gap-2 xl:ml-auto">
         <Link href="/dashboard/factures/recurrentes">
           <Button variant="outline" className="gap-2">
             <CalendarClock className="h-4 w-4" /> Récurrences
@@ -150,8 +159,8 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
                     compact
                     icon={Receipt}
                     title={invoices.length === 0 ? "Aucune facture émise" : "Aucune facture trouvée"}
-                    description={invoices.length === 0 ? "Créez votre première facture ou transformez un devis accepté pour démarrer le suivi des encaissements." : "Modifiez votre recherche pour afficher d’autres factures."}
-                    action={invoices.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/factures/new")}><Plus />Créer une facture</Button> : <Button size="sm" variant="outline" onClick={() => setSearch("")}>Effacer la recherche</Button>}
+                    description={invoices.length === 0 ? "Créez votre première facture ou transformez un devis accepté pour démarrer le suivi des encaissements." : "Modifiez la recherche ou le statut pour afficher d’autres factures."}
+                    action={invoices.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/factures/new")}><Plus />Créer une facture</Button> : <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("ALL") }}>Réinitialiser la vue</Button>}
                   />
                 </TableCell>
               </TableRow>

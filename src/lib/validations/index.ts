@@ -54,11 +54,11 @@ export type OnboardingFormInput = z.input<typeof OnboardingFormSchema>
 export type OnboardingFormValues = z.infer<typeof OnboardingFormSchema>
 
 export const ClientSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  name: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(180),
   type: z.enum(["ENTERPRISE", "INDIVIDUAL", "ADMINISTRATION"]),
-  siret: z.string().length(14, "Le SIRET doit contenir 14 chiffres").optional().or(z.literal("")),
-  tvaNumber: z.string().optional().or(z.literal("")),
-  address: z.string().min(5, "L'adresse est requise"),
+  siret: optionalSiret,
+  tvaNumber: z.string().trim().max(40).optional().or(z.literal("")),
+  address: z.string().trim().min(5, "L'adresse est requise").max(500),
 })
 
 export const ContactSchema = z.object({

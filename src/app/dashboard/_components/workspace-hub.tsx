@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { Activity, ArrowRight, CircleAlert, type LucideIcon } from "lucide-react"
+import { Activity, ArrowRight, CircleAlert, CircleDashed, type LucideIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,7 @@ function WorkspaceDataPanel({ panel }: { panel: WorkspacePanel }) {
         const tone = row.tone ?? "blue"
         const tones = { blue: "bg-blue-50 text-blue-600", teal: "bg-teal-50 text-teal-600", amber: "bg-amber-50 text-amber-600", red: "bg-red-50 text-red-600" }[tone]
         return <Link key={`${row.href}-${row.title}`} href={row.href} className="workspace-row group flex items-center gap-3 px-4.5 py-2.5 transition-colors hover:bg-muted/35"><span className={`grid size-8 shrink-0 place-items-center rounded-lg ${tones}`}><Icon className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{row.title}</span><span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{row.detail}</span></span>{row.meta ? <span className="hidden max-w-32 truncate text-right text-xs text-muted-foreground sm:block">{row.meta}</span> : null}{row.status ? <Badge variant={tone === "red" ? "destructive" : "outline"} className="shrink-0">{row.status}</Badge> : null}<ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" /></Link>
-      })}</div> : <p className="workspace-empty text-sm text-muted-foreground">{panel.empty}</p>}
+      })}</div> : <div className="workspace-empty"><div><span className="mx-auto grid size-9 place-items-center rounded-full border border-dashed bg-card text-muted-foreground"><CircleDashed className="size-4" /></span><p className="mt-2.5 text-sm font-medium text-foreground">{panel.empty}</p><p className="mt-1 text-xs text-muted-foreground">Cette vue se complètera automatiquement avec l’activité métier.</p></div></div>}
       <Link href={panel.href} className="workspace-link flex items-center justify-center gap-1.5 border-t text-[13px] font-semibold text-primary transition-colors hover:bg-primary/5">{panel.linkLabel}<ArrowRight className="size-3.5" /></Link>
     </section>
   )
@@ -64,18 +64,18 @@ function WorkspaceMetricCard({ metric }: { metric: WorkspaceMetric }) {
   }[tone]
 
   return (
-    <article className="workspace-metric min-h-[128px] rounded-xl border bg-card p-4">
+    <article className="workspace-metric min-h-[128px] rounded-xl border bg-card p-4" data-tone={tone}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[13px] font-medium text-foreground/85">{metric.label}</p>
-          <p className="mt-2 text-[25px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-foreground">{metric.value}</p>
+          <p className="mt-2.5 text-[26px] font-semibold leading-none tracking-[-0.025em] tabular-nums text-foreground">{metric.value}</p>
         </div>
         <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${tones}`}>
           {metric.alert ? <CircleAlert className="size-4" /> : <Icon className="size-4" />}
         </span>
       </div>
-      <div className="mt-5 flex items-center gap-2 border-t border-border/70 pt-2.5">
-        <span aria-hidden="true" className={`size-1.5 rounded-full ${metric.alert ? "bg-danger" : "bg-success"}`} />
+      <div className="relative z-10 mt-5 flex items-center gap-2 border-t border-border/70 pt-2.5">
+        <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--metric-accent)]" />
         <p className="truncate text-xs text-muted-foreground">{metric.detail}</p>
       </div>
     </article>

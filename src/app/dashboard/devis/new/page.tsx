@@ -11,8 +11,8 @@ export default async function NewDevisPage() {
     getQuoteProductCatalog(),
   ])
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="Nouveau document" title="Nouveau devis" description="Choisissez un client, détaillez la prestation et vérifiez les montants avant enregistrement." />
+    <div className="workspace-page">
+      <PageHeader className="workspace-page-header" eyebrow="Nouveau document" title="Nouveau devis" description="Choisissez un client, détaillez la prestation et vérifiez les montants avant enregistrement." />
       <QuoteForm clients={clients ?? []} productCatalog={productCatalog} isTvaApplicable={billingSettings?.isTvaApplicable ?? true} />
     </div>
   )
