@@ -79,10 +79,10 @@ export function OpportunityActions(props: Props) {
     "h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-3 focus:ring-ring/20";
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <form
         onSubmit={update}
-        className="space-y-4 rounded-xl border bg-card p-5"
+        className="min-w-0 space-y-4 overflow-hidden rounded-xl border bg-card p-5"
       >
         <div>
           <h2 className="text-sm font-semibold">Pilotage de l’opportunité</h2>
@@ -163,7 +163,7 @@ export function OpportunityActions(props: Props) {
 
       <form
         onSubmit={addActivity}
-        className="space-y-4 rounded-xl border bg-card p-5"
+        className="min-w-0 space-y-4 overflow-hidden rounded-xl border bg-card p-5"
       >
         <div>
           <h2 className="text-sm font-semibold">Consigner une activité</h2>

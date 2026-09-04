@@ -68,7 +68,7 @@ function WorkspaceMetricCard({ metric }: { metric: WorkspaceMetric }) {
   const content = <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-medium text-foreground/85">{metric.label}</p>
+          <p className="line-clamp-2 text-[13px] font-medium leading-4 text-foreground/85">{metric.label}</p>
           <p className="mt-2.5 text-[26px] font-semibold leading-none tracking-[-0.025em] tabular-nums text-foreground">{metric.value}</p>
         </div>
         <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${tones}`}>
@@ -77,8 +77,8 @@ function WorkspaceMetricCard({ metric }: { metric: WorkspaceMetric }) {
       </div>
       <div className="relative z-10 mt-5 flex min-w-0 items-center gap-2 border-t border-border/70 pt-2.5">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--metric-accent)]" />
-        <p className="truncate text-xs text-muted-foreground">{metric.detail}</p>
-        {metric.status ? <span className="ml-auto shrink-0 text-[11px] font-semibold text-[var(--metric-accent)]">{metric.status}</span> : null}
+        <p className="line-clamp-2 text-xs leading-4 text-muted-foreground">{metric.detail}</p>
+        {metric.status ? <span className="ml-auto shrink-0 text-[11px] font-semibold text-[var(--metric-ink)] dark:text-[var(--metric-accent)]">{metric.status}</span> : null}
         {metric.href ? <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" /> : null}
       </div>
     </>

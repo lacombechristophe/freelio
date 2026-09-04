@@ -74,7 +74,7 @@ export default async function OpportunityDetailPage({
   return (
     <div className="workspace-page">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-3">
+        <div className="flex min-w-0 items-start gap-3">
           <Button
             variant="ghost"
             size="icon"
@@ -84,9 +84,9 @@ export default async function OpportunityDetailPage({
           >
             <ArrowLeft />
           </Button>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1>{opportunity.title}</h1>
+              <h1 className="break-words">{opportunity.title}</h1>
               <Badge
                 variant={
                   opportunity.status === "LOST"
@@ -173,9 +173,9 @@ export default async function OpportunityDetailPage({
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
-        <div className="space-y-6">
-          <Card>
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
+        <div className="min-w-0 space-y-6">
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">
                 Chronologie commerciale
@@ -215,7 +215,7 @@ export default async function OpportunityDetailPage({
               )}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">
                 Devis et chantiers du client
@@ -295,7 +295,7 @@ export default async function OpportunityDetailPage({
             </CardContent>
           </Card>
         </div>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <OpportunityActions
             opportunityId={opportunity.id}
             status={opportunity.status}
@@ -306,7 +306,7 @@ export default async function OpportunityDetailPage({
             stages={opportunity.stages}
             members={opportunity.members}
           />
-          <Card>
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">Interlocuteurs</CardTitle>
             </CardHeader>
@@ -314,7 +314,7 @@ export default async function OpportunityDetailPage({
               {opportunity.client.contacts.length ? (
                 <div className="space-y-3">
                   {opportunity.client.contacts.map((contact) => (
-                    <div key={contact.id} className="rounded-lg border p-3">
+                    <div key={contact.id} className="min-w-0 rounded-lg border p-3">
                       <Link
                         href={`/dashboard/contacts/${contact.id}`}
                         className="text-sm font-semibold hover:text-primary hover:underline"
@@ -328,7 +328,7 @@ export default async function OpportunityDetailPage({
                         {contact.email && (
                           <a
                             href={`mailto:${contact.email}`}
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                            className="inline-flex max-w-full items-center gap-1 break-all text-xs text-primary hover:underline"
                           >
                             <Mail className="size-3.5" />
                             {contact.email}

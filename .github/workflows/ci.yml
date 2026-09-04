@@ -33,6 +33,7 @@ jobs:
       AUTH_TRUST_HOST: "true"
       E2E_USE_PRODUCTION_SERVER: "true"
       E2E_ENABLE_CREDENTIALS_AUTH: "true"
+      E2E_FULL_UI_AUDIT: "true"
       FILE_STORAGE_DRIVER: local
 
     steps:
@@ -77,6 +78,15 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+      - name: Publier les rapports de recette UI
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-audit-reports
+          path: test-results/full-ui-audit/*/report.json
+          if-no-files-found: ignore
+          retention-days: 14
 
   postgres-integration:
     name: Intégration PostgreSQL

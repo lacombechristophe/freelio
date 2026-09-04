@@ -92,7 +92,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Rechercher un contrat…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input aria-label="Rechercher un contrat" placeholder="Rechercher un contrat…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Link href="/dashboard/contrats/new" className="sm:ml-auto">
           <Button className="gap-2">
@@ -154,7 +154,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                     <TableCell>
                       <div className="flex flex-col">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Link href={`/dashboard/contrats/${contract.id}`} className="font-medium text-sm hover:underline">
+                          <Link href={`/dashboard/contrats/${contract.id}`} className="inline-flex min-h-6 items-center text-sm font-medium hover:underline">
                             {contract.title}
                           </Link>
                           {contract.kind !== "STANDARD" && (
@@ -163,7 +163,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                             </Badge>
                           )}
                         </div>
-                        <Link href={`/dashboard/clients/${contract.client.id}`} className="text-xs text-muted-foreground uppercase hover:underline">
+                        <Link href={`/dashboard/clients/${contract.client.id}`} className="inline-flex min-h-6 items-center text-xs uppercase text-muted-foreground hover:underline">
                           {contract.client.name}
                         </Link>
                       </div>

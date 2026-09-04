@@ -435,10 +435,10 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
+    <label className="block space-y-1.5">
+      <span className="block text-sm font-medium leading-none">{label}</span>
       {children}
-    </div>
+    </label>
   )
 }
 function Metric({ icon: Icon, label, value, detail }: { icon: typeof Megaphone; label: string; value: string | number; detail: string }) {

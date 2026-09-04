@@ -50,6 +50,5 @@ function ArticleForm({ article, pending, submitLabel = "Créer l’article", onS
   </form>
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1.5"><Label>{label}</Label>{children}</div> }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block space-y-1.5"><span className="block text-sm font-medium leading-none">{label}</span>{children}</label> }
 function Metric({ icon: Icon, label, value, detail }: { icon: typeof BookOpen; label: string; value: number; detail: string }) { return <div className="border-t p-5 first:border-t-0 sm:border-l sm:border-t-0 sm:first:border-l-0"><div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Icon className="size-4 text-primary" />{label}</div><p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div> }
-

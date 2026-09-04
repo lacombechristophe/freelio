@@ -63,7 +63,7 @@ function ClientCard({ client, members, pending, run }: { client: PortfolioClient
     <summary className="grid cursor-pointer list-none gap-4 p-4 transition-colors hover:bg-muted/20 lg:grid-cols-[minmax(220px,1.2fr)_100px_1fr_180px] lg:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/dashboard/clients/${client.id}`} onClick={(event) => event.stopPropagation()} className="truncate text-sm font-semibold hover:text-primary hover:underline">{client.name}</Link>
+          <Link href={`/dashboard/clients/${client.id}`} onClick={(event) => event.stopPropagation()} className="inline-flex min-h-6 max-w-full items-center truncate text-sm font-semibold hover:text-primary hover:underline">{client.name}</Link>
           <Badge variant={statusVariant(client.status)}>{statusLabels[client.status]}</Badge>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{client.owner?.name || "Responsable non affecté"}</p>
