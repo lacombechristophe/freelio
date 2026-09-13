@@ -1,5 +1,6 @@
 import { sanitizeContractHtml } from "@/lib/contracts/html"
 import { pdfFontFaceCss } from "@/lib/pdf/typography"
+import { documentPrintCss } from "@/lib/pdf/print-layout"
 
 export type ContractPdfDocument = {
   number: string
@@ -277,11 +278,7 @@ export function renderContractHtml(doc: ContractPdfDocument) {
   .footer-top { align-items: baseline; color: #353e4b; display: grid; gap: 8mm; grid-template-columns: minmax(0, 1fr) auto; }
   .footer-reference { font-weight: 650; white-space: nowrap; }
   .footer-note { margin-top: 2px; }
-  @media print {
-    body { background: #ffffff; }
-    .page { box-shadow: none; }
-    footer { bottom: 5.5mm; left: var(--page-inline); margin: 0; position: fixed; right: var(--page-inline); }
-  }
+  ${documentPrintCss(`CONTRAT ${doc.number}`, "10mm", "18mm")}
 </style>
 </head>
 <body>

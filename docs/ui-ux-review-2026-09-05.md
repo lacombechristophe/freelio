@@ -207,3 +207,15 @@ Références de sécurité : [Vitest](https://github.com/advisories/GHSA-82fw-gw
 La recette UX élargie a terminé : **22 réussites et 2 exclusions par format** (`tmp/ux-final-documents-20260913/`). La relecture des captures a cependant révélé un chevauchement dans l’aperçu A4 mobile que le test du cadre extérieur ne détectait pas. Le studio affiche maintenant une page de largeur A4 fixe, réduite proportionnellement avec la taille réelle de son conteneur, au lieu de comprimer les colonnes en millimètres. Le test vérifie la largeur interne, les limites des cellules, les options du téléchargement et le chargement des polices. Nouvelle recette ciblée : **2 tests réussis**, captures bureau/mobile relues (`tmp/ux-scaled-documents-20260913/`). Cette correction porte sur l’aperçu écran ; elle ne remplace toujours pas la recette PDF multipages.
 
 Validation finale locale du lot documentaire : `npm run verify` réussi avec **298 tests / 71 fichiers**, types, lint et build optimisé. La CI `34772384047` du lot précédent (`8429fd5`) a terminé avec succès : **48 tests navigateur et 18 exclusions**, PostgreSQL, build, couverture et audit. Une nouvelle CI est requise pour le commit documentaire ; aucun déploiement de ces modifications n’a encore été effectué manuellement.
+
+### Pagination réelle des documents — 13 septembre
+
+La CI du commit documentaire `7cf1e80` (`34772977364`) est désormais réussie, y compris les deux jobs qualité/E2E et PostgreSQL.
+
+La génération de documents longs a ensuite révélé un défaut distinct de l’aperçu : marges non répétées après la première page, avec risque de collision avec les mentions fixes. Correction ciblée commune aux devis, factures et contrats : marges d’impression répétées, référence et pagination dans la zone de marge native de Chromium ; mentions complètes conservées dans le flux à la fin du document, sans superposition. Les références sont échappées dans le contexte CSS et la préférence de masquage de référence est respectée.
+
+Recette visuelle : **19 pages relues**, devis et facture de 64 lignes (6 pages chacun), contrat de 28 articles (7 pages). Les prestations 01 à 64, le total attendu de 12 047,27 €, les blocs d’acceptation/signature et les mentions finales restent présents. Aucun chevauchement observé sur ces cas. Captures locales : `tmp/pdf-review-20260913/*-review-*.png`.
+
+Recette reproductible sans données client ni base : `npx tsx scripts/verify-document-pagination.ts`. Elle génère les trois documents longs et neuf devis courts (trois modèles × trois densités), vérifie les dimensions A4 et le nombre de pages court/multipage, puis conserve les PDF dans `tmp/document-pagination/`. Ces assertions ne remplacent pas leur inspection visuelle. Sept tests unitaires couvrent les marges, références, échappement CSS et intégration des modèles. Les autres lignes de la revue restent ouvertes ; cette correction n’atteste pas une conformité juridique ou une parité produit.
+
+Référence technique : [zones de marge d’impression de Chromium](https://developer.chrome.com/blog/print-margins?hl=fr).
