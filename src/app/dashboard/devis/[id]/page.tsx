@@ -129,13 +129,6 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
         { label: "Total TTC", value: latest ? formatEuro(latest.totalTtcCents) : "—" },
       ]} />
 
-      <QuoteFulfillmentCard
-        accepted={quote.status === "ACCEPTED"}
-        order={quote.customerOrder}
-        project={quote.project}
-        contract={quote.generatedContract}
-      />
-
       {pdfDocument && (
         <DocumentStudio
           kind="devis"
@@ -145,6 +138,13 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
           document={pdfDocument}
         />
       )}
+
+      <QuoteFulfillmentCard
+        accepted={quote.status === "ACCEPTED"}
+        order={quote.customerOrder}
+        project={quote.project}
+        contract={quote.generatedContract}
+      />
 
       <Card>
         <CardHeader><CardTitle className="text-sm">Lignes</CardTitle></CardHeader>

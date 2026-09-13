@@ -2,20 +2,18 @@
 
 import * as React from "react"
 import {
-  AlertTriangle,
-  CheckCircle2,
+  ChevronDown,
   Download,
   ExternalLink,
   FileCheck2,
-  Info,
   LayoutTemplate,
-  ShieldCheck,
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { DocumentChecks } from "@/components/shared/document-checks"
 import { assessBillingDocumentQuality } from "@/lib/document-quality"
 import {
   normalizePdfTemplate,
@@ -46,6 +44,8 @@ type LayoutPreset = {
 }
 
 const DOCUMENT_INK = "#202630"
+// A4 at 96 dpi, plus the screen renderer's gutters and scrollbar space.
+const PREVIEW_WIDTH = 854
 
 const LAYOUTS: LayoutPreset[] = [
   {
@@ -71,12 +71,6 @@ const LAYOUTS: LayoutPreset[] = [
     density: "COMPACT",
   },
 ]
-
-const issueIcon = {
-  error: AlertTriangle,
-  warning: AlertTriangle,
-  info: Info,
-} as const
 
 function initialLayout(template: string | null | undefined): LayoutId {
   return normalizePdfTemplate(template) === "MINIMAL" ? "ESSENTIAL" : "STANDARD"
@@ -108,10 +102,24 @@ export function DocumentStudio({
   const [layoutId, setLayoutId] = React.useState<LayoutId>(() => initialLayout(defaultTemplate))
   const [showPayment, setShowPayment] = React.useState(true)
   const [showReference, setShowReference] = React.useState(true)
+  const previewRef = React.useRef<HTMLDivElement>(null)
+  const [previewSize, setPreviewSize] = React.useState({ width: PREVIEW_WIDTH, height: 620 })
+
+  React.useEffect(() => {
+    const element = previewRef.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+        setPreviewSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+      }
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  const previewScale = Math.min(1, previewSize.width / PREVIEW_WIDTH)
 
   const layout = LAYOUTS.find((option) => option.id === layoutId) ?? LAYOUTS[0]
   const quality = React.useMemo(() => assessBillingDocumentQuality(document), [document])
-  const visibleIssues = quality.issues.slice(0, 5)
 
   const queryString = React.useMemo(() => {
     const params = new URLSearchParams({
@@ -130,7 +138,7 @@ export function DocumentStudio({
       density: layout.density,
       showPayment,
       showReference,
-      previewFit: true,
+      previewFit: false,
     }),
     [document, layout.density, layout.template, showPayment, showReference]
   )
@@ -148,54 +156,42 @@ export function DocumentStudio({
             <CardDescription>Un rendu A4 sobre, conçu pour l’impression, la signature et l’archivage.</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={screenUrl} target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm"><ExternalLink className="size-4" />Plein écran</Button></a>
-            <a href={downloadUrl} target="_blank" rel="noopener noreferrer"><Button size="sm"><Download className="size-4" />Télécharger {documentNumber}</Button></a>
+            <a href={screenUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}><ExternalLink className="size-4" />Plein écran</a>
+            <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm" })}><Download className="size-4" />Télécharger {documentNumber}</a>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="grid p-0 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="space-y-5 border-b border-border p-4 lg:border-r lg:border-b-0">
-          <section className="rounded-xl border border-border bg-background p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground"><ShieldCheck className="size-4" />Contrôle</div>
-                <div className="mt-2 flex items-baseline gap-1.5"><span className="text-3xl font-semibold tabular-nums">{quality.score}</span><span className="text-xs text-muted-foreground">/100</span></div>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">{quality.summary}</p>
-              </div>
-              <span className={cn("rounded-full border px-2.5 py-1 text-[11px] font-semibold", quality.status === "READY" && "border-success/25 bg-success/10 text-success", quality.status === "TO_REVIEW" && "border-warning/25 bg-warning/10 text-warning", quality.status === "BLOCKED" && "border-danger/25 bg-danger/10 text-danger")}>{quality.label}</span>
-            </div>
-            {visibleIssues.length ? (
-              <div className="mt-3 space-y-2">{visibleIssues.map((issue) => {
-                const Icon = issueIcon[issue.severity]
-                return <div key={issue.id} className="flex gap-2 border-t border-border pt-2.5"><Icon className={cn("mt-0.5 size-3.5 shrink-0", issue.severity === "error" && "text-danger", issue.severity === "warning" && "text-warning", issue.severity === "info" && "text-muted-foreground")} /><div><p className="text-xs font-semibold">{issue.title}</p><p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">{issue.detail}</p></div></div>
+          <DocumentChecks report={quality} />
+
+          <details className="group rounded-lg border bg-card">
+            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg p-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"><LayoutTemplate aria-hidden="true" className="size-4 text-muted-foreground" /><span className="flex-1">Mise en page · {layout.label}</span><ChevronDown aria-hidden="true" className="size-4 text-muted-foreground transition-transform group-open:rotate-180" /></summary>
+            <div className="space-y-3 border-t p-3">
+              <div className="space-y-2">{LAYOUTS.map((option) => {
+                const active = option.id === layoutId
+                return <button key={option.id} type="button" aria-pressed={active} onClick={() => setLayoutId(option.id)} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "border-foreground/35 bg-muted/45 shadow-sm" : "border-border bg-background hover:bg-muted/30")}>
+                  <PaperThumbnail compact={option.id === "COMPACT"} essential={option.id === "ESSENTIAL"} />
+                  <span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold">{option.label}{option.recommended ? <span className="rounded border bg-background px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">Recommandé</span> : null}</span><span className="mt-1 block text-[11px] leading-5 text-muted-foreground">{option.description}</span></span>
+                </button>
               })}</div>
-            ) : (
-              <div className="mt-3 flex items-center gap-2 border-t border-border pt-3 text-xs text-success"><CheckCircle2 className="size-4" />Aucun point bloquant détecté.</div>
-            )}
-          </section>
-
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground"><LayoutTemplate className="size-4" />Format</div>
-            <div className="space-y-2">{LAYOUTS.map((option) => {
-              const active = option.id === layoutId
-              return <button key={option.id} type="button" aria-pressed={active} onClick={() => setLayoutId(option.id)} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "border-foreground/35 bg-muted/45 shadow-sm" : "border-border bg-background hover:bg-muted/30")}>
-                <PaperThumbnail compact={option.id === "COMPACT"} essential={option.id === "ESSENTIAL"} />
-                <span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold">{option.label}{option.recommended ? <span className="rounded border bg-background px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">Recommandé</span> : null}</span><span className="mt-1 block text-[11px] leading-5 text-muted-foreground">{option.description}</span></span>
-              </button>
-            })}</div>
-            <p className="text-[11px] leading-5 text-muted-foreground">Les documents restent volontairement neutres. Le logo identifie l’entreprise sans transformer le devis en support marketing.</p>
-          </section>
-
-          <section className="space-y-3 border-t border-border pt-4">
-            <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Référence répétée</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">Numéro visible dans le pied de page.</p></div><Switch aria-label="Afficher la référence répétée" checked={showReference} onCheckedChange={setShowReference} /></div>
-            {kind === "facture" ? <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Instructions de règlement</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">IBAN, référence et mentions de paiement.</p></div><Switch aria-label="Afficher le bloc de règlement" checked={showPayment} onCheckedChange={setShowPayment} /></div> : null}
-          </section>
+              <p className="text-[11px] leading-5 text-muted-foreground">Les documents restent volontairement neutres. Le logo identifie l’entreprise sans transformer le devis en support marketing.</p>
+              <section className="space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Référence répétée</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">Numéro visible dans le pied de page.</p></div><Switch aria-label="Afficher la référence répétée" checked={showReference} onCheckedChange={setShowReference} /></div>
+              {kind === "facture" ? <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Instructions de règlement</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">IBAN, référence et mentions de paiement.</p></div><Switch aria-label="Afficher le bloc de règlement" checked={showPayment} onCheckedChange={setShowPayment} /></div> : null}
+              </section>
+            </div>
+          </details>
         </aside>
 
         <section className="bg-muted/35 p-4">
-          <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Aperçu du document</p><p className="text-xs text-muted-foreground">Le téléchargement utilise exactement cette mise en page.</p></div><span className="rounded-md border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">A4</span></div>
-          <div className="h-[620px] overflow-hidden rounded-xl border border-border bg-zinc-200 p-3 shadow-inner"><iframe key={queryString} title={`Aperçu ${documentNumber}`} srcDoc={previewHtml} className="h-full w-full rounded-md border-0 bg-white" /></div>
+          <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Aperçu du document</p><p className="text-xs text-muted-foreground">Vérifiez aussi les sauts de page dans le PDF téléchargé.</p></div><span className="rounded-md border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">A4</span></div>
+          <div className="h-[min(620px,75dvh)] min-h-80 overflow-hidden rounded-lg border border-border bg-zinc-200 p-2 sm:p-3">
+            <div ref={previewRef} className="relative h-full w-full overflow-hidden">
+              <iframe key={queryString} title={`Aperçu ${documentNumber}`} srcDoc={previewHtml} className="absolute top-0 left-0 origin-top-left rounded border-0 bg-white" style={{ width: PREVIEW_WIDTH, height: previewSize.height / previewScale, transform: `scale(${previewScale})` }} />
+            </div>
+          </div>
         </section>
       </CardContent>
     </Card>

@@ -8,6 +8,8 @@ Portée : code, bases de recette locales, migration PostgreSQL, déploiement Ver
 
 ## Résultat synthétique
 
+**État du 13 septembre :** les résultats de production et de parité ci-dessous sont historiques, pas une validation du dernier candidat. Les commits `dccab53` (navigation, fiches, récupération des erreurs de modèles) et `8429fd5` (dépendances corrigées) sont poussés sur la branche de travail, sans mise à jour de `main` ni déploiement manuel. La CI `34772384047` est **réussie** : 48 tests navigateur, 18 variantes exclues, PostgreSQL, types, lint, build, couverture et zéro alerte de dépendance. Le lot documentaire suivant a passé `npm run verify` avec **298 tests unitaires** ; sa recette UX compte 22 réussites / 2 exclusions, puis deux vérifications ciblées du rendu A4 corrigé. Sa propre CI reste à exécuter. Les captures et limites sont suivies dans la [revue UI/UX](ui-ux-review-2026-09-05.md). La bascule depuis les logiciels existants reste un no-go tant que les validations externes ne sont pas acquises.
+
 Le candidat du dépôt est cohérent, compilable et déployable sur PostgreSQL. Les flux centraux CRM, vente, opérations, finance, migration, e-mails, calendriers, automatisations, scoring, portail et réversibilité ont des preuves automatisées. La résiliation réelle de HubSpot et Extrabat demeure un **no-go** tant que les exports réels, rapprochements, services externes et décisions métier de la matrice de couverture ne sont pas signés.
 
 ## Preuves exécutées

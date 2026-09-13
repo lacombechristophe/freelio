@@ -70,28 +70,33 @@ function issuePenalty(issue: DocumentQualityIssue) {
   return 3
 }
 
-function buildReport(issues: DocumentQualityIssue[], readyLabel: string): DocumentQualityReport {
+function buildReport(issues: DocumentQualityIssue[]): DocumentQualityReport {
   const score = Math.max(0, 100 - issues.reduce((total, issue) => total + issuePenalty(issue), 0))
   const errors = issues.filter((issue) => issue.severity === "error").length
   const warnings = issues.filter((issue) => issue.severity === "warning").length
-  const status = errors > 0 ? "BLOCKED" : score >= 86 ? "READY" : "TO_REVIEW"
-  const label = status === "READY" ? readyLabel : status === "BLOCKED" ? "A corriger" : "A relire"
+  const status = errors > 0 ? "BLOCKED" : warnings > 0 ? "TO_REVIEW" : "READY"
+  const label = status === "READY" ? "Aucune anomalie détectée" : status === "BLOCKED" ? "À corriger" : "À relire"
   const summary =
     status === "READY"
-      ? "Le document est complet pour un usage professionnel courant."
+      ? "Ces vérifications indicatives ne constituent pas une validation juridique ou fiscale."
       : `${errors} erreur(s), ${warnings} point(s) de vigilance.`
 
   return { score, status, label, summary, issues }
 }
 
 function hasCoherentTotals(doc: PdfDocument) {
-  const computed = calculateCommercialDocument(doc.lines)
-
-  return (
-    Math.abs(computed.totalHtCents - doc.totalHtCents) <= 1 &&
-    Math.abs(computed.totalTvaCents - doc.totalTvaCents) <= 1 &&
-    Math.abs(computed.totalTtcCents - doc.totalTtcCents) <= 1
-  )
+  try {
+    const computed = calculateCommercialDocument(doc.lines)
+    return (
+      Math.abs(computed.totalHtCents - doc.totalHtCents) <= 1 &&
+      Math.abs(computed.totalTvaCents - doc.totalTvaCents) <= 1 &&
+      Math.abs(computed.totalTtcCents - doc.totalTtcCents) <= 1
+    )
+  } catch (error) {
+    // Assessment reports invalid financial input; the calculation engine still rejects it.
+    if (error instanceof RangeError) return false
+    throw error
+  }
 }
 
 export function assessBillingDocumentQuality(doc: PdfDocument): DocumentQualityReport {
@@ -111,7 +116,7 @@ export function assessBillingDocumentQuality(doc: PdfDocument): DocumentQualityR
   if (doc.lines.some((line) => !hasText(line.label))) {
     pushIssue(issues, "error", "empty-line-label", "Libelle incomplet", "Chaque ligne doit avoir un libelle lisible.")
   }
-  if (doc.lines.some((line) => line.quantity <= 0)) {
+  if (doc.lines.some((line) => !Number.isFinite(line.quantity) || line.quantity <= 0)) {
     pushIssue(issues, "error", "invalid-quantity", "Quantite invalide", "Les quantites doivent etre strictement positives.")
   }
   if (!hasCoherentTotals(doc)) {
@@ -163,7 +168,7 @@ export function assessBillingDocumentQuality(doc: PdfDocument): DocumentQualityR
     pushIssue(issues, "warning", "zero-total", "Montant nul", "Verifiez que le document n'est pas une erreur de saisie.")
   }
 
-  return buildReport(issues, "Pret a envoyer")
+  return buildReport(issues)
 }
 
 const CONTRACT_EXPECTATIONS: Array<{ id: string; label: string; terms: string[] }> = [
@@ -214,5 +219,5 @@ export function assessContractQuality(contract: ContractQualityInput): DocumentQ
     pushIssue(issues, "info", "missing-signature", "Signature peu explicite", "Ajoutez une section de signature ou de signature electronique.")
   }
 
-  return buildReport(issues, "Pret pour signature")
+  return buildReport(issues)
 }
