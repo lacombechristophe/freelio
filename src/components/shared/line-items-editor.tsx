@@ -95,35 +95,35 @@ export function LineItemsEditor({
           </summary>
           <div className="border-t p-3">
             <p className="mb-3 text-xs leading-5 text-muted-foreground">Les lignes sont ajoutées sans effacer votre saisie. Renseignez ensuite vos références, prix et taux de TVA.</p>
-              {!isTvaApplicable && (
-                <p className="mb-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                  Franchise TVA active : les lignes restent à 0 %.
-                </p>
-              )}
-              <div className="grid gap-2 md:grid-cols-2">
-                {BILLING_LINE_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => applyPreset(preset.lines)}
-                className={cn(
-                  "group rounded-lg border border-border bg-background p-3.5 text-left transition-[border-color,background-color,box-shadow]",
-                  "hover:border-primary/40 hover:bg-primary/[0.025] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                )}
-              >
-                <span className="flex items-center justify-between gap-3 text-sm font-semibold text-foreground">
-                  {preset.label}
-                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none" />
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  {preset.description}
-                </span>
-                <span className="mt-2 block border-t border-border/70 pt-2 text-[11px] leading-relaxed text-muted-foreground">
-                  {preset.bestFor}
-                </span>
-              </button>
-            ))}
-          </div>
+            {!isTvaApplicable && (
+              <p className="mb-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                Franchise TVA active : les lignes restent à 0 %.
+              </p>
+            )}
+            <div className="grid gap-2 md:grid-cols-2">
+              {BILLING_LINE_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset.lines)}
+                  className={cn(
+                    "group rounded-lg border border-border bg-background p-3.5 text-left transition-[border-color,background-color,box-shadow]",
+                    "hover:border-primary/40 hover:bg-primary/[0.025] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  )}
+                >
+                  <span className="flex items-center justify-between gap-3 text-sm font-semibold text-foreground">
+                    {preset.label}
+                    <ArrowRight className="size-3.5 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {preset.description}
+                  </span>
+                  <span className="mt-2 block border-t border-border/70 pt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    {preset.bestFor}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </details>
       )}

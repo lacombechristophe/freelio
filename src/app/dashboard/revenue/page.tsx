@@ -4,6 +4,7 @@ import { getWorkspaceOverview } from "@/actions/workspaces"
 import { formatWorkspaceDate, formatWorkspaceEuro, WorkspaceHub } from "@/app/dashboard/_components/workspace-hub"
 import { WorkspaceDistributionPanel, WorkspaceTrendPanel } from "@/app/dashboard/_components/workspace-insights"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
+import { INVOICE_STATUS_LABELS } from "@/lib/invoice-labels"
 
 export default async function RevenueWorkspacePage() {
   const data = await getWorkspaceOverview("REVENUE")
@@ -60,7 +61,7 @@ export default async function RevenueWorkspacePage() {
             title: invoice.number,
             detail: `${invoice.client.name} · ${invoice.object}`,
             meta: formatWorkspaceEuro(invoice.totalTtcCents),
-            status: invoice.status,
+            status: INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status,
             tone: invoice.status === "PAID" ? "teal" : invoice.status === "OVERDUE" ? "red" : "blue",
             href: `/dashboard/factures/${invoice.id}`,
             icon: CircleDollarSign,

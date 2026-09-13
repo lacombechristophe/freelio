@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DocumentStudio } from "@/components/shared/document-studio"
+import { RecordSummary } from "@/components/shared/record-summary"
 import type { PdfDocument } from "@/lib/pdf/render"
 import { decryptSensitive } from "@/lib/crypto"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { InvoiceActions } from "../invoice-actions"
+import { E_INVOICE_STATUS_LABELS, INVOICE_STATUS_LABELS } from "@/lib/invoice-labels"
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -79,15 +81,15 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <Link href="/dashboard/factures">
             <Button variant="ghost" size="icon" aria-label="Retour aux factures"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="break-all text-2xl font-bold tracking-tight font-mono">{invoice.number}</h1>
-            <Badge variant="secondary">{invoice.status}</Badge>
-            <Badge variant="outline">E-facture : {invoice.eInvoiceStatus}</Badge>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="break-words text-2xl font-bold tracking-tight font-mono">{invoice.number}</h1>
+            <Badge variant="secondary">{INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status}</Badge>
+            <Badge variant="outline">E-facture : {E_INVOICE_STATUS_LABELS[invoice.eInvoiceStatus] ?? invoice.eInvoiceStatus}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
             {invoice.object} —{" "}
@@ -136,24 +138,12 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Total HT</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{formatEuro(invoice.totalHtCents)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">TVA</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{formatEuro(invoice.totalTvaCents)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Total TTC</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{formatEuro(invoice.totalTtcCents)}</p></CardContent>
-        </Card>
-        <Card className={unpaid > 0 ? "border-danger/40" : "border-success/40"}>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Reste à payer</CardTitle></CardHeader>
-          <CardContent><p className={`text-2xl font-bold ${unpaid > 0 ? "text-danger" : "text-success"}`}>{formatEuro(unpaid)}</p></CardContent>
-        </Card>
-      </div>
+      <RecordSummary label="Montants de la facture" items={[
+        { label: "Total HT", value: formatEuro(invoice.totalHtCents) },
+        { label: "TVA", value: formatEuro(invoice.totalTvaCents) },
+        { label: "Total TTC", value: formatEuro(invoice.totalTtcCents) },
+        { label: "Reste à payer", value: <span className={unpaid > 0 ? "text-danger" : "text-success"}>{formatEuro(unpaid)}</span> },
+      ]} />
 
       <DocumentStudio
         kind="facture"

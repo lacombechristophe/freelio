@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DocumentStudio } from "@/components/shared/document-studio"
+import { RecordSummary } from "@/components/shared/record-summary"
 import type { PdfDocument } from "@/lib/pdf/render"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -122,20 +123,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Total HT</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{latest ? formatEuro(latest.totalHtCents) : "—"}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">TVA</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{latest ? formatEuro(latest.totalTvaCents) : "—"}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Total TTC</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{latest ? formatEuro(latest.totalTtcCents) : "—"}</p></CardContent>
-        </Card>
-      </div>
+      <RecordSummary label="Montants du devis" items={[
+        { label: "Total HT", value: latest ? formatEuro(latest.totalHtCents) : "—" },
+        { label: "TVA", value: latest ? formatEuro(latest.totalTvaCents) : "—" },
+        { label: "Total TTC", value: latest ? formatEuro(latest.totalTtcCents) : "—" },
+      ]} />
 
       <QuoteFulfillmentCard
         accepted={quote.status === "ACCEPTED"}

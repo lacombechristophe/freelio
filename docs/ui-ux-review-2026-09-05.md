@@ -99,16 +99,33 @@ Revue directe des **56 captures desktop et 56 captures mobile** de `test-results
 
 Les fiches facture, contrat, opportunité, migration, achat/fournisseur et les variantes edit/amend ne sont pas toutes présentes dans cette base minimale. Elles seront inspectées sur la base de recette enrichie. Les pages publiques, le portail, la signature, l’authentification et les documents PDF ont leur propre recette ; ils ne sont pas couverts par ces 112 captures.
 
-## Barème de décision
-
-### Repères externes consultés
+## Repères externes consultés
 
 La [documentation HubSpot des listes et vues](https://knowledge.hubspot.com/records/view-and-filter-records), mise à jour le 11 août 2026, confirme l’importance des vues enregistrées, des filtres et de la personnalisation des tableaux. Le repère retenu ici est la rapidité pour retrouver un portefeuille de travail, pas l’accumulation de commandes visibles. La [présentation officielle Extrabat Piscine](https://www.extrabat.com/piscine/) sert de comparaison pour la continuité du dossier entre relation client, devis, chantier, planning et SAV. Ces sources publiques ne remplacent pas une recette dans les comptes réels de la Direction ; aucune parité exhaustive n’en est déduite.
+
+## Barème de décision
 
 - **Bloquant** : action impossible, données perdues, mauvaise information métier, bouton inaccessible.
 - **Majeur** : tâche principale cachée, état vide coupé, navigation ambiguë, vocabulaire incompréhensible.
 - **Finition** : alignement, densité, rythme, contenu redondant sans blocage.
 - Une surface ne passe à « validée » qu’avec la route, le viewport, l’état testé et une preuve après correction. Un test automatique vert ne transforme pas un état non inspecté en état validé.
+
+## Recette à terminer par famille de parcours
+
+| Famille | États et interactions à éprouver | Critère d’acceptation |
+|---|---|---|
+| Navigation et listes | Destination active, recherche combinée aux filtres, vue sauvegardée, retour navigateur, liste vide/remplie/longue, tri, sélection et dernière colonne mobile | Un seul emplacement actif ; filtres restitués ; action du dossier accessible ; aucune suppression de sélection silencieuse |
+| Fiches CRM et dossiers métier | Coordonnées longues, données absentes, activité récente, propriétaire absent, pièces jointes, erreurs et permissions réduites | Identité, état et prochaine action identifiables ; absence de donnée distinguée de zéro ; action interdite non proposée et refusée côté serveur |
+| Création et édition | Première saisie, validation requise, soumission lente, double clic, échec serveur, annulation, navigation avec saisie non enregistrée | Saisie conservée en cas d’échec ; erreurs proches du champ ; focus cohérent ; pas de création ou envoi en double |
+| Communications et marketing | Boîte vide/remplie, fil long, réponse, modèle HTML importé, rendu isolé, intégration absente/expirée, désinscription | Destinataire et mode d’envoi explicites ; pas d’envoi involontaire ; ni modification destructive du HTML ni promesse de tracking non disponible |
+| Automatisations | Bibliothèque, séquence avec plusieurs étapes, brouillon/publié, inscription exclue, exécution en erreur, reprise et simulation | Déclencheur, audience, chemin et effet lisibles ; publication explicite ; simulation sans effet ; motif d’exclusion et reprise documentés |
+| Opérations et SAV | Équipe non affectée, conflit de planning, stock insuffisant, livraison partielle, intervention hors ligne, ticket en retard/clos | Blocage expliqué sans perte de saisie ; stock et transitions cohérents ; synchronisation rejouable ; SLA clairement distingué de l’âge du ticket |
+| Finance et documents | Devis → commande → acompte → solde, avoir, TVA/remises mixtes, données longues et plusieurs pages PDF | Montants identiques entre écran, données et PDF ; pas de pied de page coupé ; émission/verrouillage et preuve distincts d’un simple aperçu |
+| Configuration et données | Profil incomplet, membre limité, fournisseur non configuré, OAuth refusé/révoqué, import simulé/partiel/échoué | Secret jamais exposé ; état réel du fournisseur affiché ; changement réversible lorsque possible ; rapport d’erreur exploitable |
+
+Pour chaque famille : vérifier ordinateur, téléphone, zoom 200 %, clavier seul, focus visible, chargement, erreur et état vide. Les tableaux horizontalement défilants, les zones internes imbriquées et les menus ouverts doivent être inspectés séparément : les captures verticales ajoutées ne prouvent pas ces états. Contraste, intitulés accessibles et cibles tactiles sont contrôlés automatiquement, puis relus dans le rendu réel.
+
+La recette de volume doit être distincte des fixtures minimales : pagination côté serveur, recherche, tris et affichage avec un portefeuille représentatif ; mesure des temps de réponse et absence de chargement de toute la base dans le navigateur. Aucune promesse de rapidité en production ne découle du seul build local. Les accès fournisseurs, les imports historiques et les obligations documentaires restent des étapes de validation métier/externe, pas des cases UI.
 
 ## Exécution du premier lot
 
@@ -137,3 +154,42 @@ La recette ajoutée vérifie les états vides filtrés, la sauvegarde progressiv
 5. Documents : relire devis, facture, contrat, avenant et rapports multipages en PDF réel, avec données longues, remises/TVA multiples, signature et pied de page ; ne pas confondre aperçu écran et PDF.
 
 Les capacités fonctionnelles restant partielles sont suivies dans [la matrice de couverture](coverage-and-external-dependencies.md) et [le plan de complétude](next-completeness-execution-plan.md). Cette passe UI ne les marque pas comme terminées.
+
+## Reprise du 13 septembre — harmonisation et recette réelle
+
+Critère demandé : chaque écran doit être harmonieux, moderne et intuitif. Il se traduit ici par une tâche principale identifiable, des libellés métier compréhensibles, des synthèses compactes, une navigation accessible et une cohérence entre listes, fiches et formulaires. Pas d’indicateurs décoratifs ni de données inventées pour remplir les maquettes.
+
+### Évidence et limites
+
+La CI `33928214521` du commit `dbc4d1c` a été interrompue par sa limite de 25 minutes : elle n’est **pas validée**. Types, lint, build, 286 tests unitaires et intégration PostgreSQL avaient passé. Les audits automatiques ont parcouru 80 routes en bureau et 80 en mobile, sans anomalie P0–P3 détectée par leurs règles. Cela ne prouve ni l’exhaustivité fonctionnelle, ni la qualité visuelle de tous les états.
+
+Les premiers écrans de ces 160 captures ont été relus en planches comparatives. Les défilements, menus, formulaires ouverts et erreurs nécessitent des preuves distinctes. Les nouveaux parcours des 24 onglets Automatisations, Opérations, Communications, Paramètres et Catalogue ont terminé sur les deux formats, avec contrôle de la modale produit (champs requis et annulation). Résultat local ciblé : **4 tests réussis**, preuves dans `test-results/task-usability/`, exécution `tmp/ux-resume-tests-6/`.
+
+### Défauts corrigés pendant la recette
+
+- Onglets mobiles : le centrage d’une barre débordante rendait son premier onglet inaccessible. Alignement au début dans le composant partagé ; les sept onglets des opérations sont désormais actionnables.
+- Menu mobile : utilisation de la primitive de dialogue existante pour contenir le focus, fermer par Échap et restituer le focus au déclencheur ; contrôle au clavier et après navigation.
+- Favoris : un bouton invisible ne doit pas intercepter les clics ; affichage au survol, au focus et sur périphérique tactile.
+- Vues enregistrées : restitution du focus après fermeture du formulaire de nommage.
+- Fiches client/devis/facture : synthèse commune compacte ; activité client avant propriétés personnalisées ; statuts de facture lisibles en français ; numéro de facture non comprimé par ses badges.
+- Tests : ciblage du formulaire SAV réel, des panneaux d’onglets nommés et du contenu d’aperçu HTML ; suppression de l’attente réseau globale qui bloquait sur les modèles d’e-mail. Attente explicite de l’hydratation avant interaction, sans délai arbitraire.
+
+### Prochaines corrections, classées par impact sur la tâche
+
+| Priorité | Surfaces | Défaut constaté | Vérification attendue |
+|---|---|---|---|
+| Majeure | Contrats et studio documents | Contrôle heuristique trop dominant ; présentation pouvant être confondue avec une validation contractuelle | Document et prochaine action avant détail des contrôles ; distinction brouillon/signé ; PDF long relu |
+| Majeure | Diagnostics, macros, satisfaction, agences | Création/configuration permanente avant la bibliothèque ou la liste, particulièrement sur téléphone | Consulter un élément existant sans traverser le formulaire ; création explicite à la demande |
+| Majeure | Clients, factures, prestations, récurrences | Tableaux riches difficiles à parcourir au téléphone | Identité, état, montant et action accessibles ; colonnes secondaires dépliables ou défilement signalé |
+| Majeure | Séquences, modèles et workflows | Bibliothèque empilée avant détail sur mobile ; édition HTML encore technique | Sélection → détail → retour avec focus ; brouillon et publication distincts ; aperçu fidèle |
+| Majeure | Fiches équipement/intervention/client et inscriptions | Codes `ACTIVE`, `COVER`, `INSTALLATION`, `CONSENT_WITHDRAWN` encore visibles selon les champs | Traductions métier centralisées, sans masquer les états inconnus ; tests des motifs d’arrêt |
+| Finition | Organisation, scoring, propriétés, automatisations | Résumés encore trop hauts ou redondants | La première tâche arrive plus tôt, sans supprimer les chiffres ni rendre les montants illisibles |
+| Finition | Ensemble | Alignements et densité des formulaires ; états longs/vides rarement représentés dans les maquettes | Relecture par état en bureau/mobile, zoom 200 %, clavier, erreurs et permissions réduites |
+
+Ne pas marquer ces lignes comme terminées sur la base d’un seul changement global de CSS. Chaque correction doit garder les données métier, être testée, puis relue dans le navigateur. Les validations externes et la bascule depuis HubSpot/Extrabat restent celles de la matrice de couverture.
+
+### Recette du lot navigation, fiches et modèles
+
+Le 13 septembre, la recette `task-usability.spec.ts` a terminé : **20 tests réussis, 2 exclusions par format** (favoris bureau / menu mobile). Elle comprend les 24 onglets, le défilement réel, les synthèses des fiches et un doublon de modèle d’e-mail reproduit puis corrigé sans perdre la saisie. Sortie : `tmp/ux-final-20260913/`. Les captures finales des synthèses ont été relues en bureau et mobile.
+
+Le doublon provoquait auparavant une erreur serveur non exploitable. Création et renommage renvoient désormais une erreur métier ; les pannes techniques restent distinctes. Six tests unitaires ciblent succès, conflits, propriété du modèle et refus d’accès. `npm run verify` a réussi : types, lint, **292 tests unitaires / 71 fichiers** et build optimisé. Le résultat de la prochaine CI doit être consigné séparément ; cette recette locale ne valide pas encore les parcours critiques complets en production.
