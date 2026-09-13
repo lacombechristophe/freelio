@@ -381,7 +381,11 @@ export async function installPoolAutomationPresets() {
 export async function createEmailTemplate(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = templateSchema.parse(input)
-    const template = await prisma.emailTemplate.create({ data: { companyId, ...data } })
+    const template = await prisma.emailTemplate.create({ data: { companyId, ...data } }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return null
+      throw error
+    })
+    if (!template) return { success: false as const, error: "Un modèle porte déjà ce nom dans votre entreprise, y compris parmi les modèles archivés. Choisissez un autre nom." }
     await logAction({ userId, action: "CREATE_EMAIL_TEMPLATE", resource: "EMAIL_TEMPLATE", resourceId: template.id, payload: { name: template.name } })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }
@@ -392,8 +396,12 @@ export async function updateEmailTemplate(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = templateUpdateSchema.parse(input)
     const template = await prisma.emailTemplate.findFirst({ where: { id: data.id, companyId, status: "ACTIVE" }, select: { id: true } })
-    if (!template) throw new Error("Modèle introuvable")
-    await prisma.emailTemplate.update({ where: { id: template.id }, data: { name: data.name, category: data.category, subject: data.subject, bodyHtml: data.bodyHtml } })
+    if (!template) return { success: false as const, error: "Ce modèle n’est plus disponible. Actualisez la bibliothèque avant de réessayer." }
+    const updated = await prisma.emailTemplate.update({ where: { id: template.id }, data: { name: data.name, category: data.category, subject: data.subject, bodyHtml: data.bodyHtml } }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return null
+      throw error
+    })
+    if (!updated) return { success: false as const, error: "Un modèle porte déjà ce nom dans votre entreprise, y compris parmi les modèles archivés. Choisissez un autre nom." }
     await logAction({ userId, action: "UPDATE_EMAIL_TEMPLATE", resource: "EMAIL_TEMPLATE", resourceId: template.id, payload: { name: data.name } })
     revalidatePath("/dashboard/automatisations")
     return { success: true as const }

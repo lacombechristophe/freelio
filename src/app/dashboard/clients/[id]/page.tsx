@@ -12,6 +12,8 @@ import {
 import { ClientWorkspace } from "./client-workspace"
 import { ClientPortalPanel } from "./client-portal-panel"
 import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel"
+import { RecordSummary } from "@/components/shared/record-summary"
+import { INVOICE_STATUS_LABELS } from "@/lib/invoice-labels"
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -38,9 +40,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="break-words text-2xl font-bold tracking-tight">{client.name}</h1>
             <Badge variant="secondary" className="text-xs uppercase">
               <Building2 className="h-3 w-3 mr-1" />
               {client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}
@@ -54,35 +56,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">CA Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatEuro(client.totalRevenueCents)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Impayé</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-danger">{formatEuro(client.totalUnpaidCents)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Score relation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{client.relationScore}%</p>
-            <Link href="/dashboard/service/customer-success" className="mt-2 inline-flex min-h-6 items-center text-xs font-medium text-primary hover:underline">Voir dans le portefeuille</Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      {crmProperties ? <RecordPropertiesPanel objectType="CLIENT" recordId={client.id} data={crmProperties} /> : null}
+      <RecordSummary label="Synthèse du client" items={[
+        { label: "CA total", value: formatEuro(client.totalRevenueCents) },
+        { label: "Impayé", value: <span className={client.totalUnpaidCents > 0 ? "text-danger" : undefined}>{formatEuro(client.totalUnpaidCents)}</span> },
+        { label: "Score relation", value: `${client.relationScore} %`, detail: <Link href="/dashboard/service/customer-success" className="inline-flex min-h-6 items-center font-medium text-primary hover:underline">Voir dans le portefeuille</Link> },
+      ]} />
 
       <ClientWorkspace
         clientId={client.id}
@@ -111,6 +89,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           createdAt: file.createdAt.toISOString(),
         }))}
       />
+
+      {crmProperties ? <RecordPropertiesPanel objectType="CLIENT" recordId={client.id} data={crmProperties} /> : null}
 
       <ClientPortalPanel
         clientId={client.id}
@@ -237,7 +217,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{inv.status}</Badge>
+                      <Badge variant="secondary">{INVOICE_STATUS_LABELS[inv.status] ?? inv.status}</Badge>
                     </TableCell>
                     <TableCell>{formatEuro(inv.totalTtcCents)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{formatDate(inv.dueDate)}</TableCell>

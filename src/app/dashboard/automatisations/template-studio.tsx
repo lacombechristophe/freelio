@@ -49,6 +49,7 @@ function TemplateEditor({ template, pending, run, onArchive, onDone }: { templat
   const [subject, setSubject] = useState(template?.subject ?? "")
   const [bodyHtml, setBodyHtml] = useState(template?.bodyHtml ?? "<p>Bonjour {{contact.firstName}},</p><p>Nous revenons vers vous au sujet de votre projet.</p><p>Bien cordialement,</p>")
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop")
+  const [saveError, setSaveError] = useState<string | null>(null)
   const previewText = plainTextFromHtml(bodyHtml)
   const usedVariables = variables.filter((variable) => subject.includes(variable) || bodyHtml.includes(variable))
   const checks = [
@@ -62,11 +63,26 @@ function TemplateEditor({ template, pending, run, onArchive, onDone }: { templat
     setBodyHtml((current) => `${current}${current.endsWith(" ") ? "" : " "}${variable}`)
   }
 
+  function saveTemplate() {
+    setSaveError(null)
+    run(async () => {
+      const result = template
+        ? await updateEmailTemplate({ id: template.id, name, category, subject, bodyHtml })
+        : await createEmailTemplate({ name, category, subject, bodyHtml })
+      if (!result?.success) {
+        const message = result?.error ?? "Votre espace n’est plus disponible. Rechargez la page avant de réessayer."
+        setSaveError(message)
+        throw new Error(message)
+      }
+    }, template ? "Modèle mis à jour." : "Modèle créé.", { after: onDone })
+  }
+
   return <section className="min-w-0">
     <header className="flex flex-col gap-3 border-b px-4 py-4 sm:px-5 lg:flex-row lg:items-start lg:justify-between"><div><div className="flex items-center gap-2"><h2 className="text-lg font-semibold">{template ? "Modifier le modèle" : "Nouveau modèle"}</h2>{template && <Badge variant="outline">Actif</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">Éditez, contrôlez la personnalisation et vérifiez le rendu sur deux largeurs.</p></div>{onArchive && <Button variant="ghost" size="sm" onClick={onArchive} disabled={pending}><Archive />Archiver</Button>}</header>
     <div className="grid xl:grid-cols-[minmax(360px,0.85fr)_minmax(420px,1.15fr)]">
       <div className="space-y-5 border-b p-4 sm:p-5 xl:border-b-0 xl:border-r">
-        <form id="template-editor-form" className="space-y-4" onSubmit={(event) => { event.preventDefault(); run(() => template ? updateEmailTemplate({ id: template.id, name, category, subject, bodyHtml }) : createEmailTemplate({ name, category, subject, bodyHtml }), template ? "Modèle mis à jour." : "Modèle créé.", { after: onDone }) }}>
+        <form id="template-editor-form" className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!pending) saveTemplate() }}>
+          {saveError && <p role="alert" className="rounded-lg border border-danger/25 bg-danger/5 px-3 py-2 text-sm text-danger">{saveError}</p>}
           <div className="grid gap-4 sm:grid-cols-2"><Field label="Nom interne"><Input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={120} placeholder="Relance devis à J+3" /></Field><Field label="Catégorie"><select value={category} onChange={(event) => setCategory(event.target.value)} className={controlClass}>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field></div>
           <Field label="Objet"><Input value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={2} maxLength={180} placeholder="Votre projet {{lead.projectType}}" /></Field>
           <div><div className="mb-1.5 flex items-center gap-2"><span className="text-xs font-semibold">Contenu HTML</span><HelpTip label="HTML autorisé">Le contenu est nettoyé côté serveur avant l’envoi. Utilisez des balises simples : paragraphes, titres, listes, emphase et liens HTTPS.</HelpTip></div><textarea aria-label="Contenu HTML" value={bodyHtml} onChange={(event) => setBodyHtml(event.target.value)} required minLength={10} maxLength={50000} className={`${textAreaClass} min-h-72 font-mono text-xs leading-5`} /></div>

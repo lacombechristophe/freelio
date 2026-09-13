@@ -17,10 +17,16 @@ type ViewConfig = View["config"]
 export function SavedViewBar({ resource, views, config, onApply }: { resource: string; views: View[]; config: ViewConfig; onApply: (config: ViewConfig) => void }) {
   const [name, setName] = React.useState("")
   const [naming, setNaming] = React.useState(false)
+  const saveTriggerRef = React.useRef<HTMLButtonElement>(null)
   const [pending, startTransition] = React.useTransition()
   const router = useRouter()
   const [selectedId, setSelectedId] = React.useState(views.find((view) => view.isDefault)?.id || "")
   const selected = views.find((view) => view.id === selectedId)
+
+  function closeNaming() {
+    setNaming(false)
+    requestAnimationFrame(() => saveTriggerRef.current?.focus())
+  }
 
   function run(task: () => Promise<unknown>, success: string, onSuccess?: () => void) {
     startTransition(async () => {
@@ -49,18 +55,18 @@ export function SavedViewBar({ resource, views, config, onApply }: { resource: s
         {views.map((view) => <option key={view.id} value={view.id}>{view.name}{view.isDefault ? " · par défaut" : ""}</option>)}
       </select>
       {selected?.visibility === "TEAM" && <Badge variant="secondary">Équipe</Badge>}
-      <Button type="button" variant="ghost" size="sm" aria-expanded={naming} aria-controls={`save-view-form-${resource}`} onClick={() => setNaming(!naming)}><Plus />Enregistrer cette vue</Button>
+      <Button ref={saveTriggerRef} type="button" variant="ghost" size="sm" disabled={pending} aria-expanded={naming} aria-controls={`save-view-form-${resource}`} onClick={() => setNaming(!naming)}><Plus />Enregistrer cette vue</Button>
       {selected && <Button type="button" variant="ghost" size="icon" disabled={pending} onClick={() => run(() => deleteSavedView(selected.id), "Vue supprimée.", () => setSelectedId(""))} aria-label="Supprimer la vue"><Trash2 className="text-danger" /></Button>}
     </div>
     {naming && <form id={`save-view-form-${resource}`} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3" onSubmit={(event) => {
       event.preventDefault()
       if (pending || name.trim().length < 2) return
-      run(() => saveSavedView({ resource, name: name.trim(), visibility: "PERSONAL", isDefault: false, config }), "Vue enregistrée.", () => { setName(""); setNaming(false) })
+      run(() => saveSavedView({ resource, name: name.trim(), visibility: "PERSONAL", isDefault: false, config }), "Vue enregistrée.", () => { setName(""); closeNaming() })
     }}>
       <Label htmlFor={`new-view-${resource}`}>Enregistrer la vue actuelle</Label>
       <Input id={`new-view-${resource}`} autoFocus value={name} onChange={(event) => setName(event.target.value)} className="h-9 min-w-40 flex-1" placeholder="Ex. Clients à relancer" required minLength={2} maxLength={80} disabled={pending} />
       <Button type="submit" variant="outline" size="sm" disabled={pending || name.trim().length < 2} aria-label="Enregistrer la vue">{pending ? "Enregistrement…" : "Enregistrer"}</Button>
-      <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => setNaming(false)}>Annuler</Button>
+      <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={closeNaming}>Annuler</Button>
     </form>}
   </div>
 }

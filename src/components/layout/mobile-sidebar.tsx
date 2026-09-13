@@ -6,6 +6,7 @@ import { ChevronDown, Menu, X } from "lucide-react"
 import { usePathname, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { dashboardHome, dashboardNavGroups, dashboardUtilityItems, navigationItemIsActive } from "./dashboard-navigation"
 import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
@@ -25,42 +26,27 @@ export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
   React.useEffect(() => {
     if (!open) return
 
-    const previousOverflow = document.body.style.overflow
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false)
-    }
-
-    document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener("keydown", handleKeyDown)
-    }
+    const desktop = window.matchMedia("(min-width: 1024px)")
+    const closeOnDesktop = () => { if (desktop.matches) setOpen(false) }
+    closeOnDesktop()
+    desktop.addEventListener("change", closeOnDesktop)
+    return () => desktop.removeEventListener("change", closeOnDesktop)
   }, [open])
 
   return (
     <div className="lg:hidden">
-      <Button
+      <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button
         type="button"
         variant="ghost"
         size="icon"
         aria-label="Ouvrir la navigation"
-        aria-expanded={open}
-        aria-controls="mobile-dashboard-navigation"
-        onClick={() => setOpen(true)}
-      >
+      />}>
         <Menu aria-hidden="true" className="h-5 w-5" />
-      </Button>
+      </DialogTrigger>
 
-      {open ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label="Fermer la navigation"
-            className="absolute inset-0 bg-foreground/30 backdrop-blur-[2px]"
-            onClick={() => setOpen(false)}
-          />
+      <DialogContent showCloseButton={false} className="top-0 left-0 h-dvh max-h-dvh w-[304px] max-w-[88vw] translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none border-r border-sidebar-border bg-sidebar p-0 text-sidebar-foreground sm:max-w-[304px] sm:p-0">
+          <DialogTitle className="sr-only">Menu principal</DialogTitle>
           <nav
             id="mobile-dashboard-navigation"
             aria-label="Navigation principale"
@@ -68,19 +54,18 @@ export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
           >
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
               <AppBrand brand={brand} inverted />
-              <Button
+              <DialogClose render={<Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 aria-label="Fermer la navigation"
-                onClick={() => setOpen(false)}
-              >
+              />}>
                 <X aria-hidden="true" className="h-5 w-5 text-white" />
-              </Button>
+              </DialogClose>
             </div>
 
             <div className="h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto px-3 py-4">
-              <Link href={dashboardHome.href} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-3 rounded-[9px] px-3 text-sm font-semibold", pathname === dashboardHome.href ? "bg-sidebar-accent text-white" : "text-sidebar-foreground hover:bg-white/8 hover:text-white")}><dashboardHome.icon className="size-5" />{dashboardHome.name}</Link>
+              <Link href={dashboardHome.href} aria-current={pathname === dashboardHome.href ? "page" : undefined} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-3 rounded-[9px] px-3 text-sm font-semibold", pathname === dashboardHome.href ? "bg-sidebar-accent text-white" : "text-sidebar-foreground hover:bg-white/8 hover:text-white")}><dashboardHome.icon className="size-5" />{dashboardHome.name}</Link>
               <div className="pt-2">{dashboardNavGroups.map((group) => {
                 const active = group.items.some((item) => navigationItemIsActive(pathname, item, currentQuery))
                 const groupOpen = openGroups.has(group.name)
@@ -89,8 +74,8 @@ export function MobileSidebar({ brand }: { brand: WorkspaceBrand }) {
               <div className="border-t border-sidebar-border pt-3">{dashboardUtilityItems.map((item) => <Link key={`${item.href}-${item.name}`} href={item.href} onClick={() => setOpen(false)} className={cn("flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm", navigationItemIsActive(pathname, item, currentQuery) ? "bg-sidebar-accent font-medium text-white" : "text-sidebar-foreground/85 hover:bg-white/7 hover:text-white")}><item.icon className="size-4" />{item.name}</Link>)}</div>
             </div>
           </nav>
-        </div>
-      ) : null}
+      </DialogContent>
+      </Dialog>
     </div>
   )
 }

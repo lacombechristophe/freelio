@@ -133,7 +133,7 @@ test("new local-first surfaces load and their primary controls respond", async (
   await assertHealthy(page, "/dashboard/marketing/overview", "Acquisition et engagement")
   await assertHealthy(page, "/dashboard/service", "SAV et fidélisation")
   await assertHealthy(page, "/dashboard/service/help-desk", "Centre de support")
-  await expect(page.getByText("Filtres de la file")).toBeVisible()
+  await expect(page.locator("summary").filter({ hasText: "Ajuster les filtres" })).toBeVisible()
   await assertHealthy(page, "/dashboard/service/analytics", "Analyses Service")
   await page.locator('select[name="days"]').selectOption("30")
   await page.getByRole("button", { name: "Appliquer" }).click()
