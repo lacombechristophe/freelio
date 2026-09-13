@@ -229,6 +229,62 @@ test("les fiches client et documents gardent une synthèse compacte et lisible",
   }
 })
 
+test("les contrôles documentaires restent indicatifs et la mise en page est progressive", async ({ page }, testInfo) => {
+  const directory = path.join(process.cwd(), "test-results", "task-usability", testInfo.project.name)
+  await mkdir(directory, { recursive: true })
+  for (const route of ["devis", "factures", "contrats"] as const) {
+    await openWorkspace(page, `/dashboard/${route}`)
+    const record = page.locator(`#dashboard-main a[href^="/dashboard/${route}/"]:not([href$="/new"]):not([href$="/edit"]):not([href$="/recurrentes"]):not([href$="/temps-non-facture"]):not([href$="/sign"])`).first()
+    await record.click()
+    const checks = page.locator("details").filter({ has: page.getByText("Vérifications du document", { exact: true }) })
+    await expect(checks.locator("summary")).toContainText("sans validation juridique ni fiscale")
+    await expect(checks).not.toContainText(/Prêt à envoyer|Prêt pour signature|\/100/)
+    if ((await checks.locator("summary").innerText()).includes("0 erreur(s)") || (await checks.locator("summary").innerText()).includes("Aucune anomalie")) {
+      await expect(checks).not.toHaveAttribute("open")
+    } else {
+      await expect(checks).toHaveAttribute("open", "")
+    }
+    if (route !== "contrats") {
+      const studio = page.locator("#document-studio")
+      const settings = studio.locator("details").filter({ has: page.locator("summary", { hasText: "Mise en page" }) })
+      await expect(settings).not.toHaveAttribute("open")
+      const frame = studio.locator("iframe")
+      await expect(frame.contentFrame().locator("body")).toBeVisible()
+      await expectHorizontallyContained(frame, page.viewportSize()!.width)
+      await settings.locator("summary").click()
+      await settings.getByRole("button", { name: /^Compact/ }).click()
+      await expect(settings.getByRole("button", { name: /^Compact/ })).toHaveAttribute("aria-pressed", "true")
+      await settings.getByRole("switch", { name: "Afficher la référence répétée" }).click()
+      const download = studio.getByRole("link", { name: /^Télécharger/ })
+      await expect(download).toHaveAttribute("href", /density=COMPACT/)
+      await expect(download).toHaveAttribute("href", /reference=0/)
+      await settings.locator("summary").click()
+      await expect(settings).not.toHaveAttribute("open")
+      await expect(frame.contentFrame().locator("body")).toContainText(await page.getByRole("heading", { level: 1 }).innerText())
+      await frame.contentFrame().locator("body").evaluate(async () => { await document.fonts.ready })
+      const paper = frame.contentFrame().locator(".page")
+      await expect.poll(() => paper.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(790)
+      await expect.poll(() => paper.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThan(796)
+      const previewOverflow = await paper.evaluate((element) => {
+        const bounds = element.getBoundingClientRect()
+        return Array.from(element.querySelectorAll("th, td, h1")).filter((cell) => {
+          const rect = cell.getBoundingClientRect()
+          return rect.right > bounds.right + 1 || rect.left < bounds.left - 1
+        }).length
+      })
+      expect(previewOverflow).toBe(0)
+      if (route === "devis") {
+        const fulfillment = page.getByText("Suite du dossier", { exact: true })
+        expect(await studio.evaluate((element, other) => Boolean(element.compareDocumentPosition(other!) & Node.DOCUMENT_POSITION_FOLLOWING), await fulfillment.elementHandle())).toBe(true)
+      }
+    } else {
+      await expect(page.getByRole("document", { name: /^Contenu du contrat/ })).toBeVisible()
+    }
+    const capture = await captureScrollablePage(page, directory, `${route}-document-checks`)
+    expect(capture.complete).toBe(true)
+  }
+})
+
 test("un doublon de modèle est expliqué sans perdre le contenu saisi", async ({ page }, testInfo) => {
   await openWorkspace(page, "/dashboard/automatisations")
   await page.getByRole("tab", { name: /^Modèles/ }).click()

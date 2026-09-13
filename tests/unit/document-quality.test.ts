@@ -43,6 +43,21 @@ describe("document quality", () => {
 
     expect(report.status).toBe("READY")
     expect(report.score).toBeGreaterThanOrEqual(86)
+    expect(report.label).toBe("Aucune anomalie détectée")
+    expect(report.summary).toContain("ne constituent pas une validation")
+  })
+
+  it("requires review for even one warning despite a high score", () => {
+    const report = assessBillingDocumentQuality({ ...baseInvoice, company: { ...baseInvoice.company, siret: null } })
+    expect(report.score).toBeGreaterThanOrEqual(86)
+    expect(report.status).toBe("TO_REVIEW")
+    expect(report.label).toBe("À relire")
+  })
+
+  it("keeps advisory information distinct from blocking errors", () => {
+    const report = assessBillingDocumentQuality({ ...baseInvoice, company: { ...baseInvoice.company, iban: null } })
+    expect(report.status).toBe("READY")
+    expect(report.issues).toEqual([expect.objectContaining({ id: "missing-iban", severity: "info" })])
   })
 
   it("blocks incoherent billing totals", () => {
@@ -50,6 +65,12 @@ describe("document quality", () => {
 
     expect(report.status).toBe("BLOCKED")
     expect(report.issues.some((issue) => issue.id === "invalid-totals")).toBe(true)
+  })
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])("reports an invalid quantity (%s) instead of aborting assessment", (quantity) => {
+    const report = assessBillingDocumentQuality({ ...baseInvoice, lines: [{ ...baseInvoice.lines[0], quantity }] })
+    expect(report.status).toBe("BLOCKED")
+    expect(report.issues).toContainEqual(expect.objectContaining({ id: "invalid-quantity", severity: "error" }))
   })
 
   it("detects missing contract clauses", () => {
@@ -79,4 +100,3 @@ describe("document quality", () => {
     expect(html).not.toContain("<script>")
   })
 })
-

@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { AlertTriangle, ArrowLeft, CheckCircle2, FileDown, GitBranch, Info, Pencil, Plus, RefreshCw, ShieldCheck } from "lucide-react"
+import { ArrowLeft, FileDown, GitBranch, Pencil, Plus, RefreshCw } from "lucide-react"
 import { compileContractContent, getContractById } from "@/actions/contrats"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { sanitizeContractHtml } from "@/lib/contracts/html"
 import { assessContractQuality } from "@/lib/document-quality"
-import { cn } from "@/lib/utils"
+import { DocumentChecks } from "@/components/shared/document-checks"
 import { ContractStatusActions } from "../contract-status-actions"
 
 function formatDate(d: Date | string) {
@@ -67,12 +67,6 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
       address: contract.company.address,
     },
   })
-  const visibleIssues = quality.issues.slice(0, 6)
-  const issueIcon = {
-    error: AlertTriangle,
-    warning: AlertTriangle,
-    info: Info,
-  } as const
 
   return (
     <div className="space-y-6">
@@ -113,61 +107,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            Qualité contractuelle
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <div className="rounded-lg border border-border bg-muted/20 p-4">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold tabular-nums">{quality.score}</span>
-              <span className="text-xs font-semibold text-muted-foreground">/100</span>
-            </div>
-            <div
-              className={cn(
-                "mt-3 inline-flex rounded-full border px-2 py-1 text-xs font-semibold",
-                quality.status === "READY" && "border-success/30 bg-success/10 text-success",
-                quality.status === "TO_REVIEW" && "border-warning/30 bg-warning/10 text-warning",
-                quality.status === "BLOCKED" && "border-danger/30 bg-danger/10 text-danger",
-              )}
-            >
-              {quality.label}
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{quality.summary}</p>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {visibleIssues.length > 0 ? (
-              visibleIssues.map((issue) => {
-                const Icon = issueIcon[issue.severity]
-                return (
-                  <div key={issue.id} className="flex gap-2 rounded-lg border border-border bg-background p-3">
-                    <Icon
-                      className={cn(
-                        "mt-0.5 h-4 w-4 shrink-0",
-                        issue.severity === "error" && "text-danger",
-                        issue.severity === "warning" && "text-warning",
-                        issue.severity === "info" && "text-muted-foreground",
-                      )}
-                    />
-                    <div>
-                      <p className="text-sm font-semibold">{issue.title}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{issue.detail}</p>
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 p-3 text-sm text-success md:col-span-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Aucun point bloquant détecté.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <DocumentChecks report={quality} />
 
       <div className="grid gap-4 text-sm md:grid-cols-2">
         {contract.validFrom && (
