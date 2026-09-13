@@ -1,4 +1,5 @@
 import { pdfFontFaceCss } from "@/lib/pdf/typography"
+import { documentPrintCss } from "@/lib/pdf/print-layout"
 
 export const PDF_TEMPLATES = ["MINIMAL", "PROFESSIONAL", "MODERN"] as const
 export const PDF_DENSITIES = ["COMPACT", "BALANCED", "SPACIOUS"] as const
@@ -441,7 +442,7 @@ function legalFooter(doc: PdfDocument, settings: RenderSettings) {
   `
 }
 
-function baseCss(settings: RenderSettings) {
+function baseCss(doc: PdfDocument, settings: RenderSettings) {
   const primary = settings.primary
   const density = densityConfig[settings.density]
 
@@ -577,17 +578,7 @@ function baseCss(settings: RenderSettings) {
     .minimal-closing > .totals-panel:only-child,
     .professional-settlement > .totals-panel:only-child,
     .modern-closing > .totals-panel:only-child { grid-column: 2; }
-    @media print {
-      body { background: #ffffff; }
-      .page { box-shadow: none; }
-      footer {
-        bottom: 5.5mm;
-        left: var(--page-inline);
-        margin: 0;
-        position: fixed;
-        right: var(--page-inline);
-      }
-    }
+    ${documentPrintCss(settings.showReference ? `${documentLabel(doc)} ${doc.number}` : "", density.pageTop, density.pageBottom)}
   `
 }
 
@@ -598,7 +589,7 @@ function renderMinimal(doc: PdfDocument, settings: RenderSettings) {
 
   return `
     <style>
-      ${baseCss(settings)}
+      ${baseCss(doc, settings)}
       .minimal-page { border-top: 1.6mm solid ${primary}; color: #1f242c; }
       .minimal-header {
         align-items: start;
@@ -704,7 +695,7 @@ function renderProfessional(doc: PdfDocument, settings: RenderSettings) {
 
   return `
     <style>
-      ${baseCss(settings)}
+      ${baseCss(doc, settings)}
       .professional-page { color: #202733; }
       .professional-rule { background: ${primary}; height: 2.5px; width: 20mm; }
       .professional-masthead {
@@ -800,8 +791,9 @@ function renderModern(doc: PdfDocument, settings: RenderSettings) {
 
   return `
     <style>
-      ${baseCss(settings)}
+      ${baseCss(doc, settings)}
       .modern-page { --page-inline: ${gutter}; padding: 0 0 ${density.pageBottom}; }
+      .modern-page > footer { margin-left: var(--page-inline); margin-right: var(--page-inline); }
       .modern-hero { background: ${rgba(primary, 0.06)}; border-top: 3mm solid ${primary}; padding: 6mm ${gutter} 5.5mm; }
       .modern-topline { align-items: start; display: flex; gap: 10mm; justify-content: space-between; }
       .modern-topline .brand-name { font-size: 12.5pt; }
