@@ -120,8 +120,14 @@ export async function getServiceContentDashboard() {
       })),
       surveys: surveys.map((item) => ({ ...item, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString() })),
       requests: requests.map((item) => ({
-        ...item,
-        client: item.survey.anonymous ? { id: item.client.id, name: "Réponse anonyme" } : item.client,
+        id: item.id,
+        survey: item.survey,
+        status: item.status,
+        score: item.score,
+        comment: item.comment,
+        // Only expose fields used by the results view, never internal linkage,
+        // token hashes or metadata that could identify an anonymous respondent.
+        client: item.survey.anonymous ? { id: null, name: "Réponse anonyme" } : item.client,
         contact: item.survey.anonymous ? null : item.contact,
         serviceTicket: item.survey.anonymous ? null : item.serviceTicket,
         expiresAt: item.expiresAt.toISOString(),
