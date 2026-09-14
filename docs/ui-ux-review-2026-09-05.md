@@ -233,3 +233,16 @@ Les pages Agences et Satisfaction, la navigation maître-détail mobile et les t
 Reprise du 14 septembre : types, lint et **305 tests unitaires / 72 fichiers** réussis sur base locale isolée. Les deux nouveaux parcours SAV/aides ont passé sur bureau et mobile lors de la recette élargie ; celle-ci n’est toutefois pas entièrement verte (échecs documentaires, dont une compilation à froid de fiche facture de 22 secondes et une attente d’hydratation). La cause de chaque échec ne doit pas être attribuée automatiquement à l’infrastructure. Nouvelle validation du build et des parcours documentaires requise avant déploiement ; aucun nouveau déploiement annoncé.
 
 La nouvelle exécution isolée de `npm run verify` a terminé avec un code de sortie 0 : types, lint, 305 tests et build optimisé, 73 pages statiques générées. La validation des parcours complets en CI reste requise pour ce candidat ; le succès du build seul ne clôt pas les échecs navigateur précédents.
+
+### Satisfaction — 14 septembre
+
+La CI `34793020813` de `9c03179` a terminé avec succès : 305 tests unitaires, 54 tests navigateur réussis et 18 exclusions ; le job PostgreSQL a également passé. Ce résultat concerne le lot précédent, pas les modifications ci-dessous.
+
+- Historique des réponses avant la bibliothèque des enquêtes ; les formulaires sont accessibles à la demande et conservent les saisies lorsqu’ils sont repliés.
+- Suppression de la moyenne mélangeant CSAT, NPS et CES : nombre d’enquêtes actives à la place, et indication explicite de la fenêtre de 200 invitations maximum.
+- Génération désactivée sans enquête active ; réinitialisation des contacts et tickets lors du changement de client ; attente couvrant la promesse serveur entière.
+- Types et lint ciblé réussis, quatre tests unitaires des métriques réussis, deux parcours Satisfaction bureau/mobile réussis. Captures relues dans `test-results/task-usability/{desktop,mobile}/satisfaction-results*.jpg` ; le test contrôle également la conservation du brouillon et le défilement complet.
+
+La première exécution a révélé des retours de promesses incompatibles avec les transitions React, corrigés avant validation. Le sélecteur du test utilise maintenant le rôle accessible `combobox`, au lieu du texte intégral du label contenant les options. Les deux parcours documentaires locaux supplémentaires ont échoué à atteindre certaines fiches (restés sur les listes lors de l’assertion) ; ces échecs sont conservés, malgré le succès des mêmes parcours dans la CI précédente. Nouvelle CI requise avant déploiement.
+
+Restent notamment Agences, les parcours maître-détail mobile, les libellés métier et la recette des états longs/vides. La revue du service Satisfaction révèle aussi un point de confidentialité à traiter : masquer uniquement le nom dans les réponses dites anonymes ne retire pas leurs identifiants de rattachement du payload serveur. Ce lot d’interface ne valide donc pas l’anonymisation ni la complétude fonctionnelle du module.
