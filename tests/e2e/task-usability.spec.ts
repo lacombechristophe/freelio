@@ -44,6 +44,58 @@ test("l’enregistrement d’une vue ne gêne pas la consultation", async ({ pag
   await expect(save).toBeFocused()
 })
 
+test("les bibliothèques SAV restent prioritaires et conservent le brouillon replié", async ({ page }, testInfo) => {
+  for (const [route, title] of [["macros", "Créer une macro"], ["diagnostics", "Créer un guide"]]) {
+    await openWorkspace(page, `/dashboard/service/${route}`)
+    const trigger = page.locator("summary").filter({ hasText: title })
+    const creation = page.locator("details").filter({ has: trigger })
+    const library = page.getByRole("heading", { name: "Bibliothèque active", exact: true })
+    await expect(library).toBeInViewport()
+    await expect(creation).not.toHaveAttribute("open")
+    const name = creation.getByLabel("Nom interne", { exact: true })
+    await expect(name).not.toBeVisible()
+    await expectHorizontallyContained(trigger, page.viewportSize()!.width)
+    await trigger.focus()
+    await page.keyboard.press("Enter")
+    await expect(creation).toHaveAttribute("open")
+    await name.fill("Brouillon de recette à conserver")
+    await expect(page.getByRole("tooltip")).toHaveCount(0)
+    await expectHorizontallyContained(name, page.viewportSize()!.width)
+    await trigger.focus()
+    await page.keyboard.press("Enter")
+    await expect(name).not.toBeVisible()
+    await expect(trigger).toBeFocused()
+    await page.keyboard.press("Enter")
+    await expect(name).toHaveValue("Brouillon de recette à conserver")
+    const directory = path.join(process.cwd(), "test-results", "task-usability", testInfo.project.name)
+    await captureScrollablePage(page, directory, `${route}-creation`)
+    await trigger.click()
+    await captureScrollablePage(page, directory, `${route}-library`)
+  }
+})
+
+test("les aides restent lisibles hors des cartes et se ferment avec Échap", async ({ page }, testInfo) => {
+  await openWorkspace(page, "/dashboard/service/macros")
+  await page.locator("summary").filter({ hasText: "Créer une macro" }).click()
+  const help = page.getByRole("button", { name: "Variables disponibles", exact: true })
+  if (testInfo.project.name === "mobile") await help.tap()
+  else {
+    await page.keyboard.press("Tab")
+    await expect(help).toBeFocused()
+  }
+  const tooltip = page.getByRole("tooltip")
+  await expect(tooltip).toBeVisible()
+  await expect(tooltip).toContainText("ticket.number")
+  await expectHorizontallyContained(tooltip, page.viewportSize()!.width)
+  const bounds = await tooltip.boundingBox()
+  expect(bounds!.y).toBeGreaterThanOrEqual(0)
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1)
+  await expect(help).toHaveAttribute("aria-describedby", await tooltip.getAttribute("id") as string)
+  expect(await tooltip.evaluate((element) => element.closest("details"))).toBeNull()
+  await page.keyboard.press("Escape")
+  await expect(tooltip).not.toBeVisible()
+})
+
 test("un favori invisible n’intercepte pas un clic sur la navigation", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Les favoris appartiennent à la navigation bureau")
   await openWorkspace(page, "/dashboard/clients")

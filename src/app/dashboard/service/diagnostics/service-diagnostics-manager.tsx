@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useTransition } from "react"
-import { ClipboardCheck, Plus, Save, ShieldCheck, Trash2 } from "lucide-react"
+import { ChevronDown, ClipboardCheck, Plus, Save, ShieldCheck, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -96,23 +96,37 @@ export function ServiceDiagnosticsManager({ guides }: { guides: Guide[] }) {
   const router = useRouter()
   const confirm = useConfirm()
   const [pending, startTransition] = useTransition()
-  const run = (operation: () => Promise<unknown>, success: string, reset?: HTMLFormElement) => startTransition(() => void operation()
-    .then(() => { reset?.reset(); toast.success(success); router.refresh() })
-    .catch((error) => toast.error(error instanceof Error ? error.message : "Action impossible.")))
+  const run = (operation: () => Promise<unknown>, success: string, reset?: HTMLFormElement) => startTransition(async () => {
+    try {
+      await operation()
+      reset?.reset()
+      toast.success(success)
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Action impossible.")
+    }
+  })
 
-  return <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
-    <Card>
+  return <div className="space-y-5">
+    <details className="group overflow-hidden rounded-xl border bg-card">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-5 py-3 hover:bg-muted/30 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2">
+        <Plus className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        <span className="flex-1 text-sm font-semibold">Créer un guide</span>
+        <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+      </summary>
+    <Card className="rounded-none border-0 border-t shadow-none">
       <CardHeader>
         <CardTitle className="text-base">Nouveau guide</CardTitle>
         <CardDescription>Les critères vides restent génériques. Les guides les plus précis sont suggérés en premier sur le ticket.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="max-w-4xl">
         <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); run(() => createServiceDiagnosticGuide(payload(event.currentTarget)), "Guide de diagnostic créé.", event.currentTarget) }}>
           <Fields />
           <Button type="submit" disabled={pending}><Plus />Créer le guide</Button>
         </form>
       </CardContent>
     </Card>
+    </details>
 
     <section className="overflow-hidden rounded-xl border bg-card">
       <div className="border-b px-5 py-4">
