@@ -484,6 +484,7 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await expect(page.getByText("Routage SAV mis à jour.")).toBeVisible()
 
     await assertHealthy(page, "/dashboard/service/macros", "Macros de réponse")
+    await page.locator("summary").filter({ hasText: "Créer une macro" }).click()
     await page.getByLabel("Nom interne").fill("Prise en charge QA")
     await page.getByLabel("Objet").fill("{{ticket.number}} · prise en charge")
     await page.getByLabel("Message").fill("Bonjour {{contact.firstName}},\n\nLa demande {{ticket.number}} est prise en charge par {{assigned.name}}.")
@@ -491,6 +492,7 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await expect(page.getByText("Macro SAV créée.")).toBeVisible()
 
     await assertHealthy(page, "/dashboard/service/diagnostics", "Guides de diagnostic")
+    await page.locator("summary").filter({ hasText: "Créer un guide" }).click()
     await page.getByLabel("Nom interne").fill("Contrôle couverture QA")
     await page.getByLabel("Gamme ou catégorie").fill("COVER")
     await page.getByLabel("Symptôme de référence").fill("La couverture se bloque ou force pendant son mouvement")
