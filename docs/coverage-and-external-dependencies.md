@@ -138,7 +138,7 @@ L'objectif est zéro licence HubSpot/Extrabat, pas zéro service externe.
 
 ### HubSpot résiliable lorsque
 
-- le formulaire réel alimente Entreprise Pilote sans perte pendant la période parallèle ;
+- le formulaire réel alimente Freelio sans perte pendant la période parallèle ;
 - l'historique CRM et les pièces utiles sont réconciliés ;
 - chaque workflow/séquence/formulaire actif est reconstruit, externalisé ou abandonné par décision signée ;
 - les commerciaux réalisent lead → qualification → devis → commande sans HubSpot ;
@@ -149,7 +149,7 @@ L'objectif est zéro licence HubSpot/Extrabat, pas zéro service externe.
 
 - la restitution complète et la GED ont été obtenues ;
 - stock, commandes, factures, paiements, équipements et SAV concordent ;
-- deux cycles opérationnels complets sont réalisés dans Entreprise Pilote ;
+- deux cycles opérationnels complets sont réalisés dans Freelio ;
 - les limites restantes des tournées et des catalogues spécifiques sont couvertes ou exclues explicitement ;
 - l'export expert-comptable et la plateforme de facturation électronique sont opérationnels ;
 - les archives restent lisibles sans Extrabat et le rollback est validé.

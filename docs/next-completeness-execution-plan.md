@@ -1,7 +1,7 @@
 # Plan d’exécution — CRM/ERP complet et autonome
 
 Date de référence : 26 août 2026  
-Branche de travail : `codex/crm-replacement`  
+Branche de travail : `main`  
 Objet : transformer le socle actuel en outil quotidien capable de remplacer les usages réels de HubSpot et d’Extrabat, sans identité d’entreprise codée en dur.
 
 ## 1. Décision produit

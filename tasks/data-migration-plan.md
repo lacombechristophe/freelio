@@ -1,8 +1,8 @@
-# Plan de reprise complète des données — HubSpot et Extrabat vers Entreprise Pilote
+# Plan de reprise complète des données — HubSpot et Extrabat vers Freelio
 
 Date : 23 août 2026  
 Statut : stratégie technique à valider sur les comptes réels  
-Objectif : transférer simplement, complètement et de façon contrôlable les données de HubSpot et d'Extrabat vers le nouveau CRM Entreprise Pilote.
+Objectif : transférer simplement, complètement et de façon contrôlable les données de HubSpot et d'Extrabat vers le nouveau CRM Freelio.
 
 ## 1. Recommandation
 
@@ -11,14 +11,14 @@ La meilleure méthode est un **ETL hybride** :
 - les API extraient les objets, leurs relations et les changements jusqu'au jour de la bascule ;
 - les exports natifs CSV/XLSX/ZIP constituent une seconde preuve et couvrent les zones non exposées par API ;
 - les PDF, photos et autres fichiers sont téléchargés séparément et stockés avec leurs métadonnées ;
-- un importeur Entreprise Pilote rejouable transforme, dédoublonne, charge et vérifie les données ;
+- un importeur Freelio rejouable transforme, dédoublonne, charge et vérifie les données ;
 - un dernier transfert différentiel reprend uniquement les changements survenus depuis le transfert initial.
 
 Cette architecture permet une expérience simple pour l'administrateur — « connecter, analyser, tester, importer, finaliser » — sans confondre simplicité d'usage et absence de contrôles.
 
 Une API seule ne garantit pas une reprise complète. Certaines configurations, historiques, contenus marketing ou pièces jointes ont leurs propres endpoints, exports ou restrictions. La complétude doit être mesurée, pas supposée.
 
-## 2. Assistant de migration à construire dans Entreprise Pilote
+## 2. Assistant de migration à construire dans Freelio
 
 Un écran réservé aux administrateurs présentera cinq étapes.
 
@@ -41,7 +41,7 @@ Un écran réservé aux administrateurs présentera cinq étapes.
 ### Étape 3 — Simulation
 
 - importer un échantillon représentatif dans un espace isolé ;
-- afficher le mapping source → Entreprise Pilote ;
+- afficher le mapping source → Freelio ;
 - prévisualiser dix dossiers client complets ;
 - comparer montants, statuts, dates, responsables, activités et pièces ;
 - bloquer l'import si une catégorie P0 n'a pas de destination.
@@ -67,7 +67,7 @@ Un écran réservé aux administrateurs présentera cinq étapes.
 ```text
 HubSpot API ─────────┐
 HubSpot exports ─────┤
-                     ├──> zone brute chiffrée ──> normalisation ──> validation ──> CRM Entreprise Pilote
+                     ├──> zone brute chiffrée ──> normalisation ──> validation ──> CRM Freelio
 Extrabat API ────────┤            │                      │                │
 Extrabat exports ────┤            └── manifeste          └── anomalies    └── rapprochement
 GED/PDF/photos ──────┘
@@ -91,7 +91,7 @@ La zone brute permet de corriger un mapping sans rappeler l'ancien outil et cons
 - `MigrationRun` : simulation, complet, delta ou final ;
 - `MigrationCheckpoint` : curseur et dernière date traitée ;
 - `SourceRecord` : enveloppe brute ou référence vers le stockage objet ;
-- `ExternalIdMap` : couple source/type/ID vers l'ID Entreprise Pilote ;
+- `ExternalIdMap` : couple source/type/ID vers l'ID Freelio ;
 - `MigrationIssue` : erreur, sévérité, résolution et responsable ;
 - `MigrationMetric` : compte source, extrait, chargé, rejeté et réconcilié ;
 - `DocumentManifest` : fichier, hash, MIME, taille, source et rattachements ;
@@ -112,7 +112,7 @@ La zone brute permet de corriger un mapping sans rappeler l'ancien outil et cons
 
 ### 4.1 Méthode recommandée
 
-HubSpot est la source la plus simple à automatiser. Pour un seul compte Entreprise Pilote, une application privée en lecture seule peut suffire au transfert ; OAuth devient préférable si le connecteur doit ensuite être réutilisé pour plusieurs clients. La clé ne doit jamais apparaître dans les journaux ou le navigateur après saisie.
+HubSpot est la source la plus simple à automatiser. Pour un seul compte Freelio, une application privée en lecture seule peut suffire au transfert ; OAuth devient préférable si le connecteur doit ensuite être réutilisé pour plusieurs clients. La clé ne doit jamais apparaître dans les journaux ou le navigateur après saisie.
 
 Le transfert se fera en quatre passes.
 
@@ -184,7 +184,7 @@ La documentation publique d'Extrabat confirme l'existence de clés « User API K
 
 En revanche, aucune référence publique complète ne permet de garantir aujourd'hui :
 
-- que Entreprise Pilote peut créer une clé générique pour son propre exporteur ;
+- que Freelio peut créer une clé générique pour son propre exporteur ;
 - les endpoints, versions, quotas et filtres disponibles ;
 - l'accès en lecture à tous les modules Piscine ;
 - le téléchargement en masse de la GED et des photos ;
@@ -215,7 +215,7 @@ C'est le scénario le plus simple pour l'utilisateur.
 
 C'est le scénario le plus probable tant que les droits ne sont pas prouvés.
 
-#### Scénario C — aucune API exploitable pour Entreprise Pilote
+#### Scénario C — aucune API exploitable pour Freelio
 
 - demander officiellement à Extrabat une restitution complète dans un format structuré et documenté ;
 - demander séparément la GED originale, les journaux commerciaux/comptables et les paramétrages ;
@@ -241,9 +241,9 @@ C'est le scénario le plus probable tant que les droits ne sont pas prouvés.
 
 ### 5.4 Demande à adresser au support Extrabat
 
-> Objet : préparation d'une restitution complète des données Entreprise Pilote et accès API en lecture
+> Objet : préparation d'une restitution complète des données Freelio et accès API en lecture
 >
-> Nous souhaitons réaliser une sauvegarde et une reprise contrôlée de l'intégralité des données appartenant à Entreprise Pilote. Merci de nous confirmer :
+> Nous souhaitons réaliser une sauvegarde et une reprise contrôlée de l'intégralité des données appartenant à Freelio. Merci de nous confirmer :
 >
 > 1. la procédure pour obtenir une clé API en lecture couvrant CRM, articles, fournisseurs, pièces commerciales, règlements, stock, agenda, planning, chantiers, SAV, contrats et GED ;
 > 2. la documentation des endpoints, versions, pagination, quotas, filtres de date, suppressions et téléchargement de fichiers ;
@@ -267,9 +267,9 @@ Conserver systématiquement :
 - `sourceRecordId` ;
 - `sourceCreatedAt`, `sourceUpdatedAt` ;
 - lien ou référence d'origine quand elle reste autorisée ;
-- version du mapping ayant créé la donnée Entreprise Pilote.
+- version du mapping ayant créé la donnée Freelio.
 
-Les identifiants sources ne deviennent pas les clés primaires Entreprise Pilote. Ils vivent dans `ExternalIdMap`, ce qui autorise plusieurs sources pour un même client.
+Les identifiants sources ne deviennent pas les clés primaires Freelio. Ils vivent dans `ExternalIdMap`, ce qui autorise plusieurs sources pour un même client.
 
 ### 6.2 Ordre de rapprochement des personnes
 
@@ -291,7 +291,7 @@ Ne jamais fusionner automatiquement deux factures, paiements, commandes, contrat
 - coordonnées : valeur la plus récente, sauf validation manuelle ou source certifiée ;
 - fichiers : conserver les deux versions si leurs hashes diffèrent.
 
-Ces règles sont initiales et doivent être validées avec Entreprise Pilote avant l'import général.
+Ces règles sont initiales et doivent être validées avec Freelio avant l'import général.
 
 ## 7. Ordre de chargement
 
@@ -390,7 +390,7 @@ Avant de développer le connecteur complet :
 3. exporter manuellement un client complet dans chaque outil ;
 4. vérifier si les pièces jointes et relations possèdent des identifiants stables ;
 5. construire un prototype important dix dossiers de bout en bout ;
-6. comparer le dossier Entreprise Pilote obtenu avec les deux écrans sources.
+6. comparer le dossier Freelio obtenu avec les deux écrans sources.
 
 Ce prototype court répondra à la question la plus risquée : « pouvons-nous réellement récupérer tout l'historique Extrabat de manière structurée ? »
 

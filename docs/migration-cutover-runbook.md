@@ -1,4 +1,4 @@
-# Runbook de reprise et de bascule — HubSpot + Extrabat vers Entreprise Pilote
+# Runbook de reprise et de bascule — HubSpot + Extrabat vers Freelio
 
 Date de référence : 24 août 2026
 Statut : procédure exécutable avec le centre de migration actuel, sous réserve d'accès aux comptes réels et de validation métier.
@@ -19,7 +19,7 @@ Le centre de migration actuel ne sait pas supprimer atomiquement toutes les donn
 
 | Rôle | Responsabilité | Approbation attendue |
 |---|---|---|
-| Gérant Entreprise Pilote | périmètre, gel, bascule et résiliation | go/no-go final |
+| Gérant de l'entreprise pilote | périmètre, gel, bascule et résiliation | go/no-go final |
 | Responsable migration | planning, lots, preuves et journal de décision | rapport de reprise |
 | Administrateur source | exports, clés minimales et inventaire des configurations | complétude source |
 | Référent commercial | prospects, clients, activités, pipeline, consentements | recette HubSpot |
@@ -34,7 +34,7 @@ Une même personne peut tenir plusieurs rôles, mais le contrôle financier et l
 - dates de renouvellement/résiliation et durée d'accès post-contrat connues ;
 - administrateurs temporaires nommés ;
 - volume par objet et volume documentaire mesurés ;
-- export complet natif de chaque outil conservé hors de Entreprise Pilote ;
+- export complet natif de chaque outil conservé hors de Freelio ;
 - scénario Extrabat A/API, B/hybride ou C/exports confirmé par écrit ;
 - mapping et exclusions signés ;
 - base et bucket de répétition distincts de la production ;
@@ -253,7 +253,7 @@ Ne pas créer une synchronisation bidirectionnelle temporaire : elle introduirai
 - répétitions complètes réussies ;
 - anomalies P0/P1 fermées ;
 - utilisateurs formés ;
-- formulaires Entreprise Pilote branchés en miroir puis testés ;
+- formulaires Freelio branchés en miroir puis testés ;
 - procédure manuelle et restauration répétées ;
 - dates de gel approuvées.
 
@@ -263,7 +263,7 @@ Ne pas créer une synchronisation bidirectionnelle temporaire : elle introduirai
 - rapprochement des dossiers ouverts, factures, paiements et stocks ;
 - arrêt des changements de configuration dans les sources ;
 - communication aux utilisateurs ;
-- sauvegarde PostgreSQL/R2 de Entreprise Pilote ;
+- sauvegarde PostgreSQL/R2 de Freelio ;
 - décision go/no-go préliminaire.
 
 ### J0
@@ -275,7 +275,7 @@ Ne pas créer une synchronisation bidirectionnelle temporaire : elle introduirai
 5. Importer le dernier lot/delta.
 6. Obtenir `VERIFIED`, puis effectuer les contrôles métier P0.
 7. Faire signer le go/no-go commercial, opérations et finance.
-8. Ouvrir Entreprise Pilote en écriture.
+8. Ouvrir Freelio en écriture.
 9. Conserver les anciens outils en lecture seule ; ne pas révoquer immédiatement les clés nécessaires à une vérification.
 
 ### J+1 à J+30
@@ -317,12 +317,12 @@ Un `VERIFICATION_FAILED`, une archive manquante, une facture non rapprochée, un
 
 ### Procédure
 
-1. Suspendre les nouvelles écritures Entreprise Pilote et arrêter le worker.
+1. Suspendre les nouvelles écritures Freelio et arrêter le worker.
 2. Noter l'heure et exporter le journal des opérations réalisées depuis J0.
 3. Rebasculer le formulaire/site vers le canal de continuité validé.
 4. Réouvrir temporairement l'ancien outil seulement sur décision du gérant.
 5. Saisir dans l'ancien outil les opérations du journal, sous double contrôle.
-6. Restaurer Entreprise Pilote depuis la sauvegarde pré-import dans une nouvelle base si les données sont corrompues.
+6. Restaurer Freelio depuis la sauvegarde pré-import dans une nouvelle base si les données sont corrompues.
 7. Préserver la base défaillante et les archives pour diagnostic.
 8. Corriger et refaire une répétition complète avant une nouvelle date.
 

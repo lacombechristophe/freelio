@@ -1,21 +1,21 @@
-# Plan directeur — CRM/ERP Entreprise Pilote sans HubSpot ni Extrabat
+# Plan directeur — CRM/ERP Vertical Freelio sans HubSpot ni Extrabat
 
 Date de création : 23 août 2026
 Dernière mise à jour : 24 août 2026
 Statut : plan directeur actif — socle et cœur métier largement implémentés, remplacement opérationnel non encore certifié
-Décision : remplacer complètement HubSpot et Extrabat par le CRM Entreprise Pilote issu de Freelio.
+Décision : remplacer complètement HubSpot et Extrabat par le CRM l'Entreprise Pilote issu de Freelio.
 
 ## 1. Décision et objectif
 
-La cible n'est plus un cockpit connecté à HubSpot et Extrabat. Le futur CRM Entreprise Pilote devient l'unique source de vérité pour le prospect, le client, la vente, le chantier, le SAV et la facturation. HubSpot sera résilié en premier ; Extrabat sera résilié après validation complète des opérations terrain et financières.
+La cible n'est plus un cockpit connecté à HubSpot et Extrabat. Le futur CRM l'Entreprise Pilote devient l'unique source de vérité pour le prospect, le client, la vente, le chantier, le SAV et la facturation. HubSpot sera résilié en premier ; Extrabat sera résilié après validation complète des opérations terrain et financières.
 
 L'objectif économique correct est **zéro licence HubSpot et zéro licence Extrabat**, pas zéro coût informatique. Une application métier fiable conservera des coûts récurrents incompressibles : hébergement, base de données, stockage et sauvegardes, supervision, e-mails transactionnels, SMS, cartes/géocodage et, selon les choix, signature de confiance et plateforme agréée de facturation électronique.
 
-Le projet est réussi lorsque Entreprise Pilote peut acquérir un prospect, vendre, commander, planifier, installer, facturer, encaisser et gérer le SAV sans ouvrir HubSpot ni Extrabat, avec un historique complet et auditable.
+Le projet est réussi lorsque l'Entreprise Pilote peut acquérir un prospect, vendre, commander, planifier, installer, facturer, encaisser et gérer le SAV sans ouvrir HubSpot ni Extrabat, avec un historique complet et auditable.
 
 ## 2. Inventaire de l'existant — Freelio v2
 
-Le dépôt actuel est un CRM/ERP Entreprise Pilote fonctionnel en cours de recette. Les listes ci-dessous décrivent le code présent ; elles ne remplacent pas la validation sur les comptes et processus réels.
+Le dépôt actuel est un CRM/ERP Vertical Freelio fonctionnel en cours de recette. Les listes ci-dessous décrivent le code présent ; elles ne remplacent pas la validation sur les comptes et processus réels.
 
 ### 2.1 Capacités déjà présentes
 
@@ -48,7 +48,7 @@ Le dépôt actuel est un CRM/ERP Entreprise Pilote fonctionnel en cours de recet
 
 Les résultats exacts de typecheck, lint, tests, build et E2E doivent être régénérés sur le commit candidat final ; les mesures de l'audit du 23 août ne décrivent plus le dépôt actuel.
 
-### 2.3 Limites bloquantes avant exploitation Entreprise Pilote
+### 2.3 Limites bloquantes avant exploitation l'Entreprise Pilote
 
 - audit administrateur des deux comptes réels, volumes, modules et personnalisations non encore versé au dépôt ;
 - aucune API Extrabat générique ne peut être finalisée sans documentation et droits propres au compte ;
@@ -65,7 +65,7 @@ Conclusion : le cœur vertical central est implémenté, mais la résiliation re
 
 ### 3.1 Sortie de HubSpot — périmètre obligatoire
 
-| Domaine | À reconstruire dans Entreprise Pilote | Priorité |
+| Domaine | À reconstruire dans l'Entreprise Pilote | Priorité |
 |---|---|---|
 | Acquisition | formulaires du site, création automatique du lead, source/UTM, consentement, anti-spam, attribution | P0 |
 | Référentiel | contacts, foyers/entreprises, adresses et sites multiples, dédoublonnage, propriétaire | P0 |
@@ -81,9 +81,9 @@ HubSpot pourra être arrêté dès que les fonctions P0, l'historique et les for
 
 ### 3.2 Sortie d'Extrabat — périmètre obligatoire
 
-L'inventaire public Extrabat Piscine recense 211 fonctions réparties en 16 groupes. Entreprise Pilote ne doit pas toutes les cloner : il faut couvrir les processus réellement utilisés et documenter chaque exclusion.
+L'inventaire public Extrabat Piscine recense 211 fonctions réparties en 16 groupes. l'Entreprise Pilote ne doit pas toutes les cloner : il faut couvrir les processus réellement utilisés et documenter chaque exclusion.
 
-| Domaine | À reconstruire dans Entreprise Pilote | Priorité |
+| Domaine | À reconstruire dans l'Entreprise Pilote | Priorité |
 |---|---|---|
 | Catalogue | fabricants, fournisseurs, gammes, variantes, options, tarifs, remises, nomenclatures, documents | P0 |
 | Avant-vente | qualification, photos, mesures, visite technique, étude d'implantation, faisabilité | P0 |
@@ -104,7 +104,7 @@ L'inventaire public Extrabat Piscine recense 211 fonctions réparties en 16 grou
 ### 3.3 À ne pas reconstruire par défaut
 
 - comptabilité générale complète en partie double : conserver un export propre vers l'expert-comptable ;
-- caisse magasin/POS si Entreprise Pilote n'en a pas l'usage réel ;
+- caisse magasin/POS si l'Entreprise Pilote n'en a pas l'usage réel ;
 - centaines de rapports génériques : construire les 10 à 15 décisions de gestion utiles ;
 - fonctions publicitaires, sociales ou de centre d'appels rarement utilisées ;
 - paie, RH et gestion de flotte ;
@@ -112,7 +112,7 @@ L'inventaire public Extrabat Piscine recense 211 fonctions réparties en 16 grou
 
 Chaque exclusion devra être signée par le gérant après observation des pratiques réelles. Cette discipline protège le budget et la date de sortie.
 
-## 4. Parcours métier cible Entreprise Pilote
+## 4. Parcours métier cible l'Entreprise Pilote
 
 1. Un formulaire de `domaine-client.fr`, un appel ou une recommandation crée un lead et sa preuve de consentement.
 2. Le commercial qualifie le projet : type de piscine, dimensions, adresse, produit envisagé, délai, budget, photos et contraintes.
@@ -187,7 +187,7 @@ Les modèles actuels seront réutilisés quand leur sémantique convient ; ils n
 
 ## 7. Plan de migration et de sortie
 
-La conception technique détaillée du transfert est décrite dans le [plan de reprise complète des données HubSpot et Extrabat](./freelio-data-transfer-plan.md). La cible est un assistant de migration réutilisable, et non une succession d'imports manuels fragiles.
+La conception technique détaillée du transfert est décrite dans le [plan de reprise complète des données HubSpot et Extrabat](./data-migration-plan.md). La cible est un assistant de migration réutilisable, et non une succession d'imports manuels fragiles.
 
 ### 7.1 Audit des comptes réels — avant toute résiliation
 
@@ -234,7 +234,7 @@ Chaque export doit être conservé brut, chiffré, horodaté et accompagné d'un
 
 | Phase | État du code | Reste avant validation |
 |---|---|---|
-| Phase 0 — preuve réelle | **Partielle** | audit public et plans produits ; comptes, volumes, contrats et usages Entreprise Pilote réels encore à inventorier |
+| Phase 0 — preuve réelle | **Partielle** | audit public et plans produits ; comptes, volumes, contrats et usages l'Entreprise Pilote réels encore à inventorier |
 | Phase 1 — fondations | **Implémentée dans le code** | déploiement PostgreSQL/R2, supervision, sauvegarde/restauration et recette de sécurité en environnement réel |
 | Phase 2 — HubSpot | **Partielle** | capture/CRM/consentement/import présents ; compléter les actifs réellement utilisés, répéter la migration et mener la bascule |
 | Phase 3 — vente/opérations | **Partielle avancée** | relevé, devis/commande, catalogue configurable, achats complets, stock, modèles/dépendances de chantier, responsables, capacité et planning anti-conflit présents ; validation des données Extrabat réelles et marge globale restent à traiter |
@@ -276,7 +276,7 @@ Les estimations initiales ci-dessous restent des ordres de grandeur de cadrage. 
 
 ### Phase 3 — vente, achats et exécution Extrabat, 10 à 14 semaines
 
-- relevé technique Entreprise Pilote, catalogue et règles de prix ;
+- relevé technique l'Entreprise Pilote, catalogue et règles de prix ;
 - devis/commande/acompte ;
 - achats, réceptions et stock nécessaire ;
 - modèles de chantier, capacité, planning et alertes ;
@@ -422,7 +422,7 @@ Références officielles : [DGFiP — facturation électronique et plateformes a
 - modules réellement utilisés, personnalisations et intégrations ;
 - volume de données et documents ;
 - gestion actuelle des catalogues, achats et stock ;
-- responsabilité exacte entre Entreprise Pilote et les fabricants pour visite définitive, pose, garantie et SAV ;
+- responsabilité exacte entre l'Entreprise Pilote et les fabricants pour visite définitive, pose, garantie et SAV ;
 - solution de comptabilité de l'expert-comptable ;
 - besoin de signature qualifiée, de SMS, de téléphonie et de mode hors ligne ;
 - objectif de disponibilité et délai maximal de reprise ;
@@ -436,7 +436,7 @@ La décision la plus rentable est de sortir rapidement de HubSpot grâce au socl
 
 ## 18. Sources fonctionnelles principales
 
-- [Entreprise Pilote — activité et parcours public](https://domaine-client.fr/)
+- [l'Entreprise Pilote — activité et parcours public](https://domaine-client.fr/)
 - [Extrabat Piscine — présentation officielle](https://www.extrabat.com/piscine/)
 - [Extrabat — ressources officielles](https://www.extrabat.com/ressources/)
 - [HubSpot — comprendre les objets CRM](https://knowledge.hubspot.com/fr/records/understand-objects)
@@ -444,4 +444,4 @@ La décision la plus rentable est de sortir rapidement de HubSpot grâce au socl
 - [HubSpot — workflows](https://knowledge.hubspot.com/fr/workflows/understand-workflow-object-types)
 - [HubSpot Developers — architecture CRM](https://developers.hubspot.com/docs/api-reference/latest/crm/understanding-the-crm)
 
-L'[audit préliminaire détaillé](./freelio-crm-audit-and-roadmap.md) conserve l'inventaire plus exhaustif des modules publics et les constats techniques ayant servi à ce plan.
+L'[audit préliminaire détaillé](./docs/coverage-and-external-dependencies.md) conserve l'inventaire plus exhaustif des modules publics et les constats techniques ayant servi à ce plan.

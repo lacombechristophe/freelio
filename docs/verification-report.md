@@ -1,7 +1,7 @@
 # Rapport de vérification du candidat CRM/ERP
 
 Date : 4 septembre 2026
-Branche livrée : `main` (miroir de travail : `codex/crm-replacement`)
+Branche livrée : `main` (miroir de travail : `main`)
 Portée : code, bases de recette locales, migration PostgreSQL, déploiement Vercel et recette publique ; les comptes HubSpot/Extrabat et les fournisseurs externes ne sont pas inclus.
 
 **Réévaluation du 5 septembre :** la recette visuelle ci-dessous est historique. Ses captures `fullPage` ne parcouraient pas le défilement interne du dashboard ; elles ne prouvent donc pas une inspection visuelle intégrale. La [nouvelle revue UI/UX](ui-ux-review-2026-09-05.md) distingue premiers écrans, défilement, onglets et modales, recense les écarts observés et suit leurs corrections. Les résultats automatisés précédents restent des résultats techniques, pas une certification de parité visuelle ou fonctionnelle.

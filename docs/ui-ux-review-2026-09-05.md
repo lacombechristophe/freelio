@@ -101,7 +101,7 @@ Les fiches facture, contrat, opportunité, migration, achat/fournisseur et les v
 
 ## Repères externes consultés
 
-La [documentation HubSpot des listes et vues](https://knowledge.hubspot.com/records/view-and-filter-records), mise à jour le 11 août 2026, confirme l’importance des vues enregistrées, des filtres et de la personnalisation des tableaux. Le repère retenu ici est la rapidité pour retrouver un portefeuille de travail, pas l’accumulation de commandes visibles. La [présentation officielle Extrabat Piscine](https://www.extrabat.com/piscine/) sert de comparaison pour la continuité du dossier entre relation client, devis, chantier, planning et SAV. Ces sources publiques ne remplacent pas une recette dans les comptes réels de la Direction ; aucune parité exhaustive n’en est déduite.
+La [documentation HubSpot des listes et vues](https://knowledge.hubspot.com/records/view-and-filter-records), mise à jour le 11 août 2026, confirme l’importance des vues enregistrées, des filtres et de la personnalisation des tableaux. Le repère retenu ici est la rapidité pour retrouver un portefeuille de travail, pas l’accumulation de commandes visibles. La [présentation officielle Extrabat Piscine](https://www.extrabat.com/piscine/) sert de comparaison pour la continuité du dossier entre relation client, devis, chantier, planning et SAV. Ces sources publiques ne remplacent pas une recette dans les comptes réels de l'entreprise pilote ; aucune parité exhaustive n’en est déduite.
 
 ## Barème de décision
 
