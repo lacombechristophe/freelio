@@ -68,3 +68,4 @@ build_log.txt
 
 .vercel
 .env*.local
+/design-concepts/

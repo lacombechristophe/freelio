@@ -1,8 +1,15 @@
-# CRM/ERP Freelio
+# CRM/ERP Freelio — Solution Verticale Piscinistes & Services Métier
 
-CRM/ERP vertical destiné aux piscinistes, conçu pour réunir dans un même outil la relation client, la vente, les chantiers, le stock, le parc installé, le SAV, l’entretien et la facturation. L’identité affichée provient du profil entreprise ; aucune marque cliente n’est codée en dur dans l’interface. Le dépôt contient aussi un centre de reprise contrôlée des données HubSpot et Extrabat.
+[![Tests Unitaires](https://img.shields.io/badge/Vitest-309%20tests%20passants-success.svg)](tests/unit)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict%200%20erreur-blue.svg)](tsconfig.json)
+[![Factur-X](https://img.shields.io/badge/Factur--X-EN16931%20Conforme%202026-orange.svg)](src/lib/pdf/facturx.ts)
+[![Next.js](https://img.shields.io/badge/Next.js-16%20%7C%20React%2019-black.svg)](package.json)
+[![Prisma](https://img.shields.io/badge/Prisma-SQLite%20%7C%20PostgreSQL-2D3748.svg)](prisma)
 
-L'objectif produit est de rendre les abonnements HubSpot et Extrabat résiliables. La résiliation ne doit toutefois intervenir qu'après une reprise réelle des comptes de l’entreprise pilote, une recette métier et la validation des dépendances externes listées dans la [matrice de couverture](docs/coverage-and-external-dependencies.md).
+> **Démo en direct :** [https://freelio-eight.vercel.app](https://freelio-eight.vercel.app)  
+> CRM/ERP vertical complet destiné aux piscinistes et entreprises de services techniques : gestion des chantiers, relation client, configurateur de devis, SAV/terrain hors-ligne, contrats d'entretien et facturation électronique certifiable **Factur-X / EN16931** (réforme légale 2026/2027).
+
+L'identité affichée provient dynamiquement du profil de chaque entreprise (architecture multi-tenant) ; aucune marque cliente n’est codée en dur. Le dépôt intègre également un module de migration et de reprise de données pour rendre les abonnements HubSpot et Extrabat résiliables.
 
 ## Fonctions disponibles
 
