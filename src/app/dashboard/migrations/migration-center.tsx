@@ -43,6 +43,7 @@ async function fileSha256(file: File) {
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "À configurer",
   ACTIVE: "Connecté",
+  REACHABLE: "Serveur joignable · droits non vérifiés",
   ERROR: "Erreur",
   RUNNING: "En cours",
   PROCESSING: "Préparation",
@@ -331,7 +332,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                     size="sm"
                     disabled={isPending}
                     onClick={() =>
-                      execute("Connexion vérifiée.", async () => {
+                      execute(connection.provider === "HUBSPOT" ? "Lecture des contacts vérifiée. Les droits d’export seront contrôlés séparément." : "Serveur JSON joignable. Droits non vérifiés ; import API Extrabat non disponible.", async () => {
                         const result = await testSourceConnection(connection.id)
                         if (!result?.success) throw new Error(result?.error)
                       })

@@ -257,7 +257,7 @@ export async function testSourceConnection(connectionId: string) {
         : await testExtrabatConnection((credentials as { apiKey: string }).apiKey, extrabatConfig(connection.config))
       await prisma.dataSourceConnection.update({
         where: { id: connection.id },
-        data: { status: "ACTIVE", lastTestAt: new Date(), lastError: null },
+        data: { status: connection.provider === "HUBSPOT" ? "ACTIVE" : "REACHABLE", lastTestAt: new Date(), lastError: null },
       })
       revalidatePath("/dashboard/migrations")
       return { success: true as const, detail: result }
@@ -550,7 +550,11 @@ export async function refreshHubSpotSnapshot(runId: string) {
       include: { connection: true },
     })
     if (!run?.connection) throw new Error("Migration HubSpot introuvable")
+    if (!["PROCESSING", "COMPLETE", "PARTIAL", "FAILED"].includes(run.status)) {
+      throw new Error("Ce lot ne peut plus être actualisé après son analyse ou son import.")
+    }
     const checkpoint = checkpointSchema.parse(run.checkpoint)
+    const startFailures = await prisma.migrationIssue.count({ where: { runId: run.id, code: "HUBSPOT_EXPORT_START_FAILED" } })
     const { accessToken } = readCredentials(run.connection) as { accessToken: string }
 
     for (const task of checkpoint.tasks) {
@@ -558,6 +562,13 @@ export async function refreshHubSpotSnapshot(runId: string) {
       try {
         const status = await getHubSpotExportStatus(accessToken, task.taskId)
         task.status = status.status
+        delete task.error
+        if ((status.numErrors ?? 0) > 0 || status.errors?.length) {
+          task.error = "HubSpot signale des erreurs dans cet export. Vérifiez son contenu avant import."
+        }
+        if (status.status === "COMPLETE" && !status.result) {
+          task.error = "Export terminé sans fichier téléchargeable. Actualisez à nouveau ou relancez l’export."
+        }
         if (status.status === "COMPLETE" && status.result) {
           const download = await downloadHubSpotExport(status.result)
           const stored = await storeMigrationArtifact({
@@ -596,18 +607,20 @@ export async function refreshHubSpotSnapshot(runId: string) {
     }
 
     const finished = checkpoint.tasks.every((task) => task.downloaded || task.status === "CANCELED")
-    const failed = checkpoint.tasks.filter((task) => task.status === "CANCELED" || task.error).length
-    await prisma.migrationRun.update({
-      where: { id: run.id },
+    const failed = startFailures + checkpoint.tasks.filter((task) => task.status === "CANCELED" || task.error).length
+    const total = checkpoint.tasks.length + startFailures
+    const saved = await prisma.migrationRun.updateMany({
+      where: { id: run.id, companyId, status: run.status, updatedAt: run.updatedAt },
       data: {
         checkpoint: checkpoint as unknown as Prisma.InputJsonValue,
-        status: finished ? (failed ? "PARTIAL" : "COMPLETE") : "PROCESSING",
+        status: !checkpoint.tasks.length ? "FAILED" : finished ? (failed ? "PARTIAL" : "COMPLETE") : "PROCESSING",
         completedAt: finished ? new Date() : null,
-        summary: { total: checkpoint.tasks.length, downloaded: checkpoint.tasks.filter((task) => task.downloaded).length, failed },
+        summary: { total, downloaded: checkpoint.tasks.filter((task) => task.downloaded).length, failed },
       },
     })
+    if (saved.count !== 1) throw new Error("Le lot a changé pendant l’actualisation. Rechargez son état avant de réessayer.")
     revalidatePath("/dashboard/migrations")
-    return { success: true as const, finished, downloaded: checkpoint.tasks.filter((task) => task.downloaded).length, total: checkpoint.tasks.length, failed }
+    return { success: true as const, finished, downloaded: checkpoint.tasks.filter((task) => task.downloaded).length, total, failed }
   }, "migration.manage")
 }
 
