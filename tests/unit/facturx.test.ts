@@ -72,4 +72,8 @@ describe("Factur-X CII", () => {
     expect(extracted.xml).toContain("CrossIndustryInvoice")
     expect(extracted.warnings).not.toContain(expect.stringContaining("AFRelationship"))
   })
+
+  it("rejects failed embedding instead of returning an unstructured file as success", async () => {
+    await expect(embedFacturX(Buffer.from("not a PDF"), generateFacturX(invoice))).rejects.toThrow(/Factur-X/)
+  })
 })

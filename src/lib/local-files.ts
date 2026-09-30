@@ -4,7 +4,6 @@ import { createHash, randomUUID } from "node:crypto"
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
 import {
-  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -107,10 +106,6 @@ function assertFileMetadata(input: { name: string; type: string; size: number; s
   if (input.size > MAX_LOCAL_FILE_BYTES) throw new Error("Le fichier dépasse 15 Mo")
   if (!ALLOWED_MIME_TYPES.has(input.type)) throw new Error("Type de fichier non autorisé")
   if (input.sha256 !== undefined && !/^[a-f0-9]{64}$/i.test(input.sha256)) throw new Error("Empreinte de fichier invalide")
-}
-
-function encodeCopySource(bucket: string, key: string) {
-  return `${encodeURIComponent(bucket)}/${key.split("/").map(encodeURIComponent).join("/")}`
 }
 
 function hasExpectedSignature(type: string, bytes: Buffer) {
@@ -274,13 +269,14 @@ export async function confirmDirectFileUpload(input: {
   const fileName = safeFileName(input.originalName)
   const finalKey = [safeCompanyId, input.kind, safeResourceId, path.basename(objectKey)].join("/")
   await r2Client(config).send(
-    new CopyObjectCommand({
+    new PutObjectCommand({
       Bucket: config.bucket,
-      CopySource: encodeCopySource(config.bucket, objectKey),
       Key: finalKey,
+      // Publish the bytes verified above, not a temporary object that a still
+      // valid upload URL could replace between verification and publication.
+      Body: bytes,
       ContentType: input.type,
       Metadata: { sha256: expectedSha256, company: safeCompanyId, resource: safeResourceId, kind: input.kind },
-      MetadataDirective: "REPLACE",
     }),
   )
   await r2Client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey })).catch(() => {})

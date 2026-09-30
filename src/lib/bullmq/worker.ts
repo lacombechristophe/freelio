@@ -112,11 +112,6 @@ async function generateQuote(job: Job<DocGenJob>) {
   const stored = await storeFileBytes({ companyId: quote.companyId, kind: "generated", resourceId: quote.id, originalName: `${quote.number}.pdf`, type: "application/pdf", bytes: pdfBuffer })
   const pdfUrl = stored.relativePath
 
-  await prisma.quote.update({
-    where: { id: quote.id },
-    data: { status: "SENT" },
-  })
-
   return { success: true, hash, pdfUrl }
 }
 
@@ -195,7 +190,7 @@ async function generateInvoice(job: Job<DocGenJob>) {
 
   await prisma.invoice.update({
     where: { id: invoice.id },
-    data: { pdfUrl, pdfHash: hash, status: "SENT" },
+    data: { pdfUrl, pdfHash: hash },
   })
 
   return { success: true, hash, pdfUrl }

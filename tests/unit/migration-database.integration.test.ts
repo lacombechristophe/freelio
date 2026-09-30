@@ -9,7 +9,7 @@ vi.mock("@/auth", () => ({ auth: vi.fn(async () => ({ user: { id: identity.userI
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("server-only", () => ({}))
 
-import { importMigrationRun, simulateMigrationRun, verifyMigrationRun } from "@/actions/migrations"
+import { analyzeMigrationRun, importMigrationRun, simulateMigrationRun, verifyMigrationRun } from "@/actions/migrations"
 import prisma from "@/lib/prisma"
 
 describe.sequential("migration database pipeline", () => {
@@ -70,5 +70,68 @@ describe.sequential("migration database pipeline", () => {
     expect(await prisma.externalIdMap.count({ where: { companyId: identity.companyId, provider: "EXTRABAT" } })).toBe(6)
 
     await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true, status: "VERIFIED", records: 6, imported: 6, rejected: 0, blocking: 0 })
+  })
+
+  it("does not reset a verified import by simulating it again", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "VERIFIED" } })
+    await expect(simulateMigrationRun(runId)).rejects.toThrow(/finalisé/)
+    expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("VERIFIED")
+  })
+
+  it("does not reset a verified import by analyzing an attached archive", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "VERIFIED" } })
+    const document = await prisma.documentManifest.create({ data: {
+      companyId: identity.companyId, runId, provider: "EXTRABAT", sourceDocumentId: `manual:${runId}:test`,
+      fileName: "contacts.csv", size: 1, sha256: "0".repeat(64), storageKey: "local:missing-test-archive",
+    } })
+    try {
+      await expect(analyzeMigrationRun(runId)).rejects.toThrow(/finalisé/)
+      expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("VERIFIED")
+    } finally {
+      await prisma.documentManifest.delete({ where: { id: document.id } })
+    }
+  })
+
+  it("blocks direct import and final verification while source errors remain unresolved", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "PARTIAL" } })
+    const issue = await prisma.migrationIssue.create({ data: {
+      runId, severity: "ERROR", code: "INGEST_ROW_LIMIT", message: "Archive partielle : lignes non extraites", status: "OPEN",
+    } })
+    try {
+      await expect(importMigrationRun(runId)).rejects.toThrow(/bloquant/)
+      expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("PARTIAL")
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false, status: "VERIFICATION_FAILED" })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_UNRESOLVED_SOURCE_ERRORS" } })).toBe(1)
+    } finally {
+      await prisma.migrationIssue.delete({ where: { id: issue.id } })
+    }
+    // A previous verification diagnostic must not permanently block recovery.
+    await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true, status: "VERIFIED", blocking: 0 })
+  })
+
+  it("does not import when another process has already claimed the run", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "IMPORTED" } })
+    const claim = vi.spyOn(prisma.migrationRun, "updateMany").mockResolvedValueOnce({ count: 0 })
+    try {
+      await expect(importMigrationRun(runId)).rejects.toThrow(/changé/)
+    } finally {
+      claim.mockRestore()
+    }
+    expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("IMPORTED")
+  })
+
+  it("does not verify a reconciled run that still has rejected source rows", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "PARTIAL" } })
+    const record = await prisma.sourceRecord.create({ data: {
+      companyId: identity.companyId, runId, provider: "EXTRABAT", objectType: "unsupported", sourceId: "unhandled-1", payload: {}, checksum: "sha256-unhandled-1",
+    } })
+    const metric = await prisma.migrationMetric.create({ data: { runId, objectType: "unsupported", sourceCount: 1, extracted: 1, rejected: 1 } })
+    try {
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false, status: "VERIFICATION_FAILED", rejected: 1 })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_REJECTED_RECORDS" } })).toBe(1)
+    } finally {
+      await prisma.migrationMetric.delete({ where: { id: metric.id } })
+      await prisma.sourceRecord.delete({ where: { id: record.id } })
+    }
   })
 })

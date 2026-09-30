@@ -418,7 +418,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                       Actualiser
                     </Button>
                   ) : null}
-                  {run.documents > 0 && ["READY", "COMPLETE", "PARTIAL", "ANALYZED"].includes(run.status) ? (
+                  {run.documents > 0 && ["READY", "COMPLETE", "PARTIAL", "ANALYZED"].includes(run.status) && !(run.status === "PARTIAL" && run.metrics.some((metric) => metric.imported + metric.rejected + metric.excluded > 0)) ? (
                     <Button variant="outline" size="sm" disabled={isPending} onClick={() => execute("Archives analysées et indexées.", () => analyzeMigrationRun(run.id))}>
                       <Search />
                       Analyser les archives

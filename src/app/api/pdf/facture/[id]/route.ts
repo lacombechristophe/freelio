@@ -112,8 +112,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       })
       const buffer = await embedFacturX(Buffer.from(pdf), xml)
       pdf = new Uint8Array(buffer)
-    } catch (err) {
-      console.error("Failed to generate/embed Factur-X XML:", err)
+    } catch {
+      console.error("Invoice structured PDF assembly failed", { invoiceId: invoice.id })
+      return NextResponse.json({
+        error: "Impossible de produire le PDF avec son XML Factur-X. Aucun fichier n’a été délivré. Vérifiez les données de facturation ou contactez le support.",
+      }, { status: 500 })
     }
 
     await logAction({

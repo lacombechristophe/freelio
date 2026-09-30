@@ -83,8 +83,6 @@ export async function embedFacturX(pdfBuffer: Buffer, xmlContent: string) {
     const pdfBytes = await pdfDoc.save()
     return Buffer.from(pdfBytes)
   } catch (error) {
-    console.error("Factur-X XML attachment embedding failed:", error)
-    // Return original buffer as a resilient fallback
-    return pdfBuffer
+    throw new Error("Impossible d’intégrer le XML Factur-X au PDF. Aucun document structuré n’a été produit.", { cause: error })
   }
 }

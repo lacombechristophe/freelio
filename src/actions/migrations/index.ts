@@ -538,7 +538,7 @@ async function ensureMigrationPipeline(companyId: string) {
   })
   if (existing) return existing
   return prisma.pipeline.create({
-    data: { companyId, name: "Pipeline commercial", stages: DEFAULT_PIPELINE_STAGES, isDefault: true },
+    data: { companyId, name: "Cycle de vente", stages: DEFAULT_PIPELINE_STAGES, isDefault: true },
   })
 }
 
@@ -629,15 +629,19 @@ export async function analyzeMigrationRun(runId: string) {
     const parsedId = connectionIdSchema.parse(runId)
     const run = await prisma.migrationRun.findFirst({
       where: { id: parsedId, companyId },
-      include: { documents: { orderBy: { createdAt: "asc" } } },
+      include: { documents: { orderBy: { createdAt: "asc" } }, metrics: { select: { imported: true, rejected: true, excluded: true } } },
     })
     if (!run) throw new Error("Lot de migration introuvable")
+    if (!["READY", "COMPLETE", "PARTIAL", "ANALYZED"].includes(run.status) || run.metrics.some((metric) => metric.imported + metric.rejected + metric.excluded > 0)) {
+      throw new Error("Ce lot est déjà importé ou finalisé")
+    }
     if (!run.documents.length) throw new Error("Ce lot ne contient aucune archive")
 
-    await prisma.migrationRun.update({
-      where: { id: run.id },
+    const claim = await prisma.migrationRun.updateMany({
+      where: { id: run.id, companyId, status: run.status, updatedAt: run.updatedAt },
       data: { status: "ANALYZING", startedAt: run.startedAt ?? new Date(), completedAt: null },
     })
+    if (claim.count !== 1) throw new Error("Le lot a changé pendant la préparation de l'analyse ; rechargez-le avant de réessayer")
 
     const records = new Map<string, ParsedMigrationRecord>()
     const issues: MigrationParseIssue[] = []
@@ -675,7 +679,7 @@ export async function analyzeMigrationRun(runId: string) {
         for (const embedded of parsed.embeddedFiles) {
           const sha256 = createHash("sha256").update(embedded.bytes).digest("hex")
           if (sha256 === document.sha256 && embedded.fileName === document.fileName) continue
-          const sourceDocumentId = `embedded:${document.sha256}:${createHash("sha256").update(embedded.sourcePath).digest("hex")}`
+          const sourceDocumentId = `embedded:${run.id}:${document.sha256}:${createHash("sha256").update(embedded.sourcePath).digest("hex")}`
           const existing = await prisma.documentManifest.findUnique({
             where: { companyId_provider_sourceDocumentId: { companyId, provider: run.provider, sourceDocumentId } },
             select: { id: true },
@@ -795,6 +799,7 @@ export async function simulateMigrationRun(runId: string) {
       },
     })
     if (!run) throw new Error("Lot de migration introuvable")
+    if (!["ANALYZED", "SIMULATED"].includes(run.status)) throw new Error("Ce lot est déjà importé ou finalisé")
     if (!run.records.length) throw new Error("Analysez d'abord les archives de ce lot")
     if (run.issues.length) throw new Error("Corrigez les anomalies bloquantes avant la simulation")
 
@@ -860,9 +865,17 @@ export async function importMigrationRun(runId: string) {
       include: { records: true },
     })
     if (!run) throw new Error("Simulez ce lot avant de l'importer")
+    const unresolvedSourceErrors = await prisma.migrationIssue.count({
+      where: { runId: run.id, status: "OPEN", severity: "ERROR", NOT: { code: { startsWith: "VERIFY_" } } },
+    })
+    if (unresolvedSourceErrors) throw new Error("Corrigez les anomalies bloquantes avant l'import")
     const runProvider = run.provider
 
-    await prisma.migrationRun.update({ where: { id: run.id }, data: { status: "IMPORTING", completedAt: null } })
+    const claim = await prisma.migrationRun.updateMany({
+      where: { id: run.id, companyId, status: run.status, updatedAt: run.updatedAt },
+      data: { status: "IMPORTING", completedAt: null },
+    })
+    if (claim.count !== 1) throw new Error("Le lot a changé pendant la préparation de l'import ; rechargez-le avant de réessayer")
     await prisma.migrationIssue.deleteMany({ where: { runId: run.id, code: { startsWith: "IMPORT_" } } })
 
     const sourceRecords = [...run.records].sort((a, b) => IMPORT_ORDER[classifySourceObject(a.objectType)] - IMPORT_ORDER[classifySourceObject(b.objectType)])
@@ -1530,6 +1543,26 @@ export async function verifyMigrationRun(runId: string) {
 
     await prisma.migrationIssue.deleteMany({ where: { runId: run.id, code: { startsWith: "VERIFY_" } } })
     const verificationIssues: Array<{ severity: "ERROR" | "WARNING"; code: string; message: string; objectType?: string; details?: Prisma.InputJsonValue }> = []
+    const unresolvedSourceErrors = await prisma.migrationIssue.count({
+      where: { runId: run.id, status: "OPEN", severity: "ERROR", NOT: { code: { startsWith: "VERIFY_" } } },
+    })
+    if (unresolvedSourceErrors) {
+      verificationIssues.push({
+        severity: "ERROR",
+        code: "VERIFY_UNRESOLVED_SOURCE_ERRORS",
+        message: `${unresolvedSourceErrors} anomalie${unresolvedSourceErrors > 1 ? "s" : ""} source bloquante${unresolvedSourceErrors > 1 ? "s" : ""} reste${unresolvedSourceErrors > 1 ? "nt" : ""} à corriger.`,
+        details: { count: unresolvedSourceErrors },
+      })
+    }
+    const rejectedCount = run.metrics.reduce((sum, metric) => sum + metric.rejected, 0)
+    if (rejectedCount) {
+      verificationIssues.push({
+        severity: "ERROR",
+        code: "VERIFY_REJECTED_RECORDS",
+        message: `${rejectedCount} ligne${rejectedCount > 1 ? "s" : ""} source rejetée${rejectedCount > 1 ? "s" : ""} reste${rejectedCount > 1 ? "nt" : ""} à traiter avant la validation du lot.`,
+        details: { count: rejectedCount },
+      })
+    }
 
     for (const metric of run.metrics) {
       const difference = metric.sourceCount - metric.imported - metric.rejected - metric.excluded
@@ -1611,7 +1644,7 @@ export async function verifyMigrationRun(runId: string) {
       provider: run.provider,
       records: run.records.length,
       imported: importedMetricCount,
-      rejected: run.metrics.reduce((sum, metric) => sum + metric.rejected, 0),
+      rejected: rejectedCount,
       excluded: run.metrics.reduce((sum, metric) => sum + metric.excluded, 0),
       documents: verifiedDocuments,
       documentManifestCount: run.documents.length,
