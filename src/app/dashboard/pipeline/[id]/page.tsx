@@ -80,7 +80,7 @@ export default async function OpportunityDetailPage({
             size="icon"
             nativeButton={false}
             render={<Link href="/dashboard/pipeline" />}
-            aria-label="Retour au pipeline"
+            aria-label="Retour au cycle de vente"
           >
             <ArrowLeft />
           </Button>

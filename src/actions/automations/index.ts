@@ -812,7 +812,7 @@ export async function simulateAutomationWorkflow(workflowId: string, subjectId: 
       where: { id: idSchema.parse(workflowId), companyId },
       select: { id: true, name: true, trigger: true, conditions: true, actions: true },
     })
-    if (!workflow) throw new Error("Workflow introuvable")
+    if (!workflow) throw new Error("Scénario introuvable")
     const parsedSubjectId = idSchema.parse(subjectId)
     if (workflow.trigger === "CUSTOMER_HEALTH_CHANGED") {
       const client = await prisma.client.findFirst({

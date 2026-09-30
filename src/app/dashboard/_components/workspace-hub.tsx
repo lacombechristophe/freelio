@@ -5,6 +5,7 @@ import { Activity, ArrowRight, ArrowUpRight, CircleAlert, CircleDashed, type Luc
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/shared/page-header"
+import { workspaceStatusLabel } from "@/lib/workspace-labels"
 
 export type WorkspaceMetric = {
   label: string
@@ -50,7 +51,7 @@ function WorkspaceDataPanel({ panel }: { panel: WorkspacePanel }) {
         const Icon = row.icon ?? Activity
         const tone = row.tone ?? "blue"
         const tones = { blue: "bg-blue-50 text-blue-600", teal: "bg-teal-50 text-teal-600", amber: "bg-amber-50 text-amber-600", red: "bg-red-50 text-red-600" }[tone]
-        return <Link key={`${row.href}-${row.title}`} href={row.href} className="workspace-row group flex items-center gap-3 px-4.5 py-2.5 transition-colors hover:bg-muted/35"><span className={`grid size-8 shrink-0 place-items-center rounded-lg ${tones}`}><Icon className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{row.title}</span><span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{row.detail}</span></span>{row.meta ? <span className="hidden max-w-32 truncate text-right text-xs text-muted-foreground sm:block">{row.meta}</span> : null}{row.status ? <Badge variant={tone === "red" ? "destructive" : "outline"} className="shrink-0">{row.status}</Badge> : null}<ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" /></Link>
+        return <Link key={`${row.href}-${row.title}`} href={row.href} className="workspace-row group flex items-center gap-3 px-4.5 py-2.5 transition-colors hover:bg-muted/35"><span className={`grid size-8 shrink-0 place-items-center rounded-lg ${tones}`}><Icon className="size-3.5" /></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{row.title}</span><span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{row.detail}</span></span>{row.meta ? <span className="hidden max-w-32 truncate text-right text-xs text-muted-foreground sm:block">{row.meta}</span> : null}{row.status ? <Badge variant={tone === "red" ? "destructive" : "outline"} className="shrink-0">{workspaceStatusLabel(row.status)}</Badge> : null}<ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" /></Link>
       })}</div> : <WorkspaceEmptyState title={panel.empty} description="Commencez depuis l’espace dédié ; les prochains éléments apparaîtront ici avec leur statut." href={panel.href} actionLabel={panel.linkLabel} compact />}
       {panel.rows.length ? <Link href={panel.href} className="workspace-link flex items-center justify-center gap-1.5 border-t text-[13px] font-semibold text-primary transition-colors hover:bg-primary/5">{panel.linkLabel}<ArrowRight className="size-3.5" /></Link> : null}
     </section>

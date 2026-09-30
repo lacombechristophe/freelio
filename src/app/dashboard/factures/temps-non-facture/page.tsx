@@ -16,7 +16,7 @@ export default async function UnbilledTimePage() {
     return (
       <OnboardingRequired
         title="Configurez votre suivi du temps"
-        description="Terminez l’onboarding pour transformer vos heures facturables en factures brouillon."
+        description="Terminez la configuration initiale pour transformer vos heures facturables en factures brouillon."
       />
     )
   }

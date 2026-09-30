@@ -18,7 +18,7 @@ const DeliveryJournal = dynamic(() => import("@/app/dashboard/automatisations/de
 const navigation: NavigationItem[] = [
   { value: "overview", label: "Vue d’ensemble", icon: LayoutDashboard },
   { value: "sequences", label: "Séquences", icon: Send },
-  { value: "workflows", label: "Workflows", icon: Workflow },
+  { value: "workflows", label: "Scénarios", icon: Workflow },
   { value: "templates", label: "Modèles", icon: FileText },
   { value: "history", label: "Journal", icon: Activity },
 ]

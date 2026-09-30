@@ -33,7 +33,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
     { label: "Fournisseur d’e-mail", ready: data.readiness.emailProviderConfigured, detail: data.readiness.channel?.emailAddress || (data.readiness.emailProviderConfigured ? "Envoi plateforme configuré" : "Aucune messagerie d’envoi active"), actionLabel: "Configurer", href: "/dashboard/communications?tab=integrations" },
     { label: "Traitement automatique", ready: data.readiness.processorConfigured, detail: data.readiness.processorConfigured ? `Dernier passage réussi ${formatAutomationDate(data.readiness.processor?.lastSucceededAt ?? null)}` : data.readiness.processor?.lastError ? `Dernier échec : ${data.readiness.processor.lastError}` : "Aucun passage automatique récent détecté", actionLabel: "Tester", onAction: () => run(async () => processSequenceEmailsNow(), "Test du moteur terminé.") },
     { label: "Contenu prêt", ready: data.templates.length > 0 && data.sequences.some((item) => item.steps.length > 0), detail: `${data.templates.length} modèle(s), ${data.sequences.reduce((sum, item) => sum + item.steps.length, 0)} étape(s) configurée(s)`, actionLabel: data.templates.length ? "Séquences" : "Créer un modèle", tab: data.templates.length ? "sequences" : "templates" },
-    { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active", actionLabel: "Workflows", tab: "workflows" },
+    { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active", actionLabel: "Scénarios", tab: "workflows" },
   ]
   const readinessReadyCount = readiness.filter((item) => item.ready).length
 

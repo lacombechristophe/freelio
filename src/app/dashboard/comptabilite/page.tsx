@@ -25,7 +25,7 @@ export default async function ComptabilitePage() {
     return (
       <OnboardingRequired
         title="Configurez votre comptabilité"
-        description="Terminez l’onboarding pour suivre votre chiffre d’affaires, votre TVA et votre trésorerie."
+        description="Terminez la configuration initiale pour suivre votre chiffre d’affaires, votre TVA et votre trésorerie."
       />
     )
   }

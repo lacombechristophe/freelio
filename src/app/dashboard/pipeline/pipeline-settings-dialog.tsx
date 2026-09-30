@@ -91,17 +91,17 @@ export function PipelineSettingsDialog({
     try {
       if (mode === "create") {
         const created = await createPipeline({ name, stages })
-        toast.success("Pipeline créé.")
+        toast.success("Cycle de vente créé.")
         onOpenChange(false)
         router.replace(`/dashboard/pipeline?pipeline=${encodeURIComponent(created.id)}`)
       } else {
         await updatePipeline(pipeline.id, { name, stages })
-        toast.success("Pipeline mis à jour.")
+        toast.success("Cycle de vente mis à jour.")
         onOpenChange(false)
         router.refresh()
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible d’enregistrer le pipeline.")
+      toast.error(error instanceof Error ? error.message : "Impossible d’enregistrer le cycle de vente.")
     } finally {
       setPending(false)
     }
@@ -111,10 +111,10 @@ export function PipelineSettingsDialog({
     setPending(true)
     try {
       await setDefaultPipeline(pipeline.id)
-      toast.success("Pipeline défini par défaut.")
+      toast.success("Cycle de vente défini par défaut.")
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de modifier le pipeline par défaut.")
+      toast.error(error instanceof Error ? error.message : "Impossible de modifier le cycle de vente par défaut.")
     } finally {
       setPending(false)
     }
@@ -122,10 +122,10 @@ export function PipelineSettingsDialog({
 
   async function removePipeline() {
     const accepted = await confirm({
-      title: "Supprimer ce pipeline ?",
+      title: "Supprimer ce cycle de vente ?",
       description: currentSummary?.opportunityCount
-        ? "Ce pipeline contient des opportunités et ne peut pas être supprimé."
-        : "Cette action supprime la configuration du pipeline. Les autres pipelines restent intacts.",
+        ? "Ce cycle de vente contient des opportunités et ne peut pas être supprimé."
+        : "Cette action supprime la configuration du cycle de vente. Les autres cycles de vente restent intacts.",
       confirmLabel: "Supprimer",
       destructive: true,
     })
@@ -133,11 +133,11 @@ export function PipelineSettingsDialog({
     setPending(true)
     try {
       const result = await deletePipeline(pipeline.id)
-      toast.success("Pipeline supprimé.")
+      toast.success("Cycle de vente supprimé.")
       onOpenChange(false)
       router.replace(`/dashboard/pipeline?pipeline=${encodeURIComponent(result.fallbackId)}`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de supprimer le pipeline.")
+      toast.error(error instanceof Error ? error.message : "Impossible de supprimer le cycle de vente.")
     } finally {
       setPending(false)
     }
@@ -153,7 +153,7 @@ export function PipelineSettingsDialog({
             <Settings2 className="size-4" />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <DialogTitle>{isCreation ? "Créer un pipeline" : "Configurer le pipeline"}</DialogTitle>
+            <DialogTitle>{isCreation ? "Créer un cycle de vente" : "Configurer le cycle de vente"}</DialogTitle>
             {!isCreation && pipeline.isDefault ? <Badge variant="secondary"><Star className="size-3 fill-current" />Par défaut</Badge> : null}
           </div>
           <DialogDescription>
@@ -164,7 +164,7 @@ export function PipelineSettingsDialog({
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div className="space-y-1.5">
-              <Label htmlFor="pipeline-name">Nom du pipeline</Label>
+              <Label htmlFor="pipeline-name">Nom du cycle de vente</Label>
               <Input
                 id="pipeline-name"
                 value={name}
@@ -243,7 +243,7 @@ export function PipelineSettingsDialog({
             <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <GitBranch className="size-4" />
-                <span><strong className="font-semibold text-foreground">{currentSummary?.opportunityCount ?? 0}</strong> opportunité(s) dans ce pipeline</span>
+                <span><strong className="font-semibold text-foreground">{currentSummary?.opportunityCount ?? 0}</strong> opportunité(s) dans ce cycle de vente</span>
               </div>
               <Button
                 type="button"
@@ -253,7 +253,7 @@ export function PipelineSettingsDialog({
                 title={currentSummary?.opportunityCount ? "Déplacez ou supprimez d’abord les opportunités" : undefined}
                 className="justify-start text-danger hover:bg-danger/10 hover:text-danger"
               >
-                <Trash2 className="size-4" />Supprimer le pipeline
+                <Trash2 className="size-4" />Supprimer le cycle de vente
               </Button>
             </div>
           ) : null}
@@ -266,7 +266,7 @@ export function PipelineSettingsDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>Annuler</Button>
           )}
           <Button type="button" onClick={saveConfiguration} disabled={pending || name.trim().length < 2 || stages.some((stage) => !stage.title.trim())}>
-            {pending ? "Enregistrement…" : isCreation ? "Créer le pipeline" : "Enregistrer"}
+            {pending ? "Enregistrement…" : isCreation ? "Créer le cycle de vente" : "Enregistrer"}
           </Button>
         </DialogFooter>
       </DialogContent>

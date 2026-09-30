@@ -264,7 +264,7 @@ export async function getOperationsCockpitData() {
       staleQuotes.length > 0 && {
         id: "quote-follow-up",
         label: `Relancer ${staleQuotes.length} devis`,
-        detail: "Pipeline à convertir",
+        detail: "Affaires à convertir",
         href: "/dashboard/devis",
         tone: "warning" as const,
       },

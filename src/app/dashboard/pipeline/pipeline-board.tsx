@@ -290,8 +290,8 @@ export function PipelineBoard({
         <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
           <div className="flex shrink-0 items-center gap-2">
             <Select value={pipeline?.id} onValueChange={(value) => value && router.replace(`/dashboard/pipeline?pipeline=${encodeURIComponent(value)}`, { scroll: false })}>
-              <SelectTrigger className="w-[230px]" aria-label="Pipeline commercial">
-                <SelectValue placeholder="Choisir un pipeline" />
+              <SelectTrigger className="w-[230px]" aria-label="Cycle de vente">
+                <SelectValue placeholder="Choisir un cycle de vente" />
               </SelectTrigger>
               <SelectContent>
                 {(pipeline?.pipelines ?? []).map((item) => (
@@ -305,7 +305,7 @@ export function PipelineBoard({
                 ))}
               </SelectContent>
             </Select>
-            <Button type="button" variant="outline" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Configurer les pipelines" title="Configurer les pipelines">
+            <Button type="button" variant="outline" size="icon" onClick={() => setSettingsOpen(true)} aria-label="Configurer les cycles de vente" title="Configurer les cycles de vente">
               <Settings2 className="size-4" />
             </Button>
           </div>
@@ -384,7 +384,7 @@ export function PipelineBoard({
           className={`${styles.viewport} flex h-full min-h-0 gap-3 overflow-x-auto focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25`}
           data-pipeline-scroll-viewport
           role="region"
-          aria-label="Étapes du pipeline"
+          aria-label="Étapes du cycle de vente"
           tabIndex={0}
         >
           {displayStages.map((stage) => {

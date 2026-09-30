@@ -28,7 +28,7 @@ const opportunityBaseSchema = z.object({
 })
 const createOpportunitySchema = opportunityBaseSchema.extend({ pipelineId: id.optional() })
 
-const pipelineNameSchema = z.string().trim().min(2, "Le nom du pipeline est requis").max(100)
+const pipelineNameSchema = z.string().trim().min(2, "Le nom du cycle de vente est requis").max(100)
 const pipelineConfigurationSchema = z.object({
   name: pipelineNameSchema,
   stages: z.unknown(),
@@ -59,7 +59,7 @@ async function ensurePipeline(companyId: string) {
   return prisma.pipeline.create({
     data: {
       companyId,
-      name: "Pipeline commercial",
+      name: "Cycle de vente",
       stages: DEFAULT_PIPELINE_STAGES,
       isDefault: true,
     },
@@ -152,7 +152,7 @@ async function assertPipelineNameAvailable(companyId: string, name: string, igno
     select: { name: true },
   })
   if (pipelines.some((pipeline) => pipeline.name.toLocaleLowerCase("fr") === name.toLocaleLowerCase("fr"))) {
-    throw new Error("Un pipeline porte déjà ce nom")
+    throw new Error("Un cycle de vente porte déjà ce nom")
   }
 }
 
@@ -164,7 +164,7 @@ export async function createPipeline(input: unknown) {
       prisma.pipeline.count({ where: { companyId } }),
       assertPipelineNameAvailable(companyId, data.name),
     ])
-    if (pipelineCount >= 20) throw new Error("La limite de 20 pipelines est atteinte")
+    if (pipelineCount >= 20) throw new Error("La limite de 20 cycles de vente est atteinte")
     const pipeline = await prisma.pipeline.create({
       data: {
         companyId,
@@ -196,7 +196,7 @@ export async function updatePipeline(pipelineId: string, input: unknown) {
       where: { id: parsedId, companyId },
       select: { id: true, name: true, stages: true },
     })
-    if (!pipeline) throw new Error("Pipeline introuvable")
+    if (!pipeline) throw new Error("Cycle de vente introuvable")
     await assertPipelineNameAvailable(companyId, data.name, pipeline.id)
 
     const nextStageIds = new Set(stages.map((stage) => stage.id))
@@ -236,7 +236,7 @@ export async function setDefaultPipeline(pipelineId: string) {
       where: { id: parsedId, companyId },
       select: { id: true, name: true, isDefault: true },
     })
-    if (!pipeline) throw new Error("Pipeline introuvable")
+    if (!pipeline) throw new Error("Cycle de vente introuvable")
     if (!pipeline.isDefault) {
       await prisma.$transaction([
         prisma.pipeline.updateMany({ where: { companyId, isDefault: true }, data: { isDefault: false } }),
@@ -264,9 +264,9 @@ export async function deletePipeline(pipelineId: string) {
       orderBy: [{ isDefault: "desc" }, { position: "asc" }, { createdAt: "asc" }],
     })
     const pipeline = pipelines.find((item) => item.id === parsedId)
-    if (!pipeline) throw new Error("Pipeline introuvable")
-    if (pipelines.length === 1) throw new Error("Le dernier pipeline ne peut pas être supprimé")
-    if (pipeline._count.opportunities > 0) throw new Error("Ce pipeline contient encore des opportunités")
+    if (!pipeline) throw new Error("Cycle de vente introuvable")
+    if (pipelines.length === 1) throw new Error("Le dernier cycle de vente ne peut pas être supprimé")
+    if (pipeline._count.opportunities > 0) throw new Error("Ce cycle de vente contient encore des opportunités")
 
     const fallback = pipelines.find((item) => item.id !== pipeline.id)!
     await prisma.$transaction([
@@ -379,7 +379,7 @@ export async function createOpportunity(input: unknown) {
     const pipeline = data.pipelineId
       ? await prisma.pipeline.findFirst({ where: { id: data.pipelineId, companyId } })
       : await ensurePipeline(companyId)
-    if (!pipeline) throw new Error("Pipeline introuvable")
+    if (!pipeline) throw new Error("Cycle de vente introuvable")
     const stages = parsePipelineStages(pipeline.stages)
     assertAllowedStatus(stages, data.status)
     await assertReferences(companyId, data.clientId, data.ownerMembershipId)

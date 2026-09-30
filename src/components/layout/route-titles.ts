@@ -29,7 +29,7 @@ const EXACT_TITLES: Record<string, string> = {
   "/dashboard/notifications": "Notifications",
   "/dashboard/operations": "Centre des opérations",
   "/dashboard/organisation": "Planning",
-  "/dashboard/pipeline": "Pipeline commercial",
+  "/dashboard/pipeline": "Cycle de vente",
   "/dashboard/projets": "Chantiers",
   "/dashboard/reports": "Rapports",
   "/dashboard/revenue": "Facturation & trésorerie",

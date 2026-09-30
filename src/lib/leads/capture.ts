@@ -162,7 +162,7 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
     }) ?? await tx.pipeline.create({
       data: {
         companyId: company.id,
-        name: "Pipeline commercial",
+        name: "Cycle de vente",
         stages: DEFAULT_PIPELINE_STAGES,
         isDefault: true,
       },

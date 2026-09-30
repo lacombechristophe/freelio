@@ -29,7 +29,7 @@ export function validatePipelineStages(value: unknown): PipelineStage[] {
     throw new Error("Chaque étape doit avoir un nom unique")
   }
   if (!stages.some((stage) => stage.id === "WON")) {
-    throw new Error("Le pipeline doit conserver l’étape système Gagné")
+    throw new Error("Le cycle de vente doit conserver l’étape système Gagné")
   }
   return stages
 }

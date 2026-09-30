@@ -140,7 +140,7 @@ export default async function PurchaseOrderDetailPage({
           href="/dashboard/operations?tab=stock"
           className="text-sm font-medium text-primary hover:underline"
         >
-          Ouvrir le workflow de réception →
+          Ouvrir le scénario de réception →
         </Link>
       </div>
       <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">

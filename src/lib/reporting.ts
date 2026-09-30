@@ -285,7 +285,7 @@ export function executiveReportRows(report: ExecutiveReport) {
   }
   if (report.access.sales) {
     add("Ventes", "Opportunités ouvertes", report.sales.openOpportunities)
-    add("Ventes", "Pipeline ouvert", report.sales.openPipelineCents / 100, "EUR")
+    add("Ventes", "Affaires en cours", report.sales.openPipelineCents / 100, "EUR")
     add("Ventes", "Taux de gain", report.sales.winRatePercent, "%")
     add("Ventes", "Taux d’acceptation des devis", report.sales.quoteAcceptancePercent, "%")
   }
