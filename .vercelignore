@@ -11,7 +11,8 @@ playwright-report/
 test-results/
 playwright/
 tmp/
-data/
+# Exclude runtime files only at the root; keep src/app/dashboard/data.
+/data/
 
 # Local tooling, drafts and repository metadata are never runtime inputs.
 .git/
