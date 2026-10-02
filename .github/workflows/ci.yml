@@ -25,6 +25,8 @@ jobs:
       - name: Construire l’image sans secrets
         run: docker build --tag freelio:ci .
       - name: Vérifier migrations, Prisma Linux, Redis, worker et PDF
+        env:
+          TMPDIR: ${{ runner.temp }}
         run: node scripts/verify-container-runtime.mjs freelio:ci
       - name: Conserver l’identité de l’image et du commit
         run: |
@@ -32,6 +34,7 @@ jobs:
           docker image inspect freelio:ci --format '{{.Id}}' > test-results/image-id.txt
           git rev-parse HEAD > test-results/tested-commit.txt
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: container-runtime-${{ github.sha }}
           path: |

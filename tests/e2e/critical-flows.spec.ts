@@ -522,6 +522,7 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await expect(page.getByText("Règles de départ installées.")).toBeVisible()
     await page.getByRole("button", { name: "Figer les scores" }).click()
     await expect(page.getByText("Scores recalculés et historisés.")).toBeVisible()
+    await page.getByRole("textbox", { name: "Rechercher un client du portefeuille" }).fill("Client QA Piscine")
     const clientHealth = page.locator("details").filter({ hasText: "Client QA Piscine" }).first()
     await clientHealth.locator("summary").click()
     await clientHealth.getByLabel("Date de renouvellement").fill("2026-11-15")
@@ -562,6 +563,7 @@ test("service records connect the help desk, conversation, ticket, intervention 
   // The desktop field workflow can resolve this seeded ticket before the mobile project starts.
   // Use the complete queue so the record-chain test is deterministic across both projects.
   await assertHealthy(page, "/dashboard/service/customer-success", "Portefeuille clients")
+  await page.getByRole("textbox", { name: "Rechercher un client du portefeuille" }).fill("Client QA Piscine")
   await expect(page.getByText("Client QA Piscine")).toBeVisible()
   await assertHealthy(page, "/dashboard/service/help-desk?status=ALL", "Centre de support")
   await page.getByRole("link", { name: /SAV-2026-900/ }).click()
