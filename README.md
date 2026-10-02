@@ -92,6 +92,7 @@ Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dé
 ## Documentation et collaboration
 
 - [Plan de préparation à la revue CTO](docs/plan-vitrine-cto-20260930.md)
+- [Audit et plan de complétude fonctionnelle — 2 octobre 2026](docs/plan-completude-fonctionnelle-20261002.md)
 - [État d’exécution et preuves](docs/execution-cto-20261001.md)
 - [Architecture métier](docs/architecture-domain-boundaries.md)
 - [Décisions techniques et limites](docs/decisions-techniques.md)
