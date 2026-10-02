@@ -12,7 +12,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/dashboa
   ])
 
   return (
-    <div className="flex h-[calc(100dvh-128px)] flex-col space-y-6">
+    <div className="flex flex-col space-y-6 sm:h-[calc(100dvh-128px)]">
       <PageHeader
         eyebrow="Développement commercial"
         title="Cycle de vente"

@@ -34,7 +34,7 @@ export async function getExpenses(cursor?: string, limit = 50) {
       },
       orderBy: { date: "desc" },
     })
-  })
+  }, "finance.read")
 }
 
 export async function createExpense(data: unknown) {
@@ -67,7 +67,7 @@ export async function createExpense(data: unknown) {
     })
     revalidatePath("/dashboard/depenses")
     return expense
-  })
+  }, "finance.write")
 }
 
 export async function updateExpense(id: string, data: unknown) {
@@ -101,7 +101,7 @@ export async function updateExpense(id: string, data: unknown) {
     })
     revalidatePath("/dashboard/depenses")
     return expense
-  })
+  }, "finance.write")
 }
 
 export async function deleteExpense(id: string) {
@@ -123,7 +123,7 @@ export async function deleteExpense(id: string) {
     })
     revalidatePath("/dashboard/depenses")
     return { ok: true }
-  })
+  }, "finance.write")
 }
 
 export async function markExpenseJustified(id: string) {
@@ -133,5 +133,5 @@ export async function markExpenseJustified(id: string) {
     await prisma.expense.update({ where: { id }, data: { status: "JUSTIFIED" } })
     revalidatePath("/dashboard/depenses")
     return { ok: true }
-  })
+  }, "finance.write")
 }

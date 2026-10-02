@@ -20,7 +20,6 @@ export async function exportUserData() {
         image: true,
         createdAt: true,
         updatedAt: true,
-        aiUsageCount: true,
         company: {
           include: {
             clients: { include: { contacts: true, projects: true } },

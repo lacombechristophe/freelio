@@ -79,15 +79,15 @@ export default function HelpPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-foreground text-background">
+        <Card className="bg-card">
           <CardHeader>
-            <span className="grid size-10 place-items-center rounded-[10px] bg-background/10 text-background"><CircleHelp className="size-5" /></span>
-            <CardTitle className="mt-3 text-background">Une question précise ?</CardTitle>
-            <CardDescription className="text-background/65">Décrivez le document, le statut concerné et le résultat attendu. Le support pourra vous répondre plus vite.</CardDescription>
+            <span className="grid size-10 place-items-center rounded-lg bg-muted text-muted-foreground"><CircleHelp className="size-5" /></span>
+            <CardTitle className="mt-3">Une question précise ?</CardTitle>
+            <CardDescription className="text-muted-foreground">Décrivez le document, le statut concerné et le résultat attendu. Le support pourra vous répondre plus vite.</CardDescription>
           </CardHeader>
           <CardContent className="mt-auto space-y-3">
-            {supportEmail ? <a href={`mailto:${supportEmail}`} className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2 bg-white text-[#101828] hover:bg-white/90")}><Mail />{supportEmail}</a> : <Link href="/dashboard/settings" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2 bg-white text-[#101828] hover:bg-white/90")}><Settings2 />Vérifier la configuration</Link>}
-            <p className="text-center text-xs text-background/55">Canal de support défini par l’administrateur</p>
+            {supportEmail ? <a href={`mailto:${supportEmail}`} className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2")}><Mail />{supportEmail}</a> : <Link href="/dashboard/settings" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "w-full gap-2")}><Settings2 />Vérifier la configuration</Link>}
+            <p className="text-center text-xs text-muted-foreground">Canal de support défini par l’administrateur</p>
           </CardContent>
         </Card>
       </div>

@@ -1,5 +1,6 @@
 import { buildBackupPayload } from "@/lib/backup"
 import { withRouteAuth } from "@/lib/route-auth"
+import { jsonResponseStream } from "@/lib/json-stream"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -12,17 +13,7 @@ function backupFilename() {
 export async function GET() {
   return withRouteAuth("company.manage", async ({ userId, companyId }) => {
     const payload = await buildBackupPayload(userId, companyId)
-    const json = JSON.stringify(payload)
-    const bytes = new TextEncoder().encode(json)
-    const chunkSize = 64 * 1024
-    const body = new ReadableStream<Uint8Array>({
-      start(controller) {
-        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-          controller.enqueue(bytes.subarray(offset, offset + chunkSize))
-        }
-        controller.close()
-      },
-    })
+    const body = jsonResponseStream(payload)
     return new Response(body, {
       headers: {
         "content-type": "application/json; charset=utf-8",

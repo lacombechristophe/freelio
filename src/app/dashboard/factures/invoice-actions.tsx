@@ -134,12 +134,12 @@ export function InvoiceActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {status === "DRAFT" && (
-            <DropdownMenuItem onClick={() => changeStatus("SENT")} className="gap-2">
+            <DropdownMenuItem demoMutation onClick={() => changeStatus("SENT")} className="gap-2">
               <Send className="h-4 w-4" /> Émettre (marquer envoyée)
             </DropdownMenuItem>
           )}
           {unpaidCents > 0 && status !== "CANCELLED" && (
-            <DropdownMenuItem onClick={() => setPaymentOpen(true)} className="gap-2 text-success">
+            <DropdownMenuItem demoMutation onClick={() => setPaymentOpen(true)} className="gap-2 text-success">
               <Receipt className="h-4 w-4" /> Enregistrer paiement
             </DropdownMenuItem>
           )}
@@ -149,20 +149,20 @@ export function InvoiceActions({
             </DropdownMenuItem>
           )}
           {type !== "CREDIT_NOTE" && ["SENT", "OVERDUE", "PAID"].includes(status) && (
-            <DropdownMenuItem onClick={() => setCreditOpen(true)} className="gap-2">
+            <DropdownMenuItem demoMutation onClick={() => setCreditOpen(true)} className="gap-2">
               <RotateCcw className="h-4 w-4" /> Créer un avoir
             </DropdownMenuItem>
           )}
           {status === "DRAFT" && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleDelete} className="gap-2 text-danger">
+              <DropdownMenuItem demoMutation onClick={handleDelete} className="gap-2 text-danger">
                 <Trash2 className="h-4 w-4" /> Supprimer
               </DropdownMenuItem>
             </>
           )}
           {status === "SENT" && unpaidCents === 0 && (
-            <DropdownMenuItem onClick={() => changeStatus("PAID")} className="gap-2 text-success">
+            <DropdownMenuItem demoMutation onClick={() => changeStatus("PAID")} className="gap-2 text-success">
               <CheckCircle2 className="h-4 w-4" /> Marquer comme payée
             </DropdownMenuItem>
           )}
@@ -189,7 +189,7 @@ export function InvoiceActions({
               <textarea id="creditReason" value={creditReason} onChange={(event) => setCreditReason(event.target.value)} className="min-h-24 w-full rounded-lg border bg-background p-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50" />
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setCreditOpen(false)}>Annuler</Button><Button onClick={handleCredit} disabled={pending || creditAmount <= 0 || creditReason.trim().length < 3}>Créer et émettre</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setCreditOpen(false)}>Annuler</Button><Button demoMutation onClick={handleCredit} disabled={pending || creditAmount <= 0 || creditReason.trim().length < 3}>Créer et émettre</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

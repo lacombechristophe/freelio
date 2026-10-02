@@ -35,6 +35,7 @@ import {
   WorkflowStory,
 } from "@/components/marketing/marketing-motion"
 import { cn } from "@/lib/utils"
+import { DEMO_ENTRY_LABEL, isDemoMode, isReadOnlyDemo } from "@/lib/demo-mode"
 
 const shell = "mx-auto w-full max-w-[1380px] px-5 sm:px-8 lg:px-10"
 
@@ -51,7 +52,7 @@ const pricingPlans = [
     name: "Alpha",
     price: "0 €",
     cadence: "pendant la phase privée",
-    description: "Pour tester Freelio sur vos dossiers piscine réels et participer à la construction du produit.",
+    description: isDemoMode ? "Pour explorer Freelio avec des dossiers piscine fictifs et découvrir le fonctionnement du produit." : "Pour tester Freelio sur vos dossiers piscine réels et participer à la construction du produit.",
     cta: "Rejoindre l’alpha",
     href: "/auth/login",
     features: ["Prospects et clients", "Devis et factures", "Chantiers et SAV", "Support produit direct"],
@@ -136,7 +137,7 @@ function Header() {
         <div className="hidden items-center gap-3 md:flex">
           <Link href="/auth/login" className="flex min-h-11 items-center rounded-md px-2 text-sm font-medium text-freelio-muted transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-4">Se connecter</Link>
           <Link href="/auth/login" className="group inline-flex h-11 items-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white shadow-[0_2px_6px_rgba(11,99,246,0.2)] transition-[background-color,transform,box-shadow] hover:bg-freelio-accent-hover hover:shadow-[0_4px_8px_rgba(11,99,246,0.22)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2">
-            Essayer gratuitement
+            {DEMO_ENTRY_LABEL}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -178,7 +179,7 @@ function Hero() {
         <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-freelio-muted sm:text-lg sm:leading-8">Prospects, devis, chantiers, stocks, SAV, entretien et trésorerie avancent dans un seul dossier client.</p>
 
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-          <PrimaryLink href="/auth/login">Essayer gratuitement</PrimaryLink>
+          <PrimaryLink href="/auth/login">{DEMO_ENTRY_LABEL}</PrimaryLink>
           <SecondaryLink href="#workflow">Voir comment ça marche</SecondaryLink>
         </div>
         <p className="mt-4 flex items-center justify-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire · Données exportables · Factur-X vérifiable</p>
@@ -489,7 +490,7 @@ function FinalCTA() {
   const steps = [
     { icon: BadgeCheck, label: "Prospect qualifié", detail: "Famille Martin · Visite technique réalisée", value: "Terminé", done: true },
     { icon: FileCheck2, label: "Devis accepté", detail: "DEV-2026-024 · 28 900 € HT", value: "Signé", done: true },
-    { icon: ReceiptText, label: "Acompte Factur-X", detail: "FAC-2026-041 · Prêt à émettre", value: "À envoyer", done: false },
+    { icon: ReceiptText, label: "Acompte Factur-X", detail: isDemoMode ? "FAC-2026-041 · Exemple à vérifier" : "FAC-2026-041 · Prêt à émettre", value: "À envoyer", done: false },
   ]
 
   return (
@@ -500,10 +501,10 @@ function FinalCTA() {
             <div className="relative overflow-hidden bg-freelio-accent px-6 py-10 text-white sm:px-10 sm:py-12 lg:px-12 lg:py-14">
               <div aria-hidden className="absolute inset-x-0 top-8 border-t border-white/15" />
               <div className="relative flex items-center gap-2 text-[10px] font-semibold uppercase text-white/70"><span className="size-1.5 rounded-full bg-white shadow-[0_0_0_4px_rgba(255,255,255,0.14)]" />Alpha privée · Accès ouvert</div>
-              <h2 className="marketing-display relative mt-7 max-w-xl text-[42px] font-semibold leading-[1.02] sm:text-[54px]">Commencez avec un chantier réel.</h2>
+              <h2 className="marketing-display relative mt-7 max-w-xl text-[42px] font-semibold leading-[1.02] sm:text-[54px]">{isDemoMode ? "Explorez un chantier fictif." : "Commencez avec un chantier réel."}</h2>
               <p className="relative mt-5 max-w-lg text-base leading-7 text-white/75">Importez un prospect, créez son devis et suivez le chantier, la pose et le paiement dans un même fil.</p>
               <div className="relative mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link href="/auth/login" className="group inline-flex h-12 items-center justify-center gap-3 rounded-md bg-white px-5 text-sm font-semibold text-freelio-ink shadow-[0_2px_6px_rgba(16,24,40,0.12)] transition-[background-color,transform,box-shadow] hover:bg-freelio-surface-2 hover:shadow-[0_4px_8px_rgba(16,24,40,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-freelio-accent">Créer mon espace<ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
+                <Link href="/auth/login" className="group inline-flex h-12 items-center justify-center gap-3 rounded-md bg-white px-5 text-sm font-semibold text-freelio-ink shadow-[0_2px_6px_rgba(16,24,40,0.12)] transition-[background-color,transform,box-shadow] hover:bg-freelio-surface-2 hover:shadow-[0_4px_8px_rgba(16,24,40,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-freelio-accent">{isReadOnlyDemo ? "Ouvrir la démonstration" : "Créer mon espace"}<ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
                 <Link href="/fonctionnalites" className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Voir le produit<ChevronRight className="size-4" /></Link>
               </div>
               <p className="relative mt-8 flex items-center gap-2 text-xs text-white/65"><ShieldCheck className="size-4" />Sans carte bancaire · Données exportables à tout moment</p>
@@ -676,7 +677,7 @@ function PublicPageHero({ eyebrow, title, text, icon: Icon, variant, secondaryHr
       <div className={cn(shell, "relative z-10")}>
         <div className="grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-12">
           <HeroIntroMotion className="lg:col-span-8"><div className="flex items-center gap-2 text-xs font-semibold text-freelio-accent"><span className="grid size-8 place-items-center rounded-md bg-freelio-accent-soft"><Icon className="size-4" /></span>{eyebrow}</div><h1 className="marketing-display mt-6 max-w-5xl text-[46px] font-bold leading-[0.98] text-freelio-ink sm:text-[66px]">{title}</h1></HeroIntroMotion>
-          <HeroIntroMotion className="lg:col-span-4" delay={0.14}><p className="max-w-lg text-base leading-7 text-freelio-muted">{text}</p><div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row"><PrimaryLink href="/auth/login">Essayer gratuitement</PrimaryLink><SecondaryLink href={secondaryHref}>{secondaryLabel}</SecondaryLink></div><p className="mt-4 flex items-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire pendant l’alpha.</p></HeroIntroMotion>
+          <HeroIntroMotion className="lg:col-span-4" delay={0.14}><p className="max-w-lg text-base leading-7 text-freelio-muted">{text}</p><div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row"><PrimaryLink href="/auth/login">{DEMO_ENTRY_LABEL}</PrimaryLink><SecondaryLink href={secondaryHref}>{secondaryLabel}</SecondaryLink></div><p className="mt-4 flex items-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire pendant l’alpha.</p></HeroIntroMotion>
         </div>
         <div className="mt-8 sm:mt-12"><RouteHeroVisual variant={variant} /></div>
       </div>

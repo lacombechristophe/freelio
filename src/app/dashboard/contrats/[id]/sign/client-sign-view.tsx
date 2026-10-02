@@ -182,7 +182,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       {/* Scrollable contract viewer */}
       <div className="lg:col-span-7 space-y-4">
-        <Card className="bg-card/40 backdrop-blur-xs border border-border">
+        <Card className="border border-border bg-card">
           <CardHeader className="pb-3 border-b border-border/40">
             <div className="flex items-center justify-between">
               <span className="font-mono text-xs font-bold text-primary">{contract.number}</span>

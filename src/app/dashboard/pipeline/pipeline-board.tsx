@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Euro, Target, UserRound, Settings2, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -232,12 +233,24 @@ export function PipelineBoard({
   clients: Array<{ id: string; name: string }>
 }) {
   const router = useRouter()
+  const params = useSearchParams()
   const confirmDialog = useConfirm()
   const stages = Array.isArray(pipeline?.stages)
     ? (pipeline.stages as Array<{ id: string; title: string }>)
     : []
   const displayStages = stages.some((stage) => stage.id === "LOST") ? stages : [...stages, { id: "LOST", title: "Perdu" }]
-  const opportunities = pipeline?.opportunities ?? []
+  const search = params.get("search") ?? ""
+  const owner = params.get("owner") ?? "ALL"
+  const mobileStage = displayStages.find((stage) => stage.id === params.get("stage"))?.id ?? displayStages[0]?.id
+  function updateView(key: string, value: string) {
+    const url = new URL(window.location.href)
+    if (value) url.searchParams.set(key, value)
+    else url.searchParams.delete(key)
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`)
+  }
+  const opportunities = (pipeline?.opportunities ?? []).filter((item) =>
+    `${item.title} ${item.client.name}`.toLocaleLowerCase("fr").includes(search.trim().toLocaleLowerCase("fr"))
+    && (owner === "ALL" || (owner === "UNASSIGNED" ? !item.ownerMembershipId && !item.ownerName : item.ownerMembershipId === owner)))
   const members = pipeline?.members ?? []
 
   const [createOpen, setCreateOpen] = React.useState(false)
@@ -286,7 +299,7 @@ export function PipelineBoard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col space-y-4">
-      <div className="flex shrink-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
           <div className="flex shrink-0 items-center gap-2">
             <Select value={pipeline?.id} onValueChange={(value) => value && router.replace(`/dashboard/pipeline?pipeline=${encodeURIComponent(value)}`, { scroll: false })}>
@@ -311,15 +324,15 @@ export function PipelineBoard({
           </div>
           <div className="hidden h-8 w-px bg-border xl:block" />
           <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm">
-            <div><span className="text-muted-foreground">Ouvert</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(totalValue)}</span></div>
-            <div><span className="text-muted-foreground">Pondéré</span><span className="ml-2 font-mono font-semibold tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
-            <div><span className="text-muted-foreground">Prévu ce mois</span><span className="ml-2 font-mono font-semibold tabular-nums">{formatEuro(currentMonthForecast)}</span></div>
-            <div><span className="text-muted-foreground">Sans responsable</span><span className={`ml-2 font-mono font-semibold tabular-nums ${unassigned ? "text-warning" : ""}`}>{unassigned}</span></div>
+            <div><span className="text-muted-foreground">Ouvert</span><span className="ml-2 font-medium tabular-nums">{formatEuro(totalValue)}</span></div>
+            <div><span className="text-muted-foreground">Pondéré</span><span className="ml-2 font-medium tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
+            <div><span className="text-muted-foreground">Prévu ce mois</span><span className="ml-2 font-medium tabular-nums">{formatEuro(currentMonthForecast)}</span></div>
+            <div><span className="text-muted-foreground">Sans responsable</span><span className={`ml-2 font-medium tabular-nums ${unassigned ? "text-warning" : ""}`}>{unassigned}</span></div>
           </div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
           <div
-            className={`flex shrink-0 items-center gap-1 transition-opacity duration-150 ${hasOverflow ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            className={`hidden shrink-0 items-center gap-1 transition-opacity duration-150 sm:flex ${hasOverflow ? "opacity-100" : "pointer-events-none opacity-0"}`}
             aria-hidden={!hasOverflow}
           >
             <Button
@@ -345,10 +358,18 @@ export function PipelineBoard({
               <ChevronRight className="size-4" />
             </Button>
           </div>
-          <Button className="min-w-[190px] flex-1 gap-2 sm:flex-none" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> Nouvelle Opportunité
+          <Button demoMutation className="min-w-[190px] flex-1 gap-2 sm:flex-none" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> Nouvelle opportunité
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2" aria-label="Filtres du cycle de vente">
+        <Input aria-label="Rechercher une opportunité" placeholder="Rechercher une affaire ou un client…" value={search} onChange={(event) => updateView("search", event.target.value)} className="min-w-0 sm:max-w-sm" />
+        <Select value={owner} onValueChange={(value) => updateView("owner", value ?? "ALL")}><SelectTrigger aria-label="Responsable des opportunités" className="sm:w-56"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">Tous les responsables</SelectItem><SelectItem value="UNASSIGNED">Non attribuées</SelectItem>{members.map((member) => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}</SelectContent></Select>
+        <div className="w-full sm:hidden"><Select value={mobileStage} onValueChange={(value) => value && updateView("stage", value)}><SelectTrigger aria-label="Étape affichée"><SelectValue /></SelectTrigger><SelectContent>{displayStages.map((stage) => <SelectItem key={stage.id} value={stage.id}>{stage.title} ({opportunities.filter((item) => item.status === stage.id).length})</SelectItem>)}</SelectContent></Select></div>
+        {(search || owner !== "ALL") && <Button variant="ghost" onClick={() => { updateView("search", ""); updateView("owner", "") }}>Réinitialiser les filtres</Button>}
+        <p role="status" className="flex items-center text-sm text-muted-foreground">{opportunities.length} affaire(s) · montants du périmètre filtré</p>
       </div>
 
       <OpportunityFormDialog
@@ -392,7 +413,7 @@ export function PipelineBoard({
             const stageValue = deals.reduce((sum, o) => sum + o.valueCents, 0)
 
             return (
-              <section key={stage.id} className="flex w-[300px] flex-shrink-0 flex-col gap-3 rounded-xl border border-border bg-muted/45 p-3">
+              <section key={stage.id} aria-label={stage.title} className={`${stage.id === mobileStage ? "flex" : "hidden sm:flex"} w-full sm:w-[300px] flex-shrink-0 flex-col gap-3 rounded-lg bg-muted/70 p-3`}>
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm">{stage.title}</span>
@@ -403,12 +424,12 @@ export function PipelineBoard({
 
               <div className="flex flex-1 flex-col gap-2">
                 {deals.length === 0 ? (
-                  <button type="button" onClick={() => setCreateOpen(true)} className="flex min-h-28 flex-col items-center justify-center rounded-[10px] border border-dashed border-border bg-card/55 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/35 hover:bg-card hover:text-primary">
+                  <button type="button" onClick={() => setCreateOpen(true)} className="flex min-h-16 flex-col items-center justify-center rounded-md border border-dashed border-border bg-card/55 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/35 hover:bg-card hover:text-primary">
                     <Plus className="mb-2 size-4" />Ajouter une opportunité
                   </button>
                 ) : (
                   deals.map((deal) => (
-                    <Card key={deal.id} className="py-0 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-[0_8px_20px_rgba(16,24,40,0.07)]">
+                    <Card key={deal.id} className="py-0 transition-colors hover:border-input">
                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-start justify-between gap-1">
                           <Link className="inline-flex min-h-6 items-center text-sm font-semibold leading-tight hover:text-primary hover:underline" href={`/dashboard/pipeline/${deal.id}`}>
@@ -424,14 +445,14 @@ export function PipelineBoard({
                               <DropdownMenuItem render={<Link href={`/dashboard/pipeline/${deal.id}`} />}>Ouvrir le dossier</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setEditTarget(deal)}>Éditer</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {displayStages.map((s) => s.id !== deal.status && (
+                              {displayStages.map((s) => s.id !== deal.status && s.id !== "LOST" && (
                                 <DropdownMenuItem key={s.id} onClick={() => moveToStage(deal.id, s.id)}>
                                   Déplacer → {s.title}
                                 </DropdownMenuItem>
                               ))}
                               <DropdownMenuSeparator />
                               {deal.status !== "LOST" ? <DropdownMenuItem className="text-danger" onClick={() => setEditTarget({ ...deal, status: "LOST" })}>Marquer perdu avec un motif</DropdownMenuItem> : null}
-                              <DropdownMenuItem className="text-danger" onClick={() => handleDelete(deal.id)}>
+                              <DropdownMenuItem demoMutation className="text-danger" onClick={() => handleDelete(deal.id)}>
                                 Supprimer
                               </DropdownMenuItem>
                             </DropdownMenuContent>

@@ -55,6 +55,14 @@ type CalculationOptions = {
   taxEnabled?: boolean
 }
 
+export const MAX_COMMERCIAL_CENTS = 2_147_483_647
+function assertStoredCents(value: number) {
+  if (!Number.isSafeInteger(value) || Math.abs(value) > MAX_COMMERCIAL_CENTS) {
+    throw new RangeError("Le montant calculé dépasse la capacité de stockage en centimes")
+  }
+  return value
+}
+
 function assertFinite(name: string, value: number) {
   if (!Number.isFinite(value)) throw new RangeError(`${name} doit être un nombre fini`)
 }
@@ -67,6 +75,7 @@ function assertLine(line: CommercialLineInput, index: number) {
   if (!Number.isSafeInteger(line.unitPriceCents) || line.unitPriceCents < 0) {
     throw new RangeError(`Le prix de la ligne ${index + 1} doit être un entier positif en centimes`)
   }
+  assertStoredCents(line.unitPriceCents)
   if (line.tvaRate < 0 || line.tvaRate > 100) {
     throw new RangeError(`Le taux de TVA de la ligne ${index + 1} doit être compris entre 0 et 100`)
   }
@@ -76,6 +85,7 @@ function assertLine(line: CommercialLineInput, index: number) {
     throw new RangeError(`La remise de la ligne ${index + 1} doit être comprise entre 0 et 100`)
   }
   if (line.unitCostCents != null) {
+    assertStoredCents(line.unitCostCents)
     if (!Number.isSafeInteger(line.unitCostCents) || line.unitCostCents < 0) {
       throw new RangeError(`Le coût de la ligne ${index + 1} doit être un entier positif en centimes`)
     }
@@ -90,14 +100,15 @@ function allocateProportionally(amountCents: number, weights: number[]) {
   if (totalWeight === 0) return allocation
 
   const shares = weights.map((weight, index) => {
-    const exact = amountCents * Math.max(0, weight) / totalWeight
-    const cents = Math.floor(exact)
+    const numerator = BigInt(amountCents) * BigInt(Math.max(0, weight))
+    const denominator = BigInt(totalWeight)
+    const cents = Number(numerator / denominator)
     allocation[index] = cents
-    return { index, remainder: exact - cents }
+    return { index, remainder: numerator % denominator }
   })
   let remaining = amountCents - allocation.reduce((sum, value) => sum + value, 0)
 
-  shares.sort((left, right) => right.remainder - left.remainder || left.index - right.index)
+  shares.sort((left, right) => left.remainder === right.remainder ? left.index - right.index : left.remainder > right.remainder ? -1 : 1)
   for (let index = 0; index < shares.length && remaining > 0; index += 1) {
     allocation[shares[index].index] += 1
     remaining -= 1
@@ -106,6 +117,7 @@ function allocateProportionally(amountCents: number, weights: number[]) {
 }
 
 export function applyPercentageDiscount(amountCents: number, rate: number) {
+  assertStoredCents(amountCents)
   if (!Number.isSafeInteger(amountCents) || amountCents < 0) {
     throw new RangeError("Le montant doit être un entier positif en centimes")
   }
@@ -125,12 +137,14 @@ export function calculateCommercialDocument(
   }
 
   inputLines.forEach(assertLine)
-  const grossLines = inputLines.map((line) => Math.round(line.quantity * line.unitPriceCents))
+  const grossLines = inputLines.map((line) => assertStoredCents(Math.round(line.quantity * line.unitPriceCents)))
   const effectiveUnitPrices = inputLines.map((line) => applyPercentageDiscount(line.unitPriceCents, line.lineDiscountRate ?? 0))
   const netBeforeGlobalDiscountLines = inputLines.map((line, index) => Math.round(line.quantity * effectiveUnitPrices[index]))
   const grossHtCents = grossLines.reduce((sum, amount) => sum + amount, 0)
   const lineDiscountCents = grossLines.reduce((sum, amount, index) => sum + amount - netBeforeGlobalDiscountLines[index], 0)
   const netBeforeGlobalDiscountCents = netBeforeGlobalDiscountLines.reduce((sum, amount) => sum + amount, 0)
+  assertStoredCents(grossHtCents)
+  assertStoredCents(netBeforeGlobalDiscountCents)
   const globalDiscountCents = Math.round(netBeforeGlobalDiscountCents * globalDiscountRate / 100)
   const discountShares = allocateProportionally(globalDiscountCents, netBeforeGlobalDiscountLines)
 
@@ -141,6 +155,8 @@ export function calculateCommercialDocument(
     const costCents = line.unitCostCents == null
       ? null
       : Math.round(line.quantity * line.unitCostCents)
+    assertStoredCents(netHtCents + tvaCents)
+    if (costCents != null) assertStoredCents(costCents)
 
     return {
       ...line,
@@ -182,6 +198,7 @@ export function calculateCommercialDocument(
   const totalTvaCents = lines.reduce((sum, line) => sum + line.tvaCents, 0)
   const knownCostCents = lines.reduce((sum, line) => sum + (line.costCents ?? 0), 0)
   const knownMarginCents = lines.reduce((sum, line) => sum + (line.marginCents ?? 0), 0)
+  for (const amount of [totalHtCents, totalTvaCents, totalHtCents + totalTvaCents, knownCostCents, knownMarginCents]) assertStoredCents(amount)
 
   return {
     grossHtCents,

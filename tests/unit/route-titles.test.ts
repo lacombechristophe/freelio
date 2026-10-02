@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest"
 import { documentTitleForPath, titleForPath } from "@/components/layout/route-titles"
 
 describe("dashboard document titles", () => {
+  it("keeps truncated titles stable after browser whitespace normalization", () => {
+    const heading = "ZZZ Recette 124 — Entreprise de construction et maintenance des équipements aquatiques"
+    const title = documentTitleForPath("/dashboard/clients/client-1", heading)
+    expect(title).toBe(title.replace(/\s+/g, " ").trim())
+    expect(title).toContain("maintenance des · Fiche client")
+  })
   it("returns the dedicated title for a static route", () => {
     expect(titleForPath("/dashboard/automatisations")).toBe("Automatisations & e-mails")
   })

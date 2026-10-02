@@ -26,6 +26,7 @@ import { formatCentsToEuro } from "@/lib/billing"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/shared/page-header"
 import { EmptyState as GuidedEmptyState } from "@/components/shared/empty-state"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 
 export const revalidate = 60
 
@@ -94,7 +95,7 @@ export default async function DashboardPage() {
         className="workspace-page-header"
         eyebrow="Cockpit du jour"
         title="Vue d’ensemble"
-        description={`Bonjour ${session?.user?.name?.split(" ")[0] ?? ""} 👋 Voici les priorités, les montants et les risques qui demandent une décision aujourd’hui.`}
+        description={`Bonjour ${session?.user?.name?.split(" ")[0] ?? ""}. Retrouvez vos priorités et suivez votre activité.`}
         actions={
           <>
           <Link href="/dashboard/organisation">
@@ -103,15 +104,15 @@ export default async function DashboardPage() {
               Organiser
             </Button>
           </Link>
-          <a href="/api/backup/export" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+          {isReadOnlyDemo ? <Button demoMutation variant="outline" className="gap-2"><Download className="h-4 w-4" />Export de réversibilité</Button> : <a href="/api/backup/export" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
             <Download className="h-4 w-4" />
             Export de réversibilité
-          </a>
+          </a>}
           </>
         }
       />
 
-      <div className="workspace-metrics grid gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4">
+      <div className="workspace-metrics grid overflow-hidden rounded-lg border bg-card gap-px min-[380px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Euro}
           label="CA encaissé"
@@ -153,22 +154,22 @@ export default async function DashboardPage() {
           <CardContent className="pt-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Interventions à suivre</p>
+                <p className="text-xs font-medium text-muted-foreground">Interventions à suivre</p>
                 <div className="flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-primary" />
                   <span className="text-lg font-bold tabular-nums">{stats.upcomingInterventionsCount}</span>
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Alertes de stock</p>
+                <p className="text-xs font-medium text-muted-foreground">Alertes de stock</p>
                 <p className={cn("text-lg font-bold tabular-nums", stats.lowStockCount ? "text-danger" : "text-success")}>{stats.lowStockCount}</p>
               </div>
               <div className="space-y-1 border-t pt-4 sm:border-t">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Projets actifs</p>
+                <p className="text-xs font-medium text-muted-foreground">Projets actifs</p>
                 <p className="text-lg font-bold tabular-nums">{stats.activeProjectsCount}</p>
               </div>
               <div className="space-y-1 border-t pt-4 sm:text-right">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Marge directe {stats.currentYear}</p>
+                <p className="text-xs font-medium text-muted-foreground">Marge directe {stats.currentYear}</p>
                 <p className={cn("text-lg font-bold tabular-nums", stats.directMarginCents >= 0 ? "text-success" : "text-danger")}>{formatCentsToEuro(stats.directMarginCents)}</p>
               </div>
             </div>
@@ -180,7 +181,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Notifications</CardTitle>
               <Link href="/dashboard/notifications">
-                <Button variant="ghost" size="sm" className="text-xs font-bold uppercase tracking-wider text-primary">
+                <Button variant="ghost" size="sm" className="text-xs font-medium text-primary">
                   Tout voir
                 </Button>
               </Link>
@@ -197,7 +198,7 @@ export default async function DashboardPage() {
                     <div className="min-w-0 flex-1 space-y-1">
                       <p className="truncate text-sm font-bold leading-none">{notification.title}</p>
                       <p className="line-clamp-1 text-xs text-muted-foreground">{notification.message}</p>
-                      <p className="text-xs font-bold uppercase tracking-tight text-muted-foreground">
+                      <p className="text-xs font-medium text-muted-foreground">
                         {new Date(notification.createdAt).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
@@ -217,11 +218,11 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-4 border-t border-border/80 pt-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <h2 className="text-lg font-bold">Actions rapides</h2>
-          <p className="text-sm text-muted-foreground">Créer une opportunité commerciale ou transformer du travail en cash.</p>
+          <p className="text-sm text-muted-foreground">Préparez un devis ou facturez le travail réalisé.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/dashboard/devis/new">
-            <Button variant="outline" className="gap-2">
+            <Button demoMutation variant="outline" className="gap-2">
               <FileText className="h-4 w-4" />
               Nouveau devis
             </Button>
@@ -233,7 +234,7 @@ export default async function DashboardPage() {
             </Button>
           </Link>
           <Link href="/dashboard/factures/new">
-            <Button className="gap-2">
+            <Button demoMutation className="gap-2">
               <Receipt className="h-4 w-4" />
               Créer facture
             </Button>
@@ -257,26 +258,17 @@ function MetricCard({
   detail: string
   tone: "primary" | "success" | "danger" | "warning" | "neutral"
 }) {
-  const toneClass = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-success/10 text-success",
-    danger: "bg-danger/10 text-danger",
-    warning: "bg-warning/10 text-warning",
-    neutral: "bg-muted text-muted-foreground",
-  }[tone]
-
   return (
-    <Card className="workspace-metric min-h-[128px] bg-card">
+    <Card className="workspace-metric min-h-[112px] rounded-none border-0 bg-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
         <CardTitle className="text-[13px] font-medium text-foreground/85">{label}</CardTitle>
-        <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", toneClass)}>
+        <div className={cn("flex size-5 items-center justify-center", tone === "danger" ? "text-danger" : "text-muted-foreground")}>
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
       <CardContent>
         <div className="text-[25px] font-semibold leading-none tracking-[-0.02em] tabular-nums">{value}</div>
-        <div className="mt-5 flex items-center gap-2 border-t pt-2.5">
-          <span className={cn("size-1.5 rounded-full", tone === "danger" ? "bg-danger" : tone === "warning" ? "bg-warning" : "bg-success")} />
+        <div className="mt-3 flex items-center gap-2">
           <p className="truncate text-xs text-muted-foreground">{detail}</p>
         </div>
       </CardContent>
@@ -307,11 +299,11 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
         <CardContent className="grid gap-6 pt-4 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorités</h2>
+              <h2 className="text-xs font-medium text-muted-foreground">Priorités</h2>
               <span className="text-xs text-muted-foreground">{cockpit.today.tasks.length} ouverte(s)</span>
             </div>
             {cockpit.today.tasks.length === 0 ? (
-              <EmptyState text="Aucune priorité aujourd'hui. Tu peux planifier ta journée depuis Organisation." />
+              <EmptyState text="Aucune priorité aujourd’hui. Planifiez votre journée depuis Organisation." />
             ) : (
             <div className="divide-y overflow-hidden rounded-lg border">
               {cockpit.today.tasks.slice(0, 5).map((task) => (
@@ -343,7 +335,7 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Décisions rapides</h2>
+            <h2 className="text-xs font-medium text-muted-foreground">Décisions rapides</h2>
             <CockpitMiniStat
               icon={Timer}
               label="Temps non facturé"
@@ -402,7 +394,7 @@ function OperationsCockpit({ cockpit }: { cockpit: CockpitData }) {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Projets à risque</h2>
+            <h2 className="text-xs font-medium text-muted-foreground">Projets à risque</h2>
             {cockpit.projectRisks.length === 0 ? (
               <EmptyState text="Aucun projet actif en zone de risque." />
             ) : (

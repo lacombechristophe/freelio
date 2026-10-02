@@ -181,7 +181,7 @@ export function PipelineSettingsDialog({
                     <Star className="size-4" />Définir par défaut
                   </Button>
                 ) : null}
-                <Button type="button" variant="outline" onClick={startCreation} disabled={pending}>
+                <Button demoMutation type="button" variant="outline" onClick={startCreation} disabled={pending}>
                   <Plus className="size-4" />Nouveau
                 </Button>
               </div>
@@ -228,7 +228,7 @@ export function PipelineSettingsDialog({
               })}
             </div>
             <div className="border-t bg-muted/25 p-3 sm:px-4">
-              <Button
+              <Button demoMutation
                 type="button"
                 variant="outline"
                 onClick={() => setStages((current) => [...current, { id: newStageId(), title: "Nouvelle étape" }])}
@@ -245,7 +245,7 @@ export function PipelineSettingsDialog({
                 <GitBranch className="size-4" />
                 <span><strong className="font-semibold text-foreground">{currentSummary?.opportunityCount ?? 0}</strong> opportunité(s) dans ce cycle de vente</span>
               </div>
-              <Button
+              <Button demoMutation
                 type="button"
                 variant="ghost"
                 onClick={removePipeline}

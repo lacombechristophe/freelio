@@ -2,6 +2,7 @@
 
 import { credentialsAuthEnabled, magicLinkAuthEnabled, signIn } from "@/auth"
 import { AuthError } from "next-auth"
+import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 
 export type SignInState = {
   success: boolean
@@ -19,7 +20,7 @@ export async function signInWithEmail(formData: FormData) {
   const mfaCode = String(formData.get("mfaCode") ?? "")
   const method: "magic" | "password" = formData.get("method") === "magic" ? "magic" : "password"
   const requestedRedirect = String(formData.get("redirectTo") ?? "")
-  const redirectTo = requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//") ? requestedRedirect : "/onboarding"
+  const redirectTo = isPublicReadOnlyDemo() ? "/dashboard" : requestedRedirect.startsWith("/") && !requestedRedirect.startsWith("//") ? requestedRedirect : "/onboarding"
 
   if (!email) {
     return { success: false, error: "L'adresse e-mail est requise." }

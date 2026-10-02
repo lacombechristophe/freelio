@@ -154,7 +154,7 @@ export function ClientPortalPanel({
                 </select>
               </div>
             </div>
-            <Button className="mt-4 w-full" onClick={createAccess} disabled={isPending}>Créer un accès portail</Button>
+            <Button demoMutation className="mt-4 w-full" onClick={createAccess} disabled={isPending}>Créer un accès portail</Button>
             {oneTimeUrl && (
               <div className="mt-4 rounded-lg border border-primary/25 bg-primary/5 p-3">
                 <Label htmlFor="portal-url">Lien d’accès à copier</Label>
@@ -190,7 +190,7 @@ export function ClientPortalPanel({
                 </div>
               ))}
             </div>
-            <div className="mt-3 space-y-2"><Label htmlFor="portal-reply">Répondre au client</Label><Textarea id="portal-reply" value={reply} onChange={(event) => setReply(event.target.value)} rows={3} maxLength={2000} placeholder="Votre réponse sera visible immédiatement dans le portail…" /><div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{reply.length}/2 000</p><Button disabled={isPending || reply.trim().length < 2} onClick={() => run(async () => { await sendTeamPortalMessage({ clientId, body: reply }); setReply(""); toast.success("Réponse envoyée."); router.refresh() })}>Envoyer la réponse</Button></div></div>
+            <div className="mt-3 space-y-2"><Label htmlFor="portal-reply">Répondre au client</Label><Textarea id="portal-reply" value={reply} onChange={(event) => setReply(event.target.value)} rows={3} maxLength={2000} placeholder="Votre réponse sera visible immédiatement dans le portail…" /><div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{reply.length}/2 000</p><Button demoMutation disabled={isPending || reply.trim().length < 2} onClick={() => run(async () => { await sendTeamPortalMessage({ clientId, body: reply }); setReply(""); toast.success("Réponse envoyée."); router.refresh() })}>Envoyer la réponse</Button></div></div>
           </div>
 
           <div>
@@ -204,7 +204,7 @@ export function ClientPortalPanel({
                   <div className="mt-3 grid gap-2 sm:grid-cols-[150px_1fr_auto]">
                     <select aria-label={`Statut du rendez-vous ${appointment.subject}`} value={draft.status} onChange={(event) => setAppointmentDrafts((current) => ({ ...current, [appointment.id]: { ...draft, status: event.target.value } }))} className="h-10 rounded-[10px] border border-input bg-card px-3 text-sm"><option value="PENDING">À traiter</option><option value="CONFIRMED">Confirmer</option><option value="DECLINED">Refuser</option><option value="CANCELLED">Annuler</option><option value="COMPLETED">Terminé</option></select>
                     <Input aria-label={`Réponse au rendez-vous ${appointment.subject}`} value={draft.response} onChange={(event) => setAppointmentDrafts((current) => ({ ...current, [appointment.id]: { ...draft, response: event.target.value } }))} placeholder="Message au client (heure, consignes…)" maxLength={1000} />
-                    <Button variant="outline" disabled={isPending} onClick={() => run(async () => { await updateClientPortalAppointment({ id: appointment.id, ...draft }); toast.success("Demande mise à jour."); router.refresh() })}><Check />Enregistrer</Button>
+                    <Button demoMutation variant="outline" disabled={isPending} onClick={() => run(async () => { await updateClientPortalAppointment({ id: appointment.id, ...draft }); toast.success("Demande mise à jour."); router.refresh() })}><Check />Enregistrer</Button>
                   </div>
                 </div>
               })}

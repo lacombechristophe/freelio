@@ -30,6 +30,7 @@ type DocumentStudioProps = {
   documentNumber: string
   defaultTemplate?: string | null
   document: PdfDocument
+  readOnly?: boolean
 }
 
 type LayoutId = "ESSENTIAL" | "STANDARD" | "COMPACT"
@@ -78,7 +79,7 @@ function initialLayout(template: string | null | undefined): LayoutId {
 
 function PaperThumbnail({ compact = false, essential = false }: { compact?: boolean; essential?: boolean }) {
   return (
-    <div aria-hidden="true" className="h-16 w-24 shrink-0 overflow-hidden rounded border border-zinc-300 bg-white p-2 shadow-sm">
+    <div aria-hidden="true" className="h-16 w-24 shrink-0 overflow-hidden rounded border border-zinc-300 bg-white p-2">
       <div className="flex items-start justify-between border-b border-zinc-300 pb-1.5">
         <div className="space-y-1"><div className="h-1.5 w-8 bg-zinc-800" /><div className="h-1 w-11 bg-zinc-300" /></div>
         <div className="h-2 w-6 bg-zinc-700" />
@@ -98,6 +99,7 @@ export function DocumentStudio({
   documentNumber,
   defaultTemplate,
   document,
+  readOnly = false,
 }: DocumentStudioProps) {
   const [layoutId, setLayoutId] = React.useState<LayoutId>(() => initialLayout(defaultTemplate))
   const [showPayment, setShowPayment] = React.useState(true)
@@ -132,7 +134,7 @@ export function DocumentStudio({
   }, [layout.density, layout.template, showPayment, showReference])
 
   const previewHtml = React.useMemo(
-    () => renderDocumentHtml(document, {
+    () => readOnly ? undefined : renderDocumentHtml(document, {
       template: layout.template,
       accentColor: DOCUMENT_INK,
       density: layout.density,
@@ -140,12 +142,12 @@ export function DocumentStudio({
       showReference,
       previewFit: false,
     }),
-    [document, layout.density, layout.template, showPayment, showReference]
+    [document, layout.density, layout.template, showPayment, showReference, readOnly]
   )
 
   const apiPath = `/api/pdf/${kind}/${documentId}`
-  const downloadUrl = `${apiPath}?${queryString}`
-  const screenUrl = `${downloadUrl}&screen=1`
+  const downloadUrl = readOnly ? apiPath : `${apiPath}?${queryString}`
+  const screenUrl = readOnly ? apiPath : `${downloadUrl}&screen=1`
 
   return (
     <Card id="document-studio" className="overflow-hidden border-border bg-card">
@@ -153,7 +155,7 @@ export function DocumentStudio({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base"><FileCheck2 className="size-5 text-primary" />Document prêt à contrôler</CardTitle>
-            <CardDescription>Un rendu A4 sobre, conçu pour l’impression, la signature et l’archivage.</CardDescription>
+            <CardDescription>{readOnly ? "Facture émise : aperçu de l’archive d’origine, présentation figée." : "Un rendu A4 sobre, conçu pour l’impression, la signature et l’archivage."}</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
             <a href={screenUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}><ExternalLink className="size-4" />Plein écran</a>
@@ -171,15 +173,15 @@ export function DocumentStudio({
             <div className="space-y-3 border-t p-3">
               <div className="space-y-2">{LAYOUTS.map((option) => {
                 const active = option.id === layoutId
-                return <button key={option.id} type="button" aria-pressed={active} onClick={() => setLayoutId(option.id)} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "border-foreground/35 bg-muted/45 shadow-sm" : "border-border bg-background hover:bg-muted/30")}>
+                return <button key={option.id} type="button" disabled={readOnly} aria-pressed={active} onClick={() => setLayoutId(option.id)} className={cn("flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "border-foreground/35 bg-muted/45" : "border-border bg-background hover:bg-muted/30")}>
                   <PaperThumbnail compact={option.id === "COMPACT"} essential={option.id === "ESSENTIAL"} />
-                  <span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold">{option.label}{option.recommended ? <span className="rounded border bg-background px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">Recommandé</span> : null}</span><span className="mt-1 block text-[11px] leading-5 text-muted-foreground">{option.description}</span></span>
+                  <span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold">{option.label}{option.recommended ? <span className="rounded border bg-background px-1.5 py-0.5 text-[9px] tracking-normal text-muted-foreground">Recommandé</span> : null}</span><span className="mt-1 block text-[11px] leading-5 text-muted-foreground">{option.description}</span></span>
                 </button>
               })}</div>
               <p className="text-[11px] leading-5 text-muted-foreground">Les documents restent volontairement neutres. Le logo identifie l’entreprise sans transformer le devis en support marketing.</p>
               <section className="space-y-3 border-t border-border pt-4">
-              <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Référence répétée</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">Numéro visible dans le pied de page.</p></div><Switch aria-label="Afficher la référence répétée" checked={showReference} onCheckedChange={setShowReference} /></div>
-              {kind === "facture" ? <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Instructions de règlement</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">IBAN, référence et mentions de paiement.</p></div><Switch aria-label="Afficher le bloc de règlement" checked={showPayment} onCheckedChange={setShowPayment} /></div> : null}
+              <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Référence répétée</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">Numéro visible dans le pied de page.</p></div><Switch aria-label="Afficher la référence répétée" disabled={readOnly} checked={showReference} onCheckedChange={setShowReference} /></div>
+              {kind === "facture" ? <div className="flex items-center justify-between gap-3"><div><Label className="text-xs font-semibold">Instructions de règlement</Label><p className="mt-1 text-[11px] leading-4 text-muted-foreground">IBAN, référence et mentions de paiement.</p></div><Switch aria-label="Afficher le bloc de règlement" disabled={readOnly} checked={showPayment} onCheckedChange={setShowPayment} /></div> : null}
               </section>
             </div>
           </details>
@@ -189,7 +191,7 @@ export function DocumentStudio({
           <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Aperçu du document</p><p className="text-xs text-muted-foreground">Vérifiez aussi les sauts de page dans le PDF téléchargé.</p></div><span className="rounded-md border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">A4</span></div>
           <div className="h-[min(620px,75dvh)] min-h-80 overflow-hidden rounded-lg border border-border bg-zinc-200 p-2 sm:p-3">
             <div ref={previewRef} className="relative h-full w-full overflow-hidden">
-              <iframe key={queryString} title={`Aperçu ${documentNumber}`} srcDoc={previewHtml} className="absolute top-0 left-0 origin-top-left rounded border-0 bg-white" style={{ width: PREVIEW_WIDTH, height: previewSize.height / previewScale, transform: `scale(${previewScale})` }} />
+              <iframe key={readOnly ? apiPath : queryString} title={`Aperçu ${documentNumber}`} src={readOnly ? apiPath : undefined} srcDoc={previewHtml} className="absolute top-0 left-0 origin-top-left rounded border-0 bg-white" style={{ width: PREVIEW_WIDTH, height: previewSize.height / previewScale, transform: `scale(${previewScale})` }} />
             </div>
           </div>
         </section>

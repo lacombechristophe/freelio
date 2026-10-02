@@ -49,7 +49,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
     <section className="workspace-panel flex flex-col gap-4 rounded-xl border bg-card px-4 py-4 sm:flex-row sm:items-center sm:px-5">
       <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/9 text-primary"><LibraryBig className="size-5" /></span>
       <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">Bibliothèque de démarrage pisciniste</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Installe 3 modèles d’e-mail, 2 séquences et 5 règles métier en brouillon. L’équipe relit, simule et publie chaque scénario séparément.</p></div>
-      <Button variant="outline" disabled={pending} onClick={() => run(() => installPoolAutomationPresets(), "Brouillons métier disponibles dans les studios.")}><LibraryBig />Installer ou compléter</Button>
+      <Button demoMutation variant="outline" disabled={pending} onClick={() => run(() => installPoolAutomationPresets(), "Brouillons métier disponibles dans les studios.")}><LibraryBig />Installer ou compléter</Button>
     </section>
 
     {data.sequences.length > 0 && <Card className="workspace-panel">

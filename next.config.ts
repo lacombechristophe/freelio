@@ -47,6 +47,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // The authenticated Studio embeds an archived invoice from this origin.
+      // Other pages keep DENY; embedding from another origin stays forbidden.
+      {
+        source: "/api/pdf/facture/:id",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'" },
+        ],
+      },
     ]
   },
 }

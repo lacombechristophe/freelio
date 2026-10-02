@@ -3,6 +3,7 @@ import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
+import { readBoundedFile, readBoundedStream } from "@/lib/bounded-file-read"
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -305,15 +306,17 @@ export async function abortDirectFileUpload(input: {
   await r2Client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: objectKey }))
 }
 
-export async function readLocalFile(relativePath: string) {
+export async function readLocalFile(relativePath: string, maxBytes = Infinity) {
   if (relativePath.startsWith(R2_PREFIX)) {
     const config = r2Config()
     if (!config) throw new Error("Configuration R2 indisponible pour lire ce document")
     const response = await r2Client(config).send(new GetObjectCommand({ Bucket: config.bucket, Key: relativePath.slice(R2_PREFIX.length) }))
     if (!response.Body) throw new Error("Document R2 vide ou introuvable")
+    if (Number.isFinite(maxBytes)) return readBoundedStream(response.Body as AsyncIterable<Uint8Array>, maxBytes)
     return Buffer.from(await response.Body.transformToByteArray())
   }
-  return readFile(resolveInsideFilesRoot(relativePath))
+  const localPath = resolveInsideFilesRoot(relativePath)
+  return Number.isFinite(maxBytes) ? readBoundedFile(localPath, maxBytes) : readFile(localPath)
 }
 
 export async function removeLocalFile(relativePath: string) {

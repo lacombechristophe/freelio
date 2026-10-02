@@ -96,7 +96,7 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
           <option value="ACTIVE">Actives</option>
           <option value="PAUSED">En pause</option>
         </select>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button demoMutation onClick={() => setCreateOpen(true)}>
           <Plus />
           Nouvelle séquence
         </Button>
@@ -141,7 +141,7 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
             title="Créez votre première séquence"
             description="Assemblez e-mails, appels et tâches, puis inscrivez uniquement les prospects disposant d’un consentement actif."
             action={
-              <Button onClick={() => setCreateOpen(true)}>
+              <Button demoMutation onClick={() => setCreateOpen(true)}>
                 <Plus />
                 Créer une séquence
               </Button>
@@ -258,11 +258,11 @@ function SequenceDetail({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={onEdit}>
+            <Button demoMutation size="sm" variant="outline" onClick={onEdit}>
               <FilePenLine />
               Modifier
             </Button>
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => duplicateEmailSequence(sequence.id), "Copie créée en brouillon.")}>
+            <Button demoMutation size="sm" variant="outline" disabled={pending} onClick={() => run(() => duplicateEmailSequence(sequence.id), "Copie créée en brouillon.")}>
               <Copy />
               Dupliquer
             </Button>
@@ -272,7 +272,7 @@ function SequenceDetail({
                 Mettre en pause
               </Button>
             ) : (
-              <Button size="sm" disabled={pending || !sequence.steps.length} onClick={() => run(() => updateEmailSequenceStatus(sequence.id, "ACTIVE"), "Séquence activée.")}>
+              <Button demoMutation size="sm" disabled={pending || !sequence.steps.length} onClick={() => run(() => updateEmailSequenceStatus(sequence.id, "ACTIVE"), "Séquence activée.")}>
                 <Play />
                 Activer
               </Button>
@@ -354,7 +354,7 @@ function SequenceDetail({
                 </select>
               </Field>
               <div className="sm:col-span-2 lg:col-span-4">
-                <Button type="submit" size="sm" variant="outline" disabled={pending}>
+                <Button demoMutation type="submit" size="sm" variant="outline" disabled={pending}>
                   Enregistrer la cadence
                 </Button>
               </div>
@@ -371,7 +371,7 @@ function SequenceDetail({
                 <HelpTip label="Règle de modification">
                   Une séquence ayant déjà inscrit un prospect conserve ses étapes pour assurer la traçabilité. Dupliquez-la pour produire une nouvelle version.
                 </HelpTip>
-                <Button size="sm" variant="outline" onClick={onAddStep} disabled={!mutableSteps}>
+                <Button demoMutation size="sm" variant="outline" onClick={onAddStep} disabled={!mutableSteps}>
                   <Plus />
                   Ajouter une étape
                 </Button>
@@ -416,7 +416,7 @@ function SequenceDetail({
                 ))}
               </select>
             </Field>
-            <Button type="submit" size="sm" disabled={pending || !sequence.steps.length || sequence.status !== "ACTIVE"}>
+            <Button demoMutation type="submit" size="sm" disabled={pending || !sequence.steps.length || sequence.status !== "ACTIVE"}>
               <Users />
               Inscrire
             </Button>
@@ -788,7 +788,7 @@ function StepDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button type="submit" form="sequence-step-form" disabled={pending}>
+          <Button demoMutation type="submit" form="sequence-step-form" disabled={pending}>
             <Plus />
             Ajouter l’étape
           </Button>

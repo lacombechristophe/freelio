@@ -68,7 +68,7 @@ export type DashboardNavGroup = {
 
 export const dashboardHome: DashboardNavItem = { name: "Vue d’ensemble", href: "/dashboard", icon: LayoutDashboard }
 
-export const dashboardNavGroups: DashboardNavGroup[] = [
+const originalNavGroups: DashboardNavGroup[] = [
   {
     name: "CRM",
     icon: ContactRound,
@@ -174,6 +174,18 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { name: "Exports", href: "/dashboard/comptabilite", icon: ClipboardList, description: "Comptabilité et données", activeMatch: false },
     ],
   },
+]
+
+// Keep route identities and saved favorites while grouping by everyday tasks.
+const groupByName = (name: string) => originalNavGroups.find((group) => group.name === name)!
+export const dashboardNavGroups: DashboardNavGroup[] = [
+  { name: "Clients et ventes", icon: ContactRound, description: "Relations et activité commerciale", items: [...groupByName("CRM").items, ...groupByName("Ventes").items] },
+  { ...groupByName("Revenus"), name: "Facturation" },
+  groupByName("Opérations"),
+  groupByName("Service"),
+  groupByName("Marketing"),
+  { ...groupByName("Rapports"), name: "Rapports" },
+  { ...groupByName("Données"), name: "Administration", icon: Settings },
 ]
 
 export const dashboardUtilityItems: DashboardNavItem[] = [

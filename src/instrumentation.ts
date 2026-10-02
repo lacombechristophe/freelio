@@ -1,7 +1,11 @@
 import { registerOTel } from "@vercel/otel"
 import type { Instrumentation } from "next"
 
-export function register() {
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { initializeNodeRuntime } = await import("./instrumentation-node")
+    await initializeNodeRuntime()
+  }
   registerOTel("freelio-crm")
 }
 

@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client"
 import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
+import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "./demo-policy"
 
 const MUTATION_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"])
 
@@ -99,8 +100,19 @@ const prismaClientSingleton = () => {
   validateDatabaseUrl()
   return new PrismaClient().$extends({
     query: {
+      async $allOperations({ model, operation, args, query }) {
+        if (!model && isPublicReadOnlyDemo()) {
+          // Raw SQL can mutate even when exposed through $queryRaw. The only
+          // supported raw read in a public demo is the readiness probe.
+          const rawArgs = args as { sql?: string } | unknown[]
+          const sql = !Array.isArray(rawArgs) && rawArgs && "sql" in rawArgs ? rawArgs.sql : Array.isArray(rawArgs) && Array.isArray(rawArgs[0]) ? rawArgs[0].join("") : undefined
+          if (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1") assertDemoMutationAllowed()
+        }
+        return query(args)
+      },
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
+          if (MUTATION_OPERATIONS.has(operation) && !(model === "AuditLog" && operation === "create")) assertDemoMutationAllowed()
           const context = getContext()
           // Prisma exposes a union of every model operation here. The operation
           // guards below narrow it at runtime; a mutable view keeps the scoping
@@ -177,12 +189,19 @@ const getPrisma = (): PrismaClientExtended => {
 // The Proxy intercepts all property accesses and redirects them to the lazily-initialized client
 const prisma = new Proxy({} as PrismaClientExtended, {
   get: (_target, prop) => {
+    if (isPublicReadOnlyDemo() && ["$executeRaw", "$executeRawUnsafe", "$queryRawUnsafe"].includes(String(prop))) assertDemoMutationAllowed()
     // If the property is being accessed, we instantiate the real client
     const client = getPrisma()
     const value = (client as any)[prop]
 
     // If the property is a function, we must bind it to the client to preserve 'this'
     if (typeof value === "function") {
+      if (prop === "$queryRaw" && isPublicReadOnlyDemo()) {
+        return (query: TemplateStringsArray) => {
+          if (!Array.isArray(query) || query.length !== 1 || query[0].trim().toUpperCase() !== "SELECT 1") assertDemoMutationAllowed()
+          return value.call(client, query)
+        }
+      }
       return value.bind(client)
     }
 

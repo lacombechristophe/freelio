@@ -256,7 +256,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                 </div>
               </div>
             ) : null}
-            <Button onClick={saveConnection} disabled={isPending || !apiKey.trim() || !name.trim()}>
+            <Button demoMutation onClick={saveConnection} disabled={isPending || !apiKey.trim() || !name.trim()}>
               {isPending ? <Loader2 className="animate-spin" /> : <ShieldCheck />}Enregistrer
             </Button>
           </CardContent>
@@ -431,7 +431,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                     </Button>
                   ) : null}
                   {run.status === "SIMULATED" ? (
-                    <Button size="sm" disabled={isPending} onClick={() => execute("Données importées avec leurs identifiants source.", () => importMigrationRun(run.id))}>
+                    <Button demoMutation size="sm" disabled={isPending} onClick={() => execute("Données importées avec leurs identifiants source.", () => importMigrationRun(run.id))}>
                       <Import />
                       Importer
                     </Button>

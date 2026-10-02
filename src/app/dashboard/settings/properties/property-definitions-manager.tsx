@@ -223,10 +223,10 @@ export function PropertyDefinitionsManager({ initialDefinitions }: { initialDefi
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={installPreset} disabled={pending}>
+          <Button demoMutation type="button" variant="outline" onClick={installPreset} disabled={pending}>
             <Sparkles />Installer le preset pisciniste
           </Button>
-          <Button type="button" onClick={openCreate}><Plus />Nouvelle propriété</Button>
+          <Button demoMutation type="button" onClick={openCreate}><Plus />Nouvelle propriété</Button>
         </div>
       </div>
 
@@ -252,7 +252,7 @@ export function PropertyDefinitionsManager({ initialDefinitions }: { initialDefi
                 <Badge variant="outline" className="w-fit">{TYPE_LABELS[definition.type as CrmPropertyType] ?? definition.type}</Badge>
                 <span className="font-mono text-xs tabular-nums text-muted-foreground">{definition._count.values} valeur(s)</span>
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(definition)}>Modifier</Button>
+                  <Button demoMutation type="button" variant="ghost" size="sm" onClick={() => openEdit(definition)}>Modifier</Button>
                   <Button type="button" variant="ghost" size="icon" onClick={() => toggleArchived(definition)} disabled={pending} aria-label={definition.archivedAt ? `Restaurer ${definition.label}` : `Archiver ${definition.label}`} title={definition.archivedAt ? "Restaurer" : "Archiver"}>
                     {definition.archivedAt ? <RotateCcw className="size-4" /> : <Archive className="size-4" />}
                   </Button>

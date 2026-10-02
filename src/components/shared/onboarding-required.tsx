@@ -14,7 +14,7 @@ export function OnboardingRequired({ title, description }: OnboardingRequiredPro
       aria-labelledby="onboarding-required-title"
       className="mx-auto flex min-h-[50vh] w-full max-w-xl flex-col items-center justify-center gap-6 text-center"
     >
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Settings2 aria-hidden="true" className="h-7 w-7" />
       </div>
       <div className="space-y-2">

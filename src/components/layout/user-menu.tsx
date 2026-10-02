@@ -57,7 +57,7 @@ export function UserMenu({ email, name, companyName }: { email?: string | null; 
         <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}><Settings />Paramètres</DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/dashboard/help")}><CircleHelp />Aide</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+        <DropdownMenuItem demoMutation={false} variant="destructive" onClick={handleLogout}>
           <LogOut />Déconnexion
         </DropdownMenuItem>
       </DropdownMenuContent>

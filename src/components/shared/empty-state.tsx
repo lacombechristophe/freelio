@@ -20,7 +20,7 @@ export function EmptyState({
 }) {
   return (
     <div data-slot="empty-state" className={cn("mx-auto flex max-w-md flex-col items-center whitespace-normal px-4 text-center", compact ? "py-8" : "py-10 sm:py-14", className)}>
-      <span className="grid size-11 place-items-center rounded-xl border border-primary/15 bg-accent text-primary">
+      <span className="grid size-10 place-items-center rounded-lg bg-muted text-muted-foreground" aria-hidden="true">
         <Icon className="size-5" />
       </span>
       <h2 className="mt-4 text-[15px] font-semibold text-foreground">{title}</h2>

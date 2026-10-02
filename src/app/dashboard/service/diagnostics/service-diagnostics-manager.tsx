@@ -122,7 +122,7 @@ export function ServiceDiagnosticsManager({ guides }: { guides: Guide[] }) {
       <CardContent className="max-w-4xl">
         <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); run(() => createServiceDiagnosticGuide(payload(event.currentTarget)), "Guide de diagnostic créé.", event.currentTarget) }}>
           <Fields />
-          <Button type="submit" disabled={pending}><Plus />Créer le guide</Button>
+          <Button demoMutation type="submit" disabled={pending}><Plus />Créer le guide</Button>
         </form>
       </CardContent>
     </Card>
@@ -146,8 +146,8 @@ export function ServiceDiagnosticsManager({ guides }: { guides: Guide[] }) {
           <form key={guide.updatedAt.toString()} className="space-y-4" onSubmit={(event) => { event.preventDefault(); run(() => updateServiceDiagnosticGuide(guide.id, payload(event.currentTarget)), "Guide de diagnostic mis à jour.") }}>
             <Fields guide={guide} />
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" size="sm" disabled={pending}><Save />Enregistrer</Button>
-              <Button type="button" size="sm" variant="destructive" disabled={pending} onClick={() => void confirm({ title: `Archiver « ${guide.name} » ?`, description: "Il ne sera plus proposé, mais les diagnostics déjà consignés resteront intacts.", confirmLabel: "Archiver", destructive: true }).then((accepted) => { if (accepted) run(() => archiveServiceDiagnosticGuide(guide.id), "Guide archivé.") })}><Trash2 />Archiver</Button>
+              <Button demoMutation type="submit" size="sm" disabled={pending}><Save />Enregistrer</Button>
+              <Button demoMutation type="button" size="sm" variant="destructive" disabled={pending} onClick={() => void confirm({ title: `Archiver « ${guide.name} » ?`, description: "Il ne sera plus proposé, mais les diagnostics déjà consignés resteront intacts.", confirmLabel: "Archiver", destructive: true }).then((accepted) => { if (accepted) run(() => archiveServiceDiagnosticGuide(guide.id), "Guide archivé.") })}><Trash2 />Archiver</Button>
             </div>
           </form>
         </div>

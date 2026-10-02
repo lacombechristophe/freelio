@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { markAsRead, markAllAsRead } from "@/actions/notifications"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 
 type Notification = {
   id: string
@@ -43,7 +44,7 @@ export function NotificationBell({
   const router = useRouter()
 
   async function handleClick(id: string, isRead: boolean) {
-    if (!isRead) {
+    if (!isRead && !isReadOnlyDemo) {
       try {
         await markAsRead(id)
         router.refresh()
@@ -75,6 +76,7 @@ export function NotificationBell({
           <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
           {unreadCount > 0 && (
             <button
+              disabled={isReadOnlyDemo}
               onClick={handleMarkAll}
               className="text-xs font-bold uppercase text-primary hover:underline"
             >

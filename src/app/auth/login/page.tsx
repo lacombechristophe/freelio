@@ -22,6 +22,8 @@ import { AppBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
+import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 
 const initialSignInState: SignInState = { success: false }
 
@@ -38,7 +40,8 @@ function LoginContent() {
     submitSignInWithEmail,
     initialSignInState
   )
-  const [method, setMethod] = React.useState<"password" | "magic">(() => searchParams.get("mode") === "magic" ? "magic" : "password")
+  const [method, setMethod] = React.useState<"password" | "magic">(() => !isReadOnlyDemo && searchParams.get("mode") === "magic" ? "magic" : "password")
+  const [email, setEmail] = React.useState("")
 
   React.useEffect(() => {
     if (state.error) toast.error(state.error)
@@ -77,6 +80,8 @@ function LoginContent() {
                   name="email"
                   type="email"
                   autoComplete="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
                   placeholder="vous@entreprise.fr"
                   required
                   className="h-11 border-freelio-line-strong bg-white pl-10 text-freelio-ink placeholder:text-[#98a2b3] focus-visible:border-freelio-accent focus-visible:ring-freelio-accent/20"
@@ -85,7 +90,7 @@ function LoginContent() {
             </div>
 
             {method === "password" && <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Mot de passe</Label><Link href="/auth/forgot-password" className="text-xs font-medium text-freelio-accent hover:underline">Mot de passe oublié ?</Link></div>
+              <div className="flex items-center justify-between gap-3"><Label htmlFor="password">Mot de passe</Label>{isReadOnlyDemo ? <span role="link" aria-disabled="true" title={DEMO_READ_ONLY_MESSAGE} className="text-xs font-medium text-freelio-accent">Mot de passe oublié ?</span> : <Link href="/auth/forgot-password" className="text-xs font-medium text-freelio-accent hover:underline">Mot de passe oublié ?</Link>}</div>
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-freelio-muted" />
                 <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Votre mot de passe" className="h-11 border-freelio-line-strong bg-white pl-10 text-freelio-ink placeholder:text-[#98a2b3] focus-visible:border-freelio-accent focus-visible:ring-freelio-accent/20" />
@@ -96,17 +101,18 @@ function LoginContent() {
               </div>
             </div>}
 
-            <Button type="submit" size="lg" disabled={isPending} className="group w-full">
+            <Button demoMutation={false} type="submit" size="lg" disabled={isPending} className="group w-full">
               {isPending ? <><Loader2 className="animate-spin" />Connexion en cours</> : <>{method === "password" ? "Se connecter" : "Recevoir le lien de connexion"}<ArrowRight className="transition-transform group-hover:translate-x-0.5" /></>}
             </Button>
             <p aria-live="polite" className="sr-only">{state.error ?? ""}</p>
           </form>
 
           <div className="mt-5 flex items-center gap-3 text-xs text-freelio-muted"><span className="h-px flex-1 bg-freelio-line" /><span>ou</span><span className="h-px flex-1 bg-freelio-line" /></div>
-          <Button type="button" variant="outline" className="mt-5 w-full" onClick={() => setMethod((current) => current === "password" ? "magic" : "password")}>
+          <Button demoMutation type="button" variant="outline" className="mt-5 w-full" onClick={() => setMethod((current) => current === "password" ? "magic" : "password")}>
             {method === "password" ? <><Mail />Utiliser un lien de connexion</> : <><KeyRound />Utiliser mon mot de passe</>}
           </Button>
-          <p className="mt-5 text-center text-sm text-freelio-muted">Pas encore de compte ? <Link href="/auth/register" className="font-semibold text-freelio-accent hover:underline">Créer mon espace</Link></p>
+          <p className="mt-5 text-center text-sm text-freelio-muted">Pas encore de compte ? {isReadOnlyDemo ? <span role="link" aria-disabled="true" title={DEMO_READ_ONLY_MESSAGE} className="font-semibold text-freelio-accent">Créer mon espace</span> : <Link href="/auth/register" className="font-semibold text-freelio-accent hover:underline">Créer mon espace</Link>}</p>
+          {isReadOnlyDemo && <p className="mt-3 text-sm text-freelio-muted">{DEMO_READ_ONLY_MESSAGE}</p>}
 
           <div className="mt-7 flex items-start gap-2.5 border-t border-freelio-line pt-5 text-xs leading-5 text-freelio-muted">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-freelio-success" />

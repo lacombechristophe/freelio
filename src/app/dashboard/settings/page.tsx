@@ -12,7 +12,6 @@ export default async function SettingsPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
-      aiUsageCount: true,
       passwordHash: true,
       mfaEnabledAt: true,
       company: {
@@ -58,12 +57,10 @@ export default async function SettingsPage() {
     <div className="workspace-page">
       <PageHeader eyebrow="Espace de travail" title="Paramètres" description="Configurez votre identité, la facturation, les documents, les sauvegardes et les intégrations." />
       <SettingsClient company={{ ...user.company, iban: decryptSensitive(user.company.iban) }} user={{
-        aiUsageCount: user.aiUsageCount,
         hasPassword: Boolean(user.passwordHash),
         mfaEnabled: Boolean(user.mfaEnabledAt),
         recoveryCodesRemaining: user._count.mfaRecoveryCodes,
         integrations: {
-          gemini: Boolean(process.env.GEMINI_API_KEY?.trim()),
           email: user.company._count.communicationChannels > 0 || Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_WEBHOOK_SECRET?.trim()),
           storage: Boolean(
             process.env.R2_ACCOUNT_ID?.trim()

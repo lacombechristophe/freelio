@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -21,6 +20,11 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { deleteQuote, updateQuoteStatus } from "@/actions/devis"
 import { useConfirm } from "@/components/shared/confirm-provider"
+import { ListToolbar } from "@/components/shared/list-toolbar"
+import { getQuoteDirectory } from "@/actions/directories"
+import { useDirectory } from "@/hooks/use-directory"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
+import { PageHeader } from "@/components/shared/page-header"
 import { EmptyState } from "@/components/shared/empty-state"
 import { SavedViewBar } from "@/components/shared/saved-view-bar"
 
@@ -53,25 +57,23 @@ function formatDate(d: Date | string) {
 
 type SavedView = Awaited<ReturnType<typeof import("@/actions/views").getSavedViews>>[number]
 
-export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews: SavedView[] }) {
+export function DevisTable({ quotes, savedViews, initial }: { quotes: Quote[]; savedViews: SavedView[]; initial: { data: Awaited<ReturnType<typeof getQuoteDirectory>>; query: import("@/lib/directory-query").DirectoryQuery } }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("ALL")
-
-  const filtered = quotes.filter(
-    (q) =>
-      (statusFilter === "ALL" || q.status === statusFilter) &&
-      (q.number.toLowerCase().includes(search.toLowerCase()) ||
-      q.object.toLowerCase().includes(search.toLowerCase()) ||
-      q.client.name.toLowerCase().includes(search.toLowerCase()))
-  )
+  const directory = useDirectory("devis", getQuoteDirectory, initial)
+  const { search, status: statusFilter } = directory.state
+  const setSearch = (search: string) => directory.update({ search })
+  const setStatusFilter = (status: string) => directory.update({ status })
+  const filtered = directory.data?.rows ?? quotes
+  const total = directory.data?.total ?? quotes.length
+  const initialEmpty = total === 0 && !search && statusFilter === "ALL"
 
   async function handleStatus(id: string, next: "SENT" | "ACCEPTED" | "REJECTED") {
     try {
       await updateQuoteStatus(id, next)
       toast.success("Statut mis à jour.")
       router.refresh()
+      void directory.refetch()
     } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Action impossible.") }
   }
 
@@ -86,11 +88,13 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
       await deleteQuote(id)
       toast.success("Devis supprimé.")
       router.refresh()
+      void directory.refetch()
     } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Action impossible.") }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <PageHeader title="Devis" description="Préparez vos propositions et suivez les réponses de vos clients." actions={<Button demoMutation nativeButton={false} render={<Link href="/dashboard/devis/new" />}><Plus />Nouveau devis</Button>} />
       <SavedViewBar
         resource="QUOTES"
         views={savedViews}
@@ -100,8 +104,8 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
           setStatusFilter(typeof config.status === "string" ? config.status : "ALL")
         }}
       />
-      <div className="workspace-panel flex flex-col gap-3 p-3 lg:flex-row lg:items-center">
-        <div className="relative w-full sm:max-w-sm">
+      <ListToolbar>
+        <div className="relative min-w-52 flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Rechercher un devis"
@@ -111,28 +115,22 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div role="group" aria-label="Filtrer les devis par statut" className="flex min-w-0 flex-wrap items-center gap-1 rounded-lg bg-muted/65 p-1">
+        <div role="group" aria-label="Filtrer les devis par statut" className="list-status-filters flex min-w-0 flex-wrap items-center gap-1">
           {[{ value: "ALL", label: "Tous" }, { value: "DRAFT", label: "Brouillons" }, { value: "SENT", label: "Envoyés" }, { value: "ACCEPTED", label: "Acceptés" }].map((item) => {
-            const count = item.value === "ALL" ? quotes.length : quotes.filter((quote) => quote.status === item.value).length
-            return <button key={item.value} type="button" aria-pressed={statusFilter === item.value} onClick={() => setStatusFilter(item.value)} className={cn("h-8 rounded-md px-2.5 text-xs font-medium transition-[color,background-color,box-shadow]", statusFilter === item.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{item.label}<span className="ml-1.5 tabular-nums opacity-70">{count}</span></button>
+            const count = directory.data ? directory.data.counts[item.value] ?? 0 : "…"
+            return <button key={item.value} type="button" aria-pressed={statusFilter === item.value} onClick={() => setStatusFilter(item.value)} className={cn("h-8 rounded-md px-2.5 text-xs font-medium transition-[color,background-color,box-shadow]", statusFilter === item.value ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground")}>{item.label}<span className="ml-1.5 tabular-nums opacity-70">{count}</span></button>
           })}
         </div>
-        <Link href="/dashboard/devis/new" className="lg:ml-auto">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nouveau devis
-          </Button>
-        </Link>
-      </div>
+      </ListToolbar>
 
       <div className="workspace-panel overflow-hidden">
-        <Table>
+        <Table className="devis-table">
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="w-[140px]">Référence</TableHead>
               <TableHead>Objet</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Montant HT</TableHead>
+              <TableHead className="text-right">Montant HT</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -145,9 +143,9 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                   <EmptyState
                     compact
                     icon={FileText}
-                    title={quotes.length === 0 ? "Aucun devis pour le moment" : "Aucun devis trouvé"}
-                    description={quotes.length === 0 ? "Composez une première proposition à partir d’un client et de votre catalogue." : "Modifiez la recherche ou le statut pour afficher d’autres devis."}
-                    action={quotes.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/devis/new")}><Plus />Créer un devis</Button> : <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("ALL") }}>Réinitialiser la vue</Button>}
+                    title={initialEmpty ? "Aucun devis pour le moment" : "Aucun devis trouvé"}
+                    description={initialEmpty ? "Composez une première proposition à partir d’un client et de votre catalogue." : "Modifiez la recherche ou le statut pour afficher d’autres devis."}
+                    action={initialEmpty ? <Button demoMutation size="sm" onClick={() => router.push("/dashboard/devis/new")}><Plus />Créer un devis</Button> : <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("ALL") }}>Réinitialiser la vue</Button>}
                   />
                 </TableCell>
               </TableRow>
@@ -158,9 +156,11 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                 return (
                   <TableRow key={quote.id} className="group hover:bg-muted/30 transition-colors">
                     <TableCell>
-                      <Link href={`/dashboard/devis/${quote.id}`} className="font-mono text-xs font-bold hover:underline">
+                      <Link href={`/dashboard/devis/${quote.id}`} className="text-sm font-medium hover:underline">
                         {quote.number}
                       </Link>
+                      <span className="mt-1 block text-xs text-muted-foreground sm:hidden">{quote.client.name}</span>
+                      <span className="mt-1 block text-xs sm:hidden">{status.label}</span>
                     </TableCell>
                     <TableCell>
                       <Link href={`/dashboard/devis/${quote.id}`} className="font-medium text-sm hover:underline">
@@ -172,7 +172,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                         {quote.client.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-bold">
+                    <TableCell className="text-right font-medium tabular-nums">
                       {latestVersion ? formatEuro(latestVersion.totalHtCents) : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -208,22 +208,23 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                           {quote.status === "DRAFT" && (
                             <>
                               <DropdownMenuItem
+                                demoMutation
                                 className="gap-2"
                                 onClick={() => router.push(`/dashboard/devis/${quote.id}/edit`)}
                               >
                                 Éditer
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2" onClick={() => handleStatus(quote.id, "SENT")}>
+                              <DropdownMenuItem demoMutation className="gap-2" onClick={() => handleStatus(quote.id, "SENT")}>
                                 <Send className="h-4 w-4 text-muted-foreground" /> Marquer comme envoyé
                               </DropdownMenuItem>
                             </>
                           )}
                           {quote.status === "SENT" && (
                             <>
-                              <DropdownMenuItem className="gap-2 text-success" onClick={() => handleStatus(quote.id, "ACCEPTED")}>
+                              <DropdownMenuItem demoMutation className="gap-2 text-success" onClick={() => handleStatus(quote.id, "ACCEPTED")}>
                                 <CheckCircle2 className="h-4 w-4" /> Accepter
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 text-danger" onClick={() => handleStatus(quote.id, "REJECTED")}>
+                              <DropdownMenuItem demoMutation className="gap-2 text-danger" onClick={() => handleStatus(quote.id, "REJECTED")}>
                                 <XCircle className="h-4 w-4" /> Refuser
                               </DropdownMenuItem>
                             </>
@@ -236,7 +237,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
                           {quote.status === "DRAFT" && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 text-danger" onClick={() => handleDelete(quote.id, quote.number)}>
+                              <DropdownMenuItem demoMutation className="gap-2 text-danger" onClick={() => handleDelete(quote.id, quote.number)}>
                                 <Trash2 className="h-4 w-4" /> Supprimer
                               </DropdownMenuItem>
                             </>
@@ -251,6 +252,7 @@ export function DevisTable({ quotes, savedViews }: { quotes: Quote[]; savedViews
           </TableBody>
         </Table>
       </div>
+      <DirectoryPagination total={total} page={directory.data?.page ?? directory.state.page} pending={directory.isFetching} error={directory.isError} onPage={(page) => directory.update({ page })} onRetry={() => { void directory.refetch() }} />
     </div>
   )
 }

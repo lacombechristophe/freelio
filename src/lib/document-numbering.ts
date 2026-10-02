@@ -1,4 +1,13 @@
-export const DOCUMENT_NUMBER_MAX_RETRIES = 5
+import { getContext, requestContext } from "@/lib/context"
+
+export const DOCUMENT_NUMBER_MAX_RETRIES = 20
+
+// Number uniqueness is company-wide, including documents outside the author's agencies.
+// Only the numeric catalogue query runs in this context; the document write keeps its agency scope.
+export function readCompanyDocumentNumbers<T>(read: () => Promise<T>): Promise<T> {
+  const context = getContext()
+  return context ? requestContext.run({ ...context, agencyIds: null }, read) : read()
+}
 
 export function buildYearlyDocumentPrefix(
   customPrefix: string | null | undefined,
@@ -8,11 +17,20 @@ export function buildYearlyDocumentPrefix(
   return `${customPrefix || fallbackPrefix}${date.getFullYear()}-`
 }
 
-export function nextDocumentNumber(lastNumber: string | null | undefined, prefix: string) {
-  const match = lastNumber?.match(/(\d+)$/)
-  const nextSequence = match ? Number.parseInt(match[1], 10) + 1 : 1
-
-  return `${prefix}${nextSequence.toString().padStart(3, "0")}`
+export function nextDocumentNumber(
+  existing: string | null | undefined | ReadonlyArray<{ number: string }>,
+  prefix: string,
+) {
+  const candidates = typeof existing === "string" ? [{ number: existing }] : existing ?? []
+  let highest = BigInt(0)
+  for (const { number } of candidates) {
+    if (!number.startsWith(prefix)) continue
+    const suffix = number.slice(prefix.length)
+    if (!/^\d+$/.test(suffix)) continue
+    const sequence = BigInt(suffix)
+    if (sequence > highest) highest = sequence
+  }
+  return `${prefix}${(highest + BigInt(1)).toString().padStart(3, "0")}`
 }
 
 export function isDocumentNumberConflict(error: unknown) {
@@ -52,6 +70,7 @@ export async function withDocumentNumberRetry<T>(
         throw error
       }
       lastConflict = error
+      await new Promise((resolve) => setTimeout(resolve, Math.min(5 * (attempt + 1), 50)))
     }
   }
 

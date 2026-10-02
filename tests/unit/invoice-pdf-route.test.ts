@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), find: vi.fn(), pdf: vi.fn(), embed: vi.fn(), xml: vi.fn(), audit: vi.fn() }))
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), find: vi.fn(), pdf: vi.fn(), embed: vi.fn(), xml: vi.fn(), audit: vi.fn(), archive: vi.fn() }))
+vi.mock("@/lib/finance/issued-invoice", () => ({
+  isIssuedInvoice: (invoice: { lockedAt?: Date }) => Boolean(invoice.lockedAt),
+  readIssuedInvoice: mocks.archive,
+}))
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/route-auth", () => ({ withRouteAuth: mocks.auth }))
 vi.mock("@/lib/prisma", () => ({ default: { invoice: { findFirst: mocks.find } } }))
@@ -47,5 +51,19 @@ describe("invoice PDF HTTP response", () => {
     expect(mocks.find).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "invoice-1", companyId: "company-a" } }))
     expect(mocks.auth).toHaveBeenCalledWith("finance.read", expect.any(Function))
     expect(mocks.audit).toHaveBeenCalledTimes(1)
+  })
+  it("serves the sealed artifact for an issued invoice without regenerating it", async () => {
+    mocks.find.mockResolvedValue({ id: "invoice-1", number: "F-2026-1", lockedAt: new Date() })
+    mocks.archive.mockResolvedValue({ html: "<html>frozen</html>", pdf: Buffer.from("frozen-pdf") })
+    const response = await request()
+    expect(await response.text()).toBe("frozen-pdf")
+    expect(mocks.pdf).not.toHaveBeenCalled()
+    expect(mocks.xml).not.toHaveBeenCalled()
+  })
+  it("returns a recovery error when the issued archive is missing", async () => {
+    mocks.find.mockResolvedValue({ id: "invoice-1", number: "F-2026-1", lockedAt: new Date() })
+    mocks.archive.mockRejectedValue(new Error("ISSUED_INVOICE_ARCHIVE_MISSING"))
+    expect((await request()).status).toBe(409)
+    expect(mocks.pdf).not.toHaveBeenCalled()
   })
 })

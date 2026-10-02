@@ -164,7 +164,7 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2 text-sm"><span>{normalizedRows.length} ligne(s) valide(s) sur {rawRows.length}</span><Button onClick={importRows} disabled={pending || normalizedRows.length === 0}>Importer</Button></div>
+            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2 text-sm"><span>{normalizedRows.length} ligne(s) valide(s) sur {rawRows.length}</span><Button demoMutation onClick={importRows} disabled={pending || normalizedRows.length === 0}>Importer</Button></div>
           </>}
         </CardContent>
       </Card>

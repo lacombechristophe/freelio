@@ -314,13 +314,14 @@ test("agencies connect teams, warehouses and operational records", async ({ page
   await page.getByRole("button", { name: "Annuler" }).click()
 })
 
-test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ page }, testInfo) => {
+test("pipeline navigation exposes desktop scrolling and mobile stage selection", async ({ page }, testInfo) => {
   await assertHealthy(page, "/dashboard/pipeline", "Cycle de vente")
 
   if (testInfo.project.name === "desktop") {
+    const opportunityTitle = `Prévision commerciale QA ${Date.now()}`
     await page.getByRole("button", { name: "Nouvelle Opportunité" }).click()
-    await page.getByLabel("Titre").fill("Prévision commerciale QA")
-    await page.getByLabel("Client").click()
+    await page.getByLabel("Titre *", { exact: true }).fill(opportunityTitle)
+    await page.getByRole("combobox", { name: "Client", exact: true }).click()
     await page.getByRole("option", { name: "Client QA Piscine" }).click()
     await page.getByLabel("Valeur (€)").fill("10000")
     await page.getByLabel("Probabilité (%)").fill("40")
@@ -330,7 +331,8 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
     await page.getByLabel("Clôture prévue").fill(forecastDate)
     await page.getByRole("button", { name: "Créer", exact: true }).click()
     await expect(page.getByText("Opportunité créée.")).toBeVisible()
-    const forecastCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
+    await page.getByRole("textbox", { name: "Rechercher une opportunité" }).fill(opportunityTitle)
+    const forecastCard = page.locator("[data-slot=card]").filter({ hasText: opportunityTitle })
     await expect(forecastCard).toContainText("Utilisateur QA")
     await expect(page.getByText("Prévu ce mois").locator("..")).toContainText("4 000 €")
 
@@ -339,16 +341,16 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
     await page.getByLabel("Motif de perte").fill("Budget reporté après arbitrage")
     await page.getByRole("button", { name: "Enregistrer" }).click()
     await expect(page.getByText("Opportunité mise à jour.")).toBeVisible()
-    const lostCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
+    const lostCard = page.locator("[data-slot=card]").filter({ hasText: opportunityTitle })
     await expect(lostCard).toContainText("Budget reporté après arbitrage")
     await lostCard.getByRole("button", { name: "Ouvrir les actions de l’opportunité" }).click()
     await page.getByRole("menuitem", { name: "Déplacer → Besoin qualifié" }).click()
     await expect(page.getByText("Étape mise à jour.")).toBeVisible()
-    const reopenedCard = page.locator("[data-slot=card]").filter({ hasText: "Prévision commerciale QA" })
+    const reopenedCard = page.locator("[data-slot=card]").filter({ hasText: opportunityTitle })
     await expect(reopenedCard).toContainText("Utilisateur QA")
     await expect(reopenedCard).not.toContainText("Budget reporté après arbitrage")
-    await reopenedCard.getByRole("link", { name: "Prévision commerciale QA" }).click()
-    await expect(page.getByRole("heading", { name: "Prévision commerciale QA" })).toBeVisible()
+    await reopenedCard.getByRole("link", { name: opportunityTitle }).click()
+    await expect(page.getByRole("heading", { name: opportunityTitle })).toBeVisible()
     await expect(page.getByText("Chronologie commerciale")).toBeVisible()
     await page.getByLabel("Compte rendu").fill("Relance QA consignée depuis la fiche opportunité")
     await page.getByRole("button", { name: "Ajouter à l’historique" }).click()
@@ -360,6 +362,16 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
 
   const viewport = page.locator("[data-pipeline-scroll-viewport]")
   await expect(viewport).toBeVisible()
+  if (testInfo.project.name === "mobile") {
+    await page.getByRole("combobox", { name: "Étape affichée" }).click()
+    await page.getByRole("option", { name: /^Perdu/ }).click()
+    await expect(viewport.locator("section:visible")).toHaveCount(1)
+    await expect(viewport.locator("section:visible")).toHaveAttribute("aria-label", "Perdu")
+    await page.reload()
+    await expect(viewport.locator("section:visible")).toHaveAttribute("aria-label", "Perdu")
+    expect(await viewport.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    return
+  }
   await expect.poll(() => viewport.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
   await viewport.evaluate((element) => {
     element.scrollLeft = 0
@@ -374,7 +386,7 @@ test("pipeline scroll navigation replaces the horizontal scrollbar", async ({ pa
     scrollbarWidth: getComputedStyle(element).scrollbarWidth,
   }))
   expect(initialState.scrollWidth).toBeGreaterThan(initialState.clientWidth)
-  expect(initialState.scrollbarWidth).toBe("none")
+  expect(initialState.scrollbarWidth).toBe("thin")
 
   const nextControl = page.getByRole("button", { name: "Afficher les étapes suivantes" })
   await expect(nextControl).toBeEnabled()
@@ -412,7 +424,7 @@ test("multiple sales pipelines keep their stages and opportunities isolated", as
 
   await page.getByRole("button", { name: "Nouvelle Opportunité" }).click()
   await page.getByLabel("Titre").fill("Rénovation bassin QA")
-  await page.getByLabel("Client").click()
+  await page.getByRole("combobox", { name: "Client", exact: true }).click()
   await page.getByRole("option", { name: "Client QA Piscine" }).click()
   await page.getByLabel("Valeur (€)").fill("7500")
   await page.getByRole("button", { name: "Créer", exact: true }).click()
@@ -436,6 +448,7 @@ test("configurable CRM properties use business presets and retain a visible hist
   await page.goto("/dashboard/clients")
   await page.getByRole("link", { name: "Client QA Piscine" }).click()
   await expect(page.getByRole("heading", { name: "Client QA Piscine" })).toBeVisible()
+  await page.getByRole("tab", { name: "Informations", exact: true }).click()
   await expect(page.getByText("Propriétés métier")).toBeVisible()
   await page.getByRole("button", { name: "Modifier", exact: true }).click()
   await page.getByLabel("Source d’acquisition").click()
@@ -1055,7 +1068,7 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await expect(confirmation.getByText(/Seuls les contacts avec une adresse valide et un consentement actif/)).toBeVisible()
   await confirmation.getByRole("button", { name: "Inscrire l’audience" }).click()
   await expect(page.getByText("1 prospect(s) inscrit(s).")).toBeVisible()
-  await expect(campaign.getByText("Nurturing QA").locator("xpath=ancestor::div[contains(@class,'rounded-lg')]")).toContainText("1 inscription(s)")
+  await expect(campaign.locator("div.rounded-lg.border.p-3").filter({ has: page.getByText("Nurturing QA", { exact: true }) })).toContainText("1 inscription(s)")
 })
 
 test("lead, consent withdrawal, order, billing and reserved stock flow", async ({ page }, testInfo) => {
@@ -1184,6 +1197,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
 test("field report and maintenance contract flow", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Les mutations destructives sont validées une fois ; les surfaces restent testées sur mobile.")
   test.setTimeout(180_000)
+  const scheduledDay = new Date(Date.now() + 24 * 60 * 60_000).toISOString().slice(0, 10)
   await assertHealthy(page, "/dashboard/equipe", "Équipe")
   await page.getByLabel("Coût horaire interne en euros").fill("40")
   await page.getByTitle("Enregistrer capacité et coût").click()
@@ -1198,8 +1212,8 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await expect(intervention).toBeVisible()
   await intervention.getByRole("button", { name: "Replanifier" }).click()
   const planningDialog = page.getByRole("dialog", { name: "Replanifier l’intervention" })
-  await planningDialog.getByLabel("Début").fill("2026-09-20T10:00")
-  await planningDialog.getByLabel("Fin").fill("2026-09-20T11:30")
+  await planningDialog.getByLabel("Début").fill(`${scheduledDay}T10:00`)
+  await planningDialog.getByLabel("Fin").fill(`${scheduledDay}T11:30`)
   await planningDialog.getByRole("button", { name: "Enregistrer" }).click()
   await expect(page.getByText("Intervention replanifiée.")).toBeVisible()
   await expect(planningPanel.getByText("Tournées à venir")).toBeVisible()
@@ -1211,8 +1225,8 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await page.getByLabel("Site").selectOption({ label: "Client QA Piscine · Bassin QA" })
   await page.getByLabel("Intervenant").selectOption({ label: "Utilisateur QA" })
   await page.getByLabel("Objet").fill("Intervention QA en conflit")
-  await page.getByLabel("Début").fill("2026-09-20T10:30")
-  await page.getByLabel("Fin prévue").fill("2026-09-20T11:00")
+  await page.getByLabel("Début").fill(`${scheduledDay}T10:30`)
+  await page.getByLabel("Fin prévue").fill(`${scheduledDay}T11:00`)
   await page.getByRole("button", { name: "Enregistrer", exact: true }).click()
   await expect(page.getByText(/Conflit de planning avec « Intervention QA terrain »/)).toBeVisible()
   await assertHealthy(page, "/dashboard/terrain", "Terrain hors ligne")
@@ -1465,11 +1479,15 @@ test("scores prospects and exposes the communication center", async ({ page }, t
 
 test("shares a revocable client portal with messages and appointments", async ({ page, browser }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Le portail est muté une seule fois ; sa route publique est responsive par construction et build.")
+  const reference = `QA ${Date.now()}`
+  const message = `Bonjour, pouvez-vous confirmer la prochaine étape du dossier ${reference} ?`
+  const appointment = `Point de suivi ${reference}`
   await assertHealthy(page, "/dashboard/clients", "Clients")
   await page.getByRole("link", { name: /Client QA Piscine/ }).click()
   await expect(page.getByRole("heading", { name: "Client QA Piscine" })).toBeVisible()
+  await page.getByRole("tab", { name: "Portail client", exact: true }).click()
   await page.getByLabel("Contact destinataire").selectOption({ index: 1 })
-  await page.getByLabel("Libellé interne").fill("Accès recette QA")
+  await page.getByLabel("Libellé interne").fill(reference)
   await page.getByRole("button", { name: "Créer un accès portail" }).click()
   await expect(page.getByText("Accès créé. Le lien a été copié.")).toBeVisible()
   const portalUrl = await page.getByLabel("Lien d’accès à copier").inputValue()
@@ -1481,10 +1499,11 @@ test("shares a revocable client portal with messages and appointments", async ({
   await expect(portalPage.getByRole("heading", { name: "Votre dossier en un coup d’œil" })).toBeVisible()
   await expect(portalPage.getByText("Chantier QA existant")).toBeVisible()
   await expect(portalPage.getByRole("link", { name: /DEV-2026-900/ })).toBeVisible()
-  await portalPage.getByLabel("Votre message").fill("Bonjour, pouvez-vous confirmer la prochaine étape du dossier QA ?")
+  await portalPage.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+  await portalPage.getByLabel("Votre message").fill(message)
   await portalPage.getByRole("button", { name: "Envoyer le message" }).click()
   await expect(portalPage.getByText("Message envoyé.")).toBeVisible()
-  await portalPage.getByLabel("Objet du rendez-vous").fill("Point de suivi QA")
+  await portalPage.getByLabel("Objet du rendez-vous").fill(appointment)
   await portalPage.getByLabel("Créneau souhaité").fill("2026-10-10T10:00")
   await portalPage.getByLabel("Autre créneau").fill("2026-10-12T14:00")
   await portalPage.getByRole("button", { name: "Envoyer la demande" }).click()
@@ -1492,8 +1511,9 @@ test("shares a revocable client portal with messages and appointments", async ({
   await portalContext.close()
 
   await page.reload()
-  await expect(page.getByText(/confirmer la prochaine étape/)).toBeVisible()
-  await expect(page.getByText("Point de suivi QA")).toBeVisible()
+  await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+  await expect(page.getByText(message, { exact: true })).toBeVisible()
+  await expect(page.getByText(appointment, { exact: true })).toBeVisible()
   await page.getByLabel("Répondre au client").fill("La prochaine étape est confirmée. Nous revenons vers vous avec le créneau final.")
   await page.getByRole("button", { name: "Envoyer la réponse" }).click()
   await expect(page.getByText("Réponse envoyée.")).toBeVisible()
@@ -1509,11 +1529,11 @@ test("shares a revocable client portal with messages and appointments", async ({
 
 test("creates and signs in a production account with a password", async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "La création de compte est exécutée une seule fois.")
-  const context = await browser.newContext()
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } })
   const page = await context.newPage()
   await page.goto("/auth/register")
   await page.getByLabel("Nom complet").fill("Nouveau Propriétaire QA")
-  await page.getByLabel("Adresse e-mail professionnelle").fill("nouveau-proprietaire-qa@example.com")
+  await page.getByLabel("Adresse e-mail professionnelle").fill(`nouveau-proprietaire-qa-${Date.now()}@example.test`)
   await page.getByLabel("Mot de passe", { exact: true }).fill("CompteSolide2026")
   await page.getByLabel("Confirmation").fill("CompteSolide2026")
   await page.getByText(/J’accepte les/).click()

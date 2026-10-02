@@ -199,7 +199,7 @@ export function ContractForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-xl border border-border/80 bg-background/95 p-2 shadow-sm backdrop-blur-sm">
+      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-lg border border-border/80 bg-background p-2">
         <Link href="/dashboard/contrats">
           <Button type="button" variant="ghost" size="icon" aria-label="Retour aux contrats">
             <ArrowLeft className="h-4 w-4" />

@@ -1,3 +1,5 @@
+import { publicDemoConfigurationIssues } from "./demo-configuration"
+
 const MIN_SECRET_LENGTH = 32
 
 function hasValue(environment: NodeJS.ProcessEnv, name: string) {
@@ -11,7 +13,8 @@ function hasSecret(environment: NodeJS.ProcessEnv, name: string) {
 function isHttpsUrl(value: string | undefined) {
   if (!value) return false
   try {
-    return new URL(value).protocol === "https:"
+    const url = new URL(value)
+    return url.protocol === "https:" && !url.username && !url.password && !url.hash
   } catch {
     return false
   }
@@ -21,16 +24,19 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
   if (environment.NODE_ENV !== "production") return []
 
   const issues: string[] = []
+  const readonly = environment.DEMO_ACCESS_MODE === "readonly"
+  issues.push(...publicDemoConfigurationIssues(environment))
   const databaseUrl = environment.DATABASE_URL?.trim() ?? ""
   if (!databaseUrl.startsWith("postgresql://") && !databaseUrl.startsWith("postgres://")) issues.push("DATABASE_URL_POSTGRESQL")
 
-  for (const name of ["AUTH_SECRET", "ENCRYPTION_KEY", "JWT_SECRET", "CONSENT_TOKEN_SECRET", "LEAD_HASH_SALT", "LEAD_INGEST_SECRET", "AUTOMATION_CRON_SECRET", "CRON_SECRET"]) {
+  for (const name of readonly ? ["AUTH_SECRET", "ENCRYPTION_KEY", "JWT_SECRET"] : ["AUTH_SECRET", "ENCRYPTION_KEY", "JWT_SECRET", "CONSENT_TOKEN_SECRET", "LEAD_HASH_SALT", "LEAD_INGEST_SECRET", "AUTOMATION_CRON_SECRET", "CRON_SECRET"]) {
     if (!hasSecret(environment, name)) issues.push(name)
   }
   if (hasValue(environment, "SCHEDULER_CRON_SECRET") && !hasSecret(environment, "SCHEDULER_CRON_SECRET")) issues.push("SCHEDULER_CRON_SECRET")
-  for (const name of ["LEAD_ALLOWED_ORIGINS", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]) {
+  for (const name of readonly ? ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"] : ["LEAD_ALLOWED_ORIGINS", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]) {
     if (!hasValue(environment, name)) issues.push(name)
   }
+  if (!isHttpsUrl(environment.UPSTASH_REDIS_REST_URL)) issues.push("UPSTASH_REDIS_REST_URL_HTTPS")
   if (environment.REQUIRE_PLATFORM_EMAIL?.trim().toLowerCase() === "true") {
     for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM"]) {
       if (!hasValue(environment, name)) issues.push(name)

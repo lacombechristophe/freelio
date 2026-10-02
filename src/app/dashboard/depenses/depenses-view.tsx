@@ -107,11 +107,11 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
         title="Dépenses"
         description="Conservez les justificatifs, rattachez les achats aux chantiers et gardez une vue claire sur vos charges."
         actions={<>
-          <Button variant="outline" className="gap-2" onClick={() => setCreateOpen(true)}>
+          <Button demoMutation variant="outline" className="gap-2" onClick={() => setCreateOpen(true)}>
             <Camera className="h-4 w-4" />
-            Scanner un ticket (AI)
+            Joindre un justificatif
           </Button>
-          <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+          <Button demoMutation className="gap-2" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Saisie manuelle
           </Button>
@@ -131,7 +131,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
       <div className="grid max-w-2xl gap-3 sm:grid-cols-2">
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-primary/70">Total Mois</CardTitle>
+            <CardTitle className="text-sm font-medium tracking-normal text-muted-foreground">Total Mois</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatEuro(thisMonthTotal)}</div>
@@ -139,7 +139,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-widest text-muted-foreground">À Justifier</CardTitle>
+            <CardTitle className="text-sm font-medium tracking-normal text-muted-foreground">À Justifier</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-danger">{toJustify}</div>
@@ -164,7 +164,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
         </Badge>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
@@ -185,7 +185,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
                     icon={Camera}
                     title={expenses.length === 0 ? "Aucune dépense enregistrée" : "Aucune dépense trouvée"}
                     description={expenses.length === 0 ? "Ajoutez une première dépense et son justificatif pour commencer votre suivi." : "Modifiez votre recherche pour afficher d’autres dépenses."}
-                    action={expenses.length === 0 ? <Button size="sm" onClick={() => setCreateOpen(true)}><Plus />Ajouter une dépense</Button> : <Button size="sm" variant="outline" onClick={() => setSearch("")}>Effacer la recherche</Button>}
+                    action={expenses.length === 0 ? <Button demoMutation size="sm" onClick={() => setCreateOpen(true)}><Plus />Ajouter une dépense</Button> : <Button size="sm" variant="outline" onClick={() => setSearch("")}>Effacer la recherche</Button>}
                   />
                 </TableCell>
               </TableRow>
@@ -206,7 +206,7 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs uppercase tracking-wider font-bold">
+                    <Badge variant="outline" className="text-xs tracking-normal font-bold">
                       {expense.category}
                     </Badge>
                   </TableCell>
@@ -240,13 +240,14 @@ export function DepensesView({ expenses, projects }: { expenses: Expense[]; proj
                           </DropdownMenuItem>
                         )}
                         {expense.status === "TO_JUSTIFY" && (
-                          <DropdownMenuItem className="gap-2" onClick={() => handleJustify(expense.id)}>
+                          <DropdownMenuItem demoMutation className="gap-2" onClick={() => handleJustify(expense.id)}>
                             <CheckCircle2 className="h-4 w-4 text-success" /> Marquer comme justifiée
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setEditTarget(expense)}>Éditer</DropdownMenuItem>
+                        <DropdownMenuItem demoMutation onClick={() => setEditTarget(expense)}>Éditer</DropdownMenuItem>
                         <DropdownMenuItem
+                          demoMutation
                           className="text-danger"
                           onClick={() => handleDelete(expense.id, expense.label)}
                         >

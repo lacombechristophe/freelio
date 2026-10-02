@@ -350,7 +350,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
                   <Button variant="outline" size="icon" onClick={resetTimer} title="Réinitialiser">
                     <Trash className="h-4 w-4 text-muted-foreground" />
                   </Button>
-                  <Button onClick={handleSaveTimer} disabled={saving} className="bg-success hover:bg-success/90">
+                  <Button demoMutation onClick={handleSaveTimer} disabled={saving} className="bg-success hover:bg-success/90">
                     Enregistrer
                   </Button>
                 </>
@@ -424,7 +424,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
                     isToday ? "border-primary ring-1 ring-primary" : "border-border"
                   )}
                 >
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                  <span className="text-xs text-muted-foreground font-semibold tracking-normal">
                     {date.toLocaleDateString("fr-FR", { weekday: "short" })}
                   </span>
                   <span className="text-lg font-black tracking-tight text-foreground my-0.5">
@@ -493,7 +493,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium text-sm text-foreground">{entry.project.name}</span>
-                      <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                      <span className="text-xs text-muted-foreground tracking-normal">
                         {entry.project.client.name}
                       </span>
                     </div>
@@ -516,7 +516,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
                           <Edit3 className="h-3.5 w-3.5" />
                           Éditer
                         </DropdownMenuItem>
-                        <DropdownMenuItem
+                        <DropdownMenuItem demoMutation
                           className="text-danger hover:text-danger focus:text-danger gap-2"
                           onClick={() => handleDelete(entry.id)}
                         >

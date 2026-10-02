@@ -84,4 +84,14 @@ describe("productionConfigurationIssues", () => {
     const issues = productionConfigurationIssues({ ...validProductionEnvironment, DATABASE_URL: "file:./prod.db", AUTH_URL: "http://crm.example.test", AUTH_SECRET: "short", FILE_STORAGE_DRIVER: "local" })
     expect(issues).toEqual(expect.arrayContaining(["DATABASE_URL_POSTGRESQL", "AUTH_URL_HTTPS", "AUTH_SECRET", "FILE_STORAGE_DRIVER_R2"]))
   })
+
+  it("rejects credentials in public URLs and an unencrypted distributed limiter", () => {
+    expect(productionConfigurationIssues({ ...validProductionEnvironment, AUTH_URL: "https://user:synthetic@example.test", UPSTASH_REDIS_REST_URL: "http://redis.example.test" })).toEqual(expect.arrayContaining(["AUTH_URL_HTTPS", "UPSTASH_REDIS_REST_URL_HTTPS"]))
+  })
+
+  it("does not require disabled ingestion and processor secrets in the public read-only profile", () => {
+    const environment = { ...validProductionEnvironment, DEMO_ACCESS_MODE: "readonly", NEXT_PUBLIC_DEMO_MODE: "true", NEXT_PUBLIC_DEMO_READ_ONLY: "true", RESEND_API_KEY: undefined, STRIPE_SECRET_KEY: undefined, CONSENT_TOKEN_SECRET: undefined, LEAD_HASH_SALT: undefined, LEAD_INGEST_SECRET: undefined, AUTOMATION_CRON_SECRET: undefined, CRON_SECRET: undefined, LEAD_ALLOWED_ORIGINS: undefined }
+    expect(productionConfigurationIssues(environment)).toEqual([])
+    expect(productionConfigurationIssues({ ...environment, RESEND_API_KEY: "synthetic-business-key" })).toContain("RESEND_API_KEY")
+  })
 })

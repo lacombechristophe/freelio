@@ -128,7 +128,7 @@ export function RecordPropertiesPanel({
         <div><CardTitle className="flex items-center gap-2 text-sm"><Braces className="size-4 text-primary" />Propriétés métier</CardTitle><p className="mt-1 text-xs leading-5 text-muted-foreground">Données structurées propres à votre organisation, avec historique des changements.</p></div>
         <div className="flex shrink-0 gap-2">
           {data.history.length ? <Button type="button" variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}><History />Historique</Button> : null}
-          {data.definitions.length ? <Button type="button" variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil />Modifier</Button> : null}
+          {data.definitions.length ? <Button demoMutation type="button" variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil />Modifier</Button> : null}
         </div>
       </CardHeader>
       <CardContent>
@@ -136,8 +136,8 @@ export function RecordPropertiesPanel({
           <div className="space-y-5">
             {groups.map(([group, definitions]) => (
               <section key={group}>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{group}</h3>
-                <dl className="grid overflow-hidden rounded-xl border sm:grid-cols-2 xl:grid-cols-3">
+                <h3 className="mb-2 text-xs font-semibold tracking-normal text-muted-foreground">{group}</h3>
+                <dl className="grid overflow-hidden rounded-lg border sm:grid-cols-2 xl:grid-cols-3">
                   {definitions.map((definition) => {
                     const empty = definition.value == null || definition.value === "" || (Array.isArray(definition.value) && !definition.value.length)
                     return <div key={definition.id} className="min-w-0 border-b p-3 last:border-b-0 sm:border-r sm:[&:nth-last-child(-n+2)]:border-b-0 xl:[&:nth-last-child(-n+3)]:border-b-0"><dt className="text-xs text-muted-foreground">{definition.label}</dt><dd className={`mt-1 break-words text-sm font-medium ${empty ? "text-muted-foreground" : ""}`}>{valueLabel(definition, definition.value)}</dd></div>
@@ -164,7 +164,7 @@ export function RecordPropertiesPanel({
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader><DialogTitle>Historique des propriétés</DialogTitle><DialogDescription>Les 50 dernières modifications, classées de la plus récente à la plus ancienne.</DialogDescription></DialogHeader>
-          <div className="divide-y overflow-hidden rounded-xl border">
+          <div className="divide-y overflow-hidden rounded-lg border">
             {data.history.map((entry) => <div key={entry.id} className="p-3.5"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{entry.propertyLabel}</strong><time className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.createdAt))}</time></div><p className="mt-1.5 text-xs text-muted-foreground"><span className="line-through">{historyValue(entry.previousValue)}</span><span className="mx-2">→</span><span className="font-medium text-foreground">{historyValue(entry.nextValue)}</span></p><p className="mt-1 text-[11px] text-muted-foreground">Par {entry.changedBy}</p></div>)}
           </div>
         </DialogContent>

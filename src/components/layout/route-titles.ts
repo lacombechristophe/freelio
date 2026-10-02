@@ -76,7 +76,7 @@ export function documentTitleForPath(pathname: string, heading?: string | null) 
   const routeTitle = titleForPath(pathname)
   const normalizedHeading = heading?.trim().replace(/\s+/g, " ")
   const contextualTitle = normalizedHeading && normalizedHeading !== routeTitle
-    ? `${normalizedHeading.slice(0, 64)} · ${routeTitle}`
+    ? `${normalizedHeading.slice(0, 64).trimEnd()} · ${routeTitle}`
     : routeTitle
 
   return `${contextualTitle} | Freelio`

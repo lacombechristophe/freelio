@@ -3,6 +3,7 @@ import { requestContext } from "@/lib/context"
 import { hasPermission, normalizeCompanyRole, type Permission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 import { resolveAgencyAccess, type AgencyAccess } from "@/lib/agency-access"
+import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 
 export class AuthorizationError extends Error {
   constructor(message = "Accès refusé") {
@@ -73,6 +74,7 @@ export async function withAuth<T>(
   action: (context: AuthContext) => Promise<T>,
   permission?: Permission,
 ): Promise<T> {
+  if (permission && !permission.endsWith(".read")) assertDemoMutationAllowed()
   const context = await resolveAuthContext()
 
   // Dashboard callers already handle the pre-onboarding state through redirects.

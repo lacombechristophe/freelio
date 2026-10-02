@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ArrowLeft, CheckCircle2, Circle, FileText, Save, UserRound } from "lucide-react"
 import Link from "next/link"
+import { FormError } from "@/components/shared/form-error"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,19 +39,22 @@ function formatEuro(cents: number) {
 export function QuoteForm({
   quote,
   initialLines,
+  initialClientId,
   clients,
   productCatalog,
   isTvaApplicable = true,
 }: {
   quote?: Quote
   initialLines?: Line[]
+  initialClientId?: string
   clients: Array<{ id: string; name: string }>
   productCatalog: ProductCatalog
   isTvaApplicable?: boolean
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
-  const [clientId, setClientId] = React.useState(quote?.clientId ?? "")
+  const [formError, setFormError] = React.useState("")
+  const [clientId, setClientId] = React.useState(quote?.clientId ?? initialClientId ?? "")
   const [object, setObject] = React.useState(quote?.object ?? "")
   const [validUntil, setValidUntil] = React.useState(
     quote?.validUntil ? new Date(quote.validUntil).toISOString().slice(0, 10) : defaultValidityDate()
@@ -69,10 +73,12 @@ export function QuoteForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (pending) return
+    setFormError("")
     const submittedLines = lines.map((line) => (isTvaApplicable ? line : { ...line, tvaRate: 0 }))
-    if (!clientId) return toast.error("Sélectionnez un client.")
+    if (!clientId) return setFormError("Sélectionnez un client avant d’enregistrer le document.")
     if (submittedLines.length === 0 || !submittedLines.every((l) => l.label.trim())) {
-      return toast.error("Chaque ligne doit avoir un libellé.")
+      return setFormError("Renseignez le libellé de chaque prestation avant d’enregistrer.")
     }
     setPending(true)
     try {
@@ -102,8 +108,8 @@ export function QuoteForm({
         toast.success("Devis créé.")
         router.push(`/dashboard/devis/${created.id}`)
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Erreur.")
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Impossible d’enregistrer. Vos modifications sont conservées ; réessayez.")
     } finally {
       setPending(false)
     }
@@ -111,7 +117,7 @@ export function QuoteForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-xl border border-border/80 bg-background/95 p-2 shadow-sm backdrop-blur-sm">
+      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-lg border border-border/80 bg-background p-2">
         <Link href="/dashboard/devis">
           <Button type="button" variant="ghost" size="icon" aria-label="Retour aux devis">
             <ArrowLeft className="h-4 w-4" />
@@ -129,9 +135,10 @@ export function QuoteForm({
         </div>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-5">
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <FormError message={formError} />
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
             <div className="flex items-start gap-3 border-b border-border px-5 py-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-muted/40 text-xs font-semibold">01</span>
               <div>
@@ -161,7 +168,7 @@ export function QuoteForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+          <section className="space-y-4 rounded-lg border border-border bg-card p-5">
             <div className="flex items-start gap-3 border-b border-border pb-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-muted/40 text-xs font-semibold">02</span>
               <div>
@@ -179,8 +186,8 @@ export function QuoteForm({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-24">
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Synthèse</p>
+          <section className="rounded-lg border border-border bg-card p-4">
+            <p className="text-xs font-semibold tracking-normal text-muted-foreground">Synthèse</p>
             <div className="mt-4 space-y-3 border-b border-border pb-4 text-sm">
               <div><p className="text-xs text-muted-foreground">Client</p><p className="mt-0.5 truncate font-medium">{selectedClient?.name ?? "À sélectionner"}</p></div>
               <div><p className="text-xs text-muted-foreground">Objet</p><p className="mt-0.5 line-clamp-2 font-medium">{object.trim() || "À renseigner"}</p></div>
@@ -193,7 +200,7 @@ export function QuoteForm({
             <Button type="submit" disabled={pending} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : quote ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
           </section>
 
-          <section className="rounded-xl border border-border bg-background p-4">
+          <section className="rounded-lg border border-border bg-background p-4">
             <p className="text-sm font-semibold">Contrôle avant création</p>
             <div className="mt-3 space-y-2.5">
               {readiness.map((item) => <div key={item.label} className="flex items-center gap-2 text-xs"><span className={item.ready ? "text-success" : "text-muted-foreground"}>{item.ready ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />}</span><span className={item.ready ? "text-foreground" : "text-muted-foreground"}>{item.label}</span></div>)}

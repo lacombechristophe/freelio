@@ -1,9 +1,7 @@
 import { Queue } from "bullmq"
+import { redisConnection } from "./connection"
 
-const connection = {
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
-}
+const connection = redisConnection("producer")
 
 export const docGenQueue = new Queue("DOC_GEN", { connection })
 export const emailQueue = new Queue("EMAILS", { connection })

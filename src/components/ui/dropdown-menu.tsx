@@ -4,6 +4,8 @@ import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/utils"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
+import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 import { ChevronRightIcon, CheckIcon } from "lucide-react"
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
@@ -94,10 +96,12 @@ function DropdownMenuItem({
   className,
   inset,
   variant = "default",
+  demoMutation = variant === "destructive",
   ...props
 }: MenuPrimitive.Item.Props & {
   inset?: boolean
   variant?: "default" | "destructive"
+  demoMutation?: boolean
 }) {
   return (
     <MenuPrimitive.Item
@@ -109,6 +113,8 @@ function DropdownMenuItem({
         className
       )}
       {...props}
+      disabled={props.disabled || (demoMutation && isReadOnlyDemo)}
+      title={demoMutation && isReadOnlyDemo ? DEMO_READ_ONLY_MESSAGE : props.title}
     />
   )
 }

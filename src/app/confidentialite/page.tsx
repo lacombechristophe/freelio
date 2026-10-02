@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { DEMO_USAGE_NOTICE, isDemoMode } from "@/lib/demo-mode"
 
 export const metadata: Metadata = { title: "Politique de confidentialité" }
 
@@ -13,5 +14,5 @@ const sections = [
 ]
 
 export default function PrivacyPage() {
-  return <main className="min-h-screen bg-[#f7f9fc] px-5 py-16"><article className="mx-auto max-w-3xl rounded-2xl border bg-white p-7 shadow-sm sm:p-10"><p className="text-xs font-semibold text-primary">Protection des données</p><h1 className="mt-3 text-3xl font-semibold">Politique de confidentialité</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Version du 31 août 2026. Cette page décrit le périmètre technique actuel ; l’identité légale de l’éditeur, le contact données personnelles, les durées détaillées et la liste des sous-traitants doivent être complétés et validés avant ouverture commerciale.</p><div className="mt-8 space-y-7 text-sm leading-7">{sections.map(([title, body]) => <section key={title}><h2 className="font-semibold">{title}</h2><p className="mt-2 text-muted-foreground">{body}</p></section>)}</div><div className="mt-9 flex flex-wrap gap-4 border-t pt-5"><Link href="/conditions" className="text-sm font-semibold text-primary hover:underline">Conditions d’utilisation</Link><Link href="/conformite" className="text-sm font-semibold text-primary hover:underline">Conformité produit</Link></div></article></main>
+  return <main className="min-h-screen bg-[#f7f9fc] px-5 py-16"><article className="mx-auto max-w-3xl rounded-2xl border bg-white p-7 shadow-sm sm:p-10"><p className="text-xs font-semibold text-primary">Protection des données</p><h1 className="mt-3 text-3xl font-semibold">Politique de confidentialité</h1>{isDemoMode ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{DEMO_USAGE_NOTICE}</p> : null}<p className="mt-3 text-sm leading-6 text-muted-foreground">Version du 31 août 2026. Cette page décrit le périmètre technique actuel ; l’identité légale de l’éditeur, le contact données personnelles, les durées détaillées et la liste des sous-traitants doivent être complétés et validés avant ouverture commerciale.</p><div className="mt-8 space-y-7 text-sm leading-7">{sections.map(([title, body]) => <section key={title}><h2 className="font-semibold">{title}</h2><p className="mt-2 text-muted-foreground">{body}</p></section>)}</div><div className="mt-9 flex flex-wrap gap-4 border-t pt-5"><Link href="/conditions" className="text-sm font-semibold text-primary hover:underline">Conditions d’utilisation</Link><Link href="/conformite" className="text-sm font-semibold text-primary hover:underline">Conformité produit</Link></div></article></main>
 }

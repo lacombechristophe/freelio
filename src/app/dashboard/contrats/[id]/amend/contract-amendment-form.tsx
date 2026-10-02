@@ -115,7 +115,7 @@ export function ContractAmendmentForm({ baseContract }: { baseContract: { id: st
             <h1 className="text-2xl font-bold tracking-tight">Formaliser les modifications</h1>
           </div>
         </div>
-        <Button type="submit" disabled={pending} className="sm:ml-auto">
+        <Button demoMutation type="submit" disabled={pending} className="sm:ml-auto">
           {pending ? <Loader2 className="animate-spin" /> : <Save />}
           Créer le brouillon
         </Button>
@@ -193,7 +193,7 @@ export function ContractAmendmentForm({ baseContract }: { baseContract: { id: st
                 Décrivez l’état avant/après. L’impact financier est optionnel et peut être négatif.
               </CardDescription>
             </div>
-            <Button
+            <Button demoMutation
               type="button"
               size="sm"
               variant="outline"

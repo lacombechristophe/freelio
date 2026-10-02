@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 
 import prisma from "@/lib/prisma"
-import { embedFacturX, generatePdfFromHtml } from "@/lib/pdf/generator"
-import { generateFacturX } from "@/lib/pdf/facturx"
+import { generatePdfFromHtml } from "@/lib/pdf/generator"
+import { readIssuedInvoice } from "@/lib/finance/issued-invoice"
 import { parsePdfRenderOptions, renderDocumentHtml } from "@/lib/pdf/render"
 import { getCurrentPortalAccess } from "@/lib/portal/session"
 import { decryptSensitive } from "@/lib/crypto"
@@ -85,32 +85,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ kind
       include: { client: true, company: true, lines: { orderBy: { order: "asc" } } },
     })
     if (!invoice) return Response.json({ error: "Document introuvable" }, { status: 404 })
-    const html = renderDocumentHtml({
-      kind: "FACTURE",
-      number: invoice.number,
-      object: invoice.object,
-      date: invoice.date,
-      dueDate: invoice.dueDate,
-      totalHtCents: invoice.totalHtCents,
-      totalTvaCents: invoice.totalTvaCents,
-      totalTtcCents: invoice.totalTtcCents,
-      lines: invoice.lines.map((line) => ({ label: line.label, description: line.description, quantity: line.quantity, unitPriceCents: line.unitPriceCents, tvaRate: line.tvaRate })),
-      client: clientIdentity(invoice.client),
-      company: companyIdentity(invoice.company),
-    }, parsePdfRenderOptions(url.searchParams, invoice.company.pdfTemplate))
-    let pdf = await generatePdfFromHtml(html)
-    const xml = generateFacturX({
-      number: invoice.number,
-      date: invoice.date.toISOString().split("T")[0],
-      seller: { name: invoice.company.name, siret: invoice.company.siret || "", address: invoice.company.address || "", vatNumber: invoice.company.tvaNumber || undefined },
-      buyer: { name: invoice.client.name, siret: invoice.client.siret || undefined, address: invoice.client.address || "", vatNumber: invoice.client.tvaNumber || undefined },
-      lines: invoice.lines.map((line) => ({ label: line.label, quantity: line.quantity, unitPriceCents: line.unitPriceCents, totalHtCents: line.quantity * line.unitPriceCents, tvaRate: line.tvaRate })),
-      totalHtCents: invoice.totalHtCents,
-      totalTvaCents: invoice.totalTvaCents,
-      totalTtcCents: invoice.totalTtcCents,
-    })
-    pdf = new Uint8Array(await embedFacturX(Buffer.from(pdf), xml))
-    return pdfResponse(pdf, invoice.number)
+    try {
+      const archive = await readIssuedInvoice(invoice)
+      return pdfResponse(archive.pdf, invoice.number)
+    } catch {
+      return Response.json({ error: "Archive de facture indisponible. Contactez l’entreprise pour une récupération contrôlée." }, { status: 409, headers: { "cache-control": "private, no-store" } })
+    }
   }
 
   return Response.json({ error: "Type de document invalide" }, { status: 400 })

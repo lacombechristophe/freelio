@@ -163,7 +163,7 @@ export function TicketRecordActions({
           Obligatoire avant de passer le ticket en résolu ou clos.
         </p>
       </div>
-      <div className="flex flex-wrap gap-2"><Button type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer le traitement</Button><Button type="button" variant="outline" disabled={pending || ["RESOLVED", "CLOSED"].includes(ticket.status)} title={["RESOLVED", "CLOSED"].includes(ticket.status) ? "Rouvrez le ticket avant de le réaffecter" : "Choisir le membre le plus adapté selon compétence, zone et charge"} onClick={() => mutate(() => routeServiceTicket(ticket.id), "Affectation intelligente appliquée.")}>{pending ? <Loader2 className="animate-spin" /> : <Route />}Affecter selon les règles</Button></div>
+      <div className="flex flex-wrap gap-2"><Button demoMutation type="submit" disabled={pending}>{pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer le traitement</Button><Button type="button" variant="outline" disabled={pending || ["RESOLVED", "CLOSED"].includes(ticket.status)} title={["RESOLVED", "CLOSED"].includes(ticket.status) ? "Rouvrez le ticket avant de le réaffecter" : "Choisir le membre le plus adapté selon compétence, zone et charge"} onClick={() => mutate(() => routeServiceTicket(ticket.id), "Affectation intelligente appliquée.")}>{pending ? <Loader2 className="animate-spin" /> : <Route />}Affecter selon les règles</Button></div>
     </form>
   );
 }
@@ -254,7 +254,7 @@ export function PurchaseOrderRecordActions({
         </Button>
       )}
       {status === "PENDING_APPROVAL" && canApprove && (
-        <Button
+        <Button demoMutation
           disabled={pending}
           onClick={() =>
             mutate(() => approvePurchaseOrder(id), "Commande approuvée.")

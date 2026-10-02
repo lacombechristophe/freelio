@@ -1,9 +1,9 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useMemo, useTransition } from "react"
 import Link from "next/link"
 import { AlertTriangle, CalendarClock, CheckCircle2, Gauge, Loader2, Plus, RefreshCw, Save, ShieldCheck, Trash2, UsersRound } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
 import {
@@ -23,6 +23,8 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { customerHealthMetricDefinitions, type CustomerHealthMetric } from "@/lib/operations/customer-health"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
+import { DIRECTORY_PAGE_SIZE, parseDirectoryQuery } from "@/lib/directory-query"
 
 type Workspace = Awaited<ReturnType<typeof import("@/actions/customer-success").getCustomerSuccessWorkspace>>
 type PortfolioClient = Workspace["portfolio"][number]
@@ -111,7 +113,7 @@ function ClientCard({ client, members, pending, run }: { client: PortfolioClient
         <Field label="Prochaine action"><Input aria-label="Prochaine action du portefeuille" name="nextActionLabel" maxLength={500} defaultValue={client.nextActionLabel || ""} placeholder="Appeler pour préparer le renouvellement" /></Field>
         <Field label="Plan de succès"><Textarea aria-label="Plan de succès" name="successPlan" maxLength={10_000} rows={4} defaultValue={client.successPlan || ""} placeholder="Objectifs client, résultats attendus, jalons et responsabilités…" /></Field>
         <Field label="Opportunités d’extension"><Textarea aria-label="Opportunités d’extension" name="expansionNotes" maxLength={5_000} rows={3} defaultValue={client.expansionNotes || ""} placeholder="Équipements complémentaires, nouveau site, contrat supérieur…" /></Field>
-        <Button type="submit" disabled={pending}><Save />Enregistrer le suivi</Button>
+        <Button demoMutation type="submit" disabled={pending}><Save />Enregistrer le suivi</Button>
       </form>
     </div>
   </details>
@@ -121,12 +123,23 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
   const router = useRouter()
   const confirm = useConfirm()
   const [pending, startTransition] = useTransition()
-  const [query, setQuery] = useState("")
-  const [status, setStatus] = useState("ALL")
+  const params = useSearchParams()
+  const view = parseDirectoryQuery(params.get("view"))
+  const query = view.search
+  const status = view.status
+  function updateView(patch: Partial<typeof view>) {
+    const url = new URL(window.location.href)
+    url.searchParams.set("view", JSON.stringify({ ...view, page: 1, ...patch }))
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`)
+  }
+  const setQuery = (search: string) => updateView({ search })
+  const setStatus = (status: string) => updateView({ status })
   const filtered = useMemo(() => initialData.portfolio.filter((client) => {
     const matchesQuery = !query.trim() || client.name.toLocaleLowerCase("fr-FR").includes(query.trim().toLocaleLowerCase("fr-FR"))
     return matchesQuery && (status === "ALL" || client.status === status)
   }), [initialData.portfolio, query, status])
+  const page = Math.min(view.page, Math.max(1, Math.ceil(filtered.length / DIRECTORY_PAGE_SIZE)))
+  const visible = filtered.slice((page - 1) * DIRECTORY_PAGE_SIZE, page * DIRECTORY_PAGE_SIZE)
   const run = (task: () => Promise<unknown>, success: string, reset?: HTMLFormElement) => startTransition(() => void task().then(() => { reset?.reset(); toast.success(success); router.refresh() }).catch((error) => toast.error(error instanceof Error ? error.message : "Action impossible.")))
 
   return <div className="space-y-6">
@@ -140,7 +153,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
     <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 lg:flex-row lg:items-center">
       <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">Portefeuille priorisé</h2><p className="mt-1 text-xs text-muted-foreground">Les scores affichés sont recalculés en direct ; l’action « Figer les scores » crée l’historique de tendance.</p></div>
       <div className="flex flex-wrap gap-2">
-        {initialData.rules.length === 0 && <Button type="button" variant="outline" disabled={pending} onClick={() => run(installDefaultCustomerHealthRules, "Règles de départ installées.")}><ShieldCheck />Installer les règles recommandées</Button>}
+        {initialData.rules.length === 0 && <Button demoMutation type="button" variant="outline" disabled={pending} onClick={() => run(installDefaultCustomerHealthRules, "Règles de départ installées.")}><ShieldCheck />Installer les règles recommandées</Button>}
         <Button type="button" disabled={pending} onClick={() => run(recomputeCustomerHealth, "Scores recalculés et historisés.")}>{pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}Figer les scores</Button>
       </div>
     </div>
@@ -151,7 +164,9 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
           <Input aria-label="Rechercher un client du portefeuille" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un client…" />
           <select aria-label="Filtrer par santé" value={status} onChange={(event) => setStatus(event.target.value)} className={controlClass}><option value="ALL">Tous les niveaux</option><option value="RISK">À risque</option><option value="WATCH">À surveiller</option><option value="HEALTHY">Sains</option></select>
         </div>
-        {filtered.length ? filtered.map((client) => <ClientCard key={client.id} client={client} members={initialData.members} pending={pending} run={run} />) : <p className="rounded-xl border border-dashed bg-card py-12 text-center text-sm text-muted-foreground">Aucun client ne correspond à ces filtres.</p>}
+        <p className="text-xs text-muted-foreground">Recherche et indicateurs sur les {initialData.portfolio.length} clients du portefeuille chargé (300 maximum).</p>
+        {visible.length ? visible.map((client) => <ClientCard key={client.id} client={client} members={initialData.members} pending={pending} run={run} />) : <div className="rounded-lg border border-dashed bg-card py-12 text-center text-sm text-muted-foreground"><p>Aucun client ne correspond à ces filtres.</p><Button className="mt-3" variant="outline" onClick={() => updateView({ search: "", status: "ALL" })}>Réinitialiser</Button></div>}
+        <DirectoryPagination total={filtered.length} page={page} pending={pending} error={false} onPage={(page) => updateView({ page })} onRetry={() => router.refresh()} />
       </section>
 
       <aside className="space-y-5">
@@ -162,7 +177,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
             <Field label="Mesure"><select aria-label="Mesure de santé" name="metric" className={controlClass}>{Object.entries(customerHealthMetricDefinitions).map(([value, definition]) => <option key={value} value={value}>{definition.label}</option>)}</select></Field>
             <div className="grid grid-cols-2 gap-3"><Field label="Comparaison"><select aria-label="Comparaison de la règle" name="operator" defaultValue="GTE" className={controlClass}>{Object.entries(operatorLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Seuil"><Input aria-label="Seuil de la règle" name="threshold" type="number" step="0.01" required defaultValue="1" /></Field></div>
             <div className="grid grid-cols-2 gap-3"><Field label="Impact"><Input aria-label="Impact de la règle" name="impact" type="number" min="-100" max="100" required defaultValue="-15" /></Field><Field label="Priorité"><Input aria-label="Priorité de la règle" name="priority" type="number" min="0" max="100" defaultValue="50" /></Field></div>
-            <Button type="submit" disabled={pending}><Plus />Créer la règle</Button>
+            <Button demoMutation type="submit" disabled={pending}><Plus />Créer la règle</Button>
           </form></CardContent>
         </Card>
         <Card>
