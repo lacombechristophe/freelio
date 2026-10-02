@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-02T21:10:34.166Z",
+  "database": "freelio_demo_20261002_release",
+  "readerRole": "freelio_demo_reader_20261002",
+  "checks": [
+    "Non-privileged reader role",
+    "Fictitious company and six clients readable",
+    "UPDATE denied by SQL",
+    "DELETE denied by SQL",
+    "INSERT denied by SQL",
+    "DELETE denied by SQL",
+    "CREATE denied by SQL",
+    "Append-only audit permission"
+  ]
+}

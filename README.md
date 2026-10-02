@@ -38,7 +38,7 @@ npm run demo
 
 Le lanceur crée une nouvelle copie dans le répertoire temporaire, une SQLite neuve et un compte fictif avec mot de passe. Il ne copie aucun .env ni donnée métier du dépôt. Le terminal affiche l’adresse locale et le chemin privé des identifiants, sans afficher les secrets. Il réutilise les dépendances installées sans régénérer leur client Prisma.
 
-La démo locale est distincte de la future démo publique. Son garde-fou Node refuse les connexions fournisseur mais permet les téléchargements publics de polices. Voir le [guide de démarrage, reprise, sauvegarde et restauration](docs/demo-local.md).
+La démo locale est distincte de la démo hébergée en lecture seule. Son garde-fou Node refuse les connexions fournisseur mais permet les téléchargements publics de polices. Voir le [guide de démarrage, reprise, sauvegarde et restauration](docs/demo-local.md). La qualification Vercel et ses limites sont consignées dans le [compte rendu de livraison](docs/livraison-demo-vercel-20261003.md).
 
 ## Développement avec PostgreSQL
 
@@ -93,6 +93,7 @@ Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dé
 
 - [Plan de préparation à la revue CTO](docs/plan-vitrine-cto-20260930.md)
 - [Audit et plan de complétude fonctionnelle — 2 octobre 2026](docs/plan-completude-fonctionnelle-20261002.md)
+- [Livraison de la démo hébergée — 3 octobre 2026](docs/livraison-demo-vercel-20261003.md)
 - [État d’exécution et preuves](docs/execution-cto-20261001.md)
 - [Architecture métier](docs/architecture-domain-boundaries.md)
 - [Décisions techniques et limites](docs/decisions-techniques.md)
