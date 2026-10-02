@@ -42,6 +42,7 @@
     "@prisma/client": "6.12.0",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.6",
+    "@sparticuz/chromium": "152.0.0",
     "@tanstack/react-query": "^5.97.0",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/react": "^3.31.0",

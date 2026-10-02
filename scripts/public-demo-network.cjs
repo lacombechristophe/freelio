@@ -2,6 +2,14 @@
 // Application guard; the hosting firewall must enforce the same infrastructure allowlist.
 const network = new Set();
 const http = new Map();
+// Next.js reads the canonical origin to complete Server Action redirects.
+if (process.env.PUBLIC_APP_URL) {
+  const url = new URL(process.env.PUBLIC_APP_URL);
+  if (url.protocol === "https:" && !url.username && !url.password) {
+    http.set(url.host, new Set(["GET", "HEAD"]));
+    network.add(`${url.hostname}:${url.port || 443}`);
+  }
+}
 for (const [raw, port] of [[process.env.DATABASE_URL, 5432], [process.env.REDIS_URL, 6379]]) {
   if (!raw) continue;
   const url = new URL(raw);

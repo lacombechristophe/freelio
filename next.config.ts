@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   experimental: { sri: { algorithm: "sha384" } },
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["@prisma/client"],
+  outputFileTracingIncludes: {
+    "/api/pdf/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/api/portal/documents/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/dashboard/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   async headers() {
     return [
       {

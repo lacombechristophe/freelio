@@ -33,10 +33,14 @@ async function inlinePdfFonts(html: string) {
 
 export async function generatePdfFromHtml(html: string) {
   const printableHtml = await inlineSafePdfImages(await inlinePdfFonts(html))
+  const chromium = process.env.VERCEL === "1" && !process.env.PUPPETEER_EXECUTABLE_PATH
+    ? (await import("@sparticuz/chromium")).default
+    : null
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: chromium ? "shell" : true,
     pipe: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-background-networking"],
+    ...(chromium ? { executablePath: await chromium.executablePath() } : {}),
+    args: [...(chromium?.args ?? ["--no-sandbox", "--disable-setuid-sandbox"]), "--disable-background-networking"],
   })
 
   try {
