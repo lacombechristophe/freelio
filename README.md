@@ -72,7 +72,7 @@ Les tests d’intégration et fixtures écrivent et suppriment des données : ut
 - Recette du 30 septembre 2026 : 427 tests dans 100 fichiers, build/typage/lint réussis ; 14 pages et 13 contrôles navigateur ciblés ; sauvegarde/restauration SQLite. Voir le [compte rendu](docs/technical-hardening-20260930.md).
 - La CI définit des jobs SQLite et PostgreSQL. Un workflow existant ne prouve pas son exécution distante : contrôler le résultat du commit exact avant publication.
 - Les validations PostgreSQL, Linux/Docker et exploitation sont consignées dans le [suivi CTO](docs/execution-cto-20261001.md).
-- La livraison locale `review-local-20261002` conserve les [rapports](docs/evidence/20261002/README.md) : 457 tests SQLite, 456 tests PostgreSQL, 19 parcours desktop, les contrôles de démo en lecture seule, les seuils de couverture ciblée et une charge locale de 30 minutes sans erreur. Leurs dates, conditions et limites sont explicites ; aucun résultat CI distant n’est revendiqué.
+- La livraison locale `review-local-20261002-final` conserve les [rapports](docs/evidence/20261002/README.md) : 457 tests SQLite, 456 tests PostgreSQL, 19 parcours desktop, les contrôles de démo en lecture seule, les seuils de couverture ciblée et une charge locale de 30 minutes sans erreur. Leurs dates, conditions et limites sont explicites ; aucun résultat CI distant n’est revendiqué.
 
 ## Image et exploitation
 

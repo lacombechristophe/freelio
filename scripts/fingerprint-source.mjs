@@ -8,7 +8,7 @@ import path from "node:path"
 const listed = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean)
 const files = []
 for (const name of [...new Set(listed)].sort()) {
-  if ((/(^|\/)\.env(?:\.|$)/.test(name) && name !== ".env.example") || /\.db(?:$|-)|(^|\/)(?:data|uploads|\.auth)\/|(^|\/)(?:demo|recipe)-access\.json$/.test(name)) continue
+  if ((/(^|\/)\.env(?:\.|$)/.test(name) && name !== ".env.example") || /\.db(?:$|-)|^(?:data|uploads)\/|(^|\/)\.auth\/|(^|\/)(?:demo|recipe)-access\.json$/.test(name)) continue
   try {
     const resolved = path.resolve(name)
     const stat = await fs.lstat(resolved)
