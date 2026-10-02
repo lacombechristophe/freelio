@@ -32,8 +32,7 @@ function allowedUrl(input, options = {}) {
   return url.protocol === "https:" && (http.get(url.host)?.has(method) ?? false);
 }
 const deny = () => { throw Error(message); };
-for (const name of ["node:http", "node:https"]) {
-  const transport = require(name);
+for (const [name, transport] of [["node:http", require("node:http")], ["node:https", require("node:https")]]) {
   for (const method of ["request", "get"]) {
     const original = transport[method];
     transport[method] = function(input, ...args) {
@@ -44,8 +43,7 @@ for (const name of ["node:http", "node:https"]) {
     };
   }
 }
-for (const name of ["node:net", "node:tls"]) {
-  const transport = require(name);
+for (const transport of [require("node:net"), require("node:tls")]) {
   for (const method of ["connect", "createConnection"]) {
     if (!transport[method]) continue;
     const original = transport[method];
