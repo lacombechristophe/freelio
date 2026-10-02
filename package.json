@@ -57,7 +57,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "fflate": "^0.8.3",
-    "framer-motion": "^12.38.0",
+    "framer-motion": "^13.4.6",
     "handlebars": "^4.7.9",
     "ioredis": "^5.10.1",
     "jose": "^6.2.2",
