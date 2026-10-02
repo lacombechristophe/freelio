@@ -228,7 +228,7 @@ test("preuves des onglets secondaires et de la création produit", async ({ page
   await mkdir(directory, { recursive: true })
   const evidence: Array<{ route: string; state: string } & Awaited<ReturnType<typeof captureScrollablePage>>> = []
   const scenarios = [
-    { route: "automatisations", tabs: ["Vue d’ensemble", "Séquences", "Workflows", "Modèles", "Journal"] },
+    { route: "automatisations", tabs: ["Vue d’ensemble", "Séquences", "Scénarios", "Modèles", "Journal"] },
     { route: "operations", tabs: ["Vue opérations", "SAV", "Planning", "Entretien", "Commandes", "Stock & achats", "Sites & parc"] },
     { route: "communications", tabs: ["Boîte de réception", "Nouvel e-mail", "Statistiques", "Intégrations"] },
     { route: "settings", tabs: ["Entreprise", "Facturation", "Service", "Intégrations", "Sécurité", "Compte"] },

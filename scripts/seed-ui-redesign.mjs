@@ -1,7 +1,11 @@
 import { PrismaClient } from "@prisma/client"
 
-// Deliberately restricted to the disposable redesign database.
-if (process.env.DATABASE_URL !== "file:./redesign-20260928.db") throw new Error("Use the isolated redesign database.")
+// Only the historical disposable database or the explicitly isolated CI recipe.
+const isolatedCi = process.env.CI === "true"
+  && process.env.RECIPE_ISOLATED === "true"
+  && process.env.E2E_DIRECTORY_FIXTURES === "true"
+  && process.env.DATABASE_URL === "file:./e2e-ci.db"
+if (process.env.DATABASE_URL !== "file:./redesign-20260928.db" && !isolatedCi) throw new Error("Use the isolated redesign database or the isolated CI recipe.")
 const prisma = new PrismaClient()
 try {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: "qa-crm@example.com" } })

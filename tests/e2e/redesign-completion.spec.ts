@@ -41,19 +41,24 @@ test("les contacts partagent une recherche paginée et réversible", async ({ pa
   await expect(page.locator("main article")).toHaveCount(25)
 })
 
-test("une erreur de lecture conserve la recherche et permet de réessayer", async ({ page }) => {
-  await page.goto("/dashboard/contacts")
-  await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
-  await page.route("**/dashboard/contacts*", (route) => route.request().method() === "POST" ? route.abort("failed") : route.continue())
-  const input = page.getByRole("textbox", { name: "Rechercher un contact" })
-  await input.fill("recette124@example.test")
-  await expect(page.getByRole("alert").filter({ hasText: "Impossible d’actualiser la liste." })).toBeVisible({ timeout: 30_000 })
-  await expect(input).toHaveValue("recette124@example.test")
-  await page.unroute("**/dashboard/contacts*")
-  await page.getByRole("button", { name: "Réessayer", exact: true }).click()
-  await expect(page.getByRole("link", { name: "recette124@example.test", exact: true })).toBeVisible()
-  await expect(page.locator("main article")).toHaveCount(1)
-  await expect(page.getByText("Impossible d’actualiser la liste.")).toHaveCount(0)
+test.describe("erreurs réseau contrôlées", () => {
+  // Keep fault injection in Playwright; a service worker can bypass page.route.
+  test.use({ serviceWorkers: "block" })
+
+  test("une erreur de lecture conserve la recherche et permet de réessayer", async ({ page }) => {
+    await page.goto("/dashboard/contacts")
+    await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+    await page.route("**/dashboard/contacts*", (route) => route.request().method() === "POST" ? route.abort("failed") : route.continue())
+    const input = page.getByRole("textbox", { name: "Rechercher un contact" })
+    await input.fill("recette124@example.test")
+    await expect(page.getByRole("alert").filter({ hasText: "Impossible d’actualiser la liste." })).toBeVisible({ timeout: 30_000 })
+    await expect(input).toHaveValue("recette124@example.test")
+    await page.unroute("**/dashboard/contacts*")
+    await page.getByRole("button", { name: "Réessayer", exact: true }).click()
+    await expect(page.getByRole("link", { name: "recette124@example.test", exact: true })).toBeVisible()
+    await expect(page.locator("main article")).toHaveCount(1)
+    await expect(page.getByText("Impossible d’actualiser la liste.")).toHaveCount(0)
+  })
 })
 
 test("le portefeuille SAV conserve sa page et rend les derniers dossiers accessibles", async ({ page }) => {

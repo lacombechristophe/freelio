@@ -59,6 +59,8 @@ jobs:
       E2E_USE_PRODUCTION_SERVER: "true"
       E2E_ENABLE_CREDENTIALS_AUTH: "true"
       E2E_FULL_UI_AUDIT: "true"
+      E2E_DIRECTORY_FIXTURES: "true"
+      RECIPE_ISOLATED: "true"
       FILE_STORAGE_DRIVER: local
 
     steps:
@@ -90,6 +92,9 @@ jobs:
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
+
+      - name: Préparer les volumes de pagination dans la recette isolée
+        run: node scripts/seed-ui-redesign.mjs
 
       - name: Exécuter les parcours critiques
         run: npm run test:e2e
