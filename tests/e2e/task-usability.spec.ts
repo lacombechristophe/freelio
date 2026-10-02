@@ -183,8 +183,7 @@ test("la messagerie donne accès aux échanges avant les statistiques", async ({
 test("les actions métier précèdent les analyses dans les espaces de suivi", async ({ page }) => {
   for (const [route, heading] of [["crm", "Portefeuille clients"], ["service", "File SAV prioritaire"], ["revenue", "Encaissements à sécuriser"]]) {
     await openWorkspace(page, `/dashboard/${route}`)
-    const headings = await page.locator("#dashboard-main h2").allTextContents()
-    expect(headings[0]).toBe(heading)
+    await expect(page.locator("#dashboard-main h2").first()).toHaveText(heading)
   }
 })
 
