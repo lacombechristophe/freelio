@@ -1,0 +1,133 @@
+{
+  "schema": "freelio.local-load.v1",
+  "completedAt": "2026-10-01T17:47:39.639Z",
+  "node": "v24.15.0",
+  "machine": {
+    "platform": "win32",
+    "architecture": "x64",
+    "cpu": "AMD Ryzen 5 5600X 6-Core Processor             ",
+    "cores": 12,
+    "totalMemoryBytes": 17101791232
+  },
+  "elapsedSeconds": 1808.5686801,
+  "sessions": 10,
+  "thinkTimeMs": 1000,
+  "requests": 14721,
+  "exclusions": [
+    "Browser hydration and UI timings",
+    "PDF rendering",
+    "Distributed limiter and trusted reverse proxy",
+    "Hosted network and R2",
+    "Mixed 10,000 business dossiers: this corpus has 10,000 client records"
+  ],
+  "routes": [
+    {
+      "route": "/dashboard",
+      "requests": 1842,
+      "failures": 2,
+      "statuses": {
+        "200": 1840,
+        "307": 1
+      },
+      "bytes": 262307284,
+      "p50Ms": 36.047900000121444,
+      "p95Ms": 242.84869999997318,
+      "p99Ms": 1844.6608000000124,
+      "maxMs": 10011.575799999991
+    },
+    {
+      "route": "/dashboard/clients",
+      "requests": 1841,
+      "failures": 11,
+      "statuses": {
+        "200": 1830
+      },
+      "bytes": 502197034,
+      "p50Ms": 54.57809999999881,
+      "p95Ms": 329.8624000000127,
+      "p99Ms": 6662.091500000097,
+      "maxMs": 10013.289399999892
+    },
+    {
+      "route": "/dashboard/devis",
+      "requests": 1839,
+      "failures": 8,
+      "statuses": {
+        "200": 1831
+      },
+      "bytes": 226956410,
+      "p50Ms": 35.7835999999661,
+      "p95Ms": 218.27559999999357,
+      "p99Ms": 6830.5461999999825,
+      "maxMs": 10017.753800000064
+    },
+    {
+      "route": "/dashboard/factures",
+      "requests": 1839,
+      "failures": 1,
+      "statuses": {
+        "200": 1838,
+        "307": 1
+      },
+      "bytes": 210811011,
+      "p50Ms": 38.099500000011176,
+      "p95Ms": 254.8731999999727,
+      "p99Ms": 3268.1071000001393,
+      "maxMs": 9622.103999999992
+    },
+    {
+      "route": "/dashboard/service",
+      "requests": 1839,
+      "failures": 8,
+      "statuses": {
+        "200": 1831
+      },
+      "bytes": 334285491,
+      "p50Ms": 56.567000000039116,
+      "p95Ms": 399.35849999998754,
+      "p99Ms": 3136.4451999999583,
+      "maxMs": 10010.116100000014
+    },
+    {
+      "route": "/dashboard/clients?view=%7B%22page%22%3A200%7D",
+      "requests": 1840,
+      "failures": 7,
+      "statuses": {
+        "200": 1833,
+        "307": 1
+      },
+      "bytes": 503224637,
+      "p50Ms": 58.32549999997718,
+      "p95Ms": 509.094299999997,
+      "p99Ms": 6693.7974000000395,
+      "maxMs": 10012.365099999995
+    },
+    {
+      "route": "/dashboard/clients?view=%7B%22search%22%3A%22Charge%20fictive%20099%22%7D",
+      "requests": 1840,
+      "failures": 2,
+      "statuses": {
+        "200": 1838
+      },
+      "bytes": 504904834,
+      "p50Ms": 64.68299999996088,
+      "p95Ms": 380.4299000001047,
+      "p99Ms": 2303.1088000000454,
+      "maxMs": 10011.667799999996
+    },
+    {
+      "route": "/dashboard/clients?view=%7B%22sort%22%3A%7B%22field%22%3A%22revenue%22%2C%22direction%22%3A%22desc%22%7D%7D",
+      "requests": 1841,
+      "failures": 17,
+      "statuses": {
+        "200": 1824
+      },
+      "bytes": 504016424,
+      "p50Ms": 275.21830000006594,
+      "p95Ms": 715.1282999999821,
+      "p99Ms": 7893.174499999965,
+      "maxMs": 10843.500999999931
+    }
+  ],
+  "budgetPassed": false
+}

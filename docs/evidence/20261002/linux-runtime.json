@@ -1,0 +1,38 @@
+{
+  "schema": "freelio.container-recipe.v1",
+  "startedAt": "2026-10-02T16:54:58.264Z",
+  "image": "freelio:cto-20261002-final",
+  "checks": [
+    "Configuration de production vide refusée avant écoute",
+    "43 migrations sur PostgreSQL Linux neuf",
+    "Données fictives créées par Prisma Linux",
+    "Serveur Linux et sondes live/ready avec SQL réel",
+    "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+    "Worker BullMQ connecté à Redis, PDF de devis terminé",
+    "Worker arrêté proprement sur SIGTERM",
+    "PDF Chromium hors réseau sous utilisateur runtime"
+  ],
+  "imageId": "sha256:b42acaa47726e3c321158db68655f849ff80528d00b266e67d652688ac3975d2",
+  "database": {
+    "schema": "freelio.runtime-database.v1",
+    "postgres": "PostgreSQL 18.6 (Debian 18.6-1.pgdg12+2)",
+    "appliedMigrations": 43,
+    "quoteJob": "completed",
+    "pdfHash": "830dfa17df9d2429944278ebe205f0851c30a16738f2db891a3fac0d4822ec40",
+    "uid": 1000
+  },
+  "pdf": {
+    "schema": "freelio.runtime-pdf.v1",
+    "node": "v24.21.0",
+    "bytes": 14074,
+    "pages": 1
+  },
+  "success": true,
+  "exclusions": [
+    "Disponibilité réelle R2/Upstash",
+    "TLS, reverse proxy et réseau hébergé",
+    "Reprise après interruption d’un job actif",
+    "Validation SaaS commerciale"
+  ],
+  "finishedAt": "2026-10-02T16:55:18.604Z"
+}

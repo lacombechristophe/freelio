@@ -1,0 +1,3147 @@
+{
+  "schema": "freelio.review-unit.v1",
+  "startTime": 1790959372446,
+  "success": true,
+  "total": 457,
+  "passed": 456,
+  "failed": 0,
+  "skipped": 1,
+  "files": [
+    {
+      "file": "tests/unit/accounting-export.test.ts",
+      "startTime": 1790959420858,
+      "endTime": 1790959420864.5269,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "export précomptable entreprise produit des écritures équilibrées pour vente, paiement, avoir et achat",
+          "status": "passed",
+          "durationMs": 4.564300000000003
+        },
+        {
+          "name": "export précomptable entreprise conserve les 18 colonnes et neutralise les formules CSV",
+          "status": "passed",
+          "durationMs": 1.5268000000000086
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/agency-access.test.ts",
+      "startTime": 1790959397783,
+      "endTime": 1790959397929.8452,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "agency authorization grants owners and administrators the whole company perimeter",
+          "status": "passed",
+          "durationMs": 1.1868000000000052
+        },
+        {
+          "name": "agency authorization limits operational roles to their explicit active assignments",
+          "status": "passed",
+          "durationMs": 0.7161000000000115
+        },
+        {
+          "name": "agency authorization fails closed for absent and cross-agency identifiers",
+          "status": "passed",
+          "durationMs": 0.841399999999993
+        },
+        {
+          "name": "agency-scoped Prisma boundary filters reads, blocks cross-agency writes and assigns the sole agency",
+          "status": "passed",
+          "durationMs": 13.873499999999979
+        },
+        {
+          "name": "agency-scoped Prisma boundary applies the agency boundary inside executive reports and exports",
+          "status": "passed",
+          "durationMs": 61.84530000000001
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/automation-email.test.ts",
+      "startTime": 1790959402485,
+      "endTime": 1790959402563.7024,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "email automation renders variables while escaping values inserted into HTML",
+          "status": "passed",
+          "durationMs": 1.4738999999999578
+        },
+        {
+          "name": "email automation removes executable markup and unsafe links",
+          "status": "passed",
+          "durationMs": 1.2195999999999572
+        },
+        {
+          "name": "email automation validates bounded, typed workflow actions",
+          "status": "passed",
+          "durationMs": 3.4476999999999975
+        },
+        {
+          "name": "email automation resolves a conditional branch without executing its actions",
+          "status": "passed",
+          "durationMs": 1.1082999999999856
+        },
+        {
+          "name": "email automation evaluates customer health conditions without requiring a lead",
+          "status": "passed",
+          "durationMs": 0.3778000000000361
+        },
+        {
+          "name": "email automation scopes manual sequence processing to the authenticated company",
+          "status": "passed",
+          "durationMs": 0.32119999999997617
+        },
+        {
+          "name": "email automation uses the company profile and adds one-click unsubscribe headers",
+          "status": "passed",
+          "durationMs": 70.70249999999999
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/automation-presets.test.ts",
+      "startTime": 1790959421582,
+      "endTime": 1790959421586.5215,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "pool contractor automation presets ships a concise, trade-focused starter library",
+          "status": "passed",
+          "durationMs": 2.477300000000014
+        },
+        {
+          "name": "pool contractor automation presets keeps sequence steps valid and human-reviewed where needed",
+          "status": "passed",
+          "durationMs": 0.9920999999999935
+        },
+        {
+          "name": "pool contractor automation presets resolves every sequence placeholder to a valid workflow action",
+          "status": "passed",
+          "durationMs": 0.5216000000000065
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/backup-export.integration.test.ts",
+      "startTime": 1790959396660,
+      "endTime": 1790959397032.9282,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "collects the actual schema and verifies the encrypted/compressed archive roundtrip",
+          "status": "passed",
+          "durationMs": 372.9282
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/backup-integrity.test.ts",
+      "startTime": 1790959410829,
+      "endTime": 1790959410842.393,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "manifestes de réversibilité retire récursivement les secrets sans supprimer les preuves métier",
+          "status": "passed",
+          "durationMs": 1.727800000000002
+        },
+        {
+          "name": "manifestes de réversibilité canonicalise les objets indépendamment de l’ordre des clés",
+          "status": "passed",
+          "durationMs": 7.433300000000003
+        },
+        {
+          "name": "manifestes de réversibilité valide un export complet et autoportant",
+          "status": "passed",
+          "durationMs": 1.9148999999999887
+        },
+        {
+          "name": "manifestes de réversibilité détecte toute modification d’une ligne après export",
+          "status": "passed",
+          "durationMs": 0.9410000000000025
+        },
+        {
+          "name": "manifestes de réversibilité détecte la modification du contenu binaire",
+          "status": "passed",
+          "durationMs": 0.4187000000000012
+        },
+        {
+          "name": "manifestes de réversibilité annonce honnêtement un export partiel quand un fichier reste externe",
+          "status": "passed",
+          "durationMs": 0.3953999999999951
+        },
+        {
+          "name": "manifestes de réversibilité conserve une copie récupérable tout en signalant une empreinte source divergente",
+          "status": "passed",
+          "durationMs": 0.3930000000000007
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/backup-process-route.test.ts",
+      "startTime": 1790959409678,
+      "endTime": 1790959409693.6206,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "refuses an unauthenticated processor request without running a backup",
+          "status": "passed",
+          "durationMs": 13.858100000000007
+        },
+        {
+          "name": "reports a failed or incomplete daily backup pass as unavailable",
+          "status": "passed",
+          "durationMs": 1.620599999999996
+        },
+        {
+          "name": "reports a failed or incomplete daily backup pass as unavailable",
+          "status": "passed",
+          "durationMs": 0.4257000000000062
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/backup-scheduler.test.ts",
+      "startTime": 1790959414093,
+      "endTime": 1790959414100.7832,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "visits all due companies across batches and does not let a failure starve the others",
+          "status": "passed",
+          "durationMs": 7.677999999999997
+        },
+        {
+          "name": "keeps an incomplete export due and reports its failure",
+          "status": "passed",
+          "durationMs": 0.783299999999997
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/billing-plans.test.ts",
+      "startTime": 1790959425783,
+      "endTime": 1790959425784.23,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "billing plans falls back safely to the alpha plan",
+          "status": "passed",
+          "durationMs": 1.1798000000000002
+        },
+        {
+          "name": "billing plans keeps limits increasing with paid plans",
+          "status": "passed",
+          "durationMs": 0.22990000000001487
+        },
+        {
+          "name": "billing plans maps configured Stripe prices without trusting metadata",
+          "status": "passed",
+          "durationMs": 0.2161999999999864
+        },
+        {
+          "name": "billing plans limits the past-due grace period",
+          "status": "passed",
+          "durationMs": 0.19570000000001642
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/bounded-file-read.test.ts",
+      "startTime": 1790959419360,
+      "endTime": 1790959419365.2268,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "stops reading an oversized stream and destroys its source",
+          "status": "passed",
+          "durationMs": 4.111700000000013
+        },
+        {
+          "name": "retains exact bytes for an allowed stream",
+          "status": "passed",
+          "durationMs": 1.2267999999999972
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/calendar-event.test.ts",
+      "startTime": 1790959410053,
+      "endTime": 1790959410069.4756,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "calendar provider normalization normalizes a timed Google event",
+          "status": "passed",
+          "durationMs": 2.8363999999999976
+        },
+        {
+          "name": "calendar provider normalization normalizes Microsoft UTC values without an explicit suffix",
+          "status": "passed",
+          "durationMs": 0.29699999999999704
+        },
+        {
+          "name": "calendar provider normalization rejects malformed or inverted events",
+          "status": "passed",
+          "durationMs": 0.17949999999999022
+        },
+        {
+          "name": "calendar provider normalization builds bounded provider payloads from the same task",
+          "status": "passed",
+          "durationMs": 0.45180000000001996
+        },
+        {
+          "name": "calendar provider normalization converts a French local appointment to UTC across daylight saving time",
+          "status": "passed",
+          "durationMs": 12.475499999999982
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/campaign-audience.test.ts",
+      "startTime": 1790959424702,
+      "endTime": 1790959424704.2722,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "campaign audience readiness keeps only consented, reachable and non-opposed leads",
+          "status": "passed",
+          "durationMs": 2.272100000000023
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/client-validation.test.ts",
+      "startTime": 1790959421832,
+      "endTime": 1790959421835.6355,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "ClientSchema normalizes user-entered identity fields before persistence",
+          "status": "passed",
+          "durationMs": 2.6228000000000122
+        },
+        {
+          "name": "ClientSchema rejects malformed SIRET values without blocking an empty optional value",
+          "status": "passed",
+          "durationMs": 0.6354000000000042
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/commercial-calculation.test.ts",
+      "startTime": 1790959419183,
+      "endTime": 1790959419189.2075,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "calculateCommercialDocument rejects line, tax and aggregate amounts beyond the database integer range",
+          "status": "passed",
+          "durationMs": 1.7841999999999985
+        },
+        {
+          "name": "calculateCommercialDocument allocates a large discount exactly without unsafe integer multiplication",
+          "status": "passed",
+          "durationMs": 0.8083999999999776
+        },
+        {
+          "name": "calculateCommercialDocument calculates mixed VAT per line and preserves cent invariants",
+          "status": "passed",
+          "durationMs": 0.7161000000000115
+        },
+        {
+          "name": "calculateCommercialDocument allocates a global discount deterministically without losing a cent",
+          "status": "passed",
+          "durationMs": 0.37239999999999895
+        },
+        {
+          "name": "calculateCommercialDocument combines line and global discounts without double counting",
+          "status": "passed",
+          "durationMs": 0.3491999999999962
+        },
+        {
+          "name": "calculateCommercialDocument reports material and labor margins only when costs are known",
+          "status": "passed",
+          "durationMs": 0.3719000000000108
+        },
+        {
+          "name": "calculateCommercialDocument forces every tax rate to zero for a company exempt from VAT",
+          "status": "passed",
+          "durationMs": 0.2143000000000086
+        },
+        {
+          "name": "calculateCommercialDocument rejects invalid monetary, tax and discount inputs",
+          "status": "passed",
+          "durationMs": 0.9819999999999993
+        },
+        {
+          "name": "applyPercentageDiscount rounds the discount once at cent precision",
+          "status": "passed",
+          "durationMs": 0.2074999999999818
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/commercial-read-permissions.test.ts",
+      "startTime": 1790959418044,
+      "endTime": 1790959418051.5623,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Commercial reads use current membership permissions refuses an authenticated technician before any document query",
+          "status": "passed",
+          "durationMs": 2.8724999999999454
+        },
+        {
+          "name": "Commercial reads use current membership permissions refuses an authenticated technician before any document query",
+          "status": "passed",
+          "durationMs": 0.4295999999999367
+        },
+        {
+          "name": "Commercial reads use current membership permissions refuses an authenticated technician before any document query",
+          "status": "passed",
+          "durationMs": 0.43209999999999127
+        },
+        {
+          "name": "Commercial reads use current membership permissions refuses an authenticated technician before any document query",
+          "status": "passed",
+          "durationMs": 0.36970000000019354
+        },
+        {
+          "name": "Commercial reads use current membership permissions lets VIEWER read invoices without mutations, recurring jobs or a write permission",
+          "status": "passed",
+          "durationMs": 2.5622000000000753
+        },
+        {
+          "name": "Commercial reads use current membership permissions refuses revoked membership even if the session remains connected",
+          "status": "passed",
+          "durationMs": 0.25739999999996144
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/consent-token.test.ts",
+      "startTime": 1790959415683,
+      "endTime": 1790959415691.141,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "marketing consent withdrawal tokens round-trips only the opaque company and lead identifiers",
+          "status": "passed",
+          "durationMs": 5.757999999999981
+        },
+        {
+          "name": "marketing consent withdrawal tokens rejects altered or differently signed links",
+          "status": "passed",
+          "durationMs": 0.9869999999999948
+        },
+        {
+          "name": "marketing consent withdrawal tokens ignores empty dedicated secrets and falls back to the authentication secret",
+          "status": "passed",
+          "durationMs": 1.1410999999999945
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/contract-html.test.ts",
+      "startTime": 1790959410238,
+      "endTime": 1790959410253.3818,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "contract HTML helpers normalizes linkified merge variables before compilation",
+          "status": "passed",
+          "durationMs": 1.2783000000000015
+        },
+        {
+          "name": "contract HTML helpers keeps contract formatting while stripping unsafe tags and attributes",
+          "status": "passed",
+          "durationMs": 0.42549999999999955
+        },
+        {
+          "name": "contract HTML helpers compiles known contract variables in one shared helper",
+          "status": "passed",
+          "durationMs": 12.915400000000005
+        },
+        {
+          "name": "contract HTML helpers escapes variable values before they enter the contract HTML",
+          "status": "passed",
+          "durationMs": 0.3819000000000017
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/contract-render.test.ts",
+      "startTime": 1790959409867,
+      "endTime": 1790959409882.6304,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "contract PDF uses the shared document typography and translates workflow status",
+          "status": "passed",
+          "durationMs": 14.828099999999978
+        },
+        {
+          "name": "contract PDF renders a safe handwritten signature with its audit identity",
+          "status": "passed",
+          "durationMs": 0.6303000000000054
+        },
+        {
+          "name": "contract PDF strips active content and unsafe signature sources",
+          "status": "passed",
+          "durationMs": 0.525100000000009
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/contract-templates.test.ts",
+      "startTime": 1790959424310,
+      "endTime": 1790959424312.341,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "pool contractor contract presets only exposes trade-focused templates",
+          "status": "passed",
+          "durationMs": 2.341000000000008
+        },
+        {
+          "name": "pool contractor contract presets offers clauses that cover actual site and pool risks",
+          "status": "passed",
+          "durationMs": 0.1891999999999996
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/crm-properties.test.ts",
+      "startTime": 1790959413526,
+      "endTime": 1790959413532.0356,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "CRM properties creates stable technical keys from French labels",
+          "status": "passed",
+          "durationMs": 1.2630999999999801
+        },
+        {
+          "name": "CRM properties requires configured options for selectable properties",
+          "status": "passed",
+          "durationMs": 2.0272999999999968
+        },
+        {
+          "name": "CRM properties normalizes typed values and rejects values outside the definition",
+          "status": "passed",
+          "durationMs": 1.8403000000000134
+        },
+        {
+          "name": "CRM properties protects required values and validates calendar dates",
+          "status": "passed",
+          "durationMs": 1.035599999999988
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/cron-auth.test.ts",
+      "startTime": 1790959410638,
+      "endTime": 1790959410652.4946,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "cron authorization accepts Vercel bearer authorization",
+          "status": "passed",
+          "durationMs": 13.596000000000004
+        },
+        {
+          "name": "cron authorization rejects missing and different credentials",
+          "status": "passed",
+          "durationMs": 0.4946999999999946
+        },
+        {
+          "name": "cron authorization accepts a route-specific secret even when the global secret is configured",
+          "status": "passed",
+          "durationMs": 0.311300000000017
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/crypto.test.ts",
+      "startTime": 1790959405746,
+      "endTime": 1790959405776.772,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "sensitive value encryption round-trips authenticated versioned text",
+          "status": "passed",
+          "durationMs": 29.949600000000004
+        },
+        {
+          "name": "sensitive value encryption reads legacy plaintext while new writes migrate on save",
+          "status": "passed",
+          "durationMs": 0.2787000000000148
+        },
+        {
+          "name": "sensitive value encryption round-trips binary backup payloads",
+          "status": "passed",
+          "durationMs": 0.7720000000000198
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/customer-health.test.ts",
+      "startTime": 1790959422426,
+      "endTime": 1790959422429.2056,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "customer health scoring starts at 100 when no rule is triggered",
+          "status": "passed",
+          "durationMs": 1.318000000000012
+        },
+        {
+          "name": "customer health scoring does not penalize missing metrics",
+          "status": "passed",
+          "durationMs": 0.5576000000000079
+        },
+        {
+          "name": "customer health scoring combines triggered factors and clamps the score",
+          "status": "passed",
+          "durationMs": 0.8192999999999984
+        },
+        {
+          "name": "customer health scoring supports positive signals without exceeding 100",
+          "status": "passed",
+          "durationMs": 0.205600000000004
+        },
+        {
+          "name": "customer health scoring uses stable status thresholds",
+          "status": "passed",
+          "durationMs": 0.19700000000000273
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/dashboard-navigation.test.ts",
+      "startTime": 1790959409287,
+      "endTime": 1790959409304.4246,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "dashboard navigation only opens one canonical space for each active route",
+          "status": "passed",
+          "durationMs": 8.321900000000028
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/factures/recurrentes",
+          "status": "passed",
+          "durationMs": 0.5752999999999986
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/factures/invoice-123",
+          "status": "passed",
+          "durationMs": 0.12970000000001392
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/comptabilite/banque",
+          "status": "passed",
+          "durationMs": 0.11169999999998481
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/settings/agencies",
+          "status": "passed",
+          "durationMs": 0.1255999999999915
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/settings/properties",
+          "status": "passed",
+          "durationMs": 0.10679999999999268
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/service/tickets/ticket-123",
+          "status": "passed",
+          "durationMs": 0.1636000000000024
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/service/equipements/equipment-123",
+          "status": "passed",
+          "durationMs": 0.1255000000000166
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/service/interventions/intervention-123",
+          "status": "passed",
+          "durationMs": 0.14350000000001728
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/operations/achats/order-123",
+          "status": "passed",
+          "durationMs": 0.19660000000001787
+        },
+        {
+          "name": "dashboard navigation selects only the most specific destination for /dashboard/operations/fournisseurs/supplier-123",
+          "status": "passed",
+          "durationMs": 0.13870000000000005
+        },
+        {
+          "name": "dashboard navigation does not expose links to missing dashboard pages",
+          "status": "passed",
+          "durationMs": 7.424499999999995
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/delivery-render.test.ts",
+      "startTime": 1790959408853,
+      "endTime": 1790959408869.2434,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "delivery note renderer renders delivered lines and the sealed recipient proof",
+          "status": "passed",
+          "durationMs": 16.24340000000001
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/delivery-retry.test.ts",
+      "startTime": 1790959425079,
+      "endTime": 1790959425081.217,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "delivery retry policy backs off attempt 1",
+          "status": "passed",
+          "durationMs": 1.620900000000006
+        },
+        {
+          "name": "delivery retry policy backs off attempt 2",
+          "status": "passed",
+          "durationMs": 0.16720000000000823
+        },
+        {
+          "name": "delivery retry policy backs off attempt 3",
+          "status": "passed",
+          "durationMs": 0.17320000000000846
+        },
+        {
+          "name": "delivery retry policy backs off attempt 4",
+          "status": "passed",
+          "durationMs": 0.12869999999998072
+        },
+        {
+          "name": "delivery retry policy dead-letters the delivery at the configured limit",
+          "status": "passed",
+          "durationMs": 0.21710000000001628
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/demo-isolation.test.ts",
+      "startTime": 1790959401759,
+      "endTime": 1790959401881.0845,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "blocks provider HTTP, fetch and raw sockets while permitting only local requests and credential-free font downloads",
+          "status": "passed",
+          "durationMs": 64.0907
+        },
+        {
+          "name": "refuses a live demo reservation and recovers a crashed process without losing the new owner",
+          "status": "passed",
+          "durationMs": 58.08440000000002
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/demo-native-backup.integration.test.ts",
+      "startTime": 1790959372446,
+      "endTime": 1790959372446,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "restores a native SQLite demo snapshot with unchanged IDs, amounts and attached file bytes, and rejects tampering",
+          "status": "skipped"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/direct-upload-integrity.test.ts",
+      "startTime": 1790959419008,
+      "endTime": 1790959419013.6284,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "direct upload publication integrity publishes the validated bytes rather than copying a mutable temporary object",
+          "status": "passed",
+          "durationMs": 3.582400000000007
+        },
+        {
+          "name": "direct upload publication integrity never deletes the temporary upload when publication fails",
+          "status": "passed",
+          "durationMs": 1.4581000000000017
+        },
+        {
+          "name": "direct upload publication integrity rejects changed bytes before publication",
+          "status": "passed",
+          "durationMs": 0.6285000000000025
+        },
+        {
+          "name": "direct upload publication integrity rejects a different tenant's temporary key before any storage request",
+          "status": "passed",
+          "durationMs": 0.5749000000000137
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/directories.test.ts",
+      "startTime": 1790959413283,
+      "endTime": 1790959413291.886,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "commercial directories scopes quote search, counts and pages to the authorized tenant",
+          "status": "passed",
+          "durationMs": 6.051400000000001
+        },
+        {
+          "name": "commercial directories computes outstanding across issued invoices, independently of page and search",
+          "status": "passed",
+          "durationMs": 1.0276000000000067
+        },
+        {
+          "name": "commercial directories rejects unbounded page input before reading data",
+          "status": "passed",
+          "durationMs": 1.5425000000000182
+        },
+        {
+          "name": "commercial directories keeps contacts scoped to their client company beyond the former 1000-row cap",
+          "status": "passed",
+          "durationMs": 0.8859999999999957
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/directory-query.test.ts",
+      "startTime": 1790959412105,
+      "endTime": 1790959412116.4092,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "directory query contract rejects malformed or unbounded URL state",
+          "status": "passed",
+          "durationMs": 3.5178999999999974
+        },
+        {
+          "name": "directory query contract preserves a valid shareable query",
+          "status": "passed",
+          "durationMs": 0.23800000000002797
+        },
+        {
+          "name": "directory query contract handles French decimals, arrays, missing properties and ISO dates",
+          "status": "passed",
+          "durationMs": 7.409299999999973
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/docgen-worker-status.test.ts",
+      "startTime": 1790959418755,
+      "endTime": 1790959418761.3333,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "document generation worker does not mark a quote as sent when it only generates its PDF",
+          "status": "passed",
+          "durationMs": 2.043299999999988
+        },
+        {
+          "name": "document generation worker stores an invoice PDF without changing the invoice's sending status",
+          "status": "passed",
+          "durationMs": 2.892799999999994
+        },
+        {
+          "name": "document generation worker preserves the archive if issuance races with generation, and removes the obsolete draft artifact",
+          "status": "passed",
+          "durationMs": 1.3333000000000084
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/document-numbering-core.test.ts",
+      "startTime": 1790959413024,
+      "endTime": 1790959413046.442,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Numeric document suffix allocation crosses the 999/1000 boundary independent of lexical order",
+          "status": "passed",
+          "durationMs": 1.2453000000000145
+        },
+        {
+          "name": "Numeric document suffix allocation keeps historic padding, ignores other series and handles imported suffixes exactly",
+          "status": "passed",
+          "durationMs": 0.20419999999998595
+        },
+        {
+          "name": "Numeric document suffix allocation supports concurrent allocations while the storage unique constraint prevents duplicates",
+          "status": "passed",
+          "durationMs": 19.656599999999997
+        },
+        {
+          "name": "Numeric document suffix allocation does not retry a business idempotency conflict",
+          "status": "passed",
+          "durationMs": 1.4420000000000073
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/document-quality.test.ts",
+      "startTime": 1790959408472,
+      "endTime": 1790959408490.0652,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "document quality marks a complete invoice as ready",
+          "status": "passed",
+          "durationMs": 1.8260999999999967
+        },
+        {
+          "name": "document quality requires review for even one warning despite a high score",
+          "status": "passed",
+          "durationMs": 0.26490000000001146
+        },
+        {
+          "name": "document quality keeps advisory information distinct from blocking errors",
+          "status": "passed",
+          "durationMs": 0.647199999999998
+        },
+        {
+          "name": "document quality blocks incoherent billing totals",
+          "status": "passed",
+          "durationMs": 0.19069999999999254
+        },
+        {
+          "name": "document quality reports an invalid quantity (0) instead of aborting assessment",
+          "status": "passed",
+          "durationMs": 0.228999999999985
+        },
+        {
+          "name": "document quality reports an invalid quantity (-1) instead of aborting assessment",
+          "status": "passed",
+          "durationMs": 0.14460000000002537
+        },
+        {
+          "name": "document quality reports an invalid quantity (NaN) instead of aborting assessment",
+          "status": "passed",
+          "durationMs": 0.14330000000001064
+        },
+        {
+          "name": "document quality reports an invalid quantity (Infinity) instead of aborting assessment",
+          "status": "passed",
+          "durationMs": 0.13630000000000564
+        },
+        {
+          "name": "document quality detects missing contract clauses",
+          "status": "passed",
+          "durationMs": 0.4738000000000113
+        },
+        {
+          "name": "document quality renders a contract PDF HTML without unsafe tags",
+          "status": "passed",
+          "durationMs": 13.065200000000004
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/document-studio-archive.test.ts",
+      "startTime": 1790959404780,
+      "endTime": 1790959404824.3215,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "invoice Studio archive uses the archived PDF for issued previews and downloads and disables every presentation control",
+          "status": "passed",
+          "durationMs": 23.030899999999974
+        },
+        {
+          "name": "invoice Studio archive keeps draft previews editable and generated from current presentation settings",
+          "status": "passed",
+          "durationMs": 21.321600000000217
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/email-delivery-events.test.ts",
+      "startTime": 1790959425605,
+      "endTime": 1790959425606.833,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "email delivery event ordering maps provider events to persisted states",
+          "status": "passed",
+          "durationMs": 1.200400000000002
+        },
+        {
+          "name": "email delivery event ordering does not downgrade equal-timestamp engagement events",
+          "status": "passed",
+          "durationMs": 0.2172999999999945
+        },
+        {
+          "name": "email delivery event ordering guards against late provider events that would regress the final state",
+          "status": "passed",
+          "durationMs": 0.8331000000000017
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/email-oauth.test.ts",
+      "startTime": 1790959403021,
+      "endTime": 1790959403083.4873,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "email OAuth state round-trips a signed, tenant-bound state",
+          "status": "passed",
+          "durationMs": 59.609699999999975
+        },
+        {
+          "name": "email OAuth state rejects tampering and expired states",
+          "status": "passed",
+          "durationMs": 1.0753999999999735
+        },
+        {
+          "name": "email OAuth state derives an RFC 7636 S256 code challenge",
+          "status": "passed",
+          "durationMs": 0.4262999999999977
+        },
+        {
+          "name": "email OAuth state requests mail and calendar scopes for both providers",
+          "status": "passed",
+          "durationMs": 0.4873999999999796
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/email-provider-resume.test.ts",
+      "startTime": 1790959406204,
+      "endTime": 1790959406225.507,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "OAuth email crash recovery persists a Google draft before sending it",
+          "status": "passed",
+          "durationMs": 18.03359999999998
+        },
+        {
+          "name": "OAuth email crash recovery recovers a Google send after the persisted draft disappeared",
+          "status": "passed",
+          "durationMs": 0.6992999999999938
+        },
+        {
+          "name": "OAuth email crash recovery does not recreate a Google message while the prior send is still uncertain",
+          "status": "passed",
+          "durationMs": 1.3711000000000126
+        },
+        {
+          "name": "OAuth email crash recovery persists an immutable Microsoft draft before sending it",
+          "status": "passed",
+          "durationMs": 0.8651999999999873
+        },
+        {
+          "name": "OAuth email crash recovery does not recreate a Microsoft message while the prior send is still uncertain",
+          "status": "passed",
+          "durationMs": 0.5071000000000083
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/email-suppression.integration.test.ts",
+      "startTime": 1790959399106,
+      "endTime": 1790959399118.4014,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "email suppression persistence blocks the normalized address and stops future sequence work",
+          "status": "passed",
+          "durationMs": 12.401299999999992
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/email-suppression.test.ts",
+      "startTime": 1790959426159,
+      "endTime": 1790959426161.1052,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "email suppression policy normalizes mailbox identity before enforcing suppression",
+          "status": "passed",
+          "durationMs": 1.1330000000000098
+        },
+        {
+          "name": "email suppression policy classifies email.complained / undefined",
+          "status": "passed",
+          "durationMs": 0.18039999999999168
+        },
+        {
+          "name": "email suppression policy classifies email.suppressed / undefined",
+          "status": "passed",
+          "durationMs": 0.10349999999999682
+        },
+        {
+          "name": "email suppression policy classifies email.bounced / Permanent",
+          "status": "passed",
+          "durationMs": 0.10529999999999973
+        },
+        {
+          "name": "email suppression policy classifies email.bounced / Transient",
+          "status": "passed",
+          "durationMs": 0.10509999999999309
+        },
+        {
+          "name": "email suppression policy classifies email.failed / undefined",
+          "status": "passed",
+          "durationMs": 0.09310000000002105
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/email-template-actions.test.ts",
+      "startTime": 1790959413897,
+      "endTime": 1790959413904.7148,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "email template mutations creates a template in the authorized company and records success",
+          "status": "passed",
+          "durationMs": 4.973299999999995
+        },
+        {
+          "name": "email template mutations returns a recoverable conflict, including concurrent creation, without logging success",
+          "status": "passed",
+          "durationMs": 0.5914999999999964
+        },
+        {
+          "name": "email template mutations keeps a conflicting rename recoverable and checks tenant ownership first",
+          "status": "passed",
+          "durationMs": 0.8899000000000115
+        },
+        {
+          "name": "email template mutations does not mutate an unavailable or another company's template",
+          "status": "passed",
+          "durationMs": 0.392599999999959
+        },
+        {
+          "name": "email template mutations does not disguise infrastructure failures as a duplicate name",
+          "status": "passed",
+          "durationMs": 0.5083999999999946
+        },
+        {
+          "name": "email template mutations performs no write when authorization rejects the operation",
+          "status": "passed",
+          "durationMs": 0.7148000000000252
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/expense-permissions.test.ts",
+      "startTime": 1790959418551,
+      "endTime": 1790959418557.4148,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "denies expense reads to a technician before reading financial data",
+          "status": "passed",
+          "durationMs": 2.626800000000003
+        },
+        {
+          "name": "allows a viewer to read the current company's expenses",
+          "status": "passed",
+          "durationMs": 2.113100000000003
+        },
+        {
+          "name": "denies a viewer permission to create an expense before touching the database",
+          "status": "passed",
+          "durationMs": 0.46079999999997767
+        },
+        {
+          "name": "denies a viewer permission to edit an expense before touching the database",
+          "status": "passed",
+          "durationMs": 0.4370000000000118
+        },
+        {
+          "name": "denies a viewer permission to delete an expense before touching the database",
+          "status": "passed",
+          "durationMs": 0.4147999999999854
+        },
+        {
+          "name": "denies a viewer permission to justify an expense before touching the database",
+          "status": "passed",
+          "durationMs": 0.29170000000002005
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/extrabat-connection.test.ts",
+      "startTime": 1790959406601,
+      "endTime": 1790959406620.3623,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Extrabat connectivity is not an import authorization rejects a login page with HTTP 200",
+          "status": "passed",
+          "durationMs": 14.256
+        },
+        {
+          "name": "Extrabat connectivity is not an import authorization rejects malformed JSON",
+          "status": "passed",
+          "durationMs": 1.0668000000000006
+        },
+        {
+          "name": "Extrabat connectivity is not an import authorization reports only reachability for an unknown JSON API response",
+          "status": "passed",
+          "durationMs": 2.723000000000013
+        },
+        {
+          "name": "Extrabat connectivity is not an import authorization does not send a credential to a tenant-supplied unauthorized origin",
+          "status": "passed",
+          "durationMs": 0.4210000000000207
+        },
+        {
+          "name": "Extrabat connectivity is not an import authorization fails closed when the operator has not configured API origins",
+          "status": "passed",
+          "durationMs": 0.3275000000000148
+        },
+        {
+          "name": "Extrabat connectivity is not an import authorization rejects a cross-origin test path before transmitting the credential",
+          "status": "passed",
+          "durationMs": 0.32859999999999445
+        },
+        {
+          "name": "Extrabat connectivity is not an import authorization preserves a provider permission failure instead of a success",
+          "status": "passed",
+          "durationMs": 0.36240000000000805
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/facturx.test.ts",
+      "startTime": 1790959405323,
+      "endTime": 1790959405367.8623,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Factur-X CII emits a credit note as type 381 with consistent positive XML amounts",
+          "status": "passed",
+          "durationMs": 14.718199999999968
+        },
+        {
+          "name": "Factur-X CII generates a valid EN 16931 CII payload for mixed VAT lines",
+          "status": "passed",
+          "durationMs": 2.6836999999999875
+        },
+        {
+          "name": "Factur-X CII uses an explicit exemption category for zero-rated lines",
+          "status": "passed",
+          "durationMs": 1.599800000000016
+        },
+        {
+          "name": "Factur-X CII rejects malformed XML instead of reporting a false green",
+          "status": "passed",
+          "durationMs": 0.29700000000002547
+        },
+        {
+          "name": "Factur-X CII refuses totals that disagree with the source invoice",
+          "status": "passed",
+          "durationMs": 0.9998999999999683
+        },
+        {
+          "name": "Factur-X CII embeds the XML as an associated Alternative file",
+          "status": "passed",
+          "durationMs": 22.64580000000001
+        },
+        {
+          "name": "Factur-X CII rejects failed embedding instead of returning an unstructured file as success",
+          "status": "passed",
+          "durationMs": 1.8623000000000047
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/field-completion-schema.test.ts",
+      "startTime": 1790959419596,
+      "endTime": 1790959419600.4695,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "field completion payload accepts an atomic field report with stock, expense and reservation",
+          "status": "passed",
+          "durationMs": 3.683799999999991
+        },
+        {
+          "name": "field completion payload requires a real PNG data URL and explicit customer approval",
+          "status": "passed",
+          "durationMs": 0.716700000000003
+        },
+        {
+          "name": "field completion payload rejects duplicate material lines and inconsistent VAT",
+          "status": "passed",
+          "durationMs": 0.46940000000000737
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/freelance-cockpit.test.ts",
+      "startTime": 1790959422950,
+      "endTime": 1790959422953.631,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "operations cockpit helpers estimates unbilled time value from a fixed hourly rate",
+          "status": "passed",
+          "durationMs": 1.2040999999999826
+        },
+        {
+          "name": "operations cockpit helpers classifies project risk from budget consumption and deadline",
+          "status": "passed",
+          "durationMs": 1.6311000000000035
+        },
+        {
+          "name": "operations cockpit helpers detects actionable invoices and stale quotes",
+          "status": "passed",
+          "durationMs": 0.3399000000000001
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/http-body.test.ts",
+      "startTime": 1790959408092,
+      "endTime": 1790959408109.5125,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "bounded HTTP body readers parses a JSON body within the byte budget",
+          "status": "passed",
+          "durationMs": 16.193099999999987
+        },
+        {
+          "name": "bounded HTTP body readers rejects an oversized declared content length before reading",
+          "status": "passed",
+          "durationMs": 0.9353999999999871
+        },
+        {
+          "name": "bounded HTTP body readers rejects an oversized streamed body without relying on content-length",
+          "status": "passed",
+          "durationMs": 0.5123999999999853
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/hubspot-snapshot-actions.test.ts",
+      "startTime": 1790959412419,
+      "endTime": 1790959412429.3586,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "HubSpot snapshot completion does not call a snapshot complete when an object's export failed to start",
+          "status": "passed",
+          "durationMs": 5.859700000000032
+        },
+        {
+          "name": "HubSpot snapshot completion never promotes an empty failed snapshot to complete",
+          "status": "passed",
+          "durationMs": 0.42610000000001946
+        },
+        {
+          "name": "HubSpot snapshot completion clears a transient error only after successful export processing",
+          "status": "passed",
+          "durationMs": 0.9968999999999824
+        },
+        {
+          "name": "HubSpot snapshot completion exposes provider-reported errors even if a result file exists",
+          "status": "passed",
+          "durationMs": 0.5015999999999963
+        },
+        {
+          "name": "HubSpot snapshot completion does not overwrite a run already analyzed or imported",
+          "status": "passed",
+          "durationMs": 0.9495000000000005
+        },
+        {
+          "name": "HubSpot snapshot completion does not query or write when permission is denied",
+          "status": "passed",
+          "durationMs": 0.32679999999999154
+        },
+        {
+          "name": "HubSpot snapshot completion rejects a stale refresh instead of overwriting concurrent progress",
+          "status": "passed",
+          "durationMs": 1.318399999999997
+        },
+        {
+          "name": "HubSpot snapshot completion keeps missing download URLs visible and retryable",
+          "status": "passed",
+          "durationMs": 0.358600000000024
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/intervention-render.test.ts",
+      "startTime": 1790959408664,
+      "endTime": 1790959408680.991,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "intervention report renderer renders the field report, evidence manifest and sealed customer approval",
+          "status": "passed",
+          "durationMs": 16.991000000000014
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/invoice-frame-policy.test.ts",
+      "startTime": 1790959426704,
+      "endTime": 1790959426705.4678,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "permits only the authenticated invoice endpoint to be framed by its own origin",
+          "status": "passed",
+          "durationMs": 1.4677999999999827
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/invoice-pdf-route.test.ts",
+      "startTime": 1790959411867,
+      "endTime": 1790959411878.417,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "invoice PDF HTTP response returns no PDF and no success audit when XML embedding fails",
+          "status": "passed",
+          "durationMs": 6.8361999999999625
+        },
+        {
+          "name": "invoice PDF HTTP response does not silently fall back when XML generation fails",
+          "status": "passed",
+          "durationMs": 0.7587999999999511
+        },
+        {
+          "name": "invoice PDF HTTP response returns the structured bytes only after successful assembly",
+          "status": "passed",
+          "durationMs": 2.5801999999999907
+        },
+        {
+          "name": "invoice PDF HTTP response serves the sealed artifact for an issued invoice without regenerating it",
+          "status": "passed",
+          "durationMs": 0.4777000000000271
+        },
+        {
+          "name": "invoice PDF HTTP response returns a recovery error when the issued archive is missing",
+          "status": "passed",
+          "durationMs": 0.4171000000000049
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/invoice-reminders.test.ts",
+      "startTime": 1790959407700,
+      "endTime": 1790959407718.3333,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "invoice reminders normalizes, sorts and deduplicates configured steps",
+          "status": "passed",
+          "durationMs": 2.66170000000011
+        },
+        {
+          "name": "invoice reminders builds stable keys and progressive copy",
+          "status": "passed",
+          "durationMs": 14.972600000000057
+        },
+        {
+          "name": "invoice reminders escapes reminder copy before producing HTML",
+          "status": "passed",
+          "durationMs": 0.33330000000000837
+        },
+        {
+          "name": "invoice reminders selects only the latest due stage when automation starts late",
+          "status": "passed",
+          "durationMs": 0.26939999999990505
+        },
+        {
+          "name": "invoice reminders advances after a sent stage and throttles recent failures",
+          "status": "passed",
+          "durationMs": 0.31120000000009895
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/issued-invoice.integration.test.ts",
+      "startTime": 1790959386913,
+      "endTime": 1790959390541.9421,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "persists real PDF/XML at issuance and preserves it after identity changes",
+          "status": "passed",
+          "durationMs": 3628.9421999999995
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/issued-invoice.test.ts",
+      "startTime": 1790959418287,
+      "endTime": 1790959418294.408,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Issued invoice canonical document keeps exact bytes and identities after the current profiles change",
+          "status": "passed",
+          "durationMs": 4.470799999999997
+        },
+        {
+          "name": "Issued invoice canonical document rejects missing archives rather than silently regenerating an issued invoice",
+          "status": "passed",
+          "durationMs": 1.3560999999999979
+        },
+        {
+          "name": "Issued invoice canonical document refuses modified bytes and references outside the tenant/invoice",
+          "status": "passed",
+          "durationMs": 0.6381000000000085
+        },
+        {
+          "name": "Issued invoice canonical document does not store a document if structured assembly fails",
+          "status": "passed",
+          "durationMs": 0.40799999999998704
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/json-stream.test.ts",
+      "startTime": 1790959408279,
+      "endTime": 1790959408293.9856,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "preserves the JSON representation and Unicode across streamed boundaries",
+          "status": "passed",
+          "durationMs": 14.985500000000002
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/maintenance-renewal.test.ts",
+      "startTime": 1790959422247,
+      "endTime": 1790959422250.005,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "maintenance renewals applies a bounded monetary indexation with cent rounding",
+          "status": "passed",
+          "durationMs": 1.3200999999999965
+        },
+        {
+          "name": "maintenance renewals preserves the inclusive duration of the previous term",
+          "status": "passed",
+          "durationMs": 0.998599999999982
+        },
+        {
+          "name": "maintenance renewals opens the renewal window according to notice and detects overdue terms",
+          "status": "passed",
+          "durationMs": 1.0049999999999955
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/marketing-intelligence.test.ts",
+      "startTime": 1790959424908,
+      "endTime": 1790959424910.1836,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "marketing intelligence applies explainable built-in and custom scoring rules",
+          "status": "passed",
+          "durationMs": 1.6801000000000101
+        },
+        {
+          "name": "marketing intelligence supports active segment filters",
+          "status": "passed",
+          "durationMs": 0.2283000000000186
+        },
+        {
+          "name": "marketing intelligence evaluates existence and equality without executing arbitrary expressions",
+          "status": "passed",
+          "durationMs": 0.1834999999999809
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/mfa.test.ts",
+      "startTime": 1790959421407,
+      "endTime": 1790959421411.2085,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "MFA TOTP and recovery codes matches the RFC 6238 SHA-1 vector truncated to six digits",
+          "status": "passed",
+          "durationMs": 1.879700000000014
+        },
+        {
+          "name": "MFA TOTP and recovery codes accepts only the configured clock window",
+          "status": "passed",
+          "durationMs": 0.3345999999999947
+        },
+        {
+          "name": "MFA TOTP and recovery codes generates distinct printable codes and hashes their normalized value",
+          "status": "passed",
+          "durationMs": 1.2084999999999866
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/migration-artifact-route.integration.test.ts",
+      "startTime": 1790959399609,
+      "endTime": 1790959399657.309,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "manual migration archive provenance keeps the same archive attached to both independent runs",
+          "status": "passed",
+          "durationMs": 37.413099999999986
+        },
+        {
+          "name": "manual migration archive provenance keeps duplicate direct uploads attached to their own runs",
+          "status": "passed",
+          "durationMs": 11.3091
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/migration-database.integration.test.ts",
+      "startTime": 1790959395601,
+      "endTime": 1790959396174.603,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "migration database pipeline simulates, imports twice without duplicates, then reconciles every source row",
+          "status": "passed",
+          "durationMs": 192.79939999999988
+        },
+        {
+          "name": "migration database pipeline detects changed amounts and associations even when source counts still reconcile",
+          "status": "passed",
+          "durationMs": 99.33899999999994
+        },
+        {
+          "name": "migration database pipeline detects a deleted imported target despite a surviving mapping",
+          "status": "passed",
+          "durationMs": 41.76050000000009
+        },
+        {
+          "name": "migration database pipeline blocks altered document line sums and paid amount without changing source counts",
+          "status": "passed",
+          "durationMs": 34.96230000000014
+        },
+        {
+          "name": "migration database pipeline verifies every materialized line when one source line belongs to a quote and invoice",
+          "status": "passed",
+          "durationMs": 103.16449999999986
+        },
+        {
+          "name": "migration database pipeline does not reset a verified import by simulating it again",
+          "status": "passed",
+          "durationMs": 4.684700000000248
+        },
+        {
+          "name": "migration database pipeline does not overwrite a concurrently claimed run or its previous diagnostics",
+          "status": "passed",
+          "durationMs": 32.5326
+        },
+        {
+          "name": "migration database pipeline does not reset a verified import by analyzing an attached archive",
+          "status": "passed",
+          "durationMs": 6.093499999999949
+        },
+        {
+          "name": "migration database pipeline blocks direct import and final verification while source errors remain unresolved",
+          "status": "passed",
+          "durationMs": 33.8784999999998
+        },
+        {
+          "name": "migration database pipeline does not import when another process has already claimed the run",
+          "status": "passed",
+          "durationMs": 4.978799999999865
+        },
+        {
+          "name": "migration database pipeline does not verify a reconciled run that still has rejected source rows",
+          "status": "passed",
+          "durationMs": 18.603099999999813
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/migration-ingest.test.ts",
+      "startTime": 1790959412656,
+      "endTime": 1790959412665.2534,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "migration artifact ingestion parses semicolon CSV rows and keeps a stable source id",
+          "status": "passed",
+          "durationMs": 4.615800000000007
+        },
+        {
+          "name": "migration artifact ingestion decodes Windows-1252 exports without corrupting French characters",
+          "status": "passed",
+          "durationMs": 0.991500000000002
+        },
+        {
+          "name": "migration artifact ingestion supports UTF-16LE exports with a BOM",
+          "status": "passed",
+          "durationMs": 0.22649999999998727
+        },
+        {
+          "name": "migration artifact ingestion extracts result arrays from JSON exports",
+          "status": "passed",
+          "durationMs": 0.4557000000000073
+        },
+        {
+          "name": "migration artifact ingestion reads supported files from ZIP archives and blocks traversal paths",
+          "status": "passed",
+          "durationMs": 3.2535000000000025
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/migration-normalize.test.ts",
+      "startTime": 1790959411013,
+      "endTime": 1790959411023.2183,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "migration normalization classifies HubSpot and French Extrabat exports",
+          "status": "passed",
+          "durationMs": 4.552199999999999
+        },
+        {
+          "name": "migration normalization normalizes operational products, equipment and signed stock quantities",
+          "status": "passed",
+          "durationMs": 2.47829999999999
+        },
+        {
+          "name": "migration normalization preserves financial totals and payment references",
+          "status": "passed",
+          "durationMs": 0.6151999999999873
+        },
+        {
+          "name": "migration normalization normalizes HubSpot document lines and negative discounts",
+          "status": "passed",
+          "durationMs": 0.4602999999999895
+        },
+        {
+          "name": "migration normalization maps common French client and contact fields without dropping the source",
+          "status": "passed",
+          "durationMs": 0.5631999999999948
+        },
+        {
+          "name": "migration normalization normalizes deal amounts, probability and nested associations",
+          "status": "passed",
+          "durationMs": 0.8124000000000251
+        },
+        {
+          "name": "migration normalization parses European accounting amounts and rejects malformed values",
+          "status": "passed",
+          "durationMs": 0.21819999999999595
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/migration-resume.integration.test.ts",
+      "startTime": 1790959398576,
+      "endTime": 1790959398656.0894,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Atomic import record and restart rolls back the created client when mapping fails, then resumes without duplicates",
+          "status": "passed",
+          "durationMs": 63.796599999999955
+        },
+        {
+          "name": "Atomic import record and restart refuses an active lease and recovers an expired lease",
+          "status": "passed",
+          "durationMs": 16.089400000000012
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/numbering.test.ts",
+      "startTime": 1790959397260,
+      "endTime": 1790959397555.394,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Document numbering builds the next yearly number from the highest existing suffix",
+          "status": "passed",
+          "durationMs": 58.87270000000001
+        },
+        {
+          "name": "Document numbering distinguishes the business idempotency key from a document number collision",
+          "status": "passed",
+          "durationMs": 3.1629000000000076
+        },
+        {
+          "name": "Document numbering retries after a unique document number collision",
+          "status": "passed",
+          "durationMs": 34.59869999999998
+        },
+        {
+          "name": "Document numbering allocates after 1000 on the actual database without renumbering historic records",
+          "status": "passed",
+          "durationMs": 6.917099999999948
+        },
+        {
+          "name": "Document numbering allocates twenty concurrent writes uniquely on the actual database",
+          "status": "passed",
+          "durationMs": 188.19039999999995
+        },
+        {
+          "name": "Document numbering restores the agency scope after reading the company-wide number catalogue",
+          "status": "passed",
+          "durationMs": 3.3940999999999804
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/onboarding-errors.test.ts",
+      "startTime": 1790959426519,
+      "endTime": 1790959426521.189,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "onboarding error messages explains how to recover from a duplicated SIRET",
+          "status": "passed",
+          "durationMs": 1.211999999999989
+        },
+        {
+          "name": "onboarding error messages does not expose another unique database field",
+          "status": "passed",
+          "durationMs": 0.16779999999999973
+        },
+        {
+          "name": "onboarding error messages does not expose an unexpected internal error",
+          "status": "passed",
+          "durationMs": 0.18890000000001805
+        },
+        {
+          "name": "onboarding error messages reads Prisma error codes without relying on instanceof",
+          "status": "passed",
+          "durationMs": 0.12930000000000064
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/operations-orders.test.ts",
+      "startTime": 1790959425249,
+      "endTime": 1790959425251.5762,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "customer order billing splits a TTC deposit without losing a cent",
+          "status": "passed",
+          "durationMs": 1.4528999999999996
+        },
+        {
+          "name": "customer order billing computes the remaining amount excluding credits and cancelled invoices",
+          "status": "passed",
+          "durationMs": 0.24440000000001305
+        },
+        {
+          "name": "customer order billing rejects an invalid slice",
+          "status": "passed",
+          "durationMs": 0.5762
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/operations-planning.test.ts",
+      "startTime": 1790959423583,
+      "endTime": 1790959423587.0632,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "field planning assumes one hour when an intervention has no planned end",
+          "status": "passed",
+          "durationMs": 1.8436999999999841
+        },
+        {
+          "name": "field planning detects overlaps but accepts adjacent interventions",
+          "status": "passed",
+          "durationMs": 0.19610000000000127
+        },
+        {
+          "name": "field planning computes route distance only for geolocated consecutive legs",
+          "status": "passed",
+          "durationMs": 1.0632999999999981
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/pagination.test.ts",
+      "startTime": 1790959426337,
+      "endTime": 1790959426339.2622,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "boundedPageSize keeps valid page sizes and clamps oversized requests",
+          "status": "passed",
+          "durationMs": 1.3000999999999863
+        },
+        {
+          "name": "boundedPageSize rejects invalid, fractional and non-positive values",
+          "status": "passed",
+          "durationMs": 0.2623000000000104
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/password-reset-token.test.ts",
+      "startTime": 1790959422600,
+      "endTime": 1790959422602.869,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "password reset tokens creates high-entropy bearer values but stores deterministic hashes",
+          "status": "passed",
+          "durationMs": 2.2083000000000084
+        },
+        {
+          "name": "password reset tokens expires in thirty minutes",
+          "status": "passed",
+          "durationMs": 0.8687999999999931
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/password.test.ts",
+      "startTime": 1790959402052,
+      "endTime": 1790959402163.3413,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "password authentication enforces the documented policy",
+          "status": "passed",
+          "durationMs": 1.3285999999999945
+        },
+        {
+          "name": "password authentication stores a salted scrypt derivation and verifies in constant-time form",
+          "status": "passed",
+          "durationMs": 110.3414
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/pdf-generator.integration.test.ts",
+      "startTime": 1790959391784,
+      "endTime": 1790959393921.6226,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "renders a real PDF with JavaScript and external resources disabled",
+          "status": "passed",
+          "durationMs": 1122.0493999999999
+        },
+        {
+          "name": "refuses a stylesheet network request made by the real browser",
+          "status": "passed",
+          "durationMs": 1015.6225999999999
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/pdf-image-security.test.ts",
+      "startTime": 1790959412842,
+      "endTime": 1790959412852.4565,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "PDF image network boundary refuses non-public address 127.0.0.1",
+          "status": "passed",
+          "durationMs": 1.5360000000000014
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address 10.0.0.1",
+          "status": "passed",
+          "durationMs": 0.2341000000000122
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address 169.254.169.254",
+          "status": "passed",
+          "durationMs": 0.12819999999999254
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address 100.100.100.200",
+          "status": "passed",
+          "durationMs": 0.14150000000000773
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address 192.168.1.1",
+          "status": "passed",
+          "durationMs": 0.1407000000000096
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address ::1",
+          "status": "passed",
+          "durationMs": 2.7967000000000155
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address ::ffff:127.0.0.1",
+          "status": "passed",
+          "durationMs": 0.8675000000000068
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address fd00::1",
+          "status": "passed",
+          "durationMs": 0.10900000000000887
+        },
+        {
+          "name": "PDF image network boundary refuses non-public address 2001:db8::1",
+          "status": "passed",
+          "durationMs": 0.17130000000000223
+        },
+        {
+          "name": "PDF image network boundary refuses all-private and mixed DNS answers before opening a socket",
+          "status": "passed",
+          "durationMs": 1.5829999999999984
+        },
+        {
+          "name": "PDF image network boundary pins the validated DNS address and embeds a legitimate image",
+          "status": "passed",
+          "durationMs": 1.5603000000000122
+        },
+        {
+          "name": "PDF image network boundary revalidates redirects instead of following a private destination",
+          "status": "passed",
+          "durationMs": 0.3854000000000042
+        },
+        {
+          "name": "PDF image network boundary refuses credentials, non-TLS URLs and public directory traversal",
+          "status": "passed",
+          "durationMs": 0.45659999999998035
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/pdf-print-layout.test.ts",
+      "startTime": 1790959406409,
+      "endTime": 1790959406428.8452,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "print page margins reserves repeated margins and numbers pages without a fixed footer",
+          "status": "passed",
+          "durationMs": 1.3855000000000075
+        },
+        {
+          "name": "print page margins escapes references in CSS strings and prevents closing the style element",
+          "status": "passed",
+          "durationMs": 0.24270000000001346
+        },
+        {
+          "name": "print page margins uses margin boxes in the MINIMAL template",
+          "status": "passed",
+          "durationMs": 15.631100000000004
+        },
+        {
+          "name": "print page margins uses margin boxes in the PROFESSIONAL template",
+          "status": "passed",
+          "durationMs": 0.5219999999999914
+        },
+        {
+          "name": "print page margins uses margin boxes in the MODERN template",
+          "status": "passed",
+          "durationMs": 0.7182999999999993
+        },
+        {
+          "name": "print page margins omits the reference from repeating margins when disabled",
+          "status": "passed",
+          "durationMs": 0.4549999999999841
+        },
+        {
+          "name": "print page margins uses the same pagination for contracts without removing legal details",
+          "status": "passed",
+          "durationMs": 0.8453000000000088
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/pdf-render.test.ts",
+      "startTime": 1790959405949,
+      "endTime": 1790959405974.5964,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "billing PDF templates renders a distinct MINIMAL composition",
+          "status": "passed",
+          "durationMs": 17.54649999999998
+        },
+        {
+          "name": "billing PDF templates renders a distinct PROFESSIONAL composition",
+          "status": "passed",
+          "durationMs": 0.973399999999998
+        },
+        {
+          "name": "billing PDF templates renders a distinct MODERN composition",
+          "status": "passed",
+          "durationMs": 1.0893000000000086
+        },
+        {
+          "name": "billing PDF templates keeps invoice payment semantics in MINIMAL",
+          "status": "passed",
+          "durationMs": 0.867699999999985
+        },
+        {
+          "name": "billing PDF templates keeps invoice payment semantics in PROFESSIONAL",
+          "status": "passed",
+          "durationMs": 0.8066000000000031
+        },
+        {
+          "name": "billing PDF templates keeps invoice payment semantics in MODERN",
+          "status": "passed",
+          "durationMs": 0.8171000000000106
+        },
+        {
+          "name": "billing PDF templates honors the payment and repeated-reference controls",
+          "status": "passed",
+          "durationMs": 0.7633000000000152
+        },
+        {
+          "name": "billing PDF templates escapes document and line content before rendering",
+          "status": "passed",
+          "durationMs": 0.6138000000000261
+        },
+        {
+          "name": "billing PDF templates rejects unsafe logo sources",
+          "status": "passed",
+          "durationMs": 0.9286000000000172
+        },
+        {
+          "name": "billing PDF templates does not repeat an identical trade name and legal name in the footer",
+          "status": "passed",
+          "durationMs": 0.7546000000000106
+        },
+        {
+          "name": "billing PDF templates normalizes URL controls without accepting arbitrary colors",
+          "status": "passed",
+          "durationMs": 0.5964999999999918
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/periodic-processor.test.ts",
+      "startTime": 1790959419771,
+      "endTime": 1790959419776.2288,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "periodic worker lifecycle drains active work, prevents overlaps and refuses new work after stop",
+          "status": "passed",
+          "durationMs": 3.7652999999999963
+        },
+        {
+          "name": "periodic worker lifecycle allows retry after a rejected run and still drains cleanly",
+          "status": "passed",
+          "durationMs": 1.2288000000000068
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/permissions.test.ts",
+      "startTime": 1790959424477,
+      "endTime": 1790959424479.24,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "company permissions gives owners every declared permission",
+          "status": "passed",
+          "durationMs": 1.280300000000011
+        },
+        {
+          "name": "company permissions keeps field technicians away from finance and migrations",
+          "status": "passed",
+          "durationMs": 0.19129999999998404
+        },
+        {
+          "name": "company permissions prevents administrators from granting owner or administrator access",
+          "status": "passed",
+          "durationMs": 0.21770000000000778
+        },
+        {
+          "name": "company permissions normalizes unknown database roles to read-only access",
+          "status": "passed",
+          "durationMs": 0.150100000000009
+        },
+        {
+          "name": "company permissions maps sensitive database writes to their domain permission",
+          "status": "passed",
+          "durationMs": 0.2400000000000091
+        },
+        {
+          "name": "company permissions limits purchase approval elevation to supplier orders",
+          "status": "passed",
+          "durationMs": 0.219600000000014
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/pipeline-rules.test.ts",
+      "startTime": 1790959420001,
+      "endTime": 1790959420005.666,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "resolveOpportunityStage forces a won opportunity to 100% and seals its closing time",
+          "status": "passed",
+          "durationMs": 1.5131999999999834
+        },
+        {
+          "name": "resolveOpportunityStage requires and stores a loss reason at 0%",
+          "status": "passed",
+          "durationMs": 0.705900000000014
+        },
+        {
+          "name": "resolveOpportunityStage reopens a closed opportunity without retaining the old outcome",
+          "status": "passed",
+          "durationMs": 0.15000000000000568
+        },
+        {
+          "name": "pipeline stage configuration accepts a stable, ordered configuration containing the won outcome",
+          "status": "passed",
+          "durationMs": 1.1382999999999868
+        },
+        {
+          "name": "pipeline stage configuration rejects duplicate identifiers and duplicate labels",
+          "status": "passed",
+          "durationMs": 0.43729999999999336
+        },
+        {
+          "name": "pipeline stage configuration protects the won outcome and safely falls back for legacy data",
+          "status": "passed",
+          "durationMs": 0.6659999999999968
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/portal-invoice-archive.test.ts",
+      "startTime": 1790959416303,
+      "endTime": 1790959416310.3552,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "serves canonical bytes after querying within the portal company and client",
+          "status": "passed",
+          "durationMs": 6.401699999999977
+        },
+        {
+          "name": "does not regenerate a missing archive",
+          "status": "passed",
+          "durationMs": 0.6326999999999998
+        },
+        {
+          "name": "does not expose an invoice absent from the portal's scope",
+          "status": "passed",
+          "durationMs": 0.3551999999999964
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/processor-lease.integration.test.ts",
+      "startTime": 1790959402764,
+      "endTime": 1790959402846.8875,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "processor lease prevents overlapping work and keeps a successful heartbeat",
+          "status": "passed",
+          "durationMs": 73.66879999999998
+        },
+        {
+          "name": "processor lease releases the lease and records a bounded error after a failed task",
+          "status": "passed",
+          "durationMs": 8.887400000000014
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/product-pricing.test.ts",
+      "startTime": 1790959422773,
+      "endTime": 1790959422776.8794,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "calculateConfiguredProductPrice adds option deltas then applies the commercial discount",
+          "status": "passed",
+          "durationMs": 1.4595999999999947
+        },
+        {
+          "name": "calculateConfiguredProductPrice clamps discounts and never creates a negative net price",
+          "status": "passed",
+          "durationMs": 0.5224000000000046
+        },
+        {
+          "name": "resolveProductOptionSelection returns a canonical selection grouped for document rendering",
+          "status": "passed",
+          "durationMs": 0.3774999999999977
+        },
+        {
+          "name": "resolveProductOptionSelection rejects missing, duplicate, excessive and foreign option values",
+          "status": "passed",
+          "durationMs": 0.8795000000000073
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/project-technical-profile.test.ts",
+      "startTime": 1790959420248,
+      "endTime": 1790959420252.3203,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "ProjectTechnicalProfileSchema normalise les mesures saisies dans le relevé",
+          "status": "passed",
+          "durationMs": 2.855099999999993
+        },
+        {
+          "name": "ProjectTechnicalProfileSchema refuse une mesure hors plage",
+          "status": "passed",
+          "durationMs": 1.088799999999992
+        },
+        {
+          "name": "ProjectTechnicalProfileSchema accepte les champs nuls relus depuis Prisma sans les convertir en zéro",
+          "status": "passed",
+          "durationMs": 0.3201999999999998
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/public-demo-database.integration.test.ts",
+      "startTime": 1790959403278,
+      "endTime": 1790959403334.73,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "refuses model and raw writes outside a request context, including transactions, while permitting health reads",
+          "status": "passed",
+          "durationMs": 56.72999999999999
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/public-demo-network.test.ts",
+      "startTime": 1790959403501,
+      "endTime": 1790959403565.924,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "blocks supplier HTTP, fetch and TCP even with a mistakenly present API key; preserves infrastructure read restrictions",
+          "status": "passed",
+          "durationMs": 64.92410000000001
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/public-demo.test.ts",
+      "startTime": 1790959420426,
+      "endTime": 1790959420430.2588,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /api/public/leads",
+          "status": "passed",
+          "durationMs": 1.287399999999991
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /api/integrations/email/oauth/start",
+          "status": "passed",
+          "durationMs": 0.18139999999999645
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /api/automations/process",
+          "status": "passed",
+          "durationMs": 0.12199999999998568
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /api/billing/stripe",
+          "status": "passed",
+          "durationMs": 0.09310000000002105
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /api/backup/export",
+          "status": "passed",
+          "durationMs": 0.11580000000000723
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /api/unknown",
+          "status": "passed",
+          "durationMs": 0.10459999999997649
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /sign/contracts/fake",
+          "status": "passed",
+          "durationMs": 0.17609999999999104
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /consent/withdraw/fake",
+          "status": "passed",
+          "durationMs": 0.09970000000001278
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /auth/register",
+          "status": "passed",
+          "durationMs": 0.10720000000000596
+        },
+        {
+          "name": "public demonstration boundary refuses hidden and future entry points: /dashboard/devis/new",
+          "status": "passed",
+          "durationMs": 0.23380000000000223
+        },
+        {
+          "name": "public demonstration boundary keeps navigation, bounded document reads, login and read actions available",
+          "status": "passed",
+          "durationMs": 0.20810000000000173
+        },
+        {
+          "name": "public demonstration boundary requires matching public build flags and refuses business provider keys without reflecting values",
+          "status": "passed",
+          "durationMs": 1.2587999999999795
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/public-lead-schema.test.ts",
+      "startTime": 1790959420659,
+      "endTime": 1790959420664.2544,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "public lead schema accepts JSON and HTML checkbox values while normalizing identity",
+          "status": "passed",
+          "durationMs": 3.6644000000000005
+        },
+        {
+          "name": "public lead schema requires a contact channel and explicit privacy acceptance",
+          "status": "passed",
+          "durationMs": 0.8814999999999884
+        },
+        {
+          "name": "public lead schema normalizes common French phone formatting",
+          "status": "passed",
+          "durationMs": 0.25430000000000064
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/purchase-order-render.test.ts",
+      "startTime": 1790959409486,
+      "endTime": 1790959409502.581,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "purchase order renderer renders escaped supplier data, approval and totals",
+          "status": "passed",
+          "durationMs": 16.581099999999992
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/quote-workflow.test.ts",
+      "startTime": 1790959422064,
+      "endTime": 1790959422068.6526,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "quote workflow allows the auditable commercial path",
+          "status": "passed",
+          "durationMs": 1.5361000000000047
+        },
+        {
+          "name": "quote workflow is idempotent for a repeated delivery",
+          "status": "passed",
+          "durationMs": 0.17320000000000846
+        },
+        {
+          "name": "quote workflow prevents reopening or silently accepting a draft",
+          "status": "passed",
+          "durationMs": 0.8729999999999905
+        },
+        {
+          "name": "quote workflow rejects values forged outside the TypeScript client",
+          "status": "passed",
+          "durationMs": 0.6604999999999848
+        },
+        {
+          "name": "quote workflow records the timestamp matching the terminal event",
+          "status": "passed",
+          "durationMs": 0.65270000000001
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/readiness.test.ts",
+      "startTime": 1790959421050,
+      "endTime": 1790959421053.8423,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "productionConfigurationIssues does not block local development",
+          "status": "passed",
+          "durationMs": 1.5668000000000006
+        },
+        {
+          "name": "productionConfigurationIssues accepts a complete production configuration",
+          "status": "passed",
+          "durationMs": 0.2592999999999961
+        },
+        {
+          "name": "productionConfigurationIssues keeps optional platform email and SaaS billing out of core readiness",
+          "status": "passed",
+          "durationMs": 0.16849999999999454
+        },
+        {
+          "name": "productionConfigurationIssues enforces optional providers when their production feature flag is enabled",
+          "status": "passed",
+          "durationMs": 0.35470000000000823
+        },
+        {
+          "name": "productionConfigurationIssues accepts the documented legacy R2 credential aliases during migration",
+          "status": "passed",
+          "durationMs": 0.21129999999999427
+        },
+        {
+          "name": "productionConfigurationIssues rejects unsafe production database, URL, secret and storage settings",
+          "status": "passed",
+          "durationMs": 0.2401999999999873
+        },
+        {
+          "name": "productionConfigurationIssues rejects credentials in public URLs and an unencrypted distributed limiter",
+          "status": "passed",
+          "durationMs": 0.2008999999999901
+        },
+        {
+          "name": "productionConfigurationIssues does not require disabled ingestion and processor secrets in the public read-only profile",
+          "status": "passed",
+          "durationMs": 0.8424000000000262
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/redis-connection.test.ts",
+      "startTime": 1790959416061,
+      "endTime": 1790959416068.3347,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "decodes managed Redis credentials, keeps certificate verification and separates retries",
+          "status": "passed",
+          "durationMs": 5.472099999999983
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: https://redis.example.test/",
+          "status": "passed",
+          "durationMs": 0.7883999999999958
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: redis://localhost/abc",
+          "status": "passed",
+          "durationMs": 0.18680000000000518
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: redis://localhost/0?password=synthetic-secret",
+          "status": "passed",
+          "durationMs": 0.20479999999997744
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: redis://localhost/#secret",
+          "status": "passed",
+          "durationMs": 0.1945999999999799
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: rediss://user:bad%ZZ@host/0",
+          "status": "passed",
+          "durationMs": 0.22700000000000387
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: redis://host:99999/",
+          "status": "passed",
+          "durationMs": 0.20429999999998927
+        },
+        {
+          "name": "refuses malformed endpoints without reflecting their credentials: redis://host:0/",
+          "status": "passed",
+          "durationMs": 0.16730000000001155
+        },
+        {
+          "name": "refuses implicit production localhost but preserves the development fallback",
+          "status": "passed",
+          "durationMs": 0.334699999999998
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/reporting.test.ts",
+      "startTime": 1790959407894,
+      "endTime": 1790959407918.885,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "reporting normalise les périodes publiques",
+          "status": "passed",
+          "durationMs": 1.8350999999999829
+        },
+        {
+          "name": "reporting calcule une lecture transverse sans mélanger périodes et encours",
+          "status": "passed",
+          "durationMs": 21.34639999999999
+        },
+        {
+          "name": "reporting n'exporte que les domaines autorisés",
+          "status": "passed",
+          "durationMs": 0.8851000000000226
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/route-auth.test.ts",
+      "startTime": 1790959410440,
+      "endTime": 1790959410454.8894,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Route Handler authorization boundary keeps the tenant, agency and permission context active for the whole handler",
+          "status": "passed",
+          "durationMs": 14.060099999999977
+        },
+        {
+          "name": "Route Handler authorization boundary denies a missing role permission before the handler can execute",
+          "status": "passed",
+          "durationMs": 0.8893999999999949
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/route-titles.test.ts",
+      "startTime": 1790959425954,
+      "endTime": 1790959425956.2036,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "dashboard document titles keeps truncated titles stable after browser whitespace normalization",
+          "status": "passed",
+          "durationMs": 1.4819999999999993
+        },
+        {
+          "name": "dashboard document titles returns the dedicated title for a static route",
+          "status": "passed",
+          "durationMs": 0.15390000000002146
+        },
+        {
+          "name": "dashboard document titles returns the family title for a dynamic business record",
+          "status": "passed",
+          "durationMs": 0.2115999999999758
+        },
+        {
+          "name": "dashboard document titles uses a neutral fallback for an unknown workspace route",
+          "status": "passed",
+          "durationMs": 0.12230000000002406
+        },
+        {
+          "name": "dashboard document titles puts the business record first in a contextual browser title",
+          "status": "passed",
+          "durationMs": 0.20349999999999113
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/satisfaction-dashboard.test.ts",
+      "startTime": 1790959414406,
+      "endTime": 1790959414414.2488,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "satisfaction results payload removes anonymous identity, relation identifiers, token hashes and metadata from serialized results",
+          "status": "passed",
+          "durationMs": 3.68100000000004
+        },
+        {
+          "name": "satisfaction results payload keeps permitted named relations without exposing internal request fields",
+          "status": "passed",
+          "durationMs": 0.8939000000000306
+        },
+        {
+          "name": "satisfaction results payload scopes every query to the authorized tenant and requires service read permission",
+          "status": "passed",
+          "durationMs": 2.264700000000005
+        },
+        {
+          "name": "satisfaction results payload does not query data when permission is denied",
+          "status": "passed",
+          "durationMs": 1.2486999999999853
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/sequence-schedule.test.ts",
+      "startTime": 1790959405538,
+      "endTime": 1790959405577.3977,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "nextSequenceExecution keeps a due time inside the weekday window",
+          "status": "passed",
+          "durationMs": 14.563400000000001
+        },
+        {
+          "name": "nextSequenceExecution moves an evening due time to the next opening",
+          "status": "passed",
+          "durationMs": 3.882300000000015
+        },
+        {
+          "name": "nextSequenceExecution skips the weekend",
+          "status": "passed",
+          "durationMs": 16.2414
+        },
+        {
+          "name": "nextSequenceExecution allows weekends when configured",
+          "status": "passed",
+          "durationMs": 4.017499999999984
+        },
+        {
+          "name": "sequenceTimezoneIsValid validates IANA timezones",
+          "status": "passed",
+          "durationMs": 0.3977000000000146
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/service-analytics.test.ts",
+      "startTime": 1790959424117,
+      "endTime": 1790959424120.171,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "service analytics separates created, closed and current backlog cohorts",
+          "status": "passed",
+          "durationMs": 1.6251999999999782
+        },
+        {
+          "name": "service analytics counts overdue unanswered and unresolved tickets as SLA failures",
+          "status": "passed",
+          "durationMs": 0.2557999999999936
+        },
+        {
+          "name": "service analytics computes diagnostic coverage, satisfaction and health distribution",
+          "status": "passed",
+          "durationMs": 0.28770000000000095
+        },
+        {
+          "name": "service analytics groups workload by owner and priority",
+          "status": "passed",
+          "durationMs": 0.2366999999999848
+        },
+        {
+          "name": "service analytics builds weekly created and closed trends",
+          "status": "passed",
+          "durationMs": 0.17079999999998563
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/service-content.test.ts",
+      "startTime": 1790959423231,
+      "endTime": 1790959423233.1724,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "serviceArticleSlug normalizes accents, punctuation and whitespace",
+          "status": "passed",
+          "durationMs": 1.327600000000018
+        },
+        {
+          "name": "serviceArticleSlug returns a stable fallback",
+          "status": "passed",
+          "durationMs": 0.17670000000003938
+        },
+        {
+          "name": "satisfactionMetrics computes CSAT and ignores invalid scores",
+          "status": "passed",
+          "durationMs": 0.9254999999999995
+        },
+        {
+          "name": "satisfactionMetrics computes NPS from promoters and detractors",
+          "status": "passed",
+          "durationMs": 0.172300000000007
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/service-diagnostics.test.ts",
+      "startTime": 1790959421231,
+      "endTime": 1790959421234.1924,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "service diagnostic guides normalizes accents and punctuation",
+          "status": "passed",
+          "durationMs": 1.235900000000015
+        },
+        {
+          "name": "service diagnostic guides suggests a guide that matches equipment and request symptoms",
+          "status": "passed",
+          "durationMs": 1.0153999999999996
+        },
+        {
+          "name": "service diagnostic guides rejects a guide for another manufacturer",
+          "status": "passed",
+          "durationMs": 0.17369999999999663
+        },
+        {
+          "name": "service diagnostic guides can suggest a general guide from symptom keywords",
+          "status": "passed",
+          "durationMs": 0.2536000000000058
+        },
+        {
+          "name": "service diagnostic guides sanitizes stored checklist JSON",
+          "status": "passed",
+          "durationMs": 0.5816999999999837
+        },
+        {
+          "name": "service diagnostic guides distinguishes active, expired and unknown warranty",
+          "status": "passed",
+          "durationMs": 0.19230000000001723
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/service-duplicates.test.ts",
+      "startTime": 1790959423933,
+      "endTime": 1790959423936.1743,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "service duplicate detection normalizes accents, punctuation and spacing",
+          "status": "passed",
+          "durationMs": 1.2180999999999926
+        },
+        {
+          "name": "service duplicate detection compares meaningful tokens instead of word order",
+          "status": "passed",
+          "durationMs": 0.28239999999999554
+        },
+        {
+          "name": "service duplicate detection flags a repeated request for the same equipment",
+          "status": "passed",
+          "durationMs": 0.8112000000000137
+        },
+        {
+          "name": "service duplicate detection flags an identical request even without a known site or equipment",
+          "status": "passed",
+          "durationMs": 0.17430000000001655
+        },
+        {
+          "name": "service duplicate detection does not compare tickets from different clients",
+          "status": "passed",
+          "durationMs": 0.1366000000000156
+        },
+        {
+          "name": "service duplicate detection does not flag unrelated requests that merely share a client",
+          "status": "passed",
+          "durationMs": 0.15879999999998518
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/service-routing.test.ts",
+      "startTime": 1790959423757,
+      "endTime": 1790959423760.27,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "recommendServiceAssignee prioritizes skill and territory before load",
+          "status": "passed",
+          "durationMs": 1.4398999999999944
+        },
+        {
+          "name": "recommendServiceAssignee uses the lowest utilization among matching members",
+          "status": "passed",
+          "durationMs": 0.19950000000000045
+        },
+        {
+          "name": "recommendServiceAssignee leaves a standard ticket unassigned when every capacity is reached",
+          "status": "passed",
+          "durationMs": 0.15440000000000964
+        },
+        {
+          "name": "recommendServiceAssignee allows an explicit urgent overflow and explains it",
+          "status": "passed",
+          "durationMs": 0.7867999999999995
+        },
+        {
+          "name": "recommendServiceAssignee ignores unavailable and unrelated roles",
+          "status": "passed",
+          "durationMs": 0.13300000000000978
+        },
+        {
+          "name": "serviceRoutingTags keeps unique non-empty text tags",
+          "status": "passed",
+          "durationMs": 0.27000000000001023
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/service-sla.test.ts",
+      "startTime": 1790959415879,
+      "endTime": 1790959415887.2207,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "addBusinessHours carries work across the evening and skips weekends and holidays",
+          "status": "passed",
+          "durationMs": 2.563999999999993
+        },
+        {
+          "name": "addBusinessHours starts the clock at the next opening",
+          "status": "passed",
+          "durationMs": 0.5361000000000047
+        },
+        {
+          "name": "addBusinessHours does not overshoot an opening when the request arrives between time slots",
+          "status": "passed",
+          "durationMs": 0.5038999999999874
+        },
+        {
+          "name": "addBusinessHours counts only open minutes while a ticket is waiting",
+          "status": "passed",
+          "durationMs": 0.7841999999999985
+        },
+        {
+          "name": "service SLA targets uses separate first-response and resolution objectives",
+          "status": "passed",
+          "durationMs": 1.2024999999999864
+        },
+        {
+          "name": "service SLA targets prefers an explicit resolution due date",
+          "status": "passed",
+          "durationMs": 0.5532999999999788
+        },
+        {
+          "name": "service SLA targets extends targets while waiting on the customer",
+          "status": "passed",
+          "durationMs": 0.8592000000000155
+        },
+        {
+          "name": "serviceTargetIsBreached flags an active objective without completion",
+          "status": "passed",
+          "durationMs": 0.22059999999999036
+        },
+        {
+          "name": "serviceTargetIsBreached does not flag a completed first response",
+          "status": "passed",
+          "durationMs": 0.14289999999999736
+        },
+        {
+          "name": "serviceTargetIsBreached does not flag RESOLVED tickets",
+          "status": "passed",
+          "durationMs": 0.16190000000000282
+        },
+        {
+          "name": "serviceTargetIsBreached does not flag CLOSED tickets",
+          "status": "passed",
+          "durationMs": 0.09360000000000923
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/stock.test.ts",
+      "startTime": 1790959423409,
+      "endTime": 1790959423412.3103,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "stock operations tracks available and reserved quantities",
+          "status": "passed",
+          "durationMs": 1.7312000000000012
+        },
+        {
+          "name": "stock operations prevents negative stock and over-reservation",
+          "status": "passed",
+          "durationMs": 0.7864000000000146
+        },
+        {
+          "name": "stock operations supports signed inventory adjustments",
+          "status": "passed",
+          "durationMs": 0.21129999999999427
+        },
+        {
+          "name": "stock operations moves the same quantity between two warehouses without changing the total",
+          "status": "passed",
+          "durationMs": 0.3048000000000002
+        },
+        {
+          "name": "stock operations refuses transfers that would move reserved or unavailable stock",
+          "status": "passed",
+          "durationMs": 0.3102000000000089
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/structured-contract-documents.test.ts",
+      "startTime": 1790959409039,
+      "endTime": 1790959409055.6262,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "structured contract documents renders amendment changes and escapes user-controlled values",
+          "status": "passed",
+          "durationMs": 15.908999999999992
+        },
+        {
+          "name": "structured contract documents renders a maintenance renewal with the indexed price and term",
+          "status": "passed",
+          "durationMs": 0.6262999999999863
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/tenant-scope.test.ts",
+      "startTime": 1790959400025,
+      "endTime": 1790959400101.2053,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "tenant scope architecture scopes every model that owns a direct companyId",
+          "status": "passed",
+          "durationMs": 2.980400000000003
+        },
+        {
+          "name": "tenant scope architecture keeps schema exceptions explicit and minimal",
+          "status": "passed",
+          "durationMs": 0.15879999999998518
+        },
+        {
+          "name": "tenant scope architecture classifies every schema model as direct, relational or intentionally global",
+          "status": "passed",
+          "durationMs": 1.0418999999999983
+        },
+        {
+          "name": "tenant-scoped Prisma boundary scopes counts and throwing reads, and pins every write to the active company",
+          "status": "passed",
+          "durationMs": 18.205400000000026
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/workflow-publication.integration.test.ts",
+      "startTime": 1790959401405,
+      "endTime": 1790959401429.4197,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "workflow publication on the actual SQL provider publishes the unchanged JSONB draft once, even when object keys are reordered",
+          "status": "passed",
+          "durationMs": 17.386200000000144
+        },
+        {
+          "name": "workflow publication on the actual SQL provider creates a new immutable snapshot when action order actually changes",
+          "status": "passed",
+          "durationMs": 6.419700000000148
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/workflow-rules.test.ts",
+      "startTime": 1790959415454,
+      "endTime": 1790959415462.678,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "workflow rules requires the identifiers needed before marking a B2B invoice ready",
+          "status": "passed",
+          "durationMs": 1.8370000000001028
+        },
+        {
+          "name": "workflow rules advances invoice and task recurrences deterministically",
+          "status": "passed",
+          "durationMs": 6.194100000000162
+        },
+        {
+          "name": "workflow rules keeps a partial credit note balanced",
+          "status": "passed",
+          "durationMs": 0.21949999999992542
+        },
+        {
+          "name": "workflow rules normalizes bank labels while keeping distinct amounts",
+          "status": "passed",
+          "durationMs": 0.6781000000000859
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/workspace-labels.test.ts",
+      "startTime": 1790959425431,
+      "endTime": 1790959425433.1895,
+      "status": "passed",
+      "tests": [
+        {
+          "name": "French workspace labels translates NEW for display",
+          "status": "passed",
+          "durationMs": 1.1576000000000022
+        },
+        {
+          "name": "French workspace labels translates TODO for display",
+          "status": "passed",
+          "durationMs": 0.11629999999999541
+        },
+        {
+          "name": "French workspace labels translates DRAFT for display",
+          "status": "passed",
+          "durationMs": 0.09610000000000696
+        },
+        {
+          "name": "French workspace labels translates ACTIVE for display",
+          "status": "passed",
+          "durationMs": 0.09380000000001587
+        },
+        {
+          "name": "French workspace labels translates WAITING_PARTS for display",
+          "status": "passed",
+          "durationMs": 0.09369999999998413
+        },
+        {
+          "name": "French workspace labels translates SENT for display",
+          "status": "passed",
+          "durationMs": 0.08799999999999386
+        },
+        {
+          "name": "French workspace labels translates WON for display",
+          "status": "passed",
+          "durationMs": 0.0852999999999895
+        },
+        {
+          "name": "French workspace labels preserves custom business labels and already translated values",
+          "status": "passed",
+          "durationMs": 0.13940000000002328
+        },
+        {
+          "name": "French workspace labels keeps the technical route while translating its title",
+          "status": "passed",
+          "durationMs": 0.1893999999999778
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Projection du rapport Vitest : sorties, chemins privés et messages retirés",
+    "PostgreSQL isolé, corpus fictif, une recette propre à SQLite exclue"
+  ]
+}

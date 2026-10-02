@@ -1,0 +1,61 @@
+# Décisions techniques — Freelio
+
+Référence : 1er octobre 2026. Ce registre accompagne le [plan CTO](plan-vitrine-cto-20260930.md) et le [suivi des preuves](execution-cto-20261001.md). Une décision conservée provisoirement n’est pas une validation du support à long terme.
+
+## D01 — Monolithe modulaire avec processus séparés
+
+**Décision retenue.** Conserver Next.js, React et TypeScript. Les actions orchestrent des règles de domaine, des autorisations et des transactions SQL ; les documents et tâches utiles peuvent s’exécuter dans un worker séparé. Le rendu PDF interactif reste aujourd’hui principalement synchrone.
+
+Une réécriture en microservices ou un changement de framework aurait un coût sans besoin d’isolation mesuré. La séparation web/worker répond déjà aux durées d’exécution différentes. Réexaminer une extraction après une mesure de charge ou un besoin de déploiement indépendant. Retour arrière : livraisons par module et versions d’image, sans migration simultanée de toute la stack.
+
+## D02 — PostgreSQL pour les environnements partagés
+
+**Décision retenue et partiellement qualifiée.** PostgreSQL sert de référence d’intégration et de future préproduction. SQLite reste disponible pour la démo locale isolée. Les extensions Prisma, transactions et migrations doivent être vérifiées sur chaque moteur annoncé.
+
+La recette native utilise PostgreSQL 18.3, sur une instance créée pour les tests. La recette conteneur a aussi exécuté les quarante-trois migrations et un client Prisma réel sur PostgreSQL Linux 18.6. Ces preuves sur bases neuves ne couvrent pas encore une mise à niveau d’une base commerciale existante.
+
+Le rôle de migration et le rôle de l’application sont distincts. La démo publique de recette utilise un rôle sans privilèges d’administration, avec SELECT et seulement INSERT sur AuditLog. L’isolation entre entreprises reste contrôlée par les permissions et le DAL : ce rôle SQL de démonstration n’est pas une politique RLS par tenant.
+
+## D03 — Node 24 et dépendances verrouillées
+
+**Décision retenue.** Aligner le lanceur local, package.json, CI et image sur Node 24.x. Verrouiller Next, son environnement et ESLint à 16.3.6. Les dépendances transitives corrigées sont inscrites dans le lockfile ; l’audit npm de recette ne signale aucune vulnérabilité connue au moment du contrôle.
+
+L’audit npm ne prouve pas l’absence de vulnérabilités applicatives. Les mises à jour proposées par Dependabot restent soumises à revue et recette. Les changements majeurs ne sont pas regroupés avec les correctifs métier.
+
+## D04 — Prisma conservé ; étude majeure encore ouverte
+
+**Décision provisoire.** Conserver Prisma 6.12 pour terminer une référence vérifiable des permissions, archives et imports. Cette version ne doit pas être présentée comme la dernière version stable maintenue. Le registre npm consulté présente une version 8 de prépublication et une version stable 7 plus récente.
+
+La qualification de Prisma 7 doit couvrir les adaptateurs PostgreSQL/SQLite, extensions du DAL, SQL brut et transactions, TLS, génération, packaging et migrations. Ne pas mettre à niveau simultanément ORM et authentification. Condition de sortie : mêmes tests SQL, même artefact de récupération, nouveaux résultats liés au commit. Retour arrière : lockfile/client précédent tant que les migrations restent compatibles. L’absence d’alerte npm ne tranche pas la question de maintenance de la version 6.
+
+## D05 — Auth.js conservé pendant la stabilisation
+
+**Décision provisoire.** Conserver Auth.js pour les mots de passe, sessions et permissions existants. La dépendance reste en série beta 5 ; cette limite est explicite. La démo publique accepte uniquement le compte fictif prévu et son mot de passe ; les liens magiques et inscriptions y sont refusés côté serveur.
+
+Une migration vers Better Auth ou une autre solution nécessite une preuve d’équivalence : mots de passe, MFA et codes de secours, sessions, révocation, memberships, CSRF et droits. Aucune supériorité n’est déduite du seul nom du fournisseur. Condition de décision : maintenance actuelle vérifiée, essai borné sur une copie et comparaison des risques. Retour arrière : pas de conversion irréversible des identifiants avant validation.
+
+## D06 — Démo publique en lecture seule
+
+**Décision approuvée par le propriétaire.** La découverte publique partage un jeu de données fictives consultable. Le serveur bloque les mutations, les routes sensibles et les fournisseurs ; l’interface désactive les commandes approuvées. Un visiteur conserve sa session et ses préférences locales, mais ne modifie pas les dossiers. Le flag NEXT_PUBLIC n’est jamais une autorisation serveur.
+
+La copie locale reste modifiable. Une future recette privée sur invitation doit utiliser des tenants, identifiants, quotas et durées propres ; elle n’est pas livrée implicitement par ce mode public. Aucun reset global de données partagées n’est nécessaire pour une démo publique immuable. Des logs de consultation peuvent être ajoutés ; leur rétention et leur volume doivent être bornés dans l’hébergement final.
+
+## D07 — BullMQ/Redis et traitements périodiques
+
+**Décision retenue, exploitation partiellement qualifiée.** Conserver la file documentaire et les processeurs périodiques. Centraliser URL/TLS/identifiants Redis et distinguer retries de production et de consommation. Prévoir une politique Redis sans éviction. La recette Linux a consommé un véritable job documentaire et arrêté le worker sur SIGTERM. La fermeture attend les travaux en cours, avec un délai de grâce de trente secondes. La reprise après SIGKILL et TLS Redis hébergé restent à qualifier. La file documentaire n’est pas branchée aux commandes interactives courantes, qui rendent principalement les PDF en synchronisation.
+
+Les leases SQL empêchent les démarrages concurrents pendant leur durée. Le lease générique des processeurs expire actuellement après quinze minutes et n’est pas renouvelé pendant la tâche : une tâche dépassant ce délai requiert un traitement supplémentaire avant exploitation. Les leases d’import et de sauvegarde disposent de leurs propres mécanismes. L’ordonnanceur GitHub est désactivé par défaut ; son activation exige une URL et des secrets propres à l’environnement. Un seul responsable opérationnel doit décider quels déclencheurs sont actifs.
+
+## D08 — Documents et récupération
+
+**Décision retenue, runtime partiellement qualifié.** Conserver Puppeteer et pdf-lib. Désactiver JavaScript et les ressources réseau arbitraires lors du rendu ; résoudre et contrôler les images côté serveur. Conserver le PDF, le XML et les données documentaires lors de l’émission, avec empreinte et chiffrement. Les factures émises affichent leur archive dans le Studio.
+
+Chrome s’exécute encore sans sandbox ; utilisateur non root et filtrage applicatif ne prouvent pas une isolation système suffisante. Un PDF hors réseau et un PDF de devis par le worker ont été exécutés dans l’image Linux ; le job CI correspondant est préparé, mais son succès distant reste à obtenir. La récupération locale a restauré PostgreSQL, fichiers et archive chiffrée dans une cible neuve. R2, coffre des clés, restauration après perte d’un fournisseur, RPO/RTO hébergés et rollback réel restent à qualifier.
+
+## D09 — Publication et coût d’exploitation
+
+**Décision ouverte.** Préparer une image Node complète avec Chromium et un processus worker séparé si utilisé. Choisir l’hébergeur, la région, le domaine, les services et le budget après qualification de l’image. Aucun abonnement, fournisseur ou déploiement n’est créé par ce registre.
+
+Le propriétaire a fixé un budget de 0 € pour l’instant. La référence locale et son dossier de revue sont la livraison immédiate ; la proposition hébergée reste préparatoire. Un palier gratuit ne sera pas présenté comme un runtime disponible et récupérable tant que ses limitations ne sont pas qualifiées.
+
+Le dépôt contient aussi des changements de présentation antérieurs à cette stabilisation. La référence de livraison doit être revue par lots et reliée à la CI avant partage. Aucun choix de licence publique du code propre n’est fait sans son propriétaire. Une présentation privée peut montrer les preuves locales en annonçant précisément leur portée.

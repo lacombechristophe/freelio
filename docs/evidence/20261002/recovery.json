@@ -1,0 +1,691 @@
+{
+  "schema": "freelio.postgres-recovery.v1",
+  "completedAt": "2026-10-01T16:05:12.278Z",
+  "elapsedMs": 4926,
+  "tablesVerified": 135,
+  "rowsVerified": 140,
+  "filesVerified": 3,
+  "encryptedArchivesVerified": 1,
+  "tableDigests": [
+    {
+      "table": "Account",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Agency",
+      "count": 1,
+      "sha256": "e0a9aa1d6e4e5edfe6805ffc41c00a9750489995718e6a848c4ed63e5d16baec"
+    },
+    {
+      "table": "AgencyMembership",
+      "count": 1,
+      "sha256": "9e20cae38c6f77e6924164224e825f6d99b457661fd940243808f8fac7a7846e"
+    },
+    {
+      "table": "ApiKey",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "AuditLog",
+      "count": 19,
+      "sha256": "46ca3574699b2310c7348d358bcd5e00417c69dce93af517669de793a065fb38"
+    },
+    {
+      "table": "AutomationRun",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "AutomationWorkflow",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "AutomationWorkflowVersion",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "BankTransaction",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "BillingWebhookEvent",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Client",
+      "count": 6,
+      "sha256": "255eadf6eaa8a2597ad837f398641cd9d300ada8ad8ff297a2a66d803e529cc4"
+    },
+    {
+      "table": "ClientActivity",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ClientFile",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ClientPortalAccess",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ClientPortalAppointmentRequest",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ClientPortalMessage",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CommunicationChannel",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Company",
+      "count": 3,
+      "sha256": "ce1258452870ccea716c00084cb66c636439cd3296e5dfbed55a3801a2bcc097"
+    },
+    {
+      "table": "CompanyInvitation",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Contact",
+      "count": 2,
+      "sha256": "0deebc151404912c940a0cc72c8d342f9dbfd591f9e56de47bfa76794e1263cb"
+    },
+    {
+      "table": "Contract",
+      "count": 2,
+      "sha256": "4594e00f8c46ddb478ae44c62956433ad0da718a8122db8779a71525869a5145"
+    },
+    {
+      "table": "ContractAmendmentChange",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ContractClause",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ContractSignature",
+      "count": 1,
+      "sha256": "4ae688ee41984016c34507aad447ffa7e83aed6a7872e4801c6886c0a709fb21"
+    },
+    {
+      "table": "ContractSigningToken",
+      "count": 1,
+      "sha256": "0e46f5477805bea3c7c559a189d242b33afa11c6950c9750f99ed542ade496a7"
+    },
+    {
+      "table": "ContractTemplate",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CreditNote",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CrmPropertyDefinition",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CrmPropertyHistory",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CrmPropertyValue",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CustomerHealthRule",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CustomerHealthSnapshot",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "CustomerOrder",
+      "count": 1,
+      "sha256": "11c24946f5e1758ad5e0a299984a6d2c7aa967815521eead8dc81dd50421ee5c"
+    },
+    {
+      "table": "CustomerOrderLine",
+      "count": 1,
+      "sha256": "e600494c6368653c3dbbd9c371dbe83d6ffab9fd46859eda123b16ed59e13c41"
+    },
+    {
+      "table": "CustomerSite",
+      "count": 1,
+      "sha256": "cea26bb4c03e1715b27840739b3d2fb90b0ce557ce6027cee75e01437d188e9e"
+    },
+    {
+      "table": "DataSourceConnection",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "DeliveryNote",
+      "count": 1,
+      "sha256": "d959888402021fa28ca8a1601d973d9a0e4d92a0408d3a8b46dbad52ecf074bf"
+    },
+    {
+      "table": "DeliveryNoteLine",
+      "count": 1,
+      "sha256": "fe836c5c2fcdf47fe11d7eb05c9aace2f9d297c2a829a123a805345b2eee0f23"
+    },
+    {
+      "table": "DocumentManifest",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EInvoiceLog",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EReportingBatch",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailDelivery",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailEvent",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailLog",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailMessage",
+      "count": 1,
+      "sha256": "2b332eca6563830ff48a7c507bb612c576b7ea3527d1252a881a274cddfa93bb"
+    },
+    {
+      "table": "EmailSequence",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailSequenceEnrollment",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailSequenceStep",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailSequenceTask",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailSuppression",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailTemplate",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "EmailThread",
+      "count": 1,
+      "sha256": "2060ca3e69e11d60631a3b2c2b1eddd76a675fdbcaec14544eb25c417fab6abc"
+    },
+    {
+      "table": "Equipment",
+      "count": 1,
+      "sha256": "488712b5cdf6d7a606500c63778b2091c85a1c22c27a65e9c990ce4be4f81db3"
+    },
+    {
+      "table": "Expense",
+      "count": 1,
+      "sha256": "8d7657fd5f5481a2d153a9bcc8b97ac6afa393b1d8ef3ed009062cdf2ae7e77a"
+    },
+    {
+      "table": "ExpenseFile",
+      "count": 1,
+      "sha256": "7de52b4750e370dd269bc93a897680690570fbc220b0eac8208cc04f917e1c07"
+    },
+    {
+      "table": "ExternalIdMap",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "FieldIntervention",
+      "count": 2,
+      "sha256": "341ef3de0a724ad38c425902252e885bc992b5a8dc687e2d0f14d9cd4beb1257"
+    },
+    {
+      "table": "GoodsReceipt",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "GoodsReceiptLine",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "InterventionFile",
+      "count": 1,
+      "sha256": "0bfc8e4a93a8ba69089fc0ca347d3d8d010e27a0752a70e48ef6bb4550b23ff6"
+    },
+    {
+      "table": "InterventionReservation",
+      "count": 1,
+      "sha256": "2515fd24cb4bd09244e36688c552d7a3ffb6217e7bd17da76362e58912bc672b"
+    },
+    {
+      "table": "InventoryItem",
+      "count": 1,
+      "sha256": "784c5a3f4cb76f2bc4f484ac2f8b2a4bb4b78e452c5c3904955b33bccb1ac6cb"
+    },
+    {
+      "table": "Invoice",
+      "count": 4,
+      "sha256": "e8ac7228e5afaea1dbbd8e3ab68fb49a96b5b3dc4be9e1b47002487b7f0ee5b1"
+    },
+    {
+      "table": "InvoiceLine",
+      "count": 4,
+      "sha256": "d1dbd388b38e54b68f9bd27d5e0e97c2e6f00a763425cef9712a42d17ef51de2"
+    },
+    {
+      "table": "InvoicePayment",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "InvoiceReminder",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "KnowledgeArticle",
+      "count": 1,
+      "sha256": "e65a15b79286fa7d17c0f8cb70c4487652415cc4e3463e5b90fbdf93962cd1dd"
+    },
+    {
+      "table": "LeadCapture",
+      "count": 2,
+      "sha256": "2cac20ed8440d5b6533e3af4239ebc95d7a1e1cc37083259c27c70ea82cd9315"
+    },
+    {
+      "table": "LeadScoringRule",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "MaintenanceContract",
+      "count": 2,
+      "sha256": "397c130cd6546ca1f549030b79ef7145a5131be0eb04c36bb6d8568c2d77cfbb"
+    },
+    {
+      "table": "MaintenanceContractEquipment",
+      "count": 2,
+      "sha256": "22247e400d86f137271b88949ec4991d80b8d2fd63503e74d04d7c1fe81ffe94"
+    },
+    {
+      "table": "MarketingCampaign",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "MarketingCampaignAsset",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "MarketingConsent",
+      "count": 3,
+      "sha256": "107957f6c5744fa5447aef7865e2d207f9025a42be17fbf70a2b945cef5c544c"
+    },
+    {
+      "table": "MarketingSegment",
+      "count": 1,
+      "sha256": "30773f1103b684698607852cb5e767e910594c6a57edc560effbea9685c0b20d"
+    },
+    {
+      "table": "MarketingSegmentMember",
+      "count": 1,
+      "sha256": "50aed472b6f5c21cccd135c4b3104ee704f05c154b385d91679f16becdf2507c"
+    },
+    {
+      "table": "Membership",
+      "count": 1,
+      "sha256": "1e2b0f8b7c17545aab4f47645e0147416477f6cf87f55a2a25b0153a62403699"
+    },
+    {
+      "table": "MfaRecoveryCode",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "MigrationIssue",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "MigrationMetric",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "MigrationRun",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Notification",
+      "count": 1,
+      "sha256": "74cd4f73e8f2438c03edde705f4dc4b76c41ca60e0bafdb323139668b89e0b99"
+    },
+    {
+      "table": "Opportunity",
+      "count": 1,
+      "sha256": "d76b4a626c2a3a99ad6971e79ff255c3e64a47971fa09337ceb84ed3253c56f2"
+    },
+    {
+      "table": "OpportunityActivity",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "OrganisationGoal",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "OrganisationTask",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "PasswordResetToken",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Pipeline",
+      "count": 1,
+      "sha256": "07f2d3f5538d68b589d60852254a56c59d5ae57171b9ce8425979967b297fff9"
+    },
+    {
+      "table": "ProcessorLease",
+      "count": 1,
+      "sha256": "556beaf882964b95256a98d1694c5d1b980d4c2002a0bc287f7e466fa814e655"
+    },
+    {
+      "table": "Product",
+      "count": 1,
+      "sha256": "d350a572d89b3f33398b519a39d1ed1294f5bbbe0fd5d33718bd2661e77a3107"
+    },
+    {
+      "table": "ProductComponent",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProductOptionGroup",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProductOptionValue",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProductPrice",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Project",
+      "count": 2,
+      "sha256": "61c507f48fdf8b27952e835f1d55238017c1d731c5969f3b54c65fbbfd0bdd0e"
+    },
+    {
+      "table": "ProjectAcceptanceItem",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProjectFile",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProjectMilestone",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProjectTechnicalProfile",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProjectTemplate",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ProjectTemplateStep",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "PurchaseIssue",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "PurchaseOrder",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "PurchaseOrderLine",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Quote",
+      "count": 1,
+      "sha256": "e8d3849190bb93173b42c255fd8b6f0e3e5da49fd815fe474d0ee192308b9aa0"
+    },
+    {
+      "table": "QuoteLine",
+      "count": 1,
+      "sha256": "f56021bcb0884d5dd8302d77705563e650827d1acaff661edda4f05f9d19fa24"
+    },
+    {
+      "table": "QuoteSection",
+      "count": 1,
+      "sha256": "cbdd36eec3f153668f7fd56dd1c6e4129e65fdd3627cb5a4a6c709e8eedd4c93"
+    },
+    {
+      "table": "QuoteVersion",
+      "count": 1,
+      "sha256": "fa13213073ae10059505394cd3c6f747c3fc4024fb091f20e84d5e5c4691b954"
+    },
+    {
+      "table": "RecurringInvoice",
+      "count": 2,
+      "sha256": "7af47ee543aec2fe7ff0eecc117c66fd554e3067cefa79cf80e39459722cb790"
+    },
+    {
+      "table": "RecurringInvoiceOccurrence",
+      "count": 1,
+      "sha256": "84eb2ed0e60140449bba137e6feaf14c0351c01cbf05aea489db6a80ee5f6eec"
+    },
+    {
+      "table": "RelanceConfig",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "SaasSubscription",
+      "count": 1,
+      "sha256": "f908024d1849c9171d46279519dadcb5ae032f21678417d3da57e03f6128082b"
+    },
+    {
+      "table": "SatisfactionRequest",
+      "count": 1,
+      "sha256": "c6f8e234f357a28c35e77ff9ae5b7ec3c89b7fa7c45c4fc868cf53db4952c34a"
+    },
+    {
+      "table": "SatisfactionSurvey",
+      "count": 1,
+      "sha256": "3044b8a1752d9dab15798f66f8c5d5e251617866d983003d46691214a4573b7a"
+    },
+    {
+      "table": "SavedView",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Service",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ServiceCategory",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ServiceDiagnosticGuide",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ServiceTicket",
+      "count": 1,
+      "sha256": "6492766e2cee18e3cdffd6f753fa1018de8bcb5947176e02b53a5e3389ab6e25"
+    },
+    {
+      "table": "ServiceTicketDiagnostic",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "ServiceTicketNote",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Session",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "SourceRecord",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "StockMovement",
+      "count": 3,
+      "sha256": "f6e1144a010e71ce8ebc96c8da1c57212a07952bfdaaae1684da80778346891f"
+    },
+    {
+      "table": "StockReservation",
+      "count": 1,
+      "sha256": "897e183f27e397e8d7d2bb270959efd5dd8a4c5007ce5974e515876323de30a5"
+    },
+    {
+      "table": "StockTransfer",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Supplier",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "SupplierReturn",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "TimeEntry",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "User",
+      "count": 2,
+      "sha256": "cbe3a3a13bfa1df961afd926de0e726a2612660b3f6cea0e51f57688677fcbec"
+    },
+    {
+      "table": "VerificationToken",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "Warehouse",
+      "count": 1,
+      "sha256": "5ca6596f1dd012fe891ab452df1a53f4f14eb067e9f74f49d1c71c58fd762d4f"
+    },
+    {
+      "table": "WebhookDelivery",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "WebhookEndpoint",
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "table": "_prisma_migrations",
+      "count": 43,
+      "sha256": "682c158bf4f7d2d1d1317419903daf17969c68bd22b6a04a31def4094cee1869"
+    }
+  ],
+  "backupSha256": "0cf316d4610b8305870293fd3bace5f4284e33a3e0eb63801cfb78df3dc4cd78",
+  "limitations": [
+    "Recette locale avec données fictives et sans écritures concurrentes",
+    "Le stockage distant et la récupération de secrets auprès du coffre de l’hébergeur restent à qualifier"
+  ]
+}
