@@ -1,0 +1,14 @@
+{
+  "schema": "freelio.review-coverage-failure.v1",
+  "startTime": 1790960489091,
+  "total": 457,
+  "passed": 456,
+  "failed": 1,
+  "failedTests": [
+    {
+      "name": "restores a native SQLite demo snapshot with unchanged IDs, amounts and attached file bytes, and rejects tampering",
+      "error": "Prisma child process exceeded the 30-second fixture preparation deadline"
+    }
+  ],
+  "conditions": "Coverage run concurrent with desktop E2E; preserved as failure"
+}

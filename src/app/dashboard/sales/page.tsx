@@ -16,7 +16,7 @@ export default async function SalesWorkspacePage() {
       description="Une vue commerciale centrée sur les affaires, les rendez-vous, les offres et la signature."
       primaryAction={{ name: "Nouveau devis", href: "/dashboard/devis/new", icon: FileText, description: "Préparer une proposition" }}
       metrics={[
-        { label: "Pipeline ouvert", value: formatWorkspaceEuro(data.openDealValueCents), detail: `${data.openDeals} affaire(s)`, icon: Kanban, tone: "blue", href: "/dashboard/pipeline" },
+        { label: "Affaires en cours", value: formatWorkspaceEuro(data.openDealValueCents), detail: `${data.openDeals} affaire(s)`, icon: Kanban, tone: "blue", href: "/dashboard/pipeline" },
         { label: "Prospects actifs", value: data.activeLeads, detail: "À qualifier ou relancer", icon: Target, tone: "teal", href: "/dashboard/leads" },
         { label: "Devis", value: data.quotes, detail: "Tous statuts hors archives", icon: FileText, tone: "amber", href: "/dashboard/devis" },
         { label: "Actions sous 48 h", value: data.dueTasks, detail: "Tâches non terminées", icon: CalendarDays, tone: "red", alert: data.dueTasks > 0, status: data.dueTasks ? "À traiter" : "À jour", href: "/dashboard/organisation" },
@@ -24,7 +24,7 @@ export default async function SalesWorkspacePage() {
       featured={<SalesPipelineBoard opportunities={data.opportunities} />}
       panels={[
         {
-          title: "Pipeline commercial",
+          title: "Cycle de vente",
           description: "Affaires ouvertes classées par date de clôture.",
           rows: data.opportunities.map((opportunity) => ({
             title: opportunity.client.name,
@@ -66,11 +66,11 @@ export default async function SalesWorkspacePage() {
       ]}
       sections={[
         {
-          title: "Pipeline commercial",
+          title: "Cycle de vente",
           description: "Qualifier, prioriser et faire avancer chaque opportunité.",
           links: [
             { name: "Espace prospects", href: "/dashboard/leads", icon: Target, description: "Demandes entrantes, score et consentements." },
-            { name: "Pipeline", href: "/dashboard/pipeline", icon: Kanban, description: "Étapes, responsables, probabilités et forecast." },
+            { name: "Cycle de vente", href: "/dashboard/pipeline", icon: Kanban, description: "Étapes, responsables, probabilités et prévisions." },
             { name: "Rendez-vous et tâches", href: "/dashboard/organisation", icon: CalendarDays, description: "Agenda opérationnel et file de travail." },
           ],
         },

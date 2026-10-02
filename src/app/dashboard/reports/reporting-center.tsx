@@ -43,7 +43,7 @@ function duration(minutes: number) {
 export function ReportingCenter({ report }: { report: ExecutiveReport }) {
   const headlineMetrics = [
     report.access.finance && { icon: Banknote, label: "Encaissé", value: euro(report.finance.collectedCents), detail: `${euro(report.finance.invoicedCents)} facturés`, delta: report.finance.collectedDeltaPercent, href: "/dashboard/revenue" },
-    report.access.sales && { icon: Target, label: "Pipeline ouvert", value: euro(report.sales.openPipelineCents), detail: `${euro(report.sales.weightedPipelineCents)} pondérés`, delta: report.sales.wonDeltaPercent, href: "/dashboard/pipeline" },
+    report.access.sales && { icon: Target, label: "Affaires en cours", value: euro(report.sales.openPipelineCents), detail: `${euro(report.sales.weightedPipelineCents)} pondérés`, delta: report.sales.wonDeltaPercent, href: "/dashboard/pipeline" },
     report.access.operations && { icon: HardHat, label: "Chantiers actifs", value: integer.format(report.operations.activeProjects), detail: `${percentage(report.operations.budgetUsagePercent)} du budget consommé`, delta: null, href: "/dashboard/projets" },
     report.access.service && { icon: Wrench, label: "Backlog SAV", value: integer.format(report.service.backlog), detail: `${report.service.overdueTickets} hors délai`, delta: null, href: "/dashboard/service/help-desk" },
     report.access.crm && { icon: UsersRound, label: "Demandes entrantes", value: integer.format(report.acquisition.leads), detail: `${report.acquisition.newLeads} à qualifier`, delta: report.acquisition.deltaPercent, href: "/dashboard/leads" },

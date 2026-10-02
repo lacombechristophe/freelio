@@ -13,6 +13,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  container-runtime:
+    name: Image Linux et Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Construire l’image sans secrets
+        run: docker build --tag freelio:ci .
+      - name: Vérifier migrations, Prisma Linux, Redis, worker et PDF
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: node scripts/verify-container-runtime.mjs freelio:ci
+      - name: Conserver l’identité de l’image et du commit
+        run: |
+          mkdir -p test-results
+          docker image inspect freelio:ci --format '{{.Id}}' > test-results/image-id.txt
+          git rev-parse HEAD > test-results/tested-commit.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: container-runtime-${{ github.sha }}
+          path: |
+            test-results/
+            ${{ runner.temp }}/Freelio-linux-*/verification.json
+          retention-days: 14
   quality-and-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -34,6 +62,8 @@ jobs:
       E2E_USE_PRODUCTION_SERVER: "true"
       E2E_ENABLE_CREDENTIALS_AUTH: "true"
       E2E_FULL_UI_AUDIT: "true"
+      E2E_DIRECTORY_FIXTURES: "true"
+      RECIPE_ISOLATED: "true"
       FILE_STORAGE_DRIVER: local
 
     steps:
@@ -43,7 +73,7 @@ jobs:
       - name: Installer Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Installer les dépendances
@@ -65,6 +95,9 @@ jobs:
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
+
+      - name: Préparer les volumes de pagination dans la recette isolée
+        run: node scripts/seed-ui-redesign.mjs
 
       - name: Exécuter les parcours critiques
         run: npm run test:e2e
@@ -90,13 +123,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: Relier les résultats au commit testé
+        if: always()
+        run: |
+          mkdir -p test-results
+          git rev-parse HEAD > test-results/tested-commit.txt
+          node --version > test-results/node-version.txt
+
+      - name: Publier les preuves SQLite et la couverture
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-sqlite-${{ github.sha }}
+          path: |
+            test-results/tested-commit.txt
+            test-results/node-version.txt
+            coverage/
+          retention-days: 14
+
   postgres-integration:
     name: Intégration PostgreSQL
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18.6
         env:
           POSTGRES_USER: crm
           POSTGRES_PASSWORD: crm
@@ -125,7 +176,7 @@ jobs:
       - name: Installer Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Installer les dépendances
@@ -138,4 +189,22 @@ jobs:
         run: npm run db:deploy:postgres
 
       - name: Exécuter les tests unitaires sur PostgreSQL
-        run: npm run test:unit
+        run: npm run test:unit -- --reporter=default --reporter=json --outputFile=test-results/unit-postgres.json
+
+      - name: Relier les résultats PostgreSQL au commit testé
+        if: always()
+        run: |
+          mkdir -p test-results
+          git rev-parse HEAD > test-results/tested-commit.txt
+          node --version > test-results/node-version.txt
+
+      - name: Publier les preuves PostgreSQL
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verification-postgres-${{ github.sha }}
+          path: |
+            test-results/unit-postgres.json
+            test-results/tested-commit.txt
+            test-results/node-version.txt
+          retention-days: 14

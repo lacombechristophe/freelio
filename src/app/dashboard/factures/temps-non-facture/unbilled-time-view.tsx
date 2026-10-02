@@ -280,7 +280,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
             ) : (
               <div className="overflow-x-auto rounded-lg border">
                 <div className="min-w-[720px]">
-                  <div className="grid grid-cols-[42px_minmax(0,1fr)_120px_130px] border-b bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="grid grid-cols-[42px_minmax(0,1fr)_120px_130px] border-b bg-muted/40 px-3 py-2 text-xs font-semibold tracking-normal text-muted-foreground">
                     <span />
                     <span>Travail</span>
                     <span>Durée</span>
@@ -338,11 +338,11 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
           <CardContent className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border bg-background/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Durée</p>
+                <p className="text-xs font-semibold tracking-normal text-muted-foreground">Durée</p>
                 <p className="mt-1 text-xl font-black">{formatDuration(selectedDurationSec)}</p>
               </div>
               <div className="rounded-lg border bg-background/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total HT</p>
+                <p className="text-xs font-semibold tracking-normal text-muted-foreground">Total HT</p>
                 <p className="mt-1 text-xl font-black">{formatCentsToEuro(selectedAmountCents)}</p>
               </div>
             </div>
@@ -433,7 +433,7 @@ function MetricCard({
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="text-xs font-semibold tracking-normal text-muted-foreground">{label}</p>
           <p className="mt-1 text-xl font-black tabular-nums">{value}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p>
         </div>

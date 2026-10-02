@@ -6,6 +6,22 @@ import {
 } from "@/lib/finance/commercial-calculation"
 
 describe("calculateCommercialDocument", () => {
+  it("rejects line, tax and aggregate amounts beyond the database integer range", () => {
+    for (const lines of [
+      [{ quantity: 2, unitPriceCents: 2_000_000_000, tvaRate: 0 }],
+      [{ quantity: 1, unitPriceCents: 2_000_000_000, tvaRate: 20 }],
+      [{ quantity: 1, unitPriceCents: 1_200_000_000, tvaRate: 0 }, { quantity: 1, unitPriceCents: 1_200_000_000, tvaRate: 0 }],
+      [{ quantity: 1e300, unitPriceCents: 100, tvaRate: 0 }],
+    ]) expect(() => calculateCommercialDocument(lines)).toThrow(RangeError)
+  })
+  it("allocates a large discount exactly without unsafe integer multiplication", () => {
+    const result = calculateCommercialDocument([
+      { quantity: 1, unitPriceCents: 1_000_000_001, tvaRate: 0 },
+      { quantity: 1, unitPriceCents: 1_000_000_000, tvaRate: 0 },
+    ], { globalDiscountRate: 50 })
+    expect(result.totalHtCents).toBe(1_000_000_000)
+    expect(result.lines.map(line => line.globalDiscountShareCents)).toEqual([500_000_001, 500_000_000])
+  })
   it("calculates mixed VAT per line and preserves cent invariants", () => {
     const result = calculateCommercialDocument([
       { quantity: 1, unitPriceCents: 10_001, tvaRate: 20 },

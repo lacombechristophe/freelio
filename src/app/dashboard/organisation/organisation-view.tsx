@@ -364,7 +364,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
             <Target className="h-4 w-4" />
             Nouvel objectif
           </Button>
-          <Button className="gap-2" onClick={() => setTaskDialogOpen(true)}>
+          <Button demoMutation className="gap-2" onClick={() => setTaskDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Nouvelle tâche
           </Button>
@@ -421,7 +421,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
           <CardContent className="space-y-5 pt-4">
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priorités</h2>
+                <h2 className="text-xs font-semibold tracking-normal text-muted-foreground">Priorités</h2>
                 <span className="text-xs text-muted-foreground">{todayTasks.length} élément(s)</span>
               </div>
               {todayTasks.length === 0 ? (
@@ -445,8 +445,8 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Objectifs du jour</h2>
-                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setGoalDialogOpen(true)}>Ajouter</Button>
+                <h2 className="text-xs font-semibold tracking-normal text-muted-foreground">Objectifs du jour</h2>
+                <Button demoMutation variant="ghost" size="sm" className="h-8 px-2" onClick={() => setGoalDialogOpen(true)}>Ajouter</Button>
               </div>
               {dayGoals.length === 0 ? (
                 <EmptyLine text="Aucun objectif du jour. Garde-les rares et actionnables." />
@@ -502,7 +502,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <p className="text-xs font-semibold tracking-normal text-muted-foreground">
                           {day.toLocaleDateString("fr-FR", { weekday: "short" })}
                         </p>
                         <p className="text-xl font-black leading-none">{day.getDate()}</p>
@@ -610,7 +610,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
               <CardTitle>Toutes les tâches ouvertes</CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">Triées par priorité puis échéance.</p>
             </div>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setTaskDialogOpen(true)}>
+            <Button demoMutation variant="outline" size="sm" className="gap-2" onClick={() => setTaskDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Ajouter une tâche
             </Button>
@@ -693,7 +693,7 @@ function MetricCard({
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="text-xs font-semibold tracking-normal text-muted-foreground">{label}</p>
           <p className="mt-1 text-xl font-black tabular-nums tracking-tight">{value}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p>
         </div>
@@ -852,7 +852,7 @@ function GoalBucket({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+        <h2 className="text-xs font-semibold tracking-normal text-muted-foreground">{title}</h2>
         <span className="text-xs text-muted-foreground">{goals.length}</span>
       </div>
       {goals.length === 0 ? (
@@ -885,7 +885,7 @@ function WatchSection({
 }) {
   return (
     <section className="space-y-2">
-      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-xs font-semibold tracking-normal text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         {title}
       </h2>
@@ -1074,7 +1074,7 @@ function TaskDialog({
             </div>
           </div>
 
-          <div className="rounded-xl border bg-muted/20 p-3">
+          <div className="rounded-lg border bg-muted/20 p-3">
             <div className="flex items-start gap-3">
               <CalendarSync className="mt-0.5 size-4 shrink-0 text-primary" />
               <div className="min-w-0 flex-1 space-y-2">

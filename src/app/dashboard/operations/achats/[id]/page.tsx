@@ -138,9 +138,9 @@ export default async function PurchaseOrderDetailPage({
         />
         <Link
           href="/dashboard/operations?tab=stock"
-          className="text-sm font-medium text-primary hover:underline"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
         >
-          Ouvrir le workflow de réception →
+          Ouvrir le scénario de réception →
         </Link>
       </div>
       <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
@@ -179,8 +179,8 @@ export default async function PurchaseOrderDetailPage({
           detail={`${order.issues.length} au total`}
         />
       </section>
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Lignes commandées</CardTitle>

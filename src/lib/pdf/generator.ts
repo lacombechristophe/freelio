@@ -3,6 +3,7 @@ import { AFRelationship, PDFDocument } from "pdf-lib"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { PDF_FONT_FILES } from "@/lib/pdf/typography"
+import { inlineSafePdfImages } from "@/lib/pdf/images"
 
 let embeddedFontSources: Promise<Map<string, string>> | null = null
 
@@ -31,17 +32,34 @@ async function inlinePdfFonts(html: string) {
 }
 
 export async function generatePdfFromHtml(html: string) {
+  const printableHtml = await inlineSafePdfImages(await inlinePdfFonts(html))
+  const chromium = process.env.VERCEL === "1" && !process.env.PUPPETEER_EXECUTABLE_PATH
+    ? (await import("@sparticuz/chromium")).default
+    : null
   const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: chromium ? "shell" : true,
+    pipe: true,
+    ...(chromium ? { executablePath: await chromium.executablePath() } : {}),
+    args: [...(chromium?.args ?? ["--no-sandbox", "--disable-setuid-sandbox"]), "--disable-background-networking"],
   })
 
   try {
     const page = await browser.newPage()
-    const printableHtml = await inlinePdfFonts(html)
+    await page.setJavaScriptEnabled(false)
+    await page.setRequestInterception(true)
+    let refusedResource = false
+    page.on("request", request => {
+      if (request.url().startsWith("data:") || request.url() === "about:blank") {
+        void request.continue()
+      } else {
+        refusedResource = true
+        void request.abort("blockedbyclient")
+      }
+    })
     await page.setContent(printableHtml, { waitUntil: "load" })
     await page.waitForNetworkIdle({ idleTime: 500 })
     await page.evaluate(() => document.fonts.ready)
+    if (refusedResource) throw new Error("PDF_REMOTE_RESOURCE_REFUSED")
 
     const pdf = await page.pdf({
       format: "A4",
@@ -83,8 +101,6 @@ export async function embedFacturX(pdfBuffer: Buffer, xmlContent: string) {
     const pdfBytes = await pdfDoc.save()
     return Buffer.from(pdfBytes)
   } catch (error) {
-    console.error("Factur-X XML attachment embedding failed:", error)
-    // Return original buffer as a resilient fallback
-    return pdfBuffer
+    throw new Error("Impossible d’intégrer le XML Factur-X au PDF. Aucun document structuré n’a été produit.", { cause: error })
   }
 }

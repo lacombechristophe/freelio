@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { DEMO_ENTRY_LABEL, DEMO_INVOICE_LINES, DEMO_QUOTE_LINES, isDemoMode } from "@/lib/demo-mode"
 import { usePathname } from "next/navigation"
 import {
   AnimatePresence,
@@ -262,7 +263,7 @@ export function MobileNav() {
               onClick={() => setOpen(false)}
               className="group mt-3 flex h-11 items-center justify-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-freelio-accent-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2"
             >
-              Essayer gratuitement
+              {DEMO_ENTRY_LABEL}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </motion.div>
@@ -535,8 +536,8 @@ function CockpitPanel({ compact = false }: { compact?: boolean }) {
           </div>
 
           <div className="mt-3 hidden grid-cols-[1fr_auto] items-center gap-4 rounded-md border border-freelio-line px-3 py-2.5 sm:grid">
-            <div className="flex items-center gap-3"><CheckCircle2 className="size-3.5 text-freelio-success" /><div><p className="text-[8px] font-semibold text-freelio-ink">Factur-X prêt à émettre</p><p className="mt-0.5 text-[7px] text-freelio-muted">Données structurées et mentions vérifiées</p></div></div>
-            <span className="rounded-md bg-freelio-success-soft px-2 py-1 text-[7px] font-semibold text-freelio-success">CONFORME</span>
+            <div className="flex items-center gap-3"><CheckCircle2 className="size-3.5 text-freelio-success" /><div><p className="text-[8px] font-semibold text-freelio-ink">{isDemoMode ? "Factur-X : exemple à vérifier" : "Factur-X prêt à émettre"}</p><p className="mt-0.5 text-[7px] text-freelio-muted">{isDemoMode ? "Données fictives, contrôles indicatifs" : "Données structurées et mentions vérifiées"}</p></div></div>
+            <span className="rounded-md bg-freelio-success-soft px-2 py-1 text-[7px] font-semibold text-freelio-success">{isDemoMode ? "Exemple à vérifier" : "CONFORME"}</span>
           </div>
         </div>
       </div>
@@ -553,7 +554,7 @@ function QuoteDocument({ compact = false }: { compact?: boolean }) {
       </div>
       <div className="mt-3 flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-freelio-accent-soft text-[8px] font-bold text-freelio-accent">FM</span><div><p className="text-[8px] font-semibold text-freelio-ink">Famille Martin</p><p className="text-[7px] text-freelio-muted">Construction piscine 8 × 4</p></div></div>
       <div className="mt-4 space-y-2">
-        {[ ["Terrassement", "8 500 €"], ["Structure & étanchéité", "12 400 €"], ["Filtration", "8 000 €"] ].map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line pb-2 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-medium text-freelio-ink">{value}</span></div>)}
+        {(isDemoMode ? DEMO_QUOTE_LINES : [ ["Terrassement", "8 500 €"], ["Structure & étanchéité", "12 400 €"], ["Filtration", "8 000 €"] ]).map(([label, value]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line pb-2 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-medium text-freelio-ink">{value}</span></div>)}
       </div>
       <div className="mt-3 flex items-end justify-between"><span className="text-[7px] text-freelio-muted">Total TTC</span><span className="font-mono text-sm font-semibold text-freelio-ink">8 160 €</span></div>
     </div>
@@ -564,7 +565,7 @@ function ContractDocument() {
   return (
     <div className="rounded-lg border border-freelio-line-strong bg-white p-4 shadow-freelio-float">
       <div className="flex items-start justify-between border-b border-freelio-line pb-3"><div><p className="text-[10px] font-bold text-freelio-ink">CONTRAT</p><p className="font-mono text-[7px] text-freelio-muted">CTR-2026-041</p></div><span className="rounded-md bg-freelio-success-soft px-2 py-1 text-[8px] font-semibold text-freelio-success">Signé</span></div>
-      <div className="mt-4 space-y-3 text-[7px] text-freelio-muted"><p>Entre Piscines Horizon et la famille Martin</p><p>Chantier : construction piscine 8 × 4</p><p>Budget : 34 680 € TTC</p><p>Du 12 mai au 30 juin 2026</p></div>
+      <div className="mt-4 space-y-3 text-[7px] text-freelio-muted"><p>Entre Piscines Horizon et la famille Martin</p><p>Chantier : construction piscine 8 × 4</p><p>{isDemoMode ? "Budget : 8 160 € TTC" : "Budget : 34 680 € TTC"}</p><p>Du 12 mai au 30 juin 2026</p></div>
       <div className="mt-5 h-px bg-freelio-line" />
       <div className="mt-3 flex items-end justify-between"><span className="text-[7px] text-freelio-muted">Signature électronique</span><span className="marketing-display -rotate-6 text-lg italic text-freelio-ink">J. Martin</span></div>
     </div>
@@ -577,7 +578,7 @@ function InvoiceDocument() {
       <div className="flex items-start justify-between gap-3 border-b border-freelio-line pb-3"><div><p className="text-[10px] font-bold text-freelio-ink">FACTURE</p><p className="font-mono text-[7px] text-freelio-muted">FAC-2026-041</p></div><span className="rounded-md bg-freelio-accent-soft px-2 py-1 text-[8px] font-semibold text-freelio-accent">Factur-X</span></div>
       <div className="mt-4 grid grid-cols-2 gap-4 text-[7px]"><div><p className="text-freelio-muted">Émetteur</p><p className="mt-1 font-semibold text-freelio-ink">Piscines Horizon</p><p className="mt-1 leading-4 text-freelio-muted">Nantes · France<br />SIRET vérifié</p></div><div><p className="text-freelio-muted">Client</p><p className="mt-1 font-semibold text-freelio-ink">Famille Martin</p><p className="mt-1 leading-4 text-freelio-muted">Échéance<br />2 juillet 2026</p></div></div>
       <div className="mt-4 border-y border-freelio-line py-3">
-        {[ ["Acompte chantier", "8 500 €"], ["Équipements", "4 900 €"], ["Pose", "3 600 €"] ].map(([label, value]) => <div key={label} className="flex justify-between py-1 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{value}</span></div>)}
+        {(isDemoMode ? DEMO_INVOICE_LINES : [ ["Acompte chantier", "8 500 €"], ["Équipements", "4 900 €"], ["Pose", "3 600 €"] ]).map(([label, value]) => <div key={label} className="flex justify-between py-1 text-[7px]"><span className="text-freelio-muted">{label}</span><span className="font-mono text-freelio-ink">{value}</span></div>)}
       </div>
       <div className="mt-3 flex items-end justify-between"><span className="text-[7px] text-freelio-muted">Total TTC</span><span className="font-mono text-sm font-semibold text-freelio-accent">8 160 €</span></div>
     </div>
@@ -911,7 +912,7 @@ function QuoteScreen() {
     <div className="grid gap-px bg-freelio-line sm:grid-cols-[1fr_220px]">
       <div className="bg-white p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 border-b border-freelio-line pb-4"><div><p className="font-mono text-[9px] text-freelio-muted">DEV-2026-041</p><p className="marketing-display mt-2 text-2xl font-bold text-freelio-ink">Construction piscine 8 × 4</p></div><span className="rounded-md bg-freelio-success-soft px-2.5 py-1 text-[9px] font-semibold text-freelio-success">ACCEPTÉ</span></div>
-        <div className="mt-3">{[["Terrassement", "8 500 €"], ["Structure & étanchéité", "12 400 €"], ["Filtration & pose", "8 000 €"]].map(([label, price]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line py-3 text-[11px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-semibold text-freelio-ink">{price}</span></div>)}</div>
+        <div className="mt-3">{(isDemoMode ? DEMO_QUOTE_LINES : [["Terrassement", "8 500 €"], ["Structure & étanchéité", "12 400 €"], ["Filtration & pose", "8 000 €"]]).map(([label, price]) => <div key={label} className="flex items-center justify-between border-b border-freelio-line py-3 text-[11px]"><span className="text-freelio-muted">{label}</span><span className="font-mono font-semibold text-freelio-ink">{price}</span></div>)}</div>
         <div className="flex justify-end pt-4"><div className="text-right"><p className="text-[9px] uppercase text-freelio-muted">Total TTC</p><p className="mt-1 font-mono text-2xl font-semibold text-freelio-ink">8 160 €</p></div></div>
       </div>
       <div className="bg-freelio-surface-2 p-5">

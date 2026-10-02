@@ -43,6 +43,7 @@ async function fileSha256(file: File) {
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "À configurer",
   ACTIVE: "Connecté",
+  REACHABLE: "Serveur joignable · droits non vérifiés",
   ERROR: "Erreur",
   RUNNING: "En cours",
   PROCESSING: "Préparation",
@@ -255,7 +256,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                 </div>
               </div>
             ) : null}
-            <Button onClick={saveConnection} disabled={isPending || !apiKey.trim() || !name.trim()}>
+            <Button demoMutation onClick={saveConnection} disabled={isPending || !apiKey.trim() || !name.trim()}>
               {isPending ? <Loader2 className="animate-spin" /> : <ShieldCheck />}Enregistrer
             </Button>
           </CardContent>
@@ -331,7 +332,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                     size="sm"
                     disabled={isPending}
                     onClick={() =>
-                      execute("Connexion vérifiée.", async () => {
+                      execute(connection.provider === "HUBSPOT" ? "Lecture des contacts vérifiée. Les droits d’export seront contrôlés séparément." : "Serveur JSON joignable. Droits non vérifiés ; import API Extrabat non disponible.", async () => {
                         const result = await testSourceConnection(connection.id)
                         if (!result?.success) throw new Error(result?.error)
                       })
@@ -417,7 +418,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                       Actualiser
                     </Button>
                   ) : null}
-                  {run.documents > 0 && ["READY", "COMPLETE", "PARTIAL", "ANALYZED"].includes(run.status) ? (
+                  {run.documents > 0 && ["READY", "COMPLETE", "PARTIAL", "ANALYZED"].includes(run.status) && !(run.status === "PARTIAL" && run.metrics.some((metric) => metric.imported + metric.rejected + metric.excluded > 0)) ? (
                     <Button variant="outline" size="sm" disabled={isPending} onClick={() => execute("Archives analysées et indexées.", () => analyzeMigrationRun(run.id))}>
                       <Search />
                       Analyser les archives
@@ -430,7 +431,7 @@ export function MigrationCenter({ initialData }: { initialData: MigrationData })
                     </Button>
                   ) : null}
                   {run.status === "SIMULATED" ? (
-                    <Button size="sm" disabled={isPending} onClick={() => execute("Données importées avec leurs identifiants source.", () => importMigrationRun(run.id))}>
+                    <Button demoMutation size="sm" disabled={isPending} onClick={() => execute("Données importées avec leurs identifiants source.", () => importMigrationRun(run.id))}>
                       <Import />
                       Importer
                     </Button>

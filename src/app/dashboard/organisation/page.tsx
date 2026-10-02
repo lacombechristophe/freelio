@@ -11,7 +11,7 @@ export default async function OrganisationPage() {
     return (
       <OnboardingRequired
         title="Configurez votre organisation"
-        description="Terminez l’onboarding pour planifier vos priorités, vos objectifs et vos tâches."
+        description="Terminez la configuration initiale pour planifier vos priorités, vos objectifs et vos tâches."
       />
     )
   }

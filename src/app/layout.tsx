@@ -7,7 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // `next start` loads .env.production locally as well. VERCEL alone is therefore
 // not enough to decide whether the hosted analytics endpoints are available.
-const isVercelRuntime = process.env.VERCEL === "1" && Boolean(process.env.VERCEL_URL);
+const isVercelRuntime = process.env.VERCEL === "1" && Boolean(process.env.VERCEL_URL) && process.env.NEXT_PUBLIC_DEMO_READ_ONLY !== "true";
 
 function publicOrigin() {
   const configured = process.env.PUBLIC_APP_URL || process.env.AUTH_URL || "https://freelio-eight.vercel.app";

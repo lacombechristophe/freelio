@@ -204,7 +204,7 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
               </Field>
             </div>
             <div className="lg:col-span-3">
-              <Button type="submit" disabled={pending || selectedChannels.length === 0}>
+              <Button demoMutation type="submit" disabled={pending || selectedChannels.length === 0}>
                 {pending ? <Activity className="animate-spin" /> : <Plus />}Créer la campagne
               </Button>
             </div>
@@ -331,7 +331,7 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
                         </select>
                         <Input name="name" aria-label={`Nom du livrable pour ${campaign.name}`} required placeholder="Ex. E-mail annonce" />
                         <Input name="dueAt" aria-label={`Échéance du livrable pour ${campaign.name}`} type="date" />
-                        <Button type="submit" variant="outline" disabled={pending}>
+                        <Button demoMutation type="submit" variant="outline" disabled={pending}>
                           <Plus />
                           Ajouter
                         </Button>
@@ -402,7 +402,7 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
                             <select name="launchSequenceId" aria-label={`Séquence de diffusion pour ${campaign.name}`} required className={controlClass}>
                               {campaign.sequences.filter((sequence) => sequence.status === "ACTIVE").map((sequence) => <option key={sequence.id} value={sequence.id}>{sequence.name} · {sequence._count.enrollments} inscrit(s)</option>)}
                             </select>
-                            <Button type="submit" disabled={pending || !["PLANNED", "ACTIVE"].includes(campaign.status)} className="shrink-0"><Rocket />Inscrire le segment</Button>
+                            <Button demoMutation type="submit" disabled={pending || !["PLANNED", "ACTIVE"].includes(campaign.status)} className="shrink-0"><Rocket />Inscrire le segment</Button>
                           </div>
                           {!["PLANNED", "ACTIVE"].includes(campaign.status) ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Passez d’abord la campagne au statut Planifiée ou Active.</p> : null}
                         </form>

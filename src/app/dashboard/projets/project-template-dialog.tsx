@@ -137,7 +137,7 @@ export function ProjectTemplateDialog({ open, onOpenChange, templates }: { open:
                 </div>
               ))}
             </div>
-            <div className="border-t p-3"><Button type="button" size="sm" variant="outline" onClick={() => setSteps((current) => [...current, emptyStep()])}><Plus />Ajouter une étape</Button></div>
+            <div className="border-t p-3"><Button demoMutation type="button" size="sm" variant="outline" onClick={() => setSteps((current) => [...current, emptyStep()])}><Plus />Ajouter une étape</Button></div>
           </div>
 
           <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Fermer</Button><Button type="submit" disabled={pending}>{pending ? "Création…" : "Créer le modèle"}</Button></DialogFooter>

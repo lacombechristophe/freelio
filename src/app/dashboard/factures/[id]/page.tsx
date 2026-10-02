@@ -150,6 +150,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         documentId={invoice.id}
         documentNumber={invoice.number}
         defaultTemplate={invoice.company.pdfTemplate}
+        readOnly={Boolean(invoice.lockedAt || ["SENT", "OVERDUE", "PAID"].includes(invoice.status))}
         document={pdfDocument}
       />
 

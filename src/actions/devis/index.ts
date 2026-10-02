@@ -9,7 +9,7 @@ import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
 import { calculateConfiguredProductPrice, resolveProductOptionSelection } from "@/lib/product-pricing"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
-import { buildYearlyDocumentPrefix, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { boundedPageSize } from "@/lib/pagination"
 import { CONTRACT_TEMPLATE_PRESETS } from "@/lib/contracts/templates"
 import { assertQuoteStatusTransition, quoteStatusDates, type QuoteStatus } from "@/lib/quotes/workflow"
@@ -94,22 +94,20 @@ export async function getQuoteById(id: string) {
 
 async function generateQuoteNumber(companyId: string, customPrefix?: string) {
   const prefix = buildYearlyDocumentPrefix(customPrefix, "DEV-")
-  const last = await prisma.quote.findFirst({
+  const last = await readCompanyDocumentNumbers(() => prisma.quote.findMany({
     where: { companyId, number: { startsWith: prefix } },
-    orderBy: { number: "desc" },
     select: { number: true },
-  })
-  return nextDocumentNumber(last?.number, prefix)
+  }))
+  return nextDocumentNumber(last, prefix)
 }
 
 async function generateContractNumber(companyId: string) {
   const prefix = buildYearlyDocumentPrefix("CONT-", "CONT-")
-  const last = await prisma.contract.findFirst({
+  const last = await readCompanyDocumentNumbers(() => prisma.contract.findMany({
     where: { companyId, number: { startsWith: prefix } },
-    orderBy: { number: "desc" },
     select: { number: true },
-  })
-  return nextDocumentNumber(last?.number, prefix)
+  }))
+  return nextDocumentNumber(last, prefix)
 }
 
 function escapeContractHtml(value: string | null | undefined) {

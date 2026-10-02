@@ -142,7 +142,7 @@ export function NotificationsView({ notifications }: { notifications: Notificati
                           {!notif.isRead && <Badge className="bg-primary hover:bg-primary h-2 w-2 rounded-full p-0" />}
                         </div>
                         <p className="text-sm text-muted-foreground leading-snug">{notif.message}</p>
-                        <p className="text-xs uppercase font-bold text-muted-foreground tracking-widest pt-1">
+                        <p className="pt-1 text-xs font-medium text-muted-foreground">
                           {relativeTime(notif.createdAt)}
                         </p>
                       </div>
@@ -155,11 +155,11 @@ export function NotificationsView({ notifications }: { notifications: Notificati
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {!notif.isRead && (
-                          <DropdownMenuItem onClick={() => handleMark(notif.id)}>
+                          <DropdownMenuItem demoMutation onClick={() => handleMark(notif.id)}>
                             Marquer comme lu
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem className="text-danger" onClick={() => handleDelete(notif.id)}>
+                        <DropdownMenuItem demoMutation className="text-danger" onClick={() => handleDelete(notif.id)}>
                           Supprimer
                         </DropdownMenuItem>
                       </DropdownMenuContent>

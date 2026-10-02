@@ -95,7 +95,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
           <Input aria-label="Rechercher un contrat" placeholder="Rechercher un contrat…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Link href="/dashboard/contrats/new" className="sm:ml-auto">
-          <Button className="gap-2">
+          <Button demoMutation className="gap-2">
             <Plus className="h-4 w-4" /> Nouveau Contrat
           </Button>
         </Link>
@@ -128,7 +128,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                     }
                     action={
                       contracts.length === 0 ? (
-                        <Button size="sm" onClick={() => router.push("/dashboard/contrats/new")}>
+                        <Button demoMutation size="sm" onClick={() => router.push("/dashboard/contrats/new")}>
                           <Plus />
                           Créer un contrat
                         </Button>
@@ -202,7 +202,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                           {contract.status !== "SIGNED" && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 text-danger" onClick={() => handleDelete(contract.id, contract.number)}>
+                              <DropdownMenuItem demoMutation className="gap-2 text-danger" onClick={() => handleDelete(contract.id, contract.number)}>
                                 <Trash2 className="h-4 w-4" /> Supprimer
                               </DropdownMenuItem>
                             </>

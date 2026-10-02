@@ -81,15 +81,6 @@ function createRateLimit({
   })
 }
 
-// Create a new ratelimiter, that allows 30 requests per hour
-// for the AI assistant
-export const aiRateLimit = createRateLimit({
-  limit: 30,
-  window: "1 h",
-  windowMs: 60 * 60 * 1000,
-  prefix: "@crm/ai",
-})
-
 // Strict limit for login attempts: 5 per 15 minutes
 export const authRateLimit = createRateLimit({
   limit: 5,

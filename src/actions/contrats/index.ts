@@ -7,7 +7,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { ContractSchema } from "@/lib/validations"
-import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { compileContractVariables } from "@/lib/contracts/html"
 import { buildContractAmendmentContent, buildMaintenanceRenewalContent } from "@/lib/contracts/structured-documents"
 import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
@@ -50,7 +50,7 @@ export async function getContracts(cursor?: string, limit = 50) {
       },
       orderBy: { createdAt: "desc" },
     })
-  })
+  }, "sales.read")
 }
 
 export async function getContractById(id: string) {
@@ -67,17 +67,16 @@ export async function getContractById(id: string) {
         maintenanceContract: { select: { id: true, number: true, label: true, renewalStatus: true } },
       },
     })
-  })
+  }, "sales.read")
 }
 
 async function generateContractNumber(companyId: string, documentPrefix = "CONT-") {
   const prefix = buildYearlyDocumentPrefix(documentPrefix, documentPrefix)
-  const last = await prisma.contract.findFirst({
+  const last = await readCompanyDocumentNumbers(() => prisma.contract.findMany({
     where: { companyId, number: { startsWith: prefix } },
-    orderBy: { number: "desc" },
     select: { number: true },
-  })
-  return nextDocumentNumber(last?.number, prefix)
+  }))
+  return nextDocumentNumber(last, prefix)
 }
 
 export async function createContractAmendment(input: unknown) {
@@ -189,17 +188,16 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
             if (activeProposal) return { contract: activeProposal, created: false as const }
 
             const prefix = buildYearlyDocumentPrefix("REN-", "REN-")
-            const last = await tx.contract.findFirst({
+            const last = await readCompanyDocumentNumbers(() => tx.contract.findMany({
               where: { companyId, number: { startsWith: prefix } },
-              orderBy: { number: "desc" },
               select: { number: true },
-            })
+            }))
             const contract = await tx.contract.create({
               data: {
                 companyId,
                 clientId: maintenance.clientId,
                 maintenanceContractId: maintenance.id,
-                number: nextDocumentNumber(last?.number, prefix),
+                number: nextDocumentNumber(last, prefix),
                 title: `Renouvellement · ${maintenance.label}`,
                 status: "DRAFT",
                 kind: "MAINTENANCE_RENEWAL",

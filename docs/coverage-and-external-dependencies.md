@@ -86,7 +86,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Relances | **Disponible sous configuration** | préparation modifiable, envoi réel par la messagerie active, historique facture et Communications, trois paliers configurables, exclusion des factures réglées, verrou concurrent, temporisation des échecs et clé d’idempotence par facture/palier | worker ou ordonnanceur supervisé et boîte active indispensables ; délivrabilité à contrôler chez le fournisseur |
 | Récurrence | **Disponible** | modèles, échéances, génération autonome idempotente par worker ou cron et occurrence auditée | ordonnanceur et alertes d’échec à mettre en service sur l’infrastructure réelle |
 | Banque | **Partiel** | import CSV, dédoublonnage et rapprochement facture/dépense | aucune connexion bancaire temps réel |
-| Dépenses/OCR | **Disponible** | saisie, justificatif et OCR Gemini optionnel | contrôle humain obligatoire ; Gemini est externe |
+| Dépenses | **Disponible** | saisie manuelle et justificatif conservé | vérifier les montants et la TVA saisis |
 | Export comptable | **Partiel** | synthèse/export des écritures applicatives | format exact de l'expert-comptable à valider ; pas de comptabilité générale |
 | TVA/mentions légales | **Partiel** | paramètres et règles documentaires | veille juridique et validation professionnelle indispensables |
 | Consentements RGPD | **Partiel** | preuve de capture, retrait interne ou lien public signé et idempotent | durées, registre complet et traitement des autres demandes de droits à formaliser |
@@ -127,7 +127,6 @@ L'objectif est zéro licence HubSpot/Extrabat, pas zéro service externe.
 | Google Workspace / Microsoft 365 | reprise/synchronisation des boîtes et calendriers existants | optionnel selon l’usage réel | application OAuth, consentement administrateur, périmètres minimaux et recette incrémentale |
 | Upstash Redis | rate limiting partagé | obligatoire en multi-instance/public | région, quotas et alertes |
 | Redis/BullMQ | travaux asynchrones | conditionnel | nécessaire si `DOC_GEN` est utilisé ; persistance et supervision |
-| Google Gemini | OCR de justificatifs | optionnel | contrat de traitement des données ou désactivation |
 | Plateforme agréée de facturation | émission/réception réglementaire | obligatoire selon calendrier légal | choisir, contractualiser, intégrer et recetter |
 | Expert-comptable | validation/export/clôture | obligatoire métier | format d'export et contrôles signés |
 | Cartographie/SMS/téléphonie | terrain et communication | optionnel selon usages | choisir ou exclure explicitement |

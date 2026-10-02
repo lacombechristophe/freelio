@@ -114,7 +114,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ run
         await prisma.$transaction(async (tx) => {
           for (const [index, file] of data.files.entries()) {
             const stored = storedFiles[index]
-            const sourceDocumentId = `manual:${stored.sha256}`
+            const sourceDocumentId = `manual:${run.id}:${stored.sha256}`
             await tx.documentManifest.upsert({
               where: { companyId_provider_sourceDocumentId: { companyId, provider: run.provider, sourceDocumentId } },
               update: { runId: run.id, fileName: stored.name, mimeType: file.type || null, size: stored.size, sha256: stored.sha256, storageKey: file.storageKey },
@@ -156,7 +156,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ run
 
       for (const file of files) {
         const bytes = new Uint8Array(await file.arrayBuffer())
-        const sourceDocumentId = `manual:${createHash("sha256").update(bytes).digest("hex")}`
+        const sourceDocumentId = `manual:${run.id}:${createHash("sha256").update(bytes).digest("hex")}`
         const stored = await storeMigrationArtifact({
           companyId,
           runId: run.id,

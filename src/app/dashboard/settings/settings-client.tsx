@@ -75,11 +75,10 @@ type Company = {
 }
 
 type User = {
-  aiUsageCount?: number
   hasPassword: boolean
   mfaEnabled: boolean
   recoveryCodesRemaining: number
-  integrations: { gemini: boolean; email: boolean; storage: boolean; billing: boolean }
+  integrations: { email: boolean; storage: boolean; billing: boolean }
 }
 
 function getErrorMessage(error: unknown, fallback = "Erreur.") {
@@ -517,36 +516,16 @@ export function SettingsClient({ company, user }: { company: Company; user: User
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs leading-5 text-muted-foreground">La tâche planifiée doit être active et une boîte doit être connectée. En cas d’échec, la relance reste visible avec son erreur et pourra être retentée.</p>
-                <Button type="submit" disabled={isPending || reminderDaysInvalid} className="shrink-0"><Save />Enregistrer les relances</Button>
+                <Button demoMutation type="submit" disabled={isPending || reminderDaysInvalid} className="shrink-0"><Save />Enregistrer les relances</Button>
               </div>
             </form>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Assistant IA</CardTitle>
-            <CardDescription className="text-xs">Consommation de ressources d&apos;intelligence artificielle.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-medium">Appels à l&apos;assistant (OCR Vision & Aide rédactionnelle)</span>
-                <span className="text-xs font-bold text-primary">{user.aiUsageCount ?? 0} / 500</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-primary h-full transition-colors"
-                  style={{ width: `${Math.min(100, ((user.aiUsageCount ?? 0) / 500) * 100)}%` }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </TabsContent>
 
       <TabsContent value="service" className="space-y-4">
-        <Card><CardHeader><CardTitle className="text-sm font-semibold">Horaires et engagements SAV</CardTitle><CardDescription className="text-xs">Les objectifs de première réponse et de résolution ne décomptent que les heures ouvertes. Le statut « En attente » suspend les horloges.</CardDescription></CardHeader><CardContent><form key={serviceFormKey} onSubmit={handleSaveService} className="space-y-6"><div className="grid gap-4 sm:grid-cols-3"><div className="space-y-1.5"><Label htmlFor="serviceTimezone">Fuseau</Label><select id="serviceTimezone" name="serviceTimezone" defaultValue={company.serviceTimezone || "Europe/Paris"} className="h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="Europe/Paris">Europe/Paris</option><option value="Europe/Brussels">Europe/Bruxelles</option><option value="UTC">UTC</option></select></div><div className="space-y-1.5"><Label htmlFor="serviceDayStart">Ouverture</Label><Input id="serviceDayStart" name="serviceDayStart" type="number" min="0" max="22" defaultValue={company.serviceDayStart ?? 8} /></div><div className="space-y-1.5"><Label htmlFor="serviceDayEnd">Fermeture</Label><Input id="serviceDayEnd" name="serviceDayEnd" type="number" min="1" max="23" defaultValue={company.serviceDayEnd ?? 18} /></div></div><div><Label>Jours ouverts</Label><div className="mt-2 flex flex-wrap gap-2">{[[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[0,"Dimanche"]].map(([value,label]) => <label key={value} className="flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm"><input name="serviceWorkdays" type="checkbox" value={value} defaultChecked={(Array.isArray(company.serviceWorkdays) ? company.serviceWorkdays : [1,2,3,4,5]).includes(value)} />{label}</label>)}</div></div><div className="space-y-1.5"><Label htmlFor="serviceHolidays">Jours de fermeture</Label><Input id="serviceHolidays" name="serviceHolidays" defaultValue={Array.isArray(company.serviceHolidays) ? company.serviceHolidays.join(", ") : ""} placeholder="2026-12-25, 2027-01-01" /><p className="text-xs text-muted-foreground">Dates ISO séparées par des virgules.</p></div><div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[620px] text-sm"><thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="p-3">Priorité</th><th className="p-3">Première réponse (h ouvrées)</th><th className="p-3">Résolution (h ouvrées)</th></tr></thead><tbody className="divide-y">{[["Urgente","Urgent",1,4],["Haute","High",4,16],["Normale","Normal",8,40],["Faible","Low",16,80]].map(([label,key,first,resolution]) => { const firstMap = company.serviceFirstResponseHours as Record<string, number> | null; const resolutionMap = company.serviceResolutionHours as Record<string, number> | null; const code = String(key).toUpperCase(); return <tr key={String(key)}><td className="p-3 font-medium">{label}</td><td className="p-3"><Input aria-label={`Première réponse ${String(label).toLowerCase()}`} name={`first${key}`} type="number" min="0.25" step="0.25" defaultValue={firstMap?.[code] ?? first} /></td><td className="p-3"><Input aria-label={`Résolution ${String(label).toLowerCase()}`} name={`resolution${key}`} type="number" min="0.25" step="0.25" defaultValue={resolutionMap?.[code] ?? resolution} /></td></tr> })}</tbody></table></div><Button type="submit" disabled={isPending}><Save />Enregistrer la politique SAV</Button></form></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm font-semibold">Horaires et engagements SAV</CardTitle><CardDescription className="text-xs">Les objectifs de première réponse et de résolution ne décomptent que les heures ouvertes. Le statut « En attente » suspend les horloges.</CardDescription></CardHeader><CardContent><form key={serviceFormKey} onSubmit={handleSaveService} className="space-y-6"><div className="grid gap-4 sm:grid-cols-3"><div className="space-y-1.5"><Label htmlFor="serviceTimezone">Fuseau</Label><select id="serviceTimezone" name="serviceTimezone" defaultValue={company.serviceTimezone || "Europe/Paris"} className="h-10 w-full rounded-[10px] border bg-background px-3 text-sm"><option value="Europe/Paris">Europe/Paris</option><option value="Europe/Brussels">Europe/Bruxelles</option><option value="UTC">UTC</option></select></div><div className="space-y-1.5"><Label htmlFor="serviceDayStart">Ouverture</Label><Input id="serviceDayStart" name="serviceDayStart" type="number" min="0" max="22" defaultValue={company.serviceDayStart ?? 8} /></div><div className="space-y-1.5"><Label htmlFor="serviceDayEnd">Fermeture</Label><Input id="serviceDayEnd" name="serviceDayEnd" type="number" min="1" max="23" defaultValue={company.serviceDayEnd ?? 18} /></div></div><div><Label>Jours ouverts</Label><div className="mt-2 flex flex-wrap gap-2">{[[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[0,"Dimanche"]].map(([value,label]) => <label key={value} className="flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm"><input name="serviceWorkdays" type="checkbox" value={value} defaultChecked={(Array.isArray(company.serviceWorkdays) ? company.serviceWorkdays : [1,2,3,4,5]).includes(value)} />{label}</label>)}</div></div><div className="space-y-1.5"><Label htmlFor="serviceHolidays">Jours de fermeture</Label><Input id="serviceHolidays" name="serviceHolidays" defaultValue={Array.isArray(company.serviceHolidays) ? company.serviceHolidays.join(", ") : ""} placeholder="2026-12-25, 2027-01-01" /><p className="text-xs text-muted-foreground">Dates ISO séparées par des virgules.</p></div><div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[620px] text-sm"><thead className="bg-muted/40 text-left text-xs text-muted-foreground"><tr><th className="p-3">Priorité</th><th className="p-3">Première réponse (h ouvrées)</th><th className="p-3">Résolution (h ouvrées)</th></tr></thead><tbody className="divide-y">{[["Urgente","Urgent",1,4],["Haute","High",4,16],["Normale","Normal",8,40],["Faible","Low",16,80]].map(([label,key,first,resolution]) => { const firstMap = company.serviceFirstResponseHours as Record<string, number> | null; const resolutionMap = company.serviceResolutionHours as Record<string, number> | null; const code = String(key).toUpperCase(); return <tr key={String(key)}><td className="p-3 font-medium">{label}</td><td className="p-3"><Input aria-label={`Première réponse ${String(label).toLowerCase()}`} name={`first${key}`} type="number" min="0.25" step="0.25" defaultValue={firstMap?.[code] ?? first} /></td><td className="p-3"><Input aria-label={`Résolution ${String(label).toLowerCase()}`} name={`resolution${key}`} type="number" min="0.25" step="0.25" defaultValue={resolutionMap?.[code] ?? resolution} /></td></tr> })}</tbody></table></div><Button demoMutation type="submit" disabled={isPending}><Save />Enregistrer la politique SAV</Button></form></CardContent></Card>
       </TabsContent>
 
       <TabsContent value="integrations" className="space-y-4">
@@ -557,7 +536,6 @@ export function SettingsClient({ company, user }: { company: Company; user: User
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             {[
-              { key: "gemini" as const, name: "Google Gemini", detail: "OCR des justificatifs", icon: Zap },
               { key: "email" as const, name: "Messagerie", detail: "Resend, Google Workspace ou Microsoft 365", icon: Mail },
               { key: "storage" as const, name: "Cloudflare R2", detail: "Documents, archives et sauvegardes", icon: HardDrive },
               { key: "billing" as const, name: "Stripe", detail: "Abonnements et portail de facturation", icon: CreditCard },

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { uploadResourceFile } from "@/lib/client-file-upload"
 import { useDropzone } from "react-dropzone"
-import { UploadCloud, FileText, Sparkles, Loader2 } from "lucide-react"
+import { UploadCloud, FileText } from "lucide-react"
 import {
   Dialog,
   DialogClose,
@@ -21,7 +21,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { createExpense, updateExpense } from "@/actions/depenses"
-import { processExpenseOcr } from "@/actions/depenses/ocr"
 import { cn } from "@/lib/utils"
 
 type Expense = {
@@ -51,7 +50,6 @@ export function ExpenseFormDialog({
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
-  const [ocrLoading, setOcrLoading] = React.useState(false)
   const [fileAttached, setFileAttached] = React.useState<string | null>(null)
   const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null)
   
@@ -95,54 +93,12 @@ export function ExpenseFormDialog({
     }
   }, [open, expense])
 
-  // Conversion of file to Base64 helper
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => {
-        const base64String = (reader.result as string).split(",")[1]
-        resolve(base64String)
-      }
-      reader.onerror = (error) => reject(error)
-    })
-  }
-
-  // Handle file drop
-  const onDrop = React.useCallback(async (acceptedFiles: File[]) => {
+  const onDrop = React.useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return
 
-    setOcrLoading(true)
     setFileAttached(file.name)
     setAttachmentFile(file)
-    const toastId = toast.loading("Analyse intelligente du reçu par Gemini Vision…")
-
-    try {
-      const base64 = await fileToBase64(file)
-      const mimeType = file.type
-
-      const result = await processExpenseOcr(base64, mimeType)
-
-      if (result) {
-        setForm((current) => ({
-          label: result.label,
-          provider: result.provider,
-          amount: (result.amountCents / 100).toString(),
-          tva: (result.tvaCents / 100).toString(),
-          date: result.date,
-          category: result.category,
-          projectId: current.projectId,
-        }))
-
-        toast.success("Champs préremplis par OCR. Vérifiez les montants et la TVA avant d’enregistrer.", { id: toastId })
-      }
-    } catch (err: any) {
-      console.error(err)
-      toast.error("Échec de la lecture intelligente. Remplissage manuel nécessaire.", { id: toastId })
-    } finally {
-      setOcrLoading(false)
-    }
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -152,7 +108,7 @@ export function ExpenseFormDialog({
       "application/pdf": [".pdf"],
     },
     maxFiles: 1,
-    disabled: ocrLoading || pending,
+    disabled: pending,
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -197,26 +153,17 @@ export function ExpenseFormDialog({
           <DialogTitle>{expense ? "Éditer la dépense" : "Enregistrer une dépense"}</DialogTitle>
         </DialogHeader>
 
-        {/* Drag and Drop Zone for OCR receipts (Only when creating a new expense) */}
+        {/* Receipt attachment when creating a new expense. */}
         {!expense && (
           <div
             {...getRootProps()}
             className={cn(
               "border-2 border-dashed rounded-lg p-5 flex flex-col items-center justify-center transition-colors cursor-pointer",
-              isDragActive ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-accent/25",
-              ocrLoading && "pointer-events-none opacity-60 bg-muted/20 border-muted"
+              isDragActive ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-accent/25"
             )}
           >
             <input {...getInputProps()} />
-            {ocrLoading ? (
-              <div className="flex flex-col items-center space-y-2 py-2">
-                <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                <span className="text-xs font-bold text-primary flex items-center gap-1.5 animate-pulse">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Gemini AI lit votre reçu…
-                </span>
-              </div>
-            ) : fileAttached ? (
+            {fileAttached ? (
               <div className="flex flex-col items-center space-y-1.5 py-1">
                 <FileText className="h-7 w-7 text-success" />
                 <span className="text-xs font-semibold text-foreground text-center line-clamp-1">{fileAttached}</span>
@@ -225,7 +172,7 @@ export function ExpenseFormDialog({
             ) : (
               <div className="flex flex-col items-center space-y-1.5 py-1 text-center">
                 <UploadCloud className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
-                <span className="text-xs font-semibold text-foreground">Scannez votre justificatif avec l'IA</span>
+                <span className="text-xs font-semibold text-foreground">Joignez votre justificatif</span>
                 <span className="text-xs text-muted-foreground">Glissez-déposez un ticket PDF ou Image</span>
               </div>
             )}
@@ -242,7 +189,7 @@ export function ExpenseFormDialog({
               placeholder="Ex : Fournitures pour chantier Martin"
               required
               className="bg-background border-border"
-              disabled={ocrLoading || pending}
+              disabled={pending}
             />
           </div>
           <div className="space-y-1.5">
@@ -253,7 +200,7 @@ export function ExpenseFormDialog({
               onChange={(e) => setForm({ ...form, provider: e.target.value })}
               placeholder="Ex : Fournisseur couverture"
               className="bg-background border-border"
-              disabled={ocrLoading || pending}
+              disabled={pending}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -268,7 +215,7 @@ export function ExpenseFormDialog({
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 required
                 className="bg-background border-border"
-                disabled={ocrLoading || pending}
+                disabled={pending}
               />
             </div>
             <div className="space-y-1.5">
@@ -281,7 +228,7 @@ export function ExpenseFormDialog({
                 value={form.tva}
                 onChange={(e) => setForm({ ...form, tva: e.target.value })}
                 className="bg-background border-border"
-                disabled={ocrLoading || pending}
+                disabled={pending}
               />
             </div>
           </div>
@@ -295,7 +242,7 @@ export function ExpenseFormDialog({
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                 required
                 className="bg-background border-border text-xs"
-                disabled={ocrLoading || pending}
+                disabled={pending}
               />
             </div>
             <div className="space-y-1.5">
@@ -303,7 +250,7 @@ export function ExpenseFormDialog({
               <Select 
                 value={form.category} 
                 onValueChange={(v) => setForm({ ...form, category: v ?? "Fournitures" })}
-                disabled={ocrLoading || pending}
+                disabled={pending}
               >
                 <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-popover text-popover-foreground">
@@ -317,7 +264,7 @@ export function ExpenseFormDialog({
             <Select
               value={form.projectId || "none"}
               onValueChange={(value) => setForm({ ...form, projectId: value === "none" ? "" : value ?? "" })}
-              disabled={ocrLoading || pending}
+              disabled={pending}
             >
               <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -327,8 +274,8 @@ export function ExpenseFormDialog({
             </Select>
           </div>
           <DialogFooter>
-            <DialogClose render={<Button type="button" variant="outline" disabled={ocrLoading || pending} />}>Annuler</DialogClose>
-            <Button type="submit" disabled={ocrLoading || pending}>
+            <DialogClose render={<Button type="button" variant="outline" disabled={pending} />}>Annuler</DialogClose>
+            <Button type="submit" disabled={pending}>
               {pending ? "Enregistrement…" : expense ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>

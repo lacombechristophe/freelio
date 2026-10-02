@@ -1,0 +1,31 @@
+import { expect, test } from "@playwright/test"
+
+test("recherche globale, pagination et retour au dossier conservent la vue", async ({ page }) => {
+  test.skip(process.env.E2E_DIRECTORY_FIXTURES !== "true", "Jeu de volumes isolé : scripts/seed-ui-redesign.mjs")
+  await page.goto("/dashboard/clients")
+  await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+  const search = page.getByRole("textbox", { name: "Rechercher dans les clients" })
+  await search.fill("ZZZ Recette")
+  await expect(page.getByRole("status").filter({ hasText: "125 résultats" })).toBeVisible()
+  await expect(page.locator(".clients-table tbody tr")).toHaveCount(25)
+  await page.getByRole("button", { name: "Page suivante" }).click()
+  await expect(page.getByText("Page 2 sur 5", { exact: true })).toBeVisible()
+  await page.reload()
+  await expect(search).toHaveValue("ZZZ Recette")
+  await expect(page.getByText("Page 2 sur 5", { exact: true })).toBeVisible()
+  await search.fill("recette124@example.test")
+  const record = page.getByRole("link", { name: /ZZZ Recette 124/ })
+  await expect(record).toBeVisible()
+  await record.click()
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("ZZZ Recette 124")
+  await page.goBack()
+  await expect(search).toHaveValue("recette124@example.test")
+  await expect(record).toBeVisible()
+  for (const [route, label] of [["devis", "Rechercher un devis"], ["factures", "Rechercher une facture"]]) {
+    await page.goto(`/dashboard/${route}`)
+    await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+    await page.getByRole("textbox", { name: label }).fill("UIQA-000")
+    await expect(page.getByRole("link", { name: /UIQA-000/ })).toBeVisible()
+    await expect(page.getByRole("status").filter({ hasText: "1 résultat" })).toBeVisible()
+  }
+})

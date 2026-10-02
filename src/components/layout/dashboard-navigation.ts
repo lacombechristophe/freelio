@@ -68,7 +68,7 @@ export type DashboardNavGroup = {
 
 export const dashboardHome: DashboardNavItem = { name: "Vue d’ensemble", href: "/dashboard", icon: LayoutDashboard }
 
-export const dashboardNavGroups: DashboardNavGroup[] = [
+const originalNavGroups: DashboardNavGroup[] = [
   {
     name: "CRM",
     icon: ContactRound,
@@ -88,7 +88,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     items: [
       { name: "Vue marketing", href: "/dashboard/marketing/overview", icon: ChartNoAxesCombined, description: "Performance et actions prioritaires" },
       { name: "Campagnes", href: "/dashboard/campagnes", icon: Megaphone, description: "Planification et performance multicanale" },
-      { name: "Segments & scoring", href: "/dashboard/marketing", icon: Gauge, description: "Audiences et qualification", exactMatch: true },
+      { name: "Segments & qualification", href: "/dashboard/marketing", icon: Gauge, description: "Audiences et qualification", exactMatch: true },
       { name: "Automatisations", href: "/dashboard/automatisations", icon: Workflow, description: "Déclencheurs et actions" },
     ],
   },
@@ -98,7 +98,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     description: "Prospection, devis et signature",
     items: [
       { name: "Espace commercial", href: "/dashboard/sales", icon: Target, description: "File d'actions et objectifs" },
-      { name: "Pipeline", href: "/dashboard/pipeline", icon: Kanban, description: "Affaires et prévisions" },
+      { name: "Cycle de vente", href: "/dashboard/pipeline", icon: Kanban, description: "Affaires et prévisions" },
       { name: "Rendez-vous", href: "/dashboard/organisation", icon: CalendarDays, description: "Agenda et tâches" },
       { name: "Devis", href: "/dashboard/devis", icon: FileText, description: "Configurations et propositions" },
       { name: "Contrats", href: "/dashboard/contrats", icon: FileSignature, description: "Documents et signatures" },
@@ -164,16 +164,28 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     ],
   },
   {
-    name: "Reporting",
+    name: "Rapports",
     icon: BarChart3,
     description: "Pilotage, objectifs et rentabilité",
     items: [
       { name: "Tableaux de bord", href: "/dashboard/reports", icon: BarChart3, description: "Indicateurs transverses" },
       { name: "Objectifs", href: "/dashboard/organisation", icon: Target, description: "Priorités et progression", activeMatch: false },
-      { name: "Prévisions commerciales", href: "/dashboard/pipeline", icon: ChartNoAxesCombined, description: "Forecast pondéré", activeMatch: false },
+      { name: "Prévisions commerciales", href: "/dashboard/pipeline", icon: ChartNoAxesCombined, description: "Prévisions pondérées", activeMatch: false },
       { name: "Exports", href: "/dashboard/comptabilite", icon: ClipboardList, description: "Comptabilité et données", activeMatch: false },
     ],
   },
+]
+
+// Keep route identities and saved favorites while grouping by everyday tasks.
+const groupByName = (name: string) => originalNavGroups.find((group) => group.name === name)!
+export const dashboardNavGroups: DashboardNavGroup[] = [
+  { name: "Clients et ventes", icon: ContactRound, description: "Relations et activité commerciale", items: [...groupByName("CRM").items, ...groupByName("Ventes").items] },
+  { ...groupByName("Revenus"), name: "Facturation" },
+  groupByName("Opérations"),
+  groupByName("Service"),
+  groupByName("Marketing"),
+  { ...groupByName("Rapports"), name: "Rapports" },
+  { ...groupByName("Données"), name: "Administration", icon: Settings },
 ]
 
 export const dashboardUtilityItems: DashboardNavItem[] = [

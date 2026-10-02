@@ -1,17 +1,17 @@
 # Runbook de production — Freelio CRM/ERP
 
-Date de référence : 24 août 2026
+Date de référence initiale : 24 août 2026. Mise à jour de cadrage : 1er octobre 2026.
 Propriétaire opérationnel à nommer : responsable de production de l’entreprise cliente
 Périmètre : application Next.js, PostgreSQL, R2, Resend, Redis/BullMQ et Upstash.
 
-Ce document décrit l'exploitation du code présent dans ce dépôt. Il ne vaut pas preuve de mise en production : l'hébergeur, les accès, les objectifs de reprise et les alertes doivent encore être renseignés dans la fiche d'environnement.
+Ce document décrit l'exploitation du code présent dans ce dépôt. Il ne vaut pas preuve de mise en production : l'hébergeur, les accès, les objectifs de reprise et les alertes doivent encore être renseignés dans la fiche d'environnement. Pour la démo de portfolio, lire d’abord le [suivi courant](execution-cto-20261001.md) et les [décisions techniques](decisions-techniques.md). Les fournisseurs décrits ci-dessous ne sont pas tous actifs dans cette démo.
 
 ## 1. Fiche d'environnement à compléter
 
 | Élément | Production | Préproduction |
 |---|---|---|
-| URL publique | `https://freelio-eight.vercel.app` | à renseigner |
-| Hébergeur application | Vercel | à renseigner |
+| URL publique | à choisir ; aucun ancien lien n’est une preuve courante | à renseigner |
+| Hébergeur application | à qualifier | à renseigner |
 | Projet PostgreSQL | à renseigner | à renseigner |
 | Bucket R2 | à renseigner | à renseigner |
 | Instance Redis/BullMQ | à renseigner | à renseigner |
@@ -43,14 +43,14 @@ Utilisateurs / site public
 
 Contraintes :
 
-- Node.js `>= 20.9.0` ;
+- Node.js `24.x` ;
 - exécution Node.js complète, pas un runtime Edge ;
 - environnement capable d'exécuter Puppeteer/Chromium pour les PDF ;
 - processus worker séparé si le flux BullMQ de génération de documents est utilisé ;
 - PostgreSQL et R2 obligatoires en production ;
 - TLS de bout en bout et bucket non public.
 
-Le dépôt ne fournit pas actuellement de `Dockerfile` ni de manifeste d'infrastructure. Il expose `GET /api/health/live` pour la vie du processus et `GET /api/health/ready` pour la base et la configuration critique ; la plateforme choisie doit documenter sa commande de démarrage, la disponibilité de Chromium et le branchement effectif de ces sondes.
+Le dépôt fournit un Dockerfile et un Compose de développement. La recette Linux du 1er octobre a exécuté les migrations PostgreSQL 18.6, Prisma, le serveur et ses sondes, un worker Redis/BullMQ et Chromium ; le suivi CTO conserve sa portée et l’identité d’image. Le runtime de l’hébergeur reste à qualifier. `GET /api/health/live` indique la vie du processus ; `GET /api/health/ready` vérifie la base et la configuration critique. Cette sonde ne vérifie pas la disponibilité de R2/Upstash. `npm start` refuse une configuration incomplète avant d’écouter ; le conteneur lance directement Node pour transmettre les signaux.
 
 ## 3. Secrets et variables obligatoires
 
@@ -73,8 +73,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 ### Requis selon la topologie
 
 - `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires dès que plusieurs instances servent du trafic ou que la capture publique est ouverte ;
-- `REDIS_HOST` et `REDIS_PORT` : obligatoires pour BullMQ ;
-- `GEMINI_API_KEY` : seulement pour l'OCR des justificatifs.
+- `REDIS_URL` (`redis://` ou `rediss://`) ou `REDIS_HOST`/`REDIS_PORT` et identifiants explicites : pour BullMQ. En production, aucune connexion implicite à localhost ; certificat TLS vérifié pour `rediss://`. Les retries du worker sont distincts de ceux du producteur ;
 - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` : pour l’e-mail plateforme et le lien magique ; facultatifs si les entreprises utilisent exclusivement BYOK/OAuth et la connexion par mot de passe.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` : obligatoires avant d’ouvrir les offres payantes.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ou `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` : seulement lorsqu’une boîte et son calendrier doivent être autorisés ; enregistrer exactement `https://<domaine>/api/integrations/email/oauth/callback`, conserver l’accès hors ligne, demander les scopes mail/calendrier minimaux documentés et ne jamais afficher le canal comme actif avant le consentement OAuth et la vérification de l’identité.
@@ -84,6 +83,12 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 
 Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur présence, leur date de rotation et l'accès au service cible.
 
+### Profil de démonstration publique
+
+Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif, un rôle PostgreSQL lecteur et des accès R2 limités aux objets fictifs. Le profil a été testé localement sous serveur compilé ; il ne crée pas automatiquement une infrastructure ni un pare-feu hébergé.
+
+Le budget choisi est de 0 € pour l’instant : la livraison reste locale, sans ouverture commerciale. La [proposition d’hébergement](hebergement-demo-proposition.md) est préparatoire et n’autorise aucun abonnement.
+
 ### CORS du bucket R2 privé
 
 Les archives volumineuses sont envoyées directement du navigateur vers une URL `PUT` présignée afin de ne pas traverser la limite de taille des fonctions Vercel. Le bucket doit donc autoriser uniquement l’origine de production et les en-têtes signés utilisés par l’application. Exemple à adapter à `PUBLIC_APP_URL` (ajouter `http://localhost:3000` uniquement sur un bucket de développement) :
@@ -91,7 +96,7 @@ Les archives volumineuses sont envoyées directement du navigateur vers une URL 
 ```json
 [
   {
-    "AllowedOrigins": ["https://freelio-eight.vercel.app"],
+    "AllowedOrigins": ["https://example.test"],
     "AllowedMethods": ["PUT"],
     "AllowedHeaders": [
       "Content-Type",
@@ -163,7 +168,9 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker peut traiter les séquences e-mail et synchroniser les boîtes OAuth toutes les cinq minutes. `vercel.json` programme la sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`, compatible avec l’offre Hobby. Le workflow GitHub Actions `.github/workflows/production-processors.yml` appelle en `POST` les traitements d’automatisation, d’échéances métier et de synchronisation toutes les cinq minutes ; `PROCESSOR_CRON_SECRET` côté GitHub doit correspondre à `AUTOMATION_CRON_SECRET` côté Vercel. Les trois routes conservent leur contrôle Bearer et prennent un bail PostgreSQL avant de travailler, de sorte qu’un déclenchement concurrent est ignoré proprement. Après déploiement, lancer une exécution manuelle, contrôler son succès et vérifier dans Automatisations que le dernier passage réussi est récent. Ne pas activer les séquences ou les relances automatiques tant que ce premier passage et les alertes GitHub ne sont pas observés.
+Le worker examine les séquences e-mail chaque minute, les échéances métier et les boîtes OAuth toutes les cinq minutes. `vercel.json` définit une sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`. Le workflow GitHub Actions `.github/workflows/production-processors.yml` reste désactivé tant que `vars.ENABLE_PRODUCTION_PROCESSORS` n’est pas `true` ; il nécessite `vars.PROCESSOR_APP_URL` et `secrets.PROCESSOR_CRON_SECRET`, correspondant à `AUTOMATION_CRON_SECRET` côté serveur. Il appelle en `POST` les automations, échéances, synchronisations et sauvegardes toutes les cinq minutes. Le profil de démo public refuse ces processeurs et le worker.
+
+Les routes conservent leur contrôle Bearer. Les baux PostgreSQL évitent une concurrence pendant leur durée de validité ; le bail générique de quinze minutes n’est pas renouvelé et ne garantit pas cette exclusion pour une tâche plus longue. Après déploiement, lancer une exécution manuelle, contrôler son succès et vérifier que le dernier passage réussi est récent. Ne pas activer les envois ou relances automatiques avant d’avoir observé ce passage et les alertes. La disponibilité et les limites des ordonnanceurs hébergés restent à qualifier.
 
 Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive. La route de restauration web est désactivée par défaut en production ; `ENABLE_IN_APP_RESTORE=true` ne doit être utilisé que dans un environnement isolé, sans envoi d’e-mails ni trafic public, et reste limité à 4 Mo. Les archives plus grandes suivent exclusivement la recette de restauration ci-dessous.
 

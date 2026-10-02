@@ -1,16 +1,16 @@
 import { createHash } from "node:crypto"
 import { Job, Worker } from "bullmq"
+import { redisConnection } from "./connection"
 import prisma from "@/lib/prisma"
 import { embedFacturX, generatePdfFromHtml } from "@/lib/pdf/generator"
 import { generateFacturX } from "@/lib/pdf/facturx"
 import { renderDocumentHtml, type PdfDocument } from "@/lib/pdf/render"
-import { storeFileBytes } from "@/lib/local-files"
+import { storeFileBytes, removeLocalFile } from "@/lib/local-files"
 import { decryptSensitive } from "@/lib/crypto"
+import { isIssuedInvoice, readIssuedInvoice } from "@/lib/finance/issued-invoice"
 
-const connection = {
-  host: process.env.REDIS_HOST || "localhost",
-  port: Number.parseInt(process.env.REDIS_PORT || "6379", 10),
-}
+if (process.env.DEMO_ACCESS_MODE === "readonly" || process.env.NEXT_PUBLIC_DEMO_READ_ONLY === "true") throw new Error("Le worker est interdit dans la démonstration publique")
+const connection = redisConnection("worker")
 
 type DocGenJob = {
   type: "QUOTE" | "INVOICE"
@@ -112,11 +112,6 @@ async function generateQuote(job: Job<DocGenJob>) {
   const stored = await storeFileBytes({ companyId: quote.companyId, kind: "generated", resourceId: quote.id, originalName: `${quote.number}.pdf`, type: "application/pdf", bytes: pdfBuffer })
   const pdfUrl = stored.relativePath
 
-  await prisma.quote.update({
-    where: { id: quote.id },
-    data: { status: "SENT" },
-  })
-
   return { success: true, hash, pdfUrl }
 }
 
@@ -131,6 +126,10 @@ async function generateInvoice(job: Job<DocGenJob>) {
   })
 
   if (!invoice) throw new Error("INVOICE not found")
+  if (isIssuedInvoice(invoice)) {
+    await readIssuedInvoice(invoice)
+    return { success: true, hash: invoice.pdfHash, pdfUrl: invoice.pdfUrl }
+  }
 
   const html = renderDocumentHtml(
     {
@@ -162,6 +161,7 @@ async function generateInvoice(job: Job<DocGenJob>) {
 
   let pdfBuffer = await generatePdfFromHtml(html)
   const xml = generateFacturX({
+    type: invoice.type === "CREDIT_NOTE" ? "CREDIT_NOTE" : "STANDARD",
     number: invoice.number,
     date: invoice.date.toISOString().split("T")[0],
     seller: {
@@ -193,10 +193,19 @@ async function generateInvoice(job: Job<DocGenJob>) {
   const stored = await storeFileBytes({ companyId: invoice.companyId, kind: "generated", resourceId: invoice.id, originalName: `${invoice.number}.pdf`, type: "application/pdf", bytes: pdfBuffer })
   const pdfUrl = stored.relativePath
 
-  await prisma.invoice.update({
-    where: { id: invoice.id },
-    data: { pdfUrl, pdfHash: hash, status: "SENT" },
+  const saved = await prisma.invoice.updateMany({
+    where: { id: invoice.id, status: "DRAFT", lockedAt: null, updatedAt: invoice.updatedAt },
+    data: { pdfUrl, pdfHash: hash },
   })
+  if (saved.count !== 1) {
+    await removeLocalFile(pdfUrl)
+    const current = await prisma.invoice.findUnique({ where: { id: invoice.id } })
+    if (current && isIssuedInvoice(current)) {
+      await readIssuedInvoice(current)
+      return { success: true, hash: current.pdfHash, pdfUrl: current.pdfUrl }
+    }
+    throw new Error("INVOICE_CHANGED_DURING_GENERATION")
+  }
 
   return { success: true, hash, pdfUrl }
 }

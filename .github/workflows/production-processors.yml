@@ -13,14 +13,18 @@ concurrency:
 
 jobs:
   process:
+    if: vars.ENABLE_PRODUCTION_PROCESSORS == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      APP_URL: https://freelio-eight.vercel.app
+      APP_URL: ${{ vars.PROCESSOR_APP_URL }}
       PROCESSOR_SECRET: ${{ secrets.PROCESSOR_CRON_SECRET }}
     steps:
       - name: Vérifier la configuration
-        run: test -n "$PROCESSOR_SECRET"
+        run: |
+          test -n "$PROCESSOR_SECRET"
+          test -n "$APP_URL"
+          node -e 'const u = new URL(process.env.APP_URL); if (u.protocol !== "https:" || u.username || u.password || u.pathname !== "/" || u.search || u.hash) process.exit(1)'
 
       - name: Traiter les séquences, échéances et synchronisations
         shell: bash
@@ -36,3 +40,4 @@ jobs:
           call_processor "/api/automations/process"
           call_processor "/api/scheduling/process"
           call_processor "/api/communications/sync/process"
+          call_processor "/api/backup/process"

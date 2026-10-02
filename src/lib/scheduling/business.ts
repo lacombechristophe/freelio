@@ -3,7 +3,7 @@ import "server-only"
 import { addDays, addHours, addMonths, addYears, subDays } from "date-fns"
 import { z } from "zod"
 
-import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import prisma from "@/lib/prisma"
 import { getNextRecurringDate } from "@/lib/workflow-rules"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
@@ -60,8 +60,8 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
       await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
         if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return
         const prefix = buildYearlyDocumentPrefix(recurring.company.invoicePrefix, "FACT-")
-        const last = await tx.invoice.findFirst({ where: { companyId: recurring.companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
-        const number = nextDocumentNumber(last?.number, prefix)
+        const last = await readCompanyDocumentNumbers(() => tx.invoice.findMany({ where: { companyId: recurring.companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        const number = nextDocumentNumber(last, prefix)
         const invoice = await tx.invoice.create({
           data: {
             companyId: recurring.companyId,
@@ -153,6 +153,10 @@ export async function processDueMaintenanceVisits(input: { companyId?: string; u
 }
 
 export async function processScheduledBusinessJobs() {
+  const overdueInvoices = await prisma.invoice.updateMany({
+    where: { status: "SENT", dueDate: { lt: new Date() } },
+    data: { status: "OVERDUE" },
+  })
   const [recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents] = await Promise.all([
     processDueRecurringInvoices(),
     processDueMaintenanceVisits(),
@@ -161,5 +165,5 @@ export async function processScheduledBusinessJobs() {
       where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
     }),
   ])
-  return { recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
+  return { overdueInvoices: overdueInvoices.count, recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
 }

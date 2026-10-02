@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
+import { isDeepStrictEqual } from "node:util"
 
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
 import { POOL_AUTOMATION_SEQUENCES, POOL_AUTOMATION_WORKFLOWS, POOL_EMAIL_TEMPLATES } from "@/lib/automations/presets"
@@ -774,11 +775,13 @@ export async function updateAutomationWorkflowStatus(workflowId: string, status:
       const configuration = workflowConfigurationSchema.parse({ conditions: workflow.conditions ?? undefined, actions: workflow.actions })
       await prisma.$transaction(async (tx) => {
         const latest = workflow.versions[0]
-        const snapshot = JSON.stringify({ trigger: workflow.trigger, conditions: configuration.conditions || null, actions: configuration.actions })
-        const latestSnapshot = latest ? JSON.stringify({ trigger: latest.trigger, conditions: latest.conditions || null, actions: latest.actions }) : null
+        // PostgreSQL JSONB changes object key order. It must not manufacture a
+        // new version for an unchanged draft; action array order still matters.
+        const snapshot = { trigger: workflow.trigger, conditions: configuration.conditions || null, actions: configuration.actions }
+        const latestSnapshot = latest ? { trigger: latest.trigger, conditions: latest.conditions || null, actions: latest.actions } : null
         let publishedVersion = latest?.version ?? 1
         await tx.automationWorkflowVersion.updateMany({ where: { workflowId: workflow.id, status: "PUBLISHED" }, data: { status: "SUPERSEDED" } })
-        if (latest && latestSnapshot === snapshot) {
+        if (latest && isDeepStrictEqual(latestSnapshot, snapshot)) {
           await tx.automationWorkflowVersion.update({ where: { id: latest.id }, data: { status: "PUBLISHED", publishedAt: latest.publishedAt || new Date() } })
         } else {
           publishedVersion = (latest?.version ?? 0) + 1
@@ -812,7 +815,7 @@ export async function simulateAutomationWorkflow(workflowId: string, subjectId: 
       where: { id: idSchema.parse(workflowId), companyId },
       select: { id: true, name: true, trigger: true, conditions: true, actions: true },
     })
-    if (!workflow) throw new Error("Workflow introuvable")
+    if (!workflow) throw new Error("Scénario introuvable")
     const parsedSubjectId = idSchema.parse(subjectId)
     if (workflow.trigger === "CUSTOMER_HEALTH_CHANGED") {
       const client = await prisma.client.findFirst({

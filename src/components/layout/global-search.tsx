@@ -59,10 +59,10 @@ export function GlobalSearch() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Ouvrir la recherche globale"
-        className="ml-auto flex h-9 w-9 items-center justify-center gap-2 rounded-[9px] border border-border bg-[#fbfcfe] text-sm text-muted-foreground shadow-[0_1px_2px_rgba(13,36,66,0.025)] transition-colors hover:border-input hover:bg-muted sm:ml-0 sm:w-full sm:max-w-[460px] sm:justify-start sm:px-3 dark:bg-background"
+        className="ml-auto flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:border-input hover:bg-muted sm:ml-0 sm:w-full sm:max-w-[460px] sm:justify-start sm:px-3 dark:bg-background"
       >
         <Search className="size-4" />
-        <span className="hidden truncate sm:inline">Rechercher un client, un projet, une facture…</span>
+        <span className="hidden truncate sm:inline">Rechercher dans Freelio…</span>
         <kbd className="ml-auto hidden rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">Ctrl K</kbd>
       </button>
 

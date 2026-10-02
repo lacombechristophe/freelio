@@ -10,7 +10,7 @@ export async function captureScrollablePage(page: Page, directory: string, name:
   for (let index = 0; index < 40; index += 1) {
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
     const filename = index === 0 ? `${name}.jpg` : `${name}--scroll-${String(index + 1).padStart(2, "0")}.jpg`
-    await page.screenshot({ path: path.join(directory, filename), type: "jpeg", quality: 80, animations: "disabled" })
+    await page.screenshot({ path: path.join(directory, filename), type: "jpeg", quality: 80, animations: "disabled", caret: "initial" })
     files.push(filename)
     const position = await main.evaluate((element) => ({ top: element.scrollTop, height: element.clientHeight, total: element.scrollHeight }))
     if (position.top + position.height >= position.total - 2) {

@@ -13,21 +13,21 @@ export function Sidebar({ brand }: { brand: WorkspaceBrand }) {
   return (
     <div
       className={cn(
-        "relative flex h-full flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,#061f3f_0%,#061b35_62%,#05182f_100%)] transition-[width] duration-200 ease-out",
-        isCollapsed ? "w-[72px]" : "w-[244px]"
+        "relative flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out",
+        isCollapsed ? "w-[72px]" : "w-[240px]"
       )}
     >
-      <div className={cn("flex h-[60px] shrink-0 items-center border-b border-sidebar-border bg-white/[0.018]", isCollapsed ? "justify-center px-2" : "px-4")}>
-        <AppBrand brand={brand} compact={isCollapsed} inverted />
+      <div className={cn("flex h-14 shrink-0 items-center border-b border-sidebar-border bg-sidebar", isCollapsed ? "justify-center px-2" : "px-4")}>
+        <AppBrand brand={brand} compact={isCollapsed} />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2.5 py-3 [scrollbar-color:rgba(255,255,255,0.18)_transparent]"><DashboardNavigationMenu collapsed={isCollapsed} /></div>
+      <div className="flex-1 overflow-y-auto px-2.5 py-3"><DashboardNavigationMenu collapsed={isCollapsed} /></div>
 
       <div className="border-t border-sidebar-border p-2.5">
         <Button
           variant="ghost"
           size="sm"
-          className={cn("w-full text-sidebar-foreground/70 hover:bg-white/8 hover:text-white", isCollapsed ? "justify-center px-0" : "justify-start")}
+          className={cn("w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", isCollapsed ? "justify-center px-0" : "justify-start")}
           onClick={() => setIsCollapsed((value) => !value)}
           title={isCollapsed ? "Agrandir la navigation" : "Réduire la navigation"}
           aria-label={isCollapsed ? "Agrandir la navigation" : "Réduire la navigation"}

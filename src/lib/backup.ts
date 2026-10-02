@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash, randomUUID } from "node:crypto"
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
+import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import {
   assembleReversibilityExport,
@@ -18,10 +18,15 @@ import {
 import prisma from "@/lib/prisma"
 import { listR2CompanyObjects, localFilesRoot, readLocalFile } from "@/lib/local-files"
 import { readMigrationArtifact } from "@/lib/migrations/storage"
+import { readBoundedFile } from "@/lib/bounded-file-read"
 
 const LEGACY_BACKUP_SCHEMA = "freelio.local-backup.v2"
 const BACKUP_SCHEMA = REVERSIBILITY_SCHEMA
 const MAX_LOCAL_BACKUPS = 14
+// Logical exports are bounded. Larger tenants require the database/storage backup procedure.
+const MAX_EXPORT_TABLE_BYTES = 16 * 1024 * 1024
+const MAX_EXPORT_FILE_BYTES = 32 * 1024 * 1024
+const MAX_EXPORT_ROWS = 50_000
 const backupsRoot = path.resolve(process.cwd(), "data", "backups")
 const restoreRoot = path.resolve(process.cwd(), "data", "restore-staging")
 
@@ -266,37 +271,55 @@ async function collectLocalFiles(companyId: string): Promise<LocalFileBackup[]> 
   if (!companyRoot.startsWith(`${root}${path.sep}`)) throw new Error("Répertoire entreprise invalide")
 
   const paths = await walkFiles(companyRoot)
-  return Promise.all(paths.map(async (absolute) => {
-    const [content, info] = await Promise.all([readFile(absolute), stat(absolute)])
-    return {
+  const files: LocalFileBackup[] = []
+  let totalBytes = 0
+  for (const absolute of paths) {
+    const info = await stat(absolute)
+    totalBytes += info.size
+    if (totalBytes > MAX_EXPORT_FILE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native du stockage")
+    const content = await readBoundedFile(absolute, MAX_EXPORT_FILE_BYTES - totalBytes + info.size)
+    files.push({
       path: path.relative(root, absolute),
       size: info.size,
       sha256: createHash("sha256").update(content).digest("hex"),
       contentBase64: content.toString("base64"),
-    }
-  }))
+    })
+  }
+  return files
 }
 
-async function collectCompanyTables(userId: string, companyId: string): Promise<ReversibilityTable[]> {
-  const database = prisma as unknown as Record<string, {
-    findMany: (args: { where: Record<string, unknown> }) => Promise<Array<Record<string, unknown>>>
+async function collectCompanyTables(userId: string, companyId: string, client: Pick<typeof prisma, "user" | "auditLog">): Promise<ReversibilityTable[]> {
+  const database = client as unknown as Record<string, {
+    findMany: (args: { where: Record<string, unknown>; take: number; skip: number; orderBy: Array<Record<string, string>> }) => Promise<Array<Record<string, unknown>>>
   }>
-  const tables = await Promise.all(COMPANY_TABLE_SPECS.map(async (spec) => {
+  const tables: ReversibilityTable[] = []
+  let totalRows = 0
+  let totalBytes = 0
+  for (const spec of COMPANY_TABLE_SPECS) {
     const delegate = database[spec.delegate]
     if (!delegate?.findMany) throw new Error(`Modèle Prisma indisponible pour l’export : ${spec.model}`)
-    const rows = await delegate.findMany({ where: spec.where(companyId) })
-    return {
+    const rows: Array<Record<string, unknown>> = []
+    for (let skip = 0; ; skip += 250) {
+      const orderBy: Array<Record<string, string>> = spec.model === "MaintenanceContractEquipment" ? [{ contractId: "asc" }, { equipmentId: "asc" }] : spec.model === "AgencyMembership" ? [{ agencyId: "asc" }, { membershipId: "asc" }] : [{ id: "asc" }]
+      const batch = await delegate.findMany({ where: spec.where(companyId), take: 250, skip, orderBy })
+      totalRows += batch.length
+      totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
+      if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+      rows.push(...batch)
+      if (batch.length < 250) break
+    }
+    tables.push({
       model: spec.model,
       rows: sortRows(rows.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
-    }
-  }))
+    })
+  }
 
   const byModel = new Map(tables.map((table) => [table.model, table]))
   if (!byModel.get("Company")?.rows.length) throw new Error("Entreprise introuvable pour l’export")
   const memberships = byModel.get("Membership")?.rows ?? []
   const userIds = new Set<string>([userId])
   for (const row of memberships) if (typeof row.userId === "string") userIds.add(row.userId)
-  const users = await prisma.user.findMany({ where: { id: { in: [...userIds] } } })
+  const users = await client.user.findMany({ where: { id: { in: [...userIds] } } })
   tables.splice(1, 0, {
     model: "User",
     rows: sortRows(users.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
@@ -306,8 +329,15 @@ async function collectCompanyTables(userId: string, companyId: string): Promise<
   for (const table of tables) {
     for (const row of table.rows) if (typeof row.id === "string") resourceIds.add(row.id)
   }
-  const auditLogs = await prisma.auditLog.findMany({ where: { userId: { in: [...userIds] } } })
-  const scopedAuditLogs = auditLogs.filter((row) => row.resourceId && resourceIds.has(row.resourceId))
+  const scopedAuditLogs = []
+  for (let skip = 0; ; skip += 250) {
+    const batch = await client.auditLog.findMany({ where: { userId: { in: [...userIds] }, resourceId: { in: [...resourceIds] } }, orderBy: { id: "asc" }, take: 250, skip })
+    totalRows += batch.length
+    totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
+    if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+    scopedAuditLogs.push(...batch)
+    if (batch.length < 250) break
+  }
   tables.push({
     model: "AuditLog",
     rows: sortRows(scopedAuditLogs.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
@@ -430,8 +460,8 @@ async function materializeFile(candidate: FileCandidate): Promise<ReversibilityF
   }
   try {
     const bytes = candidate.preloaded ?? (candidate.reader === "MIGRATION"
-      ? await readMigrationArtifact(candidate.storageKey)
-      : await readLocalFile(candidate.storageKey))
+      ? await readMigrationArtifact(candidate.storageKey, MAX_EXPORT_FILE_BYTES)
+      : await readLocalFile(candidate.storageKey, MAX_EXPORT_FILE_BYTES))
     const sha256 = createHash("sha256").update(bytes).digest("hex")
     const corrupt = candidate.references.some((reference) =>
       (reference.expectedSize !== undefined && reference.expectedSize !== bytes.byteLength)
@@ -461,14 +491,21 @@ async function collectReversibilityFiles(tables: ReversibilityTable[], companyId
   const warnings: string[] = []
   const candidates = collectReferencedFiles(tables)
   await addStorageInventory(candidates, companyId, warnings)
-  const files = await Promise.all([...candidates.values()]
-    .sort((left, right) => fileCandidateId(left).localeCompare(fileCandidateId(right)))
-    .map(materializeFile))
+  const files: ReversibilityFile[] = []
+  let totalBytes = 0
+  for (const candidate of [...candidates.values()].sort((left, right) => fileCandidateId(left).localeCompare(fileCandidateId(right)))) {
+    const expectedSize = Math.max(0, ...candidate.references.map(reference => reference.expectedSize ?? 0))
+    if (totalBytes + expectedSize > MAX_EXPORT_FILE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native du stockage")
+    const file = await materializeFile(candidate)
+    totalBytes += file.size ?? 0
+    if (totalBytes > MAX_EXPORT_FILE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native du stockage")
+    files.push(file)
+  }
   return { files, warnings }
 }
 
 export async function buildBackupPayload(userId: string, companyId: string): Promise<BackupPayload> {
-  const tables = await collectCompanyTables(userId, companyId)
+  const tables = await prisma.$transaction(tx => collectCompanyTables(userId, companyId, tx), { isolationLevel: "Serializable", timeout: 30_000 })
   const { files, warnings } = await collectReversibilityFiles(tables, companyId)
   const base: ReversibilityExportBase = {
     schema: BACKUP_SCHEMA,

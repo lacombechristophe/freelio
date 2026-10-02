@@ -1,6 +1,8 @@
-import NextAuth from "next-auth"
+import NextAuth, { type NextAuthRequest } from "next-auth"
 import { NextResponse } from "next/server"
+import type { NextRequest, NextFetchEvent } from "next/server"
 import { authConfig } from "./auth.config"
+import { DEMO_READ_ONLY_MESSAGE, isPublicReadOnlyDemo, publicDemoRequestAllowed } from "./lib/demo-policy"
 
 const { auth } = NextAuth(authConfig)
 
@@ -35,7 +37,8 @@ function buildStrictCsp(nonce: string): string {
   return `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'nonce-${nonce}' ${themeBootstrapHashes} 'strict-dynamic'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self'${r2ConnectOrigin}; frame-ancestors 'none';${upgradeInsecureRequests}`
 }
 
-export default auth((request) => {
+const protectedProxy = auth((request: NextAuthRequest, event: NextFetchEvent) => {
+  void event // The explicit event type selects Auth.js's middleware overload.
   if (!requiresStrictCsp(request.nextUrl.pathname)) {
     return NextResponse.next()
   }
@@ -52,13 +55,17 @@ export default auth((request) => {
   return response
 })
 
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
+  if (isPublicReadOnlyDemo() && !publicDemoRequestAllowed(request.nextUrl.pathname, request.method)) {
+    return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403, headers: { "Cache-Control": "no-store" } })
+  }
+  if (!requiresStrictCsp(request.nextUrl.pathname)) return NextResponse.next()
+  return protectedProxy(request, event)
+}
+
 export const config = {
   // Use 'proxy' instead of 'middleware' for Next.js 15.2+ / 16
   matcher: [{
-    source: "/((?!api|_next/static|_next/image|auth|logo\\.png|favicon.ico|.*\\.png$).*)",
-    missing: [
-      { type: "header", key: "next-router-prefetch" },
-      { type: "header", key: "purpose", value: "prefetch" },
-    ],
+    source: "/((?!_next/static|_next/image|logo\\.png|favicon.ico).*)",
   }],
 }

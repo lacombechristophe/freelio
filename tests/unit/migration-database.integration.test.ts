@@ -9,7 +9,7 @@ vi.mock("@/auth", () => ({ auth: vi.fn(async () => ({ user: { id: identity.userI
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("server-only", () => ({}))
 
-import { importMigrationRun, simulateMigrationRun, verifyMigrationRun } from "@/actions/migrations"
+import { analyzeMigrationRun, importMigrationRun, simulateMigrationRun, verifyMigrationRun } from "@/actions/migrations"
 import prisma from "@/lib/prisma"
 
 describe.sequential("migration database pipeline", () => {
@@ -46,6 +46,7 @@ describe.sequential("migration database pipeline", () => {
     await prisma.invoicePayment.deleteMany({ where: { invoice: { companyId: identity.companyId } } })
     await prisma.invoiceLine.deleteMany({ where: { invoice: { companyId: identity.companyId } } })
     await prisma.invoice.deleteMany({ where: { companyId: identity.companyId } })
+    await prisma.quote.deleteMany({ where: { companyId: identity.companyId } })
     await prisma.project.deleteMany({ where: { companyId: identity.companyId } })
     await prisma.contact.deleteMany({ where: { client: { companyId: identity.companyId } } })
     await prisma.client.deleteMany({ where: { companyId: identity.companyId } })
@@ -70,5 +71,155 @@ describe.sequential("migration database pipeline", () => {
     expect(await prisma.externalIdMap.count({ where: { companyId: identity.companyId, provider: "EXTRABAT" } })).toBe(6)
 
     await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true, status: "VERIFIED", records: 6, imported: 6, rejected: 0, blocking: 0 })
+  })
+
+  it("detects changed amounts and associations even when source counts still reconcile", async () => {
+    const invoice = await prisma.invoice.findFirstOrThrow({ where: { companyId: identity.companyId } })
+    const other = await prisma.client.create({ data: { companyId: identity.companyId, name: "Synthetic wrong association" } })
+    try {
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { totalTtcCents: invoice.totalTtcCents + 1, clientId: other.id } })
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false, status: "VERIFICATION_FAILED" })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_AMOUNT_MISMATCH" } })).toBeGreaterThan(0)
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_RELATION_MISMATCH" } })).toBeGreaterThan(0)
+    } finally {
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { totalTtcCents: invoice.totalTtcCents, clientId: invoice.clientId } })
+      await prisma.client.delete({ where: { id: other.id } })
+    }
+    await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true })
+  })
+
+  it("detects a deleted imported target despite a surviving mapping", async () => {
+    const record = await prisma.sourceRecord.findFirstOrThrow({ where: { runId, objectType: "contacts" } })
+    const contact = await prisma.contact.findUniqueOrThrow({ where: { id: record.targetRecordId! } })
+    await prisma.contact.delete({ where: { id: contact.id } })
+    try {
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_TARGET_MISSING" } })).toBe(1)
+    } finally {
+      const { customFields, ...fields } = contact
+      await prisma.contact.create({ data: fields })
+      await prisma.contact.update({ where: { id: contact.id }, data: { customFields: customFields as Record<string, string> } })
+    }
+    await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true })
+  })
+  it("blocks altered document line sums and paid amount without changing source counts", async () => {
+    const invoice = await prisma.invoice.findFirstOrThrow({ where: { companyId: identity.companyId }, include: { lines: true } })
+    const line = invoice.lines[0]
+    try {
+      await prisma.invoiceLine.update({ where: { id: line.id }, data: { quantity: line.quantity + 1 } })
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { paidAmountCents: invoice.paidAmountCents - 1 } })
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_DOCUMENT_TOTAL_MISMATCH" } })).toBeGreaterThan(0)
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_PAYMENT_TOTAL_MISMATCH" } })).toBeGreaterThan(0)
+    } finally {
+      await prisma.invoiceLine.update({ where: { id: line.id }, data: { quantity: line.quantity } })
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { paidAmountCents: invoice.paidAmountCents } })
+    }
+    await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true })
+  })
+
+  it("verifies every materialized line when one source line belongs to a quote and invoice", async () => {
+    const run = await prisma.migrationRun.create({ data: { companyId: identity.companyId, provider: "EXTRABAT", kind: "MANUAL_ARCHIVE", status: "SIMULATED" } })
+    const rows = [
+      { objectType: "quotes", sourceId: "quote-multi", payload: { number: "SYNTHETIC-MULTI-QUOTE", total_ht: "100", total_tva: "20", total_ttc: "120", association_company_id: "client-100" } },
+      { objectType: "invoices", sourceId: "invoice-multi", payload: { number: "SYNTHETIC-MULTI-INVOICE", total_ht: "100", total_tva: "20", total_ttc: "120", association_company_id: "client-100" } },
+      { objectType: "line_items", sourceId: "line-multi", payload: { name: "Synthetic shared line", quantity: "1", unit_price: "100", tva_rate: "20", association_quote_id: "quote-multi", association_invoice_id: "invoice-multi" } },
+    ]
+    await prisma.sourceRecord.createMany({ data: rows.map(row => ({ ...row, companyId: identity.companyId, runId: run.id, provider: "EXTRABAT", checksum: "synthetic" })) })
+    await prisma.migrationMetric.createMany({ data: rows.map(row => ({ runId: run.id, objectType: row.objectType, sourceCount: 1, extracted: 1 })) })
+    await expect(importMigrationRun(run.id)).resolves.toMatchObject({ imported: 3 })
+    await expect(verifyMigrationRun(run.id)).resolves.toMatchObject({ success: true })
+    const sibling = await prisma.invoiceLine.findFirstOrThrow({ where: { sourceKey: "EXTRABAT:line_items:line-multi", invoice: { companyId: identity.companyId } } })
+    await prisma.invoiceLine.delete({ where: { id: sibling.id } })
+    try {
+      await expect(verifyMigrationRun(run.id)).resolves.toMatchObject({ success: false })
+      expect(await prisma.migrationIssue.count({ where: { runId: run.id, code: "VERIFY_SECONDARY_TARGET_MISSING" } })).toBe(1)
+    } finally { await prisma.invoiceLine.create({ data: sibling }) }
+    await expect(verifyMigrationRun(run.id)).resolves.toMatchObject({ success: true })
+  })
+
+  it("does not reset a verified import by simulating it again", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "VERIFIED" } })
+    await expect(simulateMigrationRun(runId)).rejects.toThrow(/finalisé/)
+    expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("VERIFIED")
+  })
+
+  it("does not overwrite a concurrently claimed run or its previous diagnostics", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "IMPORTED" } })
+    const diagnostic = await prisma.migrationIssue.create({ data: {
+      runId, severity: "WARNING", code: "VERIFY_PREVIOUS_RESULT", message: "Synthetic previous diagnostic",
+    } })
+    // Change the run after its initial read, while mappings are being checked.
+    const mappingRead = vi.spyOn(prisma.externalIdMap, "findMany").mockImplementationOnce(() =>
+      prisma.migrationRun.update({ where: { id: runId }, data: { status: "IMPORTING" } }).then(() => []) as never
+    )
+    try {
+      await expect(verifyMigrationRun(runId)).rejects.toThrow(/changé pendant la vérification/)
+      expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("IMPORTING")
+      expect(await prisma.migrationIssue.findUnique({ where: { id: diagnostic.id } })).not.toBeNull()
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_EXTERNAL_ID_MAP_MISSING" } })).toBe(0)
+    } finally {
+      mappingRead.mockRestore()
+      await prisma.migrationIssue.delete({ where: { id: diagnostic.id } })
+      await prisma.migrationRun.update({ where: { id: runId }, data: { status: "IMPORTED" } })
+    }
+    await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true })
+  })
+
+  it("does not reset a verified import by analyzing an attached archive", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "VERIFIED" } })
+    const document = await prisma.documentManifest.create({ data: {
+      companyId: identity.companyId, runId, provider: "EXTRABAT", sourceDocumentId: `manual:${runId}:test`,
+      fileName: "contacts.csv", size: 1, sha256: "0".repeat(64), storageKey: "local:missing-test-archive",
+    } })
+    try {
+      await expect(analyzeMigrationRun(runId)).rejects.toThrow(/finalisé/)
+      expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("VERIFIED")
+    } finally {
+      await prisma.documentManifest.delete({ where: { id: document.id } })
+    }
+  })
+
+  it("blocks direct import and final verification while source errors remain unresolved", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "PARTIAL" } })
+    const issue = await prisma.migrationIssue.create({ data: {
+      runId, severity: "ERROR", code: "INGEST_ROW_LIMIT", message: "Archive partielle : lignes non extraites", status: "OPEN",
+    } })
+    try {
+      await expect(importMigrationRun(runId)).rejects.toThrow(/bloquant/)
+      expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("PARTIAL")
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false, status: "VERIFICATION_FAILED" })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_UNRESOLVED_SOURCE_ERRORS" } })).toBe(1)
+    } finally {
+      await prisma.migrationIssue.delete({ where: { id: issue.id } })
+    }
+    // A previous verification diagnostic must not permanently block recovery.
+    await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: true, status: "VERIFIED", blocking: 0 })
+  })
+
+  it("does not import when another process has already claimed the run", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "IMPORTED" } })
+    const claim = vi.spyOn(prisma.migrationRun, "updateMany").mockResolvedValueOnce({ count: 0 })
+    try {
+      await expect(importMigrationRun(runId)).rejects.toThrow(/changé/)
+    } finally {
+      claim.mockRestore()
+    }
+    expect((await prisma.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("IMPORTED")
+  })
+
+  it("does not verify a reconciled run that still has rejected source rows", async () => {
+    await prisma.migrationRun.update({ where: { id: runId }, data: { status: "PARTIAL" } })
+    const record = await prisma.sourceRecord.create({ data: {
+      companyId: identity.companyId, runId, provider: "EXTRABAT", objectType: "unsupported", sourceId: "unhandled-1", payload: {}, checksum: "sha256-unhandled-1",
+    } })
+    const metric = await prisma.migrationMetric.create({ data: { runId, objectType: "unsupported", sourceCount: 1, extracted: 1, rejected: 1 } })
+    try {
+      await expect(verifyMigrationRun(runId)).resolves.toMatchObject({ success: false, status: "VERIFICATION_FAILED", rejected: 1 })
+      expect(await prisma.migrationIssue.count({ where: { runId, code: "VERIFY_REJECTED_RECORDS" } })).toBe(1)
+    } finally {
+      await prisma.migrationMetric.delete({ where: { id: metric.id } })
+      await prisma.sourceRecord.delete({ where: { id: record.id } })
+    }
   })
 })

@@ -3,6 +3,7 @@ import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
+import { readBoundedFile, readBoundedStream } from "@/lib/bounded-file-read"
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
@@ -171,13 +172,15 @@ export async function confirmMigrationArtifactUpload(input: {
   return { size: object.ContentLength, mimeType: object.ContentType || null }
 }
 
-export async function readMigrationArtifact(storageKey: string) {
+export async function readMigrationArtifact(storageKey: string, maxBytes = Infinity) {
   if (storageKey.startsWith(R2_PREFIX)) {
     const config = r2Config()
     if (!config) throw new Error("Configuration R2 indisponible pour lire cette archive")
     const response = await r2Client(config).send(new GetObjectCommand({ Bucket: config.bucket, Key: storageKey.slice(R2_PREFIX.length) }))
     if (!response.Body) throw new Error("Archive R2 vide ou introuvable")
+    if (Number.isFinite(maxBytes)) return readBoundedStream(response.Body as AsyncIterable<Uint8Array>, maxBytes)
     return Buffer.from(await response.Body.transformToByteArray())
   }
-  return readFile(resolveStorageKey(storageKey))
+  const localPath = resolveStorageKey(storageKey)
+  return Number.isFinite(maxBytes) ? readBoundedFile(localPath, maxBytes) : readFile(localPath)
 }

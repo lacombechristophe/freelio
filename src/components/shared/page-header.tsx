@@ -16,11 +16,11 @@ export function PageHeader({
   className?: string
 }) {
   return (
-    <header className={cn("flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between", className)}>
+    <header className={cn("pb-1 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between", className)}>
       <div className="min-w-0 max-w-3xl">
-        {eyebrow && <p className="mb-1.5 flex items-center gap-2 text-[13px] font-medium text-muted-foreground"><span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />{eyebrow}</p>}
+        {eyebrow && <p className="mb-2 text-xs text-muted-foreground">{eyebrow}</p>}
         <h1>{title}</h1>
-        {description && <p className="mt-1.5 max-w-2xl text-[15px] leading-6 text-muted-foreground">{description}</p>}
+        {description && <p className="mt-1.5 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>
@@ -38,8 +38,8 @@ export function PageHeaderStat({
 }) {
   return (
     <div className="min-w-36 border-l border-border pl-4">
-      <p className="text-[11px] font-semibold uppercase text-muted-foreground">{label}</p>
-      <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-foreground">{value}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">{value}</p>
       {detail && <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>}
     </div>
   )

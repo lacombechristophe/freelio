@@ -29,7 +29,7 @@ const EXACT_TITLES: Record<string, string> = {
   "/dashboard/notifications": "Notifications",
   "/dashboard/operations": "Centre des opérations",
   "/dashboard/organisation": "Planning",
-  "/dashboard/pipeline": "Pipeline commercial",
+  "/dashboard/pipeline": "Cycle de vente",
   "/dashboard/projets": "Chantiers",
   "/dashboard/reports": "Rapports",
   "/dashboard/revenue": "Facturation & trésorerie",
@@ -76,7 +76,7 @@ export function documentTitleForPath(pathname: string, heading?: string | null) 
   const routeTitle = titleForPath(pathname)
   const normalizedHeading = heading?.trim().replace(/\s+/g, " ")
   const contextualTitle = normalizedHeading && normalizedHeading !== routeTitle
-    ? `${normalizedHeading.slice(0, 64)} · ${routeTitle}`
+    ? `${normalizedHeading.slice(0, 64).trimEnd()} · ${routeTitle}`
     : routeTitle
 
   return `${contextualTitle} | Freelio`

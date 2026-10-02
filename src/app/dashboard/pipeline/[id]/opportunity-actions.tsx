@@ -156,7 +156,7 @@ export function OpportunityActions(props: Props) {
             placeholder="Budget, délai, concurrence…"
           />
         </div>
-        <Button type="submit" disabled={pending}>
+        <Button demoMutation type="submit" disabled={pending}>
           {pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer
         </Button>
       </form>
@@ -197,7 +197,7 @@ export function OpportunityActions(props: Props) {
             placeholder="Décision, objections, prochaines étapes…"
           />
         </div>
-        <Button type="submit" variant="outline" disabled={pending}>
+        <Button demoMutation type="submit" variant="outline" disabled={pending}>
           {pending ? (
             <Loader2 className="animate-spin" />
           ) : (

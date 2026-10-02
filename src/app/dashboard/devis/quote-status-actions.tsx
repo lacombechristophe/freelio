@@ -120,13 +120,13 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
           </Button>
         ) : null}
         {status === "SENT" ? (
-          <Button disabled={pending} onClick={() => changeStatus("ACCEPTED")}>
+          <Button demoMutation disabled={pending} onClick={() => changeStatus("ACCEPTED")}>
             {pending ? <LoaderCircle className="animate-spin" /> : <CheckCircle2 />}
             Enregistrer l’accord
           </Button>
         ) : null}
         {status === "ACCEPTED" && !hasOrder ? (
-          <Button disabled={pending} onClick={() => setLaunchOpen(true)}>
+          <Button demoMutation disabled={pending} onClick={() => setLaunchOpen(true)}>
             <FileCheck2 />
             Lancer le dossier
           </Button>
@@ -139,10 +139,10 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
           <DropdownMenuContent align="end">
             {status === "SENT" ? (
               <>
-                <DropdownMenuItem onClick={() => changeStatus("REJECTED")} className="gap-2 text-danger">
+                <DropdownMenuItem demoMutation onClick={() => changeStatus("REJECTED")} className="gap-2 text-danger">
                   <XCircle /> Marquer comme refusé
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => changeStatus("EXPIRED")} className="gap-2">Marquer comme expiré</DropdownMenuItem>
+                <DropdownMenuItem demoMutation onClick={() => changeStatus("EXPIRED")} className="gap-2">Marquer comme expiré</DropdownMenuItem>
               </>
             ) : null}
             {status === "ACCEPTED" ? (
@@ -153,7 +153,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
             {status === "DRAFT" ? (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDelete} className="gap-2 text-danger">
+                <DropdownMenuItem demoMutation onClick={handleDelete} className="gap-2 text-danger">
                   <Trash2 /> Supprimer le brouillon
                 </DropdownMenuItem>
               </>

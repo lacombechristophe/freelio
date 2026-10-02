@@ -6,7 +6,7 @@ import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
-import { buildYearlyDocumentPrefix, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
 import { planningSlotsOverlap } from "@/lib/operations/planning"
@@ -1160,8 +1160,8 @@ export async function createServiceTicket(input: unknown) {
     const prefix = buildYearlyDocumentPrefix("SAV-", "SAV-")
     const ticket = await withDocumentNumberRetry(
       async () => {
-        const last = await prisma.serviceTicket.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
-        return prisma.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last?.number, prefix) } })
+    const last = await readCompanyDocumentNumbers(() => prisma.serviceTicket.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        return prisma.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last, prefix) } })
       },
       { label: "le ticket SAV" },
     )
@@ -1278,7 +1278,7 @@ export async function createMaintenanceContract(input: unknown) {
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const contract = await withDocumentNumberRetry(
       async () => {
-        const last = await prisma.maintenanceContract.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
           const startDate = new Date(data.startDate)
           const created = await tx.maintenanceContract.create({
@@ -1286,7 +1286,7 @@ export async function createMaintenanceContract(input: unknown) {
               companyId,
               clientId: data.clientId,
               siteId: data.siteId,
-              number: nextDocumentNumber(last?.number, prefix),
+              number: nextDocumentNumber(last, prefix),
               label: data.label,
               startDate,
               endDate: data.endDate,
@@ -1398,7 +1398,7 @@ export async function renewMaintenanceContract(contractId: string) {
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const renewed = await withDocumentNumberRetry(
       async () => {
-        const last = await prisma.maintenanceContract.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(
           async (transaction) => {
             const created = await transaction.maintenanceContract.create({
@@ -1406,7 +1406,7 @@ export async function renewMaintenanceContract(contractId: string) {
                 companyId,
                 clientId: contract.clientId,
                 siteId: contract.siteId,
-                number: nextDocumentNumber(last?.number, prefix),
+                number: nextDocumentNumber(last, prefix),
                 label: contract.label,
                 status: "ACTIVE",
                 startDate: term.startDate,
@@ -1500,7 +1500,7 @@ export async function createPurchaseOrder(input: unknown) {
     const totalHtCents = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceCents, 0)
     const order = await withDocumentNumberRetry(
       async () => {
-        const last = await prisma.purchaseOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.purchaseOrder.create({
           data: {
             companyId,
@@ -1508,7 +1508,7 @@ export async function createPurchaseOrder(input: unknown) {
             projectId: data.projectId,
             expectedAt: data.expectedAt,
             notes: data.notes,
-            number: nextDocumentNumber(last?.number, prefix),
+            number: nextDocumentNumber(last, prefix),
             totalHtCents,
             lines: { create: lines.map((line, order) => ({ ...line, order })) },
           },
@@ -1622,13 +1622,13 @@ export async function createCustomerOrder(input: unknown) {
     const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
     const order = await withDocumentNumberRetry(
       async () => {
-        const last = await prisma.customerOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.customerOrder.create({
           data: {
             companyId,
             clientId: data.clientId,
             projectId: data.projectId,
-            number: nextDocumentNumber(last?.number, prefix),
+            number: nextDocumentNumber(last, prefix),
             acceptedAt: new Date(),
             expectedInstallationAt: data.expectedInstallationAt,
             notes: data.notes,
@@ -1676,7 +1676,7 @@ export async function convertQuoteToCustomerOrder(input: unknown) {
     try {
       order = await withDocumentNumberRetry(
         async () => {
-          const last = await prisma.customerOrder.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
           return prisma.$transaction(async (tx) => {
             const projectId =
               quote.projectId ??
@@ -1701,7 +1701,7 @@ export async function convertQuoteToCustomerOrder(input: unknown) {
                 clientId: quote.clientId,
                 projectId,
                 quoteId: quote.id,
-                number: nextDocumentNumber(last?.number, prefix),
+                number: nextDocumentNumber(last, prefix),
                 status: "CONFIRMED",
                 acceptedAt: new Date(),
                 expectedInstallationAt: data.expectedInstallationAt,
@@ -1776,7 +1776,7 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
 
     const invoice = await withDocumentNumberRetry(
       async () => {
-        const last = await prisma.invoice.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
           const nextRemaining = remaining - amountTtcCents
           const claimed = await tx.customerOrder.updateMany({
@@ -1790,7 +1790,7 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
               clientId: order.clientId,
               projectId: order.projectId,
               customerOrderId: order.id,
-              number: nextDocumentNumber(last?.number, prefix),
+              number: nextDocumentNumber(last, prefix),
               object: label,
               type,
               status: "DRAFT",
@@ -1845,7 +1845,7 @@ export async function receivePurchaseOrder(input: unknown) {
     const receipt = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
-          const last = await tx.goodsReceipt.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => tx.goodsReceipt.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
           if (acceptedQuantity) {
             const claimedLine = await tx.purchaseOrderLine.updateMany({
               where: {
@@ -1862,7 +1862,7 @@ export async function receivePurchaseOrder(input: unknown) {
               companyId,
               purchaseOrderId: data.purchaseOrderId,
               warehouseId: data.warehouseId,
-              number: nextDocumentNumber(last?.number, prefix),
+              number: nextDocumentNumber(last, prefix),
               supplierReference: data.supplierReference,
               notes: data.notes,
               lines: {
@@ -2074,8 +2074,8 @@ export async function createSupplierReturn(input: unknown) {
           const inventory = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: warehouse.id, productId: line.product!.id } } })
           if (!inventory) throw new Error("Stock du produit introuvable dans ce dépôt")
           const next = calculateStockBalance({ quantity: inventory.quantity, reservedQuantity: inventory.reservedQuantity, type: "OUT", movementQuantity: data.quantity })
-          const last = await tx.supplierReturn.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
-          const number = nextDocumentNumber(last?.number, prefix)
+    const last = await readCompanyDocumentNumbers(() => tx.supplierReturn.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+          const number = nextDocumentNumber(last, prefix)
           assertInventoryClaim(
             await tx.inventoryItem.updateMany({
               where: { id: inventory.id, companyId, quantity: inventory.quantity, reservedQuantity: inventory.reservedQuantity },
@@ -2294,7 +2294,7 @@ export async function createDeliveryNote(input: unknown) {
     const note = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
-          const last = await tx.deliveryNote.findFirst({ where: { companyId, number: { startsWith: prefix } }, orderBy: { number: "desc" }, select: { number: true } })
+    const last = await readCompanyDocumentNumbers(() => tx.deliveryNote.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
           const claimedLine = await tx.customerOrderLine.updateMany({
             where: { id: line.id, deliveredQuantity: line.deliveredQuantity },
             data: { deliveredQuantity: { increment: data.quantity } },
@@ -2305,7 +2305,7 @@ export async function createDeliveryNote(input: unknown) {
               companyId,
               customerOrderId: data.customerOrderId,
               projectId: line.customerOrder.projectId,
-              number: nextDocumentNumber(last?.number, prefix),
+              number: nextDocumentNumber(last, prefix),
               status: "DELIVERED",
               deliveredAt: new Date(),
               recipientName: data.recipientName,

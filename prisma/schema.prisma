@@ -141,6 +141,9 @@ model Company {
 
   // Local-first operations
   lastBackupAt      DateTime?
+  backupLeaseId     String?
+  backupStartedAt   DateTime?
+  lastBackupAttemptAt DateTime?
   eInvoicePlatform  String?
   eInvoiceRoutingId String?
 
@@ -2729,6 +2732,7 @@ model Invoice {
   // Archiving (Immutable PDF Link)
   pdfUrl  String? // R2 immutable link
   pdfHash String? // SHA-256
+  issuedDocument String? // Encrypted immutable HTML/XML snapshot at issuance
 
   // Factur-X / E-Invoice
   facturXLog EInvoiceLog?
@@ -2991,7 +2995,7 @@ model ExpenseFile {
   size      Int     @default(0)
   type      String  @default("application/octet-stream")
   sha256    String?
-  ocrData   Json? // Gemini extracted data
+  ocrData   Json? // Legacy extracted receipt data, retained for database compatibility
 
   @@index([expenseId])
 }
@@ -3106,6 +3110,9 @@ model MigrationRun {
   status      String    @default("PENDING")
   checkpoint  Json?
   summary     Json?
+  importStartedAt DateTime?
+  importHeartbeatAt DateTime?
+  importLeaseId String?
   startedAt   DateTime?
   completedAt DateTime?
   createdAt   DateTime  @default(now())

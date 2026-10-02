@@ -12,7 +12,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full min-w-[680px] caption-bottom text-[13px] max-sm:has-[[data-slot=empty-state]]:min-w-0 max-sm:has-[[data-slot=empty-state]]:[&_thead]:hidden", className)}
+        className={cn("w-full min-w-[680px] caption-bottom text-sm max-sm:has-[[data-slot=empty-state]]:min-w-0 max-sm:has-[[data-slot=empty-state]]:[&_thead]:hidden", className)}
         {...props}
       />
     </div>
@@ -23,7 +23,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-muted/55 [&_tr]:border-b", className)}
+      className={cn("bg-muted/60 [&_tr]:border-b", className)}
       {...props}
     />
   )
@@ -70,7 +70,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-[0.025em] whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-10 px-4 text-left align-middle text-[13px] font-medium whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -83,7 +83,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "h-13 px-4 py-2.5 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "h-12 px-4 py-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

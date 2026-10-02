@@ -90,7 +90,7 @@ export default async function HelpDeskPage({
         eyebrow="Service client"
         title="Centre de support"
         description="Traitez les demandes prioritaires et suivez les engagements de réponse de votre équipe."
-        actions={<Button nativeButton={false} render={<Link href="/dashboard/operations?tab=sav&create=1" />}><Plus />Nouveau ticket</Button>}
+        actions={<Button demoMutation nativeButton={false} render={<Link href="/dashboard/operations?tab=sav&create=1" />}><Plus />Nouveau ticket</Button>}
       />
       <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
         <Metric

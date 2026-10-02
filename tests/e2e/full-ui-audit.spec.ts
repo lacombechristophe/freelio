@@ -21,13 +21,12 @@ type PageAudit = {
   unlabeledControls: string[]
 }
 
-async function staticDashboardRoutes() {
+async function dashboardRouteTemplates() {
   const root = path.join(process.cwd(), "src", "app", "dashboard")
   const entries = await readdir(root, { recursive: true })
 
   return entries
     .filter((entry) => entry === "page.tsx" || entry.endsWith(`${path.sep}page.tsx`))
-    .filter((entry) => !entry.includes("["))
     .map((entry) => {
       if (entry === "page.tsx") return "/dashboard"
       const segment = entry.replaceAll(path.sep, "/").replace(/\/page\.tsx$/, "")
@@ -38,6 +37,9 @@ async function staticDashboardRoutes() {
 
 async function settlePage(page: Page) {
   await page.locator("#dashboard-main").waitFor({ state: "visible", timeout: 30_000 })
+  // Screenshots hide the caret by mutating styles. Wait for hydration so that
+  // this test-only mutation cannot create a server/client attribute mismatch.
+  await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true", undefined, { timeout: 30_000 })
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined)
   await page.waitForFunction(
     () => document.title !== "Freelio - CRM pour piscinistes",
@@ -271,14 +273,22 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
   test.setTimeout(15 * 60_000)
 
   const mobile = testInfo.project.name === "mobile"
-  const artifactDirectory = path.join(process.cwd(), "test-results", "full-ui-audit", testInfo.project.name)
+  const focusedRoutes = process.env.E2E_UI_AUDIT_ROUTES?.split(",").map((route) => route.trim()).filter((route) => route.startsWith("/dashboard"))
+  const artifactDirectory = path.join(process.cwd(), "test-results", focusedRoutes?.length ? "focused-ui-audit" : "full-ui-audit", testInfo.project.name)
   await mkdir(artifactDirectory, { recursive: true })
 
   const findings: Finding[] = []
   const titles = new Map<string, string[]>()
-  const routes = await staticDashboardRoutes()
-  const queue = [...routes]
+  const templates = await dashboardRouteTemplates()
+  const routes = templates.filter((route) => !route.includes("["))
+  const dynamicTemplates = templates.filter((route) => route.includes("["))
+  const routeTemplate = (route: string) => routes.includes(route) ? route : dynamicTemplates.find((template) => {
+    const expression = template.split("/").map((segment) => segment.startsWith("[") ? "[^/]+" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("/")
+    return new RegExp(`^${expression}$`).test(route)
+  }) ?? route
+  const queue = focusedRoutes?.length ? [...focusedRoutes] : [...routes]
   const visited = new Set<string>()
+  const coveredTemplates = new Set<string>()
   const evidence: Array<{ route: string } & Awaited<ReturnType<typeof captureScrollablePage>>> = []
   let currentRoute = "/dashboard"
 
@@ -295,6 +305,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     const requestedRoute = queue.shift()
     if (!requestedRoute || visited.has(requestedRoute)) continue
     visited.add(requestedRoute)
+    coveredTemplates.add(routeTemplate(requestedRoute))
     currentRoute = requestedRoute
 
     const response = await page.goto(requestedRoute, { waitUntil: "domcontentloaded" })
@@ -350,7 +361,8 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
       return url.pathname
     }))
     for (const route of discoveredRoutes) {
-      if (!visited.has(route) && !queue.includes(route)) queue.push(route)
+      const template = routeTemplate(route)
+      if (!focusedRoutes?.length && !coveredTemplates.has(template) && !queue.some((queued) => routeTemplate(queued) === template)) queue.push(route)
     }
 
     const fileName = actualRoute.replace(/^\/dashboard\/?/, "").replaceAll("/", "--") || "overview"
@@ -375,6 +387,8 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     generatedAt: new Date().toISOString(),
     project: testInfo.project.name,
     routesAudited: [...visited],
+    templatesCovered: [...coveredTemplates],
+    templatesNotDiscovered: templates.filter((template) => !coveredTemplates.has(template)),
     evidence,
     summary: {
       P0: findings.filter((finding) => finding.severity === "P0").length,

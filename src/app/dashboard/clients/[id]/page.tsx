@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, Building2, MapPin } from "lucide-react"
+import { ArrowLeft, Building2, MapPin, Plus } from "lucide-react"
 import { getClientById } from "@/actions/clients"
 import { getRecordCrmProperties } from "@/actions/crm-properties"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { ClientWorkspace } from "./client-workspace"
 import { ClientPortalPanel } from "./client-portal-panel"
 import { RecordPropertiesPanel } from "@/components/crm/record-properties-panel"
 import { RecordSummary } from "@/components/shared/record-summary"
+import { RecordTabs } from "@/components/shared/record-tabs"
 import { INVOICE_STATUS_LABELS } from "@/lib/invoice-labels"
 
 function formatEuro(cents: number) {
@@ -34,7 +35,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link href="/dashboard/clients">
           <Button variant="ghost" size="icon" aria-label="Retour aux clients">
             <ArrowLeft className="h-4 w-4" />
@@ -43,7 +44,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="break-words text-2xl font-bold tracking-tight">{client.name}</h1>
-            <Badge variant="secondary" className="text-xs uppercase">
+            <Badge variant="secondary" className="text-xs">
               <Building2 className="h-3 w-3 mr-1" />
               {client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}
             </Badge>
@@ -54,6 +55,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </p>
           )}
         </div>
+        <Button demoMutation nativeButton={false} render={<Link href={`/dashboard/devis/new?clientId=${encodeURIComponent(client.id)}`} />} className="w-fit"><Plus />Créer un devis</Button>
       </div>
 
       <RecordSummary label="Synthèse du client" items={[
@@ -62,7 +64,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         { label: "Score relation", value: `${client.relationScore} %`, detail: <Link href="/dashboard/service/customer-success" className="inline-flex min-h-6 items-center font-medium text-primary hover:underline">Voir dans le portefeuille</Link> },
       ]} />
 
-      <ClientWorkspace
+      <RecordTabs sections={[
+        { id: "activity", label: "Activité et contacts", content: <>      <ClientWorkspace
         clientId={client.id}
         nextActionLabel={client.nextActionLabel}
         nextActionAt={client.nextActionAt?.toISOString() ?? null}
@@ -90,70 +93,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         }))}
       />
 
-      {crmProperties ? <RecordPropertiesPanel objectType="CLIENT" recordId={client.id} data={crmProperties} /> : null}
-
-      <ClientPortalPanel
-        clientId={client.id}
-        contacts={client.contacts.map((contact) => ({
-          id: contact.id,
-          firstName: contact.firstName,
-          lastName: contact.lastName,
-          email: contact.email,
-        }))}
-        accesses={client.portalAccesses.map((access) => ({
-          ...access,
-          expiresAt: access.expiresAt.toISOString(),
-          lastUsedAt: access.lastUsedAt?.toISOString() ?? null,
-          revokedAt: access.revokedAt?.toISOString() ?? null,
-          createdAt: access.createdAt.toISOString(),
-        }))}
-        messages={client.portalMessages.map((message) => ({
-          ...message,
-          readAt: message.readAt?.toISOString() ?? null,
-          createdAt: message.createdAt.toISOString(),
-        }))}
-        appointments={client.portalAppointmentRequests.map((appointment) => ({
-          ...appointment,
-          preferredStart: appointment.preferredStart.toISOString(),
-          alternativeStart: appointment.alternativeStart?.toISOString() ?? null,
-          createdAt: appointment.createdAt.toISOString(),
-          updatedAt: appointment.updatedAt.toISOString(),
-        }))}
-      />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Projets ({client.projects.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {client.projects.length === 0 ? (
-            <p className="py-3 text-sm text-muted-foreground">Aucun projet relié à ce client.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Budget</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {client.projects.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{p.status}</Badge>
-                    </TableCell>
-                    <TableCell>{formatEuro(p.budgetCents)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
+</> },
+        { id: "documents", label: "Documents", content: <>      <Card>
         <CardHeader>
           <CardTitle className="text-sm">Devis récents ({client.quotes.length})</CardTitle>
         </CardHeader>
@@ -228,6 +169,74 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           )}
         </CardContent>
       </Card>
+</> },
+        { id: "projects", label: "Chantiers", content: <>      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Projets ({client.projects.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {client.projects.length === 0 ? (
+            <p className="py-3 text-sm text-muted-foreground">Aucun projet relié à ce client.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Budget</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {client.projects.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{p.status}</Badge>
+                    </TableCell>
+                    <TableCell>{formatEuro(p.budgetCents)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+</> },
+        { id: "information", label: "Informations", content: <>      {crmProperties ? <RecordPropertiesPanel objectType="CLIENT" recordId={client.id} data={crmProperties} /> : null}
+
+</> },
+        { id: "portal", label: "Portail client", content: <>      <ClientPortalPanel
+        clientId={client.id}
+        contacts={client.contacts.map((contact) => ({
+          id: contact.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email,
+        }))}
+        accesses={client.portalAccesses.map((access) => ({
+          ...access,
+          expiresAt: access.expiresAt.toISOString(),
+          lastUsedAt: access.lastUsedAt?.toISOString() ?? null,
+          revokedAt: access.revokedAt?.toISOString() ?? null,
+          createdAt: access.createdAt.toISOString(),
+        }))}
+        messages={client.portalMessages.map((message) => ({
+          ...message,
+          readAt: message.readAt?.toISOString() ?? null,
+          createdAt: message.createdAt.toISOString(),
+        }))}
+        appointments={client.portalAppointmentRequests.map((appointment) => ({
+          ...appointment,
+          preferredStart: appointment.preferredStart.toISOString(),
+          alternativeStart: appointment.alternativeStart?.toISOString() ?? null,
+          createdAt: appointment.createdAt.toISOString(),
+          updatedAt: appointment.updatedAt.toISOString(),
+        }))}
+      />
+
+</> },
+      ]} />
     </div>
   )
 }

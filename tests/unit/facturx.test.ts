@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+vi.mock("server-only", () => ({}))
 import { PDFDocument } from "pdf-lib"
 import { extractFacturX } from "@attestwire/en16931"
 
@@ -30,6 +31,15 @@ const invoice = {
 }
 
 describe("Factur-X CII", () => {
+  it("emits a credit note as type 381 with consistent positive XML amounts", () => {
+    const xml = generateFacturX({
+      ...invoice, type: "CREDIT_NOTE",
+      lines: invoice.lines.map(line => ({ ...line, unitPriceCents: -line.unitPriceCents, totalHtCents: -line.totalHtCents })),
+      totalHtCents: -invoice.totalHtCents, totalTvaCents: -invoice.totalTvaCents, totalTtcCents: -invoice.totalTtcCents,
+    })
+    expect(xml).toContain("<ram:TypeCode>381</ram:TypeCode>")
+    expect(validateFacturXXml(xml).valid).toBe(true)
+  })
   it("generates a valid EN 16931 CII payload for mixed VAT lines", () => {
     const xml = generateFacturX(invoice)
     const validation = validateFacturXXml(xml)
@@ -71,5 +81,9 @@ describe("Factur-X CII", () => {
     expect(extracted.attachmentName).toBe("factur-x.xml")
     expect(extracted.xml).toContain("CrossIndustryInvoice")
     expect(extracted.warnings).not.toContain(expect.stringContaining("AFRelationship"))
+  })
+
+  it("rejects failed embedding instead of returning an unstructured file as success", async () => {
+    await expect(embedFacturX(Buffer.from("not a PDF"), generateFacturX(invoice))).rejects.toThrow(/Factur-X/)
   })
 })

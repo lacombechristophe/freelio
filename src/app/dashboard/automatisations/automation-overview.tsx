@@ -33,7 +33,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
     { label: "Fournisseur d’e-mail", ready: data.readiness.emailProviderConfigured, detail: data.readiness.channel?.emailAddress || (data.readiness.emailProviderConfigured ? "Envoi plateforme configuré" : "Aucune messagerie d’envoi active"), actionLabel: "Configurer", href: "/dashboard/communications?tab=integrations" },
     { label: "Traitement automatique", ready: data.readiness.processorConfigured, detail: data.readiness.processorConfigured ? `Dernier passage réussi ${formatAutomationDate(data.readiness.processor?.lastSucceededAt ?? null)}` : data.readiness.processor?.lastError ? `Dernier échec : ${data.readiness.processor.lastError}` : "Aucun passage automatique récent détecté", actionLabel: "Tester", onAction: () => run(async () => processSequenceEmailsNow(), "Test du moteur terminé.") },
     { label: "Contenu prêt", ready: data.templates.length > 0 && data.sequences.some((item) => item.steps.length > 0), detail: `${data.templates.length} modèle(s), ${data.sequences.reduce((sum, item) => sum + item.steps.length, 0)} étape(s) configurée(s)`, actionLabel: data.templates.length ? "Séquences" : "Créer un modèle", tab: data.templates.length ? "sequences" : "templates" },
-    { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active", actionLabel: "Workflows", tab: "workflows" },
+    { label: "Règles publiées", ready: activeWorkflows > 0, detail: activeWorkflows ? `${activeWorkflows} règle(s) active(s)` : "Aucune règle active", actionLabel: "Scénarios", tab: "workflows" },
   ]
   const readinessReadyCount = readiness.filter((item) => item.ready).length
 
@@ -49,7 +49,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
     <section className="workspace-panel flex flex-col gap-4 rounded-xl border bg-card px-4 py-4 sm:flex-row sm:items-center sm:px-5">
       <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/9 text-primary"><LibraryBig className="size-5" /></span>
       <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">Bibliothèque de démarrage pisciniste</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Installe 3 modèles d’e-mail, 2 séquences et 5 règles métier en brouillon. L’équipe relit, simule et publie chaque scénario séparément.</p></div>
-      <Button variant="outline" disabled={pending} onClick={() => run(() => installPoolAutomationPresets(), "Brouillons métier disponibles dans les studios.")}><LibraryBig />Installer ou compléter</Button>
+      <Button demoMutation variant="outline" disabled={pending} onClick={() => run(() => installPoolAutomationPresets(), "Brouillons métier disponibles dans les studios.")}><LibraryBig />Installer ou compléter</Button>
     </section>
 
     {data.sequences.length > 0 && <Card className="workspace-panel">

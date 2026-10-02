@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ArrowLeft, CheckCircle2, Circle, FileText, ReceiptText, Save, UserRound } from "lucide-react"
+import { FormError } from "@/components/shared/form-error"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,7 @@ export function InvoiceForm({
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
+  const [formError, setFormError] = React.useState("")
   const [clientId, setClientId] = React.useState(invoice?.clientId ?? "")
   const [object, setObject] = React.useState(invoice?.object ?? "")
   const defaultDue = new Date()
@@ -65,9 +67,11 @@ export function InvoiceForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (pending) return
+    setFormError("")
     const submittedLines = lines.map((line) => (isTvaApplicable ? line : { ...line, tvaRate: 0 }))
-    if (!clientId) return toast.error("Sélectionnez un client.")
-    if (!submittedLines.every((l) => l.label.trim())) return toast.error("Chaque ligne doit avoir un libellé.")
+    if (!clientId) return setFormError("Sélectionnez un client avant d’enregistrer le document.")
+    if (submittedLines.length === 0 || !submittedLines.every((l) => l.label.trim())) return setFormError("Renseignez le libellé de chaque prestation avant d’enregistrer.")
     setPending(true)
     try {
       const payload = {
@@ -89,8 +93,8 @@ export function InvoiceForm({
         toast.success("Facture créée.")
         router.push(`/dashboard/factures/${created.id}`)
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Erreur.")
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Impossible d’enregistrer. Vos modifications sont conservées ; réessayez.")
     } finally {
       setPending(false)
     }
@@ -98,7 +102,7 @@ export function InvoiceForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-xl border border-border/80 bg-background/95 p-2 shadow-sm backdrop-blur-sm">
+      <div className="sticky top-2 z-20 flex items-center gap-2 rounded-lg border border-border/80 bg-background p-2">
         <Link href="/dashboard/factures">
           <Button type="button" variant="ghost" size="icon" aria-label="Retour aux factures"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
@@ -113,8 +117,9 @@ export function InvoiceForm({
         </div>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-5">
+      <FormError message={formError} />
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-5">
           <Card className="workspace-panel">
             <CardHeader className="border-b"><div className="flex items-start gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-muted/40 text-xs font-semibold">01</span><div><CardTitle className="flex items-center gap-2 text-sm"><UserRound className="size-4 text-primary" />Destinataire et émission</CardTitle><p className="mt-1 text-xs leading-5 text-muted-foreground">Les coordonnées légales et les conditions de règlement seront reprises sur le PDF.</p></div></div></CardHeader>
             <CardContent className="space-y-4 p-5">
@@ -134,13 +139,13 @@ export function InvoiceForm({
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-24">
-          <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-center gap-2"><ReceiptText className="size-4 text-primary" /><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Synthèse</p></div>
+          <section className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-center gap-2"><ReceiptText className="size-4 text-primary" /><p className="text-xs font-semibold tracking-normal text-muted-foreground">Synthèse</p></div>
             <div className="mt-4 space-y-3 border-b border-border pb-4 text-sm"><div><p className="text-xs text-muted-foreground">Client</p><p className="mt-0.5 truncate font-medium">{selectedClient?.name ?? "À sélectionner"}</p></div><div><p className="text-xs text-muted-foreground">Objet</p><p className="mt-0.5 line-clamp-2 font-medium">{object.trim() || "À renseigner"}</p></div></div>
             <div className="space-y-2 py-4"><div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">Total HT</span><span className="font-medium tabular-nums">{formatEuro(totals.totalHtCents)}</span></div><div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TVA</span><span className="font-medium tabular-nums">{formatEuro(totals.totalTvaCents)}</span></div><div className="flex items-end justify-between border-t border-border pt-3"><span className="font-semibold">Total TTC</span><span className="text-xl font-semibold tabular-nums">{formatEuro(totals.totalTtcCents)}</span></div></div>
             <Button type="submit" disabled={pending} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : invoice ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
           </section>
-          <section className="rounded-xl border border-border bg-background p-4"><p className="text-sm font-semibold">Contrôle avant émission</p><div className="mt-3 space-y-2.5">{readiness.map((item) => <div key={item.label} className="flex items-center gap-2 text-xs"><span className={item.ready ? "text-success" : "text-muted-foreground"}>{item.ready ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />}</span><span className={item.ready ? "text-foreground" : "text-muted-foreground"}>{item.label}</span></div>)}</div><p className="mt-4 border-t border-border pt-3 text-[11px] leading-5 text-muted-foreground">Le brouillon reste modifiable. La numérotation définitive et les contrôles Factur-X s’appliquent au moment de l’émission.</p></section>
+          <section className="rounded-lg border border-border bg-background p-4"><p className="text-sm font-semibold">Contrôle avant émission</p><div className="mt-3 space-y-2.5">{readiness.map((item) => <div key={item.label} className="flex items-center gap-2 text-xs"><span className={item.ready ? "text-success" : "text-muted-foreground"}>{item.ready ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />}</span><span className={item.ready ? "text-foreground" : "text-muted-foreground"}>{item.label}</span></div>)}</div><p className="mt-4 border-t border-border pt-3 text-[11px] leading-5 text-muted-foreground">Le brouillon reste modifiable. La numérotation définitive et les contrôles Factur-X s’appliquent au moment de l’émission.</p></section>
         </aside>
       </div>
     </form>

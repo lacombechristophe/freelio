@@ -80,7 +80,7 @@ export default async function OpportunityDetailPage({
             size="icon"
             nativeButton={false}
             render={<Link href="/dashboard/pipeline" />}
-            aria-label="Retour au pipeline"
+            aria-label="Retour au cycle de vente"
           >
             <ArrowLeft />
           </Button>
@@ -120,7 +120,7 @@ export default async function OpportunityDetailPage({
         </Button>
       </header>
 
-      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
+      <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-lg border bg-card sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           icon={CircleDollarSign}
           label="Montant"
@@ -165,7 +165,7 @@ export default async function OpportunityDetailPage({
       ) : null}
 
       {opportunity.status === "LOST" && opportunity.lostReason ? (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
           <p className="text-xs font-semibold text-destructive">
             Motif de perte
           </p>
@@ -226,7 +226,7 @@ export default async function OpportunityDetailPage({
             </CardHeader>
             <CardContent className="space-y-5">
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="mb-2 text-xs font-semibold tracking-normal text-muted-foreground">
                   Devis récents
                 </p>
                 {opportunity.client.quotes.length ? (
@@ -260,7 +260,7 @@ export default async function OpportunityDetailPage({
                 )}
               </div>
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="mb-2 text-xs font-semibold tracking-normal text-muted-foreground">
                   Chantiers
                 </p>
                 {opportunity.client.projects.length ? (

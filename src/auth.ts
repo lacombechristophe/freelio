@@ -11,6 +11,8 @@ import { verifyPassword } from "@/lib/auth/password"
 import { verifyAndConsumeSecondFactor } from "@/lib/auth/mfa"
 import { authRateLimit } from "@/lib/rate-limit"
 import logger from "@/lib/logger"
+import { DEMO_ACCOUNT_EMAIL, isDemoMode } from "@/lib/demo-mode"
+import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 
 const emailFrom = process.env.EMAIL_FROM?.trim() || "CRM <noreply@example.invalid>"
 const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true" && process.env.E2E_ENABLE_CREDENTIALS_AUTH === "true" && Boolean(process.env.E2E_USER_EMAIL)
@@ -18,7 +20,7 @@ const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true" && process.env.E
 // The production server is used by CI to avoid flaky cold compilation. This
 // provider is impossible to enable outside CI and only accepts the seeded QA address.
 export const credentialsAuthEnabled = process.env.NODE_ENV === "development" || ciCredentialsAuth
-export const magicLinkAuthEnabled = Boolean(process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim())
+export const magicLinkAuthEnabled = !isPublicReadOnlyDemo() && Boolean(process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim())
 
 function requestAddress(request: Request) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "unknown"
@@ -89,6 +91,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = String(credentials.email).trim().toLowerCase()
         const password = typeof credentials.password === "string" ? credentials.password : ""
         const mfaCode = typeof credentials.mfaCode === "string" ? credentials.mfaCode : ""
+        if ((isDemoMode || isPublicReadOnlyDemo()) && (!password || email !== DEMO_ACCOUNT_EMAIL)) return null
         if (ciCredentialsAuth && !password && email !== process.env.E2E_USER_EMAIL?.toLowerCase()) return null
 
         try {

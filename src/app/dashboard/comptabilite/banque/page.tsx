@@ -11,7 +11,7 @@ export default async function BankingPage() {
     return (
       <OnboardingRequired
         title="Configurez le rapprochement bancaire"
-        description="Terminez l’onboarding avant d’importer et de rapprocher vos transactions."
+        description="Terminez la configuration initiale avant d’importer et de rapprocher vos transactions."
       />
     )
   }

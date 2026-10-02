@@ -1,42 +1,41 @@
 /**
- * BullMQ Worker — Document Generation & Email Queue Processor
+ * BullMQ document worker and periodic business processors
  *
  * Run separately from the Next.js app:
- *   npx tsx src/worker.ts
- *   (or: npm run worker)
+ *   npm run worker
  *
- * Requires Redis running on REDIS_HOST:REDIS_PORT (default: localhost:6379)
+ * Requires REDIS_URL or explicit REDIS_HOST in production.
  */
 import { docGenWorker } from "@/lib/bullmq/worker"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
 import { syncDueOAuthCommunicationChannels } from "@/lib/communications/communication-sync"
 import { withProcessorLease } from "@/lib/processing/lease"
+import { periodicProcessor } from "@/lib/processing/periodic"
+import prisma from "@/lib/prisma"
+import { publicDemoConfigurationIssues } from "@/lib/demo-configuration"
+
+// Public read-only deployments must never start background mutations.
+if (process.env.DEMO_ACCESS_MODE === "readonly" || process.env.NEXT_PUBLIC_DEMO_READ_ONLY === "true") throw new Error("Le worker est interdit dans la démonstration publique")
+const configurationIssues = publicDemoConfigurationIssues()
+if (configurationIssues.length) throw new Error(`Configuration invalide : ${configurationIssues.join(", ")}`)
 
 console.log("[Worker] Starting BullMQ workers...")
-console.log(`[Worker] Redis: ${process.env.REDIS_HOST ?? "localhost"}:${process.env.REDIS_PORT ?? "6379"}`)
+console.log("[Worker] Redis connection configured; credentials are never printed.")
 
-let automationRunning = false
 const processAutomations = async () => {
-  if (automationRunning) return
-  automationRunning = true
   try {
     const result = await processDueSequenceEmails(100)
     if (result.examined) console.log(`[Worker] Sequences: ${result.sent} email(s), ${result.tasksCreated} task(s), ${result.tasksWaiting} waiting, ${result.failed} failed, ${result.stopped} stopped.`)
   } catch (error) {
     console.error(`[Worker] Sequence processing failed: ${error instanceof Error ? error.message : "unknown error"}`)
-  } finally {
-    automationRunning = false
   }
 }
-const automationInterval = setInterval(() => { void processAutomations() }, 60_000)
-void processAutomations()
+const automationProcessor = periodicProcessor(processAutomations, 60_000)
+void automationProcessor.run()
 if (!process.env.RESEND_API_KEY) console.log("[Worker] Automatic email steps will retry until RESEND_API_KEY is configured; manual sequence tasks remain active.")
 
-let schedulingRunning = false
 const processScheduling = async () => {
-  if (schedulingRunning) return
-  schedulingRunning = true
   try {
     const lease = await withProcessorLease("business-scheduling", processScheduledBusinessJobs)
     if (!lease.acquired) return
@@ -45,17 +44,12 @@ const processScheduling = async () => {
     if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s).`)
   } catch (error) {
     console.error(`[Worker] Business scheduling failed: ${error instanceof Error ? error.message : "unknown error"}`)
-  } finally {
-    schedulingRunning = false
   }
 }
-const schedulingInterval = setInterval(() => { void processScheduling() }, 5 * 60_000)
-void processScheduling()
+const schedulingProcessor = periodicProcessor(processScheduling, 5 * 60_000)
+void schedulingProcessor.run()
 
-let communicationSyncRunning = false
 const processCommunicationSync = async () => {
-  if (communicationSyncRunning) return
-  communicationSyncRunning = true
   try {
     const lease = await withProcessorLease("communication-sync", () => syncDueOAuthCommunicationChannels(10))
     if (!lease.acquired) return
@@ -63,29 +57,32 @@ const processCommunicationSync = async () => {
     if (result.messagesImported || result.calendarEventsImported || result.failed) console.log(`[Worker] Communication sync: ${result.messagesImported} message(s), ${result.calendarEventsImported} événement(s), ${result.failed} échec(s).`)
   } catch (error) {
     console.error(`[Worker] Mail sync failed: ${error instanceof Error ? error.message : "unknown error"}`)
-  } finally {
-    communicationSyncRunning = false
   }
 }
-const communicationSyncInterval = setInterval(() => { void processCommunicationSync() }, 5 * 60_000)
-void processCommunicationSync()
+const communicationSyncProcessor = periodicProcessor(processCommunicationSync, 5 * 60_000)
+void communicationSyncProcessor.run()
 
-process.on("SIGTERM", async () => {
-  console.log("[Worker] SIGTERM received, closing workers...")
-  if (automationInterval) clearInterval(automationInterval)
-  clearInterval(schedulingInterval)
-  clearInterval(communicationSyncInterval)
-  await docGenWorker.close()
-  process.exit(0)
-})
-
-process.on("SIGINT", async () => {
-  console.log("[Worker] SIGINT received, closing workers...")
-  if (automationInterval) clearInterval(automationInterval)
-  clearInterval(schedulingInterval)
-  clearInterval(communicationSyncInterval)
-  await docGenWorker.close()
-  process.exit(0)
-})
+let closing = false
+async function shutdown(signal: string) {
+  if (closing) return
+  closing = true
+  console.log(`[Worker] ${signal} received; draining in-flight processors...`)
+  const deadline = setTimeout(() => {
+    console.error("[Worker] Graceful shutdown exceeded 30 seconds; supervisor recovery is required.")
+    process.exit(1)
+  }, 30_000)
+  deadline.unref()
+  try {
+    await Promise.all([docGenWorker.close(), automationProcessor.stop(), schedulingProcessor.stop(), communicationSyncProcessor.stop()])
+    await prisma.$disconnect()
+    clearTimeout(deadline)
+    process.exit(0)
+  } catch {
+    console.error("[Worker] Graceful shutdown failed.")
+    process.exit(1)
+  }
+}
+process.on("SIGTERM", () => { void shutdown("SIGTERM") })
+process.on("SIGINT", () => { void shutdown("SIGINT") })
 
 console.log("[Worker] Document, email, calendar and business scheduling processors are ready.")

@@ -6,6 +6,7 @@ import { generateFacturX } from "@/lib/pdf/facturx"
 import { parsePdfRenderOptions, renderDocumentHtml } from "@/lib/pdf/render"
 import { logAction } from "@/lib/audit"
 import { decryptSensitive } from "@/lib/crypto"
+import { isIssuedInvoice, readIssuedInvoice } from "@/lib/finance/issued-invoice"
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   return withRouteAuth("finance.read", async ({ userId, companyId }) => {
@@ -24,6 +25,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const url = new URL(req.url)
+    if (isIssuedInvoice(invoice)) {
+      try {
+        const archive = await readIssuedInvoice(invoice)
+        const screen = url.searchParams.get("screen") === "1"
+        return new NextResponse(screen ? archive.html : new Uint8Array(archive.pdf), {
+          headers: {
+            "Content-Type": screen ? "text/html; charset=utf-8" : "application/pdf",
+            ...(!screen ? { "Content-Disposition": `inline; filename="${invoice.number}.pdf"` } : {}),
+            "Cache-Control": "private, no-store",
+          },
+        })
+      } catch {
+        return NextResponse.json({ error: "L’archive de cette facture émise est absente ou invalide. Une récupération contrôlée est nécessaire ; le document n’a pas été régénéré." }, { status: 409 })
+      }
+    }
     const renderOptions = parsePdfRenderOptions(url.searchParams, invoice.company.pdfTemplate)
 
     const html = renderDocumentHtml(
@@ -85,6 +101,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     // Generate and embed Factur-X XML metadata
     try {
       const xml = generateFacturX({
+        type: invoice.type === "CREDIT_NOTE" ? "CREDIT_NOTE" : "STANDARD",
         number: invoice.number,
         date: invoice.date.toISOString().split("T")[0],
         seller: {
@@ -112,8 +129,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       })
       const buffer = await embedFacturX(Buffer.from(pdf), xml)
       pdf = new Uint8Array(buffer)
-    } catch (err) {
-      console.error("Failed to generate/embed Factur-X XML:", err)
+    } catch {
+      console.error("Invoice structured PDF assembly failed", { invoiceId: invoice.id })
+      return NextResponse.json({
+        error: "Impossible de produire le PDF avec son XML Factur-X. Aucun fichier n’a été délivré. Vérifiez les données de facturation ou contactez le support.",
+      }, { status: 500 })
     }
 
     await logAction({

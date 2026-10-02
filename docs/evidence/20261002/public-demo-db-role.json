@@ -1,0 +1,12 @@
+{
+  "completedAt": "2026-10-01T16:39:45.417Z",
+  "checks": [
+    "SELECT allowed; superuser, createdb, createrole, replication and bypassrls disabled",
+    "UPDATE refused by PostgreSQL (42501)",
+    "DELETE refused by PostgreSQL (42501)",
+    "INSERT refused by PostgreSQL (42501)",
+    "DELETE refused by PostgreSQL (42501)",
+    "CREATE refused by PostgreSQL (42501)",
+    "Audit event append permitted"
+  ]
+}

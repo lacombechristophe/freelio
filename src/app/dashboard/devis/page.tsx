@@ -1,15 +1,16 @@
-import { getQuotes } from "@/actions/devis"
+import { getQuoteDirectory } from "@/actions/directories"
+import { parseDirectoryQuery } from "@/lib/directory-query"
 import { getSavedViews } from "@/actions/views"
 import { DevisTable } from "./devis-table"
-import { PageHeader } from "@/components/shared/page-header"
 
-export default async function DevisPage() {
-  const [quotes, views] = await Promise.all([getQuotes(), getSavedViews("QUOTES")])
+export default async function DevisPage({ searchParams }: PageProps<"/dashboard/devis">) {
+  const params = await searchParams
+  const query = parseDirectoryQuery(typeof params.view === "string" ? params.view : null)
+  const [data, views] = await Promise.all([getQuoteDirectory(query), getSavedViews("QUOTES")])
 
   return (
     <div className="workspace-page">
-      <PageHeader className="workspace-page-header" eyebrow="Vente" title="Devis" description="Préparez vos propositions, suivez leur statut et transformez les accords en factures sans ressaisie." />
-      <DevisTable quotes={quotes ?? []} savedViews={views ?? []} />
+      <DevisTable quotes={data.rows} savedViews={views ?? []} initial={{ data, query }} />
     </div>
   )
 }

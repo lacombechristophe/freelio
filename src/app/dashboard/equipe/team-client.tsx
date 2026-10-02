@@ -159,7 +159,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
                   <span className="w-full text-sm text-muted-foreground lg:w-48">{ROLE_LABELS[member.role]}</span>
                 )}
                 <MemberWorkSettings memberId={member.id} minutes={member.weeklyCapacityMinutes} hourlyCostCents={member.hourlyCostCents} disabled={isPending || member.status !== "ACTIVE" || !actorCanEdit} onPending={(operation) => startTransition(operation)} />
-                <Button
+                <Button demoMutation
                   variant="ghost"
                   size="sm"
                   disabled={isPending || member.status !== "ACTIVE" || !actorCanEdit}
@@ -225,7 +225,7 @@ function ServiceRoutingSettings({ member, disabled, onPending }: { member: TeamD
         <div className="space-y-1.5"><Label htmlFor={`service-capacity-${member.id}`}>Capacité tickets</Label><Input id={`service-capacity-${member.id}`} type="number" min="1" max="500" value={capacity} disabled={disabled} onChange={(event) => setCapacity(event.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor={`service-skills-${member.id}`}>Compétences</Label><Input id={`service-skills-${member.id}`} value={skills} disabled={disabled} onChange={(event) => setSkills(event.target.value)} placeholder="SAV, pompe, couverture" /></div>
         <div className="space-y-1.5"><Label htmlFor={`service-territories-${member.id}`}>Zones</Label><Input id={`service-territories-${member.id}`} value={territories} disabled={disabled} onChange={(event) => setTerritories(event.target.value)} placeholder="Nantes, Loire-Atlantique" /></div>
-        <Button type="button" variant="outline" disabled={disabled || !capacity} onClick={() => onPending(async () => { const result = await updateTeamMemberServiceSettings(member.id, { available, ticketCapacity: Number(capacity), skills: list(skills), territories: list(territories) }); if (result?.success) toast.success("Routage SAV mis à jour."); else toast.error(result?.error || "Modification impossible.") })}><Save />Enregistrer</Button>
+        <Button demoMutation type="button" variant="outline" disabled={disabled || !capacity} onClick={() => onPending(async () => { const result = await updateTeamMemberServiceSettings(member.id, { available, ticketCapacity: Number(capacity), skills: list(skills), territories: list(territories) }); if (result?.success) toast.success("Routage SAV mis à jour."); else toast.error(result?.error || "Modification impossible.") })}><Save />Enregistrer</Button>
       </div>
     </details>
   )

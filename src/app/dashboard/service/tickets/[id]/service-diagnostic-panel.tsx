@@ -67,7 +67,7 @@ export function ServiceDiagnosticPanel({ ticket, readOnly }: { ticket: Ticket; r
       </div>
     </CardHeader>
     <CardContent className="space-y-5">
-      {!readOnly && ticket.diagnosticGuides.length > 0 && <form className="space-y-4 rounded-xl border p-4" onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget) }}>
+      {!readOnly && ticket.diagnosticGuides.length > 0 && <form className="space-y-4 rounded-lg border p-4" onSubmit={(event) => { event.preventDefault(); submit(event.currentTarget) }}>
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <div className="flex items-center justify-between gap-2">
@@ -99,7 +99,7 @@ export function ServiceDiagnosticPanel({ ticket, readOnly }: { ticket: Ticket; r
           </div>
           {warrantyInstruction && <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs leading-5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100"><span className="font-semibold">Consigne {warrantyLabels[warrantyStatus].toLocaleLowerCase("fr-FR")} :</span> {warrantyInstruction}</div>}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Points de contrôle</p>
+            <p className="text-xs font-semibold tracking-normal text-muted-foreground">Points de contrôle</p>
             {guide.steps.map((step) => <label key={step.id} className="flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-sm hover:bg-muted/20">
               <input type="checkbox" name="completedStepIds" value={step.id} required={step.required} className="mt-0.5 size-4 accent-primary" />
               <span className="min-w-0 flex-1">{step.label}</span>
@@ -126,7 +126,7 @@ export function ServiceDiagnosticPanel({ ticket, readOnly }: { ticket: Ticket; r
         </>}
       </form>}
 
-      {!readOnly && ticket.diagnosticGuides.length === 0 && <div className="rounded-xl border border-dashed p-5 text-center">
+      {!readOnly && ticket.diagnosticGuides.length === 0 && <div className="rounded-lg border border-dashed p-5 text-center">
         <ShieldAlert className="mx-auto size-5 text-muted-foreground" />
         <p className="mt-2 text-sm font-medium">Aucun guide actif</p>
         <p className="mt-1 text-xs text-muted-foreground">Créez un premier playbook à partir des pannes les plus fréquentes.</p>

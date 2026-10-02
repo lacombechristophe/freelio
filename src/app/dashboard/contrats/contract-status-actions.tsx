@@ -86,7 +86,7 @@ export function ContractStatusActions({ contractId, status }: { contractId: stri
           {status !== "SIGNED" && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleDelete} className="gap-2 text-danger">
+              <DropdownMenuItem demoMutation onClick={handleDelete} className="gap-2 text-danger">
                 <Trash2 className="h-4 w-4" /> Supprimer
               </DropdownMenuItem>
             </>

@@ -11,6 +11,7 @@ import {
  * 16931 adapter is the only place where euros are emitted.
  */
 export interface FacturXData {
+  type?: "STANDARD" | "CREDIT_NOTE"
   number: string
   date: string
   seller: {
@@ -83,12 +84,14 @@ function taxCategory(rate: number) {
  * allowed to be embedded in a PDF.
  */
 export function generateFacturX(data: FacturXData) {
+  const credit = data.type === "CREDIT_NOTE"
+  const amount = (value: number) => credit ? Math.abs(value) : value
   const input = {
     profile: "facturx-en16931" as const,
     invoiceNumber: data.number,
     issueDate: data.date,
     currency: "EUR",
-    invoiceTypeCode: "380",
+    invoiceTypeCode: credit ? "381" : "380",
     seller: {
       name: data.seller.name,
       legalRegistrationId: data.seller.siret || undefined,
@@ -106,16 +109,16 @@ export function generateFacturX(data: FacturXData) {
       description: line.label,
       quantity: line.quantity,
       unitCode: "C62",
-      unitPrice: line.unitPriceCents / 100,
+      unitPrice: amount(line.unitPriceCents) / 100,
       vatCategory: taxCategory(line.tvaRate),
       vatRate: line.tvaRate > 0 ? line.tvaRate : undefined,
     })),
     declaredTotals: {
-      lineExtensionAmount: data.totalHtCents / 100,
-      taxExclusiveAmount: data.totalHtCents / 100,
-      taxAmount: data.totalTvaCents / 100,
-      taxInclusiveAmount: data.totalTtcCents / 100,
-      payableAmount: data.totalTtcCents / 100,
+      lineExtensionAmount: amount(data.totalHtCents) / 100,
+      taxExclusiveAmount: amount(data.totalHtCents) / 100,
+      taxAmount: amount(data.totalTvaCents) / 100,
+      taxInclusiveAmount: amount(data.totalTtcCents) / 100,
+      payableAmount: amount(data.totalTtcCents) / 100,
     },
     vatExemptionReasons: { E: "Franchise en base de TVA – article 293 B du CGI" },
   }

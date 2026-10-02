@@ -1,0 +1,18 @@
+{
+  "schema": "freelio.readonly-recipe.v1",
+  "startedAt": "2026-10-02T16:57:01.724Z",
+  "baseURL": "http://127.0.0.1:55177",
+  "viewport": "desktop-1440",
+  "checks": [
+    "Hidden, mutation and unknown entry points return 403 before authentication",
+    "Public entry opens the demo; registration, reset and email login are disabled",
+    "Production password login and read-only notice",
+    "Client, quote, invoice and expense mutation commands disabled",
+    "Authenticated quote PDF remains available",
+    "Server read action filters still work",
+    "Authenticated uploads and billing denied",
+    "Logout remains available"
+  ],
+  "pageErrors": [],
+  "externalRequestsBlocked": 0
+}

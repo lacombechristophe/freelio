@@ -13,6 +13,7 @@ import { AppBrand, type WorkspaceBrand } from "@/components/shared/app-brand"
 import { AppPageTransition } from "./app-page-transition"
 import { QuickCreateMenu } from "./quick-create-menu"
 import { RouteDocumentTitle } from "./route-document-title"
+import { DEMO_NOTICE, isDemoMode } from "@/lib/demo-mode"
 
 interface ShellProps {
   children: React.ReactNode
@@ -50,7 +51,7 @@ export async function Shell({ children, brand }: ShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="relative z-40 flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-border/90 bg-card/95 px-3 shadow-[0_1px_2px_rgba(13,36,66,0.035)] backdrop-blur-xl sm:px-5 lg:px-6">
+        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-5 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <MobileSidebar brand={brand} />
             <AppBrand brand={brand} className="lg:hidden" />
@@ -69,13 +70,14 @@ export async function Shell({ children, brand }: ShellProps) {
             <Link href="/dashboard/help" aria-label="Ouvrir l’aide" title="Aide" className="hidden size-9 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted md:grid">
               <CircleHelp className="size-[17px]" />
             </Link>
-            <div className="hidden 2xl:block"><ThemeToggle /></div>
+            <div className="hidden sm:block"><ThemeToggle /></div>
             <UserMenu email={session?.user?.email} name={session?.user?.name} companyName={brand.name} />
           </div>
         </header>
 
-        <main id="dashboard-main" className="relative flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-5">
-          <div className="mx-auto w-full max-w-[1520px]">
+        <main id="dashboard-main" className="relative flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
+          <div className="mx-auto w-full max-w-[1680px]">
+            {isDemoMode ? <p className="mb-3 text-xs text-muted-foreground">{DEMO_NOTICE}</p> : null}
             <AppPageTransition>{children}</AppPageTransition>
           </div>
         </main>

@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   experimental: { sri: { algorithm: "sha384" } },
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["@prisma/client"],
+  outputFileTracingIncludes: {
+    "/api/pdf/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/api/portal/documents/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/dashboard/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   async headers() {
     return [
       {
@@ -45,6 +50,15 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+        ],
+      },
+      // The authenticated Studio embeds an archived invoice from this origin.
+      // Other pages keep DENY; embedding from another origin stays forbidden.
+      {
+        source: "/api/pdf/facture/:id",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'" },
         ],
       },
     ]

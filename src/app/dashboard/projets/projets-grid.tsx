@@ -133,11 +133,11 @@ export function ProjetsGrid({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => router.push(`/dashboard/projets/${project.id}`)}>Ouvrir le chantier</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setEditTarget(project)}>Modifier</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`/dashboard/temps?project=${project.id}`)}>Ajouter du temps</DropdownMenuItem>
+          <DropdownMenuItem demoMutation onClick={() => setEditTarget(project)}>Modifier</DropdownMenuItem>
+          <DropdownMenuItem demoMutation onClick={() => router.push(`/dashboard/temps?project=${project.id}`)}>Ajouter du temps</DropdownMenuItem>
           <DropdownMenuSeparator />
-          {project.status !== "ARCHIVED" && <DropdownMenuItem onClick={() => handleArchive(project.id)}>Archiver</DropdownMenuItem>}
-          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(project.id, project.name)}>Supprimer</DropdownMenuItem>
+          {project.status !== "ARCHIVED" && <DropdownMenuItem demoMutation onClick={() => handleArchive(project.id)}>Archiver</DropdownMenuItem>}
+          <DropdownMenuItem demoMutation className="text-destructive focus:text-destructive" onClick={() => handleDelete(project.id, project.name)}>Supprimer</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     )
@@ -171,7 +171,7 @@ export function ProjetsGrid({
         </div>
         <span className="hidden text-xs text-muted-foreground xl:inline" aria-live="polite">{filtered.length} résultat{filtered.length > 1 ? "s" : ""}</span>
         <Button variant="outline" onClick={() => setTemplatesOpen(true)}><Workflow />Modèles</Button>
-        <Button onClick={() => setCreateOpen(true)}><Plus />Nouveau chantier</Button>
+        <Button demoMutation onClick={() => setCreateOpen(true)}><Plus />Nouveau chantier</Button>
       </div>
 
       <ProjectTemplateDialog open={templatesOpen} onOpenChange={setTemplatesOpen} templates={templates} />
@@ -193,7 +193,7 @@ export function ProjetsGrid({
             icon={Briefcase}
             title={projects.length === 0 ? "Aucun chantier actif" : "Aucun chantier dans cette vue"}
             description={projects.length === 0 ? "Créez un premier chantier pour relier un client, un site, un budget et les documents opérationnels." : "Modifiez la recherche ou le filtre pour retrouver un chantier."}
-            action={<Button onClick={() => setCreateOpen(true)}><Plus />Créer un chantier</Button>}
+            action={<Button demoMutation onClick={() => setCreateOpen(true)}><Plus />Créer un chantier</Button>}
           />
         </div>
       ) : (

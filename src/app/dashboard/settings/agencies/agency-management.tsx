@@ -171,7 +171,7 @@ export function AgencyManagement({ initialData }: { initialData: AgencyData }) {
 
       <div className="flex items-center justify-between gap-4">
         <div><h2 className="text-base font-semibold">Unités opérationnelles</h2><p className="mt-1 text-sm text-muted-foreground">Affectez les équipes et dépôts ; les sites et chantiers choisissent ensuite leur agence responsable.</p></div>
-        <Button onClick={() => setEditor(editorState())}><Plus />Nouvelle agence</Button>
+        <Button demoMutation onClick={() => setEditor(editorState())}><Plus />Nouvelle agence</Button>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -187,7 +187,7 @@ export function AgencyManagement({ initialData }: { initialData: AgencyData }) {
                 <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3 text-xs"><p><strong className="block text-sm tabular-nums text-foreground">{agency._count.customerSites}</strong>sites clients</p><p><strong className="block text-sm tabular-nums text-foreground">{agency._count.projects}</strong>chantiers</p></div>
                 <section><div className="mb-2 flex items-center gap-2"><Users className="size-4 text-primary" /><h3 className="text-sm font-semibold">Équipe autorisée</h3></div><div className="grid gap-2 sm:grid-cols-2">{initialData.memberships.map((member) => <label key={member.id} className="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm"><Checkbox checked={assignment.membershipIds.includes(member.id)} onCheckedChange={(checked) => toggleAssignment(agency.id, "membershipIds", member.id, checked === true)} /><span className="min-w-0"><span className="block truncate font-medium">{displayMember(member)}</span><span className="block text-[11px] text-muted-foreground">{member.role}</span></span></label>)}</div></section>
                 <section><div className="mb-2 flex items-center gap-2"><Warehouse className="size-4 text-primary" /><h3 className="text-sm font-semibold">Dépôts rattachés</h3></div>{initialData.warehouses.length ? <div className="grid gap-2 sm:grid-cols-2">{initialData.warehouses.map((warehouse) => <label key={warehouse.id} className="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm"><Checkbox checked={assignment.warehouseIds.includes(warehouse.id)} onCheckedChange={(checked) => toggleAssignment(agency.id, "warehouseIds", warehouse.id, checked === true)} /><span className="truncate">{warehouse.name} <span className="text-xs text-muted-foreground">· {warehouse.code}</span></span></label>)}</div> : <p className="rounded-lg border border-dashed p-4 text-xs text-muted-foreground">Créez d’abord un dépôt depuis le centre opérationnel.</p>}</section>
-                <div className="flex items-center justify-between gap-3 border-t pt-4"><p className="text-xs text-muted-foreground"><ShieldCheck className="mr-1 inline size-3.5" />Les rattachements sont isolés par entreprise.</p><Button size="sm" disabled={isPending || assignment.membershipIds.length === 0} onClick={() => saveAssignments(agency.id)}>{isPending ? <Loader2 className="animate-spin" /> : null}Enregistrer</Button></div>
+                <div className="flex items-center justify-between gap-3 border-t pt-4"><p className="text-xs text-muted-foreground"><ShieldCheck className="mr-1 inline size-3.5" />Les rattachements sont isolés par entreprise.</p><Button demoMutation size="sm" disabled={isPending || assignment.membershipIds.length === 0} onClick={() => saveAssignments(agency.id)}>{isPending ? <Loader2 className="animate-spin" /> : null}Enregistrer</Button></div>
               </CardContent>
             </Card>
           )
@@ -212,7 +212,7 @@ export function AgencyManagement({ initialData }: { initialData: AgencyData }) {
               <label className="flex min-h-12 items-center gap-3 rounded-lg border p-3 text-sm"><Checkbox checked={editor.active} onCheckedChange={(checked) => setEditor({ ...editor, active: checked === true })} /><span><strong className="block">Agence active</strong><span className="text-xs text-muted-foreground">Disponible dans les nouvelles opérations.</span></span></label>
               <label className="flex min-h-12 items-center gap-3 rounded-lg border p-3 text-sm"><Checkbox checked={editor.isDefault} disabled={editor.id != null && editor.isDefault} onCheckedChange={(checked) => setEditor({ ...editor, isDefault: checked === true })} /><span><strong className="block">Agence principale</strong><span className="text-xs text-muted-foreground">Utilisée lorsque rien n’est sélectionné.</span></span></label>
             </div> : null}
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditor(null)}>Annuler</Button><Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : null}Enregistrer</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEditor(null)}>Annuler</Button><Button demoMutation type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : null}Enregistrer</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

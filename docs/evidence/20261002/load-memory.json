@@ -1,0 +1,235 @@
+{
+  "schema": "freelio.review-memory.v1",
+  "samples": [
+    {
+      "privateBytes": 532983808,
+      "workingSetBytes": 433061888,
+      "pid": 2012,
+      "cpuSeconds": 1236.9375,
+      "at": "2026-10-01T17:57:06.9267189Z"
+    },
+    {
+      "privateBytes": 893865984,
+      "workingSetBytes": 799686656,
+      "pid": 2012,
+      "cpuSeconds": 1281.046875,
+      "at": "2026-10-01T17:58:06.9957993Z"
+    },
+    {
+      "privateBytes": 963215360,
+      "workingSetBytes": 862797824,
+      "pid": 2012,
+      "cpuSeconds": 1324.90625,
+      "at": "2026-10-01T17:59:07.0029467Z"
+    },
+    {
+      "privateBytes": 954404864,
+      "workingSetBytes": 848560128,
+      "pid": 2012,
+      "cpuSeconds": 1365.21875,
+      "at": "2026-10-01T18:00:07.0191307Z"
+    },
+    {
+      "privateBytes": 1036673024,
+      "workingSetBytes": 933953536,
+      "pid": 2012,
+      "cpuSeconds": 1402.65625,
+      "at": "2026-10-01T18:01:07.0381230Z"
+    },
+    {
+      "privateBytes": 930275328,
+      "workingSetBytes": 825462784,
+      "pid": 2012,
+      "cpuSeconds": 1439.8125,
+      "at": "2026-10-01T18:02:07.0457154Z"
+    },
+    {
+      "privateBytes": 969412608,
+      "workingSetBytes": 869875712,
+      "pid": 2012,
+      "cpuSeconds": 1475.859375,
+      "at": "2026-10-01T18:03:07.0496595Z"
+    },
+    {
+      "privateBytes": 980520960,
+      "workingSetBytes": 872542208,
+      "pid": 2012,
+      "cpuSeconds": 1514.03125,
+      "at": "2026-10-01T18:04:07.0647318Z"
+    },
+    {
+      "privateBytes": 1052217344,
+      "workingSetBytes": 947113984,
+      "pid": 2012,
+      "cpuSeconds": 1551.96875,
+      "at": "2026-10-01T18:05:07.0812948Z"
+    },
+    {
+      "privateBytes": 1026019328,
+      "workingSetBytes": 922189824,
+      "pid": 2012,
+      "cpuSeconds": 1590.015625,
+      "at": "2026-10-01T18:06:07.0862274Z"
+    },
+    {
+      "privateBytes": 990556160,
+      "workingSetBytes": 884580352,
+      "pid": 2012,
+      "cpuSeconds": 1629.84375,
+      "at": "2026-10-01T18:07:07.1033823Z"
+    },
+    {
+      "privateBytes": 1021665280,
+      "workingSetBytes": 919773184,
+      "pid": 2012,
+      "cpuSeconds": 1667.375,
+      "at": "2026-10-01T18:08:07.1138159Z"
+    },
+    {
+      "privateBytes": 1029431296,
+      "workingSetBytes": 925741056,
+      "pid": 2012,
+      "cpuSeconds": 1704.21875,
+      "at": "2026-10-01T18:09:07.1222003Z"
+    },
+    {
+      "privateBytes": 953360384,
+      "workingSetBytes": 845402112,
+      "pid": 2012,
+      "cpuSeconds": 1748.1875,
+      "at": "2026-10-01T18:10:07.1297557Z"
+    },
+    {
+      "privateBytes": 977682432,
+      "workingSetBytes": 873517056,
+      "pid": 2012,
+      "cpuSeconds": 1793.453125,
+      "at": "2026-10-01T18:11:07.1350474Z"
+    },
+    {
+      "privateBytes": 889421824,
+      "workingSetBytes": 783388672,
+      "pid": 2012,
+      "cpuSeconds": 1837.90625,
+      "at": "2026-10-01T18:12:07.1503035Z"
+    },
+    {
+      "privateBytes": 1016696832,
+      "workingSetBytes": 915095552,
+      "pid": 2012,
+      "cpuSeconds": 1881.84375,
+      "at": "2026-10-01T18:13:07.1620130Z"
+    },
+    {
+      "privateBytes": 1028382720,
+      "workingSetBytes": 927576064,
+      "pid": 2012,
+      "cpuSeconds": 1925.546875,
+      "at": "2026-10-01T18:14:07.1712812Z"
+    },
+    {
+      "privateBytes": 983736320,
+      "workingSetBytes": 876249088,
+      "pid": 2012,
+      "cpuSeconds": 1969.640625,
+      "at": "2026-10-01T18:15:07.1801037Z"
+    },
+    {
+      "privateBytes": 1030352896,
+      "workingSetBytes": 925409280,
+      "pid": 2012,
+      "cpuSeconds": 2013.96875,
+      "at": "2026-10-01T18:16:07.1912400Z"
+    },
+    {
+      "privateBytes": 1026707456,
+      "workingSetBytes": 918622208,
+      "pid": 2012,
+      "cpuSeconds": 2057.890625,
+      "at": "2026-10-01T18:17:07.1977617Z"
+    },
+    {
+      "privateBytes": 1062215680,
+      "workingSetBytes": 959090688,
+      "pid": 2012,
+      "cpuSeconds": 2102.234375,
+      "at": "2026-10-01T18:18:07.2106104Z"
+    },
+    {
+      "privateBytes": 1019539456,
+      "workingSetBytes": 913199104,
+      "pid": 2012,
+      "cpuSeconds": 2145.5625,
+      "at": "2026-10-01T18:19:07.2240870Z"
+    },
+    {
+      "privateBytes": 1026498560,
+      "workingSetBytes": 921202688,
+      "pid": 2012,
+      "cpuSeconds": 2187.28125,
+      "at": "2026-10-01T18:20:07.2430944Z"
+    },
+    {
+      "privateBytes": 1030430720,
+      "workingSetBytes": 928944128,
+      "pid": 2012,
+      "cpuSeconds": 2230.734375,
+      "at": "2026-10-01T18:21:07.2482192Z"
+    },
+    {
+      "privateBytes": 881217536,
+      "workingSetBytes": 776466432,
+      "pid": 2012,
+      "cpuSeconds": 2273.8125,
+      "at": "2026-10-01T18:22:07.2611832Z"
+    },
+    {
+      "privateBytes": 1027231744,
+      "workingSetBytes": 920236032,
+      "pid": 2012,
+      "cpuSeconds": 2317.21875,
+      "at": "2026-10-01T18:23:07.2704538Z"
+    },
+    {
+      "privateBytes": 1060024320,
+      "workingSetBytes": 946470912,
+      "pid": 2012,
+      "cpuSeconds": 2360.5,
+      "at": "2026-10-01T18:24:07.2836607Z"
+    },
+    {
+      "privateBytes": 1038000128,
+      "workingSetBytes": 922124288,
+      "pid": 2012,
+      "cpuSeconds": 2403.421875,
+      "at": "2026-10-01T18:25:07.3031028Z"
+    },
+    {
+      "privateBytes": 1038983168,
+      "workingSetBytes": 925519872,
+      "pid": 2012,
+      "cpuSeconds": 2446.703125,
+      "at": "2026-10-01T18:26:07.3179824Z"
+    },
+    {
+      "privateBytes": 969216000,
+      "workingSetBytes": 864788480,
+      "pid": 2012,
+      "cpuSeconds": 2489.21875,
+      "at": "2026-10-01T18:27:07.3368141Z"
+    },
+    {
+      "privateBytes": 969216000,
+      "workingSetBytes": 864788480,
+      "pid": 2012,
+      "cpuSeconds": 2489.21875,
+      "at": "2026-10-01T18:28:08.6264013Z"
+    }
+  ],
+  "maximumWorkingSetBytes": 959090688,
+  "maximumPrivateBytes": 1062215680,
+  "limits": [
+    "Processus Next uniquement : PostgreSQL, navigateur et Docker exclus",
+    "Mesure courte sur serveur chaud ; absence de fuite non démontrée"
+  ]
+}

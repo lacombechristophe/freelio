@@ -26,10 +26,10 @@ export function QuickCreateMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="h-9 gap-1.5 px-3" aria-label="Ouvrir le menu de création">
+        <Button demoMutation variant="outline" className="h-9 gap-1.5 px-3" aria-label="Ouvrir le menu de création">
           <Plus className="size-4" />
           <span className="hidden sm:inline">Créer</span>
-          <span aria-hidden="true" className="mx-0.5 hidden h-4 w-px bg-white/25 sm:block" />
+          <span aria-hidden="true" className="mx-0.5 hidden h-4 w-px bg-border sm:block" />
           <ChevronDown className="hidden size-3.5 sm:block" />
         </Button>
       </DropdownMenuTrigger>

@@ -183,8 +183,7 @@ test("la messagerie donne accès aux échanges avant les statistiques", async ({
 test("les actions métier précèdent les analyses dans les espaces de suivi", async ({ page }) => {
   for (const [route, heading] of [["crm", "Portefeuille clients"], ["service", "File SAV prioritaire"], ["revenue", "Encaissements à sécuriser"]]) {
     await openWorkspace(page, `/dashboard/${route}`)
-    const headings = await page.locator("#dashboard-main h2").allTextContents()
-    expect(headings[0]).toBe(heading)
+    await expect(page.locator("#dashboard-main h2").first()).toHaveText(heading)
   }
 })
 
@@ -228,7 +227,7 @@ test("preuves des onglets secondaires et de la création produit", async ({ page
   await mkdir(directory, { recursive: true })
   const evidence: Array<{ route: string; state: string } & Awaited<ReturnType<typeof captureScrollablePage>>> = []
   const scenarios = [
-    { route: "automatisations", tabs: ["Vue d’ensemble", "Séquences", "Workflows", "Modèles", "Journal"] },
+    { route: "automatisations", tabs: ["Vue d’ensemble", "Séquences", "Scénarios", "Modèles", "Journal"] },
     { route: "operations", tabs: ["Vue opérations", "SAV", "Planning", "Entretien", "Commandes", "Stock & achats", "Sites & parc"] },
     { route: "communications", tabs: ["Boîte de réception", "Nouvel e-mail", "Statistiques", "Intégrations"] },
     { route: "settings", tabs: ["Entreprise", "Facturation", "Service", "Intégrations", "Sécurité", "Compte"] },

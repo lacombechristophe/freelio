@@ -138,7 +138,7 @@ export function LineItemsEditor({
               className="grid grid-cols-12 items-end gap-2 rounded-lg border bg-muted/20 p-3"
             >
               <div className="col-span-12 space-y-1 md:col-span-5">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Label className="text-[10px] tracking-normal text-muted-foreground">
                   Libellé
                 </Label>
                 <Input
@@ -151,7 +151,7 @@ export function LineItemsEditor({
                 />
               </div>
               <div className="col-span-4 space-y-1 sm:col-span-2 md:col-span-1">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Label className="text-[10px] tracking-normal text-muted-foreground">
                   Qté
                 </Label>
                 <Input
@@ -165,7 +165,7 @@ export function LineItemsEditor({
                 />
               </div>
               <div className="col-span-4 space-y-1 sm:col-span-3 md:col-span-2">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Label className="text-[10px] tracking-normal text-muted-foreground">
                   PU HT (EUR)
                 </Label>
                 <Input
@@ -180,7 +180,7 @@ export function LineItemsEditor({
                 />
               </div>
               <div className="col-span-4 space-y-1 sm:col-span-2 md:col-span-1">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Label className="text-[10px] tracking-normal text-muted-foreground">
                   TVA %
                 </Label>
                 <Input
@@ -195,7 +195,7 @@ export function LineItemsEditor({
                 />
               </div>
               <div className="col-span-10 text-right sm:col-span-4 md:col-span-2">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total HT</p>
+                <p className="text-[10px] tracking-normal text-muted-foreground">Total HT</p>
                 <p className="font-bold tabular-nums">{formatEuro(lineHt)}</p>
               </div>
               <div className="col-span-2 flex justify-end md:col-span-1">
@@ -211,7 +211,7 @@ export function LineItemsEditor({
                 </Button>
               </div>
               <div className="col-span-12 space-y-1">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <Label className="text-[10px] tracking-normal text-muted-foreground">
                   Détail / livrable
                 </Label>
                 <Input
@@ -234,13 +234,13 @@ export function LineItemsEditor({
         })}
       </div>
 
-      <Button type="button" variant="outline" size="sm" onClick={add} className="gap-2">
+      <Button demoMutation type="button" variant="outline" size="sm" onClick={add} className="gap-2">
         <Plus className="h-4 w-4" />
         Ajouter une ligne
       </Button>
 
       <div className="flex justify-end">
-        <div className="min-w-[260px] space-y-1 rounded-lg border bg-muted/30 p-4">
+        <div className="w-full min-w-0 space-y-1 rounded-lg border bg-muted/30 p-4 sm:w-auto sm:min-w-[260px]">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total HT</span>
             <span className="font-medium tabular-nums">{formatEuro(totals.totalHtCents)}</span>

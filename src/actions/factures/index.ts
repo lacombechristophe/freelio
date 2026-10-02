@@ -6,13 +6,13 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { CreditNoteSchema, InvoiceSchema, PaymentSchema, RecurringInvoiceSchema, ReminderSchema } from "@/lib/validations"
-import { buildYearlyDocumentPrefix, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
-import { processDueRecurringInvoices } from "@/lib/scheduling/business"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 import { buildInvoiceReminderContent } from "@/lib/finance/invoice-reminders"
 import { sendInvoiceReminderRecord } from "@/lib/finance/invoice-reminder-sender"
 import { boundedPageSize } from "@/lib/pagination"
+import { prepareIssuedInvoice, discardIssuedInvoice } from "@/lib/finance/issued-invoice"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
 type PaymentInput = z.input<typeof PaymentSchema>
@@ -47,13 +47,8 @@ type TimeEntryForInvoice = {
 }
 
 export async function getInvoices(cursor?: string, limit = 50) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId }) => {
     const pageSize = boundedPageSize(limit, 50, 100)
-    await processDueRecurringInvoices({ companyId, userId, limit: 20 })
-    await prisma.invoice.updateMany({
-      where: { companyId, status: "SENT", dueDate: { lt: new Date() } },
-      data: { status: "OVERDUE" },
-    })
     return await prisma.invoice.findMany({
       where: { companyId },
       take: pageSize,
@@ -64,7 +59,7 @@ export async function getInvoices(cursor?: string, limit = 50) {
       },
       orderBy: { createdAt: "desc" },
     })
-  })
+  }, "finance.read")
 }
 
 export async function getInvoiceById(id: string) {
@@ -73,7 +68,11 @@ export async function getInvoiceById(id: string) {
       where: { id, companyId },
       include: {
         client: true,
-        company: true,
+        company: { select: {
+          name: true, fullName: true, address: true, email: true, phone: true, logo: true,
+          siret: true, tvaNumber: true, apeCode: true, rcsNumber: true, iban: true,
+          isTvaApplicable: true, latePenaltyRate: true, brandColor: true, pdfTemplate: true,
+        } },
         project: true,
         lines: { orderBy: { order: "asc" } },
         payments: { orderBy: { date: "desc" } },
@@ -83,27 +82,25 @@ export async function getInvoiceById(id: string) {
         reminders: { orderBy: { createdAt: "desc" } },
       },
     })
-  })
+  }, "finance.read")
 }
 
 async function generateInvoiceNumber(companyId: string, customPrefix?: string) {
   const prefix = buildYearlyDocumentPrefix(customPrefix, "FACT-")
-  const last = await prisma.invoice.findFirst({
+  const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({
     where: { companyId, number: { startsWith: prefix } },
-    orderBy: { number: "desc" },
     select: { number: true },
-  })
-  return nextDocumentNumber(last?.number, prefix)
+  }))
+  return nextDocumentNumber(last, prefix)
 }
 
 async function generateCreditNoteNumber(companyId: string) {
   const prefix = buildYearlyDocumentPrefix("AV-", "AV-")
-  const last = await prisma.invoice.findFirst({
+  const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({
     where: { companyId, number: { startsWith: prefix } },
-    orderBy: { number: "desc" },
     select: { number: true },
-  })
-  return nextDocumentNumber(last?.number, prefix)
+  }))
+  return nextDocumentNumber(last, prefix)
 }
 
 function formatInvoiceDate(date: Date) {
@@ -472,8 +469,9 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
     const existing = await prisma.invoice.findFirst({
       where: { id: invoiceId, companyId },
       include: {
-        company: { select: { siret: true } },
-        client: { select: { siret: true, type: true } },
+        company: true,
+        client: true,
+        lines: { orderBy: { order: "asc" } },
       },
     })
     if (!existing) throw new Error("Facture introuvable")
@@ -498,7 +496,10 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
           })
         : null
 
-    const invoice = await prisma.$transaction(async (tx) => {
+    const artifact = status === "SENT" ? await prepareIssuedInvoice(existing) : null
+    let invoice
+    try {
+      invoice = await prisma.$transaction(async (tx) => {
       const updated = await tx.invoice.updateMany({
         where: { id: invoiceId, companyId, status: existing.status, updatedAt: existing.updatedAt },
         data: {
@@ -506,11 +507,18 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
           lockedAt: status === "SENT" ? new Date() : existing.lockedAt,
           eInvoiceStatus: readiness?.status ?? existing.eInvoiceStatus,
           eInvoiceError: readiness?.error ?? existing.eInvoiceError,
+          ...(artifact ?? {}),
         },
       })
       if (updated.count !== 1) throw new Error("La facture a changé. Rechargez-la avant de modifier son statut.")
       return tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } })
-    })
+      })
+    } catch (error) {
+      if (artifact) await discardIssuedInvoice(artifact).catch(() => {
+        console.error("Unused invoice archive cleanup failed", { invoiceId })
+      })
+      throw error
+    }
     await logAction({
       userId,
       action: "UPDATE_INVOICE_STATUS",
@@ -521,7 +529,7 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${invoiceId}`)
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function deleteInvoice(id: string) {
@@ -653,7 +661,9 @@ export async function createCreditNote(data: CreditNoteInput) {
     const credit = await withDocumentNumberRetry(
       async () => {
         const number = await generateCreditNoteNumber(companyId)
-        return prisma.$transaction(async (tx) => {
+        const artifacts: Awaited<ReturnType<typeof prepareIssuedInvoice>>[] = []
+        try {
+          return await prisma.$transaction(async (tx) => {
           const claimed = await tx.invoice.updateMany({
             where: { id: original.id, companyId, status: original.status, updatedAt: original.updatedAt },
             data: { updatedAt: new Date(original.updatedAt.getTime() + 1) },
@@ -689,7 +699,10 @@ export async function createCreditNote(data: CreditNoteInput) {
                 },
               },
             },
+            include: { company: true, client: true, lines: true },
           })
+          const artifact = await prepareIssuedInvoice(created)
+          artifacts.push(artifact)
           await tx.creditNote.create({
             data: {
               invoiceId: original.id,
@@ -707,8 +720,14 @@ export async function createCreditNote(data: CreditNoteInput) {
               payload: { originalInvoiceId: original.id, amountCents: validated.amountCents },
             },
           })
-          return created
-        })
+          return await tx.invoice.update({ where: { id: created.id }, data: artifact })
+          }, { timeout: 30_000 })
+        } catch (error) {
+          for (const artifact of artifacts) await discardIssuedInvoice(artifact).catch(() => {
+            console.error("Unused credit archive cleanup failed", { invoiceId: original.id })
+          })
+          throw error
+        }
       },
       { label: "l'avoir" },
     )

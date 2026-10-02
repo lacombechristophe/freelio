@@ -22,6 +22,11 @@ import { cn } from "@/lib/utils"
 import { deleteInvoice, updateInvoiceStatus } from "@/actions/factures"
 import { PaymentDialog } from "./payment-dialog"
 import { useConfirm } from "@/components/shared/confirm-provider"
+import { ListToolbar } from "@/components/shared/list-toolbar"
+import { getInvoiceDirectory } from "@/actions/directories"
+import { useDirectory } from "@/hooks/use-directory"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
+import { PageHeader } from "@/components/shared/page-header"
 import { EmptyState } from "@/components/shared/empty-state"
 
 type Invoice = {
@@ -55,25 +60,25 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Erreur."
 }
 
-export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
+export function FacturesTable({ invoices, initial }: { invoices: Invoice[]; initial: { data: Awaited<ReturnType<typeof getInvoiceDirectory>>; query: import("@/lib/directory-query").DirectoryQuery } }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
-  const [search, setSearch] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState("ALL")
+  const directory = useDirectory("factures", getInvoiceDirectory, initial)
+  const { search, status: statusFilter } = directory.state
+  const setSearch = (search: string) => directory.update({ search })
+  const setStatusFilter = (status: string) => directory.update({ status })
+  const filtered = directory.data?.rows ?? invoices
+  const total = directory.data?.total ?? invoices.length
+  const initialEmpty = total === 0 && !search && statusFilter === "ALL"
   const [payTarget, setPayTarget] = React.useState<{ id: string; unpaid: number } | null>(null)
-
-  const filtered = invoices.filter(
-    (i) =>
-      (statusFilter === "ALL" || i.status === statusFilter) &&
-      (i.number.toLowerCase().includes(search.toLowerCase()) ||
-      i.client.name.toLowerCase().includes(search.toLowerCase()))
-  )
+  const outstanding = directory.data?.outstanding
 
   async function handleStatus(id: string, next: "SENT" | "CANCELLED") {
     try {
       await updateInvoiceStatus(id, next)
       toast.success("Statut mis à jour.")
       router.refresh()
+      void directory.refetch()
     } catch (err) { toast.error(getErrorMessage(err)) }
   }
 
@@ -88,13 +93,19 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
       await deleteInvoice(id)
       toast.success("Facture supprimée.")
       router.refresh()
+      void directory.refetch()
     } catch (err) { toast.error(getErrorMessage(err)) }
   }
 
   return (
-    <div className="space-y-4">
-      <div className="workspace-panel flex flex-col gap-3 p-3 xl:flex-row xl:items-center">
-        <div className="relative w-full sm:max-w-sm">
+    <div className="space-y-5">
+      <PageHeader title="Factures" description="Suivez les échéances, les règlements et les montants à encaisser." actions={<Button demoMutation nativeButton={false} render={<Link href="/dashboard/factures/new" />}><Plus />Nouvelle facture</Button>} />
+      <div className="flex flex-wrap items-baseline gap-2 text-sm text-muted-foreground">
+        À encaisser · toutes les factures émises
+        <strong className="text-lg font-semibold tabular-nums text-foreground">{outstanding === undefined ? "…" : formatEuro(outstanding)}</strong>
+      </div>
+      <ListToolbar>
+        <div className="relative min-w-52 flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Rechercher une facture"
@@ -104,10 +115,10 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div role="group" aria-label="Filtrer les factures par statut" className="flex min-w-0 flex-wrap items-center gap-1 rounded-lg bg-muted/65 p-1">
+        <div role="group" aria-label="Filtrer les factures par statut" className="list-status-filters flex min-w-0 flex-wrap items-center gap-1">
           {[{ value: "ALL", label: "Toutes" }, { value: "DRAFT", label: "Brouillons" }, { value: "SENT", label: "À encaisser" }, { value: "OVERDUE", label: "En retard" }, { value: "PAID", label: "Payées" }].map((item) => {
-            const count = item.value === "ALL" ? invoices.length : invoices.filter((invoice) => invoice.status === item.value).length
-            return <button key={item.value} type="button" aria-pressed={statusFilter === item.value} onClick={() => setStatusFilter(item.value)} className={cn("h-8 rounded-md px-2.5 text-xs font-medium transition-[color,background-color,box-shadow]", statusFilter === item.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{item.label}<span className="ml-1.5 tabular-nums opacity-70">{count}</span></button>
+            const count = directory.data ? directory.data.counts[item.value] ?? 0 : "…"
+            return <button key={item.value} type="button" aria-pressed={statusFilter === item.value} onClick={() => setStatusFilter(item.value)} className={cn("h-8 rounded-md px-2.5 text-xs font-medium transition-[color,background-color,box-shadow]", statusFilter === item.value ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground")}>{item.label}<span className="ml-1.5 tabular-nums opacity-70">{count}</span></button>
           })}
         </div>
         <div className="flex flex-wrap gap-2 xl:ml-auto">
@@ -121,31 +132,26 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
             <Timer className="h-4 w-4" /> Temps non facturé
           </Button>
         </Link>
-        <Link href="/dashboard/factures/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> Nouvelle Facture
-          </Button>
-        </Link>
         </div>
-      </div>
+      </ListToolbar>
 
       {payTarget && (
         <PaymentDialog
           invoiceId={payTarget.id}
           defaultAmountCents={payTarget.unpaid}
           open={!!payTarget}
-          onOpenChange={(o) => !o && setPayTarget(null)}
+          onOpenChange={(open) => { if (!open) { setPayTarget(null); void directory.refetch() } }}
         />
       )}
 
       <div className="workspace-panel overflow-hidden">
-        <Table>
+        <Table className="factures-table">
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="w-[150px]">Référence</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Montant TTC</TableHead>
-              <TableHead>Reste à payer</TableHead>
+              <TableHead className="text-right">Montant TTC</TableHead>
+              <TableHead className="text-right">Reste à payer</TableHead>
               <TableHead>Échéance</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -158,9 +164,9 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
                   <EmptyState
                     compact
                     icon={Receipt}
-                    title={invoices.length === 0 ? "Aucune facture émise" : "Aucune facture trouvée"}
-                    description={invoices.length === 0 ? "Créez votre première facture ou transformez un devis accepté pour démarrer le suivi des encaissements." : "Modifiez la recherche ou le statut pour afficher d’autres factures."}
-                    action={invoices.length === 0 ? <Button size="sm" onClick={() => router.push("/dashboard/factures/new")}><Plus />Créer une facture</Button> : <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("ALL") }}>Réinitialiser la vue</Button>}
+                    title={initialEmpty ? "Aucune facture émise" : "Aucune facture trouvée"}
+                    description={initialEmpty ? "Créez votre première facture ou transformez un devis accepté pour démarrer le suivi des encaissements." : "Modifiez la recherche ou le statut pour afficher d’autres factures."}
+                    action={initialEmpty ? <Button demoMutation size="sm" onClick={() => router.push("/dashboard/factures/new")}><Plus />Créer une facture</Button> : <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("ALL") }}>Réinitialiser la vue</Button>}
                   />
                 </TableCell>
               </TableRow>
@@ -171,18 +177,20 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
                 return (
                   <TableRow key={invoice.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell>
-                      <Link href={`/dashboard/factures/${invoice.id}`} className="font-mono text-xs font-bold hover:underline">
+                      <Link href={`/dashboard/factures/${invoice.id}`} className="text-sm font-medium hover:underline">
                         {invoice.number}
                       </Link>
+                      <span className="mt-1 block text-xs text-muted-foreground sm:hidden">{invoice.client.name}</span>
+                      <span className="mt-1 block text-xs sm:hidden">{status.label}</span>
                     </TableCell>
                     <TableCell>
                       <Link href={`/dashboard/clients/${invoice.client.id}`} className="text-sm hover:underline">
                         {invoice.client.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-bold">{formatEuro(invoice.totalTtcCents)}</TableCell>
-                    <TableCell>
-                      <span className={cn("text-sm font-medium", unpaid > 0 ? "text-danger" : "text-muted-foreground")}>
+                    <TableCell className="text-right font-medium tabular-nums">{formatEuro(invoice.totalTtcCents)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <span className={cn("text-sm font-medium", unpaid > 0 && invoice.status === "OVERDUE" ? "text-danger" : "text-muted-foreground")}>
                         {formatEuro(unpaid)}
                       </span>
                     </TableCell>
@@ -210,21 +218,21 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
                           </DropdownMenuItem>
                           {invoice.status === "DRAFT" && (
                             <>
-                              <DropdownMenuItem onClick={() => router.push(`/dashboard/factures/${invoice.id}/edit`)}>Éditer</DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2" onClick={() => handleStatus(invoice.id, "SENT")}>
+                              <DropdownMenuItem demoMutation onClick={() => router.push(`/dashboard/factures/${invoice.id}/edit`)}>Éditer</DropdownMenuItem>
+                              <DropdownMenuItem demoMutation className="gap-2" onClick={() => handleStatus(invoice.id, "SENT")}>
                                 <Send className="h-4 w-4 text-muted-foreground" /> Émettre
                               </DropdownMenuItem>
                             </>
                           )}
                           {unpaid > 0 && invoice.status !== "CANCELLED" && (
-                            <DropdownMenuItem className="gap-2 text-success" onClick={() => setPayTarget({ id: invoice.id, unpaid })}>
+                            <DropdownMenuItem demoMutation className="gap-2 text-success" onClick={() => setPayTarget({ id: invoice.id, unpaid })}>
                               <CheckCircle2 className="h-4 w-4" /> Enregistrer paiement
                             </DropdownMenuItem>
                           )}
                           {invoice.status === "DRAFT" && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 text-danger" onClick={() => handleDelete(invoice.id, invoice.number)}>
+                              <DropdownMenuItem demoMutation className="gap-2 text-danger" onClick={() => handleDelete(invoice.id, invoice.number)}>
                                 <Trash2 className="h-4 w-4" /> Supprimer
                               </DropdownMenuItem>
                             </>
@@ -239,6 +247,7 @@ export function FacturesTable({ invoices }: { invoices: Invoice[] }) {
           </TableBody>
         </Table>
       </div>
+      <DirectoryPagination total={total} page={directory.data?.page ?? directory.state.page} pending={directory.isFetching} error={directory.isError} onPage={(page) => directory.update({ page })} onRetry={() => { void directory.refetch() }} />
     </div>
   )
 }

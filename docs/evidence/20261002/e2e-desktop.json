@@ -1,0 +1,245 @@
+{
+  "schema": "freelio.review-e2e.v1",
+  "stats": {
+    "startTime": "2026-10-02T17:00:30.802Z",
+    "duration": 222716.147,
+    "expected": 19,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "new local-first surfaces load and their primary controls respond",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 31327
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "agencies connect teams, warehouses and operational records",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4255
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "pipeline navigation exposes desktop scrolling and mobile stage selection",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3644
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "multiple sales pipelines keep their stages and opportunities isolated",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6931
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "configurable CRM properties use business presets and retain a visible history",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 38223
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "service records connect the help desk, conversation, ticket, intervention and installed equipment",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 23869
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "publishes service knowledge and records a secure satisfaction response",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 28817
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "configures a product, its options and its bill of materials into a quote",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5411
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "creates a reusable project plan and enforces milestone dependencies",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3660
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "runs the supplier approval, receipt issue and return workflow",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 8099
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "field workspace installs and reloads from its bounded offline cache",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2196
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "configures an email sequence and a lead automation",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 9494
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "plans a multichannel marketing campaign and links its sequence",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2010
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "lead, consent withdrawal, order, billing and reserved stock flow",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10186
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "field report and maintenance contract flow",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13541
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "creates a structured amendment without altering the signed source contract",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4856
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "scores prospects and exposes the communication center",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2244
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "shares a revocable client portal with messages and appointments",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5962
+        }
+      ]
+    },
+    {
+      "file": "critical-flows.spec.ts",
+      "name": "creates and signs in a production account with a password",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1780
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Projection du rapport Playwright : configuration, sorties et pièces retirées",
+    "Serveur Windows compilé, PostgreSQL neuf et connexion normale par mot de passe"
+  ]
+}

@@ -29,7 +29,7 @@ export function RecordHeader({
           <ArrowLeft />
         </Button>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          <p className="text-xs font-semibold tracking-normal text-primary">
             {eyebrow}
           </p>
           <h1 className="mt-1">{title}</h1>

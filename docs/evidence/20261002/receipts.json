@@ -1,0 +1,50 @@
+{
+  "schema": "freelio.review-receipts.v1",
+  "generatedAt": "2026-10-02T17:05:29.206Z",
+  "reports": [
+    {
+      "file": "unit-postgres.json",
+      "originalReportSha256": "0aa76d011705733d4e153d143f8dd8dcfa450c4b64546a2f1bb4ae6f0015fa6c"
+    },
+    {
+      "file": "unit-sqlite.json",
+      "originalReportSha256": "94e3a722e81a415f5db69a23da89fb5c443d6e09b107befeec4590f7f0333aa2"
+    },
+    {
+      "file": "e2e-desktop.json",
+      "originalReportSha256": "d028a146946176d27bb103921af0fc4a853eef7d43a5e94bd3a6845032bb6401"
+    },
+    {
+      "file": "public-demo.json",
+      "originalReportSha256": "293483808f6941b94e15c49c21f45311c283077f6fb366f22c6e5e3d5f9c7142"
+    },
+    {
+      "file": "public-demo-mobile.json",
+      "originalReportSha256": "777a206595daae77dae20a135146f727945a2b05c2cb64588456b16dd9db8a0d"
+    },
+    {
+      "file": "public-demo-db-role.json",
+      "originalReportSha256": "4ad59d8ec6e280a4dcdb1cd083bfae8ca71c65cba4a8c7307356af882a6a9763"
+    },
+    {
+      "file": "load-demo.json",
+      "originalReportSha256": "860ccbb503a565d1939e0570b5b4c718722ba89e8d2511ef5167e0653a658f14"
+    },
+    {
+      "file": "load-demo-concurrent-build-failure.json",
+      "originalReportSha256": "3f4c23a965ec0d765af203b1841aacf0ef11eea182ca1c903ca2bc26d9e19765"
+    },
+    {
+      "file": "recovery.json",
+      "originalReportSha256": "803acbf20f2b2183f9c6b2e434bbbc17a49782898e675f02bc8a56253f0ea96b"
+    },
+    {
+      "file": "linux-runtime.json",
+      "originalReportSha256": "02fab5a01a66aa1c4dcb42f1daef474a51489492ddfd12bab5ceead8f294ab7d"
+    }
+  ],
+  "limits": [
+    "Les hashes identifient les rapports locaux originaux ; ils ne constituent pas une attestation indépendante",
+    "Les comptes, clés, bases, journaux complets et pièces de recette restent hors du dépôt"
+  ]
+}
