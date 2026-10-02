@@ -17,7 +17,8 @@ try {
   const today = new Date()
   const day = offset => new Date(today.getTime() + offset * 86_400_000)
   const result = await prisma.$transaction(async tx => {
-    const company = await tx.company.create({ data: { name: "Atelier des Bassins — démonstration", fullName: "Atelier des Bassins (données fictives)", address: "12 allée des Nénuphars, 44000 Nantes — adresse fictive", email, isTvaApplicable: true } })
+    // Deliberately fictitious VAT identifier; taxable example invoices need a seller identifier.
+    const company = await tx.company.create({ data: { name: "Atelier des Bassins — démonstration", fullName: "Atelier des Bassins (données fictives)", address: "12 allée des Nénuphars, 44000 Nantes — adresse fictive", email, isTvaApplicable: true, tvaNumber: "FR00000000000" } })
     const user = await tx.user.create({ data: { email, name: "Alex Martin (démo)", emailVerified: today, companyId: company.id, passwordHash } })
     const membership = await tx.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
     const agency = await tx.agency.create({ data: { companyId: company.id, code: "DEMO", name: "Agence Nantes — démo", kind: "MIXED", isDefault: true } })
