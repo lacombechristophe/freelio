@@ -307,6 +307,7 @@ function SequenceDetail({
               </span>
             </summary>
             <form
+              key={sequence.id}
               className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-4"
               onSubmit={(event) => {
                 event.preventDefault()
