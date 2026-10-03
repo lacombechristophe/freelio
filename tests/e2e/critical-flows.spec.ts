@@ -1042,6 +1042,24 @@ test("configures an email sequence and a lead automation", async ({ page }, test
 
 test("plans a multichannel marketing campaign and links its sequence", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "La campagne est créée une seule fois ; sa vue reste couverte au build mobile.")
+  // This campaign owns its sequence instead of depending on an earlier test.
+  const sequenceName = `Campagne sequence ${Date.now()}`
+  await assertHealthy(page, "/dashboard/automatisations", "Automatisations & e-mails")
+  await page.getByRole("tab", { name: "Séquences" }).click()
+  const sequencePanel = page.getByRole("tabpanel", { name: "Séquences" })
+  await sequencePanel.getByRole("button", { name: "Nouvelle séquence" }).click()
+  await page.getByRole("dialog", { name: "Nouvelle séquence" }).getByLabel("Nom").fill(sequenceName)
+  await page.getByRole("dialog", { name: "Nouvelle séquence" }).getByRole("button", { name: "Créer la séquence" }).click()
+  await sequencePanel.getByText(sequenceName, { exact: true }).first().click()
+  const detail = sequencePanel.getByRole("heading", { name: sequenceName }).locator("xpath=ancestor::section")
+  await detail.getByRole("button", { name: "Ajouter une étape" }).click()
+  const step = page.getByRole("dialog", { name: "Ajouter une étape" })
+  await step.getByLabel("Objet personnalisé").fill("Suivi de démonstration")
+  await step.getByLabel("Contenu HTML personnalisé").fill("<p>Message fictif de recette.</p>")
+  await step.getByRole("button", { name: "Ajouter l’étape" }).click()
+  await expect(page.getByText("Étape ajoutée.").last()).toBeVisible()
+  await detail.getByRole("button", { name: "Activer" }).click()
+  await expect(page.getByText("Séquence activée.").last()).toBeVisible()
   await assertHealthy(page, "/dashboard/campagnes", "Campagnes")
   const creation = page.locator("details").filter({ hasText: "Créer une campagne" })
   await creation.locator("summary").click()
@@ -1062,7 +1080,7 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await campaign.getByLabel("Échéance du livrable pour Campagne QA printemps").fill("2026-09-01")
   await campaign.getByRole("button", { name: "Ajouter" }).click()
   await expect(page.getByText("Livrable ajouté.")).toBeVisible()
-  await campaign.getByLabel("Séquence à rattacher à Campagne QA printemps").selectOption({ label: "Nurturing QA · ACTIVE" })
+  await campaign.getByLabel("Séquence à rattacher à Campagne QA printemps").selectOption({ label: `${sequenceName} · ACTIVE` })
   await campaign.getByRole("button", { name: "Rattacher la séquence" }).click()
   await expect(page.getByText("Séquence rattachée.")).toBeVisible()
   await campaign.getByRole("button", { name: "Inscrire le segment" }).click()
@@ -1070,7 +1088,7 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await expect(confirmation.getByText(/Seuls les contacts avec une adresse valide et un consentement actif/)).toBeVisible()
   await confirmation.getByRole("button", { name: "Inscrire l’audience" }).click()
   await expect(page.getByText("1 prospect(s) inscrit(s).")).toBeVisible()
-  await expect(campaign.locator("div.rounded-lg.border.p-3").filter({ has: page.getByText("Nurturing QA", { exact: true }) })).toContainText("1 inscription(s)")
+  await expect(campaign.locator("div.rounded-lg.border.p-3").filter({ has: page.getByText(sequenceName, { exact: true }) })).toContainText("1 inscription(s)")
 })
 
 test("lead, consent withdrawal, order, billing and reserved stock flow", async ({ page }, testInfo) => {
