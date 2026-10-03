@@ -207,12 +207,14 @@ export async function recomputeCustomerHealth() {
     }, { isolationLevel: "Serializable", timeout: 120_000 }))
     if (!lease.acquired) throw new Error("Un recalcul de santé est déjà en cours")
     let workflows = 0
-    for (let offset = 0; offset < lease.value.eventIds.length; offset += 50) {
-      const automationResults = await Promise.all(lease.value.eventIds.slice(offset, offset + 50).map((id) => dispatchAutomationEvent(id).catch((error) => {
+    // Keep the interactive request bounded and avoid competing SQLite writers.
+    // Remaining events are already durable and drained by processAutomationEvents.
+    for (const id of lease.value.eventIds.slice(0, 10)) {
+      try {
+        workflows += (await dispatchAutomationEvent(id)).completed
+      } catch (error) {
         console.error("Customer health automation failed", error)
-        return { workflows: 0, completed: 0 }
-      })))
-      workflows += automationResults.reduce((total, result) => total + result.completed, 0)
+      }
     }
     await logAction({ userId, action: "RECOMPUTE_CUSTOMER_HEALTH", resource: "CUSTOMER_HEALTH_SNAPSHOT", payload: { clients: lease.value.count, computedAt } })
     revalidatePath("/dashboard/service/customer-success")

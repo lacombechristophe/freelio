@@ -521,7 +521,8 @@ test("service records connect the help desk, conversation, ticket, intervention 
     await page.getByRole("button", { name: "Installer les règles recommandées" }).click()
     await expect(page.getByText("Règles de départ installées.")).toBeVisible()
     await page.getByRole("button", { name: "Figer les scores" }).click()
-    await expect(page.getByText("Scores recalculés et historisés.")).toBeVisible()
+    // The recalculation commits the full seeded portfolio and its durable events.
+    await expect(page.getByText("Scores recalculés et historisés.")).toBeVisible({ timeout: 60_000 })
     await page.getByRole("textbox", { name: "Rechercher un client du portefeuille" }).fill("Client QA Piscine")
     const clientHealth = page.locator("details").filter({ hasText: "Client QA Piscine" }).first()
     await clientHealth.locator("summary").click()
@@ -1042,7 +1043,8 @@ test("configures an email sequence and a lead automation", async ({ page }, test
   await page.getByRole("button", { name: "Créer la règle", exact: true }).click()
   await expect(page.getByText("Règle de santé créée.")).toBeVisible()
   await page.getByRole("button", { name: "Figer les scores" }).click()
-  await expect(page.getByText("Scores recalculés et historisés.")).toBeVisible()
+  // The full portfolio can generate one durable event per client.
+  await expect(page.getByText("Scores recalculés et historisés.")).toBeVisible({ timeout: 60_000 })
   await page.goto("/dashboard/organisation")
   await expect(page.getByText(/Suivre Client QA Piscine · santé \d+\/100/).first()).toBeVisible()
 })

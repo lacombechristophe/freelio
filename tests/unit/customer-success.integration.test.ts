@@ -5,14 +5,14 @@ vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/audit", () => ({ logAction: vi.fn() }))
 const actor = vi.hoisted(() => ({ companyId: "", userId: "fixture", membershipId: "fixture", role: "OWNER" as "OWNER" | "SERVICE", agencyIds: null as null | string[] }))
-const failure = vi.hoisted(() => ({ calls: 0, at: Infinity }))
+const failure = vi.hoisted(() => ({ calls: 0, at: Infinity, realDispatch: false }))
 vi.mock("@/lib/auth-wrapper", async () => {
   const { requestContext } = await import("@/lib/context")
   return { AuthorizationError: class extends Error {}, withAuth: (task: (context: typeof actor) => Promise<unknown>, permission: Permission) => requestContext.run({ ...actor, actionPermission: permission }, () => task(actor)) }
 })
 vi.mock("@/lib/automations/engine", async () => {
   const actual = await vi.importActual<typeof import("@/lib/automations/engine")>("@/lib/automations/engine")
-  return { ...actual, dispatchAutomationEvent: vi.fn(async () => ({ workflows: 0, completed: 0 })),
+  return { ...actual, dispatchAutomationEvent: vi.fn(async (id: string) => failure.realDispatch ? actual.dispatchAutomationEvent(id) : ({ workflows: 0, completed: 0 })),
     enqueueAutomationEvent: async (...args: Parameters<typeof actual.enqueueAutomationEvent>) => {
       if (++failure.calls === failure.at) throw new Error("Injected later-batch failure")
       return actual.enqueueAutomationEvent(...args)
@@ -23,6 +23,7 @@ vi.mock("@/lib/automations/engine", async () => {
 import prisma from "@/lib/prisma"
 import { getCustomerSuccessWorkspace, recomputeCustomerHealth } from "@/actions/customer-success"
 import { loadCustomerHealthMetrics } from "@/lib/operations/customer-health-metrics"
+import { processAutomationEvents } from "@/lib/automations/engine"
 
 describe.sequential("complete customer-success portfolio on SQL", () => {
   const companies: string[] = []
@@ -33,13 +34,15 @@ describe.sequential("complete customer-success portfolio on SQL", () => {
     await prisma.maintenanceContract.deleteMany({ where })
     await prisma.customerSite.deleteMany({ where })
     await prisma.client.deleteMany({ where })
+    const events = await prisma.automationEventOutbox.findMany({ where, select: { id: true } })
+    await prisma.processorLease.deleteMany({ where: { name: { in: events.map((event) => `automation-event:${event.id}`) } } })
     await prisma.company.deleteMany({ where: { id: { in: companies } } })
     await prisma.processorLease.deleteMany({ where: { name: { in: companies.map((id) => `customer-health:${id}`) } } })
   })
   async function fixture(count = 1) {
     const company = await prisma.company.create({ data: { name: "Fictitious full portfolio" } })
     companies.push(company.id)
-    actor.companyId = company.id; actor.role = "OWNER"; actor.agencyIds = null; failure.calls = 0; failure.at = Infinity
+    actor.companyId = company.id; actor.role = "OWNER"; actor.agencyIds = null; failure.calls = 0; failure.at = Infinity; failure.realDispatch = false
     for (let offset = 0; offset < count; offset += 200) await prisma.client.createMany({ data: Array.from({ length: Math.min(200, count - offset) }, (_, index) => ({
       id: `${company.id}-${String(offset + index).padStart(5, "0")}`, companyId: company.id,
       name: `Fiction ${String(offset + index).padStart(5, "0")}`, createdAt: new Date("2020-01-01"),
@@ -140,6 +143,27 @@ describe.sequential("complete customer-success portfolio on SQL", () => {
     await recomputeCustomerHealth()
     expect(await prisma.customerHealthSnapshot.count({ where: { companyId } })).toBe(2)
   })
+
+  it("bounds interactive workflow dispatch and drains every deferred event without duplicate effects", async () => {
+    const { companyId } = await fixture(51)
+    await riskRule(companyId)
+    const actions = [{ type: "CREATE_TASK", title: "Health {{client.name}}", delayHours: 0, priority: 2 }]
+    await prisma.automationWorkflow.create({ data: { companyId, name: "Fictitious health workflow", trigger: "CUSTOMER_HEALTH_CHANGED", status: "ACTIVE", publishedVersion: 1, conditions: {}, actions,
+      versions: { create: { companyId, version: 1, status: "PUBLISHED", publishedAt: new Date(), trigger: "CUSTOMER_HEALTH_CHANGED", conditions: {}, actions } },
+    } })
+    failure.realDispatch = true
+    expect(await recomputeCustomerHealth()).toMatchObject({ clients: 51, workflows: 10 })
+    expect(await prisma.organisationTask.count({ where: { companyId } })).toBe(10)
+    expect(await prisma.automationEventOutbox.count({ where: { companyId, status: "PENDING" } })).toBe(41)
+    expect(await prisma.client.count({ where: { companyId, relationScore: 40 } })).toBe(51)
+    expect((await processAutomationEvents(50, companyId)).completed).toBe(41)
+    expect(await prisma.organisationTask.count({ where: { companyId } })).toBe(51)
+    expect(await prisma.automationEventOutbox.count({ where: { companyId, status: "COMPLETED" } })).toBe(51)
+    await recomputeCustomerHealth()
+    await processAutomationEvents(50, companyId)
+    expect(await prisma.organisationTask.count({ where: { companyId } })).toBe(51)
+    failure.realDispatch = false
+  }, 120_000)
 
   it("rolls back all scores, snapshots and events when the second batch fails", async () => {
     const { companyId } = await fixture(201)
