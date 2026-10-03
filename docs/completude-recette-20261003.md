@@ -33,6 +33,16 @@ Environnement de recette séparé : copie sans `.env`, dépendances du lock, SQL
 
 La première CI de PR #8 a révélé un compteur de migrations figé et une fixture de campagne sans boîte expéditrice. Les corrections comparent désormais les noms exacts de toutes les migrations et déclarent une boîte fictive sans credentials. Elles nécessitent une nouvelle CI du SHA candidat.
 
-La suite locale atteint **499 tests réussis dans 116 fichiers** (60,34 s), dont le test de capacités désactivées. Types, lint et compilation Next 16.3.6 de production passent. La CI finale doit être renseignée depuis ses sorties ; ne pas déduire son succès des vérifications locales.
+La suite locale atteint **499 tests réussis dans 116 fichiers** (60,34 s), dont le test de capacités désactivées. Types, lint et compilation Next 16.3.6 de production passent. La recette ciblée additionnelle obtient **4 E2E réussis et 2 exclusions mobiles explicites** (15,7 s) : campagne avec sa propre séquence, recalcul/Communications, administration Marketing desktop/mobile.
+
+CI de `6f2af30dc535f8a7cf62888f1cfcf57031710e34` : les jobs **Intégration PostgreSQL** et **Image Linux et Chromium** réussissent sur le push et la PR. [Run PR](https://github.com/lacombechristophe/freelio/actions/runs/37086304413). Le job qualité est bloqué avant sa recette par l’audit npm.
+
+### Alerte de dépendance conservée comme blocage
+
+L’avis [GHSA-vfj7-8cjw-p6xm / CVE-2026-93687](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), revu le 2 octobre, affecte `braces <= 3.0.3` sans correctif publié au 3 octobre. npm remonte huit alertes hautes dans sa chaîne transitive. Les motifs profondément imbriqués peuvent provoquer un épuisement de pile.
+
+`shadcn` est un générateur CLI de développement : aucune source applicative ne l’importe. Il est désormais correctement classé en `devDependencies`, sans changement de version ni résolution du lock. **`npm audit --omit=dev --audit-level=moderate` retourne zéro vulnérabilité**. Cela ne corrige pas l’alerte des outils de développement.
+
+La CI contrôle séparément les dépendances de production puis exécute types/lint/tests/build/E2E avant l’audit de toutes les dépendances. L’audit complet garde son seuil et son échec bloquant ; aucune exclusion ni acceptation implicite de l’avis n’est ajoutée. Cette organisation conserve les preuves fonctionnelles pendant l’attente d’un correctif amont. **La PR reste en brouillon et ne doit pas être fusionnée sur la seule réussite fonctionnelle.**
 
 Les autres demandes d’interface non approuvées restent à soumettre : lecture des conversations (recherche, archives, pagination), rédaction avancée, campagnes/journal d’automatisation et écrans métier restants. Le lot Marketing approuvé ne comprend pas de gestion nouvelle des préférences de consentement ni de scoring santé client.

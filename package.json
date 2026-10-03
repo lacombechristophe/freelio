@@ -80,7 +80,6 @@
     "read-excel-file": "^9.3.10",
     "resend": "^6.10.0",
     "server-only": "^0.0.1",
-    "shadcn": "^4.2.0",
     "sharp": "^0.35.4",
     "sonner": "^2.0.7",
     "stripe": "^22.6.0",
@@ -92,6 +91,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "shadcn": "^4.2.0",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
