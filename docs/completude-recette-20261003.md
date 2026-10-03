@@ -77,6 +77,8 @@ La CI de `a530980a3ec846027e4f01e519bf178345efda3b` a terminé : **PostgreSQL et
 
 Autorisation visible : « Oui, étendre au portefeuille complet ». La recherche, le filtre santé et la pagination existants sont conservés. La mention du portefeuille limité à 300 clients devient celle du portefeuille complet de la société ; aucun champ, couleur ou disposition n’est ajouté.
 
+L’autorisation antérieure de désactiver les écritures dans la démo publique est aussi appliquée aux commandes « Figer les scores » et « Archiver » des règles : elles utilisent la garde existante des boutons. La garde serveur bloquait déjà ces écritures. La démo locale modifiable conserve ces commandes.
+
 La lecture parcourt tous les clients par curseur de 200, calcule leurs signaux sans échantillonner l’historique, puis priorise et filtre le portefeuille entier. Seuls les profils de la page de 25 clients atteignent le navigateur. Les compteurs couvrent le portefeuille entier indépendamment du filtre ; les requêtes conservent le périmètre société/agence de l’acteur. L’ordre inclut un identifiant de départage et une page hors limites revient à la dernière page disponible.
 
 Les tickets fusionnés sont exclus ; les factures brouillon, annulées, payées, avoirs et échéances futures ne deviennent pas des impayés. Le solde est plafonné à zéro par facture, pour qu’un trop-perçu ne masque pas une autre dette. Les réponses de satisfaction sont pondérées par leur nombre et normalisées selon l’échelle de chaque enquête. La date de renouvellement explicite prime sur le premier terme daté d’un contrat actif, même après plus de 100 contrats sans terme.
