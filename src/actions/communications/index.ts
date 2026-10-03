@@ -15,18 +15,19 @@ import { encrypt } from "@/lib/crypto"
 import prisma from "@/lib/prisma"
 import { channelConfig } from "@/lib/communications/sync-state"
 import { readInboxPage, readPreviousThreadMessages, type InboxQuery } from "@/lib/communications/inbox-reader"
+import { readRecipientPage } from "@/lib/communications/recipient-reader"
 
 const cuid = z.string().cuid()
 
 export async function getCommunicationDashboard() {
   return withAuth(async ({ companyId }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-    const [company, channels, inbox, events, contacts, unread] = await Promise.all([
+    const [company, channels, inbox, events, recipients, unread] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
       prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, visibility: true, mailEnabled: true, calendarEnabled: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
       readInboxPage(companyId),
       prisma.emailEvent.groupBy({ where: { companyId, occurredAt: { gte: since } }, by: ["type"], _count: { _all: true } }),
-      prisma.contact.findMany({ where: { client: { companyId }, email: { not: null } }, include: { client: { select: { id: true, name: true } } }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }], take: 500 }),
+      readRecipientPage(companyId),
       prisma.emailThread.aggregate({ where: { companyId, status: { not: "ARCHIVED" } }, _sum: { unreadCount: true } }),
     ])
     const sent = await prisma.emailMessage.count({ where: { companyId, direction: "OUTBOUND", createdAt: { gte: since } } })
@@ -43,7 +44,7 @@ export async function getCommunicationDashboard() {
       })),
       threads: inbox.threads,
       inbox,
-      contacts,
+      recipients,
       stats: { sent, received, unread: unread._sum.unreadCount ?? 0, events: Object.fromEntries(events.map((event) => [event.type, event._count._all])) },
     }
   }, "automation.read")
@@ -55,6 +56,10 @@ export async function getCommunicationInboxPage(input: InboxQuery) {
 
 export async function getPreviousCommunicationMessages(input: unknown) {
   return withAuth(({ companyId }) => readPreviousThreadMessages(companyId, input), "automation.read")
+}
+
+export async function getCommunicationRecipients(input: unknown = {}) {
+  return withAuth(({ companyId }) => readRecipientPage(companyId, input), "automation.read")
 }
 
 const sendSchema = z.object({

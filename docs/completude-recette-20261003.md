@@ -147,3 +147,19 @@ Le registre du 2 octobre décrit les constats initiaux ; ses lignes « ouvertes 
 | MAIL-04, CAL-02, CRM/BANK/portail et L9 | Non clôturés par cette recette | Rédaction avancée et lots visibles non approuvés, calendrier avancé, référentiels métier, réservations/conflits et dossier final CTO |
 
 Le candidat reste une démonstration fictive. L’audit complet de dépendances bloque la fusion ; HTTP simulé n’équivaut pas à une connexion fournisseur qualifiée. Aucun compteur global de tests ne transforme ces limites en fonctionnalités terminées.
+
+## Destinataires : recherche et pagination complètes (MAIL-06)
+
+Autorisation visible : « Oui, ajouter recherche et pagination des destinataires ». Dans « Nouvel e-mail », le sélecteur conserve son style et reçoit « Rechercher un destinataire » et la pagination existante, avec 25 contacts par page. Les boutons d’envoi et les couleurs sont conservés. Le choix demeure sélectionné en dehors de la page ou de la recherche ; il est présenté en plus des 25 résultats lorsqu’il n’en fait pas partie.
+
+Le tableau principal ne charge plus 500 contacts complets. La lecture paginée expose seulement identifiant, prénom, nom, e-mail et identité du client. Comptage, page et résolution du contact choisi partagent une transaction sérialisable ; ils sont limités à la société de l’acteur, avec `automation.read`. Le tri ajoute l’identifiant aux prénom/nom pour stabiliser les pages. Les contacts sans e-mail ou avec une valeur vide sont exclus ; les adresses restent validées au moment de l’envoi. La recherche porte sur prénom, nom, e-mail et société cliente. PostgreSQL utilise explicitement un filtre insensible à la casse ; SQLite garde les propriétés de son `LIKE`, insensible à la casse ASCII.
+
+Le champ attend 250 ms avant la requête, ignore la réponse d’une recherche devenue ancienne et revient à la première page au changement de texte. Une erreur conserve la sélection et propose la commande existante « Réessayer ». Entrée dans le champ de recherche ne soumet pas le formulaire d’envoi. Aucun fournisseur n’est contacté par ces lectures.
+
+`recipient-reader.integration.test.ts` qualifie 1 001 contacts, les 41 pages sans doublons, les égalités de noms, la dernière page hors limite, le dernier contact recherchable, les champs privés absents du DTO, un choix hors filtre, les identifiants étrangers et les paramètres malformés. Les 12 tests ciblés annuaire/envoi passent. Compilation de production et lint passent. Les parcours destinataires réussissent sur ordinateur/mobile (**2 E2E, 9,7 s**) avec 551 contacts fictifs, changement de page/filtre, choix conservé et HTTP 500 simulé puis reprise ; les deux parcours de lecture mail réussissent également.
+
+Le correctif précédent `b0dc24abe42a4a2b6f124752b56603681da31059` termine sa CI : **531 tests SQLite, 83 E2E réussis, 19 exclusions** ; PostgreSQL **530 réussites et une exclusion SQLite** ; huit contrôles Linux réussis. L’unique échec est l’audit complet des huit alertes hautes de développement. [Run du push exact](https://github.com/lacombechristophe/freelio/actions/runs/37131750419). Ces résultats ne remplacent pas la CI du nouveau sélecteur.
+
+Ce complément retire la limite du sélecteur signalée dans la synthèse précédente. MAIL-06 n’est plus limité par les anciens plafonds de fils/messages/contacts ; cela ne clôture ni la rédaction avancée de MAIL-04 ni les réponses natives de MAIL-05.
+
+La suite locale complète du sélecteur réussit : **535 tests dans 122 fichiers** (71,84 s). Types, lint ciblé et compilation de production réussissent. La qualification PostgreSQL et les parcours complets seront relus dans la CI du SHA poussé ; les tests locaux utilisent exclusivement les bases fictives isolées.
