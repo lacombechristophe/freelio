@@ -18,6 +18,7 @@ import { readInboxPage, readPreviousThreadMessages, type InboxQuery } from "@/li
 import { readRecipientPage } from "@/lib/communications/recipient-reader"
 import { deleteEmailDraft, EmailDraftConflict, getEmailDraft, listEmailDrafts, saveEmailDraft, sendEmailDraft } from "@/lib/communications/drafts"
 import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
+import type { EmailAttachment } from "@/lib/communications/attachment-types"
 
 export async function getCommunicationDrafts(input: unknown = {}) {
   return withAuth(({ companyId, userId }) => listEmailDrafts(companyId, userId, input), "automation.read")
@@ -108,11 +109,13 @@ const sendSchema = z.object({
   bodyHtml: z.string().trim().min(10).max(100_000),
   cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]),
   draftId: cuid.optional(), draftVersion: z.number().int().positive().optional(),
+  attachmentIds: z.array(z.string().uuid()).max(5).default([]),
 })
 
 export async function sendCrmEmail(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = sendSchema.parse(input)
+    if (data.attachmentIds.length && !data.draftId) throw new Error("Enregistrez les pièces jointes dans un brouillon avant l’envoi")
     const [company, contact] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
       prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId }, email: { not: null } }, select: { id: true, email: true, clientId: true } }),
@@ -128,7 +131,7 @@ export async function sendCrmEmail(input: unknown) {
     const subject = data.subject.replace(/[\r\n]+/g, " ").trim()
     const content = sanitizeSequenceEmailHtml(data.bodyHtml)
     const html = `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`
-    const send = (requestKey: string) => sendManualEmail({ companyId, userId, requestKey, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc })
+    const send = (requestKey: string, attachments: EmailAttachment[] = []) => sendManualEmail({ companyId, userId, requestKey, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc, attachments })
     const message = await (async () => {
       try {
         return data.draftId ? await sendEmailDraft(companyId, userId, { ...data, id: data.draftId, version: data.draftVersion }, send) : await send(data.requestKey || randomUUID())

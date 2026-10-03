@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { createHash, randomUUID } from "node:crypto"
 
 const prismaMock = vi.hoisted(() => ({
   emailSuppression: { findUnique: vi.fn() },
@@ -54,6 +55,51 @@ describe("OAuth email crash recovery", () => {
     vi.restoreAllMocks()
     prismaMock.emailSuppression.findUnique.mockResolvedValue(null)
     prismaMock.communicationChannel.update.mockResolvedValue({})
+  })
+
+  function attachment() {
+    const bytes = Buffer.from("%PDF-fictitious attachment only")
+    return { id: randomUUID(), name: "facture fictive.pdf", size: bytes.length, type: "application/pdf" as const, sha256: createHash("sha256").update(bytes).digest("hex"), relativePath: "local:private/fiction/email-draft/fiction/file.pdf", bytes }
+  }
+
+  it.each(["GOOGLE", "RESEND"] as const)("submits verified attachment bytes using the %s envelope", async provider => {
+    const file = attachment()
+    prismaMock.communicationChannel.findFirst.mockResolvedValue({ ...channel("GOOGLE"), provider })
+    vi.mocked(getResendTransport).mockResolvedValue({ apiKey: "re_fiction_only" } as Awaited<ReturnType<typeof getResendTransport>>)
+    const fetchMock = provider === "GOOGLE" ? vi.fn().mockResolvedValueOnce(Response.json({ messages: [] })).mockResolvedValueOnce(Response.json({ id: "attachment-draft" })).mockResolvedValueOnce(Response.json({ id: "attachment-sent" })) : vi.fn().mockResolvedValue(Response.json({ id: "attachment-sent" }))
+    vi.stubGlobal("fetch", fetchMock)
+    await sendEmailThroughChannel({ ...baseInput, attachments: [file] })
+    if (provider === "GOOGLE") {
+      const mime = Buffer.from(JSON.parse(fetchMock.mock.calls[1][1].body).message.raw, "base64url").toString()
+      expect(mime).toContain("Content-Type: multipart/mixed;")
+      expect(mime).toContain("filename*=UTF-8''facture%20fictive.pdf")
+      expect(mime).toContain(file.bytes.toString("base64"))
+    } else expect(JSON.parse(fetchMock.mock.calls[0][1].body).attachments).toMatchObject([{ filename: file.name, content: file.bytes.toString("base64") }])
+    fetchMock.mockClear()
+    await expect(sendEmailThroughChannel({ ...baseInput, attachments: [{ ...file, sha256: "0".repeat(64) }] })).rejects.toThrow("altérée")
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("persists the Microsoft draft before attaching and resumes accepted attachments without creating a new draft", async () => {
+    const file = attachment(); let persisted = false, attached = false, sent = false, creations = 0, sends = 0, additions = 0
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("MICROSOFT"))
+    vi.stubGlobal("fetch", vi.fn(async (url: string | URL, input?: RequestInit) => {
+      const value = String(url)
+      if (value.includes("/attachments?")) return Response.json({ value: attached ? [{ id: "remote-attachment", name: file.name, size: file.size, contentId: `freelio-${file.id}` }] : [] })
+      if (value.endsWith("/$value")) return new Response(new Uint8Array(file.bytes))
+      if (value.endsWith("/attachments") && input?.method === "POST") { expect(persisted).toBe(true); attached = true; additions++; throw new Error("Attachment acceptance timeout") }
+      if (value.includes("/me/messages?")) return Response.json({ value: [] })
+      if (value.endsWith("/me/messages") && input?.method === "POST") { creations++; return Response.json({ id: "prepared-with-files", internetMessageId: "<with-files@example.test>" }) }
+      if (value.includes("/prepared-with-files?$select=")) return Response.json({ id: "prepared-with-files", isDraft: !sent })
+      if (value.endsWith("/prepared-with-files/send")) { sends++; sent = true; return new Response(null, { status: 202 }) }
+      throw new Error(`Unexpected fictional request: ${value}`)
+    }))
+    const onPrepared = vi.fn(async () => { persisted = true })
+    await expect(sendEmailThroughChannel({ ...baseInput, attachments: [file], onPrepared })).rejects.toThrow("timeout")
+    const resume = { provider: "MICROSOFT", channelId: channel("MICROSOFT").id, providerDraftId: "prepared-with-files", providerMessageId: "<with-files@example.test>" }
+    await sendEmailThroughChannel({ ...baseInput, attachments: [file], resume })
+    await sendEmailThroughChannel({ ...baseInput, attachments: [file], resume })
+    expect([creations, additions, sends]).toEqual([1, 1, 1])
   })
 
   it.each(["GOOGLE", "MICROSOFT"] as const)("submits explicit CC and Bcc recipients in the %s draft envelope", async provider => {

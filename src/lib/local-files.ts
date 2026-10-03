@@ -28,7 +28,8 @@ const ALLOWED_MIME_TYPES = new Set([
 ])
 
 export type LocalFileKind = "client" | "expense" | "project" | "intervention"
-type StoredFileKind = LocalFileKind | "generated"
+type UploadFileKind = LocalFileKind | "email-draft"
+type StoredFileKind = UploadFileKind | "generated"
 
 export type StoredLocalFile = {
   relativePath: string
@@ -109,7 +110,7 @@ function assertFileMetadata(input: { name: string; type: string; size: number; s
   if (input.sha256 !== undefined && !/^[a-f0-9]{64}$/i.test(input.sha256)) throw new Error("Empreinte de fichier invalide")
 }
 
-function hasExpectedSignature(type: string, bytes: Buffer) {
+export function hasExpectedSignature(type: string, bytes: Buffer) {
   if (type === "application/pdf") return bytes.subarray(0, 5).toString("ascii") === "%PDF-"
   if (type === "application/zip") return bytes[0] === 0x50 && bytes[1] === 0x4b
   if (type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
@@ -132,6 +133,7 @@ export async function storeFileBytes(input: {
   if (!hasExpectedSignature(type, bytes)) throw new Error("Le contenu du fichier ne correspond pas à son type")
   const sha256 = createHash("sha256").update(bytes).digest("hex")
   const objectKey = [
+    ...(kind === "email-draft" ? ["private"] : []),
     safeSegment(companyId),
     kind,
     safeSegment(resourceId),
@@ -186,7 +188,7 @@ export function directFileUploadAvailable() {
 
 export async function createDirectFileUpload(input: {
   companyId: string
-  kind: LocalFileKind
+  kind: UploadFileKind
   resourceId: string
   originalName: string
   type: string
@@ -228,7 +230,7 @@ export async function createDirectFileUpload(input: {
 
 export async function confirmDirectFileUpload(input: {
   companyId: string
-  kind: LocalFileKind
+  kind: UploadFileKind
   resourceId: string
   originalName: string
   type: string
@@ -262,13 +264,13 @@ export async function confirmDirectFileUpload(input: {
 
   const uploaded = await r2Client(config).send(new GetObjectCommand({ Bucket: config.bucket, Key: objectKey }))
   if (!uploaded.Body) throw new Error("Le fichier transféré est vide ou introuvable")
-  const bytes = Buffer.from(await uploaded.Body.transformToByteArray())
+  const bytes = await readBoundedStream(uploaded.Body as AsyncIterable<Uint8Array>, input.size)
   if (bytes.length !== input.size) throw new Error("La taille réelle du fichier ne correspond pas")
   if (createHash("sha256").update(bytes).digest("hex") !== expectedSha256) throw new Error("L’intégrité du fichier transféré est invalide")
   if (!hasExpectedSignature(input.type, bytes)) throw new Error("Le contenu du fichier ne correspond pas à son type")
 
   const fileName = safeFileName(input.originalName)
-  const finalKey = [safeCompanyId, input.kind, safeResourceId, path.basename(objectKey)].join("/")
+  const finalKey = [...(input.kind === "email-draft" ? ["private"] : []), safeCompanyId, input.kind, safeResourceId, path.basename(objectKey)].join("/")
   await r2Client(config).send(
     new PutObjectCommand({
       Bucket: config.bucket,
@@ -293,7 +295,7 @@ export async function confirmDirectFileUpload(input: {
 
 export async function abortDirectFileUpload(input: {
   companyId: string
-  kind: LocalFileKind
+  kind: UploadFileKind
   resourceId: string
   storageKey: string
 }) {

@@ -6,12 +6,15 @@ import prisma from "@/lib/prisma"
 import { withProcessorLease } from "@/lib/processing/lease"
 import { assertReplyContext, freezeReplyContext, replyContextSchema, validInternetMessageId } from "@/lib/communications/reply-context"
 import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
+import { emailAttachmentsSchema, attachmentMetadata } from "./attachment-types"
+import { readEmailAttachmentBytes } from "./attachment-content"
 
 const payloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
   channelId: z.string(), companyName: z.string(), replyTo: z.string().nullable(), from: z.string(), to: z.string().email(), subject: z.string(), html: z.string(),
   reply: replyContextSchema.nullable().optional(),
   cc: copyRecipientsSchema.optional(), bcc: copyRecipientsSchema.optional(),
+  attachments: emailAttachmentsSchema.optional(),
   invoiceSnapshot: z.object({ invoiceId: z.string(), remainingCents: z.number().int().positive() }).optional(),
 })
 
@@ -24,7 +27,7 @@ async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInp
 }
 
 export async function sendManualEmail(input: ManualSendInput) {
-  input = { ...input, cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []) }
+  input = { ...input, cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []), attachments: emailAttachmentsSchema.parse(input.attachments || []) }
   validateRecipients(input.to, input.cc, input.bcc)
   // Persist the frozen payload and mailbox BEFORE any remote request. A retry
   // with another recipient/body is a different intent, never a replacement.
@@ -40,6 +43,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     })
   }
   const payload = payloadSchema.parse(delivery.payload)
+  if (JSON.stringify(payload.attachments || []) !== JSON.stringify(input.attachments)) throw new Error("Les pièces jointes de cet envoi sont déjà figées")
   if (JSON.stringify(payload.invoiceSnapshot) !== JSON.stringify(input.invoiceSnapshot)) throw new Error("Le contexte financier de cet envoi est déjà figé")
   if (JSON.stringify(payload.cc || []) !== JSON.stringify(input.cc) || JSON.stringify(payload.bcc || []) !== JSON.stringify(input.bcc)) throw new Error("Les destinataires de cet envoi sont déjà fixés ; créez un nouvel envoi")
   for (const key of ["userId", "contactId", "clientId", "threadId", "serviceTicketId", "to", "subject", "html"] as const) {
@@ -62,11 +66,13 @@ export async function sendManualEmail(input: ManualSendInput) {
       await control.assertOwned()
       await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENDING", attempts: { increment: 1 }, lastAttemptAt: new Date(), firstAttemptAt: current.firstAttemptAt || new Date(), error: null } })
       try {
+        const attachments = await Promise.all((payload.attachments || []).map(file => readEmailAttachmentBytes(input.companyId, file)))
         const sent = await sendEmailThroughChannel({
           companyId: input.companyId, companyName: payload.companyName, from: payload.from, channelId: payload.channelId, to: payload.to, replyTo: payload.replyTo,
           subject: payload.subject, html: payload.html, idempotencyKey: deliveryId,
           reply: payload.reply || undefined,
           cc: payload.cc, bcc: payload.bcc,
+          attachments,
           resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
           beforeDispatch: async () => {
             await control.assertOwned()
@@ -96,7 +102,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     // failure here must never turn a confirmed send into another remote send.
     return recordOutgoingEmail({ companyId: input.companyId, channelId: accepted.channelId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
       provider: accepted.provider!, providerId: accepted.providerId, internetMessageId: validInternetMessageId(accepted.providerMessageId) ? accepted.providerMessageId : null,
-      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], cc: payload.cc, bcc: payload.bcc, subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
+      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], cc: payload.cc, bcc: payload.bcc, attachments: attachmentMetadata(payload.attachments || []), subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
   })
   if (!lease.acquired) throw new Error("Cet envoi est déjà en cours ; actualisez son résultat avant de réessayer")
   return lease.value

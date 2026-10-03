@@ -80,6 +80,7 @@ export async function recordOutgoingEmail(input: {
   to: string[]
   cc?: string[]
   bcc?: string[]
+  attachments?: Array<{ id: string; name: string; size: number; type: string; sha256: string }>
   subject: string
   bodyHtml?: string | null
   bodyText?: string | null
@@ -119,6 +120,7 @@ export async function recordOutgoingEmail(input: {
       toAddresses: input.to,
       ccAddresses: input.cc?.length ? input.cc : undefined,
       bccAddresses: input.bcc?.length ? input.bcc : undefined,
+      attachments: input.attachments?.length ? input.attachments : undefined,
       subject: input.subject,
       bodyHtml: input.bodyHtml || null,
       bodyText: input.bodyText || null,

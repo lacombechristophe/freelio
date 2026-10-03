@@ -6,6 +6,8 @@ import prisma from "@/lib/prisma"
 import { sanitizeSequenceEmailHtml } from "@/lib/automations/email"
 import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
 import { copyRecipientsSchema, validateRecipients } from "./recipients"
+import { attachmentMetadata, emailAttachmentsSchema, type EmailAttachment } from "./attachment-types"
+import { removeLocalFile } from "@/lib/local-files"
 
 const optionalId = z.union([z.string().cuid(), z.literal(""), z.null()]).optional().transform(value => value || null)
 const fieldsSchema = z.object({
@@ -27,7 +29,7 @@ function normalizedFields(input: unknown) {
   return { ...fields, bodyHtml: sanitizeSequenceEmailHtml(fields.bodyHtml) }
 }
 
-async function locked<T>(id: string, task: (control: ProcessorLeaseControl) => Promise<T>) {
+export async function withEmailDraftLease<T>(id: string, task: (control: ProcessorLeaseControl) => Promise<T>) {
   const result = await withProcessorLease(`email-draft:${id}`, task)
   if (!result.acquired) throw new EmailDraftConflict("Ce brouillon est utilisé dans un autre onglet ; réessayez après actualisation")
   return result.value
@@ -42,7 +44,7 @@ async function assertLinks(companyId: string, fields: z.output<typeof fieldsSche
 }
 
 function dto(draft: Awaited<ReturnType<typeof readEmailDraft>>) {
-  return { ...draft, cc: copyRecipientsSchema.parse(draft.cc), bcc: copyRecipientsSchema.parse(draft.bcc), createdAt: draft.createdAt.toISOString(), updatedAt: draft.updatedAt.toISOString(), sentAt: draft.sentAt?.toISOString() ?? null }
+  return { ...draft, attachments: attachmentMetadata(emailAttachmentsSchema.parse(draft.attachments)), cc: copyRecipientsSchema.parse(draft.cc), bcc: copyRecipientsSchema.parse(draft.bcc), createdAt: draft.createdAt.toISOString(), updatedAt: draft.updatedAt.toISOString(), sentAt: draft.sentAt?.toISOString() ?? null }
 }
 
 export async function readEmailDraft(companyId: string, userId: string, id: string) {
@@ -71,14 +73,14 @@ export async function saveEmailDraft(companyId: string, userId: string, input: u
   const data = saveSchema.parse(input)
   const fields = normalizedFields(data)
   await assertLinks(companyId, fields)
-  if (!data.id) return locked(`${companyId}:${userId}:${data.createKey}`, async control => {
+  if (!data.id) return withEmailDraftLease(`${companyId}:${userId}:${data.createKey}`, async control => {
     await control.assertOwned()
     const draft = await prisma.emailDraft.upsert({ where: { companyId_authorUserId_createKey: { companyId, authorUserId: userId, createKey: data.createKey } }, update: {},
       create: { companyId, authorUserId: userId, createKey: data.createKey, requestKey: randomUUID(), ...fields } })
     if (draft.sentAt || draft.version !== 1 || !isDeepStrictEqual(fieldsSchema.parse(draft), fields)) throw new EmailDraftConflict("Cette création de brouillon existe déjà avec un autre contenu ; rouvrez-la")
     return dto(draft)
   })
-  return locked(data.id, async control => {
+  return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id!)
     if (draft.version !== data.version) throw new EmailDraftConflict("Conflit : ce brouillon a changé dans un autre onglet. Votre texte est conservé ; rouvrez la version enregistrée")
     if (draft.sentAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailDraftConflict("Un envoi est déjà préparé pour ce brouillon ; reprenez son résultat avant de le modifier")
@@ -91,25 +93,30 @@ export async function saveEmailDraft(companyId: string, userId: string, input: u
 
 export async function deleteEmailDraft(companyId: string, userId: string, input: unknown) {
   const data = identitySchema.parse(input)
-  return locked(data.id, async control => {
+  return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id)
     const delivery = await prisma.emailDelivery.findFirst({ where: { companyId, requestKey: draft.requestKey }, select: { status: true } })
     if (delivery && !acceptedStatuses.includes(delivery.status)) throw new EmailDraftConflict("Résultat de l’envoi à vérifier avant de supprimer ce brouillon")
     await control.assertOwned()
     const removed = await prisma.emailDraft.deleteMany({ where: { companyId, authorUserId: userId, id: data.id, version: data.version } })
     if (removed.count !== 1) throw new EmailDraftConflict("Conflit : ce brouillon a changé ; actualisez avant de le supprimer")
+    // Accepted deliveries retain the immutable bytes for reconciliation/history.
+    if (!delivery) for (const file of emailAttachmentsSchema.parse(draft.attachments)) await removeLocalFile(file.relativePath).catch(() => console.error("EMAIL_ATTACHMENT_CLEANUP_FAILED", file.id))
     return { success: true as const }
   })
 }
 
-export async function sendEmailDraft<T>(companyId: string, userId: string, input: unknown, send: (requestKey: string) => Promise<T>) {
+export async function sendEmailDraft<T>(companyId: string, userId: string, input: unknown, send: (requestKey: string, attachments: EmailAttachment[]) => Promise<T>) {
   const identity = identitySchema.parse(input)
-  return locked(identity.id, async control => {
+  const attachmentIds = z.object({ attachmentIds: z.array(z.string().uuid()).max(5).default([]) }).parse(input).attachmentIds
+  return withEmailDraftLease(identity.id, async control => {
     const draft = await readEmailDraft(companyId, userId, identity.id)
+    const attachments = emailAttachmentsSchema.parse(draft.attachments)
+    if (!isDeepStrictEqual(attachmentIds, attachments.map(file => file.id))) throw new EmailDraftConflict("Conflit : vérifiez les pièces jointes enregistrées avant l’envoi")
     if (draft.version !== identity.version || !isDeepStrictEqual(fieldsSchema.parse(draft), normalizedFields(input))) throw new EmailDraftConflict("Conflit : enregistrez et vérifiez le brouillon avant l’envoi")
     await assertLinks(companyId, fieldsSchema.parse(draft))
     await control.assertOwned()
-    const result = await send(draft.requestKey)
+    const result = await send(draft.requestKey, attachments)
     await control.assertOwned()
     await prisma.emailDraft.updateMany({ where: { companyId, authorUserId: userId, id: draft.id, version: draft.version }, data: { sentAt: new Date() } })
     return result

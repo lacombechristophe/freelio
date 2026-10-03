@@ -1,6 +1,7 @@
 import "server-only"
 
 import { z } from "zod"
+import { createHash } from "node:crypto"
 
 import { formatMailboxSender, getResendTransport } from "@/lib/communications/provider-credentials"
 import { decrypt, encrypt } from "@/lib/crypto"
@@ -13,6 +14,10 @@ import { mailScopeGranted, MailReconnectRequiredError } from "@/lib/communicatio
 import { canonicalEmailSubject } from "@/lib/communications/threads"
 import { replyContextSchema, replyHeaders, replyMailboxAddresses, validInternetMessageId, type ReplyContext } from "@/lib/communications/reply-context"
 import { copyRecipientsSchema, emailAddressSchema, validateRecipients } from "@/lib/communications/recipients"
+import { emailAttachmentsSchema } from "./attachment-types"
+import type { LoadedEmailAttachment } from "./attachment-content"
+import { hasExpectedSignature } from "@/lib/local-files"
+import { prepareGraphAttachments } from "./graph-attachments"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -159,10 +164,10 @@ function deterministicMessageId(idempotencyKey: string) {
   return `<${local}@mail.freelio.app>`
 }
 
-function mimeMessage(input: { from: string; to: string; cc?: string[]; bcc?: string[]; replyTo?: string | null; subject: string; html: string; messageId: string; headers?: Record<string, string> }) {
+function mimeMessage(input: { from: string; to: string; cc?: string[]; bcc?: string[]; replyTo?: string | null; subject: string; html: string; messageId: string; headers?: Record<string, string>; attachments?: LoadedEmailAttachment[] }) {
   const subject = Buffer.from(input.subject, "utf8").toString("base64")
   const body = Buffer.from(input.html, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n")
-  return [
+  const headers = [
     `From: ${input.from}`,
     `To: ${input.to}`,
     ...(input.cc?.length ? [`Cc: ${input.cc.join(", ")}`] : []),
@@ -174,11 +179,15 @@ function mimeMessage(input: { from: string; to: string; cc?: string[]; bcc?: str
     ...Object.entries(input.headers || {}).filter(([name]) => /^[A-Za-z0-9-]+$/.test(name)).map(([name, value]) => `${name}: ${value.replace(/[\r\n]+/g, " ")}`),
     `Subject: =?UTF-8?B?${subject}?=`,
     "MIME-Version: 1.0",
-    "Content-Type: text/html; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    body,
-  ].join("\r\n")
+  ]
+  const htmlPart = ["Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", body].join("\r\n")
+  if (!input.attachments?.length) return [...headers, htmlPart].join("\r\n")
+  const boundary = `freelio-${createHash("sha256").update(input.messageId).digest("hex").slice(0, 32)}`
+  const parts = input.attachments.map(file => {
+    const name = encodeURIComponent(file.name).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16)}`)
+    return [`Content-Type: ${file.type}`, `Content-Disposition: attachment; filename*=UTF-8''${name}`, `Content-ID: <freelio-${file.id}>`, "Content-Transfer-Encoding: base64", "", file.bytes.toString("base64").replace(/(.{76})/g, "$1\r\n")].join("\r\n")
+  })
+  return [...headers, `Content-Type: multipart/mixed; boundary="${boundary}"`, "", `--${boundary}`, htmlPart, ...parts.flatMap(part => [`--${boundary}`, part]), `--${boundary}--`, ""].join("\r\n")
 }
 
 export async function sendEmailThroughChannel(input: {
@@ -189,6 +198,7 @@ export async function sendEmailThroughChannel(input: {
   to: string
   cc?: string[]
   bcc?: string[]
+  attachments?: LoadedEmailAttachment[]
   replyTo?: string | null
   subject: string
   html: string
@@ -201,6 +211,8 @@ export async function sendEmailThroughChannel(input: {
 }) {
   input = { ...input, to: emailAddressSchema.parse(input.to), cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []) }
   validateRecipients(input.to, input.cc, input.bcc)
+  emailAttachmentsSchema.parse(input.attachments || [])
+  for (const file of input.attachments || []) if (file.bytes.length !== file.size || createHash("sha256").update(file.bytes).digest("hex") !== file.sha256 || !hasExpectedSignature(file.type, file.bytes)) throw new Error("Pièce jointe altérée ou invalide")
   if (Object.keys(input.headers || {}).some(name => /^(to|cc|bcc)$/i.test(name))) throw new Error("Les destinataires doivent être renseignés dans leurs champs dédiés")
   const assertRecipientsAllowed = async () => {
     for (const address of [input.to, ...input.cc!, ...input.bcc!]) {
@@ -235,7 +247,7 @@ export async function sendEmailThroughChannel(input: {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${transport.apiKey}`, "Idempotency-Key": input.idempotencyKey },
-      body: JSON.stringify({ from, to: [input.to], cc: input.cc!.length ? input.cc : undefined, bcc: input.bcc!.length ? input.bcc : undefined, reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, headers: { ...input.headers, ...(reply ? replyHeaders(reply) : {}) } }),
+      body: JSON.stringify({ from, to: [input.to], cc: input.cc!.length ? input.cc : undefined, bcc: input.bcc!.length ? input.bcc : undefined, reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, attachments: input.attachments?.length ? input.attachments.map(file => ({ filename: file.name, content: file.bytes.toString("base64") })) : undefined, headers: { ...input.headers, ...(reply ? replyHeaders(reply) : {}) } }),
     })
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
@@ -285,7 +297,7 @@ export async function sendEmailThroughChannel(input: {
           replyTo: replyMailboxAddresses(replyTo) }, input.to) }
         nativeThreadId = original.threadId
       }
-      const raw = Buffer.from(mimeMessage({ from, to: input.to, cc: input.cc, bcc: input.bcc, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64url")
+      const raw = Buffer.from(mimeMessage({ from, to: input.to, cc: input.cc, bcc: input.bcc, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders, attachments: input.attachments }), "utf8").toString("base64url")
       await beforeDispatch()
       const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw, ...(nativeThreadId ? { threadId: nativeThreadId } : {}) } }) })
       const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
@@ -348,6 +360,7 @@ export async function sendEmailThroughChannel(input: {
     }
     await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
   }
+  if (input.attachments?.length) await prepareGraphAttachments(draftId, graphHeaders, input.attachments, beforeDispatch)
   await beforeDispatch()
   const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}/send`, {
     method: "POST",

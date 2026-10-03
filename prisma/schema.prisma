@@ -1123,6 +1123,7 @@ model EmailDraft {
   bodyHtml     String   @default("")
   cc           Json
   bcc          Json
+  attachments  Json     @default("[]")
   sentAt       DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

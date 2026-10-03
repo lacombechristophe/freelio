@@ -14,6 +14,9 @@ import prisma from "@/lib/prisma"
 import { sendManualEmail } from "@/lib/communications/manual-send"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
+import { createHash } from "node:crypto"
+import { writeFile } from "node:fs/promises"
+import { storeFileBytes, removeLocalFile, resolveLocalFile } from "@/lib/local-files"
 
 describe.sequential("manual email durable command on SQL", () => {
   const companyIds: string[] = []
@@ -63,6 +66,31 @@ describe.sequential("manual email durable command on SQL", () => {
     await sendManualEmail(input)
     expect(await prisma.emailMessage.count({ where: { companyId: input.companyId } })).toBe(1)
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+  })
+
+  it("freezes attachment identities, refuses altered bytes and repairs accepted history without re-reading files", async () => {
+    const { input } = await fixture(), bytes = Buffer.from("%PDF-fictional immutable bytes")
+    vi.stubEnv("FILE_STORAGE_DRIVER", "local")
+    const stored = await storeFileBytes({ companyId: input.companyId, kind: "email-draft", resourceId: "fictional-command", originalName: "fiction.pdf", type: "application/pdf", bytes })
+    const file = { id: crypto.randomUUID(), name: stored.originalName, size: stored.size, type: "application/pdf" as const, sha256: stored.sha256, relativePath: stored.relativePath }
+    try {
+      const command = { ...input, attachments: [file] }
+      vi.mocked(recordOutgoingEmail).mockRejectedValueOnce(new Error("Injected attachment history failure"))
+      await expect(sendManualEmail(command)).rejects.toThrow("history failure")
+      expect(vi.mocked(sendEmailThroughChannel).mock.calls[0][0].attachments?.[0].bytes).toEqual(bytes)
+      await removeLocalFile(stored.relativePath)
+      const repaired = await sendManualEmail(command)
+      expect(repaired.attachments).toEqual([{ id: file.id, name: file.name, size: file.size, type: file.type, sha256: file.sha256 }])
+      expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+      await writeFile(resolveLocalFile(stored.relativePath), Buffer.alloc(bytes.length))
+      const another = { ...command, requestKey: crypto.randomUUID() }
+      await expect(sendManualEmail(another)).rejects.toThrow("altérée")
+      expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+      await expect(sendManualEmail({ ...another, attachments: [{ ...file, sha256: createHash("sha256").update(Buffer.alloc(bytes.length)).digest("hex") }] })).rejects.toThrow("figées")
+      await writeFile(resolveLocalFile(stored.relativePath), bytes)
+      await sendManualEmail(another)
+      expect(sendEmailThroughChannel).toHaveBeenCalledTimes(2)
+    } finally { await removeLocalFile(stored.relativePath); vi.unstubAllEnvs() }
   })
 
   it("refuses to replace the frozen payload or sender with another intent", async () => {

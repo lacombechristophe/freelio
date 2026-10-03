@@ -2,7 +2,7 @@ import { afterAll, expect, it } from "vitest"
 import { PrismaClient } from "@prisma/client"
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises"
 import { execFileSync, spawnSync } from "node:child_process"
-import { createHash } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import path from "node:path"
 import os from "node:os"
 
@@ -25,6 +25,12 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   const file = await database.clientFile.create({ data: { clientId: client.id, name: "proof.txt", url: fileKey, type: "text/plain", size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") } })
   await mkdir(path.join(directory, "data", "files", path.dirname(fileKey)), { recursive: true })
   await writeFile(path.join(directory, "data", "files", fileKey), bytes)
+  const draft = await database.emailDraft.create({ data: { companyId: company.id, authorUserId: user.id, createKey: randomUUID(), requestKey: randomUUID(), subject: "Private fictional draft", bodyHtml: "<p>Fictional content only</p>", cc: [], bcc: [] } })
+  const privateBytes = Buffer.from("%PDF-private fictional draft file")
+  const privateKey = `private/${company.id}/email-draft/${draft.id}/proof.pdf`
+  const privateDraft = await database.emailDraft.update({ where: { id: draft.id }, data: { attachments: [{ id: randomUUID(), name: "proof.pdf", size: privateBytes.length, type: "application/pdf", sha256: createHash("sha256").update(privateBytes).digest("hex"), relativePath: `local:${privateKey}` }] } })
+  await mkdir(path.join(directory, "data", "files", path.dirname(privateKey)), { recursive: true })
+  await writeFile(path.join(directory, "data", "files", privateKey), privateBytes)
   await writeFile(path.join(directory, "demo-access.json"), JSON.stringify({ schema: "freelio.local-demo.v1", authSecret: "synthetic-auth", encryptionKey: "synthetic-encryption", password: "synthetic-password" }))
   const before = await database.invoice.findUniqueOrThrow({ where: { id: invoice.id }, include: { lines: true } })
   const backup = JSON.parse(execFileSync(process.execPath, ["scripts/backup-demo.mjs", "--dir", directory], { env, encoding: "utf8", timeout: 30_000 }))
@@ -35,6 +41,8 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
     expect(await recovered.clientFile.findUniqueOrThrow({ where: { id: file.id } })).toEqual(file)
     expect(await recovered.membership.count({ where: { companyId: company.id, userId: user.id } })).toBe(1)
     expect(await readFile(path.join(restored.restoredDirectory, "data", "files", fileKey))).toEqual(bytes)
+    expect(await recovered.emailDraft.findUniqueOrThrow({ where: { id: draft.id } })).toEqual(privateDraft)
+    expect(await readFile(path.join(restored.restoredDirectory, "data", "files", privateKey))).toEqual(privateBytes)
     expect(await readFile(path.join(restored.restoredDirectory, "demo-access.json"))).toEqual(await readFile(path.join(directory, "demo-access.json")))
   } finally { await recovered.$disconnect() }
   await writeFile(path.join(backup.backupDirectory, "data", "files", fileKey), "Tampered synthetic content")
