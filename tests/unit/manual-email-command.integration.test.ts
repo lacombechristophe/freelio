@@ -66,6 +66,54 @@ describe.sequential("manual email durable command on SQL", () => {
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
   })
 
+  it("refuses a reply from another mailbox before preparing or contacting transport", async () => {
+    const { input } = await fixture()
+    const other = await prisma.communicationChannel.create({ data: { companyId: input.companyId, provider: "RESEND", emailAddress: "other@example.test", status: "ACTIVE" } })
+    const thread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, contactId: input.contactId, channelId: other.id, subject: input.subject } })
+    await expect(sendManualEmail({ ...input, threadId: thread.id })).rejects.toThrow("boîte")
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+    expect(await prisma.emailDelivery.count({ where: { companyId: input.companyId } })).toBe(0)
+  })
+
+  it("refuses reply references from another company or client before transport", async () => {
+    const { input, channel } = await fixture()
+    const foreign = await fixture()
+    const foreignThread = await prisma.emailThread.create({ data: { companyId: foreign.input.companyId, clientId: foreign.input.clientId, channelId: foreign.channel.id, subject: input.subject } })
+    const otherClient = await prisma.client.create({ data: { companyId: input.companyId, name: "Other fictitious recipient" } })
+    const otherThread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: otherClient.id, channelId: channel.id, subject: input.subject } })
+    for (const threadId of [foreignThread.id, otherThread.id]) {
+      await expect(sendManualEmail({ ...input, threadId })).rejects.toThrow("conversation")
+    }
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+    expect(await prisma.emailDelivery.count({ where: { companyId: input.companyId } })).toBe(0)
+  })
+
+  it("checks the frozen reply mailbox again immediately before remote dispatch", async () => {
+    const { input, channel } = await fixture()
+    const thread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, channelId: channel.id, subject: input.subject } })
+    const other = await prisma.communicationChannel.create({ data: { companyId: input.companyId, provider: "RESEND", emailAddress: "changed@example.test", status: "ACTIVE" } })
+    const transport = vi.mocked(sendEmailThroughChannel).getMockImplementation()!
+    vi.mocked(sendEmailThroughChannel).mockImplementationOnce(async (command) => {
+      await prisma.emailThread.update({ where: { id: thread.id }, data: { channelId: other.id } })
+      return transport(command)
+    })
+    await expect(sendManualEmail({ ...input, threadId: thread.id })).rejects.toThrow("boîte")
+    expect(recordOutgoingEmail).not.toHaveBeenCalled()
+    expect(await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: input.companyId } })).toMatchObject({ status: "FAILED", providerId: null, providerDraftId: null })
+    await prisma.emailThread.update({ where: { id: thread.id }, data: { channelId: channel.id } })
+    const sent = await sendManualEmail({ ...input, threadId: thread.id })
+    expect(sent.threadId).toBe(thread.id)
+    expect(await prisma.emailMessage.count({ where: { companyId: input.companyId } })).toBe(1)
+  })
+
+  it("records a reply in its original mailbox without creating a new thread", async () => {
+    const { input, channel } = await fixture()
+    const thread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, channelId: channel.id, subject: input.subject } })
+    expect((await sendManualEmail({ ...input, threadId: thread.id })).threadId).toBe(thread.id)
+    expect(await prisma.emailThread.count({ where: { companyId: input.companyId } })).toBe(1)
+    expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+  })
+
   it("blocks blind retries after the provider idempotency window", async () => {
     const { input } = await fixture()
     vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Timeout after remote acceptance"))

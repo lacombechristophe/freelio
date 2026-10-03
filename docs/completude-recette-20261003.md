@@ -112,3 +112,38 @@ Sur une nouvelle base fictive de 126 clients, la recette ciblée complète obtie
 La relecture des points d’entrée a révélé que `/api/automations/process` drainait déjà les événements mais que `npm run worker` ne traitait que les séquences. Le worker utilise désormais le même traitement que la route : jusqu’à 50 événements séquentiels, puis 100 inscriptions de séquence, chaque minute. Une famille en erreur ne supprime pas la tentative de l’autre. Le profil public continue d’interdire ce worker ; aucun ordonnanceur distant ni fournisseur n’est activé.
 
 `automation-processing.test.ts` vérifie l’ordre sans écritures concurrentes entre ces deux familles, les deux erreurs conservées, la route protégée et son HTTP 503 partiel, et l’appel effectif de l’outbox par la tâche périodique du module worker. Les quatre tests passent ; les huit tests SQL santé, dont les 51 scénarios différés, passent également. Le runbook corrige aussi son ancienne description des baux non renouvelés, devenue obsolète après le durcissement du processeur.
+
+### CI achevée du recalcul et du worker
+
+Référence `9e9939638cfa4ec01ade994abf0b584a8271b834` : **527 tests SQLite dans 121 fichiers**, couverture, types, lint, compilation et audit de production passent ; **83 E2E réussissent, 19 exclusions explicites**. PostgreSQL réussit avec 526 tests et une exclusion de sauvegarde native SQLite. Les huit contrôles Linux réussissent, dont migration de 48 migrations, Redis/BullMQ, PDF réel et arrêt gracieux du worker. Le rapport téléchargé porte le SHA exact et l’image `sha256:1dd604aa1a3f4f45e6d3035727205464945f65d5cfd4229858a5344273bc4000`. [Run push exact](https://github.com/lacombechristophe/freelio/actions/runs/37128276369), [run PR](https://github.com/lacombechristophe/freelio/actions/runs/37128279363).
+
+Les deux runs échouent uniquement à l’audit complet : huit alertes hautes de développement, liées à l’avis `braces` décrit plus haut. Aucun seuil n’est abaissé ; la PR reste en brouillon. Ce succès fonctionnel ne clôture pas les lots L5–L9 ni la qualification fournisseur.
+
+## Réponse mail : validation de la boîte avant transport
+
+Reproduction SQL : une conversation de la boîte B est passée à une commande expédiée par A. Avant correction, le transport simulé est appelé et accepte le message ; seul `recordOutgoingEmail` rejette ensuite le fil incompatible. Une nouvelle tentative ne résout pas cette incohérence.
+
+La commande contrôle maintenant la société, le client et la boîte du fil avant de créer la livraison durable. Le même contrôle est relu immédiatement avant le dispatch fournisseur pour refuser un changement concurrent. Les références inter-sociétés/inter-clients sont également refusées sans préparation ni transport. Une réponse valide conserve son fil ; l’historique déjà accepté garde sa réparation sans nouvel envoi.
+
+Quatre cas SQL supplémentaires couvrent mauvaise boîte, autre société/client, changement entre préparation et dispatch puis reprise, et réponse valide sans nouveau fil. **15 tests ciblés** messagerie/ACL/raccordement passent. Il s’agit d’une correction serveur sans changement de commande visible. Elle ne crée pas les références de réponse natives Gmail/Graph : MAIL-05 demeure partiel et aucun échange fournisseur réel n’est revendiqué.
+
+La suite locale complète atteint **531 tests réussis dans 121 fichiers** (93,50 s) ; types et lint ciblé réussissent. Le nouveau commit nécessite sa propre CI, distincte du succès fonctionnel de `9e99396`.
+
+## Lecture actuelle du registre de complétude
+
+Le registre du 2 octobre décrit les constats initiaux ; ses lignes « ouvertes » ne constituent pas un état courant après les corrections. Cette synthèse indique les preuves obtenues sans fermer les lots entiers.
+
+| Registre | Résultat vérifié dans ce candidat | Limite encore ouverte |
+|---|---|---|
+| MAIL-01, CAL-01 | Pagination avec continuation persistée, capacités indépendantes ; SQL et fournisseurs HTTP simulés | Réconciliation history/delta mail, suppressions/lu et échanges réels |
+| MAIL-03, OPS-03 | Commandes d’envoi et contenu/expéditeur figés ; acceptation distante et réparation d’historique séparées | Qualification fournisseur, ambiguïtés historiques sans snapshot |
+| MAIL-05/06 | Cloisonnement des fils, refus d’une mauvaise boîte avant transport, conversations/messages paginés et archives accessibles | Réponse native Gmail/Graph, sélecteur de contacts encore borné à 500 |
+| MAIL-07, OAUTH-01/04 | Unicité par société, webhooks routés, ACL de boîte, nonce unique, refresh/cursor avec contrôle concurrent | Qualification comptes réels, revue continue des nouvelles entrées |
+| OAUTH-02/03 | Capacités/scopes sélectionnés ; déconnexion locale correctement nommée, cookies nettoyés, départ d’un membre atomique | Révocation distante, transfert de propriété, Microsoft personnel |
+| MKT-01/02/03 | Recalcul complet 5 001/10 001, administration approuvée, listes statiques, aperçu et pagination | Préférences de consentement, critères/exclusions avancés, audience figée de campagne |
+| CAMP-01, AUTO-01/02/03/04 | Pause/dates contrôlées, événements et checkpoints durables, versions publiées figées, reprise sans recommencer l’inscription | Préflight/audiences de campagne, attentes et journal détaillé de scénario |
+| OPS-01/02 | Deadlines fournisseur, baux renouvelés avec contrôle de propriétaire ; route et worker drainent l’outbox | Ordonnanceur hébergé, alertes et reprise après arrêt brutal sur runtime final |
+| CS-01 | Portefeuille entier, historiques agrégés, recalcul atomique et événements différés repris | Mesure de performance à des volumes supérieurs sur PostgreSQL final |
+| MAIL-04, CAL-02, CRM/BANK/portail et L9 | Non clôturés par cette recette | Rédaction avancée et lots visibles non approuvés, calendrier avancé, référentiels métier, réservations/conflits et dossier final CTO |
+
+Le candidat reste une démonstration fictive. L’audit complet de dépendances bloque la fusion ; HTTP simulé n’équivaut pas à une connexion fournisseur qualifiée. Aucun compteur global de tests ne transforme ces limites en fonctionnalités terminées.

@@ -12,12 +12,19 @@ const payloadSchema = z.object({
 
 type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId"> & { companyId: string; requestKey: string; channelId: string | null }
 
+async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInput, "threadId" | "clientId">, channelId: string) {
+  if (!payload.threadId) return
+  const thread = await prisma.emailThread.findFirst({ where: { id: payload.threadId, companyId, clientId: payload.clientId, channelId: channelId === "platform" ? null : channelId }, select: { id: true } })
+  if (!thread) throw new Error("La conversation ne correspond plus au client ou à la boîte expéditrice")
+}
+
 export async function sendManualEmail(input: ManualSendInput) {
   // Persist the frozen payload and mailbox BEFORE any remote request. A retry
   // with another recipient/body is a different intent, never a replacement.
   let delivery = await prisma.emailDelivery.findUnique({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
   if (!delivery) {
     const channel = await activeCommunicationChannel(input.companyId, input.channelId)
+    await assertReplyMailbox(input.companyId, input, channel.id)
     const payload = payloadSchema.parse({ ...input, channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) })
     delivery = await prisma.emailDelivery.upsert({
       where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } }, update: {},
@@ -50,6 +57,7 @@ export async function sendManualEmail(input: ManualSendInput) {
           resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
           beforeDispatch: async () => {
             await control.assertOwned()
+            await assertReplyMailbox(input.companyId, payload, payload.channelId)
             const contact = await prisma.contact.findFirst({ where: { id: payload.contactId, client: { companyId: input.companyId }, email: payload.to }, select: { id: true } })
             if (!contact) throw new Error("Le destinataire a changé depuis la préparation")
           },
