@@ -174,6 +174,7 @@ const prismaClientSingleton = () => {
 }
 
 type PrismaClientExtended = ReturnType<typeof prismaClientSingleton>
+export type TransactionClient = Parameters<Parameters<PrismaClientExtended["$transaction"]>[0]>[0]
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientExtended | undefined
