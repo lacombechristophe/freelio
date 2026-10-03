@@ -45,6 +45,13 @@ describe.sequential("manual email durable command on SQL", () => {
     return { input, channel }
   }
 
+  async function replyThread(input: Awaited<ReturnType<typeof fixture>>["input"]) {
+    const thread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, contactId: input.contactId, channelId: input.channelId, subject: input.subject } })
+    const original = await prisma.emailMessage.create({ data: { companyId: input.companyId, threadId: thread.id, direction: "INBOUND", provider: "RESEND", providerId: `original-${thread.id}`,
+      internetMessageId: `<${thread.id}@example.test>`, fromAddress: input.to, toAddresses: ["sender@example.test"], subject: input.subject } })
+    return { ...thread, original }
+  }
+
   it("repairs a failed SQL history write after acceptance without another transport call", async () => {
     const { input } = await fixture()
     vi.mocked(recordOutgoingEmail).mockRejectedValueOnce(new Error("Injected history failure"))
@@ -90,7 +97,7 @@ describe.sequential("manual email durable command on SQL", () => {
 
   it("checks the frozen reply mailbox again immediately before remote dispatch", async () => {
     const { input, channel } = await fixture()
-    const thread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, channelId: channel.id, subject: input.subject } })
+    const thread = await replyThread(input)
     const other = await prisma.communicationChannel.create({ data: { companyId: input.companyId, provider: "RESEND", emailAddress: "changed@example.test", status: "ACTIVE" } })
     const transport = vi.mocked(sendEmailThroughChannel).getMockImplementation()!
     vi.mocked(sendEmailThroughChannel).mockImplementationOnce(async (command) => {
@@ -103,14 +110,60 @@ describe.sequential("manual email durable command on SQL", () => {
     await prisma.emailThread.update({ where: { id: thread.id }, data: { channelId: channel.id } })
     const sent = await sendManualEmail({ ...input, threadId: thread.id })
     expect(sent.threadId).toBe(thread.id)
-    expect(await prisma.emailMessage.count({ where: { companyId: input.companyId } })).toBe(1)
+    expect(await prisma.emailMessage.count({ where: { companyId: input.companyId, direction: "OUTBOUND" } })).toBe(1)
   })
 
   it("records a reply in its original mailbox without creating a new thread", async () => {
-    const { input, channel } = await fixture()
-    const thread = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, channelId: channel.id, subject: input.subject } })
-    expect((await sendManualEmail({ ...input, threadId: thread.id })).threadId).toBe(thread.id)
+    const { input } = await fixture()
+    const thread = await replyThread(input)
+    const sent = await sendManualEmail({ ...input, threadId: thread.id })
+    expect(sent.threadId).toBe(thread.id)
+    expect(sent.inReplyTo).toBe(thread.original.internetMessageId)
     expect(await prisma.emailThread.count({ where: { companyId: input.companyId } })).toBe(1)
+    expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(sendEmailThroughChannel).mock.calls[0][0].reply).toMatchObject({ messageId: thread.original.id, internetMessageId: thread.original.internetMessageId })
+  })
+
+  it("retains the frozen parent when another message arrives before retry", async () => {
+    const { input } = await fixture()
+    const thread = await replyThread(input)
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Injected preparation failure"))
+    const command = { ...input, threadId: thread.id }
+    await expect(sendManualEmail(command)).rejects.toThrow("preparation failure")
+    await prisma.emailMessage.create({ data: { companyId: input.companyId, threadId: thread.id, direction: "INBOUND", provider: "RESEND", providerId: "new-arrival", internetMessageId: "<new-arrival@example.test>", fromAddress: input.to, toAddresses: [], subject: input.subject } })
+    await sendManualEmail(command)
+    expect(vi.mocked(sendEmailThroughChannel).mock.calls[1][0].reply?.messageId).toBe(thread.original.id)
+  })
+
+  it("refuses missing parents and refuses a changed parent before dispatch", async () => {
+    const { input } = await fixture()
+    const empty = await prisma.emailThread.create({ data: { companyId: input.companyId, clientId: input.clientId, channelId: input.channelId, subject: input.subject } })
+    await expect(sendManualEmail({ ...input, threadId: empty.id })).rejects.toThrow("référence")
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+    const thread = await replyThread(input)
+    const transport = vi.mocked(sendEmailThroughChannel).getMockImplementation()!
+    vi.mocked(sendEmailThroughChannel).mockImplementationOnce(async command => {
+      await prisma.emailMessage.update({ where: { id: thread.original.id }, data: { internetMessageId: "<changed@example.test>" } })
+      return transport(command)
+    })
+    await expect(sendManualEmail({ ...input, threadId: thread.id })).rejects.toThrow("message d’origine a changé")
+    expect(recordOutgoingEmail).not.toHaveBeenCalled()
+  })
+
+  it("repairs accepted legacy replies but refuses an unaccepted legacy retry", async () => {
+    const { input } = await fixture()
+    const thread = await replyThread(input)
+    const command = { ...input, threadId: thread.id }
+    vi.mocked(recordOutgoingEmail).mockRejectedValueOnce(new Error("Injected legacy history failure"))
+    await expect(sendManualEmail(command)).rejects.toThrow("legacy history")
+    const delivery = await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: input.companyId } })
+    const payload = { ...(delivery.payload as Record<string, string | null>) }
+    delete payload.reply
+    await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { payload } })
+    await sendManualEmail(command)
+    expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+    await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", providerId: null } })
+    await expect(sendManualEmail(command)).rejects.toThrow("Ancienne réponse")
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
   })
 

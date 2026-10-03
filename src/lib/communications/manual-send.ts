@@ -4,13 +4,15 @@ import { formatMailboxSender } from "@/lib/communications/provider-credentials"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
 import { withProcessorLease } from "@/lib/processing/lease"
+import { assertReplyContext, freezeReplyContext, replyContextSchema, validInternetMessageId } from "@/lib/communications/reply-context"
 
 const payloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
   channelId: z.string(), companyName: z.string(), replyTo: z.string().nullable(), from: z.string(), to: z.string().email(), subject: z.string(), html: z.string(),
+  reply: replyContextSchema.nullable().optional(),
 })
 
-type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId"> & { companyId: string; requestKey: string; channelId: string | null }
+type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply"> & { companyId: string; requestKey: string; channelId: string | null }
 
 async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInput, "threadId" | "clientId">, channelId: string) {
   if (!payload.threadId) return
@@ -25,7 +27,8 @@ export async function sendManualEmail(input: ManualSendInput) {
   if (!delivery) {
     const channel = await activeCommunicationChannel(input.companyId, input.channelId)
     await assertReplyMailbox(input.companyId, input, channel.id)
-    const payload = payloadSchema.parse({ ...input, channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) })
+    const reply = await freezeReplyContext(input.companyId, input.threadId, channel.provider, input.subject)
+    const payload = payloadSchema.parse({ ...input, reply, channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) })
     delivery = await prisma.emailDelivery.upsert({
       where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } }, update: {},
       create: { companyId: input.companyId, contactId: input.contactId, requestKey: input.requestKey, recipientEmail: input.to, subject: input.subject, channelId: channel.id === "platform" ? null : channel.id, provider: channel.provider, payload, scheduledAt: new Date() },
@@ -41,6 +44,7 @@ export async function sendManualEmail(input: ManualSendInput) {
   const lease = await withProcessorLease(`manual-email:${deliveryId}`, async (control) => {
     const current = await prisma.emailDelivery.findFirstOrThrow({ where: { id: deliveryId, companyId: input.companyId } })
     if (!["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(current.status)) {
+      if (payload.threadId && !payload.reply) throw new Error("Ancienne réponse sans référence figée ; vérifiez son résultat avant de créer un nouvel envoi")
       if (["DEAD_LETTER", "CANCELED", "SUPPRESSED", "BOUNCED", "COMPLAINED"].includes(current.status)) throw new Error("Cette commande d’envoi ne peut pas être relancée")
       // Resend's deduplication expires after 24 hours. No blind resend after an
       // ambiguous attempt outside that window, even after a worker restart.
@@ -54,10 +58,12 @@ export async function sendManualEmail(input: ManualSendInput) {
         const sent = await sendEmailThroughChannel({
           companyId: input.companyId, companyName: payload.companyName, from: payload.from, channelId: payload.channelId, to: payload.to, replyTo: payload.replyTo,
           subject: payload.subject, html: payload.html, idempotencyKey: deliveryId,
+          reply: payload.reply || undefined,
           resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
           beforeDispatch: async () => {
             await control.assertOwned()
             await assertReplyMailbox(input.companyId, payload, payload.channelId)
+            if (payload.threadId && payload.reply) await assertReplyContext(input.companyId, payload.threadId, payload.reply)
             const contact = await prisma.contact.findFirst({ where: { id: payload.contactId, client: { companyId: input.companyId }, email: payload.to }, select: { id: true } })
             if (!contact) throw new Error("Le destinataire a changé depuis la préparation")
           },
@@ -78,7 +84,8 @@ export async function sendManualEmail(input: ManualSendInput) {
     // History can be repaired independently of transport acceptance. A SQL
     // failure here must never turn a confirmed send into another remote send.
     return recordOutgoingEmail({ companyId: input.companyId, channelId: accepted.channelId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
-      provider: accepted.provider!, providerId: accepted.providerId, from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
+      provider: accepted.provider!, providerId: accepted.providerId, internetMessageId: validInternetMessageId(accepted.providerMessageId) ? accepted.providerMessageId : null,
+      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
   })
   if (!lease.acquired) throw new Error("Cet envoi est déjà en cours ; actualisez son résultat avant de réessayer")
   return lease.value

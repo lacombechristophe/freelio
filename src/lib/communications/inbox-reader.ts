@@ -40,7 +40,7 @@ export async function readInboxPage(companyId: string, input: InboxQuery = {}) {
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(query.page, pageCount)
     const rows = await tx.emailThread.findMany({ where, orderBy: [{ lastMessageAt: "desc" }, { id: "desc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
-      select: { id: true, subject: true, status: true, unreadCount: true, lastMessageAt: true,
+      select: { id: true, channelId: true, subject: true, status: true, unreadCount: true, lastMessageAt: true,
         client: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true, email: true } },
         leadCapture: { select: { id: true, firstName: true, lastName: true, email: true } },

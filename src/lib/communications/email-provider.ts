@@ -10,6 +10,8 @@ import { providerFetch as fetch } from "@/lib/integrations/provider-fetch"
 import { withProcessorLease } from "@/lib/processing/lease"
 import { activeEmailSuppression } from "@/lib/communications/suppressions"
 import { mailScopeGranted, MailReconnectRequiredError } from "@/lib/communications/capabilities"
+import { canonicalEmailSubject } from "@/lib/communications/threads"
+import { replyContextSchema, replyHeaders, replyMailboxAddresses, validInternetMessageId, type ReplyContext } from "@/lib/communications/reply-context"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -185,6 +187,7 @@ export async function sendEmailThroughChannel(input: {
   html: string
   idempotencyKey: string
   headers?: Record<string, string>
+  reply?: ReplyContext
   resume?: EmailProviderState
   onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
   beforeDispatch?: () => Promise<void>
@@ -202,7 +205,12 @@ export async function sendEmailThroughChannel(input: {
   const from = input.from ?? formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress)
   const fromAddress = (from.match(/<([^<>]+)>$/)?.[1] || from).trim().toLowerCase()
   if (/[\r\n]/.test(from) || fromAddress !== channel.emailAddress.trim().toLowerCase()) throw new Error("L’expéditeur préparé ne correspond plus à la messagerie")
-  const messageId = input.resume?.providerMessageId || deterministicMessageId(input.idempotencyKey)
+  let messageId = input.resume?.providerMessageId || deterministicMessageId(input.idempotencyKey)
+  const reply = input.reply ? replyContextSchema.parse(input.reply) : null
+  if (reply && (reply.provider !== channel.provider || canonicalEmailSubject(input.subject) !== canonicalEmailSubject(reply.subject))) throw new Error("La réponse ne correspond pas au fournisseur ou à l’objet préparé")
+  const remoteReplyId = reply && channel.provider !== "RESEND"
+    ? reply.providerId?.startsWith(`${channel.id}:`) ? reply.providerId.slice(channel.id.length + 1) : null : null
+  if (reply && channel.provider !== "RESEND" && (!remoteReplyId || /[\r\n]/.test(remoteReplyId))) throw new Error("Référence de réponse hors de la boîte expéditrice")
 
   if (channel.provider === "RESEND") {
     const transport = await getResendTransport(input.companyId, channel.id === "platform" ? null : channel.id)
@@ -211,7 +219,7 @@ export async function sendEmailThroughChannel(input: {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${transport.apiKey}`, "Idempotency-Key": input.idempotencyKey },
-      body: JSON.stringify({ from, to: [input.to], reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, headers: input.headers }),
+      body: JSON.stringify({ from, to: [input.to], reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, headers: { ...input.headers, ...(reply ? replyHeaders(reply) : {}) } }),
     })
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
@@ -221,6 +229,10 @@ export async function sendEmailThroughChannel(input: {
   const provider = channel.provider as EmailOAuthProvider
   const credentials = await validOAuthCredentials(channel)
   if (!mailScopeGranted(provider, credentials.scope, "SEND")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser l’envoi")
+  const scopes = new Set(credentials.scope.toLowerCase().split(/\s+/))
+  if (provider === "GOOGLE" ? !scopes.has("https://mail.google.com/") && !scopes.has("https://www.googleapis.com/auth/gmail.modify") : !scopes.has("mail.readwrite")) {
+    throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser les brouillons et la reprise des envois")
+  }
   const accessToken = credentials.accessToken
   if (provider === "GOOGLE") {
     const headers = { authorization: `Bearer ${accessToken}`, "content-type": "application/json" }
@@ -243,8 +255,23 @@ export async function sendEmailThroughChannel(input: {
       if (alreadySentId) return { provider, providerId: `${channel.id}:${alreadySentId}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
       if (persistedDraftDisappeared) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
 
-      const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: input.headers }), "utf8").toString("base64url")
-      const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw } }) })
+      let nativeThreadId: string | undefined
+      let mimeHeaders = input.headers
+      if (reply) {
+        const metadataQuery = new URLSearchParams({ format: "metadata" })
+        for (const name of ["Message-ID", "Subject", "References", "Reply-To", "From"]) metadataQuery.append("metadataHeaders", name)
+        const originalResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(remoteReplyId!)}?${metadataQuery}`, { headers })
+        const original = await originalResponse.json().catch(() => ({})) as { id?: string; threadId?: string; payload?: { headers?: Array<{ name: string; value: string }> } }
+        if (!originalResponse.ok || original.id !== remoteReplyId || !original.threadId) throw new Error("Message Gmail d’origine introuvable ; aucune réponse créée")
+        const header = (name: string) => original.payload?.headers?.find(item => item.name.toLowerCase() === name.toLowerCase())?.value || ""
+        const replyTo = header("Reply-To") || header("From")
+        mimeHeaders = { ...input.headers, ...replyHeaders(reply, { internetMessageId: header("Message-ID"), subject: header("Subject"), references: header("References"),
+          replyTo: replyMailboxAddresses(replyTo) }, input.to) }
+        nativeThreadId = original.threadId
+      }
+      const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64url")
+      await beforeDispatch()
+      const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw, ...(nativeThreadId ? { threadId: nativeThreadId } : {}) } }) })
       const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
       if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du brouillon Google refusée (${draftResponse.status})`)
       draftId = draft.id
@@ -282,15 +309,27 @@ export async function sendEmailThroughChannel(input: {
     if (existing) return { provider, providerId: `${channel.id}:${existing.id}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
     if (persistedDraftDisappeared) throw new Error("État d’envoi Microsoft incertain : vérification différée avant toute nouvelle création")
 
-    const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: input.headers }), "utf8").toString("base64")
-    const draftResponse = await fetch("https://graph.microsoft.com/v1.0/me/messages", {
+    let mimeHeaders = input.headers
+    if (reply) {
+      const originalResponse = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(remoteReplyId!)}?$select=id,internetMessageId,subject,replyTo,from`, { headers: graphHeaders })
+      const original = await originalResponse.json().catch(() => ({})) as { id?: string; internetMessageId?: string; subject?: string; replyTo?: Array<{ emailAddress?: { address?: string } }>; from?: { emailAddress?: { address?: string } } }
+      if (!originalResponse.ok || original.id !== remoteReplyId) throw new Error("Message Microsoft d’origine introuvable ; aucune réponse créée")
+      mimeHeaders = { ...input.headers, ...replyHeaders(reply, { internetMessageId: original.internetMessageId || "", subject: original.subject || "", replyTo: original.replyTo?.length ? original.replyTo.map(item => item.emailAddress?.address || "") : [original.from?.emailAddress?.address || ""] }, input.to) }
+    }
+    const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64")
+    await beforeDispatch()
+    const draftResponse = await fetch(reply ? `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(remoteReplyId!)}/createReply` : "https://graph.microsoft.com/v1.0/me/messages", {
       method: "POST",
       headers: { ...graphHeaders, "content-type": "text/plain" },
       body: raw,
     })
-    const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
+    const draft = await draftResponse.json().catch(() => ({})) as { id?: string; internetMessageId?: string; error?: { message?: string } }
     if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du message Microsoft refusée (${draftResponse.status})`)
     draftId = draft.id
+    if (draft.internetMessageId) {
+      if (!validInternetMessageId(draft.internetMessageId)) throw new Error("Référence Internet du brouillon Microsoft invalide")
+      messageId = draft.internetMessageId
+    }
     await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
   }
   await beforeDispatch()

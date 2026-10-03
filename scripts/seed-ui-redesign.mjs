@@ -30,7 +30,14 @@ try {
   const supplier = await prisma.supplier.upsert({ where: { companyId_name: { companyId, name: "Fournisseur de recette UI" } }, update: {}, create: { id: "cuiqasupplier000000000000", companyId, name: "Fournisseur de recette UI", email: "supplier@example.test" } })
   await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: "UIQA-PURCHASE" } }, update: {}, create: { id: "cuiqapurchase000000000000", companyId, supplierId: supplier.id, number: "UIQA-PURCHASE" } })
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
-  const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE" } })
+  const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE", id: { not: "cuiqareplysecondmailbox00" } } })
+  await prisma.communicationChannel.upsert({ where: { id: "cuiqareplysecondmailbox00" }, update: {}, create: { id: "cuiqareplysecondmailbox00", companyId, provider: "RESEND", emailAddress: "second@example.test", displayName: "Boîte fictive secondaire", status: "ACTIVE" } })
+  const disconnected = await prisma.communicationChannel.upsert({ where: { id: "cuiqareplydisconnected00" }, update: {}, create: { id: "cuiqareplydisconnected00", companyId, provider: "RESEND", emailAddress: "disconnected@example.test", displayName: "Boîte fictive déconnectée", status: "DISCONNECTED" } })
+  for (const [index, channelId, subject] of [[0, mailbox.id, "UIQA Native reply"], [1, disconnected.id, "UIQA Disconnected reply"]]) {
+    const id = `cuiqareplythread${String(index).padStart(10, "0")}`
+    await prisma.emailThread.upsert({ where: { id }, update: {}, create: { id, companyId, channelId, clientId: recipientClientId, contactId: "cuiqarecipient000000000550", subject } })
+    await prisma.emailMessage.upsert({ where: { id: `cuiqareplymessage${String(index).padStart(9, "0")}` }, update: {}, create: { id: `cuiqareplymessage${String(index).padStart(9, "0")}`, companyId, threadId: id, direction: "INBOUND", provider: "RESEND", providerId: `fixture-reply-${index}`, internetMessageId: `<fixture-reply-${index}@example.test>`, fromAddress: "recipient550@example.test", toAddresses: [index ? disconnected.emailAddress : mailbox.emailAddress], subject, bodyText: "Données fictives de recette de réponse", status: "RECEIVED" } })
+  }
   for (let index = 0; index < 125; index++) {
     const id = `cuiqainbox${String(index).padStart(15, "0")}`
     await prisma.emailThread.upsert({ where: { id }, update: {}, create: { id, companyId, channelId: mailbox.id, subject: `UIQA Inbox ${String(index).padStart(3, "0")}`, lastMessageAt: new Date(Date.UTC(2020, 0, 1, 0, index)) } })

@@ -74,6 +74,8 @@ export async function recordOutgoingEmail(input: {
   deliveryId?: string | null
   providerId: string
   provider?: string
+  internetMessageId?: string | null
+  inReplyTo?: string | null
   from: string
   to: string[]
   cc?: string[]
@@ -106,6 +108,8 @@ export async function recordOutgoingEmail(input: {
       direction: "OUTBOUND",
       provider,
       providerId: input.providerId,
+      internetMessageId: input.internetMessageId || null,
+      inReplyTo: input.inReplyTo || null,
       fromAddress: input.from,
       toAddresses: input.to,
       ccAddresses: input.cc?.length ? input.cc : undefined,

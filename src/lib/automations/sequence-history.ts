@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
 import type { ProcessorLeaseControl } from "@/lib/processing/lease"
+import { validInternetMessageId } from "@/lib/communications/reply-context"
 
 export const sequencePayloadSchema = z.object({
   kind: z.literal("SEQUENCE"), companyName: z.string(), replyTo: z.string().nullable(),
@@ -15,7 +16,8 @@ export async function ensureSequenceHistory(deliveryId: string, companyId: strin
   if (!delivery.provider || !delivery.providerId || !delivery.sentAt) throw new Error("Référence d’envoi absente ; réconciliation nécessaire")
   const payload = sequencePayloadSchema.parse(delivery.payload)
   await recordOutgoingEmail({ companyId, deliveryId, channelId: delivery.channelId, contactId: delivery.contactId, leadCaptureId: delivery.leadCaptureId,
-    provider: delivery.provider, providerId: delivery.providerId, from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: delivery.sentAt })
+    provider: delivery.provider, providerId: delivery.providerId, internetMessageId: validInternetMessageId(delivery.providerMessageId) ? delivery.providerMessageId : null,
+    from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: delivery.sentAt })
 }
 
 /** Repair confirmed transport history independently of campaign/enrollment state. */

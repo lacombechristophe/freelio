@@ -178,6 +178,9 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
 
   function prepareReply() {
     if (!selected?.contact?.id) return toast.error("Associez cette conversation à un contact avant de répondre.")
+    const mailbox = activeChannels.find(channel => channel.id === selected.channelId && channel.mailEnabled !== false)
+    if (!mailbox) return toast.error("La boîte de cette conversation est déconnectée ou ne permet plus l’envoi ; reconnectez-la avant de répondre.")
+    setChannelId(mailbox.id)
     setContactId(selected.contact.id)
     setSubject(`Re: ${selected.subject}`)
     setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
