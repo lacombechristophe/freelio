@@ -5,15 +5,18 @@ import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
 import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
-import { withAuth } from "@/lib/auth-wrapper"
+import { AuthorizationError, withAuth } from "@/lib/auth-wrapper"
+import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query"
+import type { Prisma } from "@prisma/client"
 import {
   customerHealthMetricDefinitions,
   defaultCustomerHealthRules,
   evaluateCustomerHealth,
   type CustomerHealthMetric,
-  type CustomerHealthMetrics,
 } from "@/lib/operations/customer-health"
 import prisma from "@/lib/prisma"
+import { loadCustomerHealthMetrics } from "@/lib/operations/customer-health-metrics"
+import { withProcessorLease } from "@/lib/processing/lease"
 
 const cuid = z.string().cuid()
 const optionalText = (max: number) => z.preprocess((value) => typeof value === "string" && value.trim() ? value.trim() : undefined, z.string().max(max).optional())
@@ -38,94 +41,74 @@ const profileSchema = z.object({
   expansionNotes: optionalText(5_000),
 })
 
-const activeTicketStatuses = new Set(["OPEN", "QUALIFIED", "PLANNED", "WAITING"])
+const portfolioQuerySchema = z.object({
+  search: z.string().trim().max(200).default(""),
+  status: z.enum(["ALL", "HEALTHY", "WATCH", "RISK"]).default("ALL"),
+  page: z.number().int().min(1).max(100_000).default(1),
+})
+const healthSummarySelect = {
+  id: true, name: true, createdAt: true, renewalAt: true, relationScore: true, healthLastComputedAt: true,
+  healthSnapshots: { select: { score: true }, orderBy: [{ computedAt: "desc" }, { id: "desc" }], take: 2 },
+} as const satisfies Prisma.ClientSelect
 
-function daysBetween(later: Date, earlier: Date) {
-  return Math.floor((later.getTime() - earlier.getTime()) / 86_400_000)
-}
-
-async function loadCustomerSuccessWorkspace(companyId: string) {
-  const now = new Date()
-  const since90Days = new Date(now.getTime() - 90 * 86_400_000)
-  const [clients, rules, members] = await Promise.all([
-    prisma.client.findMany({
-      where: { companyId },
-      include: {
-        successOwnerMembership: { include: { user: { select: { name: true, email: true } } } },
-        activities: { select: { happenedAt: true }, orderBy: { happenedAt: "desc" }, take: 1 },
-        serviceTickets: { where: { status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { status: true, dueAt: true, requestedAt: true }, orderBy: { requestedAt: "desc" }, take: 500 },
-        satisfactionRequests: { where: { respondedAt: { not: null }, score: { not: null } }, select: { score: true, respondedAt: true, survey: { select: { scaleMin: true, scaleMax: true } } }, orderBy: { respondedAt: "desc" }, take: 100 },
-        invoices: { select: { status: true, date: true, dueDate: true, totalTtcCents: true, paidAmountCents: true, type: true }, orderBy: { date: "desc" }, take: 500 },
-        maintenanceContracts: { where: { status: "ACTIVE" }, select: { endDate: true }, orderBy: { endDate: "asc" }, take: 100 },
-        healthSnapshots: { orderBy: { computedAt: "desc" }, take: 2 },
-      },
-      orderBy: { name: "asc" },
-      take: 300,
-    }),
-    prisma.customerHealthRule.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: [{ priority: "desc" }, { name: "asc" }], take: 100 }),
-    prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
-  ])
-
-  const ruleInputs = rules.map((rule) => ({ id: rule.id, name: rule.name, metric: rule.metric, operator: rule.operator, threshold: rule.threshold, impact: rule.impact, priority: rule.priority }))
-  const portfolio = clients.map((client) => {
-    const openTickets = client.serviceTickets.filter((ticket) => activeTicketStatuses.has(ticket.status))
-    const overdueTickets = openTickets.filter((ticket) => ticket.dueAt && ticket.dueAt < now)
-    const tickets90Days = client.serviceTickets.filter((ticket) => ticket.requestedAt >= since90Days)
-    const satisfactionValues = client.satisfactionRequests.flatMap((request) => {
-      if (request.score === null || request.survey.scaleMax <= request.survey.scaleMin) return []
-      return [((request.score - request.survey.scaleMin) / (request.survey.scaleMax - request.survey.scaleMin)) * 100]
-    })
-    const overdueBalanceCents = client.invoices.filter((invoice) => invoice.type !== "CREDIT_NOTE" && !["PAID", "CANCELED"].includes(invoice.status) && invoice.dueDate < now).reduce((total, invoice) => total + Math.max(0, invoice.totalTtcCents - invoice.paidAmountCents), 0)
-    const activityDates = [client.createdAt, client.activities[0]?.happenedAt, client.serviceTickets[0]?.requestedAt, client.invoices[0]?.date].filter((value): value is Date => Boolean(value))
-    const lastActivityAt = activityDates.sort((left, right) => right.getTime() - left.getTime())[0]
-    const contractRenewalAt = client.maintenanceContracts.map((contract) => contract.endDate).filter((value): value is Date => Boolean(value)).sort((left, right) => left.getTime() - right.getTime())[0]
-    const renewalAt = client.renewalAt || contractRenewalAt || null
-    const metrics: CustomerHealthMetrics = {
-      OPEN_TICKETS: openTickets.length,
-      OVERDUE_TICKETS: overdueTickets.length,
-      TICKETS_90D: tickets90Days.length,
-      SATISFACTION_PERCENT: satisfactionValues.length ? Math.round(satisfactionValues.reduce((total, value) => total + value, 0) / satisfactionValues.length) : null,
-      DAYS_SINCE_ACTIVITY: lastActivityAt ? Math.max(0, daysBetween(now, lastActivityAt)) : null,
-      OVERDUE_BALANCE_CENTS: overdueBalanceCents,
-      DAYS_TO_RENEWAL: renewalAt ? daysBetween(renewalAt, now) : null,
-      ACTIVE_CONTRACTS: client.maintenanceContracts.length,
-    }
-    const health = evaluateCustomerHealth(metrics, ruleInputs)
-    return {
-      id: client.id,
-      name: client.name,
-      score: health.score,
-      status: health.status,
-      factors: health.factors,
-      metrics,
-      storedScore: client.relationScore,
-      lastComputedAt: client.healthLastComputedAt,
-      previousScore: client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null,
-      owner: client.successOwnerMembership ? { id: client.successOwnerMembership.id, name: client.successOwnerMembership.user.name || client.successOwnerMembership.user.email || "Membre" } : null,
-      renewalAt,
-      renewalAmountCents: client.renewalAmountCents,
-      nextActionAt: client.nextActionAt,
-      nextActionLabel: client.nextActionLabel,
-      successPlan: client.successPlan,
-      expansionNotes: client.expansionNotes,
-    }
-  }).sort((left, right) => left.score - right.score || (left.renewalAt?.getTime() || Number.MAX_SAFE_INTEGER) - (right.renewalAt?.getTime() || Number.MAX_SAFE_INTEGER) || left.name.localeCompare(right.name, "fr"))
-
+function summarizeHealth(client: Prisma.ClientGetPayload<{ select: typeof healthSummarySelect }>,
+  completeMetrics: Awaited<ReturnType<typeof loadCustomerHealthMetrics>>, rules: Parameters<typeof evaluateCustomerHealth>[1]) {
+  const { metrics, renewalAt } = completeMetrics.get(client.id)!
+  const health = evaluateCustomerHealth(metrics, rules)
   return {
-    portfolio,
-    rules,
-    members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })),
-    metrics: {
-      healthy: portfolio.filter((client) => client.status === "HEALTHY").length,
-      watch: portfolio.filter((client) => client.status === "WATCH").length,
-      risk: portfolio.filter((client) => client.status === "RISK").length,
-      renewals90Days: portfolio.filter((client) => client.metrics.DAYS_TO_RENEWAL !== null && client.metrics.DAYS_TO_RENEWAL >= 0 && client.metrics.DAYS_TO_RENEWAL <= 90).length,
-    },
+    id: client.id, name: client.name, score: health.score, status: health.status, factors: health.factors, metrics,
+    storedScore: client.relationScore, lastComputedAt: client.healthLastComputedAt,
+    previousScore: client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null, renewalAt,
   }
 }
 
-export async function getCustomerSuccessWorkspace() {
-  return withAuth(({ companyId }) => loadCustomerSuccessWorkspace(companyId), "service.read")
+async function loadCustomerSuccessWorkspace(companyId: string, query: z.infer<typeof portfolioQuerySchema>) {
+  const now = new Date()
+  return prisma.$transaction(async (transaction) => {
+    const [rules, members] = await Promise.all([
+      transaction.customerHealthRule.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: [{ priority: "desc" }, { name: "asc" }] }),
+      transaction.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
+    ])
+    const summaries: ReturnType<typeof summarizeHealth>[] = []
+    let cursor: string | undefined
+    while (true) {
+      const clients = await transaction.client.findMany({ where: { companyId, ...(cursor ? { id: { gt: cursor } } : {}) },
+        select: healthSummarySelect, orderBy: { id: "asc" }, take: 200 })
+      if (!clients.length) break
+      const completeMetrics = await loadCustomerHealthMetrics(transaction, companyId, clients, now)
+      summaries.push(...clients.map((client) => summarizeHealth(client, completeMetrics, rules)))
+      cursor = clients.at(-1)!.id
+    }
+    const search = query.search.toLocaleLowerCase("fr-FR")
+    const filtered = summaries.filter((client) => (!search || client.name.toLocaleLowerCase("fr-FR").includes(search)) && (query.status === "ALL" || client.status === query.status))
+      .sort((left, right) => left.score - right.score || (left.renewalAt?.getTime() ?? Number.MAX_SAFE_INTEGER) - (right.renewalAt?.getTime() ?? Number.MAX_SAFE_INTEGER) || left.name.localeCompare(right.name, "fr") || left.id.localeCompare(right.id))
+    const page = Math.min(query.page, Math.max(1, Math.ceil(filtered.length / DIRECTORY_PAGE_SIZE)))
+    const visible = filtered.slice((page - 1) * DIRECTORY_PAGE_SIZE, page * DIRECTORY_PAGE_SIZE)
+    const profiles = await transaction.client.findMany({ where: { companyId, id: { in: visible.map((client) => client.id) } }, select: {
+      id: true, renewalAmountCents: true, nextActionAt: true, nextActionLabel: true, successPlan: true, expansionNotes: true,
+      successOwnerMembership: { select: { id: true, user: { select: { name: true, email: true } } } },
+    } })
+    const profileById = new Map(profiles.map((profile) => [profile.id, profile]))
+    return {
+      portfolio: visible.map((client) => {
+        const { successOwnerMembership, ...profile } = profileById.get(client.id)!
+        return { ...client, ...profile, owner: successOwnerMembership ? { id: successOwnerMembership.id, name: successOwnerMembership.user.name || successOwnerMembership.user.email || "Membre" } : null }
+      }),
+      page, total: filtered.length, totalClients: summaries.length,
+      rules,
+      members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })),
+      metrics: {
+        healthy: summaries.filter((client) => client.status === "HEALTHY").length,
+        watch: summaries.filter((client) => client.status === "WATCH").length,
+        risk: summaries.filter((client) => client.status === "RISK").length,
+        renewals90Days: summaries.filter((client) => client.metrics.DAYS_TO_RENEWAL !== null && client.metrics.DAYS_TO_RENEWAL >= 0 && client.metrics.DAYS_TO_RENEWAL <= 90).length,
+      },
+    }
+  }, { isolationLevel: "Serializable", timeout: 120_000 })
+}
+
+export async function getCustomerSuccessWorkspace(input: unknown = {}) {
+  return withAuth(({ companyId }) => loadCustomerSuccessWorkspace(companyId, portfolioQuerySchema.parse(input)), "service.read")
 }
 
 export async function installDefaultCustomerHealthRules() {
@@ -187,33 +170,54 @@ export async function updateClientSuccessProfile(input: unknown) {
 }
 
 export async function recomputeCustomerHealth() {
-  return withAuth(async ({ companyId, userId }) => {
-    const workspace = await loadCustomerSuccessWorkspace(companyId)
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
+    if (agencyIds !== null) throw new AuthorizationError("Le recalcul global de santé nécessite un administrateur de la société")
     const computedAt = new Date()
-    const eventIds = await prisma.$transaction(async (transaction) => {
+    const lease = await withProcessorLease(`customer-health:${companyId}`, (control) => prisma.$transaction(async (transaction) => {
       const eventIds: string[] = []
-      for (const client of workspace.portfolio) {
-        await transaction.client.update({ where: { id: client.id }, data: { relationScore: client.score, healthLastComputedAt: computedAt } })
-        if (client.previousScore !== client.score || !client.lastComputedAt || computedAt.getTime() - client.lastComputedAt.getTime() >= 86_400_000) {
-          await transaction.customerHealthSnapshot.create({ data: { companyId, clientId: client.id, score: client.score, status: client.status, factors: client.factors } })
+      const rules = await transaction.customerHealthRule.findMany({ where: { companyId, status: "ACTIVE" } })
+      let cursor: string | undefined
+      let count = 0
+      while (true) {
+        await control.assertOwned(transaction)
+        const clients = await transaction.client.findMany({ where: { companyId, ...(cursor ? { id: { gt: cursor } } : {}) },
+          select: { id: true, name: true, createdAt: true, renewalAt: true, relationScore: true, healthLastComputedAt: true,
+            healthSnapshots: { select: { score: true, computedAt: true }, orderBy: [{ computedAt: "desc" }, { id: "desc" }], take: 1 },
+          }, orderBy: { id: "asc" }, take: 200 })
+        if (!clients.length) break
+        const metrics = await loadCustomerHealthMetrics(transaction, companyId, clients, computedAt)
+        for (const client of clients) {
+          const health = evaluateCustomerHealth(metrics.get(client.id)!.metrics, rules)
+          await transaction.client.update({ where: { id: client.id }, data: { relationScore: health.score, healthLastComputedAt: computedAt } })
+          if (!client.healthSnapshots[0] || client.healthSnapshots[0].score !== health.score || computedAt.getTime() - client.healthSnapshots[0].computedAt.getTime() >= 86_400_000) {
+            await transaction.customerHealthSnapshot.create({ data: { companyId, clientId: client.id, score: health.score, status: health.status, factors: health.factors, computedAt } })
+          }
+          if (client.relationScore !== health.score) eventIds.push(await enqueueAutomationEvent(transaction, {
+            companyId, event: "CUSTOMER_HEALTH_CHANGED", subjectModel: "Client", subjectId: client.id,
+            eventKey: `${client.id}:health:${computedAt.toISOString()}:${client.relationScore}:${health.score}`,
+            clientId: client.id,
+            context: { clientName: client.name, healthStatus: health.status, healthScore: health.score, previousHealthScore: client.relationScore },
+          }))
         }
-        if (client.storedScore !== client.score) eventIds.push(await enqueueAutomationEvent(transaction, {
-          companyId, event: "CUSTOMER_HEALTH_CHANGED", subjectModel: "Client", subjectId: client.id,
-          eventKey: `${client.id}:health:${computedAt.toISOString()}:${client.storedScore}:${client.score}`,
-          clientId: client.id,
-          context: { clientName: client.name, healthStatus: client.status, healthScore: client.score, previousHealthScore: client.storedScore },
-        }))
+        count += clients.length
+        cursor = clients.at(-1)!.id
       }
-      return eventIds
-    })
-    const automationResults = await Promise.all(eventIds.map((id) => dispatchAutomationEvent(id).catch((error) => {
-      console.error("Customer health automation failed", error)
-      return { workflows: 0, completed: 0 }
-    })))
-    await logAction({ userId, action: "RECOMPUTE_CUSTOMER_HEALTH", resource: "CUSTOMER_HEALTH_SNAPSHOT", payload: { clients: workspace.portfolio.length, computedAt } })
+      await control.assertOwned(transaction)
+      return { eventIds, count }
+    }, { isolationLevel: "Serializable", timeout: 120_000 }))
+    if (!lease.acquired) throw new Error("Un recalcul de santé est déjà en cours")
+    let workflows = 0
+    for (let offset = 0; offset < lease.value.eventIds.length; offset += 50) {
+      const automationResults = await Promise.all(lease.value.eventIds.slice(offset, offset + 50).map((id) => dispatchAutomationEvent(id).catch((error) => {
+        console.error("Customer health automation failed", error)
+        return { workflows: 0, completed: 0 }
+      })))
+      workflows += automationResults.reduce((total, result) => total + result.completed, 0)
+    }
+    await logAction({ userId, action: "RECOMPUTE_CUSTOMER_HEALTH", resource: "CUSTOMER_HEALTH_SNAPSHOT", payload: { clients: lease.value.count, computedAt } })
     revalidatePath("/dashboard/service/customer-success")
     revalidatePath("/dashboard/automatisations")
     revalidatePath("/dashboard/organisation")
-    return { success: true as const, clients: workspace.portfolio.length, workflows: automationResults.reduce((total, result) => total + result.completed, 0) }
+    return { success: true as const, clients: lease.value.count, workflows }
   }, "service.write")
 }

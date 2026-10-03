@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useTransition } from "react"
+import { useOptimistic, useTransition } from "react"
 import Link from "next/link"
 import { AlertTriangle, CalendarClock, CheckCircle2, Gauge, Loader2, Plus, RefreshCw, Save, ShieldCheck, Trash2, UsersRound } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -24,7 +24,7 @@ import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { customerHealthMetricDefinitions, type CustomerHealthMetric } from "@/lib/operations/customer-health"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
-import { DIRECTORY_PAGE_SIZE, parseDirectoryQuery } from "@/lib/directory-query"
+import { parseDirectoryQuery } from "@/lib/directory-query"
 
 type Workspace = Awaited<ReturnType<typeof import("@/actions/customer-success").getCustomerSuccessWorkspace>>
 type PortfolioClient = Workspace["portfolio"][number]
@@ -124,22 +124,22 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
   const confirm = useConfirm()
   const [pending, startTransition] = useTransition()
   const params = useSearchParams()
-  const view = parseDirectoryQuery(params.get("view"))
+  const currentView = parseDirectoryQuery(params.get("view"))
+  const [view, updateOptimisticView] = useOptimistic(currentView, (current, patch: Partial<typeof currentView>) => ({ ...current, page: 1, ...patch }))
   const query = view.search
   const status = view.status
   function updateView(patch: Partial<typeof view>) {
     const url = new URL(window.location.href)
     url.searchParams.set("view", JSON.stringify({ ...view, page: 1, ...patch }))
-    window.history.replaceState(null, "", `${url.pathname}${url.search}`)
+    startTransition(() => {
+      updateOptimisticView(patch)
+      router.replace(`${url.pathname}${url.search}`, { scroll: false })
+    })
   }
   const setQuery = (search: string) => updateView({ search })
   const setStatus = (status: string) => updateView({ status })
-  const filtered = useMemo(() => initialData.portfolio.filter((client) => {
-    const matchesQuery = !query.trim() || client.name.toLocaleLowerCase("fr-FR").includes(query.trim().toLocaleLowerCase("fr-FR"))
-    return matchesQuery && (status === "ALL" || client.status === status)
-  }), [initialData.portfolio, query, status])
-  const page = Math.min(view.page, Math.max(1, Math.ceil(filtered.length / DIRECTORY_PAGE_SIZE)))
-  const visible = filtered.slice((page - 1) * DIRECTORY_PAGE_SIZE, page * DIRECTORY_PAGE_SIZE)
+  const page = initialData.page
+  const visible = initialData.portfolio
   const run = (task: () => Promise<unknown>, success: string, reset?: HTMLFormElement) => startTransition(() => void task().then(() => { reset?.reset(); toast.success(success); router.refresh() }).catch((error) => toast.error(error instanceof Error ? error.message : "Action impossible.")))
 
   return <div className="space-y-6">
@@ -164,9 +164,9 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
           <Input aria-label="Rechercher un client du portefeuille" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un client…" />
           <select aria-label="Filtrer par santé" value={status} onChange={(event) => setStatus(event.target.value)} className={controlClass}><option value="ALL">Tous les niveaux</option><option value="RISK">À risque</option><option value="WATCH">À surveiller</option><option value="HEALTHY">Sains</option></select>
         </div>
-        <p className="text-xs text-muted-foreground">Recherche et indicateurs sur les {initialData.portfolio.length} clients du portefeuille chargé (300 maximum).</p>
+        <p className="text-xs text-muted-foreground">Recherche et indicateurs sur les {initialData.totalClients} clients du portefeuille complet de la société.</p>
         {visible.length ? visible.map((client) => <ClientCard key={client.id} client={client} members={initialData.members} pending={pending} run={run} />) : <div className="rounded-lg border border-dashed bg-card py-12 text-center text-sm text-muted-foreground"><p>Aucun client ne correspond à ces filtres.</p><Button className="mt-3" variant="outline" onClick={() => updateView({ search: "", status: "ALL" })}>Réinitialiser</Button></div>}
-        <DirectoryPagination total={filtered.length} page={page} pending={pending} error={false} onPage={(page) => updateView({ page })} onRetry={() => router.refresh()} />
+        <DirectoryPagination total={initialData.total} page={page} pending={pending} error={false} onPage={(page) => updateView({ page })} onRetry={() => router.refresh()} />
       </section>
 
       <aside className="space-y-5">

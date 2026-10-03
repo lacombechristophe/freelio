@@ -68,3 +68,23 @@ La désactivation d’un membre et la suppression des credentials de ses boîtes
 `member-mailbox-offboarding.integration.test.ts` qualifie ces cas sur SQL réel, y compris une autorisation d’acteur devenue ancienne et des identifiants inter-sociétés. La suite locale complète atteint **512 tests réussis dans 119 fichiers** (58,79 s) ; les 11 tests ciblés départ/OAuth/synchronisation, types et lint passent. Cette correction ne constitue pas une révocation distante ni une interface de transfert de propriété : ces points restent à qualifier séparément. Aucun token fournisseur réel n’est utilisé.
 
 CI de `c3bdcbbc0f049bf38dc1f3211627cba3a082e376` : PostgreSQL et Linux/Chromium réussissent déjà ; les parcours navigateur sont en cours au moment de ce complément. [Run PR](https://github.com/lacombechristophe/freelio/actions/runs/37091358824). Le complément départ d’un membre nécessite ensuite sa propre CI.
+
+## CI achevée du départ d’un membre
+
+La CI de `a530980a3ec846027e4f01e519bf178345efda3b` a terminé : **PostgreSQL et Linux/Chromium réussissent ; qualité valide 512 tests et 83 E2E, avec 19 exclusions explicites**. Types, lint, couverture, compilation et audit des dépendances de production passent. L’unique échec du job qualité reste l’audit complet décrit ci-dessus. [Run PR](https://github.com/lacombechristophe/freelio/actions/runs/37091906019).
+
+## Portefeuille Suivi client complet (sous-lot L8 / CS-01)
+
+Autorisation visible : « Oui, étendre au portefeuille complet ». La recherche, le filtre santé et la pagination existants sont conservés. La mention du portefeuille limité à 300 clients devient celle du portefeuille complet de la société ; aucun champ, couleur ou disposition n’est ajouté.
+
+La lecture parcourt tous les clients par curseur de 200, calcule leurs signaux sans échantillonner l’historique, puis priorise et filtre le portefeuille entier. Seuls les profils de la page de 25 clients atteignent le navigateur. Les compteurs couvrent le portefeuille entier indépendamment du filtre ; les requêtes conservent le périmètre société/agence de l’acteur. L’ordre inclut un identifiant de départage et une page hors limites revient à la dernière page disponible.
+
+Les tickets fusionnés sont exclus ; les factures brouillon, annulées, payées, avoirs et échéances futures ne deviennent pas des impayés. Le solde est plafonné à zéro par facture, pour qu’un trop-perçu ne masque pas une autre dette. Les réponses de satisfaction sont pondérées par leur nombre et normalisées selon l’échelle de chaque enquête. La date de renouvellement explicite prime sur le premier terme daté d’un contrat actif, même après plus de 100 contrats sans terme.
+
+« Figer les scores » parcourt également tous les clients. Un bail interdit les recalculs concurrents ; scores, snapshots et événements durables partagent une transaction sérialisable. Une panne après le premier lot annule l’ensemble. Le snapshot quotidien utilise la date du dernier relevé, indépendamment d’un recalcul plus récent. Le recalcul persistant global exige un administrateur ayant accès à toute la société ; un acteur limité à ses agences ne peut pas enregistrer des scores globaux à partir de ses seuls signaux.
+
+`customer-success.integration.test.ts` couvre 1 001 clients, 501 tickets/factures, 101 contrats et 102 réponses sur deux échelles, une autre société, les signaux limités à une agence, le recalcul répété, le relevé quotidien, la concurrence et un rollback au 201e événement. La suite locale finale obtient **521 tests réussis dans 120 fichiers** (74,81 s) ; types, lint et compilation de production passent. Le parcours SAV existant est étendu à la saisie rapide, au filtre, au retour depuis une fiche et au portefeuille complet : **2 E2E réussis sur ordinateur/mobile** (9,2 s). La CI du nouveau candidat reste à confirmer ; les preuves de `a530980` ne s’y substituent pas.
+
+### Borne de programmation des campagnes
+
+La suite complète a reproduit un arrondi de minute qui pouvait programmer une étape quelques secondes avant son départ ou son délai. La date est désormais arrondie vers la minute suivante, puis validée contre la fenêtre d’envoi. Deux cas déterministes reproduisent l’avance et la limite de fermeture ; les 17 tests ciblés calendrier de séquence/campagne passent après correction. Cette correction serveur ne modifie aucune commande visible.
