@@ -203,6 +203,7 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
 ]
 
 const EXCLUDED_MODELS = [
+  { model: "EmailDraft", reason: "Brouillons privés à leur auteur : exclus de l’export de société. La sauvegarde native chiffrée de la base les conserve." },
   { model: "Account", reason: "Jetons OAuth exclus pour éviter de réactiver des accès externes lors d’une reprise." },
   { model: "Session", reason: "Sessions actives exclues volontairement pour des raisons de sécurité." },
   { model: "VerificationToken", reason: "Jetons de connexion à usage unique exclus volontairement pour des raisons de sécurité." },
@@ -584,6 +585,11 @@ const LEGACY_UNREPRESENTED_TABLES = [
 ]
 
 async function assertLegacyRestoreIsSafe(companyId: string) {
+  // The administrator cannot read other authors' drafts through Prisma. Only
+  // this internal aggregate checks that a legacy restore would not erase any;
+  // neither content nor recipient addresses are read or returned.
+  const drafts = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS "count" FROM "EmailDraft" WHERE "companyId" = ${companyId}`
+  if (Number(drafts[0]?.count ?? 0) > 0) throw new Error("Restauration v2 refusée : les brouillons personnels sont absents de cette ancienne sauvegarde. Utilisez une reprise contrôlée.")
   const specsByModel = new Map(COMPANY_TABLE_SPECS.map((spec) => [spec.model, spec]))
   const database = prisma as unknown as Record<string, {
     count: (args: { where: Record<string, unknown> }) => Promise<number>

@@ -73,6 +73,26 @@ describe.sequential("manual email durable command on SQL", () => {
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
   })
 
+  it("freezes copy recipients across retries and stores them separately in history", async () => {
+    const { input } = await fixture()
+    const copies = { cc: ["cc@example.test"], bcc: ["hidden@example.test"] }
+    const message = await sendManualEmail({ ...input, ...copies })
+    expect(message.ccAddresses).toEqual(copies.cc)
+    expect(message.bccAddresses).toEqual(copies.bcc)
+    expect(vi.mocked(sendEmailThroughChannel).mock.calls[0][0]).toMatchObject(copies)
+    await expect(sendManualEmail({ ...input, ...copies, bcc: ["another@example.test"] })).rejects.toThrow("déjà fixés")
+    await sendManualEmail({ ...input, ...copies })
+    expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps a provider error quoting a Bcc address out of the shared delivery journal", async () => {
+    const { input } = await fixture()
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Rejected hidden@example.test"))
+    await expect(sendManualEmail({ ...input, bcc: ["hidden@example.test"] })).rejects.toThrow("Rejected")
+    const delivery = await prisma.emailDelivery.findUniqueOrThrow({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
+    expect(delivery.error).not.toContain("hidden@example.test")
+  })
+
   it("refuses a reply from another mailbox before preparing or contacting transport", async () => {
     const { input } = await fixture()
     const other = await prisma.communicationChannel.create({ data: { companyId: input.companyId, provider: "RESEND", emailAddress: "other@example.test", status: "ACTIVE" } })

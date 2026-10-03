@@ -42,6 +42,7 @@ model User {
   apiKeys       ApiKey[]
   auditLogs     AuditLog[]
   ownedMailboxes CommunicationChannel[] @relation("MailboxOwner")
+  emailDrafts   EmailDraft[]
   aiUsageCount  Int            @default(0)
 
   createdAt DateTime @default(now())
@@ -220,6 +221,7 @@ model Company {
   emailSequenceTasks         EmailSequenceTask[]
   emailThreads               EmailThread[]
   emailMessages              EmailMessage[]
+  emailDrafts                EmailDraft[]
   emailEvents                EmailEvent[]
   communicationChannels      CommunicationChannel[]
   leadScoringRules           LeadScoringRule[]
@@ -1103,6 +1105,31 @@ model EmailThread {
   @@index([contactId])
   @@index([leadCaptureId])
   @@index([serviceTicketId])
+}
+
+model EmailDraft {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorUserId String
+  author       User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  createKey    String
+  requestKey   String
+  version      Int      @default(1)
+  channelId    String?
+  contactId    String?
+  threadId     String?
+  subject      String   @default("")
+  bodyHtml     String   @default("")
+  cc           Json
+  bcc          Json
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([companyId, authorUserId, createKey])
+  @@unique([companyId, requestKey])
+  @@index([companyId, authorUserId, sentAt, updatedAt])
 }
 
 model EmailMessage {

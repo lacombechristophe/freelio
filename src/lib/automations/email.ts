@@ -48,7 +48,10 @@ export function sanitizeSequenceEmailHtml(html: string) {
       if (name !== "a") return `<${name}>`
       const href = attributes.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1]
       if (!href || !/^https?:\/\//i.test(href)) return "<a>"
-      return `<a href="${escapeHtml(href)}" rel="noopener noreferrer">`
+      // A reopened draft is sanitized again. Preserve already escaped URLs
+      // rather than changing their query string at each save or send.
+      const decoded = href.replace(/&(amp|quot|#039|lt|gt);/g, (_, entity: string) => ({ amp: "&", quot: '"', "#039": "'", lt: "<", gt: ">" })[entity]!)
+      return `<a href="${escapeHtml(decoded)}" rel="noopener noreferrer">`
     })
     .replace(/<\/([a-z][a-z0-9-]*)\s*>/gi, (_tag, rawName: string) => allowed.has(rawName.toLowerCase()) ? `</${rawName.toLowerCase()}>` : "")
 }

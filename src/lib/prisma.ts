@@ -168,6 +168,13 @@ const prismaClientSingleton = () => {
           }
 
           if (context) {
+            if (model === "EmailDraft" && MUTATION_OPERATIONS.has(operation)) {
+              for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                const author = data.authorUserId ?? data.author?.connect?.id
+                if (author !== undefined && author !== context.userId) throw new Error("DRAFT_ACCESS_DENIED")
+                if (TENANT_CREATE_OPERATIONS.has(operation) || data === mutableArgs.create) data.authorUserId = context.userId
+              }
+            }
             const scope = mailboxScope(model, context)
             if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) appendWhereScope(mutableArgs, scope)
             scopeMailboxIncludes(model, mutableArgs, context)

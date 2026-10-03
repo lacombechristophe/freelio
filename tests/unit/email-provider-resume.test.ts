@@ -24,6 +24,7 @@ vi.mock("@/lib/integrations/email-oauth", () => ({
 }))
 
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
+import { getResendTransport } from "@/lib/communications/provider-credentials"
 import type { ReplyContext } from "@/lib/communications/reply-context"
 
 const credentials = JSON.stringify({
@@ -53,6 +54,49 @@ describe("OAuth email crash recovery", () => {
     vi.restoreAllMocks()
     prismaMock.emailSuppression.findUnique.mockResolvedValue(null)
     prismaMock.communicationChannel.update.mockResolvedValue({})
+  })
+
+  it.each(["GOOGLE", "MICROSOFT"] as const)("submits explicit CC and Bcc recipients in the %s draft envelope", async provider => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel(provider))
+    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { messages: [] } : { value: [] }))
+      .mockResolvedValueOnce(Response.json({ id: "draft-copies" })).mockResolvedValueOnce(provider === "GOOGLE" ? Response.json({ id: "sent-copies" }) : new Response(null, { status: 202 }))
+    vi.stubGlobal("fetch", fetchMock)
+    await sendEmailThroughChannel({ ...baseInput, cc: ["CC@example.test"], bcc: ["hidden@example.test"] })
+    const submitted = fetchMock.mock.calls[1][1].body as string
+    const mime = provider === "GOOGLE" ? Buffer.from(JSON.parse(submitted).message.raw, "base64url").toString() : Buffer.from(submitted, "base64").toString()
+    expect(mime).toContain("\r\nCc: cc@example.test\r\n")
+    expect(mime).toContain("\r\nBcc: hidden@example.test\r\n")
+    expect(mime).toContain("\r\nTo: client@example.fr\r\n")
+  })
+
+  it("submits Resend copy recipients as separate envelope arrays", async () => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue({ ...channel("GOOGLE"), provider: "RESEND" })
+    vi.mocked(getResendTransport).mockResolvedValue({ apiKey: "re_fiction_only" } as Awaited<ReturnType<typeof getResendTransport>>)
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ id: "fictional-resend-copies" }))
+    vi.stubGlobal("fetch", fetchMock)
+    await sendEmailThroughChannel({ ...baseInput, cc: ["cc@example.test"], bcc: ["hidden@example.test"] })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ to: [baseInput.to], cc: ["cc@example.test"], bcc: ["hidden@example.test"] })
+  })
+
+  it("blocks a suppressed hidden recipient initially and if suppression changes before dispatch", async () => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("GOOGLE"))
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    prismaMock.emailSuppression.findUnique.mockImplementation(async ({ where }) => where.companyId_email.email === "hidden@example.test" ? { active: true, reason: "COMPLAINT" } : null)
+    await expect(sendEmailThroughChannel({ ...baseInput, bcc: ["hidden@example.test"] })).rejects.toThrow("bloqué")
+    expect(fetchMock).not.toHaveBeenCalled()
+    prismaMock.emailSuppression.findUnique.mockResolvedValue(null)
+    fetchMock.mockResolvedValueOnce(Response.json({ messages: [] }))
+    await expect(sendEmailThroughChannel({ ...baseInput, bcc: ["hidden@example.test"], beforeDispatch: async () => {
+      prismaMock.emailSuppression.findUnique.mockImplementation(async ({ where }) => where.companyId_email.email === "hidden@example.test" ? { active: true, reason: "MANUAL" } : null)
+    } })).rejects.toThrow("bloqué")
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("refuses duplicate or injected copy recipients before any provider HTTP request", async () => {
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock)
+    for (const copies of [{ cc: [baseInput.to] }, { bcc: ["hidden@example.test\r\nCc: exposed@example.test"] }, { cc: ["same@example.test"], bcc: ["SAME@example.test"] }]) await expect(sendEmailThroughChannel({ ...baseInput, ...copies })).rejects.toThrow()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("preserves the prepared sender even after its display name changes", async () => {

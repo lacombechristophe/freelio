@@ -16,6 +16,42 @@ import prisma from "@/lib/prisma"
 import { channelConfig } from "@/lib/communications/sync-state"
 import { readInboxPage, readPreviousThreadMessages, type InboxQuery } from "@/lib/communications/inbox-reader"
 import { readRecipientPage } from "@/lib/communications/recipient-reader"
+import { deleteEmailDraft, EmailDraftConflict, getEmailDraft, listEmailDrafts, saveEmailDraft, sendEmailDraft } from "@/lib/communications/drafts"
+import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
+
+export async function getCommunicationDrafts(input: unknown = {}) {
+  return withAuth(({ companyId, userId }) => listEmailDrafts(companyId, userId, input), "automation.read")
+}
+
+export async function getCommunicationDraft(id: string) {
+  return withAuth(({ companyId, userId }) => getEmailDraft(companyId, userId, id), "automation.read")
+}
+
+export async function saveCommunicationDraft(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await saveEmailDraft(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function deleteCommunicationDraft(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = await deleteEmailDraft(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return result
+    } catch (error) {
+      if (error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
 
 const cuid = z.string().cuid()
 
@@ -70,6 +106,8 @@ const sendSchema = z.object({
   serviceTicketId: z.union([cuid, z.literal("")]).optional(),
   subject: z.string().trim().min(2).max(180),
   bodyHtml: z.string().trim().min(10).max(100_000),
+  cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]),
+  draftId: cuid.optional(), draftVersion: z.number().int().positive().optional(),
 })
 
 export async function sendCrmEmail(input: unknown) {
@@ -80,6 +118,7 @@ export async function sendCrmEmail(input: unknown) {
       prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId }, email: { not: null } }, select: { id: true, email: true, clientId: true } }),
     ])
     if (!contact?.email) throw new Error("Contact ou adresse e-mail introuvable")
+    validateRecipients(contact.email, data.cc, data.bcc)
     const ticket = data.serviceTicketId ? await prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, companyId, clientId: contact.clientId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }) : null
     if (data.serviceTicketId && !ticket) throw new Error("Ticket introuvable ou sans rapport avec ce contact")
     if (data.threadId) {
@@ -89,7 +128,16 @@ export async function sendCrmEmail(input: unknown) {
     const subject = data.subject.replace(/[\r\n]+/g, " ").trim()
     const content = sanitizeSequenceEmailHtml(data.bodyHtml)
     const html = `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`
-    const message = await sendManualEmail({ companyId, userId, requestKey: data.requestKey || randomUUID(), channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html })
+    const send = (requestKey: string) => sendManualEmail({ companyId, userId, requestKey, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc })
+    const message = await (async () => {
+      try {
+        return data.draftId ? await sendEmailDraft(companyId, userId, { ...data, id: data.draftId, version: data.draftVersion }, send) : await send(data.requestKey || randomUUID())
+      } catch (error) {
+        if (error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+        throw error
+      }
+    })()
+    if ("success" in message) return message
     if (ticket) await prisma.$transaction([
       prisma.emailThread.update({ where: { id: message.threadId }, data: { serviceTicketId: ticket.id } }),
       prisma.serviceTicket.updateMany({ where: { id: ticket.id, firstRespondedAt: null }, data: { firstRespondedAt: new Date() } }),

@@ -12,6 +12,7 @@ import { activeEmailSuppression } from "@/lib/communications/suppressions"
 import { mailScopeGranted, MailReconnectRequiredError } from "@/lib/communications/capabilities"
 import { canonicalEmailSubject } from "@/lib/communications/threads"
 import { replyContextSchema, replyHeaders, replyMailboxAddresses, validInternetMessageId, type ReplyContext } from "@/lib/communications/reply-context"
+import { copyRecipientsSchema, emailAddressSchema, validateRecipients } from "@/lib/communications/recipients"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -158,12 +159,16 @@ function deterministicMessageId(idempotencyKey: string) {
   return `<${local}@mail.freelio.app>`
 }
 
-function mimeMessage(input: { from: string; to: string; replyTo?: string | null; subject: string; html: string; messageId: string; headers?: Record<string, string> }) {
+function mimeMessage(input: { from: string; to: string; cc?: string[]; bcc?: string[]; replyTo?: string | null; subject: string; html: string; messageId: string; headers?: Record<string, string> }) {
   const subject = Buffer.from(input.subject, "utf8").toString("base64")
   const body = Buffer.from(input.html, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n")
   return [
     `From: ${input.from}`,
     `To: ${input.to}`,
+    ...(input.cc?.length ? [`Cc: ${input.cc.join(", ")}`] : []),
+    // The provider consumes Bcc from the submitted MIME envelope. Reading DTOs
+    // never expose this header or the stored bccAddresses.
+    ...(input.bcc?.length ? [`Bcc: ${input.bcc.join(", ")}`] : []),
     `Message-ID: ${input.messageId}`,
     ...(input.replyTo ? [`Reply-To: ${input.replyTo}`] : []),
     ...Object.entries(input.headers || {}).filter(([name]) => /^[A-Za-z0-9-]+$/.test(name)).map(([name, value]) => `${name}: ${value.replace(/[\r\n]+/g, " ")}`),
@@ -182,6 +187,8 @@ export async function sendEmailThroughChannel(input: {
   companyName: string
   from?: string
   to: string
+  cc?: string[]
+  bcc?: string[]
   replyTo?: string | null
   subject: string
   html: string
@@ -192,12 +199,21 @@ export async function sendEmailThroughChannel(input: {
   onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
   beforeDispatch?: () => Promise<void>
 }) {
-  const suppression = await activeEmailSuppression(input.companyId, input.to)
-  if (suppression) throw new Error(`Envoi bloqué : adresse supprimée de la diffusion (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
+  input = { ...input, to: emailAddressSchema.parse(input.to), cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []) }
+  validateRecipients(input.to, input.cc, input.bcc)
+  if (Object.keys(input.headers || {}).some(name => /^(to|cc|bcc)$/i.test(name))) throw new Error("Les destinataires doivent être renseignés dans leurs champs dédiés")
+  const assertRecipientsAllowed = async () => {
+    for (const address of [input.to, ...input.cc!, ...input.bcc!]) {
+      const suppression = await activeEmailSuppression(input.companyId, address)
+      if (suppression) throw new Error(`Envoi bloqué : adresse supprimée de la diffusion (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
+    }
+  }
+  await assertRecipientsAllowed()
   const channel = await activeCommunicationChannel(input.companyId, input.resume?.channelId || input.channelId)
   if (channel.mailEnabled === false) throw new Error("Les e-mails sont désactivés pour cette connexion")
   const beforeDispatch = async () => {
     await input.beforeDispatch?.()
+    await assertRecipientsAllowed()
     const current = await activeCommunicationChannel(input.companyId, channel.id)
     if (current.mailEnabled === false || current.provider !== channel.provider || current.emailAddress !== channel.emailAddress) throw new Error("La messagerie a changé avant l’envoi")
   }
@@ -219,7 +235,7 @@ export async function sendEmailThroughChannel(input: {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${transport.apiKey}`, "Idempotency-Key": input.idempotencyKey },
-      body: JSON.stringify({ from, to: [input.to], reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, headers: { ...input.headers, ...(reply ? replyHeaders(reply) : {}) } }),
+      body: JSON.stringify({ from, to: [input.to], cc: input.cc!.length ? input.cc : undefined, bcc: input.bcc!.length ? input.bcc : undefined, reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, headers: { ...input.headers, ...(reply ? replyHeaders(reply) : {}) } }),
     })
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
@@ -269,7 +285,7 @@ export async function sendEmailThroughChannel(input: {
           replyTo: replyMailboxAddresses(replyTo) }, input.to) }
         nativeThreadId = original.threadId
       }
-      const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64url")
+      const raw = Buffer.from(mimeMessage({ from, to: input.to, cc: input.cc, bcc: input.bcc, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64url")
       await beforeDispatch()
       const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw, ...(nativeThreadId ? { threadId: nativeThreadId } : {}) } }) })
       const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
@@ -316,7 +332,7 @@ export async function sendEmailThroughChannel(input: {
       if (!originalResponse.ok || original.id !== remoteReplyId) throw new Error("Message Microsoft d’origine introuvable ; aucune réponse créée")
       mimeHeaders = { ...input.headers, ...replyHeaders(reply, { internetMessageId: original.internetMessageId || "", subject: original.subject || "", replyTo: original.replyTo?.length ? original.replyTo.map(item => item.emailAddress?.address || "") : [original.from?.emailAddress?.address || ""] }, input.to) }
     }
-    const raw = Buffer.from(mimeMessage({ from, to: input.to, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64")
+    const raw = Buffer.from(mimeMessage({ from, to: input.to, cc: input.cc, bcc: input.bcc, replyTo: input.replyTo, subject: input.subject, html: input.html, messageId, headers: mimeHeaders }), "utf8").toString("base64")
     await beforeDispatch()
     const draftResponse = await fetch(reply ? `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(remoteReplyId!)}/createReply` : "https://graph.microsoft.com/v1.0/me/messages", {
       method: "POST",

@@ -3,6 +3,8 @@ import type { RequestContext } from "@/lib/context"
 
 /** Unknown legacy ownership is fail-closed for ordinary members. */
 export function mailboxScope(model: string, context: RequestContext): Record<string, unknown> | null {
+  // Drafts are personal even when using a shared mailbox or an admin account.
+  if (model === "EmailDraft") return { companyId: context.companyId, authorUserId: context.userId }
   if (["OWNER", "ADMIN"].includes(context.role)) return null
   const channel = { companyId: context.companyId, OR: [{ visibility: "SHARED" }, { visibility: "PRIVATE", ownerUserId: context.userId }] }
   if (model === "CommunicationChannel") return channel
@@ -17,7 +19,6 @@ export function mailboxScope(model: string, context: RequestContext): Record<str
 
 /** Nested includes bypass Prisma query extensions unless scoped explicitly. */
 export function scopeMailboxIncludes(model: string, args: Record<string, any>, context: RequestContext) {
-  if (["OWNER", "ADMIN"].includes(context.role)) return
   const definition = Prisma.dmmf.datamodel.models.find((item) => item.name === model)
   for (const projection of [args.include, args.select]) {
     if (!projection || typeof projection !== "object") continue

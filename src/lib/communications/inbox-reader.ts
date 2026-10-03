@@ -11,12 +11,12 @@ export const inboxQuerySchema = z.object({
 export type InboxQuery = z.input<typeof inboxQuerySchema>
 const PAGE_SIZE = 50
 const MESSAGE_PAGE_SIZE = 25
-const messageSelect = {
+export const messageReadSelect = {
   id: true, direction: true, provider: true, fromAddress: true, toAddresses: true, ccAddresses: true,
   subject: true, bodyHtml: true, bodyText: true, attachments: true, status: true, sentAt: true, receivedAt: true, createdAt: true,
   events: { select: { id: true, type: true, occurredAt: true }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }] },
 } satisfies Prisma.EmailMessageSelect
-type SelectedMessage = Prisma.EmailMessageGetPayload<{ select: typeof messageSelect }>
+type SelectedMessage = Prisma.EmailMessageGetPayload<{ select: typeof messageReadSelect }>
 
 function messageDto(message: SelectedMessage) {
   return { ...message, sentAt: message.sentAt?.toISOString() ?? null, receivedAt: message.receivedAt?.toISOString() ?? null,
@@ -44,7 +44,7 @@ export async function readInboxPage(companyId: string, input: InboxQuery = {}) {
         client: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true, email: true } },
         leadCapture: { select: { id: true, firstName: true, lastName: true, email: true } },
-        messages: { select: messageSelect, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: MESSAGE_PAGE_SIZE + 1 },
+        messages: { select: messageReadSelect, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: MESSAGE_PAGE_SIZE + 1 },
       },
     })
     return { page, pageCount, total, filter: query.filter, search: query.search,
@@ -63,7 +63,7 @@ export async function readPreviousThreadMessages(companyId: string, input: unkno
   if (!cursor) throw new Error("Message de pagination introuvable")
   const messages = await prisma.emailMessage.findMany({ where: { companyId, threadId,
     OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }],
-  }, select: messageSelect, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: MESSAGE_PAGE_SIZE + 1 })
+  }, select: messageReadSelect, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: MESSAGE_PAGE_SIZE + 1 })
   return { threadId, hasPreviousMessages: messages.length > MESSAGE_PAGE_SIZE, messages: messages.slice(0, MESSAGE_PAGE_SIZE).toReversed().map(messageDto) }
 }
 

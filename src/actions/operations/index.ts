@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
+import { messageReadSelect } from "@/lib/communications/inbox-reader"
 import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
@@ -753,7 +754,7 @@ export async function getServiceTicketDetail(ticketId: string) {
                 orderBy: { scheduledStart: "desc" },
               },
               emailThreads: {
-                include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } },
+                include: { messages: { select: messageReadSelect, orderBy: { createdAt: "asc" }, take: 200 } },
                 orderBy: { lastMessageAt: "asc" },
               },
               notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
@@ -770,7 +771,7 @@ export async function getServiceTicketDetail(ticketId: string) {
             orderBy: { scheduledStart: "desc" },
           },
           emailThreads: {
-            include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } },
+            include: { messages: { select: messageReadSelect, orderBy: { createdAt: "asc" }, take: 200 } },
             orderBy: { lastMessageAt: "asc" },
           },
           notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },

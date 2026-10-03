@@ -5,11 +5,13 @@ import { recordOutgoingEmail } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
 import { withProcessorLease } from "@/lib/processing/lease"
 import { assertReplyContext, freezeReplyContext, replyContextSchema, validInternetMessageId } from "@/lib/communications/reply-context"
+import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
 
 const payloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
   channelId: z.string(), companyName: z.string(), replyTo: z.string().nullable(), from: z.string(), to: z.string().email(), subject: z.string(), html: z.string(),
   reply: replyContextSchema.nullable().optional(),
+  cc: copyRecipientsSchema.optional(), bcc: copyRecipientsSchema.optional(),
 })
 
 type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply"> & { companyId: string; requestKey: string; channelId: string | null }
@@ -21,6 +23,8 @@ async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInp
 }
 
 export async function sendManualEmail(input: ManualSendInput) {
+  input = { ...input, cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []) }
+  validateRecipients(input.to, input.cc, input.bcc)
   // Persist the frozen payload and mailbox BEFORE any remote request. A retry
   // with another recipient/body is a different intent, never a replacement.
   let delivery = await prisma.emailDelivery.findUnique({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
@@ -35,6 +39,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     })
   }
   const payload = payloadSchema.parse(delivery.payload)
+  if (JSON.stringify(payload.cc || []) !== JSON.stringify(input.cc) || JSON.stringify(payload.bcc || []) !== JSON.stringify(input.bcc)) throw new Error("Les destinataires de cet envoi sont déjà fixés ; créez un nouvel envoi")
   for (const key of ["userId", "contactId", "clientId", "threadId", "serviceTicketId", "to", "subject", "html"] as const) {
     if (payload[key] !== input[key]) throw new Error("Cette commande d’envoi correspond à un autre contenu ; créez un nouvel envoi")
   }
@@ -59,6 +64,7 @@ export async function sendManualEmail(input: ManualSendInput) {
           companyId: input.companyId, companyName: payload.companyName, from: payload.from, channelId: payload.channelId, to: payload.to, replyTo: payload.replyTo,
           subject: payload.subject, html: payload.html, idempotencyKey: deliveryId,
           reply: payload.reply || undefined,
+          cc: payload.cc, bcc: payload.bcc,
           resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
           beforeDispatch: async () => {
             await control.assertOwned()
@@ -75,7 +81,9 @@ export async function sendManualEmail(input: ManualSendInput) {
         })
         await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENT", provider: sent.provider, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, sentAt: new Date(), error: null } })
       } catch (error) {
-        await prisma.emailDelivery.updateMany({ where: { id: deliveryId, status: "SENDING" }, data: { status: "FAILED", error: (error instanceof Error ? error.message : "Résultat d’envoi à vérifier").slice(0, 500) } })
+        // Provider errors may quote a hidden recipient. The shared delivery
+        // journal must never disclose a Bcc address through its error text.
+        await prisma.emailDelivery.updateMany({ where: { id: deliveryId, status: "SENDING" }, data: { status: "FAILED", error: payload.bcc?.length ? "Échec de l’envoi avec destinataires cachés ; résultat à vérifier" : (error instanceof Error ? error.message : "Résultat d’envoi à vérifier").slice(0, 500) } })
         throw error
       }
     }
@@ -85,7 +93,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     // failure here must never turn a confirmed send into another remote send.
     return recordOutgoingEmail({ companyId: input.companyId, channelId: accepted.channelId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
       provider: accepted.provider!, providerId: accepted.providerId, internetMessageId: validInternetMessageId(accepted.providerMessageId) ? accepted.providerMessageId : null,
-      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
+      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], cc: payload.cc, bcc: payload.bcc, subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
   })
   if (!lease.acquired) throw new Error("Cet envoi est déjà en cours ; actualisez son résultat avant de réessayer")
   return lease.value
