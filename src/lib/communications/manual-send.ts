@@ -69,7 +69,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     if (!accepted.providerId) throw new Error("Référence distante absente ; réconciliation nécessaire")
     // History can be repaired independently of transport acceptance. A SQL
     // failure here must never turn a confirmed send into another remote send.
-    return recordOutgoingEmail({ companyId: input.companyId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
+    return recordOutgoingEmail({ companyId: input.companyId, channelId: accepted.channelId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
       provider: accepted.provider!, providerId: accepted.providerId, from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
   })
   if (!lease.acquired) throw new Error("Cet envoi est déjà en cours ; actualisez son résultat avant de réessayer")

@@ -5,16 +5,17 @@ import { syncOAuthEmailChannel } from "@/lib/communications/email-sync"
 import { EMAIL_OAUTH_PROVIDERS } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
 import { storeChannelSyncState } from "@/lib/communications/sync-state"
+import { MailReconnectRequiredError } from "@/lib/communications/capabilities"
 
 export async function syncOAuthCommunicationChannel(companyId: string, channelId: string) {
-  type CapabilityResult = { examined: number; imported: number; complete: boolean; status: "SYNCED" | "CONTINUING" | "FAILED" | "RECONNECT_REQUIRED"; error: string | null }
-  async function syncCapability(task: () => Promise<{ examined: number; imported: number; complete: boolean }>, key: "emailSyncStatus" | "calendarSyncStatus"): Promise<CapabilityResult> {
+  type CapabilityResult = { examined: number; imported: number; complete: boolean; status: "SYNCED" | "CONTINUING" | "FAILED" | "RECONNECT_REQUIRED" | "DISABLED"; error: string | null }
+  async function syncCapability(task: () => Promise<{ examined: number; imported: number; complete: boolean; disabled?: boolean }>, key: "emailSyncStatus" | "calendarSyncStatus"): Promise<CapabilityResult> {
     let result: CapabilityResult
     try {
       const value = await task()
-      result = { ...value, status: value.complete ? "SYNCED" : "CONTINUING", error: null }
+      result = { ...value, status: value.disabled ? "DISABLED" : value.complete ? "SYNCED" : "CONTINUING", error: null }
     } catch (error) {
-      result = { examined: 0, imported: 0, complete: false, status: error instanceof CalendarReconnectRequiredError ? "RECONNECT_REQUIRED" : "FAILED", error: (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500) }
+      result = { examined: 0, imported: 0, complete: false, status: error instanceof CalendarReconnectRequiredError || error instanceof MailReconnectRequiredError ? "RECONNECT_REQUIRED" : "FAILED", error: (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500) }
     }
     await storeChannelSyncState(companyId, channelId, key, { status: result.status, error: result.error, checkedAt: new Date().toISOString() })
     return result
@@ -36,7 +37,7 @@ export async function syncDueOAuthCommunicationChannels(limit = 10) {
   for (const channel of channels) {
     try {
       const result = await syncOAuthCommunicationChannel(channel.companyId, channel.id)
-      if (result.email.status === "SYNCED" && result.calendar.status === "SYNCED") summary.synced += 1
+      if ([result.email.status, result.calendar.status].every((status) => status === "SYNCED" || status === "DISABLED")) summary.synced += 1
       summary.messagesImported += result.email.imported
       summary.calendarEventsImported += result.calendar.imported
       if (result.calendar.status === "RECONNECT_REQUIRED") summary.calendarReconnectRequired += 1

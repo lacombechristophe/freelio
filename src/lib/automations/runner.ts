@@ -31,8 +31,10 @@ export async function enqueueAutomationEvent(tx: TransactionClient, rawEvent: Au
   const lead = event.leadId ? await tx.leadCapture.findFirstOrThrow({ where: { id: event.leadId, companyId: event.companyId }, select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true } }) : null
   const client = event.clientId ? await tx.client.findFirstOrThrow({ where: { id: event.clientId, companyId: event.companyId }, select: { name: true } }) : null
   const snapshot = json({ event, company, lead, clientName: client?.name || event.context?.clientName || null })
-  const workflows = await tx.automationWorkflow.findMany({ where: { companyId: event.companyId, trigger: event.event, status: "ACTIVE" }, orderBy: { id: "asc" } })
-  const outbox = await tx.automationEventOutbox.create({ data: { companyId: event.companyId, eventKey: event.eventKey, event: event.event, subjectModel: event.subjectModel, subjectId: event.subjectId } })
+  const mailbox = event.subjectModel === "EmailMessage" ? await tx.emailMessage.findFirstOrThrow({ where: { id: event.subjectId, companyId: event.companyId }, select: { thread: { select: { channelId: true, channel: { select: { visibility: true } } } } } }) : null
+  // Personal mail must not trigger company-wide notifications or CRM effects.
+  const workflows = mailbox && mailbox.thread.channel?.visibility !== "SHARED" ? [] : await tx.automationWorkflow.findMany({ where: { companyId: event.companyId, trigger: event.event, status: "ACTIVE" }, orderBy: { id: "asc" } })
+  const outbox = await tx.automationEventOutbox.create({ data: { companyId: event.companyId, channelId: mailbox?.thread.channelId, eventKey: event.eventKey, event: event.event, subjectModel: event.subjectModel, subjectId: event.subjectId } })
   for (const workflow of workflows) {
     if (workflow.publishedVersion == null) throw new Error("Publiez une version du scénario avant son exécution")
     const version = await tx.automationWorkflowVersion.findUniqueOrThrow({ where: { workflowId_version: { workflowId: workflow.id, version: workflow.publishedVersion } } })

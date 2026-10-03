@@ -7,7 +7,7 @@ vi.mock("@/lib/communications/email-provider", async () => {
   return {
     activeCommunicationChannel: (companyId: string, id: string) => db.communicationChannel.findFirstOrThrow({ where: { companyId, id, status: "ACTIVE" } }),
     validOAuthAccessToken: async () => "fictitious-token",
-    validOAuthCredentials: async (channel: { id: string }) => ({ accessToken: "fictitious-token", scope: "https://www.googleapis.com/auth/calendar.events", calendarCursor: cursors.get(channel.id) }),
+    validOAuthCredentials: async (channel: { id: string }) => ({ accessToken: "fictitious-token", scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.modify Mail.ReadWrite", calendarCursor: cursors.get(channel.id) }),
     storeOAuthCalendarCursor: async (channel: { id: string }, cursor: string | null) => { cursors.set(channel.id, cursor) },
   }
 })
@@ -97,5 +97,16 @@ describe.sequential("bounded and resumable provider pagination on SQL", () => {
     expect(result.calendar.status).toBe("SYNCED")
     expect(cursors.get(channel.id)).toBe("calendar-only-success")
     expect((await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })).lastError).toContain("Mail unavailable")
+  })
+
+  it("makes no provider call for disabled capabilities and reports them honestly", async () => {
+    const { company, channel } = await fixture("GOOGLE")
+    await prisma.communicationChannel.update({ where: { id: channel.id }, data: { mailEnabled: false, calendarEnabled: false } })
+    const fetchMock = vi.fn(() => { throw new Error("Disabled capability contacted a provider") })
+    vi.stubGlobal("fetch", fetchMock)
+    const result = await syncOAuthCommunicationChannel(company.id, channel.id)
+    expect(result.email.status).toBe("DISABLED")
+    expect(result.calendar.status).toBe("DISABLED")
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

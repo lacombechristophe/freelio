@@ -2,7 +2,8 @@ import "server-only"
 import { z } from "zod"
 
 import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
-import { activeCommunicationChannel, validOAuthAccessToken, type ActiveChannel } from "@/lib/communications/email-provider"
+import { activeCommunicationChannel, validOAuthCredentials, type ActiveChannel } from "@/lib/communications/email-provider"
+import { mailScopeGranted, MailReconnectRequiredError } from "@/lib/communications/capabilities"
 import { getOrCreateEmailThread, resolveEmailParty } from "@/lib/communications/threads"
 import { EMAIL_OAUTH_PROVIDERS, type EmailOAuthProvider } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
@@ -38,13 +39,14 @@ function splitAddresses(value: string | null | undefined) {
   return (value || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 100)
 }
 
-async function persistMessage(companyId: string, provider: EmailOAuthProvider, message: ExternalMessage) {
-  const exists = await prisma.emailMessage.findUnique({ where: { provider_providerId: { provider, providerId: message.providerId } }, select: { id: true } })
+async function persistMessage(companyId: string, channel: ActiveChannel, message: ExternalMessage) {
+  const provider = channel.provider as EmailOAuthProvider
+  const exists = await prisma.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider, providerId: message.providerId } }, select: { id: true } })
   if (exists) return false
   const counterparty = message.direction === "INBOUND" ? normalizedAddress(message.from) : normalizedAddress(message.to[0] || "")
   const party = counterparty ? await resolveEmailParty(companyId, counterparty) : { contactId: null, clientId: null, leadCaptureId: null }
-  const thread = await getOrCreateEmailThread({ companyId, subject: message.subject, ...party, inReplyTo: message.inReplyTo, occurredAt: message.occurredAt })
   const eventId = await prisma.$transaction(async (tx) => {
+    const thread = await getOrCreateEmailThread({ companyId, channelId: channel.id, subject: message.subject, ...party, inReplyTo: message.inReplyTo, occurredAt: message.occurredAt }, tx)
     const stored = await tx.emailMessage.create({ data: {
       companyId,
       threadId: thread.id,
@@ -66,7 +68,7 @@ async function persistMessage(companyId: string, provider: EmailOAuthProvider, m
     } })
     await tx.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: message.occurredAt, status: "OPEN", ...(message.direction === "INBOUND" && message.unread ? { unreadCount: { increment: 1 } } : {}) } })
     if (message.direction !== "INBOUND") return null
-    await tx.emailSequenceEnrollment.updateMany({ where: { status: "ACTIVE", sequence: { companyId }, OR: [...(party.contactId ? [{ contactId: party.contactId }] : []), ...(party.leadCaptureId ? [{ leadCaptureId: party.leadCaptureId }] : [])] }, data: { status: "STOPPED", stopReason: "CUSTOMER_REPLIED", nextSendAt: null, completedAt: message.occurredAt } })
+    await tx.emailSequenceEnrollment.updateMany({ where: { status: "ACTIVE", sequence: { companyId, senderChannelId: channel.id }, OR: [...(party.contactId ? [{ contactId: party.contactId }] : []), ...(party.leadCaptureId ? [{ leadCaptureId: party.leadCaptureId }] : [])] }, data: { status: "STOPPED", stopReason: "CUSTOMER_REPLIED", nextSendAt: null, completedAt: message.occurredAt } })
     return enqueueAutomationEvent(tx, { companyId, event: "EMAIL_RECEIVED", subjectModel: "EmailMessage", subjectId: stored.id, eventKey: `${provider.toLowerCase()}:${message.providerId}:received`, leadId: party.leadCaptureId || undefined, clientId: party.clientId || undefined })
   })
   if (eventId) await dispatchAutomationEvent(eventId).catch(() => undefined)
@@ -191,10 +193,13 @@ async function microsoftMessages(channel: ActiveChannel, accessToken: string, st
 
 async function syncOAuthEmailChannelUnlocked(companyId: string, channelId: string, control: ProcessorLeaseControl) {
   const channel = await activeCommunicationChannel(companyId, channelId)
+  if (channel.mailEnabled === false) return { examined: 0, imported: 0, complete: true, disabled: true }
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Ce canal reçoit déjà ses événements par webhook")
   try {
     const provider = channel.provider as EmailOAuthProvider
-    const accessToken = await validOAuthAccessToken(channel)
+    const credentials = await validOAuthCredentials(channel)
+    if (!mailScopeGranted(provider, credentials.scope, "READ")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser la lecture des e-mails")
+    const accessToken = credentials.accessToken
     const stored = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, companyId }, select: { config: true } })
     let state = emailSyncStateSchema.parse(channelConfig(stored.config).emailSync || {
       folder: 0, continuation: null,
@@ -210,7 +215,7 @@ async function syncOAuthEmailChannelUnlocked(companyId: string, channelId: strin
       examined += result.messages.length
       for (const message of result.messages.sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime())) {
         await control.assertOwned()
-        if (await persistMessage(companyId, provider, message)) imported += 1
+        if (await persistMessage(companyId, channel, message)) imported += 1
       }
       // Persist after all messages on the page. A crash before this checkpoint
       // safely replays the same page and does not advance the time watermark.

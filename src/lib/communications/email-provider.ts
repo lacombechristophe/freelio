@@ -9,6 +9,7 @@ import prisma from "@/lib/prisma"
 import { providerFetch as fetch } from "@/lib/integrations/provider-fetch"
 import { withProcessorLease } from "@/lib/processing/lease"
 import { activeEmailSuppression } from "@/lib/communications/suppressions"
+import { mailScopeGranted, MailReconnectRequiredError } from "@/lib/communications/capabilities"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -30,12 +31,14 @@ export type ActiveChannel = {
   displayName: string | null
   credentialsEncrypted: string | null
   lastSyncAt: Date | null
+  mailEnabled?: boolean
+  calendarEnabled?: boolean
 }
 
 export async function activeCommunicationChannel(companyId: string, channelId?: string | null): Promise<ActiveChannel> {
   const channels = await prisma.communicationChannel.findMany({
     where: { companyId, status: "ACTIVE", ...(channelId ? { id: channelId } : {}) },
-    select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true },
+    select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true, mailEnabled: true, calendarEnabled: true },
     orderBy: { id: "asc" },
     take: channelId ? 1 : 2,
   })
@@ -54,8 +57,13 @@ export async function activeCommunicationChannel(companyId: string, channelId?: 
 
 export async function pinSequenceSender(companyId: string, sequenceId: string) {
   const sequence = await prisma.emailSequence.findFirstOrThrow({ where: { id: sequenceId, companyId }, select: { senderChannelId: true } })
-  if (sequence.senderChannelId) return (await activeCommunicationChannel(companyId, sequence.senderChannelId)).id
+  if (sequence.senderChannelId) {
+    const channel = await activeCommunicationChannel(companyId, sequence.senderChannelId)
+    if (channel.mailEnabled === false) throw new Error("La boîte expéditrice n’autorise plus les e-mails")
+    return channel.id
+  }
   const channel = await activeCommunicationChannel(companyId)
+  if (channel.mailEnabled === false) throw new Error("Cette connexion autorise uniquement le calendrier")
   await prisma.emailSequence.updateMany({ where: { id: sequenceId, companyId, senderChannelId: null }, data: { senderChannelId: channel.id } })
   const pinned = await prisma.emailSequence.findFirstOrThrow({ where: { id: sequenceId, companyId }, select: { senderChannelId: true } })
   return (await activeCommunicationChannel(companyId, pinned.senderChannelId)).id
@@ -183,6 +191,12 @@ export async function sendEmailThroughChannel(input: {
   const suppression = await activeEmailSuppression(input.companyId, input.to)
   if (suppression) throw new Error(`Envoi bloqué : adresse supprimée de la diffusion (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
   const channel = await activeCommunicationChannel(input.companyId, input.resume?.channelId || input.channelId)
+  if (channel.mailEnabled === false) throw new Error("Les e-mails sont désactivés pour cette connexion")
+  const beforeDispatch = async () => {
+    await input.beforeDispatch?.()
+    const current = await activeCommunicationChannel(input.companyId, channel.id)
+    if (current.mailEnabled === false || current.provider !== channel.provider || current.emailAddress !== channel.emailAddress) throw new Error("La messagerie a changé avant l’envoi")
+  }
   if (input.resume?.provider && input.resume.provider !== channel.provider) throw new Error("La messagerie de reprise ne correspond plus au fournisseur initial")
   const from = formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress)
   const messageId = input.resume?.providerMessageId || deterministicMessageId(input.idempotencyKey)
@@ -190,7 +204,7 @@ export async function sendEmailThroughChannel(input: {
   if (channel.provider === "RESEND") {
     const transport = await getResendTransport(input.companyId, channel.id === "platform" ? null : channel.id)
     await input.onPrepared?.({ provider: "RESEND", channelId: channel.id, providerDraftId: null, providerMessageId: null })
-    await input.beforeDispatch?.()
+    await beforeDispatch()
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${transport.apiKey}`, "Idempotency-Key": input.idempotencyKey },
@@ -202,7 +216,9 @@ export async function sendEmailThroughChannel(input: {
   }
 
   const provider = channel.provider as EmailOAuthProvider
-  const accessToken = await validOAuthAccessToken(channel)
+  const credentials = await validOAuthCredentials(channel)
+  if (!mailScopeGranted(provider, credentials.scope, "SEND")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser l’envoi")
+  const accessToken = credentials.accessToken
   if (provider === "GOOGLE") {
     const headers = { authorization: `Bearer ${accessToken}`, "content-type": "application/json" }
     let draftId = input.resume?.providerDraftId || null
@@ -231,7 +247,7 @@ export async function sendEmailThroughChannel(input: {
       draftId = draft.id
       await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
     }
-    await input.beforeDispatch?.()
+    await beforeDispatch()
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts/send", { method: "POST", headers, body: JSON.stringify({ id: draftId }) })
     const payload = await response.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
     if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Envoi Google refusé (${response.status})`)
@@ -274,7 +290,7 @@ export async function sendEmailThroughChannel(input: {
     draftId = draft.id
     await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
   }
-  await input.beforeDispatch?.()
+  await beforeDispatch()
   const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}/send`, {
     method: "POST",
     headers: graphHeaders,

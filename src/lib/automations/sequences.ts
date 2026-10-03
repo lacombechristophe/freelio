@@ -233,7 +233,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
         onPrepared: async (prepared) => {
           const persisted = await prisma.emailDelivery.updateMany({
             where: { id: delivery.id, status: "SENDING" },
-            data: prepared,
+            data: { ...prepared, channelId: prepared.channelId === "platform" ? null : prepared.channelId },
           })
           if (persisted.count !== 1) throw new Error("La préparation de l’envoi n’a pas pu être persistée")
         },
@@ -249,6 +249,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       ])
       await recordOutgoingEmail({
         companyId: enrollment.sequence.companyId,
+        channelId: sent.channelId === "platform" ? null : sent.channelId,
         contactId: enrollment.contactId,
         leadCaptureId: lead.id,
         deliveryId: delivery.id,

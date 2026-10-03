@@ -108,6 +108,8 @@ const SENSITIVE_EXPORT_KEYS = new Set([
   "secret",
   "sessiontoken",
   "tokenhash",
+  "oauthnoncehash",
+  "oauthattemptid",
 ])
 
 /**

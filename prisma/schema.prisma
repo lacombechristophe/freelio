@@ -41,6 +41,7 @@ model User {
   notifications Notification[]
   apiKeys       ApiKey[]
   auditLogs     AuditLog[]
+  ownedMailboxes CommunicationChannel[] @relation("MailboxOwner")
   aiUsageCount  Int            @default(0)
 
   createdAt DateTime @default(now())
@@ -1045,12 +1046,24 @@ model CommunicationChannel {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   provider             String
+  ownerUserId          String?
+  owner                User? @relation("MailboxOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  visibility           String @default("PRIVATE")
+  mailEnabled          Boolean @default(true)
+  calendarEnabled      Boolean @default(true)
+  oauthNonceHash       String?
+  oauthAttemptId       String?
+  oauthExpiresAt       DateTime?
+  oauthStartedByUserId String?
   emailAddress         String
   displayName          String?
   status               String    @default("PENDING")
   credentialsEncrypted String?
   config               Json?
   emailDeliveries      EmailDelivery[]
+  emailThreads         EmailThread[]
+  calendarTasks        OrganisationTask[]
+  automationEvents     AutomationEventOutbox[]
   lastSyncAt           DateTime?
   lastError            String?
   createdAt            DateTime  @default(now())
@@ -1065,6 +1078,8 @@ model EmailThread {
   id              String         @id @default(cuid())
   companyId       String
   company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelId       String?
+  channel         CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: Restrict)
   clientId        String?
   client          Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   contactId       String?
@@ -1120,7 +1135,7 @@ model EmailMessage {
   updatedAt         DateTime     @updatedAt
   events            EmailEvent[]
 
-  @@unique([provider, providerId])
+  @@unique([companyId, provider, providerId])
   @@index([companyId, createdAt])
   @@index([threadId, createdAt])
   @@index([internetMessageId])
@@ -1133,13 +1148,14 @@ model EmailEvent {
   messageId         String?
   message           EmailMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
   provider          String
-  providerEventId   String        @unique
+  providerEventId   String
   providerMessageId String?
   type              String
   payload           Json?
   occurredAt        DateTime
   createdAt         DateTime      @default(now())
 
+  @@unique([companyId, providerEventId])
   @@index([companyId, occurredAt])
   @@index([providerMessageId])
   @@index([messageId, occurredAt])
@@ -1221,6 +1237,8 @@ model AutomationEventOutbox {
   id           String @id @default(cuid())
   companyId    String
   company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelId    String?
+  channel      CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: Restrict)
   eventKey     String
   event        String
   subjectModel String
@@ -1577,6 +1595,7 @@ model OrganisationTask {
   // provider cursors stay encrypted on CommunicationChannel; tasks only keep
   // the non-secret remote identifier and the last synchronization outcome.
   calendarChannelId    String?
+  calendarChannel      CommunicationChannel? @relation(fields: [calendarChannelId], references: [id], onDelete: Restrict)
   calendarProvider     String?
   calendarExternalId   String?
   calendarEtag         String?

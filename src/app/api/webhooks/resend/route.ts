@@ -1,13 +1,14 @@
-import { Resend, type EmailReceivedEvent, type WebhookEventPayload } from "resend"
+import type { Resend, EmailReceivedEvent, WebhookEventPayload } from "resend"
 
 import { notifyPortalTeam } from "@/lib/portal/notifications"
-import { readResendCredentials } from "@/lib/communications/provider-credentials"
+import { verifiedResendWebhook, WebhookRoutingPendingError } from "@/lib/communications/resend-webhook-routing"
 import { getOrCreateEmailThread, jsonValue, resolveEmailParty } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
 import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
 import { PayloadTooLargeError, readTextBody } from "@/lib/http-body"
 import { resendSuppressionReason, suppressEmailAddress } from "@/lib/communications/suppressions"
 import { emailDeliveryStatusForEvent, emailEventUpdateGuard } from "@/lib/communications/delivery-events"
+import { providerFetch } from "@/lib/integrations/provider-fetch"
 
 export const runtime = "nodejs"
 
@@ -15,67 +16,22 @@ function normalizedAddress(value: string) {
   return (value.match(/<([^>]+)>/)?.[1] || value).trim().toLowerCase()
 }
 
-async function resolveWebhookCredentials(payload: string) {
-  const untrusted = JSON.parse(payload) as { type?: unknown; data?: { email_id?: unknown; to?: unknown; received_for?: unknown } }
-  let channel: { credentialsEncrypted: string | null } | null = null
-  if (untrusted.type === "email.received") {
-    const recipients = [
-      ...(Array.isArray(untrusted.data?.to) ? untrusted.data.to : []),
-      ...(Array.isArray(untrusted.data?.received_for) ? untrusted.data.received_for : []),
-    ].filter((value): value is string => typeof value === "string").map(normalizedAddress)
-    if (recipients.length) {
-      channel = await prisma.communicationChannel.findFirst({ where: { provider: "RESEND", status: "ACTIVE", emailAddress: { in: recipients } }, select: { credentialsEncrypted: true } })
-    }
-  } else if (typeof untrusted.data?.email_id === "string") {
-    const message = await prisma.emailMessage.findUnique({ where: { provider_providerId: { provider: "RESEND", providerId: untrusted.data.email_id } }, select: { companyId: true, fromAddress: true } })
-    const delivery = message ? null : await prisma.emailDelivery.findFirst({
-      where: { providerId: untrusted.data.email_id },
-      select: { companyId: true },
-      orderBy: { createdAt: "desc" },
-    })
-    const companyId = message?.companyId ?? delivery?.companyId
-    if (companyId) {
-      channel = message
-        ? await prisma.communicationChannel.findFirst({ where: { companyId, provider: "RESEND", status: "ACTIVE", emailAddress: normalizedAddress(message.fromAddress) }, select: { credentialsEncrypted: true } })
-        : null
-      channel ??= await prisma.communicationChannel.findFirst({ where: { companyId, provider: "RESEND", status: "ACTIVE" }, select: { credentialsEncrypted: true }, orderBy: { updatedAt: "desc" } })
-    }
-  }
-  const stored = readResendCredentials(channel?.credentialsEncrypted)
-  if (stored) return { apiKey: stored.apiKey, webhookSecret: stored.webhookSecret }
-  const apiKey = process.env.RESEND_API_KEY?.trim()
-  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET?.trim()
-  if (!apiKey || !webhookSecret) throw new Error("Webhook non configuré")
-  return { apiKey, webhookSecret }
-}
-
-async function findCompanyIdForInbound(event: EmailReceivedEvent) {
-  const recipients = [...event.data.to, ...event.data.received_for].map(normalizedAddress)
-  const channel = await prisma.communicationChannel.findFirst({
-    where: { provider: "RESEND", status: "ACTIVE", emailAddress: { in: recipients } },
-    select: { companyId: true },
-  })
-  if (channel) return channel.companyId
-  const company = await prisma.company.findFirst({ where: { email: { in: recipients } }, select: { id: true } })
-  return company?.id ?? null
-}
-
-async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
-  const companyId = await findCompanyIdForInbound(event)
-  if (!companyId) return
-  const received = await resend.emails.receiving.get(event.data.email_id, { html_format: "cid" })
-  if (received.error || !received.data) throw new Error(received.error?.message || "E-mail entrant introuvable")
-  const content = received.data
+async function handleInbound(event: EmailReceivedEvent, apiKey: string, companyId: string, channelId: string | null) {
+  const existing = await prisma.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider: "RESEND", providerId: event.data.email_id } }, select: { id: true } })
+  if (existing) return
+  const response = await providerFetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(event.data.email_id)}?html_format=cid`, { headers: { authorization: `Bearer ${apiKey}` } })
+  if (!response.ok) throw new Error("E-mail entrant temporairement indisponible")
+  const content = await response.json() as NonNullable<Awaited<ReturnType<Resend["emails"]["receiving"]["get"]>>["data"]>
   const sender = normalizedAddress(content.from)
   const party = await resolveEmailParty(companyId, sender)
   const headers = Object.fromEntries(Object.entries(content.headers || {}).map(([key, value]) => [key.toLowerCase(), value]))
   const inReplyTo = headers["in-reply-to"]?.split(/\s+/)[0] || null
   const occurredAt = new Date(event.data.created_at)
-  const thread = await getOrCreateEmailThread({ companyId, subject: content.subject, ...party, inReplyTo, occurredAt })
 
   const eventId = await prisma.$transaction(async (tx) => {
-    const existing = await tx.emailMessage.findUnique({ where: { provider_providerId: { provider: "RESEND", providerId: event.data.email_id } }, select: { id: true } })
+    const existing = await tx.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider: "RESEND", providerId: event.data.email_id } }, select: { id: true } })
     if (existing) return null
+    const thread = await getOrCreateEmailThread({ companyId, channelId, subject: content.subject, ...party, inReplyTo, occurredAt }, tx)
     const stored = await tx.emailMessage.create({
       data: {
         companyId,
@@ -100,7 +56,7 @@ async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
     await tx.emailThread.update({ where: { id: thread.id }, data: { unreadCount: { increment: 1 }, lastMessageAt: occurredAt, status: "OPEN" } })
     await tx.emailSequenceEnrollment.updateMany({
       where: {
-        sequence: { companyId },
+        sequence: { companyId, senderChannelId: channelId },
         status: "ACTIVE",
         OR: [...(party.contactId ? [{ contactId: party.contactId }] : []), ...(party.leadCaptureId ? [{ leadCaptureId: party.leadCaptureId }] : [])],
       },
@@ -118,27 +74,27 @@ async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
   })
   if (eventId) {
     await dispatchAutomationEvent(eventId).catch((error) => console.error("Inbound email automation deferred", error))
-    await notifyPortalTeam(companyId, "Nouvel e-mail reçu", `${sender} · ${content.subject}`)
+    const channel = channelId ? await prisma.communicationChannel.findUnique({ where: { id: channelId }, select: { visibility: true } }) : null
+    if (channel?.visibility === "SHARED") await notifyPortalTeam(companyId, "Nouvel e-mail reçu", `${sender} · ${content.subject}`)
   }
 }
 
-async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) {
+async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string, companyId: string, channelId: string | null) {
   if (event.type === "email.received" || !("email_id" in event.data)) return
-  const previousEvent = await prisma.emailEvent.findUnique({ where: { providerEventId: eventId }, select: { id: true } })
+  const previousEvent = await prisma.emailEvent.findUnique({ where: { companyId_providerEventId: { companyId, providerEventId: eventId } }, select: { id: true } })
   if (previousEvent) return
   const providerMessageId = event.data.email_id
-  const message = await prisma.emailMessage.findUnique({
-    where: { provider_providerId: { provider: "RESEND", providerId: providerMessageId } },
+  const message = await prisma.emailMessage.findFirst({
+    where: { companyId, provider: "RESEND", providerId: providerMessageId, thread: { channelId } },
     select: { id: true, companyId: true, deliveryId: true, toAddresses: true, thread: { select: { leadCaptureId: true, contactId: true, clientId: true } } },
   })
-  const delivery = message?.deliveryId ? null : await prisma.emailDelivery.findFirst({ where: { providerId: providerMessageId }, select: { id: true, companyId: true, recipientEmail: true, leadCaptureId: true, contactId: true } })
-  const companyId = message?.companyId || delivery?.companyId
-  if (!companyId) return
+  const delivery = message?.deliveryId ? null : await prisma.emailDelivery.findFirst({ where: { companyId, channelId, provider: "RESEND", providerId: providerMessageId }, select: { id: true, companyId: true, recipientEmail: true, leadCaptureId: true, contactId: true } })
+  if (!message && !delivery) throw new WebhookRoutingPendingError("Référence d’envoi pas encore persistée")
   const status = emailDeliveryStatusForEvent(event.type)
   const occurredAt = new Date(event.created_at)
   const automationId = await prisma.$transaction(async (tx) => {
     await tx.emailEvent.upsert({
-      where: { providerEventId: eventId },
+      where: { companyId_providerEventId: { companyId, providerEventId: eventId } },
       update: {},
       create: {
         companyId,
@@ -206,15 +162,16 @@ export async function POST(request: Request) {
   const timestamp = request.headers.get("svix-timestamp")
   const signature = request.headers.get("svix-signature")
   if (!id || !timestamp || !signature) return Response.json({ error: "Signature absente" }, { status: 400 })
+  let authenticated = false
   try {
-    const credentials = await resolveWebhookCredentials(payload)
-    const resend = new Resend(credentials.apiKey)
-    const event = resend.webhooks.verify({ payload, headers: { id, timestamp, signature }, webhookSecret: credentials.webhookSecret })
-    if (event.type === "email.received") await handleInbound(event, resend)
-    else await handleDeliveryEvent(event, id)
+    const scope = await verifiedResendWebhook(payload, { id, timestamp, signature }, new URL(request.url).searchParams.get("channelId"))
+    authenticated = true
+    if (scope.event.type === "email.received") await handleInbound(scope.event, scope.apiKey, scope.companyId, scope.channelId)
+    else await handleDeliveryEvent(scope.event, id, scope.companyId, scope.channelId)
     return Response.json({ received: true })
   } catch (error) {
+    if (error instanceof WebhookRoutingPendingError) return Response.json({ error: "Rattachement à reprendre" }, { status: 503 })
     console.error("Resend webhook rejected", error instanceof Error ? error.message : "unknown")
-    return Response.json({ error: "Webhook invalide" }, { status: 400 })
+    return Response.json({ error: authenticated ? "Traitement à reprendre" : "Webhook invalide" }, { status: authenticated ? 503 : 400 })
   }
 }

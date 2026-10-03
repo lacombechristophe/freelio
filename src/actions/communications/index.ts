@@ -22,7 +22,7 @@ export async function getCommunicationDashboard() {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
     const [company, channels, threads, events, contacts] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
-      prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
+      prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, visibility: true, mailEnabled: true, calendarEnabled: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
       prisma.emailThread.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         include: {
@@ -98,6 +98,9 @@ export async function sendCrmEmail(input: unknown) {
 
 const channelSchema = z.object({
   provider: z.enum(["RESEND", "GOOGLE", "MICROSOFT"]),
+  visibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
+  capabilities: z.enum(["MAIL", "CALENDAR", "BOTH"]).default("BOTH"),
+  sharingAcknowledged: z.boolean().default(false),
   emailAddress: z.string().trim().toLowerCase().email().max(254),
   displayName: z.string().trim().max(120).optional().default(""),
   apiKey: z.string().trim().max(500).optional().default(""),
@@ -107,7 +110,10 @@ const channelSchema = z.object({
 export async function configureCommunicationChannel(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = channelSchema.parse(input)
-    const existing = await prisma.communicationChannel.findUnique({ where: { companyId_provider_emailAddress: { companyId, provider: data.provider, emailAddress: data.emailAddress } }, select: { id: true, status: true, credentialsEncrypted: true, config: true } })
+    if (data.visibility === "SHARED" && !data.sharingAcknowledged) throw new Error("Confirmez explicitement le partage de cette messagerie")
+    if (data.provider === "RESEND" && data.capabilities === "CALENDAR") throw new Error("Resend ne fournit pas de calendrier")
+    const existing = await prisma.communicationChannel.findUnique({ where: { companyId_provider_emailAddress: { companyId, provider: data.provider, emailAddress: data.emailAddress } }, select: { id: true, ownerUserId: true, status: true, credentialsEncrypted: true, config: true } })
+    const access = { visibility: data.visibility, ownerUserId: existing?.ownerUserId || userId, mailEnabled: data.capabilities !== "CALENDAR", calendarEnabled: data.provider !== "RESEND" && data.capabilities !== "MAIL" }
     const suppliedResendCredentials = data.provider === "RESEND" && Boolean(data.apiKey && data.webhookSecret)
     if (data.provider === "RESEND" && Boolean(data.apiKey) !== Boolean(data.webhookSecret)) {
       throw new Error("La clé API et le secret webhook doivent être renseignés ensemble")
@@ -126,8 +132,8 @@ export async function configureCommunicationChannel(input: unknown) {
       : existing?.config == null ? undefined : jsonValue(existing.config)
     const channel = await prisma.communicationChannel.upsert({
       where: { companyId_provider_emailAddress: { companyId, provider: data.provider, emailAddress: data.emailAddress } },
-      update: { displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
-      create: { companyId, provider: data.provider, emailAddress: data.emailAddress, displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
+      update: { ...access, displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
+      create: { ...access, companyId, provider: data.provider, emailAddress: data.emailAddress, displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
     })
     await logAction({ userId, action: "UPDATE_COMMUNICATION_CHANNEL", resource: "COMMUNICATION_CHANNEL", resourceId: channel.id, payload: { provider: channel.provider, emailAddress: channel.emailAddress, status: channel.status } })
     revalidatePath("/dashboard/communications")
@@ -140,7 +146,7 @@ export async function disconnectCommunicationChannel(channelId: string) {
     const id = cuid.parse(channelId)
     const channel = await prisma.communicationChannel.findFirst({ where: { id, companyId }, select: { id: true, provider: true, emailAddress: true } })
     if (!channel) throw new Error("Connexion introuvable")
-    await prisma.communicationChannel.update({ where: { id }, data: { status: "PENDING", credentialsEncrypted: null, config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Déconnectée de Freelio ; l’accès fournisseur reste à révoquer" } })
+    await prisma.communicationChannel.update({ where: { id }, data: { status: "PENDING", credentialsEncrypted: null, oauthNonceHash: null, oauthAttemptId: null, oauthExpiresAt: null, oauthStartedByUserId: null, config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Déconnectée de Freelio ; l’accès fournisseur reste à révoquer" } })
     await logAction({ userId, action: "UPDATE_COMMUNICATION_CHANNEL", resource: "COMMUNICATION_CHANNEL", resourceId: id, payload: { operation: "DISCONNECT", provider: channel.provider, emailAddress: channel.emailAddress } })
     revalidatePath("/dashboard/communications")
     return { success: true as const }

@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client"
 
-import prisma from "@/lib/prisma"
+import prisma, { type TransactionClient } from "@/lib/prisma"
 
 export function canonicalEmailSubject(subject: string) {
   return subject.replace(/^\s*((re|fw|fwd|tr)\s*:\s*)+/i, "").trim().slice(0, 250) || "Sans objet"
@@ -23,25 +23,27 @@ export async function resolveEmailParty(companyId: string, email: string) {
 
 export async function getOrCreateEmailThread(input: {
   companyId: string
+  channelId?: string | null
   subject: string
   clientId?: string | null
   contactId?: string | null
   leadCaptureId?: string | null
   inReplyTo?: string | null
   occurredAt?: Date
-}) {
+}, database: Pick<TransactionClient, "emailThread" | "emailMessage"> = prisma) {
   if (input.inReplyTo) {
-    const repliedMessage = await prisma.emailMessage.findFirst({
-      where: { companyId: input.companyId, internetMessageId: input.inReplyTo },
+    const repliedMessage = await database.emailMessage.findFirst({
+      where: { companyId: input.companyId, internetMessageId: input.inReplyTo, thread: { channelId: input.channelId || null } },
       select: { threadId: true },
     })
-    if (repliedMessage) return prisma.emailThread.findUniqueOrThrow({ where: { id: repliedMessage.threadId } })
+    if (repliedMessage) return database.emailThread.findUniqueOrThrow({ where: { id: repliedMessage.threadId } })
   }
   const subject = canonicalEmailSubject(input.subject)
   // A subject alone does not identify a conversation between unknown parties.
-  const existing = input.contactId || input.leadCaptureId || input.clientId ? await prisma.emailThread.findFirst({
+  const existing = input.contactId || input.leadCaptureId || input.clientId ? await database.emailThread.findFirst({
     where: {
       companyId: input.companyId,
+      channelId: input.channelId || null,
       status: { not: "ARCHIVED" },
       subject,
       ...(input.contactId ? { contactId: input.contactId } : input.leadCaptureId ? { leadCaptureId: input.leadCaptureId } : input.clientId ? { clientId: input.clientId } : {}),
@@ -49,9 +51,10 @@ export async function getOrCreateEmailThread(input: {
     orderBy: { lastMessageAt: "desc" },
   }) : null
   if (existing) return existing
-  return prisma.emailThread.create({
+  return database.emailThread.create({
     data: {
       companyId: input.companyId,
+      channelId: input.channelId || null,
       subject,
       clientId: input.clientId || null,
       contactId: input.contactId || null,
@@ -63,6 +66,7 @@ export async function getOrCreateEmailThread(input: {
 
 export async function recordOutgoingEmail(input: {
   companyId: string
+  channelId?: string | null
   threadId?: string | null
   clientId?: string | null
   contactId?: string | null
@@ -87,12 +91,13 @@ export async function recordOutgoingEmail(input: {
       return recorded
     }
   }
+  return prisma.$transaction(async (tx) => {
   const thread = input.threadId
-    ? await prisma.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId } })
-    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt })
+    ? await tx.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId, channelId: input.channelId || null } })
+    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt }, tx)
   const provider = input.provider || "RESEND"
-  const message = await prisma.emailMessage.upsert({
-    where: { provider_providerId: { provider, providerId: input.providerId } },
+  const message = await tx.emailMessage.upsert({
+    where: { companyId_provider_providerId: { companyId: input.companyId, provider, providerId: input.providerId } },
     update: {},
     create: {
       companyId: input.companyId,
@@ -112,8 +117,9 @@ export async function recordOutgoingEmail(input: {
       sentAt,
     },
   })
-  await prisma.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: sentAt } })
+  await tx.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: sentAt } })
   return message
+  })
 }
 
 export function jsonValue(value: unknown): Prisma.InputJsonValue {

@@ -30,7 +30,7 @@ const credentials = JSON.stringify({
   accessToken: "access-token-long-enough",
   refreshToken: "refresh-token-long-enough",
   tokenType: "Bearer",
-  scope: "mail.send",
+  scope: "Mail.Send https://www.googleapis.com/auth/gmail.modify",
   expiresAt: "2099-01-01T00:00:00.000Z",
 })
 

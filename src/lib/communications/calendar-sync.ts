@@ -188,6 +188,7 @@ async function microsoftEvents(companyId: string, channel: ActiveChannel, access
 
 async function syncOAuthCalendarChannelUnlocked(companyId: string, channelId: string, control: ProcessorLeaseControl) {
   const channel = await activeCommunicationChannel(companyId, channelId)
+  if (channel.calendarEnabled === false) return { examined: 0, imported: 0, complete: true, disabled: true }
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Ce canal ne fournit pas de calendrier OAuth")
   const provider = channel.provider as EmailOAuthProvider
   const credentials = await validOAuthCredentials(channel)
@@ -213,6 +214,7 @@ export async function pushOrganisationTaskToCalendar(companyId: string, taskId: 
     prisma.organisationTask.findFirst({ where: { id: taskId, companyId } }),
   ])
   if (!task) throw new Error("Tâche introuvable")
+  if (channel.calendarEnabled === false) throw new Error("Le calendrier n’est pas activé pour cette messagerie")
   if (!task.scheduledDate) throw new Error("Une date planifiée est requise pour synchroniser la tâche")
   const provider = channel.provider as EmailOAuthProvider
   if (!EMAIL_OAUTH_PROVIDERS.includes(provider)) throw new Error("Sélectionnez une connexion Google ou Microsoft")
@@ -250,6 +252,7 @@ export async function deleteOrganisationTaskFromCalendar(companyId: string, task
   const task = await prisma.organisationTask.findFirst({ where: { id: taskId, companyId } })
   if (!task?.calendarChannelId || !task.calendarExternalId || !task.calendarProvider) return
   const channel = await activeCommunicationChannel(companyId, task.calendarChannelId)
+  if (channel.calendarEnabled === false) throw new Error("Le calendrier n’est pas activé pour cette messagerie")
   const credentials = await validOAuthCredentials(channel)
   const endpoint = task.calendarProvider === "GOOGLE"
     ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(task.calendarExternalId)}`
