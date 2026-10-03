@@ -64,7 +64,7 @@ try {
   }
   assert.ok(ready, "PostgreSQL doit démarrer")
   runRuntime(["node", "node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "prisma/postgresql/schema.prisma"])
-  report.checks.push("43 migrations sur PostgreSQL Linux neuf")
+  report.checks.push("Toutes les migrations du dépôt sur PostgreSQL Linux neuf")
   runRuntime(["node", "--import", "tsx", "scripts/seed-demo.mjs"], ["--env", "NODE_ENV=test"])
   report.checks.push("Données fictives créées par Prisma Linux")
   const web = `${prefix}-web`

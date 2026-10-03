@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import fs from "node:fs"
+import path from "node:path"
 import { PrismaClient } from "@prisma/client"
 import { Queue } from "bullmq"
 import { redisConnection } from "../src/lib/bullmq/connection.ts"
@@ -11,8 +13,10 @@ let queue
 try {
   const [{ version }] = await prisma.$queryRaw`SELECT version()`
   assert.match(version, /PostgreSQL 18\./)
-  const [{ count }] = await prisma.$queryRaw`SELECT count(*)::int AS count FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`
-  assert.equal(count, 43)
+  const expectedMigrations = fs.readdirSync(path.resolve("prisma/postgresql/migrations"), { withFileTypes: true }).filter((entry) => entry.isDirectory() && fs.existsSync(path.resolve("prisma/postgresql/migrations", entry.name, "migration.sql"))).map((entry) => entry.name).sort()
+  const applied = await prisma.$queryRaw`SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`
+  assert.deepEqual(applied.map((entry) => entry.migration_name), expectedMigrations)
+  const count = applied.length
   const quote = await prisma.quote.findFirst({ where: { company: { email: "direction@atelier-des-bassins.example.test" } } })
   assert.ok(quote, "Devis fictif requis")
   queue = new Queue("DOC_GEN", { connection: redisConnection("producer") })

@@ -47,6 +47,9 @@ async function main() {
     create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id, passwordHash },
   })
   const membership = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
+  // A declared fictional mailbox makes sender selection explicit. It carries
+  // no provider credentials, so this fixture can never authorize a real send.
+  await prisma.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, visibility: "SHARED", provider: "RESEND", emailAddress: "mailbox@e2e.example.test", displayName: "Boîte fictive QA", status: "ACTIVE", mailEnabled: true, calendarEnabled: false, config: { mode: "FIXTURE" } } })
   const agency = await prisma.agency.create({ data: { companyId: company.id, code: "PRINCIPALE", name: "Agence QA", kind: "MIXED", active: true, isDefault: true } })
   await prisma.agencyMembership.create({ data: { agencyId: agency.id, membershipId: membership.id, isPrimary: true } })
   const client = await prisma.client.create({ data: { companyId: company.id, name: "Client QA Piscine", type: "INDIVIDUAL", address: "2 rue du Bassin, 44000 Nantes" } })
