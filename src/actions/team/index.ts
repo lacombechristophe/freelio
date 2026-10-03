@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { assertWithinPlanLimit } from "@/lib/billing/subscription"
+import { Prisma } from "@prisma/client"
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254)
 const roleSchema = z.enum(COMPANY_ROLES)
@@ -221,7 +222,7 @@ export async function deactivateTeamMember(memberId: string) {
 
     const member = await prisma.membership.findFirst({
       where: { id: parsedId.data, companyId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, userId: true },
     })
     if (!member) return { success: false as const, error: "Membre introuvable." }
 
@@ -230,18 +231,24 @@ export async function deactivateTeamMember(memberId: string) {
       return { success: false as const, error: "Vous ne pouvez pas désactiver ce membre." }
     }
 
-    if (memberRole === "OWNER") {
-      const ownerCount = await prisma.membership.count({
-        where: { companyId, role: "OWNER", status: "ACTIVE" },
-      })
-      if (ownerCount <= 1) {
+    const result = await prisma.$transaction(async (tx) => {
+      const current = await tx.membership.findFirst({ where: { id: member.id, companyId, role: member.role }, select: { id: true } })
+      if (!current) return { success: false as const, error: "Le membre a changé ; actualisez l’équipe." }
+      if (memberRole === "OWNER" && await tx.membership.count({ where: { companyId, role: "OWNER", status: "ACTIVE" } }) <= 1) {
         return { success: false as const, error: "Le dernier propriétaire ne peut pas être désactivé." }
       }
-    }
-
-    await prisma.membership.update({ where: { id: member.id }, data: { status: "INACTIVE" } })
+      await tx.membership.update({ where: { id: member.id }, data: { status: "INACTIVE" } })
+      // A revoked workspace member must not leave usable provider credentials
+      // or an in-flight authorization capable of reconnecting their mailboxes.
+      await tx.communicationChannel.updateMany({ where: { companyId, ownerUserId: member.userId }, data: {
+        status: "PENDING", credentialsEncrypted: null, oauthNonceHash: null, oauthAttemptId: null, oauthExpiresAt: null, oauthStartedByUserId: null,
+        config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Déconnectée de Freelio ; l’accès fournisseur reste à révoquer",
+      } })
+      return { success: true as const }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
     revalidatePath("/dashboard/equipe")
-    return { success: true as const }
+    revalidatePath("/dashboard/communications")
+    return result
   }, "members.manage")
 }
 

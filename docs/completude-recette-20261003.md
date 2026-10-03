@@ -60,3 +60,11 @@ La recette SQL couvre 126 fils visibles, 101 messages horodatés à l’identiqu
 La pagination du sélecteur de contacts (encore borné à 500), les réponses natives fournisseur, les pièces/brouillons et la réconciliation lu/supprimé restent distincts. MAIL-06 est donc partiellement traité ; cette recette ne clôture pas toute la messagerie.
 
 La CI du précédent SHA `72ac53101861ccf38ca403632fc19ce8decd4872` a terminé : **PostgreSQL et Linux/Chromium réussissent ; qualité obtient 499 tests et 81 E2E réussis, avec 19 exclusions explicites**. [Run PR](https://github.com/lacombechristophe/freelio/actions/runs/37086758605). Son seul échec est l’audit complet de dépendances décrit ci-dessus. Les nouveaux commits nécessitent leur propre CI ; les preuves du précédent SHA ne s’y substituent pas.
+
+## Départ d’un membre : déconnexion locale des messageries
+
+La désactivation d’un membre et la suppression des credentials de ses boîtes privées/partagées sont désormais une seule transaction sérialisable. Les tentatives OAuth en cours sont annulées, ce qui interdit à leur callback de réactiver ces connexions. Le contrôle du dernier propriétaire est relu dans cette transaction. Les boîtes d’une autre société et celles des autres utilisateurs restent intactes ; les historiques et leur propriétaire d’origine sont conservés.
+
+`member-mailbox-offboarding.integration.test.ts` qualifie ces cas sur SQL réel, y compris une autorisation d’acteur devenue ancienne et des identifiants inter-sociétés. La suite locale complète atteint **512 tests réussis dans 119 fichiers** (58,79 s) ; les 11 tests ciblés départ/OAuth/synchronisation, types et lint passent. Cette correction ne constitue pas une révocation distante ni une interface de transfert de propriété : ces points restent à qualifier séparément. Aucun token fournisseur réel n’est utilisé.
+
+CI de `c3bdcbbc0f049bf38dc1f3211627cba3a082e376` : PostgreSQL et Linux/Chromium réussissent déjà ; les parcours navigateur sont en cours au moment de ce complément. [Run PR](https://github.com/lacombechristophe/freelio/actions/runs/37091358824). Le complément départ d’un membre nécessite ensuite sa propre CI.
