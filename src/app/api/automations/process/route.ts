@@ -1,5 +1,4 @@
-import { processDueSequenceEmails } from "@/lib/automations/sequences"
-import { processAutomationEvents } from "@/lib/automations/engine"
+import { processAutomationBatch } from "@/lib/automations/process"
 import { cronRequestIsAuthorized } from "@/lib/cron-auth"
 
 export const runtime = "nodejs"
@@ -8,7 +7,7 @@ export const dynamic = "force-dynamic"
 async function process(request: Request) {
   if (!cronRequestIsAuthorized(request, "AUTOMATION_CRON_SECRET")) return Response.json({ error: "Accès refusé" }, { status: 401, headers: { "cache-control": "no-store" } })
   try {
-    const results = await Promise.allSettled([processAutomationEvents(50), processDueSequenceEmails(100)])
+    const results = await processAutomationBatch()
     const failures = results.filter((result) => result.status === "rejected")
     for (const result of failures) console.error("Automation processor failed", result.reason)
     return Response.json({

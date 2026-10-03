@@ -7,7 +7,7 @@
  * Requires REDIS_URL or explicit REDIS_HOST in production.
  */
 import { docGenWorker } from "@/lib/bullmq/worker"
-import { processDueSequenceEmails } from "@/lib/automations/sequences"
+import { processAutomationBatch } from "@/lib/automations/process"
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
 import { syncDueOAuthCommunicationChannels } from "@/lib/communications/communication-sync"
 import { withProcessorLease } from "@/lib/processing/lease"
@@ -25,8 +25,14 @@ console.log("[Worker] Redis connection configured; credentials are never printed
 
 const processAutomations = async () => {
   try {
-    const result = await processDueSequenceEmails(100)
-    if (result.examined) console.log(`[Worker] Sequences: ${result.sent} email(s), ${result.tasksCreated} task(s), ${result.tasksWaiting} waiting, ${result.failed} failed, ${result.stopped} stopped.`)
+    const [scenarios, sequences] = await processAutomationBatch()
+    if (scenarios.status === "fulfilled") {
+      if (scenarios.value.examined) console.log(`[Worker] Scenarios: ${scenarios.value.examined} event(s), ${scenarios.value.completed} workflow(s) completed.`)
+    } else console.error("[Worker] Scenario processing failed", scenarios.reason)
+    if (sequences.status === "fulfilled") {
+      const result = sequences.value
+      if (result.examined) console.log(`[Worker] Sequences: ${result.sent} email(s), ${result.tasksCreated} task(s), ${result.tasksWaiting} waiting, ${result.failed} failed, ${result.stopped} stopped.`)
+    } else console.error("[Worker] Sequence processing failed", sequences.reason)
   } catch (error) {
     console.error(`[Worker] Sequence processing failed: ${error instanceof Error ? error.message : "unknown error"}`)
   }
