@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, sendCrmEmail, syncCommunicationChannel, updateEmailThread } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, sendCrmEmail, syncCommunicationChannel, updateEmailThread } from "@/actions/communications"
+import type { InboxPage } from "@/lib/communications/inbox-reader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,22 +18,15 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 
 type CommunicationData = {
   company: { name: string; email: string | null }
   channels: Array<{ id: string; provider: string; emailAddress: string; displayName: string | null; status: string; connectionMode: string | null; hasCredentials: boolean; lastSyncAt: string | null; lastError: string | null; visibility?: string; mailEnabled?: boolean; calendarEnabled?: boolean; emailSyncStatus?: unknown; calendarSyncStatus?: unknown }>
   contacts: Array<{ id: string; firstName: string; lastName: string; email: string | null; client: { id: string; name: string } }>
-  stats: { sent: number; received: number; events: Record<string, number> }
-  threads: Array<{
-    id: string; subject: string; status: string; unreadCount: number; lastMessageAt: string
-    client: { id: string; name: string } | null
-    contact: { id: string; firstName: string; lastName: string; email: string | null } | null
-    leadCapture: { id: string; firstName: string; lastName: string; email: string | null } | null
-    messages: Array<{
-      id: string; direction: string; provider: string; fromAddress: string; toAddresses: unknown; ccAddresses: unknown; subject: string; bodyHtml: string | null; bodyText: string | null; attachments: unknown; status: string; sentAt: string | null; receivedAt: string | null; createdAt: string
-      events: Array<{ id: string; type: string; occurredAt: string; payload: unknown }>
-    }>
-  }>
+  stats: { sent: number; received: number; unread: number; events: Record<string, number> }
+  threads: InboxPage["threads"]
+  inbox: InboxPage
 }
 
 const eventLabels: Record<string, string> = { "email.sent": "Envoyé", "email.delivered": "Livré", "email.opened": "Ouvert", "email.clicked": "Cliqué", "email.bounced": "Rejeté", "email.failed": "Échec", "email.complained": "Spam", "email.received": "Reçu" }
@@ -61,12 +55,19 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const confirmDialog = useConfirm()
   const [isPending, startTransition] = React.useTransition()
   const [tab, setTab] = React.useState(initialTab)
+  const [loadedInbox, setLoadedInbox] = React.useState<InboxPage | null>(null)
+  const inbox = loadedInbox ?? initialData.inbox
+  const [search, setSearch] = React.useState("")
+  const inboxRequest = React.useRef(0)
+  const [history, setHistory] = React.useState<{ threadId: string; messages: InboxPage["threads"][number]["messages"]; hasPreviousMessages: boolean } | null>(null)
   const [selectedId, setSelectedId] = React.useState(initialData.threads[0]?.id ?? "")
   const [mobileThreadOpen, setMobileThreadOpen] = React.useState(false)
   const threadListRef = React.useRef<HTMLDivElement>(null)
   const backToListRef = React.useRef<HTMLButtonElement>(null)
   const [previewMessage, setPreviewMessage] = React.useState<CommunicationData["threads"][number]["messages"][number] | null>(null)
-  const selected = initialData.threads.find((thread) => thread.id === selectedId) ?? initialData.threads[0]
+  const selected = inbox.threads.find((thread) => thread.id === selectedId) ?? inbox.threads[0]
+  const selectedMessages = history?.threadId === selected?.id ? history.messages : selected?.messages ?? []
+  const hasPreviousMessages = history?.threadId === selected?.id ? history.hasPreviousMessages : selected?.hasPreviousMessages
   const [contactId, setContactId] = React.useState("")
   const activeChannels = initialData.channels.filter((channel) => channel.status === "ACTIVE")
   const [channelId, setChannelId] = React.useState(activeChannels[0]?.id ?? "")
@@ -140,13 +141,37 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     router.replace(`/dashboard/communications?tab=${value}`, { scroll: false })
   }
 
+  async function loadInbox(page = inbox.page, filter = inbox.filter, query = inbox.search, selectionId = selectedId) {
+    const request = ++inboxRequest.current
+    const next = await getCommunicationInboxPage({ page, filter, search: query })
+    if (!next || request !== inboxRequest.current) return
+    setLoadedInbox(next)
+    setHistory(null)
+    if (!next.threads.some((thread) => thread.id === selectionId)) {
+      setSelectedId(next.threads[0]?.id ?? "")
+      setMobileThreadOpen(false)
+    }
+  }
+
+  function loadPreviousMessages() {
+    if (!selected || !selectedMessages[0]) return
+    const threadId = selected.id
+    const beforeMessageId = selectedMessages[0].id
+    run(async () => {
+      const previous = await getPreviousCommunicationMessages({ threadId, beforeMessageId })
+      if (!previous) return
+      setHistory({ threadId, hasPreviousMessages: previous.hasPreviousMessages,
+        messages: [...previous.messages, ...selectedMessages].filter((message, index, all) => all.findIndex((item) => item.id === message.id) === index) })
+    })
+  }
+
   function selectThread(thread: CommunicationData["threads"][number]) {
     setSelectedId(thread.id)
     setMobileThreadOpen(true)
     requestAnimationFrame(() => {
       if (window.matchMedia("(max-width: 1023px)").matches) backToListRef.current?.focus()
     })
-    if (thread.unreadCount) run(async () => { await updateEmailThread(thread.id, { markRead: true }); router.refresh() })
+    if (thread.unreadCount && !isReadOnlyDemo) run(async () => { await updateEmailThread(thread.id, { markRead: true }); await loadInbox(inbox.page, inbox.filter, inbox.search, thread.id); router.refresh() })
   }
 
   function prepareReply() {
@@ -160,7 +185,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   return <div className="space-y-5">
     <Tabs value={tab} onValueChange={handleTabChange} className="space-y-5">
       <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
-        <TabsTrigger value="inbox">Boîte de réception{initialData.threads.reduce((sum, item) => sum + item.unreadCount, 0) ? <Badge className="ml-1">{initialData.threads.reduce((sum, item) => sum + item.unreadCount, 0)}</Badge> : null}</TabsTrigger>
+        <TabsTrigger value="inbox">Boîte de réception{initialData.stats.unread ? <Badge className="ml-1">{initialData.stats.unread}</Badge> : null}</TabsTrigger>
         <TabsTrigger value="compose">Nouvel e-mail</TabsTrigger>
         <TabsTrigger value="analytics">Statistiques</TabsTrigger>
         <TabsTrigger value="integrations">Intégrations</TabsTrigger>
@@ -169,8 +194,12 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
       <TabsContent value="inbox">
         <Card className="workspace-panel overflow-hidden"><CardContent className="grid min-h-[420px] grid-cols-1 p-0 lg:min-h-[620px] lg:grid-cols-[340px_minmax(0,1fr)]">
           <div ref={threadListRef} className={cn("min-w-0 border-b lg:block lg:border-b-0 lg:border-r", mobileThreadOpen && "hidden")}>
-            <div className="flex items-center justify-between border-b p-4"><div><p className="text-sm font-semibold">Conversations</p><p className="text-xs text-muted-foreground">{initialData.threads.length} fil(s)</p></div><Button variant="ghost" size="icon" aria-label="Actualiser les conversations" onClick={() => router.refresh()}><RefreshCw /></Button></div>
-            <div className="max-h-[555px] overflow-y-auto">{initialData.threads.length ? initialData.threads.map((thread) => {
+            <div className="flex items-center justify-between border-b p-4"><div><p className="text-sm font-semibold">Conversations</p><p className="text-xs text-muted-foreground">{inbox.total} fil(s)</p></div><Button variant="ghost" size="icon" disabled={isPending} aria-label="Actualiser les conversations" onClick={() => run(async () => { await loadInbox(); router.refresh() })}><RefreshCw /></Button></div>
+            <form className="space-y-2 border-b p-4" onSubmit={(event) => { event.preventDefault(); run(() => loadInbox(1, inbox.filter, search)) }}>
+              <Label htmlFor="inbox-filter">Conversations affichées</Label><select id="inbox-filter" value={inbox.filter} disabled={isPending} onChange={(event) => run(() => loadInbox(1, event.target.value as InboxPage["filter"], search))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="ALL">Toutes</option><option value="UNREAD">Non lues</option><option value="ARCHIVED">Archives</option></select>
+              <Label htmlFor="inbox-search">Recherche</Label><Input id="inbox-search" value={search} onChange={(event) => setSearch(event.target.value)} maxLength={200} placeholder="Objet, contact ou message" /><Button demoMutation={false} type="submit" variant="outline" size="sm" disabled={isPending}>Rechercher</Button>
+            </form>
+            <div className="max-h-[555px] overflow-y-auto" aria-busy={isPending}>{inbox.threads.length ? inbox.threads.map((thread) => {
               const party = thread.contact ? `${thread.contact.firstName} ${thread.contact.lastName}` : thread.leadCapture ? `${thread.leadCapture.firstName} ${thread.leadCapture.lastName}` : thread.client?.name || "Expéditeur non identifié"
               const last = thread.messages.at(-1)
               return <button type="button" key={thread.id} data-selected={selected?.id === thread.id} aria-pressed={selected?.id === thread.id} onClick={() => selectThread(thread)} className={cn("flex w-full items-start gap-3 border-b p-4 text-left transition-colors hover:bg-muted/40", selected?.id === thread.id && "bg-primary/[0.055]")}>
@@ -178,6 +207,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
                 <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={cn("truncate text-sm", thread.unreadCount && "font-semibold")}>{party}</span><time className="shrink-0 text-[10px] text-muted-foreground">{new Date(thread.lastMessageAt).toLocaleDateString("fr-FR")}</time></span><span className="mt-1 block truncate text-xs font-medium">{thread.subject}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{last?.bodyText || last?.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun aperçu"}</span></span><ChevronRight className="mt-3 size-3.5 shrink-0 text-muted-foreground" />
               </button>
             }) : <div className="p-8 text-center"><Inbox className="mx-auto size-8 text-muted-foreground/50" /><p className="mt-3 text-sm font-medium">Aucune conversation</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Connectez une boîte ou envoyez un premier e-mail.</p></div>}</div>
+            <div className="space-y-2 border-t p-4"><p className="text-xs text-muted-foreground">Page {inbox.page} sur {inbox.pageCount}</p><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={isPending || inbox.page <= 1} onClick={() => run(() => loadInbox(inbox.page - 1))}>Page précédente</Button><Button variant="outline" size="sm" disabled={isPending || inbox.page >= inbox.pageCount} onClick={() => run(() => loadInbox(inbox.page + 1))}>Page suivante</Button></div></div>
           </div>
           <div className={cn("min-w-0 break-words lg:block", !mobileThreadOpen && "hidden")}>
             <div className="border-b p-2 lg:hidden"><Button ref={backToListRef} variant="ghost" size="sm" onClick={() => {
@@ -185,8 +215,8 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
               requestAnimationFrame(() => threadListRef.current?.querySelector<HTMLButtonElement>('[data-selected="true"]')?.focus())
             }}><ArrowLeft />Retour aux conversations</Button></div>
             {selected ? <>
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" onClick={prepareReply}><Reply />Répondre</Button></div></div>
-            <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{selected.messages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); await loadInbox(); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" onClick={prepareReply}><Reply />Répondre</Button></div></div>
+            <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{hasPreviousMessages ? <Button variant="outline" size="sm" disabled={isPending} onClick={loadPreviousMessages}>Messages précédents</Button> : null}{selectedMessages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold">{message.direction === "OUTBOUND" ? initialData.company.name : message.fromAddress}</p><Badge variant="outline">{message.direction === "OUTBOUND" ? "Sortant" : "Entrant"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">À : {recipients(message.toAddresses)}</p></div><time className="text-xs text-muted-foreground">{formatDate(message.sentAt || message.receivedAt || message.createdAt)}</time></div>
               <p className="mt-3 text-sm font-medium">{message.subject}</p><p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{message.bodyText || message.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun contenu texte"}</p>
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3"><Button variant="ghost" size="sm" onClick={() => setPreviewMessage(message)}><Eye />Aperçu HTML</Button><Badge variant={message.status === "BOUNCED" || message.status === "FAILED" ? "destructive" : "secondary"}>{["DELIVERED", "OPENED", "CLICKED"].includes(message.status) ? <CheckCircle2 /> : null}{statusLabels[message.status] ?? message.status}</Badge>{message.events.slice(-4).map((event) => <span key={event.id} title={formatDate(event.occurredAt)} className="text-[11px] text-muted-foreground">{eventLabels[event.type] ?? event.type}</span>)}</div>

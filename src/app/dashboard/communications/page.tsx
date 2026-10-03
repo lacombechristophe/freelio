@@ -13,20 +13,6 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
       <CommunicationCenter initialTab={["inbox", "compose", "analytics", "integrations"].includes(requestedTab || "") ? requestedTab : "inbox"} initialData={{
         ...data,
         channels: data.channels.map((item) => ({ ...item, lastSyncAt: item.lastSyncAt?.toISOString() ?? null })),
-        threads: data.threads.map((thread) => ({
-          ...thread,
-          lastMessageAt: thread.lastMessageAt.toISOString(),
-          createdAt: thread.createdAt.toISOString(),
-          updatedAt: thread.updatedAt.toISOString(),
-          messages: thread.messages.map((message) => ({
-            ...message,
-            sentAt: message.sentAt?.toISOString() ?? null,
-            receivedAt: message.receivedAt?.toISOString() ?? null,
-            createdAt: message.createdAt.toISOString(),
-            updatedAt: message.updatedAt.toISOString(),
-            events: message.events.map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString(), createdAt: event.createdAt.toISOString() })),
-          })),
-        })),
       }} />
     </div>
   )

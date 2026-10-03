@@ -26,5 +26,17 @@ try {
   const supplier = await prisma.supplier.upsert({ where: { companyId_name: { companyId, name: "Fournisseur de recette UI" } }, update: {}, create: { id: "cuiqasupplier000000000000", companyId, name: "Fournisseur de recette UI", email: "supplier@example.test" } })
   await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: "UIQA-PURCHASE" } }, update: {}, create: { id: "cuiqapurchase000000000000", companyId, supplierId: supplier.id, number: "UIQA-PURCHASE" } })
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
-  console.log("QA fixtures ready: directories, documents, signed contract, supplier, purchase and migration.")
+  const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE" } })
+  for (let index = 0; index < 125; index++) {
+    const id = `cuiqainbox${String(index).padStart(15, "0")}`
+    await prisma.emailThread.upsert({ where: { id }, update: {}, create: { id, companyId, channelId: mailbox.id, subject: `UIQA Inbox ${String(index).padStart(3, "0")}`, lastMessageAt: new Date(Date.UTC(2020, 0, 1, 0, index)) } })
+  }
+  await prisma.emailThread.upsert({ where: { id: "cuiqainboxarchive000000000" }, update: {}, create: { id: "cuiqainboxarchive000000000", companyId, channelId: mailbox.id, subject: "UIQA Archived conversation", status: "ARCHIVED" } })
+  await prisma.emailThread.upsert({ where: { id: "cuiqainboxunread0000000000" }, update: {}, create: { id: "cuiqainboxunread0000000000", companyId, channelId: mailbox.id, subject: "UIQA Unread conversation", unreadCount: 1 } })
+  const longThread = await prisma.emailThread.upsert({ where: { id: "cuiqainboxhistory000000000" }, update: {}, create: { id: "cuiqainboxhistory000000000", companyId, channelId: mailbox.id, subject: "UIQA Long history" } })
+  for (let index = 0; index < 101; index++) {
+    const id = `cuiqainboxmessage${String(index).padStart(9, "0")}`
+    await prisma.emailMessage.upsert({ where: { id }, update: {}, create: { id, companyId, threadId: longThread.id, direction: "INBOUND", provider: "RESEND", fromAddress: "fixture@example.test", toAddresses: [mailbox.emailAddress], subject: `UIQA History ${String(index).padStart(3, "0")}`, bodyText: `Fictitious message ${index}`, createdAt: new Date(Date.UTC(2020, 0, 1, 0, index)), status: "RECEIVED" } })
+  }
+  console.log("QA fixtures ready: directories, documents, signed contract, supplier, purchase, migration and paginated inbox.")
 } finally { await prisma.$disconnect() }

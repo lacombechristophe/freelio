@@ -14,28 +14,20 @@ import { jsonValue } from "@/lib/communications/threads"
 import { encrypt } from "@/lib/crypto"
 import prisma from "@/lib/prisma"
 import { channelConfig } from "@/lib/communications/sync-state"
+import { readInboxPage, readPreviousThreadMessages, type InboxQuery } from "@/lib/communications/inbox-reader"
 
 const cuid = z.string().cuid()
 
 export async function getCommunicationDashboard() {
   return withAuth(async ({ companyId }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-    const [company, channels, threads, events, contacts] = await Promise.all([
+    const [company, channels, inbox, events, contacts, unread] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
       prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, visibility: true, mailEnabled: true, calendarEnabled: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
-      prisma.emailThread.findMany({
-        where: { companyId, status: { not: "ARCHIVED" } },
-        include: {
-          client: { select: { id: true, name: true } },
-          contact: { select: { id: true, firstName: true, lastName: true, email: true } },
-          leadCapture: { select: { id: true, firstName: true, lastName: true, email: true } },
-          messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 100 },
-        },
-        orderBy: { lastMessageAt: "desc" },
-        take: 100,
-      }),
+      readInboxPage(companyId),
       prisma.emailEvent.groupBy({ where: { companyId, occurredAt: { gte: since } }, by: ["type"], _count: { _all: true } }),
       prisma.contact.findMany({ where: { client: { companyId }, email: { not: null } }, include: { client: { select: { id: true, name: true } } }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }], take: 500 }),
+      prisma.emailThread.aggregate({ where: { companyId, status: { not: "ARCHIVED" } }, _sum: { unreadCount: true } }),
     ])
     const sent = await prisma.emailMessage.count({ where: { companyId, direction: "OUTBOUND", createdAt: { gte: since } } })
     const received = await prisma.emailMessage.count({ where: { companyId, direction: "INBOUND", createdAt: { gte: since } } })
@@ -49,11 +41,20 @@ export async function getCommunicationDashboard() {
         emailSyncStatus: channelConfig(config).emailSyncStatus ?? null,
         calendarSyncStatus: channelConfig(config).calendarSyncStatus ?? null,
       })),
-      threads,
+      threads: inbox.threads,
+      inbox,
       contacts,
-      stats: { sent, received, events: Object.fromEntries(events.map((event) => [event.type, event._count._all])) },
+      stats: { sent, received, unread: unread._sum.unreadCount ?? 0, events: Object.fromEntries(events.map((event) => [event.type, event._count._all])) },
     }
   }, "automation.read")
+}
+
+export async function getCommunicationInboxPage(input: InboxQuery) {
+  return withAuth(({ companyId }) => readInboxPage(companyId, input), "automation.read")
+}
+
+export async function getPreviousCommunicationMessages(input: unknown) {
+  return withAuth(({ companyId }) => readPreviousThreadMessages(companyId, input), "automation.read")
 }
 
 const sendSchema = z.object({
