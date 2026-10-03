@@ -1034,6 +1034,13 @@ test("configures an email sequence and a lead automation", async ({ page }, test
   await workflowDetail.getByRole("button", { name: "Publier et activer" }).click()
   await expect(page.getByText("Version publiée et scénario activé.").last()).toBeVisible()
   await page.goto("/dashboard/service/customer-success")
+  // Trigger a real health change instead of relying on another test's rules.
+  await page.getByLabel("Nom de la règle", { exact: true }).fill(`Signal scénario QA ${Date.now()}`)
+  await page.getByLabel("Mesure de santé", { exact: true }).selectOption("DAYS_SINCE_ACTIVITY")
+  await page.getByLabel("Seuil de la règle", { exact: true }).fill("0")
+  await page.getByLabel("Impact de la règle", { exact: true }).fill("-1")
+  await page.getByRole("button", { name: "Créer la règle", exact: true }).click()
+  await expect(page.getByText("Règle de santé créée.")).toBeVisible()
   await page.getByRole("button", { name: "Figer les scores" }).click()
   await expect(page.getByText("Scores recalculés et historisés.")).toBeVisible()
   await page.goto("/dashboard/organisation")

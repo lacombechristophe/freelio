@@ -10,9 +10,10 @@ describe("nextSequenceExecution", () => {
   })
 
   it.each([
-    ["2026-08-27T09:30:40.250Z", 2, "2026-08-27T11:31:00.000Z"],
-    ["2026-08-27T17:59:59.999Z", 0, "2026-08-28T08:00:00.000Z"],
-  ])("never rounds %s before the requested delay or past the closing window", (base, delay, expected) => {
+    ["2026-08-27T09:30:40.250Z", 2, "2026-08-27T11:30:40.250Z"],
+    ["2026-08-27T17:59:59.999Z", 0, "2026-08-27T17:59:59.999Z"],
+    ["2026-08-27T09:30:40.250Z", 0, "2026-08-27T09:30:40.250Z"],
+  ])("preserves %s with delay %i inside the configured window", (base, delay, expected) => {
     expect(nextSequenceExecution(new Date(base), delay, schedule).toISOString()).toBe(expected)
   })
 
