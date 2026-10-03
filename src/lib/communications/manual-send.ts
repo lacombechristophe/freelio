@@ -45,7 +45,7 @@ export async function sendManualEmail(input: ManualSendInput) {
       await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENDING", attempts: { increment: 1 }, lastAttemptAt: new Date(), firstAttemptAt: current.firstAttemptAt || new Date(), error: null } })
       try {
         const sent = await sendEmailThroughChannel({
-          companyId: input.companyId, companyName: payload.companyName, channelId: payload.channelId, to: payload.to, replyTo: payload.replyTo,
+          companyId: input.companyId, companyName: payload.companyName, from: payload.from, channelId: payload.channelId, to: payload.to, replyTo: payload.replyTo,
           subject: payload.subject, html: payload.html, idempotencyKey: deliveryId,
           resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
           beforeDispatch: async () => {

@@ -6,6 +6,7 @@ vi.mock("@/lib/auth-wrapper", () => ({ withAuth: (task: (value: typeof authConte
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/audit", () => ({ logAction: vi.fn() }))
 vi.mock("@/lib/automations/email", () => ({
+  prepareSequenceEmail: vi.fn(async () => ({ subject: "Fixture", html: "<p>Fixture</p>", headers: {} })),
   renderEmailVariables: (value: string) => value,
   sendSequenceEmail: vi.fn(async () => ({ provider: "RESEND", providerId: "fiction-message", providerDraftId: null, providerMessageId: "fiction-message", channelId: "platform", from: "fiction@example.test", subject: "Fixture", html: "<p>Fixture</p>" })),
 }))

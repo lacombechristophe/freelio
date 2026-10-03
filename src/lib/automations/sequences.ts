@@ -1,11 +1,12 @@
 import { Prisma } from "@prisma/client"
 
-import { renderEmailVariables, sendSequenceEmail } from "@/lib/automations/email"
+import { prepareSequenceEmail, renderEmailVariables, sendSequenceEmail } from "@/lib/automations/email"
 import { nextDeliveryRetry } from "@/lib/automations/delivery-retry"
 import prisma from "@/lib/prisma"
-import { recordOutgoingEmail } from "@/lib/communications/threads"
+import { ensureSequenceHistory, repairSequenceHistories, sequencePayloadSchema } from "@/lib/automations/sequence-history"
 import { activeEmailSuppression } from "@/lib/communications/suppressions"
-import { pinSequenceSender } from "@/lib/communications/email-provider"
+import { activeCommunicationChannel, pinSequenceSender } from "@/lib/communications/email-provider"
+import { formatMailboxSender } from "@/lib/communications/provider-credentials"
 import { nextSequenceExecution, type SequenceSchedule } from "@/lib/automations/schedule"
 import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
 
@@ -73,6 +74,7 @@ export function dueSequenceEnrollmentWhere(now: Date, companyId?: string): Prism
 
 async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, limit = 50, companyId?: string) {
   const now = new Date()
+  const historiesRepaired = await repairSequenceHistories(control, Math.min(Math.max(limit, 1), 200), companyId)
   const due = await prisma.emailSequenceEnrollment.findMany({
     where: dueSequenceEnrollmentWhere(now, companyId),
     include: {
@@ -84,7 +86,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
     take: Math.min(Math.max(limit, 1), 200),
   })
 
-  const summary = { examined: due.length, sent: 0, failed: 0, deadLettered: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0, skipped: null as string | null }
+  const summary = { examined: due.length, historiesRepaired, sent: 0, failed: 0, deadLettered: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0, skipped: null as string | null }
   for (const enrollment of due) {
     await control.assertOwned()
     const lead = enrollment.leadCapture
@@ -148,11 +150,13 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
         where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } },
       })
       if (existing && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(existing.status)) {
+        await ensureSequenceHistory(existing.id, enrollment.sequence.companyId)
         const progressed = progressionData(enrollment.sequence, step.id, existing.sentAt || new Date())
-        await prisma.emailSequenceEnrollment.update({
-          where: { id: enrollment.id },
+        const advanced = await prisma.emailSequenceEnrollment.updateMany({
+          where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position },
           data: { ...progressed.data, lastSentAt: existing.sentAt },
         })
+        if (advanced.count === 1 && !progressed.nextStep) summary.completed += 1
         continue
       }
       if (existing && ["BOUNCED", "COMPLAINED", "SUPPRESSED", "DEAD_LETTER", "CANCELED"].includes(existing.status)) {
@@ -216,11 +220,26 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       }
       await beforeDispatch()
       const senderChannelId = await pinSequenceSender(enrollment.sequence.companyId, enrollment.sequenceId)
+      let payload = delivery.payload
+      if (payload === null) {
+        const channel = await activeCommunicationChannel(enrollment.sequence.companyId, senderChannelId)
+        const prepared = await prepareSequenceEmail({ company: enrollment.sequence.company, lead, subjectTemplate: step.subject, bodyTemplate: step.bodyHtml })
+        const frozen = sequencePayloadSchema.parse({ kind: "SEQUENCE", companyName: enrollment.sequence.company.name, replyTo: enrollment.sequence.company.email,
+          to: lead.email, from: formatMailboxSender(channel.displayName || enrollment.sequence.company.name, channel.emailAddress), ...prepared })
+        await control.assertOwned()
+        const persisted = await prisma.emailDelivery.updateMany({ where: { id: delivery.id, status: "SENDING", payload: { equals: Prisma.DbNull } }, data: { payload: frozen } })
+        if (persisted.count !== 1) throw new Error("La préparation de l’envoi a changé")
+        payload = frozen
+      }
+      const frozen = sequencePayloadSchema.parse(payload)
+      if (frozen.to !== lead.email) throw new SequenceDispatchDeferredError("Le destinataire a changé depuis la préparation")
       const sent = await sendSequenceEmail({
-        company: enrollment.sequence.company,
+        company: { ...enrollment.sequence.company, name: frozen.companyName, email: frozen.replyTo },
         lead,
         subjectTemplate: step.subject,
         bodyTemplate: step.bodyHtml,
+        prepared: frozen,
+        from: frozen.from,
         idempotencyKey: delivery.id,
         channelId: senderChannelId,
         beforeDispatch,
@@ -231,6 +250,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
           providerMessageId: delivery.providerMessageId,
         },
         onPrepared: async (prepared) => {
+          await control.assertOwned()
           const persisted = await prisma.emailDelivery.updateMany({
             where: { id: delivery.id, status: "SENDING" },
             data: { ...prepared, channelId: prepared.channelId === "platform" ? null : prepared.channelId },
@@ -239,36 +259,29 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
         },
       })
       const sentAt = new Date()
-      const progressed = progressionData(enrollment.sequence, step.id, sentAt)
-      await prisma.$transaction([
-        prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, provider: sent.provider, channelId: sent.channelId === "platform" ? null : sent.channelId, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, sentAt, nextAttemptAt: null, deadLetteredAt: null, error: null } }),
-        prisma.emailSequenceEnrollment.update({
-          where: { id: enrollment.id },
-          data: { ...progressed.data, lastSentAt: sentAt },
-        }),
-      ])
-      await recordOutgoingEmail({
-        companyId: enrollment.sequence.companyId,
-        channelId: sent.channelId === "platform" ? null : sent.channelId,
-        contactId: enrollment.contactId,
-        leadCaptureId: lead.id,
-        deliveryId: delivery.id,
-        provider: sent.provider,
-        providerId: sent.providerId,
-        from: sent.from,
-        to: [lead.email!],
-        subject: sent.subject,
-        bodyHtml: sent.html,
-      })
+      // Transport acceptance is durable before any history/progression work.
+      // Failed history leaves this enrollment at the same step for SQL repair.
+      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, payload: { ...frozen, from: sent.from }, provider: sent.provider, channelId: sent.channelId === "platform" ? null : sent.channelId, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, sentAt, nextAttemptAt: null, deadLetteredAt: null, error: null } })
       summary.sent += 1
-      if (!progressed.nextStep) summary.completed += 1
+      await ensureSequenceHistory(delivery.id, enrollment.sequence.companyId)
+      const progressed = progressionData(enrollment.sequence, step.id, sentAt)
+      const advanced = await prisma.emailSequenceEnrollment.updateMany({
+          where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position },
+          data: { ...progressed.data, lastSentAt: sentAt },
+      })
+      if (advanced.count === 1 && !progressed.nextStep) summary.completed += 1
     } catch (error) {
       if (error instanceof SequenceDispatchDeferredError) {
         await prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: "SENDING" }, data: { status: "SCHEDULED", error: error.message } })
         continue
       }
       const message = (error instanceof Error ? error.message : "Envoi impossible").slice(0, 500)
-      const failedDelivery = await prisma.emailDelivery.findUnique({ where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } }, select: { id: true, attempts: true, maxAttempts: true } })
+      const failedDelivery = await prisma.emailDelivery.findUnique({ where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } }, select: { id: true, status: true, attempts: true, maxAttempts: true } })
+      if (failedDelivery && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(failedDelivery.status)) {
+        await prisma.emailDelivery.updateMany({ where: { id: failedDelivery.id }, data: { error: `Historique à réparer : ${message}` } })
+        summary.failed += 1
+        continue
+      }
       const retry = nextDeliveryRetry({ attempts: failedDelivery?.attempts ?? 1, maxAttempts: failedDelivery?.maxAttempts ?? 5 })
       if (retry.deadLetter) {
         await prisma.$transaction([
@@ -293,7 +306,7 @@ class SequenceDispatchDeferredError extends Error {}
 export async function processDueSequenceEmails(limit = 50, companyId?: string) {
   const result = await withProcessorLease("email-sequences", (control) => processDueSequenceEmailsUnlocked(control, limit, companyId))
   if (result.acquired) return result.value
-  return { examined: 0, sent: 0, failed: 0, deadLettered: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0, skipped: "PROCESSOR_BUSY" }
+  return { examined: 0, historiesRepaired: 0, sent: 0, failed: 0, deadLettered: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0, skipped: "PROCESSOR_BUSY" }
 }
 
 export async function completeSequenceTaskFromOrganisationTask(organisationTaskId: string) {

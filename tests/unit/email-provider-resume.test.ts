@@ -54,6 +54,30 @@ describe("OAuth email crash recovery", () => {
     prismaMock.communicationChannel.update.mockResolvedValue({})
   })
 
+  it("preserves the prepared sender even after its display name changes", async () => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue({ ...channel("GOOGLE"), displayName: "Renamed mailbox" })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ messages: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "draft-frozen" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "sent-frozen" }), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const from = "Original sender <equipe@example.fr>"
+    const result = await sendEmailThroughChannel({ ...baseInput, from })
+    expect(result.from).toBe(from)
+    const created = JSON.parse(String(fetchMock.mock.calls[1][1]?.body))
+    expect(Buffer.from(created.message.raw, "base64url").toString("utf8")).toContain(`From: ${from}\r\n`)
+  })
+
+  it("refuses a frozen address mismatch or injected header before any remote request", async () => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("GOOGLE"))
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    for (const from of ["Original <other@example.fr>", "Injected\r\nX-Test: header <equipe@example.fr>"]) {
+      await expect(sendEmailThroughChannel({ ...baseInput, from })).rejects.toThrow("expéditeur préparé")
+    }
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it("persists a Google draft before sending it", async () => {
     prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("GOOGLE"))
     const fetchMock = vi.fn()

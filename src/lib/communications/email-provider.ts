@@ -178,6 +178,7 @@ export async function sendEmailThroughChannel(input: {
   companyId: string
   channelId?: string | null
   companyName: string
+  from?: string
   to: string
   replyTo?: string | null
   subject: string
@@ -198,7 +199,9 @@ export async function sendEmailThroughChannel(input: {
     if (current.mailEnabled === false || current.provider !== channel.provider || current.emailAddress !== channel.emailAddress) throw new Error("La messagerie a changé avant l’envoi")
   }
   if (input.resume?.provider && input.resume.provider !== channel.provider) throw new Error("La messagerie de reprise ne correspond plus au fournisseur initial")
-  const from = formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress)
+  const from = input.from ?? formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress)
+  const fromAddress = (from.match(/<([^<>]+)>$/)?.[1] || from).trim().toLowerCase()
+  if (/[\r\n]/.test(from) || fromAddress !== channel.emailAddress.trim().toLowerCase()) throw new Error("L’expéditeur préparé ne correspond plus à la messagerie")
   const messageId = input.resume?.providerMessageId || deterministicMessageId(input.idempotencyKey)
 
   if (channel.provider === "RESEND") {

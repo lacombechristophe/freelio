@@ -66,15 +66,7 @@ export function senderFor(companyName: string) {
   return `${companyName.replace(/[<>\r\n]/g, "")} <${address}>`
 }
 
-export async function sendSequenceEmail(input: EmailContext & {
-  subjectTemplate: string
-  bodyTemplate: string
-  idempotencyKey: string
-  channelId?: string | null
-  resume?: EmailProviderState
-  onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
-  beforeDispatch?: () => Promise<void>
-}) {
+export async function prepareSequenceEmail(input: EmailContext & { subjectTemplate: string; bodyTemplate: string }) {
   if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
 
   const token = await createConsentWithdrawalToken({ companyId: input.company.id, leadId: input.lead.id })
@@ -84,6 +76,22 @@ export async function sendSequenceEmail(input: EmailContext & {
   const content = sanitizeSequenceEmailHtml(renderEmailVariables(input.bodyTemplate, input, true))
   const html = `<!doctype html><html lang="fr"><body><main>${content}</main><hr><p style="color:#667085;font-size:12px;line-height:1.5">Vous recevez cet e-mail selon vos préférences de communication. <a href="${escapeHtml(unsubscribeUrl)}">Se désinscrire</a>.</p></body></html>`
 
-  const sent = await sendEmailThroughChannel({ companyId: input.company.id, channelId: input.channelId, companyName: input.company.name, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, beforeDispatch: input.beforeDispatch, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } })
+  return { subject, html, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }
+}
+
+export async function sendSequenceEmail(input: EmailContext & {
+  subjectTemplate: string
+  bodyTemplate: string
+  prepared?: { subject: string; html: string; headers: Record<string, string> }
+  from?: string
+  idempotencyKey: string
+  channelId?: string | null
+  resume?: EmailProviderState
+  onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
+  beforeDispatch?: () => Promise<void>
+}) {
+  if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
+  const { subject, html, headers } = input.prepared ?? await prepareSequenceEmail(input)
+  const sent = await sendEmailThroughChannel({ companyId: input.company.id, channelId: input.channelId, companyName: input.company.name, from: input.from, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, beforeDispatch: input.beforeDispatch, headers })
   return { ...sent, subject, html }
 }
