@@ -93,10 +93,15 @@ export async function recordOutgoingEmail(input: {
       return recorded
     }
   }
-  return prisma.$transaction(async (tx) => {
+  // Mailbox ACLs validate message.threadId through the committed SQL view.
+  // Persist/validate the thread first so an ordinary member's first message
+  // does not fail that check on an uncommitted thread created by this command.
+  // An interrupted history write can leave an empty thread; the durable
+  // delivery retries this journal step without another provider send.
   const thread = input.threadId
-    ? await tx.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId, channelId: input.channelId || null } })
-    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt }, tx)
+    ? await prisma.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId, channelId: input.channelId || null } })
+    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt })
+  return prisma.$transaction(async (tx) => {
   const provider = input.provider || "RESEND"
   const message = await tx.emailMessage.upsert({
     where: { companyId_provider_providerId: { companyId: input.companyId, provider, providerId: input.providerId } },

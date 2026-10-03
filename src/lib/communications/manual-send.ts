@@ -12,9 +12,10 @@ const payloadSchema = z.object({
   channelId: z.string(), companyName: z.string(), replyTo: z.string().nullable(), from: z.string(), to: z.string().email(), subject: z.string(), html: z.string(),
   reply: replyContextSchema.nullable().optional(),
   cc: copyRecipientsSchema.optional(), bcc: copyRecipientsSchema.optional(),
+  invoiceSnapshot: z.object({ invoiceId: z.string(), remainingCents: z.number().int().positive() }).optional(),
 })
 
-type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply"> & { companyId: string; requestKey: string; channelId: string | null }
+type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply"> & { companyId: string; requestKey: string; channelId: string | null; beforeDispatch?: () => Promise<void> }
 
 async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInput, "threadId" | "clientId">, channelId: string) {
   if (!payload.threadId) return
@@ -39,6 +40,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     })
   }
   const payload = payloadSchema.parse(delivery.payload)
+  if (JSON.stringify(payload.invoiceSnapshot) !== JSON.stringify(input.invoiceSnapshot)) throw new Error("Le contexte financier de cet envoi est déjà figé")
   if (JSON.stringify(payload.cc || []) !== JSON.stringify(input.cc) || JSON.stringify(payload.bcc || []) !== JSON.stringify(input.bcc)) throw new Error("Les destinataires de cet envoi sont déjà fixés ; créez un nouvel envoi")
   for (const key of ["userId", "contactId", "clientId", "threadId", "serviceTicketId", "to", "subject", "html"] as const) {
     if (payload[key] !== input[key]) throw new Error("Cette commande d’envoi correspond à un autre contenu ; créez un nouvel envoi")
@@ -68,6 +70,7 @@ export async function sendManualEmail(input: ManualSendInput) {
           resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
           beforeDispatch: async () => {
             await control.assertOwned()
+            await input.beforeDispatch?.()
             await assertReplyMailbox(input.companyId, payload, payload.channelId)
             if (payload.threadId && payload.reply) await assertReplyContext(input.companyId, payload.threadId, payload.reply)
             const contact = await prisma.contact.findFirst({ where: { id: payload.contactId, client: { companyId: input.companyId }, email: payload.to }, select: { id: true } })

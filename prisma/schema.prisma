@@ -2878,6 +2878,7 @@ model InvoiceReminder {
   channel   String    @default("EMAIL_DRAFT")
   status    String    @default("PREPARED") // PREPARED, SENDING, SENT, FAILED, SKIPPED
   sourceKey String?
+  remainingCents Int? // Balance captured when the reminder text is prepared; null for legacy rows.
   subject   String
   message   String
   error     String?

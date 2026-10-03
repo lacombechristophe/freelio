@@ -764,7 +764,7 @@ export async function prepareInvoiceReminder(data: ReminderInput) {
     const subject = validated.subject || content.subject
     const message = validated.message || content.message
     const reminder = await prisma.invoiceReminder.create({
-      data: { companyId, invoiceId: invoice.id, subject, message },
+      data: { companyId, invoiceId: invoice.id, subject, message, remainingCents: invoice.totalTtcCents - invoice.paidAmountCents },
     })
     return {
       ...reminder,
