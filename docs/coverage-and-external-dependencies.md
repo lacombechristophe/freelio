@@ -3,6 +3,8 @@
 Date de l'audit du code : 3 septembre 2026
 Portée : état du dépôt et recette technique de la production ; la configuration réelle des comptes métier et des fournisseurs externes reste à valider.
 
+Cette matrice conserve le constat du 3 septembre. Le [plan du 2 octobre](plan-completude-fonctionnelle-20261002.md) précise les lacunes fonctionnelles ; la [recette récente](completude-recette-20261003.md) distingue les sous-lots corrigés, leurs preuves et les fonctions encore ouvertes. Les mentions « Disponible » ci-dessous ne signifient ni complétude du domaine ni qualification fournisseur actuelle. La [livraison de démo](livraison-demo-vercel-20261003.md) est fictive et en lecture seule, distincte du candidat non fusionné.
+
 ## 1. Légende
 
 | État | Signification |

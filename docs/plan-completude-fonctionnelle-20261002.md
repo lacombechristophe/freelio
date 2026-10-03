@@ -10,7 +10,7 @@ Cet audit repose sur la lecture des actions serveur, moteurs, routes, schémas, 
 
 La [CI du commit examiné](https://github.com/lacombechristophe/freelio/actions/runs/37056456374) réussit ses trois jobs : 457 tests SQLite, 456 tests PostgreSQL avec un test réservé à SQLite exclu, 79 E2E réussis et 19 exclusions intentionnelles de viewport/parcours, huit contrôles Linux. Les seuils de couverture concernent six modules ciblés, pas l'ensemble du produit. Ces résultats établissent une base technique ; ils ne prouvent ni la complétude fonctionnelle ni les échanges avec les fournisseurs réels.
 
-Ce document devient le plan courant de complétude. Les plans d'août/septembre et leurs nombres de tests restent historiques. Le [suivi CTO](execution-cto-20261001.md), la [carte des preuves](carte-des-preuves.md) et le [runbook](production-runbook.md) restent utiles pour les autres exigences techniques.
+Ce document fixe le plan de complétude et conserve les constats de l’audit initial. Les corrections, accords de présentation, résultats par SHA et limites courantes sont dans la [recette de complétude](completude-recette-20261003.md), notamment sa synthèse du registre. Une ligne du constat initial ne signifie pas que son ancien défaut subsiste ; un sous-lot corrigé ne clôture pas automatiquement son lot entier. Les plans d'août/septembre et leurs nombres de tests restent historiques. Le [suivi CTO](execution-cto-20261001.md), la [carte des preuves](carte-des-preuves.md) et le [runbook](production-runbook.md) restent utiles pour les autres exigences techniques.
 
 ## 2. Ce qui existe et doit être conservé
 
@@ -23,7 +23,7 @@ Ce document devient le plan courant de complétude. Les plans d'août/septembre 
 
 ## 3. Registre des écarts constatés
 
-**P0** : intégrité, isolement ou comportement dangereux avant usage réel. **P1** : nécessaire à un parcours complet dans le périmètre annoncé. **P2** : profondeur utile après le socle fiable. **P3** : extension conditionnée par un besoin concret. Toutes les lignes ci-dessous restent ouvertes ; un écart de code n'est pas une panne observée chez un fournisseur.
+**P0** : intégrité, isolement ou comportement dangereux avant usage réel. **P1** : nécessaire à un parcours complet dans le périmètre annoncé. **P2** : profondeur utile après le socle fiable. **P3** : extension conditionnée par un besoin concret. Les lignes ci-dessous décrivent l’état ouvert au 2 octobre ; consulter la recette liée pour leur état après corrections. Un écart de code n'est pas une panne observée chez un fournisseur.
 
 | ID | Priorité | Constat et conséquence | Preuve dans le code |
 |---|---|---|---|
