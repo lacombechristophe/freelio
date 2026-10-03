@@ -45,4 +45,18 @@ L’avis [GHSA-vfj7-8cjw-p6xm / CVE-2026-93687](https://github.com/advisories/GH
 
 La CI contrôle séparément les dépendances de production puis exécute types/lint/tests/build/E2E avant l’audit de toutes les dépendances. L’audit complet garde son seuil et son échec bloquant ; aucune exclusion ni acceptation implicite de l’avis n’est ajoutée. Cette organisation conserve les preuves fonctionnelles pendant l’attente d’un correctif amont. **La PR reste en brouillon et ne doit pas être fusionnée sur la seule réussite fonctionnelle.**
 
-Les autres demandes d’interface non approuvées restent à soumettre : lecture des conversations (recherche, archives, pagination), rédaction avancée, campagnes/journal d’automatisation et écrans métier restants. Le lot Marketing approuvé ne comprend pas de gestion nouvelle des préférences de consentement ni de scoring santé client.
+Les autres demandes d’interface non approuvées concernent la rédaction avancée, campagnes/journal d’automatisation et les écrans métier restants. Le lot Marketing approuvé ne comprend pas de gestion nouvelle des préférences de consentement ni de scoring santé client.
+
+## Complément : reprise des séquences et lecture des conversations
+
+Commits applicatifs : `7d9e961` (reprise des envois) et `e6cd30e` (lecture). L’autorisation « Oui, appliquer ce lot » porte sur recherche, filtres Toutes/Non lues/Archives, pagination des fils et Messages précédents, dans le style existant.
+
+Les envois de séquence figent destinataire, sujet, contenu, expéditeur et liens de désinscription avant le transport. Une acceptation distante est enregistrée avant le calcul de progression et l’historique ; une panne SQL ultérieure conserve cette acceptation. Le processeur répare l’historique même si la campagne est en pause, sans renvoyer le message. Une pause de l’inscription pendant le transport n’est pas écrasée. Les envois manuels et de séquence conservent aussi le nom expéditeur malgré le renommage ultérieur d’une boîte ; une adresse devenue différente bloque la reprise. Une livraison historique sans contenu figé reste à réconcilier manuellement, sans inventer son message.
+
+Les conversations sont paginées par 50 avec compteurs SQL sur tout le périmètre accessible. Le fil affiche ses 25 derniers messages et remonte les précédents par curseur `(createdAt, id)`. Recherche, filtres, compteurs, curseurs et messages respectent les droits société/boîte ; les DTO n’exposent ni identifiant fournisseur, ni CCI, ni payload d’événement. La consultation publique en lecture seule ne tente pas de marquer un message lu et la recherche demeure disponible.
+
+La recette SQL couvre 126 fils visibles, 101 messages horodatés à l’identique, les corps anciens recherchables, les archives, les pages hors limites, les IDs de boîtes privées et d’autres sociétés. Les tests d’envoi injectent une panne d’historique, un délai distant ambigu, une modification du modèle et une pause pendant l’acceptation. **509 tests passent dans 118 fichiers** (57,53 s) ; lint et compilation de production passent. **4 E2E ciblés passent** (8,7 s) pour lecture complète et conservation du parcours de messagerie sur ordinateur/mobile.
+
+La pagination du sélecteur de contacts (encore borné à 500), les réponses natives fournisseur, les pièces/brouillons et la réconciliation lu/supprimé restent distincts. MAIL-06 est donc partiellement traité ; cette recette ne clôture pas toute la messagerie.
+
+La CI du précédent SHA `72ac53101861ccf38ca403632fc19ce8decd4872` a terminé : **PostgreSQL et Linux/Chromium réussissent ; qualité obtient 499 tests et 81 E2E réussis, avec 19 exclusions explicites**. [Run PR](https://github.com/lacombechristophe/freelio/actions/runs/37086758605). Son seul échec est l’audit complet de dépendances décrit ci-dessus. Les nouveaux commits nécessitent leur propre CI ; les preuves du précédent SHA ne s’y substituent pas.
