@@ -4,6 +4,8 @@ const prismaMock = vi.hoisted(() => ({
   emailSuppression: { findUnique: vi.fn() },
   communicationChannel: {
     findFirst: vi.fn(),
+    findMany: vi.fn(async (...args: unknown[]) => [await prismaMock.communicationChannel.findFirst(...args)]),
+    findFirstOrThrow: vi.fn(async (...args: unknown[]) => prismaMock.communicationChannel.findFirst(...args)),
     findUnique: vi.fn(),
     update: vi.fn(),
   },

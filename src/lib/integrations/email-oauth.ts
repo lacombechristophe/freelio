@@ -2,6 +2,7 @@ import "server-only"
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 import { z } from "zod"
+import { providerFetch as fetch } from "@/lib/integrations/provider-fetch"
 
 export const EMAIL_OAUTH_PROVIDERS = ["GOOGLE", "MICROSOFT"] as const
 export type EmailOAuthProvider = (typeof EMAIL_OAUTH_PROVIDERS)[number]

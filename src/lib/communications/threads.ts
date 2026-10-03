@@ -38,7 +38,8 @@ export async function getOrCreateEmailThread(input: {
     if (repliedMessage) return prisma.emailThread.findUniqueOrThrow({ where: { id: repliedMessage.threadId } })
   }
   const subject = canonicalEmailSubject(input.subject)
-  const existing = await prisma.emailThread.findFirst({
+  // A subject alone does not identify a conversation between unknown parties.
+  const existing = input.contactId || input.leadCaptureId || input.clientId ? await prisma.emailThread.findFirst({
     where: {
       companyId: input.companyId,
       status: { not: "ARCHIVED" },
@@ -46,7 +47,7 @@ export async function getOrCreateEmailThread(input: {
       ...(input.contactId ? { contactId: input.contactId } : input.leadCaptureId ? { leadCaptureId: input.leadCaptureId } : input.clientId ? { clientId: input.clientId } : {}),
     },
     orderBy: { lastMessageAt: "desc" },
-  })
+  }) : null
   if (existing) return existing
   return prisma.emailThread.create({
     data: {
@@ -79,13 +80,20 @@ export async function recordOutgoingEmail(input: {
   sentAt?: Date
 }) {
   const sentAt = input.sentAt || new Date()
+  if (input.deliveryId) {
+    const recorded = await prisma.emailMessage.findUnique({ where: { deliveryId: input.deliveryId } })
+    if (recorded) {
+      if (recorded.companyId !== input.companyId) throw new Error("Historique d’envoi hors société")
+      return recorded
+    }
+  }
   const thread = input.threadId
     ? await prisma.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId } })
     : await getOrCreateEmailThread({ ...input, occurredAt: sentAt })
   const provider = input.provider || "RESEND"
   const message = await prisma.emailMessage.upsert({
     where: { provider_providerId: { provider, providerId: input.providerId } },
-    update: { status: "SENT" },
+    update: {},
     create: {
       companyId: input.companyId,
       threadId: thread.id,

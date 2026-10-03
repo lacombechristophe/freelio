@@ -6,6 +6,8 @@ import { formatMailboxSender, getResendTransport } from "@/lib/communications/pr
 import { decrypt, encrypt } from "@/lib/crypto"
 import { EMAIL_OAUTH_PROVIDERS, refreshEmailOAuthAccessToken, type EmailOAuthProvider } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
+import { providerFetch as fetch } from "@/lib/integrations/provider-fetch"
+import { withProcessorLease } from "@/lib/processing/lease"
 import { activeEmailSuppression } from "@/lib/communications/suppressions"
 
 const oauthCredentialsSchema = z.object({
@@ -31,14 +33,15 @@ export type ActiveChannel = {
 }
 
 export async function activeCommunicationChannel(companyId: string, channelId?: string | null): Promise<ActiveChannel> {
-  const channel = await prisma.communicationChannel.findFirst({
+  const channels = await prisma.communicationChannel.findMany({
     where: { companyId, status: "ACTIVE", ...(channelId ? { id: channelId } : {}) },
     select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true },
-    // Without an explicit channel (manual compose supplies one), the most
-    // recently configured mailbox is the deterministic default for automations.
-    orderBy: { updatedAt: "desc" },
+    orderBy: { id: "asc" },
+    take: channelId ? 1 : 2,
   })
-  if (!channel && !channelId) {
+  if (channels.length > 1) throw new Error("Choisissez explicitement une boîte expéditrice")
+  const channel = channels[0]
+  if (!channel && (!channelId || channelId === "platform")) {
     const configuredFrom = process.env.EMAIL_FROM?.trim() || ""
     const emailAddress = (configuredFrom.match(/<([^>]+)>/)?.[1] || configuredFrom).trim().toLowerCase()
     if (process.env.RESEND_API_KEY?.trim() && emailAddress) {
@@ -49,6 +52,15 @@ export async function activeCommunicationChannel(companyId: string, channelId?: 
   return channel
 }
 
+export async function pinSequenceSender(companyId: string, sequenceId: string) {
+  const sequence = await prisma.emailSequence.findFirstOrThrow({ where: { id: sequenceId, companyId }, select: { senderChannelId: true } })
+  if (sequence.senderChannelId) return (await activeCommunicationChannel(companyId, sequence.senderChannelId)).id
+  const channel = await activeCommunicationChannel(companyId)
+  await prisma.emailSequence.updateMany({ where: { id: sequenceId, companyId, senderChannelId: null }, data: { senderChannelId: channel.id } })
+  const pinned = await prisma.emailSequence.findFirstOrThrow({ where: { id: sequenceId, companyId }, select: { senderChannelId: true } })
+  return (await activeCommunicationChannel(companyId, pinned.senderChannelId)).id
+}
+
 export function readOAuthCredentials(channel: ActiveChannel): OAuthCredentials {
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider) || !channel.credentialsEncrypted) throw new Error("Autorisation OAuth absente")
   return oauthCredentialsSchema.parse(JSON.parse(decrypt(channel.credentialsEncrypted)))
@@ -57,9 +69,16 @@ export function readOAuthCredentials(channel: ActiveChannel): OAuthCredentials {
 export async function validOAuthCredentials(channel: ActiveChannel) {
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Autorisation OAuth absente")
   const provider = channel.provider as EmailOAuthProvider
-  const credentials = readOAuthCredentials(channel)
+  const fresh = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, status: "ACTIVE" }, select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true } })
+  const credentials = readOAuthCredentials(fresh)
   if (new Date(credentials.expiresAt).getTime() > Date.now() + 5 * 60_000) return credentials
+  const refresh = await withProcessorLease(`oauth-refresh:${channel.id}`, async (control) => {
+  const current = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, status: "ACTIVE" }, select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true } })
+  const credentials = readOAuthCredentials(current)
+  if (new Date(credentials.expiresAt).getTime() > Date.now() + 5 * 60_000) return credentials
+  await control.assertOwned()
   const refreshed = await refreshEmailOAuthAccessToken(provider, credentials.refreshToken)
+  await control.assertOwned()
   const updated = {
     mode: "OAUTH" as const,
     accessToken: refreshed.access_token,
@@ -70,8 +89,21 @@ export async function validOAuthCredentials(channel: ActiveChannel) {
     calendarCursor: credentials.calendarCursor,
     calendarCursorKind: credentials.calendarCursorKind,
   }
-  await prisma.communicationChannel.update({ where: { id: channel.id }, data: { credentialsEncrypted: encrypt(JSON.stringify(updated)), lastError: null } })
-  return updated
+  // A concurrent cursor write is merged with the refreshed token; a reconnect
+  // or disconnect must never be overwritten by an old refresh response.
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await control.assertOwned()
+    const latest = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, status: "ACTIVE" }, select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true } })
+    const latestCredentials = readOAuthCredentials(latest)
+    if (latestCredentials.refreshToken !== credentials.refreshToken || latestCredentials.accessToken !== credentials.accessToken) throw new Error("La connexion OAuth a changé pendant le renouvellement")
+    const merged = { ...latestCredentials, ...updated, calendarCursor: latestCredentials.calendarCursor, calendarCursorKind: latestCredentials.calendarCursorKind }
+    const stored = await prisma.communicationChannel.updateMany({ where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: latest.credentialsEncrypted }, data: { credentialsEncrypted: encrypt(JSON.stringify(merged)), lastError: null } })
+    if (stored.count === 1) return merged
+  }
+  throw new Error("Le renouvellement OAuth nécessite une reprise")
+  })
+  if (refresh.acquired) return refresh.value
+  throw new Error("Un renouvellement OAuth est en cours ; réessayez la synchronisation")
 }
 
 export async function validOAuthAccessToken(channel: ActiveChannel) {
@@ -79,6 +111,7 @@ export async function validOAuthAccessToken(channel: ActiveChannel) {
 }
 
 export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: string | null) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
   const current = await prisma.communicationChannel.findUnique({
     where: { id: channel.id },
     select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true },
@@ -92,10 +125,13 @@ export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: s
       ? channel.provider === "GOOGLE" ? "GOOGLE_SYNC_TOKEN" : "MICROSOFT_DELTA_LINK"
       : undefined,
   }
-  await prisma.communicationChannel.update({
-    where: { id: channel.id },
+  const saved = await prisma.communicationChannel.updateMany({
+    where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: current.credentialsEncrypted },
     data: { credentialsEncrypted: encrypt(JSON.stringify(updated)) },
   })
+  if (saved.count === 1) return
+  }
+  throw new Error("La connexion OAuth a changé pendant l’enregistrement du calendrier")
 }
 
 export type EmailProviderState = {
@@ -142,6 +178,7 @@ export async function sendEmailThroughChannel(input: {
   headers?: Record<string, string>
   resume?: EmailProviderState
   onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
+  beforeDispatch?: () => Promise<void>
 }) {
   const suppression = await activeEmailSuppression(input.companyId, input.to)
   if (suppression) throw new Error(`Envoi bloqué : adresse supprimée de la diffusion (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
@@ -152,6 +189,8 @@ export async function sendEmailThroughChannel(input: {
 
   if (channel.provider === "RESEND") {
     const transport = await getResendTransport(input.companyId, channel.id === "platform" ? null : channel.id)
+    await input.onPrepared?.({ provider: "RESEND", channelId: channel.id, providerDraftId: null, providerMessageId: null })
+    await input.beforeDispatch?.()
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${transport.apiKey}`, "Idempotency-Key": input.idempotencyKey },
@@ -192,6 +231,7 @@ export async function sendEmailThroughChannel(input: {
       draftId = draft.id
       await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
     }
+    await input.beforeDispatch?.()
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts/send", { method: "POST", headers, body: JSON.stringify({ id: draftId }) })
     const payload = await response.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
     if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Envoi Google refusé (${response.status})`)
@@ -234,6 +274,7 @@ export async function sendEmailThroughChannel(input: {
     draftId = draft.id
     await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
   }
+  await input.beforeDispatch?.()
   const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}/send`, {
     method: "POST",
     headers: graphHeaders,

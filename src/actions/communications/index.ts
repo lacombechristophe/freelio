@@ -8,11 +8,12 @@ import { logAction } from "@/lib/audit"
 import { sanitizeSequenceEmailHtml } from "@/lib/automations/email"
 import { withAuth } from "@/lib/auth-wrapper"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
-import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
+import { sendManualEmail } from "@/lib/communications/manual-send"
 import { syncOAuthCommunicationChannel } from "@/lib/communications/communication-sync"
-import { jsonValue, recordOutgoingEmail } from "@/lib/communications/threads"
+import { jsonValue } from "@/lib/communications/threads"
 import { encrypt } from "@/lib/crypto"
 import prisma from "@/lib/prisma"
+import { channelConfig } from "@/lib/communications/sync-state"
 
 const cuid = z.string().cuid()
 
@@ -44,6 +45,9 @@ export async function getCommunicationDashboard() {
         ...channel,
         hasCredentials: Boolean(credentialsEncrypted),
         connectionMode: config && typeof config === "object" && !Array.isArray(config) && "mode" in config && typeof config.mode === "string" ? config.mode : null,
+        config: { mode: channelConfig(config).mode ?? null },
+        emailSyncStatus: channelConfig(config).emailSyncStatus ?? null,
+        calendarSyncStatus: channelConfig(config).calendarSyncStatus ?? null,
       })),
       threads,
       contacts,
@@ -53,6 +57,7 @@ export async function getCommunicationDashboard() {
 }
 
 const sendSchema = z.object({
+  requestKey: z.string().uuid().optional(),
   contactId: cuid,
   channelId: z.union([cuid, z.literal("")]).optional(),
   threadId: z.union([cuid, z.literal("")]).optional(),
@@ -78,9 +83,7 @@ export async function sendCrmEmail(input: unknown) {
     const subject = data.subject.replace(/[\r\n]+/g, " ").trim()
     const content = sanitizeSequenceEmailHtml(data.bodyHtml)
     const html = `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`
-    const idempotencyKey = randomUUID()
-    const sent = await sendEmailThroughChannel({ companyId, channelId: data.channelId || null, companyName: company.name, to: contact.email, replyTo: company.email, subject, html, idempotencyKey })
-    const message = await recordOutgoingEmail({ companyId, threadId: data.threadId || null, clientId: contact.clientId, contactId: contact.id, provider: sent.provider, providerId: sent.providerId, from: sent.from, to: [contact.email], subject, bodyHtml: html })
+    const message = await sendManualEmail({ companyId, userId, requestKey: data.requestKey || randomUUID(), channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html })
     if (ticket) await prisma.$transaction([
       prisma.emailThread.update({ where: { id: message.threadId }, data: { serviceTicketId: ticket.id } }),
       prisma.serviceTicket.updateMany({ where: { id: ticket.id, firstRespondedAt: null }, data: { firstRespondedAt: new Date() } }),
@@ -137,7 +140,7 @@ export async function disconnectCommunicationChannel(channelId: string) {
     const id = cuid.parse(channelId)
     const channel = await prisma.communicationChannel.findFirst({ where: { id, companyId }, select: { id: true, provider: true, emailAddress: true } })
     if (!channel) throw new Error("Connexion introuvable")
-    await prisma.communicationChannel.update({ where: { id }, data: { status: "PENDING", credentialsEncrypted: null, config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Connexion révoquée" } })
+    await prisma.communicationChannel.update({ where: { id }, data: { status: "PENDING", credentialsEncrypted: null, config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Déconnectée de Freelio ; l’accès fournisseur reste à révoquer" } })
     await logAction({ userId, action: "UPDATE_COMMUNICATION_CHANNEL", resource: "COMMUNICATION_CHANNEL", resourceId: id, payload: { operation: "DISCONNECT", provider: channel.provider, emailAddress: channel.emailAddress } })
     revalidatePath("/dashboard/communications")
     return { success: true as const }

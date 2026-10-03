@@ -227,6 +227,7 @@ model Company {
   automationWorkflows        AutomationWorkflow[]
   automationWorkflowVersions AutomationWorkflowVersion[]
   automationRuns             AutomationRun[]
+  automationEvents           AutomationEventOutbox[]
   knowledgeArticles          KnowledgeArticle[]
   satisfactionSurveys        SatisfactionSurvey[]
   satisfactionRequests       SatisfactionRequest[]
@@ -874,6 +875,8 @@ model EmailSequence {
   company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   campaignId String?
   campaign   MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  // Preserve a disconnected/deleted mailbox identity; never silently fall back.
+  senderChannelId String?
 
   name             String
   description      String?
@@ -963,6 +966,8 @@ model EmailDelivery {
   contact       Contact?                 @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   recipientEmail String
+  requestKey     String?
+  payload        Json?
   subject        String
   status         String        @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
   providerId     String?
@@ -978,6 +983,7 @@ model EmailDelivery {
   maxAttempts    Int           @default(5)
   nextAttemptAt  DateTime?
   lastAttemptAt  DateTime?
+  firstAttemptAt DateTime?
   lastEventAt    DateTime?
   deadLetteredAt DateTime?
   createdAt      DateTime      @default(now())
@@ -985,6 +991,7 @@ model EmailDelivery {
   message        EmailMessage?
 
   @@unique([enrollmentId, stepId])
+  @@unique([companyId, requestKey])
   @@index([companyId, createdAt])
   @@index([status, scheduledAt])
   @@index([status, nextAttemptAt])
@@ -1196,10 +1203,48 @@ model AutomationRun {
   error        String?
   startedAt    DateTime  @default(now())
   completedAt  DateTime?
+  workflowVersion Int?
+  configuration Json?
+  input         Json?
+  nextActionPosition Int @default(0)
+  attempts      Int @default(0)
+  ownerId       String?
+  leaseUntil    DateTime?
+  checkpoints   AutomationRunAction[]
 
   @@unique([workflowId, eventKey])
   @@index([companyId, startedAt])
   @@index([workflowId, status])
+}
+
+model AutomationEventOutbox {
+  id           String @id @default(cuid())
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  eventKey     String
+  event        String
+  subjectModel String
+  subjectId    String
+  status       String @default("PENDING")
+  attempts     Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  error        String?
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+
+  @@unique([companyId, eventKey])
+  @@index([status, nextAttemptAt])
+}
+
+model AutomationRunAction {
+  id        String @id @default(cuid())
+  runId     String
+  run       AutomationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  position  Int
+  output    Json
+  completedAt DateTime @default(now())
+
+  @@unique([runId, position])
 }
 
 model ClientFile {

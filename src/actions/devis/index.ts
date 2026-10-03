@@ -3,7 +3,7 @@
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
@@ -405,11 +405,14 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
     const transition = assertQuoteStatusTransition(existing.status, requestedStatus)
     if (!transition.changed) return existing
 
-    const claimed = await prisma.quote.updateMany({
+    const eventId = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.quote.updateMany({
       where: { id: parsedQuoteId, companyId, status: transition.current, updatedAt: existing.updatedAt },
       data: { status: transition.next, ...quoteStatusDates(transition.next) },
     })
     if (claimed.count !== 1) throw new Error("Le devis a changé. Rechargez-le avant de modifier son statut.")
+    return enqueueAutomationEvent(tx, { companyId, event: "QUOTE_STATUS_CHANGED", eventKey: `${parsedQuoteId}:status:${transition.next}:${crypto.randomUUID()}`, subjectModel: "Quote", subjectId: parsedQuoteId, leadId: existing.client.leadCaptures[0]?.id, clientId: existing.clientId })
+    })
     const quote = await prisma.quote.findUniqueOrThrow({ where: { id: parsedQuoteId } })
     await logAction({
       userId,
@@ -418,15 +421,7 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
       resourceId: parsedQuoteId,
       payload: { previousStatus: transition.current, status: transition.next },
     })
-    await runAutomationEvent({
-      companyId,
-      event: "QUOTE_STATUS_CHANGED",
-      eventKey: `${quote.id}:status:${transition.next}`,
-      subjectModel: "Quote",
-      subjectId: quote.id,
-      leadId: existing.client.leadCaptures[0]?.id,
-      clientId: existing.clientId,
-    }).catch((error) => console.error("Quote automation failed", error))
+    await dispatchAutomationEvent(eventId).catch((error) => console.error("Quote automation deferred", error))
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${parsedQuoteId}`)
     return quote

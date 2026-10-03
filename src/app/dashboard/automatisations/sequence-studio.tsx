@@ -319,6 +319,7 @@ function SequenceDetail({
                       sendWindowStart: Number(form.get("sendWindowStart")),
                       sendWindowEnd: Number(form.get("sendWindowEnd")),
                       timezone: form.get("timezone"),
+                      senderChannelId: sequence._count.enrollments ? undefined : String(form.get("senderChannelId") || ""),
                     }),
                   "Cadence enregistrée.",
                 )
@@ -354,6 +355,13 @@ function SequenceDetail({
                 </select>
               </Field>
               <div className="sm:col-span-2 lg:col-span-4">
+                <Field label="Boîte expéditrice">
+                  <select name="senderChannelId" defaultValue={sequence.senderChannelId || ""} disabled={sequence._count.enrollments > 0 || pending} className={controlClass}>
+                    <option value="">À choisir avant l’envoi</option>
+                    {sequence.senderChannelId && !data.senderChannels.some((channel) => channel.id === sequence.senderChannelId) ? <option value={sequence.senderChannelId}>{sequence.senderChannelId === "platform" ? "Messagerie de la plateforme" : "Boîte déconnectée — envoi bloqué"}</option> : null}
+                    {data.senderChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.emailAddress} · {channel.provider}</option>)}
+                  </select>
+                </Field>
                 <Button demoMutation type="submit" size="sm" variant="outline" disabled={pending}>
                   Enregistrer la cadence
                 </Button>

@@ -6,7 +6,7 @@ import { logAction } from "@/lib/audit"
 import { interventionCompletionSchema } from "@/lib/field/completion-schema"
 import { calculateStockBalance } from "@/lib/operations/stock"
 import prisma from "@/lib/prisma"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 
 export { interventionCompletionSchema } from "@/lib/field/completion-schema"
 
@@ -135,7 +135,8 @@ export async function completeFieldInterventionForContext(input: unknown, contex
         data: { status: "RESOLVED" },
       })
     }
-    return { movementIds, expenseMappings, reservationIds }
+    const eventId = await enqueueAutomationEvent(tx, { companyId: context.companyId, event: "INTERVENTION_COMPLETED", subjectModel: "FieldIntervention", subjectId: intervention.id, eventKey: `${intervention.id}:completed`, clientId: intervention.site.clientId })
+    return { movementIds, expenseMappings, reservationIds, eventId }
   })
 
   await logAction({
@@ -153,13 +154,6 @@ export async function completeFieldInterventionForContext(input: unknown, contex
       reservationIds: result.reservationIds,
     },
   })
-  await runAutomationEvent({
-    companyId: context.companyId,
-    event: "INTERVENTION_COMPLETED",
-    subjectModel: "FieldIntervention",
-    subjectId: intervention.id,
-    eventKey: `${intervention.id}:completed`,
-    clientId: intervention.site.clientId,
-  }).catch((error) => console.error("Intervention completion automation failed", error))
+  await dispatchAutomationEvent(result.eventId).catch((error) => console.error("Intervention completion automation deferred", error))
   return { success: true as const, signatureSha256, expenses: result.expenseMappings }
 }

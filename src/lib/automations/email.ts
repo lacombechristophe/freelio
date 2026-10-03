@@ -70,8 +70,10 @@ export async function sendSequenceEmail(input: EmailContext & {
   subjectTemplate: string
   bodyTemplate: string
   idempotencyKey: string
+  channelId?: string | null
   resume?: EmailProviderState
   onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
+  beforeDispatch?: () => Promise<void>
 }) {
   if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
 
@@ -82,6 +84,6 @@ export async function sendSequenceEmail(input: EmailContext & {
   const content = sanitizeSequenceEmailHtml(renderEmailVariables(input.bodyTemplate, input, true))
   const html = `<!doctype html><html lang="fr"><body><main>${content}</main><hr><p style="color:#667085;font-size:12px;line-height:1.5">Vous recevez cet e-mail selon vos préférences de communication. <a href="${escapeHtml(unsubscribeUrl)}">Se désinscrire</a>.</p></body></html>`
 
-  const sent = await sendEmailThroughChannel({ companyId: input.company.id, companyName: input.company.name, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } })
+  const sent = await sendEmailThroughChannel({ companyId: input.company.id, channelId: input.channelId, companyName: input.company.name, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, beforeDispatch: input.beforeDispatch, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } })
   return { ...sent, subject, html }
 }

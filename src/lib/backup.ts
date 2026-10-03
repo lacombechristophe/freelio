@@ -111,6 +111,8 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   direct("AutomationWorkflow"),
   direct("AutomationWorkflowVersion"),
   direct("AutomationRun"),
+  direct("AutomationEventOutbox"),
+  related("AutomationRunAction", { run: { companyId: "$companyId" } }),
   related("ClientFile", { client: { companyId: "$companyId" } }),
   direct("ProjectTemplate"),
   related("ProjectTemplateStep", { template: { companyId: "$companyId" } }),
@@ -578,7 +580,7 @@ const LEGACY_UNREPRESENTED_TABLES = [
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "ServiceTicketNote", "ServiceDiagnosticGuide", "ServiceTicketDiagnostic", "CustomerHealthRule", "CustomerHealthSnapshot", "KnowledgeArticle", "SatisfactionSurvey", "SatisfactionRequest", "SavedView", "CrmPropertyDefinition", "CrmPropertyValue", "CrmPropertyHistory", "FieldIntervention", "InterventionReservation",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
-  "EmailSequenceEnrollment", "EmailSequenceTask", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "EmailSuppression", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "MarketingCampaign", "MarketingCampaignAsset", "AutomationWorkflow", "AutomationWorkflowVersion", "AutomationRun",
+  "EmailSequenceEnrollment", "EmailSequenceTask", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "EmailSuppression", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "MarketingCampaign", "MarketingCampaignAsset", "AutomationWorkflow", "AutomationWorkflowVersion", "AutomationRun", "AutomationEventOutbox", "AutomationRunAction",
 ]
 
 async function assertLegacyRestoreIsSafe(companyId: string) {

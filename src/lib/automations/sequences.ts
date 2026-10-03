@@ -5,8 +5,9 @@ import { nextDeliveryRetry } from "@/lib/automations/delivery-retry"
 import prisma from "@/lib/prisma"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
 import { activeEmailSuppression } from "@/lib/communications/suppressions"
+import { pinSequenceSender } from "@/lib/communications/email-provider"
 import { nextSequenceExecution, type SequenceSchedule } from "@/lib/automations/schedule"
-import { withProcessorLease } from "@/lib/processing/lease"
+import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
 
 type ProgressionSequence = SequenceSchedule & { steps: Array<{ id: string; position: number; delayHours: number }> }
 
@@ -23,10 +24,12 @@ function progressionData(sequence: ProgressionSequence, currentStepId: string, a
 }
 
 export async function enrollLeadInSequenceInternal(input: { companyId: string; sequenceId: string; leadId: string }) {
+  const existing = await prisma.emailSequenceEnrollment.findFirst({ where: { sequenceId: input.sequenceId, leadCaptureId: input.leadId, sequence: { companyId: input.companyId } } })
+  if (existing) return existing
   const [sequence, lead] = await Promise.all([
     prisma.emailSequence.findFirst({
       where: enrollableSequenceWhere(input.sequenceId, input.companyId),
-      include: { steps: { orderBy: { position: "asc" }, take: 1 } },
+      include: { steps: { orderBy: { position: "asc" } } },
     }),
     prisma.leadCapture.findFirst({ where: { id: input.leadId, companyId: input.companyId }, select: { id: true, contactId: true, email: true, marketingOptIn: true } }),
   ])
@@ -36,10 +39,13 @@ export async function enrollLeadInSequenceInternal(input: { companyId: string; s
   if (!lead.marketingOptIn) throw new Error("Le prospect n'a pas de consentement marketing actif")
   const suppression = await activeEmailSuppression(input.companyId, lead.email)
   if (suppression) throw new Error(`Cette adresse est bloquée (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
+  if (sequence.steps.some((step) => step.type === "EMAIL")) await pinSequenceSender(input.companyId, sequence.id)
   const now = new Date()
   return prisma.emailSequenceEnrollment.upsert({
     where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId: lead.id } },
-    update: { status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: nextSequenceExecution(now, sequence.steps[0].delayHours, sequence), stopReason: null, completedAt: null },
+    // Enrollment is an idempotent occurrence, not an implicit restart. Reusing
+    // deliveries/tasks while resetting the cursor would corrupt progression.
+    update: {},
     create: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: lead.contactId, status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: nextSequenceExecution(now, sequence.steps[0].delayHours, sequence) },
   })
 }
@@ -48,15 +54,24 @@ async function stopEnrollment(id: string, reason: string) {
   await prisma.emailSequenceEnrollment.update({ where: { id }, data: { status: "STOPPED", stopReason: reason, nextSendAt: null, completedAt: new Date() } })
 }
 
-export function dueSequenceEnrollmentWhere(now: Date, companyId?: string) {
+export function dueSequenceEnrollmentWhere(now: Date, companyId?: string): Prisma.EmailSequenceEnrollmentWhereInput {
   return {
     status: "ACTIVE",
     nextSendAt: { lte: now },
-    sequence: { status: "ACTIVE", ...(companyId ? { companyId } : {}) },
-  } as const
+    sequence: {
+      status: "ACTIVE", ...(companyId ? { companyId } : {}),
+      OR: [
+        { campaignId: null },
+        { campaign: { is: { status: "ACTIVE", AND: [
+          { OR: [{ startAt: null }, { startAt: { lte: now } }] },
+          { OR: [{ endAt: null }, { endAt: { gt: now } }] },
+        ] } } },
+      ],
+    },
+  }
 }
 
-async function processDueSequenceEmailsUnlocked(limit = 50, companyId?: string) {
+async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, limit = 50, companyId?: string) {
   const now = new Date()
   const due = await prisma.emailSequenceEnrollment.findMany({
     where: dueSequenceEnrollmentWhere(now, companyId),
@@ -71,6 +86,7 @@ async function processDueSequenceEmailsUnlocked(limit = 50, companyId?: string) 
 
   const summary = { examined: due.length, sent: 0, failed: 0, deadLettered: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0, skipped: null as string | null }
   for (const enrollment of due) {
+    await control.assertOwned()
     const lead = enrollment.leadCapture
     if (!lead.marketingOptIn || enrollment.contact?.marketingStatus === "OPTED_OUT") {
       await stopEnrollment(enrollment.id, "CONSENT_WITHDRAWN")
@@ -144,6 +160,14 @@ async function processDueSequenceEmailsUnlocked(limit = 50, companyId?: string) 
         summary.stopped += 1
         continue
       }
+      if (existing?.provider === "RESEND" && existing.attempts > 0 && (!existing.firstAttemptAt || now.getTime() - existing.firstAttemptAt.getTime() >= 23 * 60 * 60_000)) {
+        await prisma.$transaction([
+          prisma.emailDelivery.update({ where: { id: existing.id }, data: { status: "DEAD_LETTER", error: "Résultat distant à vérifier ; fenêtre d’idempotence expirée", deadLetteredAt: now, nextAttemptAt: null } }),
+          prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "PAUSED", stopReason: "DELIVERY_RESULT_UNCERTAIN", nextSendAt: null } }),
+        ])
+        summary.deadLettered += 1
+        continue
+      }
       if (existing?.status === "FAILED" && existing.nextAttemptAt && existing.nextAttemptAt > now) {
         await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: existing.nextAttemptAt } })
         continue
@@ -177,15 +201,29 @@ async function processDueSequenceEmailsUnlocked(limit = 50, companyId?: string) 
             { status: "FAILED", OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] },
           ],
         },
-        data: { status: "SENDING", error: null, attempts: { increment: 1 }, lastAttemptAt: now },
+        data: { status: "SENDING", error: null, attempts: { increment: 1 }, lastAttemptAt: now, firstAttemptAt: delivery.firstAttemptAt || now },
       })
       if (claimed.count !== 1) continue
+      const beforeDispatch = async () => {
+        await control.assertOwned()
+        const current = await prisma.emailSequenceEnrollment.findFirst({
+          where: { ...dueSequenceEnrollmentWhere(new Date(), enrollment.sequence.companyId), id: enrollment.id, nextStepPosition: step.position },
+          select: { leadCapture: { select: { email: true, marketingOptIn: true, status: true } }, contact: { select: { marketingStatus: true } } },
+        })
+        if (!current || !current.leadCapture.marketingOptIn || ["SPAM", "ARCHIVED"].includes(current.leadCapture.status) || current.contact?.marketingStatus === "OPTED_OUT" || current.leadCapture.email !== lead.email || await activeEmailSuppression(enrollment.sequence.companyId, lead.email!)) {
+          throw new SequenceDispatchDeferredError("La campagne, l’inscription ou le consentement ne permet plus cet envoi")
+        }
+      }
+      await beforeDispatch()
+      const senderChannelId = await pinSequenceSender(enrollment.sequence.companyId, enrollment.sequenceId)
       const sent = await sendSequenceEmail({
         company: enrollment.sequence.company,
         lead,
         subjectTemplate: step.subject,
         bodyTemplate: step.bodyHtml,
         idempotencyKey: delivery.id,
+        channelId: senderChannelId,
+        beforeDispatch,
         resume: {
           provider: delivery.provider,
           channelId: delivery.channelId,
@@ -224,6 +262,10 @@ async function processDueSequenceEmailsUnlocked(limit = 50, companyId?: string) 
       summary.sent += 1
       if (!progressed.nextStep) summary.completed += 1
     } catch (error) {
+      if (error instanceof SequenceDispatchDeferredError) {
+        await prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: "SENDING" }, data: { status: "SCHEDULED", error: error.message } })
+        continue
+      }
       const message = (error instanceof Error ? error.message : "Envoi impossible").slice(0, 500)
       const failedDelivery = await prisma.emailDelivery.findUnique({ where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } }, select: { id: true, attempts: true, maxAttempts: true } })
       const retry = nextDeliveryRetry({ attempts: failedDelivery?.attempts ?? 1, maxAttempts: failedDelivery?.maxAttempts ?? 5 })
@@ -245,8 +287,10 @@ async function processDueSequenceEmailsUnlocked(limit = 50, companyId?: string) 
   return summary
 }
 
+class SequenceDispatchDeferredError extends Error {}
+
 export async function processDueSequenceEmails(limit = 50, companyId?: string) {
-  const result = await withProcessorLease("email-sequences", () => processDueSequenceEmailsUnlocked(limit, companyId))
+  const result = await withProcessorLease("email-sequences", (control) => processDueSequenceEmailsUnlocked(control, limit, companyId))
   if (result.acquired) return result.value
   return { examined: 0, sent: 0, failed: 0, deadLettered: 0, stopped: 0, completed: 0, tasksCreated: 0, tasksWaiting: 0, skipped: "PROCESSOR_BUSY" }
 }

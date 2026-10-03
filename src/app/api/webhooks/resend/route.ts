@@ -4,7 +4,7 @@ import { notifyPortalTeam } from "@/lib/portal/notifications"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
 import { getOrCreateEmailThread, jsonValue, resolveEmailParty } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
 import { PayloadTooLargeError, readTextBody } from "@/lib/http-body"
 import { resendSuppressionReason, suppressEmailAddress } from "@/lib/communications/suppressions"
 import { emailDeliveryStatusForEvent, emailEventUpdateGuard } from "@/lib/communications/delivery-events"
@@ -73,10 +73,10 @@ async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
   const occurredAt = new Date(event.data.created_at)
   const thread = await getOrCreateEmailThread({ companyId, subject: content.subject, ...party, inReplyTo, occurredAt })
 
-  await prisma.$transaction(async (tx) => {
+  const eventId = await prisma.$transaction(async (tx) => {
     const existing = await tx.emailMessage.findUnique({ where: { provider_providerId: { provider: "RESEND", providerId: event.data.email_id } }, select: { id: true } })
-    if (existing) return
-    await tx.emailMessage.create({
+    if (existing) return null
+    const stored = await tx.emailMessage.create({
       data: {
         companyId,
         threadId: thread.id,
@@ -100,15 +100,13 @@ async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
     await tx.emailThread.update({ where: { id: thread.id }, data: { unreadCount: { increment: 1 }, lastMessageAt: occurredAt, status: "OPEN" } })
     await tx.emailSequenceEnrollment.updateMany({
       where: {
+        sequence: { companyId },
         status: "ACTIVE",
         OR: [...(party.contactId ? [{ contactId: party.contactId }] : []), ...(party.leadCaptureId ? [{ leadCaptureId: party.leadCaptureId }] : [])],
       },
       data: { status: "STOPPED", stopReason: "CUSTOMER_REPLIED", nextSendAt: null, completedAt: occurredAt },
     })
-  })
-  const stored = await prisma.emailMessage.findUniqueOrThrow({ where: { provider_providerId: { provider: "RESEND", providerId: event.data.email_id } }, select: { id: true } })
-  await notifyPortalTeam(companyId, "Nouvel e-mail reçu", `${sender} · ${content.subject}`)
-  await runAutomationEvent({
+    return enqueueAutomationEvent(tx, {
     companyId,
     event: "EMAIL_RECEIVED",
     subjectModel: "EmailMessage",
@@ -116,7 +114,12 @@ async function handleInbound(event: EmailReceivedEvent, resend: Resend) {
     eventKey: `resend:${event.data.email_id}:received`,
     leadId: party.leadCaptureId || undefined,
     clientId: party.clientId || undefined,
-  }).catch((error) => console.error("Inbound email automation failed", error))
+    })
+  })
+  if (eventId) {
+    await dispatchAutomationEvent(eventId).catch((error) => console.error("Inbound email automation deferred", error))
+    await notifyPortalTeam(companyId, "Nouvel e-mail reçu", `${sender} · ${content.subject}`)
+  }
 }
 
 async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) {
@@ -133,7 +136,7 @@ async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) 
   if (!companyId) return
   const status = emailDeliveryStatusForEvent(event.type)
   const occurredAt = new Date(event.created_at)
-  await prisma.$transaction(async (tx) => {
+  const automationId = await prisma.$transaction(async (tx) => {
     await tx.emailEvent.upsert({
       where: { providerEventId: eventId },
       update: {},
@@ -156,7 +159,6 @@ async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) 
       where: { id: message?.deliveryId || delivery!.id, ...emailEventUpdateGuard(status, occurredAt) },
       data: { status, lastEventAt: occurredAt },
     })
-  })
   const suppressionReason = resendSuppressionReason(event as Parameters<typeof resendSuppressionReason>[0])
   if (suppressionReason) {
     const rawRecipients = delivery?.recipientEmail
@@ -174,11 +176,11 @@ async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) 
       leadCaptureId: message?.thread.leadCaptureId || delivery?.leadCaptureId,
       contactId: message?.thread.contactId || delivery?.contactId,
       occurredAt,
-    })))
+    }, tx)))
   }
   const trigger = event.type === "email.opened" ? "EMAIL_OPENED" : event.type === "email.clicked" ? "EMAIL_CLICKED" : null
   if (trigger && message)
-    await runAutomationEvent({
+    return enqueueAutomationEvent(tx, {
       companyId,
       event: trigger,
       subjectModel: "EmailMessage",
@@ -186,7 +188,10 @@ async function handleDeliveryEvent(event: WebhookEventPayload, eventId: string) 
       eventKey: `resend:${eventId}`,
       leadId: message.thread.leadCaptureId || undefined,
       clientId: message.thread.clientId || undefined,
-    }).catch((error) => console.error("Email engagement automation failed", error))
+    })
+    return null
+  })
+  if (automationId) await dispatchAutomationEvent(automationId).catch((error) => console.error("Email engagement automation deferred", error))
 }
 
 export async function POST(request: Request) {

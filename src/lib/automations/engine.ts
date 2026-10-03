@@ -1,9 +1,7 @@
-import { Prisma } from "@prisma/client"
 import { z } from "zod"
 
 import { renderEmailVariables } from "@/lib/automations/email"
-import { enrollLeadInSequenceInternal } from "@/lib/automations/sequences"
-import prisma from "@/lib/prisma"
+import prisma, { type TransactionClient } from "@/lib/prisma"
 
 export const automationTriggerSchema = z.enum(["LEAD_CREATED", "LEAD_STATUS_CHANGED", "QUOTE_STATUS_CHANGED", "EMAIL_RECEIVED", "EMAIL_OPENED", "EMAIL_CLICKED", "PORTAL_APPOINTMENT_REQUESTED", "INTERVENTION_COMPLETED", "CUSTOMER_HEALTH_CHANGED"])
 
@@ -39,7 +37,7 @@ export const workflowConfigurationSchema = z.object({
   actions: z.array(actionSchema).min(1).max(10),
 })
 
-type AutomationEvent = {
+export type AutomationEvent = {
   companyId: string
   event: z.infer<typeof automationTriggerSchema>
   subjectModel: "LeadCapture" | "Quote" | "EmailMessage" | "ClientPortalAppointmentRequest" | "FieldIntervention" | "Client"
@@ -104,70 +102,23 @@ export function evaluateWorkflowConfiguration(input: unknown, lead: WorkflowLead
   return { matches, actions, trace }
 }
 
-export async function runAutomationEvent(event: AutomationEvent) {
-  const lead = event.leadId ? await prisma.leadCapture.findFirst({
-    where: { id: event.leadId, companyId: event.companyId },
-    select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true },
-  }) : null
-  const [company, client] = await Promise.all([
-    prisma.company.findUnique({ where: { id: event.companyId }, select: { id: true, name: true, email: true } }),
-    event.clientId ? prisma.client.findFirst({ where: { id: event.clientId, companyId: event.companyId }, select: { id: true, name: true } }) : null,
-  ])
-  if (!company) return { workflows: 0, completed: 0 }
-  const workflows = await prisma.automationWorkflow.findMany({ where: { companyId: event.companyId, trigger: event.event, status: "ACTIVE" } })
-  let completed = 0
-
-  for (const workflow of workflows) {
-    let runId: string
-    try {
-      const run = await prisma.automationRun.create({
-        data: { companyId: event.companyId, workflowId: workflow.id, event: event.event, eventKey: event.eventKey, subjectModel: event.subjectModel, subjectId: event.subjectId },
-      })
-      runId = run.id
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue
-      throw error
-    }
-
-    try {
-      const evaluation = evaluateWorkflowConfiguration({ conditions: workflow.conditions ?? undefined, actions: workflow.actions }, lead, event.context)
-      if (!evaluation.matches) {
-        await prisma.automationRun.update({ where: { id: runId }, data: { status: "SKIPPED", output: { reason: "CONDITIONS_NOT_MET", context: event.context || null }, completedAt: new Date() } })
-        continue
-      }
-      const output: Array<Record<string, unknown>> = []
-      for (const action of evaluation.actions) {
-        if (action.type === "ENROLL_SEQUENCE") {
-          if (!lead) throw new Error("Cette action exige un prospect")
-          const enrollment = await enrollLeadInSequenceInternal({ companyId: event.companyId, sequenceId: action.sequenceId, leadId: lead.id })
-          output.push({ type: action.type, enrollmentId: enrollment.id })
-        } else if (action.type === "CREATE_TASK") {
-          if (!lead && !event.clientId) throw new Error("Cette action exige un prospect ou un client")
-          const title = renderWorkflowTitle(action.title, company, lead, client?.name || event.context?.clientName, event.context)
-          const dueDate = new Date(Date.now() + action.delayHours * 60 * 60 * 1_000)
-          const task = await prisma.organisationTask.create({ data: { companyId: event.companyId, clientId: lead?.clientId || event.clientId || null, title, status: "TODO", priority: action.priority, category: event.event === "CUSTOMER_HEALTH_CHANGED" ? "SUPPORT" : "SALES", dueDate } })
-          output.push({ type: action.type, taskId: task.id })
-        } else if (action.type === "NOTIFY_TEAM") {
-          const title = renderWorkflowTitle(action.title, company, lead, client?.name || event.context?.clientName, event.context)
-          const recipients = await prisma.membership.findMany({ where: { companyId: event.companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] } }, select: { userId: true } })
-          if (recipients.length) await prisma.notification.createMany({ data: recipients.map(({ userId }) => ({ userId, type: "AUTOMATION", title, message: `Règle : ${workflow.name}` })) })
-          output.push({ type: action.type, recipients: recipients.length })
-        } else if (action.type === "UPDATE_LEAD_STATUS") {
-          if (!lead) throw new Error("Cette action exige un prospect")
-          await prisma.leadCapture.update({ where: { id: lead.id }, data: { status: action.status } })
-          output.push({ type: action.type, status: action.status })
-        }
-      }
-      await prisma.automationRun.update({ where: { id: runId }, data: { status: "COMPLETED", output: { trace: evaluation.trace, actions: output, context: event.context || null } as Prisma.InputJsonValue, completedAt: new Date() } })
-      completed += 1
-    } catch (error) {
-      await prisma.automationRun.update({ where: { id: runId }, data: { status: "FAILED", error: (error instanceof Error ? error.message : "Exécution impossible").slice(0, 500), completedAt: new Date() } })
-    }
-  }
-  return { workflows: workflows.length, completed }
+export async function enqueueAutomationEvent(tx: TransactionClient, event: AutomationEvent) {
+  return (await import("@/lib/automations/runner")).enqueueAutomationEvent(tx, event)
 }
 
-function renderWorkflowTitle(template: string, company: { id: string; name: string; email: string | null }, lead: WorkflowLead | null, clientName?: string, context: WorkflowEventContext = {}) {
+export async function dispatchAutomationEvent(id: string) {
+  return (await import("@/lib/automations/runner")).dispatchAutomationEvent(id)
+}
+
+export async function processAutomationEvents(limit = 50, companyId?: string) {
+  return (await import("@/lib/automations/runner")).processAutomationEvents(limit, companyId)
+}
+
+export async function runAutomationEvent(event: AutomationEvent) {
+  const id = await prisma.$transaction((tx) => enqueueAutomationEvent(tx, event))
+  return dispatchAutomationEvent(id)
+}
+export function renderWorkflowTitle(template: string, company: { id: string; name: string; email: string | null }, lead: WorkflowLead | null, clientName?: string, context: WorkflowEventContext = {}) {
   const rendered = lead ? renderEmailVariables(template, { company, lead }, false) : template.replaceAll("{{company.name}}", company.name)
   return rendered
     .replaceAll("{{client.name}}", clientName || "Client")

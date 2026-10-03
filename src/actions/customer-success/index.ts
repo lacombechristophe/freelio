@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
 import { withAuth } from "@/lib/auth-wrapper"
 import {
   customerHealthMetricDefinitions,
@@ -190,24 +190,23 @@ export async function recomputeCustomerHealth() {
   return withAuth(async ({ companyId, userId }) => {
     const workspace = await loadCustomerSuccessWorkspace(companyId)
     const computedAt = new Date()
-    await prisma.$transaction(async (transaction) => {
+    const eventIds = await prisma.$transaction(async (transaction) => {
+      const eventIds: string[] = []
       for (const client of workspace.portfolio) {
         await transaction.client.update({ where: { id: client.id }, data: { relationScore: client.score, healthLastComputedAt: computedAt } })
         if (client.previousScore !== client.score || !client.lastComputedAt || computedAt.getTime() - client.lastComputedAt.getTime() >= 86_400_000) {
           await transaction.customerHealthSnapshot.create({ data: { companyId, clientId: client.id, score: client.score, status: client.status, factors: client.factors } })
         }
+        if (client.storedScore !== client.score) eventIds.push(await enqueueAutomationEvent(transaction, {
+          companyId, event: "CUSTOMER_HEALTH_CHANGED", subjectModel: "Client", subjectId: client.id,
+          eventKey: `${client.id}:health:${computedAt.toISOString()}:${client.storedScore}:${client.score}`,
+          clientId: client.id,
+          context: { clientName: client.name, healthStatus: client.status, healthScore: client.score, previousHealthScore: client.storedScore },
+        }))
       }
+      return eventIds
     })
-    const changes = workspace.portfolio.filter((client) => client.previousScore === null || client.previousScore !== client.score)
-    const automationResults = await Promise.all(changes.map((client) => runAutomationEvent({
-      companyId,
-      event: "CUSTOMER_HEALTH_CHANGED",
-      subjectModel: "Client",
-      subjectId: client.id,
-      eventKey: `${client.id}:health:${computedAt.toISOString()}:${client.previousScore ?? "initial"}:${client.score}`,
-      clientId: client.id,
-      context: { clientName: client.name, healthStatus: client.status, healthScore: client.score, previousHealthScore: client.previousScore },
-    }).catch((error) => {
+    const automationResults = await Promise.all(eventIds.map((id) => dispatchAutomationEvent(id).catch((error) => {
       console.error("Customer health automation failed", error)
       return { workflows: 0, completed: 0 }
     })))

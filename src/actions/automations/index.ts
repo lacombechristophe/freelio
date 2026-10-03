@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
+import { activeCommunicationChannel } from "@/lib/communications/email-provider"
 import { isDeepStrictEqual } from "node:util"
 
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
@@ -52,6 +53,7 @@ const sequenceSettingsSchema = z
     sendWindowStart: z.coerce.number().int().min(0).max(22),
     sendWindowEnd: z.coerce.number().int().min(1).max(23),
     timezone: z.string().trim().min(1).max(100).refine(sequenceTimezoneIsValid, "Fuseau horaire invalide"),
+    senderChannelId: z.union([idSchema, z.literal("platform"), z.literal("")]).optional(),
   })
   .superRefine((value, context) => {
     if (value.sendWindowStart >= value.sendWindowEnd) context.addIssue({ code: "custom", path: ["sendWindowEnd"], message: "La fin de fenêtre doit être postérieure au début" })
@@ -98,6 +100,7 @@ function assertWorkflowCompatibility(trigger: z.infer<typeof automationTriggerSc
 
 export async function getAutomationDashboard() {
   return withAuth(async ({ companyId }) => {
+    const senderChannels = await prisma.communicationChannel.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, emailAddress: true, provider: true }, orderBy: { emailAddress: "asc" } })
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
     const [templates, sequences, workflows, deliveries, leads, clients, deliveryStats, runStats, emailChannel, stepDeliveryStats, suppressions, processor] = await Promise.all([
       prisma.emailTemplate.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: { updatedAt: "desc" }, take: 100 }),
@@ -155,6 +158,7 @@ export async function getAutomationDashboard() {
       deliveryStatsByStep.set(item.stepId, stats)
     }
     return {
+      senderChannels,
       templates: templates.map((template) => ({
         id: template.id,
         name: template.name,
@@ -173,6 +177,7 @@ export async function getAutomationDashboard() {
         sendWindowStart: sequence.sendWindowStart,
         sendWindowEnd: sequence.sendWindowEnd,
         timezone: sequence.timezone,
+        senderChannelId: sequence.senderChannelId,
         updatedAt: sequence.updatedAt.toISOString(),
         _count: sequence._count,
         steps: sequence.steps.map((step) => ({
@@ -464,6 +469,7 @@ export async function duplicateEmailSequence(sequenceId: string) {
         sendWindowStart: source.sendWindowStart,
         sendWindowEnd: source.sendWindowEnd,
         timezone: source.timezone,
+        senderChannelId: source.senderChannelId,
         steps: {
           create: source.steps.map((step) => ({
             position: step.position,
@@ -589,12 +595,16 @@ export async function updateEmailSequenceStatus(sequenceId: string, status: stri
 export async function updateEmailSequenceSettings(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = sequenceSettingsSchema.parse(input)
-    const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, select: { id: true } })
+    const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, select: { id: true, senderChannelId: true, _count: { select: { enrollments: true } } } })
     if (!sequence) throw new Error("Séquence introuvable")
-    await prisma.emailSequence.update({
-      where: { id: sequence.id },
-      data: { businessDaysOnly: data.businessDaysOnly, sendWindowStart: data.sendWindowStart, sendWindowEnd: data.sendWindowEnd, timezone: data.timezone },
+    const senderChannelId = data.senderChannelId === undefined ? sequence.senderChannelId : data.senderChannelId || null
+    if (sequence._count.enrollments && senderChannelId !== sequence.senderChannelId) throw new Error("L’expéditeur d’une séquence déjà utilisée est figé. Dupliquez-la pour changer de boîte.")
+    if (senderChannelId && senderChannelId !== sequence.senderChannelId) await activeCommunicationChannel(companyId, senderChannelId)
+    const updated = await prisma.emailSequence.updateMany({
+      where: { id: sequence.id, companyId, senderChannelId: sequence.senderChannelId, ...(senderChannelId !== sequence.senderChannelId ? { enrollments: { none: {} } } : {}) },
+      data: { businessDaysOnly: data.businessDaysOnly, sendWindowStart: data.sendWindowStart, sendWindowEnd: data.sendWindowEnd, timezone: data.timezone, senderChannelId },
     })
+    if (updated.count !== 1) throw new Error("La séquence a changé ; actualisez ses réglages")
     await logAction({
       userId,
       action: "UPDATE_EMAIL_SEQUENCE_SETTINGS",

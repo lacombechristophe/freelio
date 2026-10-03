@@ -4,25 +4,25 @@ import { CalendarReconnectRequiredError, syncOAuthCalendarChannel } from "@/lib/
 import { syncOAuthEmailChannel } from "@/lib/communications/email-sync"
 import { EMAIL_OAUTH_PROVIDERS } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
+import { storeChannelSyncState } from "@/lib/communications/sync-state"
 
 export async function syncOAuthCommunicationChannel(companyId: string, channelId: string) {
-  const email = await syncOAuthEmailChannel(companyId, channelId)
-  try {
-    const calendar = await syncOAuthCalendarChannel(companyId, channelId)
-    return { email, calendar: { ...calendar, status: "SYNCED" as const, error: null } }
-  } catch (error) {
-    const message = (error instanceof Error ? error.message : "Synchronisation du calendrier impossible").slice(0, 500)
-    await prisma.communicationChannel.updateMany({ where: { id: channelId, companyId }, data: { lastError: message } })
-    return {
-      email,
-      calendar: {
-        examined: 0,
-        imported: 0,
-        status: error instanceof CalendarReconnectRequiredError ? "RECONNECT_REQUIRED" as const : "FAILED" as const,
-        error: message,
-      },
+  type CapabilityResult = { examined: number; imported: number; complete: boolean; status: "SYNCED" | "CONTINUING" | "FAILED" | "RECONNECT_REQUIRED"; error: string | null }
+  async function syncCapability(task: () => Promise<{ examined: number; imported: number; complete: boolean }>, key: "emailSyncStatus" | "calendarSyncStatus"): Promise<CapabilityResult> {
+    let result: CapabilityResult
+    try {
+      const value = await task()
+      result = { ...value, status: value.complete ? "SYNCED" : "CONTINUING", error: null }
+    } catch (error) {
+      result = { examined: 0, imported: 0, complete: false, status: error instanceof CalendarReconnectRequiredError ? "RECONNECT_REQUIRED" : "FAILED", error: (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500) }
     }
+    await storeChannelSyncState(companyId, channelId, key, { status: result.status, error: result.error, checkedAt: new Date().toISOString() })
+    return result
   }
+  const email = await syncCapability(() => syncOAuthEmailChannel(companyId, channelId), "emailSyncStatus")
+  const calendar = await syncCapability(() => syncOAuthCalendarChannel(companyId, channelId), "calendarSyncStatus")
+  await prisma.communicationChannel.updateMany({ where: { id: channelId, companyId }, data: { lastError: [email.error, calendar.error].filter(Boolean).join(" ; ") || null } })
+  return { email, calendar }
 }
 
 export async function syncDueOAuthCommunicationChannels(limit = 10) {
@@ -36,11 +36,11 @@ export async function syncDueOAuthCommunicationChannels(limit = 10) {
   for (const channel of channels) {
     try {
       const result = await syncOAuthCommunicationChannel(channel.companyId, channel.id)
-      summary.synced += 1
+      if (result.email.status === "SYNCED" && result.calendar.status === "SYNCED") summary.synced += 1
       summary.messagesImported += result.email.imported
       summary.calendarEventsImported += result.calendar.imported
       if (result.calendar.status === "RECONNECT_REQUIRED") summary.calendarReconnectRequired += 1
-      if (result.calendar.status === "FAILED") summary.failed += 1
+      if (result.email.status === "FAILED" || result.calendar.status === "FAILED") summary.failed += 1
     } catch {
       summary.failed += 1
     }

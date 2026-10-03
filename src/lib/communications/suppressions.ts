@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client"
 
-import prisma from "@/lib/prisma"
+import prisma, { type TransactionClient } from "@/lib/prisma"
 
 export const EMAIL_SUPPRESSION_REASONS = [
   "PERMANENT_BOUNCE",
@@ -41,10 +41,10 @@ export async function suppressEmailAddress(input: {
   leadCaptureId?: string | null
   contactId?: string | null
   occurredAt?: Date
-}) {
+}, transaction?: TransactionClient) {
   const email = normalizeEmailAddress(input.email)
   const occurredAt = input.occurredAt ?? new Date()
-  return prisma.$transaction(async (tx) => {
+  const persist = async (tx: TransactionClient) => {
     const suppression = await tx.emailSuppression.upsert({
       where: { companyId_email: { companyId: input.companyId, email } },
       update: {
@@ -83,7 +83,8 @@ export async function suppressEmailAddress(input: {
       })
     }
     return suppression
-  })
+  }
+  return transaction ? persist(transaction) : prisma.$transaction(persist)
 }
 
 export async function clearEmailSuppression(companyId: string, suppressionId: string) {
