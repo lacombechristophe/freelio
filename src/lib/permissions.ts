@@ -77,6 +77,7 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   EmailSequenceTask: "automation.write",
   EmailDelivery: "automation.write",
   EmailDraft: "automation.write",
+  EmailSignature: "automation.write",
   EmailThread: "automation.write",
   EmailMessage: "automation.write",
   EmailEvent: "automation.write",

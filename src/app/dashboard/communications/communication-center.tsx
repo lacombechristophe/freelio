@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, syncCommunicationChannel, updateEmailThread } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
 import { MAX_EMAIL_FILE_BYTES } from "@/lib/communications/attachment-types"
 import { DraftList } from "./draft-list"
+import { SignatureEditor } from "./signature-editor"
+import { insertEmailSignature, type EmailSignatureDto } from "@/lib/communications/signature-input"
 import type { InboxPage } from "@/lib/communications/inbox-reader"
 import type { RecipientPage } from "@/lib/communications/recipient-reader"
 import { RecipientPicker } from "./recipient-picker"
@@ -28,7 +30,9 @@ import { cn } from "@/lib/utils"
 import { isReadOnlyDemo } from "@/lib/demo-mode"
 
 type CommunicationData = {
-  company: { name: string; email: string | null }
+  company: { id: string; name: string; email: string | null }
+  signature: EmailSignatureDto
+  signatureOwnerId: string
   channels: Array<{ id: string; provider: string; emailAddress: string; displayName: string | null; status: string; connectionMode: string | null; hasCredentials: boolean; lastSyncAt: string | null; lastError: string | null; visibility?: string; mailEnabled?: boolean; calendarEnabled?: boolean; emailSyncStatus?: unknown; calendarSyncStatus?: unknown }>
   recipients: RecipientPage
   stats: { sent: number; received: number; unread: number; events: Record<string, number> }
@@ -91,6 +95,8 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const attachmentInput = React.useRef<HTMLInputElement>(null)
   const sendIntent = React.useRef<{ signature: string; requestKey: string } | null>(null)
   const [showComposePreview, setShowComposePreview] = React.useState(false)
+  const [composePreview, setComposePreview] = React.useState<{ html: string; text: string; subject: string } | null>(null)
+  const [showPlainPreview, setShowPlainPreview] = React.useState(false)
   const [integrationProvider, setIntegrationProvider] = React.useState<IntegrationProvider>("RESEND")
   const [integrationDialogOpen, setIntegrationDialogOpen] = React.useState(false)
   const [integrationEmail, setIntegrationEmail] = React.useState("")
@@ -252,6 +258,14 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     handleTabChange("compose")
   }
 
+  function previewComposition() {
+    run(async () => {
+      const content = await previewCommunicationEmail({ bodyHtml })
+      if (!content) throw new Error("Aperçu indisponible.")
+      setComposePreview({ ...content, subject }); setShowPlainPreview(false); setShowComposePreview(true)
+    })
+  }
+
   return <div className="space-y-5">
     <Tabs value={tab} onValueChange={handleTabChange} className="space-y-5">
       <TabsList className="h-auto max-w-full justify-start overflow-x-auto">
@@ -304,6 +318,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             <div className="space-y-1.5"><Label htmlFor="email-bcc">CCI</Label><Input id="email-bcc" value={bcc} onChange={event => setBcc(event.target.value)} maxLength={5100} placeholder="Adresses cachées, séparées par une virgule" /></div>
             <div className="space-y-1.5"><Label htmlFor="email-subject">Objet</Label><Input id="email-subject" name="subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={2} maxLength={180} /></div>
             <div className="space-y-1.5"><div className="flex items-center justify-between"><Label htmlFor="email-html">Contenu HTML</Label><span className="text-xs text-muted-foreground">Balises simples autorisées</span></div><Textarea id="email-html" name="bodyHtml" value={bodyHtml} onChange={(event) => setBodyHtml(event.target.value)} rows={14} required minLength={10} maxLength={100000} className="font-mono text-xs" /></div>
+            <SignatureEditor key={`${initialData.company.id}:${initialData.signatureOwnerId}`} initialValue={initialData.signature} onInsert={text => setBodyHtml(insertEmailSignature(bodyHtml, text))} />
             <div className="space-y-2">
               <input ref={attachmentInput} type="file" accept="application/pdf,image/png,image/jpeg" aria-label="Choisir une pièce jointe" className="hidden" onChange={event => {
                 const file = event.target.files?.[0]; event.target.value = ""
@@ -316,7 +331,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
               {draft?.attachments.length ? <ul className="space-y-1">{draft.attachments.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{file.name} · {(file.size / 1024).toFixed(1)} Ko</span><Button demoMutation type="button" variant="ghost" size="sm" disabled={isPending} aria-label={`Retirer ${file.name}`} onClick={() => run(async () => { try { const saved = snapshot === savedSnapshot ? draft : await persistDraft(); restoreDraft(await removeEmailAttachment(saved, file.id)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Retrait impossible ; rouvrez le brouillon"); throw error } })}>Retirer</Button></li>)}</ul> : null}
             </div>
             <p className="text-xs text-muted-foreground" role="status">{savedSnapshot && snapshot !== savedSnapshot ? "Modifications non enregistrées. " : ""}{draftNotice}</p>
-            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={() => setShowComposePreview(true)}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="submit" disabled={isPending || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="submit" disabled={isPending || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
           </fieldset></form></CardContent></Card>
           <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Aperçu sécurisé</CardTitle><CardDescription>Les scripts, formulaires et images distantes sont bloqués dans cet aperçu.</CardDescription></CardHeader><CardContent><iframe title="Aperçu du nouvel e-mail" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[560px] w-full rounded-xl border bg-white" /></CardContent></Card>
         </div>
@@ -362,7 +377,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     </Dialog>
 
     <Dialog open={Boolean(previewMessage)} onOpenChange={(open) => { if (!open) setPreviewMessage(null) }}><DialogContent className="sm:max-w-4xl"><DialogHeader><DialogTitle>{previewMessage?.subject}</DialogTitle><DialogDescription>De {previewMessage?.fromAddress} · à {recipients(previewMessage?.toAddresses)}</DialogDescription></DialogHeader><div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]"><iframe title="Aperçu HTML de l’e-mail" sandbox="" srcDoc={previewDocument(previewMessage?.bodyHtml ?? null, previewMessage?.bodyText ?? null)} className="h-[620px] w-full rounded-xl border bg-white" /><aside className="space-y-3 rounded-xl bg-muted/40 p-4"><p className="text-xs font-semibold text-muted-foreground">Chronologie</p>{previewMessage?.events.length ? previewMessage.events.map((event) => <div key={event.id} className="flex gap-2 text-xs"><span className="mt-1 size-2 shrink-0 rounded-full bg-primary" /><span><span className="block font-medium">{eventLabels[event.type] ?? event.type}</span><time className="text-muted-foreground">{formatDate(event.occurredAt)}</time></span></div>) : <p className="text-xs text-muted-foreground">Aucun événement supplémentaire.</p>}</aside></div></DialogContent></Dialog>
-    <Dialog open={showComposePreview} onOpenChange={setShowComposePreview}><DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Aperçu avant envoi</DialogTitle><DialogDescription>{subject || "Sans objet"}</DialogDescription></DialogHeader><iframe title="Aperçu final" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[620px] w-full rounded-xl border bg-white" /></DialogContent></Dialog>
+    <Dialog open={showComposePreview} onOpenChange={setShowComposePreview}><DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Aperçu avant envoi</DialogTitle><DialogDescription>{composePreview?.subject || "Sans objet"}</DialogDescription></DialogHeader><Button type="button" variant="outline" aria-pressed={showPlainPreview} onClick={() => setShowPlainPreview(value => !value)}>Version texte</Button>{showPlainPreview ? <pre role="region" aria-label="Version texte de l’e-mail" tabIndex={0} className="h-[620px] overflow-auto whitespace-pre-wrap rounded-xl border p-4 text-sm">{composePreview?.text}</pre> : <iframe title="Aperçu final" sandbox="" srcDoc={previewDocument(composePreview?.html || null, composePreview?.text || null)} className="h-[620px] w-full rounded-xl border bg-white" />}</DialogContent></Dialog>
   </div>
 }
 

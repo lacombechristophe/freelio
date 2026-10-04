@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
-import { sanitizeSequenceEmailHtml } from "@/lib/automations/email"
+import { prepareManualEmailContent } from "@/lib/communications/email-content"
+import { getEmailSignature, saveEmailSignature, EmailSignatureConflict } from "@/lib/communications/signatures"
 import { withAuth } from "@/lib/auth-wrapper"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
 import { sendManualEmail } from "@/lib/communications/manual-send"
@@ -22,6 +23,26 @@ import type { EmailAttachment } from "@/lib/communications/attachment-types"
 
 export async function getCommunicationDrafts(input: unknown = {}) {
   return withAuth(({ companyId, userId }) => listEmailDrafts(companyId, userId, input), "automation.read")
+}
+
+export async function saveCommunicationSignature(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const signature = await saveEmailSignature(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, signature }
+    } catch (error) {
+      if (error instanceof EmailSignatureConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function previewCommunicationEmail(input: unknown) {
+  return withAuth(async () => {
+    const { bodyHtml } = z.object({ bodyHtml: z.string().max(100_000) }).parse(input)
+    return prepareManualEmailContent(bodyHtml)
+  }, "automation.read")
 }
 
 export async function getCommunicationDraft(id: string) {
@@ -57,20 +78,23 @@ export async function deleteCommunicationDraft(input: unknown) {
 const cuid = z.string().cuid()
 
 export async function getCommunicationDashboard() {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-    const [company, channels, inbox, events, recipients, unread] = await Promise.all([
-      prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
+    const [company, channels, inbox, events, recipients, unread, signature] = await Promise.all([
+      prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { id: true, name: true, email: true } }),
       prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, visibility: true, mailEnabled: true, calendarEnabled: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
       readInboxPage(companyId),
       prisma.emailEvent.groupBy({ where: { companyId, occurredAt: { gte: since } }, by: ["type"], _count: { _all: true } }),
       readRecipientPage(companyId),
       prisma.emailThread.aggregate({ where: { companyId, status: { not: "ARCHIVED" } }, _sum: { unreadCount: true } }),
+      getEmailSignature(companyId, userId),
     ])
     const sent = await prisma.emailMessage.count({ where: { companyId, direction: "OUTBOUND", createdAt: { gte: since } } })
     const received = await prisma.emailMessage.count({ where: { companyId, direction: "INBOUND", createdAt: { gte: since } } })
     return {
       company,
+      signature,
+      signatureOwnerId: userId,
       channels: channels.map(({ credentialsEncrypted, config, ...channel }) => ({
         ...channel,
         hasCredentials: Boolean(credentialsEncrypted),
@@ -129,8 +153,7 @@ export async function sendCrmEmail(input: unknown) {
       if (!thread) throw new Error("Conversation introuvable")
     }
     const subject = data.subject.replace(/[\r\n]+/g, " ").trim()
-    const content = sanitizeSequenceEmailHtml(data.bodyHtml)
-    const html = `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`
+    const { html } = prepareManualEmailContent(data.bodyHtml)
     const send = (requestKey: string, attachments: EmailAttachment[] = []) => sendManualEmail({ companyId, userId, requestKey, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc, attachments })
     const message = await (async () => {
       try {

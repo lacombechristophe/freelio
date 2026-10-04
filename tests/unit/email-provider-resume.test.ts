@@ -68,16 +68,46 @@ describe("OAuth email crash recovery", () => {
     vi.mocked(getResendTransport).mockResolvedValue({ apiKey: "re_fiction_only" } as Awaited<ReturnType<typeof getResendTransport>>)
     const fetchMock = provider === "GOOGLE" ? vi.fn().mockResolvedValueOnce(Response.json({ messages: [] })).mockResolvedValueOnce(Response.json({ id: "attachment-draft" })).mockResolvedValueOnce(Response.json({ id: "attachment-sent" })) : vi.fn().mockResolvedValue(Response.json({ id: "attachment-sent" }))
     vi.stubGlobal("fetch", fetchMock)
-    await sendEmailThroughChannel({ ...baseInput, attachments: [file] })
+    await sendEmailThroughChannel({ ...baseInput, text: "Bonjour en texte", attachments: [file] })
     if (provider === "GOOGLE") {
       const mime = Buffer.from(JSON.parse(fetchMock.mock.calls[1][1].body).message.raw, "base64url").toString()
       expect(mime).toContain("Content-Type: multipart/mixed;")
+      expect(mime).toContain("Content-Type: multipart/alternative;")
+      expect(mime).toContain(Buffer.from("Bonjour en texte").toString("base64"))
       expect(mime).toContain("filename*=UTF-8''facture%20fictive.pdf")
       expect(mime).toContain(file.bytes.toString("base64"))
-    } else expect(JSON.parse(fetchMock.mock.calls[0][1].body).attachments).toMatchObject([{ filename: file.name, content: file.bytes.toString("base64") }])
+    } else {
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+      expect(body.attachments).toMatchObject([{ filename: file.name, content: file.bytes.toString("base64") }])
+      expect(body.text).toBe("Bonjour en texte")
+    }
     fetchMock.mockClear()
     await expect(sendEmailThroughChannel({ ...baseInput, attachments: [{ ...file, sha256: "0".repeat(64) }] })).rejects.toThrow("altérée")
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it.each(["GOOGLE", "MICROSOFT", "RESEND"] as const)("transports the frozen plain alternative alongside HTML through %s", async provider => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue({ ...channel("GOOGLE"), provider })
+    vi.mocked(getResendTransport).mockResolvedValue({ apiKey: "re_fiction_only" } as Awaited<ReturnType<typeof getResendTransport>>)
+    const fetchMock = provider === "RESEND" ? vi.fn().mockResolvedValue(Response.json({ id: "text-sent" })) : vi.fn()
+      .mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { messages: [] } : { value: [] }))
+      .mockResolvedValueOnce(Response.json({ id: "text-draft" }))
+      .mockResolvedValueOnce(provider === "GOOGLE" ? Response.json({ id: "text-sent" }) : new Response(null, { status: 202 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const text = "Bonjour équipe & é\nLien [https://example.test/?a=1&b=2]"
+    await sendEmailThroughChannel({ ...baseInput, text })
+    if (provider === "RESEND") expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ html: baseInput.html, text })
+    else {
+      const body = fetchMock.mock.calls[1][1].body
+      const mime = Buffer.from(provider === "GOOGLE" ? JSON.parse(body).message.raw : body, provider === "GOOGLE" ? "base64url" : "base64").toString()
+      expect(mime).toContain("Content-Type: multipart/alternative;")
+      for (const [type, expected] of [["plain", text], ["html", baseInput.html]]) {
+        const encoded = mime.match(new RegExp(`Content-Type: text/${type}; charset=UTF-8\\r\\nContent-Transfer-Encoding: base64\\r\\n\\r\\n([\\s\\S]*?)\\r\\n--`))?.[1]
+        expect(encoded).toBeDefined()
+        expect(Buffer.from(encoded!, "base64").toString()).toBe(expected)
+      }
+      expect(mime.indexOf("text/plain")).toBeLessThan(mime.indexOf("text/html"))
+    }
   })
 
   it("persists the Microsoft draft before attaching and resumes accepted attachments without creating a new draft", async () => {

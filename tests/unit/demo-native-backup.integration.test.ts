@@ -26,6 +26,7 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   await mkdir(path.join(directory, "data", "files", path.dirname(fileKey)), { recursive: true })
   await writeFile(path.join(directory, "data", "files", fileKey), bytes)
   const draft = await database.emailDraft.create({ data: { companyId: company.id, authorUserId: user.id, createKey: randomUUID(), requestKey: randomUUID(), subject: "Private fictional draft", bodyHtml: "<p>Fictional content only</p>", cc: [], bcc: [] } })
+  const signature = await database.emailSignature.create({ data: { companyId: company.id, authorUserId: user.id, text: "Private fictional signature", version: 3 } })
   const privateBytes = Buffer.from("%PDF-private fictional draft file")
   const privateKey = `private/${company.id}/email-draft/${draft.id}/proof.pdf`
   const privateDraft = await database.emailDraft.update({ where: { id: draft.id }, data: { attachments: [{ id: randomUUID(), name: "proof.pdf", size: privateBytes.length, type: "application/pdf", sha256: createHash("sha256").update(privateBytes).digest("hex"), relativePath: `local:${privateKey}` }] } })
@@ -42,6 +43,7 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
     expect(await recovered.membership.count({ where: { companyId: company.id, userId: user.id } })).toBe(1)
     expect(await readFile(path.join(restored.restoredDirectory, "data", "files", fileKey))).toEqual(bytes)
     expect(await recovered.emailDraft.findUniqueOrThrow({ where: { id: draft.id } })).toEqual(privateDraft)
+    expect(await recovered.emailSignature.findUniqueOrThrow({ where: { id: signature.id } })).toEqual(signature)
     expect(await readFile(path.join(restored.restoredDirectory, "data", "files", privateKey))).toEqual(privateBytes)
     expect(await readFile(path.join(restored.restoredDirectory, "demo-access.json"))).toEqual(await readFile(path.join(directory, "demo-access.json")))
   } finally { await recovered.$disconnect() }

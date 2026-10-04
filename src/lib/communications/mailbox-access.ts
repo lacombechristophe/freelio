@@ -3,8 +3,8 @@ import type { RequestContext } from "@/lib/context"
 
 /** Unknown legacy ownership is fail-closed for ordinary members. */
 export function mailboxScope(model: string, context: RequestContext): Record<string, unknown> | null {
-  // Drafts are personal even when using a shared mailbox or an admin account.
-  if (model === "EmailDraft") return { companyId: context.companyId, authorUserId: context.userId }
+  // Drafts and signatures remain personal for shared mailboxes and admins.
+  if (["EmailDraft", "EmailSignature"].includes(model)) return { companyId: context.companyId, authorUserId: context.userId }
   if (["OWNER", "ADMIN"].includes(context.role)) return null
   const channel = { companyId: context.companyId, OR: [{ visibility: "SHARED" }, { visibility: "PRIVATE", ownerUserId: context.userId }] }
   if (model === "CommunicationChannel") return channel

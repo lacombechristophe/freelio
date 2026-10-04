@@ -8,6 +8,7 @@ import { assertReplyContext, freezeReplyContext, replyContextSchema, validIntern
 import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
 import { emailAttachmentsSchema, attachmentMetadata } from "./attachment-types"
 import { readEmailAttachmentBytes } from "./attachment-content"
+import { emailPlainText } from "./email-content"
 
 const payloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
@@ -15,10 +16,11 @@ const payloadSchema = z.object({
   reply: replyContextSchema.nullable().optional(),
   cc: copyRecipientsSchema.optional(), bcc: copyRecipientsSchema.optional(),
   attachments: emailAttachmentsSchema.optional(),
+  text: z.string().optional(),
   invoiceSnapshot: z.object({ invoiceId: z.string(), remainingCents: z.number().int().positive() }).optional(),
 })
 
-type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply"> & { companyId: string; requestKey: string; channelId: string | null; beforeDispatch?: () => Promise<void> }
+type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply" | "text"> & { companyId: string; requestKey: string; channelId: string | null; beforeDispatch?: () => Promise<void> }
 
 async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInput, "threadId" | "clientId">, channelId: string) {
   if (!payload.threadId) return
@@ -36,7 +38,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     const channel = await activeCommunicationChannel(input.companyId, input.channelId)
     await assertReplyMailbox(input.companyId, input, channel.id)
     const reply = await freezeReplyContext(input.companyId, input.threadId, channel.provider, input.subject)
-    const payload = payloadSchema.parse({ ...input, reply, channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) })
+    const payload = payloadSchema.parse({ ...input, text: emailPlainText(input.html), reply, channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) })
     delivery = await prisma.emailDelivery.upsert({
       where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } }, update: {},
       create: { companyId: input.companyId, contactId: input.contactId, requestKey: input.requestKey, recipientEmail: input.to, subject: input.subject, channelId: channel.id === "platform" ? null : channel.id, provider: channel.provider, payload, scheduledAt: new Date() },
@@ -69,7 +71,7 @@ export async function sendManualEmail(input: ManualSendInput) {
         const attachments = await Promise.all((payload.attachments || []).map(file => readEmailAttachmentBytes(input.companyId, file)))
         const sent = await sendEmailThroughChannel({
           companyId: input.companyId, companyName: payload.companyName, from: payload.from, channelId: payload.channelId, to: payload.to, replyTo: payload.replyTo,
-          subject: payload.subject, html: payload.html, idempotencyKey: deliveryId,
+          subject: payload.subject, html: payload.html, text: payload.text, idempotencyKey: deliveryId,
           reply: payload.reply || undefined,
           cc: payload.cc, bcc: payload.bcc,
           attachments,
@@ -102,7 +104,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     // failure here must never turn a confirmed send into another remote send.
     return recordOutgoingEmail({ companyId: input.companyId, channelId: accepted.channelId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
       provider: accepted.provider!, providerId: accepted.providerId, internetMessageId: validInternetMessageId(accepted.providerMessageId) ? accepted.providerMessageId : null,
-      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], cc: payload.cc, bcc: payload.bcc, attachments: attachmentMetadata(payload.attachments || []), subject: payload.subject, bodyHtml: payload.html, sentAt: accepted.sentAt || undefined })
+      inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], cc: payload.cc, bcc: payload.bcc, attachments: attachmentMetadata(payload.attachments || []), subject: payload.subject, bodyHtml: payload.html, bodyText: payload.text, sentAt: accepted.sentAt || undefined })
   })
   if (!lease.acquired) throw new Error("Cet envoi est déjà en cours ; actualisez son résultat avant de réessayer")
   return lease.value

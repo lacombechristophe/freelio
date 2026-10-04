@@ -33,6 +33,7 @@ export const COMPANY_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "DocumentManifest",
   "EmailDelivery",
   "EmailDraft",
+  "EmailSignature",
   "EmailEvent",
   "EmailMessage",
   "EmailSuppression",

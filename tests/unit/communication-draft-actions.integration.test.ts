@@ -17,7 +17,7 @@ vi.mock("@/lib/communications/email-provider", async original => {
 })
 
 import prisma from "@/lib/prisma"
-import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail } from "@/actions/communications"
+import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail } from "@/actions/communications"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 
 describe.sequential("composer draft actions through tenant scopes and durable manual delivery", () => {
@@ -62,7 +62,22 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     const message = await prisma.emailMessage.findUniqueOrThrow({ where: { deliveryId: delivery.id } })
     expect(message.bccAddresses).toEqual(fields.bcc)
     expect(message.bodyHtml).toContain("a=1&amp;b=2")
+    expect(message.bodyText).toBe((await previewCommunicationEmail({ bodyHtml: fields.bodyHtml })).text)
     expect((await getCommunicationDraft(draft.id)).sentAt).toBeTruthy()
+  })
+
+  it("derives signature ownership from the actor and previews only sanitized text without rewriting old drafts", async () => {
+    const fields = await fixture(), saved = await saveCommunicationDraft(fields)
+    if (!saved.success) throw new Error("Fixture save failed")
+    const signature = await saveCommunicationSignature({ text: "Private & <literal>", version: null, authorUserId: "forged-author", companyId: "forged-company" })
+    expect(signature.success).toBe(true)
+    expect(await prisma.emailSignature.findFirstOrThrow({ where: { companyId: actor.companyId } })).toMatchObject({ authorUserId: actor.userId, text: "Private & <literal>" })
+    expect((await getCommunicationDraft(saved.draft.id)).bodyHtml).toBe(saved.draft.bodyHtml)
+    vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
+    const preview = await previewCommunicationEmail({ bodyHtml: '<p>Équipe &amp; fiction</p><script>discarded()</script>' })
+    expect(preview.text).toBe("Équipe & fiction")
+    expect(preview.html).not.toContain("discarded")
+    await expect(saveCommunicationSignature({ text: "Forbidden", version: 1 })).rejects.toThrow("lecture seule")
   })
 
   it("refuses public demo draft mutations before running a send", async () => {

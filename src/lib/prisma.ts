@@ -168,7 +168,7 @@ const prismaClientSingleton = () => {
           }
 
           if (context) {
-            if (model === "EmailDraft" && MUTATION_OPERATIONS.has(operation)) {
+            if (["EmailDraft", "EmailSignature"].includes(model) && MUTATION_OPERATIONS.has(operation)) {
               for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
                 const author = data.authorUserId ?? data.author?.connect?.id
                 if (author !== undefined && author !== context.userId) throw new Error("DRAFT_ACCESS_DENIED")

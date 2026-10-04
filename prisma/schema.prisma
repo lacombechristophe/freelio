@@ -43,6 +43,7 @@ model User {
   auditLogs     AuditLog[]
   ownedMailboxes CommunicationChannel[] @relation("MailboxOwner")
   emailDrafts   EmailDraft[]
+  emailSignatures EmailSignature[]
   aiUsageCount  Int            @default(0)
 
   createdAt DateTime @default(now())
@@ -222,6 +223,7 @@ model Company {
   emailThreads               EmailThread[]
   emailMessages              EmailMessage[]
   emailDrafts                EmailDraft[]
+  emailSignatures            EmailSignature[]
   emailEvents                EmailEvent[]
   communicationChannels      CommunicationChannel[]
   leadScoringRules           LeadScoringRule[]
@@ -1105,6 +1107,19 @@ model EmailThread {
   @@index([contactId])
   @@index([leadCaptureId])
   @@index([serviceTicketId])
+}
+
+model EmailSignature {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorUserId String
+  author       User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  text         String   @default("")
+  version      Int      @default(1)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([companyId, authorUserId])
 }
 
 model EmailDraft {

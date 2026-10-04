@@ -17,6 +17,7 @@ import { recordOutgoingEmail } from "@/lib/communications/threads"
 import { createHash } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { storeFileBytes, removeLocalFile, resolveLocalFile } from "@/lib/local-files"
+import * as emailContent from "@/lib/communications/email-content"
 
 describe.sequential("manual email durable command on SQL", () => {
   const companyIds: string[] = []
@@ -66,6 +67,34 @@ describe.sequential("manual email durable command on SQL", () => {
     await sendManualEmail(input)
     expect(await prisma.emailMessage.count({ where: { companyId: input.companyId } })).toBe(1)
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+  })
+
+  it("freezes plain text before transport and reuses it after a converter change or an ambiguous attempt", async () => {
+    const { input } = await fixture()
+    const text = emailContent.emailPlainText(input.html)
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Ambiguous acceptance"))
+    await expect(sendManualEmail(input)).rejects.toThrow("Ambiguous acceptance")
+    const delivery = await prisma.emailDelivery.findUniqueOrThrow({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
+    expect(delivery.payload).toMatchObject({ text })
+    const converter = vi.spyOn(emailContent, "emailPlainText").mockReturnValue("A later converter must not change the prepared envelope")
+    try {
+      const message = await sendManualEmail(input)
+      expect(vi.mocked(sendEmailThroughChannel).mock.calls.map(([command]) => command.text)).toEqual([text, text])
+      expect(message.bodyText).toBe(text)
+      expect(converter).not.toHaveBeenCalled()
+    } finally { converter.mockRestore() }
+  })
+
+  it("resumes a historical HTML-only command without adding a plain body to its provider request", async () => {
+    const { input } = await fixture()
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Historical timeout"))
+    await expect(sendManualEmail(input)).rejects.toThrow("Historical timeout")
+    const delivery = await prisma.emailDelivery.findUniqueOrThrow({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
+    const payload = { ...delivery.payload as Record<string, unknown> }; delete payload.text
+    await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { payload: payload as Parameters<typeof prisma.emailDelivery.update>[0]["data"]["payload"] } })
+    const message = await sendManualEmail(input)
+    expect(vi.mocked(sendEmailThroughChannel).mock.calls[1][0].text).toBeUndefined()
+    expect(message.bodyText).toBeNull()
   })
 
   it("freezes attachment identities, refuses altered bytes and repairs accepted history without re-reading files", async () => {
