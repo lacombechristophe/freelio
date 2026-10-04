@@ -89,4 +89,20 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     await expect(sendCrmEmail({ ...draft, draftId: draft.id, draftVersion: draft.version })).rejects.toThrow("lecture seule")
     expect(sendEmailThroughChannel).not.toHaveBeenCalled()
   })
+
+  it("refuses a queued save after an account or workspace switch before creating or updating a draft", async () => {
+    const fields = await fixture()
+    const expected = { expectedCompanyId: actor.companyId, expectedAuthorId: actor.userId }
+    const saved = await saveCommunicationDraft({ ...fields, ...expected })
+    if (!saved.success) throw new Error("Fixture save failed")
+    const otherCompany = await prisma.company.create({ data: { name: "Fictional other space" } }); companies.push(otherCompany.id)
+    const otherUser = await prisma.user.create({ data: { name: "Fictional other author" } }); users.push(otherUser.id)
+    for (const changed of [{ expectedCompanyId: otherCompany.id }, { expectedAuthorId: otherUser.id }]) {
+      const result = await saveCommunicationDraft({ ...fields, ...expected, ...changed, createKey: crypto.randomUUID() })
+      expect(result).toMatchObject({ success: false, error: expect.stringContaining("a changé") })
+      expect(await saveCommunicationDraft({ ...fields, ...expected, ...changed, id: saved.draft.id, version: 1, subject: "Do not overwrite" })).toMatchObject({ success: false })
+    }
+    expect(await prisma.emailDraft.count({ where: { companyId: actor.companyId } })).toBe(1)
+    expect(await getCommunicationDraft(saved.draft.id)).toMatchObject({ subject: fields.subject, version: 1 })
+  })
 })

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
@@ -87,11 +87,24 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [cc, setCc] = React.useState("")
   const [bcc, setBcc] = React.useState("")
   const [replyThreadId, setReplyThreadId] = React.useState("")
-  const [draft, setDraft] = React.useState<EmailDraftDto | null>(null)
+  const [draft, setDraftState] = React.useState<EmailDraftDto | null>(null)
+  const draftRef = React.useRef<EmailDraftDto | null>(null)
   const createDraftKey = React.useRef<string | null>(null)
-  const [savedSnapshot, setSavedSnapshot] = React.useState("")
+  const [savedSnapshot, setSavedSnapshotState] = React.useState("")
+  const savedSnapshotRef = React.useRef("")
   const [draftNotice, setDraftNotice] = React.useState("")
   const snapshot = JSON.stringify({ channelId, contactId, threadId: replyThreadId, subject, bodyHtml, cc, bcc, attachmentIds: draft?.attachments.map(file => file.id) || [] })
+  const latestSnapshot = React.useRef(snapshot)
+  React.useLayoutEffect(() => { latestSnapshot.current = snapshot }, [snapshot])
+  const [baselineSnapshot, setBaselineSnapshot] = React.useState(snapshot)
+  const [isAutosaving, setIsAutosaving] = React.useState(false)
+  const [autosaveBlocked, setAutosaveBlocked] = React.useState(false)
+  const [failedSnapshot, setFailedSnapshot] = React.useState("")
+  const [autosavePaused, setAutosavePausedState] = React.useState(false)
+  const autosavePausedRef = React.useRef(false)
+  const autosaveJob = React.useRef<Promise<EmailDraftDto | null> | null>(null)
+  const needsSave = snapshot !== (savedSnapshot || baselineSnapshot)
+  const canAutosave = !isReadOnlyDemo && !autosaveBlocked && !autosavePaused && !draft?.sentAt && needsSave && snapshot !== failedSnapshot
   const attachmentInput = React.useRef<HTMLInputElement>(null)
   const sendIntent = React.useRef<{ signature: string; requestKey: string } | null>(null)
   const [showComposePreview, setShowComposePreview] = React.useState(false)
@@ -200,38 +213,84 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     return { channelId, contactId, threadId: replyThreadId, subject, bodyHtml, cc: parseCopyRecipients(cc), bcc: parseCopyRecipients(bcc), attachmentIds: draft?.attachments.map(file => file.id) || [] }
   }
 
-  function restoreDraft(next: EmailDraftDto) {
-    const fields = { channelId: next.channelId || "", contactId: next.contactId || "", threadId: next.threadId || "", subject: next.subject, bodyHtml: next.bodyHtml, cc: next.cc.join(", "), bcc: next.bcc.join(", "), attachmentIds: next.attachments.map(file => file.id) }
-    setChannelId(fields.channelId); setContactId(fields.contactId); setReplyThreadId(fields.threadId)
-    setSubject(fields.subject); setBodyHtml(fields.bodyHtml); setCc(fields.cc); setBcc(fields.bcc)
-    setDraft(next); createDraftKey.current = next.createKey; setSavedSnapshot(JSON.stringify(fields))
-    setDraftNotice(next.sentAt ? "Ce brouillon a déjà été envoyé." : `Brouillon enregistré · version ${next.version}`)
-  }
+  function setDraft(next: EmailDraftDto | null) { draftRef.current = next; setDraftState(next) }
+  function setSavedSnapshot(next: string) { savedSnapshotRef.current = next; setSavedSnapshotState(next) }
+  function pauseAutosave(paused: boolean) { autosavePausedRef.current = paused; setAutosavePausedState(paused) }
 
-  async function persistDraft() {
+  async function saveDraftRevision(capturedSnapshot: string, automatic: boolean) {
     createDraftKey.current ??= crypto.randomUUID()
     try {
-      const result = await saveCommunicationDraft({ ...composeIntent(), id: draft?.id, version: draft?.version, createKey: createDraftKey.current })
-      if (!result.success) throw new Error(result.error)
-      const next = result.draft
-      restoreDraft(next)
-      return next
+      const fields = JSON.parse(capturedSnapshot) as Omit<ReturnType<typeof composeIntent>, "cc" | "bcc"> & { cc: string; bcc: string }
+      const result = await saveCommunicationDraft({ ...fields, cc: parseCopyRecipients(fields.cc), bcc: parseCopyRecipients(fields.bcc),
+        id: draftRef.current?.id, version: draftRef.current?.version, createKey: createDraftKey.current,
+        expectedCompanyId: initialData.company.id, expectedAuthorId: initialData.signatureOwnerId })
+      if (!result.success) { setAutosaveBlocked(true); throw new Error(result.error) }
+      if (automatic) {
+        // Keep the user's current fields, including edits made during this request.
+        setDraft(result.draft); setSavedSnapshot(capturedSnapshot); setFailedSnapshot("")
+        setDraftNotice(`Brouillon enregistré · version ${result.draft.version}`)
+      } else restoreDraft(result.draft)
+      return result.draft
     } catch (error) {
+      setFailedSnapshot(capturedSnapshot)
       setDraftNotice(error instanceof Error ? error.message : "Sauvegarde impossible ; votre texte est conservé")
       throw error
     }
   }
 
+  const startAutosave = React.useEffectEvent(() => {
+    if (autosavePausedRef.current || autosaveJob.current) return
+    setIsAutosaving(true)
+    React.startTransition(async () => {
+      const task = saveDraftRevision(snapshot, true).catch(() => null)
+      autosaveJob.current = task
+      try { await task }
+      finally { autosaveJob.current = null; setIsAutosaving(false) }
+    })
+  })
+
+  React.useEffect(() => {
+    if (!canAutosave || isPending || isAutosaving) return
+    const timer = setTimeout(() => startAutosave(), 1000)
+    return () => clearTimeout(timer)
+  }, [snapshot, canAutosave, isPending, isAutosaving])
+
+  function restoreDraft(next: EmailDraftDto) {
+    const fields = { channelId: next.channelId || "", contactId: next.contactId || "", threadId: next.threadId || "", subject: next.subject, bodyHtml: next.bodyHtml, cc: next.cc.join(", "), bcc: next.bcc.join(", "), attachmentIds: next.attachments.map(file => file.id) }
+    setChannelId(fields.channelId); setContactId(fields.contactId); setReplyThreadId(fields.threadId)
+    setSubject(fields.subject); setBodyHtml(fields.bodyHtml); setCc(fields.cc); setBcc(fields.bcc)
+    setDraft(next); createDraftKey.current = next.createKey; setSavedSnapshot(JSON.stringify(fields))
+    setAutosaveBlocked(false); setFailedSnapshot("")
+    setDraftNotice(next.sentAt ? "Ce brouillon a déjà été envoyé." : `Brouillon enregistré · version ${next.version}`)
+  }
+
+  async function persistDraft() {
+    await autosaveJob.current
+    return saveDraftRevision(latestSnapshot.current, false)
+  }
+
+  async function draftForMutation() {
+    await autosaveJob.current
+    return draftRef.current && latestSnapshot.current === savedSnapshotRef.current ? draftRef.current : persistDraft()
+  }
+
   async function mayReplaceComposition() {
-    if (savedSnapshot && snapshot !== savedSnapshot) return confirmDialog({ title: "Remplacer les modifications non enregistrées ?", description: "Votre version enregistrée reste disponible dans Brouillons.", confirmLabel: "Remplacer" })
-    if (!savedSnapshot && (subject || cc || bcc || bodyHtml !== "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")) return confirmDialog({ title: "Remplacer ce texte non enregistré ?", description: "Enregistrez un brouillon pour le retrouver plus tard.", confirmLabel: "Remplacer" })
-    return true
+    pauseAutosave(true)
+    await autosaveJob.current
+    const current = latestSnapshot.current
+    const fields = JSON.parse(current) as { subject: string; cc: string; bcc: string; bodyHtml: string }
+    let confirmed = true
+    if (savedSnapshotRef.current && current !== savedSnapshotRef.current) confirmed = await confirmDialog({ title: "Remplacer les modifications non enregistrées ?", description: "Votre version enregistrée reste disponible dans Brouillons.", confirmLabel: "Remplacer" })
+    else if (!savedSnapshotRef.current && (fields.subject || fields.cc || fields.bcc || fields.bodyHtml !== "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")) confirmed = await confirmDialog({ title: "Remplacer ce texte non enregistré ?", description: "Enregistrez un brouillon pour le retrouver plus tard.", confirmLabel: "Remplacer" })
+    if (!confirmed) pauseAutosave(false)
+    return confirmed
   }
 
   async function submitEmail() {
+    await autosaveJob.current
     let intent = composeIntent()
-    let saved = draft
-    if (saved && snapshot !== savedSnapshot) saved = await persistDraft()
+    let saved = draftRef.current
+    if (saved && latestSnapshot.current !== savedSnapshotRef.current) saved = await persistDraft()
     if (saved) intent = { ...intent, subject: saved.subject, bodyHtml: saved.bodyHtml, cc: saved.cc, bcc: saved.bcc }
     const signature = JSON.stringify(intent)
     if (sendIntent.current?.signature !== signature) sendIntent.current = { signature, requestKey: crypto.randomUUID() }
@@ -241,6 +300,8 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     setReplyThreadId(""); setCc(""); setBcc("")
     toast.success("E-mail envoyé et ajouté à l’historique.")
     setSubject(""); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+    setBaselineSnapshot(JSON.stringify({ channelId, contactId, threadId: "", subject: "", bodyHtml: "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>", cc: "", bcc: "", attachmentIds: [] }))
+    setAutosaveBlocked(false); setFailedSnapshot("")
     router.refresh()
   }
 
@@ -255,6 +316,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     setContactId(selected.contact.id)
     setSubject(`Re: ${selected.subject}`)
     setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+    setAutosaveBlocked(false); setFailedSnapshot(""); pauseAutosave(false)
     handleTabChange("compose")
   }
 
@@ -324,23 +386,36 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
                 const file = event.target.files?.[0]; event.target.value = ""
                 if (!file) return
                 if (file.size > MAX_EMAIL_FILE_BYTES) { toast.error("5 Mo maximum par fichier"); return }
-                run(async () => { try { const saved = savedSnapshot && snapshot === savedSnapshot && draft ? draft : await persistDraft(); restoreDraft(await uploadEmailAttachment(saved, file)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Pièce non enregistrée ; rouvrez le brouillon"); throw error } })
+                run(async () => { try { const saved = await draftForMutation(); restoreDraft(await uploadEmailAttachment(saved, file)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Pièce non enregistrée ; rouvrez le brouillon"); throw error } })
               }} />
               <Button demoMutation type="button" variant="outline" disabled={isPending || draft?.attachments.length === 5} onClick={() => attachmentInput.current?.click()}>Joindre un fichier</Button>
               <p className="text-xs text-muted-foreground">PDF, PNG ou JPEG · 5 Mo par fichier · 10 Mo au total · 5 pièces maximum</p>
-              {draft?.attachments.length ? <ul className="space-y-1">{draft.attachments.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{file.name} · {(file.size / 1024).toFixed(1)} Ko</span><Button demoMutation type="button" variant="ghost" size="sm" disabled={isPending} aria-label={`Retirer ${file.name}`} onClick={() => run(async () => { try { const saved = snapshot === savedSnapshot ? draft : await persistDraft(); restoreDraft(await removeEmailAttachment(saved, file.id)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Retrait impossible ; rouvrez le brouillon"); throw error } })}>Retirer</Button></li>)}</ul> : null}
+              {draft?.attachments.length ? <ul className="space-y-1">{draft.attachments.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{file.name} · {(file.size / 1024).toFixed(1)} Ko</span><Button demoMutation type="button" variant="ghost" size="sm" disabled={isPending} aria-label={`Retirer ${file.name}`} onClick={() => run(async () => { try { const saved = await draftForMutation(); restoreDraft(await removeEmailAttachment(saved, file.id)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Retrait impossible ; rouvrez le brouillon"); throw error } })}>Retirer</Button></li>)}</ul> : null}
             </div>
-            <p className="text-xs text-muted-foreground" role="status">{savedSnapshot && snapshot !== savedSnapshot ? "Modifications non enregistrées. " : ""}{draftNotice}</p>
+            <p className="text-xs text-muted-foreground" role="status">{isAutosaving || canAutosave ? "Enregistrement en cours" : draftNotice}</p>
             <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="submit" disabled={isPending || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
           </fieldset></form></CardContent></Card>
           <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Aperçu sécurisé</CardTitle><CardDescription>Les scripts, formulaires et images distantes sont bloqués dans cet aperçu.</CardDescription></CardHeader><CardContent><iframe title="Aperçu du nouvel e-mail" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[560px] w-full rounded-xl border bg-white" /></CardContent></Card>
         </div>
       </TabsContent>
 
-      <TabsContent value="drafts"><DraftList onOpen={async id => {
+      <TabsContent value="drafts"><DraftList refreshKey={`${draft?.id || ""}:${draft?.version || ""}`} onOpen={async id => {
         if (!await mayReplaceComposition()) return
-        run(async () => { restoreDraft(await getCommunicationDraft(id)); handleTabChange("compose") })
-      }} onDeleted={id => { if (draft?.id === id) { setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice("Brouillon supprimé ; texte conservé dans le formulaire") } }} /></TabsContent>
+        run(async () => { try { restoreDraft(await getCommunicationDraft(id)); handleTabChange("compose") } finally { pauseAutosave(false) } })
+      }} onDelete={async listed => {
+        pauseAutosave(true)
+        try {
+          await autosaveJob.current
+          const version = draftRef.current?.id === listed.id ? draftRef.current.version : listed.version
+          const result = await deleteCommunicationDraft({ id: listed.id, version })
+          if (!result.success) throw new Error(result.error)
+          if (draftRef.current?.id === listed.id) {
+            setBaselineSnapshot(JSON.stringify({ ...JSON.parse(latestSnapshot.current), attachmentIds: [] }))
+            setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setFailedSnapshot(""); setAutosaveBlocked(false)
+            setDraftNotice("Brouillon supprimé ; texte conservé dans le formulaire")
+          }
+        } finally { pauseAutosave(false) }
+      }} /></TabsContent>
 
       <TabsContent value="analytics" className="space-y-5">
         <section aria-label="Indicateurs des communications" className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card xl:grid-cols-4">

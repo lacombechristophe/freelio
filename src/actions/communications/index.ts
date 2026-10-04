@@ -52,6 +52,10 @@ export async function getCommunicationDraft(id: string) {
 export async function saveCommunicationDraft(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     try {
+      const expected = z.object({ expectedCompanyId: z.string().min(1).max(200).optional(), expectedAuthorId: z.string().min(1).max(200).optional() }).parse(input)
+      if ((expected.expectedCompanyId && expected.expectedCompanyId !== companyId) || (expected.expectedAuthorId && expected.expectedAuthorId !== userId)) {
+        throw new EmailDraftConflict("Le compte ou l’espace actif a changé. Votre texte est conservé ; rouvrez Communications avant de sauvegarder")
+      }
       const draft = await saveEmailDraft(companyId, userId, input)
       revalidatePath("/dashboard/communications")
       return { success: true as const, draft }
