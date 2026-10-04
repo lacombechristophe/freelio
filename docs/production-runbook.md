@@ -172,6 +172,8 @@ Le worker examine chaque minute jusqu’à 50 événements durables d’automati
 
 Les routes conservent leur contrôle Bearer. Les baux génériques de quinze minutes sont renouvelés ; le processeur contrôle leur propriétaire avant les effets protégés et ne libère pas le bail d’un remplaçant. Cela ne dispense pas de vérifier la reprise après arrêt brutal sur l’infrastructure finale. Après déploiement, lancer une exécution manuelle, contrôler son succès et vérifier que le dernier passage réussi est récent. Ne pas activer les envois ou relances automatiques avant d’avoir observé ce passage et les alertes. La disponibilité et les limites des ordonnanceurs hébergés restent à qualifier.
 
+Les brouillons e-mail programmés rejoignent ces échéances métier : au plus 50 sont examinés par passage, jamais avant leur date UTC. Un worker ou cron actif est nécessaire ; le passage toutes les cinq minutes n’offre pas de garantie de ponctualité. Le fuseau choisi est conservé, les heures locales inexistantes ou répétées sont refusées. L’auteur doit rester membre actif et conserver ses droits et l’accès à sa boîte. L’annulation dans ses Brouillons n’est possible qu’avant le début du traitement. Les retries sont bornés à cinq tentatives et conservent la commande figée et sa clé ; après début ou résultat ambigu, vérifier le résultat distant avant toute reprise humaine. La recette SQL de reprise et la sauvegarde native fictive sont consignées dans `completude-recette-20261003.md` ; elles ne qualifient pas un arrêt brutal ou une restauration R2 hébergée.
+
 Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive. La route de restauration web est désactivée par défaut en production ; `ENABLE_IN_APP_RESTORE=true` ne doit être utilisé que dans un environnement isolé, sans envoi d’e-mails ni trafic public, et reste limité à 4 Mo. Les archives plus grandes suivent exclusivement la recette de restauration ci-dessous.
 
 ### 4.5 Smoke test après déploiement
@@ -260,7 +262,7 @@ Le code journalise côté serveur, mais n'intègre pas à lui seul une plateform
 - échecs Resend et taux de livraison des liens magiques ;
 - volume de leads accepté et chute anormale de capture ;
 - lots de migration en `FAILED`, `PARTIAL` ou `VERIFICATION_FAILED` ;
-- échéances récurrentes en retard, relances au statut `FAILED` ou `SENDING` anormalement ancien, erreurs du planificateur et absence de passage du worker/cron ;
+- échéances récurrentes en retard, relances au statut `FAILED` ou `SENDING` anormalement ancien, brouillons programmés échus en `QUEUED`/`PROCESSING`/`RETRY` ou bloqués en `FAILED`, erreurs du planificateur et absence de passage du worker/cron ;
 - espace et coûts anormaux ;
 - erreurs CSP et tentatives répétées sur les liens publics.
 
@@ -306,7 +308,7 @@ Niveaux conseillés :
 - redémarrer un seul worker, observer les doublons et les jobs échoués ;
 - le même processus exécute le worker documentaire et le processeur des séquences e-mail ; après reprise, contrôler les échéances en attente et les envois idempotents ;
 - la route `POST /api/automations/process` protégée par `AUTOMATION_CRON_SECRET` permet un déclenchement de secours par un ordonnanceur approuvé.
-- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites, factures récurrentes et relances ; son rejeu doit rester idempotent et ne doit jamais envoyer plusieurs paliers de rattrapage à la même facture dans un passage.
+- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites, factures récurrentes, relances et brouillons e-mail programmés ; son rejeu conserve les clés d’envoi et ne doit jamais envoyer plusieurs paliers de rattrapage à la même facture dans un passage. Ne pas effacer une commande ou renouveler sa clé pour contourner un résultat distant ambigu ; vérifier d’abord chez le fournisseur.
 
 ### Capture de leads interrompue
 
