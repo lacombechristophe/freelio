@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Forward, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, attachCommunicationCrmDocument, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
 import { MAX_EMAIL_FILE_BYTES } from "@/lib/communications/attachment-types"
 import { DraftList } from "./draft-list"
+import { CrmDocumentPicker } from "./crm-document-picker"
 import { SignatureEditor } from "./signature-editor"
 import { insertEmailSignature, type EmailSignatureDto } from "@/lib/communications/signature-input"
 import type { InboxPage } from "@/lib/communications/inbox-reader"
@@ -110,6 +111,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const needsSave = snapshot !== (savedSnapshot || baselineSnapshot)
   const canAutosave = !isReadOnlyDemo && !autosaveBlocked && !autosavePaused && !draft?.sentAt && !draft?.scheduledAt && needsSave && snapshot !== failedSnapshot
   const attachmentInput = React.useRef<HTMLInputElement>(null)
+  const [crmPickerDraft, setCrmPickerDraft] = React.useState<EmailDraftDto | null>(null)
   const sendIntent = React.useRef<{ signature: string; requestKey: string } | null>(null)
   const [showComposePreview, setShowComposePreview] = React.useState(false)
   const [composePreview, setComposePreview] = React.useState<{ html: string; text: string; subject: string } | null>(null)
@@ -445,7 +447,11 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
                 if (file.size > MAX_EMAIL_FILE_BYTES) { toast.error("5 Mo maximum par fichier"); return }
                 run(async () => { try { const saved = await draftForMutation(); restoreDraft(await uploadEmailAttachment(saved, file), true) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Pièce non enregistrée ; rouvrez le brouillon"); throw error } })
               }} />
-              <Button demoMutation type="button" variant="outline" disabled={isPending || draft?.attachments.length === 5} onClick={() => attachmentInput.current?.click()}>Joindre un fichier</Button>
+              <div className="flex flex-wrap gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending || draft?.attachments.length === 5} onClick={() => attachmentInput.current?.click()}>Joindre un fichier</Button><Button demoMutation type="button" variant="outline" disabled={isPending || !contactId || draft?.attachments.length === 5} onClick={() => run(async () => {
+                pauseAutosave(true)
+                try { setCrmPickerDraft(await draftForMutation()) }
+                catch (error) { pauseAutosave(false); throw error }
+              })}>Joindre un document CRM</Button></div>
               <p className="text-xs text-muted-foreground">PDF, PNG ou JPEG · 5 Mo par fichier · 10 Mo au total · 5 pièces maximum</p>
               {draft?.attachments.length ? <ul className="space-y-1">{draft.attachments.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{file.name} · {(file.size / 1024).toFixed(1)} Ko</span><Button demoMutation type="button" variant="ghost" size="sm" disabled={isPending} aria-label={`Retirer ${file.name}`} onClick={() => run(async () => { try { const saved = await draftForMutation(); restoreDraft(await removeEmailAttachment(saved, file.id), true) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Retrait impossible ; rouvrez le brouillon"); throw error } })}>Retirer</Button></li>)}</ul> : null}
             </div>
@@ -457,6 +463,12 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
           <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Aperçu sécurisé</CardTitle><CardDescription>Les scripts, formulaires et images distantes sont bloqués dans cet aperçu.</CardDescription></CardHeader><CardContent><iframe title="Aperçu du nouvel e-mail" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[560px] w-full rounded-xl border bg-white" /></CardContent></Card>
         </div>
       </TabsContent>
+
+      {crmPickerDraft ? <CrmDocumentPicker draft={crmPickerDraft} onClose={() => { setCrmPickerDraft(null); pauseAutosave(false) }} onAttach={async selection => {
+        const result = await attachCommunicationCrmDocument({ draftId: crmPickerDraft.id, version: crmPickerDraft.version, ...selection })
+        if (!result.success) { setDraftNotice(result.error); throw new Error(result.error) }
+        restoreDraft(result.draft, true); setCrmPickerDraft(null); pauseAutosave(false)
+      }} /> : null}
 
       <TabsContent value="drafts"><DraftList refreshKey={`${draft?.id || ""}:${draft?.version || ""}`} onOpen={async id => {
         if (!await mayReplaceComposition()) return

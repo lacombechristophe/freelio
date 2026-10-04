@@ -1,0 +1,111 @@
+import "server-only"
+import { createHash } from "node:crypto"
+import type { Prisma } from "@prisma/client"
+import { z } from "zod"
+import prisma from "@/lib/prisma"
+import { getContext } from "@/lib/context"
+import { hasPermission } from "@/lib/permissions"
+import { assertDemoMutationAllowed } from "@/lib/demo-policy"
+import { hasExpectedSignature, readLocalFile, storeFileBytes } from "@/lib/local-files"
+import { isIssuedInvoice, readIssuedInvoice } from "@/lib/finance/issued-invoice"
+import { assertEditableDraft, addEmailDraftAttachment } from "./draft-attachments"
+import { getEmailDraft, readEmailDraft } from "./drafts"
+import { emailAttachmentsSchema, emailAttachmentMetadataSchema, MAX_EMAIL_FILE_BYTES } from "./attachment-types"
+
+export class EmailCrmDocumentError extends Error {}
+const kind = z.enum(["CLIENT_FILE", "ISSUED_INVOICE"])
+const querySchema = z.object({ draftId: z.string().cuid(), kind, search: z.string().trim().max(200).default(""), page: z.number().int().positive().max(100_000).default(1) })
+const attachSchema = z.object({ draftId: z.string().cuid(), version: z.number().int().positive(), kind, sourceId: z.string().cuid(), sourceHash: z.string().regex(/^[a-f0-9]{64}$/), attachmentId: z.string().uuid() })
+const types = ["application/pdf", "image/png", "image/jpeg"]
+const invoiceArchive: Prisma.InvoiceWhereInput = { pdfUrl: { not: null }, pdfHash: { not: null }, issuedDocument: { not: null }, OR: [{ lockedAt: { not: null } }, { status: { in: ["SENT", "OVERDUE", "PAID"] } }] }
+const fileName = (name: string) => name.replace(/[\x00-\x1f\x7f/\\]/g, "_").slice(0, 180) || "document.pdf"
+
+function assertActor(companyId: string, userId: string, sourceKind: z.infer<typeof kind>) {
+  const actor = getContext()
+  if (!actor || actor.companyId !== companyId || actor.userId !== userId || !hasPermission(actor.role, "automation.read")) throw new EmailCrmDocumentError("Documents inaccessibles")
+  if (!hasPermission(actor.role, sourceKind === "ISSUED_INVOICE" ? "finance.read" : "crm.read")) throw new EmailCrmDocumentError("Vous n’avez pas les droits de lecture de ces documents")
+  return actor
+}
+
+async function clientForDraft(companyId: string, userId: string, draftId: string) {
+  const draft = await readEmailDraft(companyId, userId, draftId).catch(error => {
+    if (error instanceof Error && error.message === "Brouillon introuvable") throw new EmailCrmDocumentError("Brouillon introuvable")
+    throw error
+  })
+  const contact = draft.contactId ? await prisma.contact.findFirst({ where: { id: draft.contactId, client: { companyId } }, select: { clientId: true } }) : null
+  if (!contact) throw new EmailCrmDocumentError("Choisissez un destinataire avant de sélectionner un document CRM")
+  return { draft, clientId: contact.clientId }
+}
+
+function assertStoredReference(reference: string, companyId: string, storageKind: string, resourceId: string) {
+  const prefix = `${companyId}/${storageKind}/${resourceId}/`
+  const key = reference.replace(/^(local:|r2:)/, "")
+  const leaf = key.slice(prefix.length)
+  if (!/^(local:|r2:)/.test(reference) || !key.startsWith(prefix) || !leaf || /[\\/\x00-\x1f]/.test(leaf) || leaf === "." || leaf === "..") throw new EmailCrmDocumentError("Référence du document invalide ; aucune URL externe n’est téléchargée")
+}
+
+export async function listCrmEmailDocuments(companyId: string, userId: string, input: unknown) {
+  const data = querySchema.safeParse(input)
+  if (!data.success) throw new EmailCrmDocumentError("Recherche de documents invalide")
+  const query = data.data
+  const actor = assertActor(companyId, userId, query.kind)
+  const { clientId } = await clientForDraft(companyId, userId, query.draftId)
+  const contains = { contains: query.search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+  return prisma.$transaction(async tx => {
+    if (query.kind === "CLIENT_FILE") {
+      const where: Prisma.ClientFileWhereInput = { clientId, client: { companyId }, type: { in: types }, size: { gt: 0, lte: MAX_EMAIL_FILE_BYTES }, sha256: { not: null }, ...(query.search ? { name: contains } : {}) }
+      const total = await tx.clientFile.count({ where }), pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(query.page, pageCount)
+      const files = await tx.clientFile.findMany({ where, select: { id: true, name: true, type: true, size: true, sha256: true, createdAt: true }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25 })
+      return { kind: query.kind, clientId, total, page, pageCount, canReadInvoices: hasPermission(actor.role, "finance.read"), documents: files.map(file => ({ id: file.id, name: fileName(file.name), type: file.type, size: file.size as number | null, sourceHash: file.sha256!, date: file.createdAt.toISOString() })) }
+    }
+    const where: Prisma.InvoiceWhereInput = { ...invoiceArchive, companyId, clientId, ...(query.search ? { AND: [{ OR: [{ number: contains }, { object: contains }] }] } : {}) }
+    const total = await tx.invoice.count({ where }), pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(query.page, pageCount)
+    const invoices = await tx.invoice.findMany({ where, select: { id: true, number: true, pdfHash: true, date: true }, orderBy: [{ date: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25 })
+    return { kind: query.kind, clientId, total, page, pageCount, canReadInvoices: true, documents: invoices.map(invoice => ({ id: invoice.id, name: fileName(`${invoice.number}.pdf`), type: "application/pdf", size: null as number | null, sourceHash: invoice.pdfHash!, date: invoice.date.toISOString() })) }
+  }, { isolationLevel: "Serializable" })
+}
+export type CrmEmailDocumentPage = Awaited<ReturnType<typeof listCrmEmailDocuments>>
+
+export async function attachCrmEmailDocument(companyId: string, userId: string, input: unknown) {
+  assertDemoMutationAllowed()
+  const data = attachSchema.safeParse(input)
+  if (!data.success) throw new EmailCrmDocumentError("Sélection de document invalide")
+  const query = data.data
+  const actor = assertActor(companyId, userId, query.kind)
+  if (!hasPermission(actor.role, "automation.write")) throw new EmailCrmDocumentError("Ajout de pièce jointes interdit")
+  const { draft, clientId } = await clientForDraft(companyId, userId, query.draftId)
+  const existing = emailAttachmentsSchema.parse(draft.attachments).find(file => file.id === query.attachmentId)
+  if (existing) {
+    if (existing.sha256 !== query.sourceHash) throw new EmailCrmDocumentError("Cette pièce existe avec un autre contenu")
+    return getEmailDraft(companyId, userId, draft.id)
+  }
+  await assertEditableDraft(companyId, userId, draft.id, query.version)
+  let bytes: Buffer, name: string, type: string
+  try {
+    if (query.kind === "CLIENT_FILE") {
+      const source = await prisma.clientFile.findFirst({ where: { id: query.sourceId, clientId, client: { companyId } }, select: { url: true, name: true, type: true, size: true, sha256: true } })
+      if (!source || source.sha256 !== query.sourceHash || !types.includes(source.type) || source.size <= 0 || source.size > MAX_EMAIL_FILE_BYTES) throw new EmailCrmDocumentError("Document indisponible ou modifié ; actualisez la sélection")
+      assertStoredReference(source.url, companyId, "client", clientId)
+      bytes = await readLocalFile(source.url, source.size)
+      if (bytes.length !== source.size) throw new EmailCrmDocumentError("Taille du document invalide")
+      name = fileName(source.name); type = source.type
+    } else {
+      const source = await prisma.invoice.findFirst({ where: { id: query.sourceId, companyId, clientId }, select: { id: true, companyId: true, number: true, status: true, lockedAt: true, issuedDocument: true, pdfUrl: true, pdfHash: true } })
+      if (!source || !isIssuedInvoice(source) || source.pdfHash !== query.sourceHash || !source.pdfUrl) throw new EmailCrmDocumentError("Facture archivée indisponible ou modifiée ; actualisez la sélection")
+      assertStoredReference(source.pdfUrl, companyId, "generated", source.id)
+      bytes = (await readIssuedInvoice(source, MAX_EMAIL_FILE_BYTES)).pdf
+      name = fileName(`${source.number}.pdf`); type = "application/pdf"
+    }
+    if (createHash("sha256").update(bytes).digest("hex") !== query.sourceHash || !hasExpectedSignature(type, bytes)) throw new EmailCrmDocumentError("Document altéré ; ajout refusé")
+  } catch (error) {
+    if (error instanceof EmailCrmDocumentError) throw error
+    throw new EmailCrmDocumentError("Document absent, invalide ou supérieur à 5 Mo ; aucun PDF n’a été régénéré")
+  }
+  const metadata = emailAttachmentMetadataSchema.parse({ id: query.attachmentId, name, type, size: bytes.length, sha256: query.sourceHash })
+  return addEmailDraftAttachment(companyId, userId, draft.id, query.version, metadata, async () => {
+    // Recheck the draft's recipient inside its mutation lease before storage.
+    const current = await clientForDraft(companyId, userId, draft.id)
+    if (current.clientId !== clientId) throw new EmailCrmDocumentError("Le client destinataire a changé ; actualisez la sélection")
+    return storeFileBytes({ companyId, kind: "email-draft", resourceId: draft.id, originalName: metadata.name, type: metadata.type, bytes })
+  })
+}

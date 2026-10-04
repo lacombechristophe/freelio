@@ -301,6 +301,10 @@ Niveaux conseillés :
 - conserver les fichiers en attente dans une zone chiffrée approuvée ;
 - après retour, vérifier taille et SHA-256 avant rattachement.
 
+### Document CRM refusé dans un brouillon e-mail
+
+Vérifier le client du destinataire, les droits CRM/Finance, la présence de l’original et son empreinte. Pour une facture émise, restaurer son archive vérifiée si nécessaire ; ne pas générer un PDF depuis les coordonnées actuelles pour remplacer l’original. La copie est limitée à 5 Mo par pièce et aux quotas du brouillon. Une copie déjà enregistrée reste privée et indépendante de l’original : sa suppression ne retire pas cette pièce. Après un conflit de version, conserver la saisie et rouvrir la révision récente avant de réessayer. La recette fictive figure dans `completude-recette-20261003.md` ; elle ne qualifie ni antivirus ni restauration R2 réelle.
+
 ### Redis/worker indisponible
 
 - arrêter d'ajouter des travaux si la file n'est pas joignable ;

@@ -23,6 +23,31 @@ import { readReplyAllRecipients, ReplyAllUnavailable } from "@/lib/communication
 import { readForwardMessage, ForwardUnavailable } from "@/lib/communications/forward"
 import { scheduleEmailDraft, cancelScheduledEmail, EmailScheduleError } from "@/lib/communications/scheduled-emails"
 import type { EmailAttachment } from "@/lib/communications/attachment-types"
+import { listCrmEmailDocuments, attachCrmEmailDocument, EmailCrmDocumentError } from "@/lib/communications/crm-documents"
+import { EmailAttachmentError } from "@/lib/communications/draft-attachments"
+
+export async function getCommunicationCrmDocuments(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try { return { success: true as const, page: await listCrmEmailDocuments(companyId, userId, input) } }
+    catch (error) {
+      if (error instanceof EmailCrmDocumentError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+export async function attachCommunicationCrmDocument(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await attachCrmEmailDocument(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailCrmDocumentError || error instanceof EmailDraftConflict || error instanceof EmailAttachmentError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
 
 export async function getCommunicationDrafts(input: unknown = {}) {
   return withAuth(({ companyId, userId }) => listEmailDrafts(companyId, userId, input), "automation.read")

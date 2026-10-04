@@ -17,7 +17,7 @@ vi.mock("@/lib/communications/email-provider", async original => {
 })
 
 import prisma from "@/lib/prisma"
-import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule } from "@/actions/communications"
+import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, getCommunicationCrmDocuments, attachCommunicationCrmDocument } from "@/actions/communications"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 
 describe.sequential("composer draft actions through tenant scopes and durable manual delivery", () => {
@@ -88,7 +88,23 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     await expect(saveCommunicationDraft({ ...draft, subject: "Forbidden" })).rejects.toThrow("lecture seule")
     await expect(scheduleCommunicationDraft({ id: draft.id, version: draft.version, localDateTime: new Date(Date.now() + 3_600_000).toISOString().slice(0, 16), timezone: "UTC" })).rejects.toThrow("lecture seule")
     await expect(cancelCommunicationDraftSchedule({ id: draft.id, version: draft.version })).rejects.toThrow("lecture seule")
+    await expect(attachCommunicationCrmDocument({ draftId: draft.id, version: draft.version })).rejects.toThrow("lecture seule")
     await expect(sendCrmEmail({ ...draft, draftId: draft.id, draftVersion: draft.version })).rejects.toThrow("lecture seule")
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+  })
+
+  it("reads CRM document metadata with session identity, structures inaccessible errors and performs no public-demo copy", async () => {
+    const fields = await fixture(), saved = await saveCommunicationDraft(fields)
+    if (!saved.success) throw new Error("Fixture save failed")
+    const contact = await prisma.contact.findUniqueOrThrow({ where: { id: fields.contactId } })
+    const source = await prisma.clientFile.create({ data: { clientId: contact.clientId, name: "Fictional approved document.pdf", url: `local:${actor.companyId}/client/${contact.clientId}/fiction.pdf`, size: 25, type: "application/pdf", sha256: "a".repeat(64) } })
+    vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
+    const result = await getCommunicationCrmDocuments({ draftId: saved.draft.id, kind: "CLIENT_FILE", companyId: "forged-company", userId: "forged-user" })
+    expect(result).toMatchObject({ success: true, page: { total: 1, documents: [{ id: source.id, name: source.name }] } })
+    expect(JSON.stringify(result)).not.toContain(source.url)
+    expect(await getCommunicationCrmDocuments({ draftId: "invalid", kind: "CLIENT_FILE" })).toMatchObject({ success: false })
+    await expect(attachCommunicationCrmDocument({ draftId: saved.draft.id, version: saved.draft.version, kind: "CLIENT_FILE", sourceId: source.id, sourceHash: source.sha256, attachmentId: crypto.randomUUID() })).rejects.toThrow("lecture seule")
+    expect((await getCommunicationDraft(saved.draft.id)).attachments).toEqual([])
     expect(sendEmailThroughChannel).not.toHaveBeenCalled()
   })
 

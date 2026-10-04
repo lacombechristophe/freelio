@@ -1,4 +1,8 @@
 import { PrismaClient } from "@prisma/client"
+import { mkdir, writeFile } from "node:fs/promises"
+import path from "node:path"
+import { createHash } from "node:crypto"
+import { encrypt } from "../src/lib/crypto.ts"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -25,6 +29,24 @@ try {
   const recipientClientId = "cuiqaclient00000000000000"
   const existingRecipients = new Set((await prisma.contact.findMany({ where: { clientId: recipientClientId, firstName: "UIQA Recipient" }, select: { id: true } })).map(contact => contact.id))
   await prisma.contact.createMany({ data: Array.from({ length: 551 }, (_, index) => ({ id: `cuiqarecipient${String(index).padStart(12, "0")}`, clientId: recipientClientId, firstName: "UIQA Recipient", lastName: String(index).padStart(3, "0"), email: `recipient${index}@example.test` })).filter(contact => !existingRecipients.has(contact.id)) })
+  // Fictitious existing bytes, never generated again by the email composer.
+  for (let index = 0; index < 31; index++) {
+    const id = `cuiqacrmfile${String(index).padStart(14, "0")}`
+    const name = `UIQA CRM Document ${String(index).padStart(3, "0")}.pdf`
+    const key = `${companyId}/client/${recipientClientId}/uiqa-crm-${index}.pdf`
+    const bytes = Buffer.from(`%PDF-fictional existing client document ${index}`)
+    const target = path.join(process.cwd(), "data", "files", key)
+    await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, bytes)
+    const data = { clientId: recipientClientId, name, url: `local:${key}`, size: bytes.length, type: "application/pdf", sha256: createHash("sha256").update(bytes).digest("hex"), createdAt: new Date(Date.UTC(2020, 0, 1, 0, index)) }
+    await prisma.clientFile.upsert({ where: { id }, update: data, create: { id, ...data } })
+  }
+  const archivedInvoiceId = "cuiqacrminvoicearchive000"
+  const archiveKey = `${companyId}/generated/${archivedInvoiceId}/uiqa-crm-invoice.pdf`
+  const archiveBytes = Buffer.from("%PDF-fictional immutable UIQA CRM invoice archive")
+  const archiveTarget = path.join(process.cwd(), "data", "files", archiveKey)
+  await mkdir(path.dirname(archiveTarget), { recursive: true }); await writeFile(archiveTarget, archiveBytes)
+  const archiveData = { companyId, clientId: recipientClientId, number: "UIQA-CRM-ARCHIVE", object: "Fictional archived invoice", status: "SENT", lockedAt: new Date("2020-01-01"), date: new Date("2020-01-01"), createdAt: new Date("2020-01-01"), dueDate: new Date("2026-12-31"), totalHtCents: 10000, totalTvaCents: 2000, totalTtcCents: 12000, pdfUrl: `local:${archiveKey}`, pdfHash: createHash("sha256").update(archiveBytes).digest("hex"), issuedDocument: encrypt(JSON.stringify({ version: 1, html: "<p>Fictional frozen invoice</p>", xml: "<fiction />" })) }
+  await prisma.invoice.upsert({ where: { id: archivedInvoiceId }, update: archiveData, create: { id: archivedInvoiceId, ...archiveData } })
   await prisma.contract.upsert({ where: { companyId_number: { companyId, number: "UIQA-CONTRACT" } }, update: {}, create: { companyId, clientId: "cuiqaclient00000000000000", number: "UIQA-CONTRACT", title: "Contrat de recette", content: "<h2>Prestations</h2><p>Installation et contrôle des équipements du client.</p>" } })
   await prisma.contract.upsert({ where: { companyId_number: { companyId, number: "UIQA-SIGNED" } }, update: {}, create: { id: "cuiqacontractsigned000000", companyId, clientId: "cuiqaclient00000000000000", number: "UIQA-SIGNED", title: "Contrat signé de recette", status: "SIGNED", content: "<h2>Maintenance</h2><p>Contrat fictif destiné au contrôle du formulaire d’avenant.</p>" } })
   const supplier = await prisma.supplier.upsert({ where: { companyId_name: { companyId, name: "Fournisseur de recette UI" } }, update: {}, create: { id: "cuiqasupplier000000000000", companyId, name: "Fournisseur de recette UI", email: "supplier@example.test" } })
