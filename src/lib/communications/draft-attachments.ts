@@ -1,11 +1,12 @@
 import "server-only"
 import { randomUUID } from "node:crypto"
+import { isDeepStrictEqual } from "node:util"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { removeLocalFile, type StoredLocalFile } from "@/lib/local-files"
 import { EmailDraftConflict, getEmailDraft, readEmailDraft, withEmailDraftLease } from "./drafts"
-import { emailAttachmentMetadataSchema, emailAttachmentsSchema } from "./attachment-types"
+import { emailAttachmentMetadataSchema, emailAttachmentsSchema, emailAttachmentSourceSchema, type EmailAttachment } from "./attachment-types"
 
 export class EmailAttachmentError extends Error {}
 
@@ -17,15 +18,16 @@ export async function assertEditableDraft(companyId: string, userId: string, id:
   return draft
 }
 
-export async function addEmailDraftAttachment(companyId: string, userId: string, id: string, version: number, input: unknown, store: () => Promise<StoredLocalFile>) {
+export async function addEmailDraftAttachment(companyId: string, userId: string, id: string, version: number, input: unknown, store: () => Promise<StoredLocalFile>, provenance?: EmailAttachment["source"]) {
   assertDemoMutationAllowed()
   const metadata = emailAttachmentMetadataSchema.parse(input)
+  const source = provenance ? emailAttachmentSourceSchema.parse(provenance) : undefined
   return withEmailDraftLease(id, async control => {
     const existingDraft = await readEmailDraft(companyId, userId, id)
     const current = emailAttachmentsSchema.parse(existingDraft.attachments)
     const existing = current.find(file => file.id === metadata.id)
     if (existing) {
-      if (existing.sha256 !== metadata.sha256 || existing.name !== metadata.name || existing.size !== metadata.size || existing.type !== metadata.type) throw new EmailAttachmentError("Cette pièce existe avec un autre contenu")
+      if (existing.sha256 !== metadata.sha256 || existing.name !== metadata.name || existing.size !== metadata.size || existing.type !== metadata.type || (source && !isDeepStrictEqual(existing.source, source))) throw new EmailAttachmentError("Cette pièce existe avec un autre contenu")
       return getEmailDraft(companyId, userId, id)
     }
     const draft = await assertEditableDraft(companyId, userId, id, version)
@@ -36,7 +38,7 @@ export async function addEmailDraftAttachment(companyId: string, userId: string,
     const stored = await store()
     try {
       if (stored.size !== metadata.size || stored.sha256 !== metadata.sha256 || stored.type !== metadata.type) throw new EmailAttachmentError("Le fichier transféré ne correspond pas à la pièce préparée")
-      const files = emailAttachmentsSchema.parse([...current, { ...metadata, relativePath: stored.relativePath }])
+      const files = emailAttachmentsSchema.parse([...current, { ...metadata, relativePath: stored.relativePath, ...(source ? { source } : {}) }])
       await control.assertOwned()
       const saved = await prisma.emailDraft.updateMany({ where: { id, companyId, authorUserId: userId, version: draft.version, sentAt: null }, data: { attachments: files, version: { increment: 1 }, requestKey: randomUUID() } })
       if (saved.count !== 1) throw new EmailDraftConflict("Conflit : pièce non enregistrée ; rouvrez le brouillon")

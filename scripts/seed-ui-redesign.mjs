@@ -47,6 +47,19 @@ try {
   await mkdir(path.dirname(archiveTarget), { recursive: true }); await writeFile(archiveTarget, archiveBytes)
   const archiveData = { companyId, clientId: recipientClientId, number: "UIQA-CRM-ARCHIVE", object: "Fictional archived invoice", status: "SENT", lockedAt: new Date("2020-01-01"), date: new Date("2020-01-01"), createdAt: new Date("2020-01-01"), dueDate: new Date("2026-12-31"), totalHtCents: 10000, totalTvaCents: 2000, totalTtcCents: 12000, pdfUrl: `local:${archiveKey}`, pdfHash: createHash("sha256").update(archiveBytes).digest("hex"), issuedDocument: encrypt(JSON.stringify({ version: 1, html: "<p>Fictional frozen invoice</p>", xml: "<fiction />" })) }
   await prisma.invoice.upsert({ where: { id: archivedInvoiceId }, update: archiveData, create: { id: archivedInvoiceId, ...archiveData } })
+  for (let index = 0; index < 31; index++) {
+    const id = `cuiqacrmquote${String(index).padStart(12, "0")}`
+    const versionId = `cuiqacrmquoteversion${String(index).padStart(5, "0")}`
+    const sectionId = `cuiqacrmquotesection${String(index).padStart(5, "0")}`
+    const number = `UIQA-CRM-QUOTE-${String(index).padStart(3, "0")}`
+    const data = { companyId, clientId: recipientClientId, number, object: "Fictional current quote for private email copy", status: "DRAFT", date: new Date("2020-01-01"), createdAt: new Date(Date.UTC(2020, 0, 1, 0, index)), updatedAt: new Date(Date.UTC(2020, 0, 1, 0, index)) }
+    await prisma.quote.upsert({ where: { id }, update: data, create: { id, ...data } })
+    const totals = { totalHtCents: 10000, totalTvaCents: 2000, totalTtcCents: 12000 }
+    await prisma.quoteVersion.upsert({ where: { id: versionId }, update: totals, create: { id: versionId, quoteId: id, version: 1, ...totals } })
+    await prisma.quoteSection.upsert({ where: { id: sectionId }, update: {}, create: { id: sectionId, versionId, order: 0 } })
+    const line = { sectionId, label: "Fictional installation", quantity: 1, unitPriceCents: 10000, tvaRate: 20, order: 0 }
+    await prisma.quoteLine.upsert({ where: { id: `cuiqacrmquoteline${String(index).padStart(8, "0")}` }, update: line, create: { id: `cuiqacrmquoteline${String(index).padStart(8, "0")}`, ...line } })
+  }
   await prisma.contract.upsert({ where: { companyId_number: { companyId, number: "UIQA-CONTRACT" } }, update: {}, create: { companyId, clientId: "cuiqaclient00000000000000", number: "UIQA-CONTRACT", title: "Contrat de recette", content: "<h2>Prestations</h2><p>Installation et contrôle des équipements du client.</p>" } })
   await prisma.contract.upsert({ where: { companyId_number: { companyId, number: "UIQA-SIGNED" } }, update: {}, create: { id: "cuiqacontractsigned000000", companyId, clientId: "cuiqaclient00000000000000", number: "UIQA-SIGNED", title: "Contrat signé de recette", status: "SIGNED", content: "<h2>Maintenance</h2><p>Contrat fictif destiné au contrôle du formulaire d’avenant.</p>" } })
   const supplier = await prisma.supplier.upsert({ where: { companyId_name: { companyId, name: "Fournisseur de recette UI" } }, update: {}, create: { id: "cuiqasupplier000000000000", companyId, name: "Fournisseur de recette UI", email: "supplier@example.test" } })

@@ -1,18 +1,18 @@
-# Contrat proposé — copies PDF des devis dans les e-mails
+# Contrat — copies PDF des devis dans les e-mails
 
-État : spécification technique, interface non encore approuvée et fonction non implémentée. Elle complète le lot fichiers client/factures archivées de la recette du 4 octobre, sans modifier sa qualification.
+État : lot implémenté après le « continue termine tout » répondant à sa proposition précise ; qualification du nouveau SHA consignée dans la recette du 4 octobre. Cette réponse autorise ce lot, sans donner un accord général aux prochaines modifications visibles. Il complète les fichiers client/factures archivées, dont la preuve antérieure ne qualifie pas ce nouveau rendu.
 
 ## Constat et résultat attendu
 
 La route `src/app/api/pdf/devis/[id]/route.ts` sélectionne la dernière QuoteVersion et génère le PDF avec les coordonnées et paramètres actuels. `updateQuote` modifie les lignes/totaux de cette version lorsque le devis est DRAFT ; les imports peuvent aussi la mettre à jour. Un numéro v1 n’est donc pas une preuve de révision immuable. Il n’existe pas d’archive du PDF accepté comparable à celle d’une facture émise.
 
-Le prochain lot doit permettre de joindre une copie générée à cet instant depuis la dernière version disponible, explicitement identifiée comme copie actuelle. Il ne doit pas présenter ce PDF comme l’original historiquement envoyé ou accepté. Les factures conservent leur parcours d’archive ; les contrats nécessitent une spécification distincte sur leur contenu signé et leurs coordonnées historiques.
+Ce lot permet de joindre une copie générée à cet instant depuis la dernière version disponible, explicitement identifiée comme copie actuelle. Ce PDF ne constitue pas l’original historiquement envoyé ou accepté. Les factures conservent leur parcours d’archive ; les contrats nécessitent une spécification distincte sur leur contenu signé et leurs coordonnées historiques.
 
-## Sélection reviewable à soumettre
+## Sélection approuvée
 
 Dans la fenêtre existante Joindre un document CRM : une source « Devis — copie actuelle », recherche et pagination 25 existantes, affichage du numéro, de la version et de la dernière modification du devis. Ajouter une mention : « PDF généré depuis la version et les coordonnées actuelles ; ce n’est pas une archive de l’envoi d’origine. » Le fichier portera un nom incluant le numéro et la version. Le client reste celui du destinataire, les droits sales.read sont obligatoires et l’envoi reste manuel. Styles et couleurs conservés ; démo publique en lecture seule.
 
-Cette proposition attend l’accord visible exigé par l’utilisateur. Les contrats et la création d’un système d’archives de devis sont exclus de cette proposition.
+Les contrats et la création d’un système d’archives de devis restent hors de cet accord.
 
 ## Contrat serveur
 
@@ -25,6 +25,10 @@ Cette proposition attend l’accord visible exigé par l’utilisateur. Les cont
 - Réutiliser version du brouillon, lease, quotas, stockage privé, nettoyage sur échec et rotation de clé existants. Après enregistrement, les octets restent indépendants du devis : changement/suppression de source ne modifie pas une pièce déjà jointe.
 
 ## Critères de recette
+
+Bornes implémentées : 500 lignes maximum sans troncature, 1 Mo d’entrées sérialisées, 4 Mo de HTML avec images incorporées et quotas existants (5 Mo/pièce, 10 Mo/brouillon, cinq pièces). Un bail SQL global exclut les générations simultanées de copies de devis ; le signal de génération expire après 45 secondes et ferme Chromium. La capture des ressources d’une page de sélection a un budget de dix secondes, hors requêtes SQL. Ces signaux ne garantissent pas l’annulation native des requêtes SQL ou DNS déjà engagées ; une réponse DNS tardive ne déclenche aucun téléchargement. Les protections HTTPS/adresses publiques/redirects/taille existantes s’appliquent au logo configuré ; aucune URL PDF choisie par le navigateur n’est téléchargée. Les octets des images incorporées entrent dans l’empreinte de révision. Les droits et la révision sont relus après génération avant stockage.
+
+La provenance est écrite côté serveur dans le JSON privé des pièces, sans migration : type, identifiant/version, empreinte et date de copie. Elle est retirée des DTO et métadonnées partagées ; un upload ne peut pas se faire passer pour une copie de devis. Un retry identique renvoie la pièce conservée, même si le devis a été supprimé. Les versions maximales ambiguës sont refusées. La génération utilise les paramètres de présentation courants de la société, sans modifier le rendu des autres routes PDF.
 
 SQL SQLite/PostgreSQL : client/société/auteur étrangers, permission Sales absente, révision modifiée sans incrément du numéro, coordonnées/options changées, devis sans version, sélection devenue ancienne, version concurrente du brouillon, quota, sortie trop grande, génération échouée, retry de copie déjà enregistrée sans nouvelle génération, gel programmation/envoi, source supprimée après copie et démo publique.
 

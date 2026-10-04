@@ -305,6 +305,8 @@ Niveaux conseillés :
 
 Vérifier le client du destinataire, les droits CRM/Finance, la présence de l’original et son empreinte. Pour une facture émise, restaurer son archive vérifiée si nécessaire ; ne pas générer un PDF depuis les coordonnées actuelles pour remplacer l’original. La copie est limitée à 5 Mo par pièce et aux quotas du brouillon. Une copie déjà enregistrée reste privée et indépendante de l’original : sa suppression ne retire pas cette pièce. Après un conflit de version, conserver la saisie et rouvrir la révision récente avant de réessayer. La recette fictive figure dans `completude-recette-20261003.md` ; elle ne qualifie ni antivirus ni restauration R2 réelle.
 
+Pour « Devis — copie actuelle », contrôler les droits Sales et l’auteur actif, puis actualiser la sélection si les lignes, coordonnées, réglages ou images ont changé. Le PDF est généré depuis ces entrées actuelles ; il ne remplace pas l’archive d’un devis envoyé/accepté. Un bail global autorise une seule génération de copie à la fois : après un refus d’occupation, réessayer après la fin de la génération précédente. Un signal de 45 secondes ferme Chromium et arrête les étapes annulables ; il ne garantit pas l’annulation native des requêtes SQL/DNS. Les limites sont 500 lignes, 1 Mo d’entrées, 4 Mo de HTML et les quotas de pièces existants, sans troncature. Une pièce enregistrée conserve sa provenance privée et son SHA PDF ; un retry identique la réutilise sans nouvelle génération. Ne pas régénérer une copie pour prétendre restituer un original historique. Voir `contrat-copies-devis-crm.md` pour la portée et `completude-recette-20261003.md` pour le SHA qualifié.
+
 ### Redis/worker indisponible
 
 - arrêter d'ajouter des travaux si la file n'est pas joignable ;
