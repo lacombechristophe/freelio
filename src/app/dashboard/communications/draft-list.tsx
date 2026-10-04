@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { toast } from "sonner"
 
-export function DraftList({ onOpen, onDelete, refreshKey }: { onOpen: (id: string) => void; onDelete: (draft: { id: string; version: number }) => Promise<void>; refreshKey: string }) {
+export function DraftList({ onOpen, onDelete, onCancel, refreshKey }: { onOpen: (id: string) => void; onDelete: (draft: { id: string; version: number }) => Promise<void>; onCancel: (draft: { id: string; version: number }) => Promise<void>; refreshKey: string }) {
   const [data, setData] = useState<EmailDraftPage | null>(null)
   const [page, setPage] = useState(1)
   const [attempt, setAttempt] = useState(0)
@@ -23,7 +23,10 @@ export function DraftList({ onOpen, onDelete, refreshKey }: { onOpen: (id: strin
   }, [page, attempt, refreshKey])
   return <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Brouillons privés</CardTitle><p className="text-xs text-muted-foreground">Seul leur auteur peut les consulter.</p></CardHeader><CardContent className="space-y-4" aria-busy={pending}>
     <Button type="button" variant="outline" disabled={pending} onClick={() => setAttempt(value => value + 1)}>Actualiser</Button>
-    {data?.drafts.map(draft => <div key={draft.id} className="flex flex-wrap items-center justify-between gap-3 border-b py-3"><div><p className="text-sm font-medium">{draft.subject || "Sans objet"}</p><p className="text-xs text-muted-foreground">{new Date(draft.updatedAt).toLocaleString("fr-FR")}</p></div><div className="flex gap-2"><Button type="button" variant="outline" disabled={pending} onClick={() => onOpen(draft.id)}>Rouvrir</Button><Button demoMutation type="button" variant="outline" disabled={pending} onClick={async () => {
+    {data?.drafts.map(draft => <div key={draft.id} className="flex flex-wrap items-center justify-between gap-3 border-b py-3"><div className="min-w-0"><p className="text-sm font-medium">{draft.subject || "Sans objet"}</p><p className="text-xs text-muted-foreground">{new Date(draft.updatedAt).toLocaleString("fr-FR")}</p>{draft.scheduledAt ? <p className="break-words text-xs text-muted-foreground">{({ QUEUED: "Programmé", PROCESSING: "Envoi en cours", RETRY: "Nouvelle tentative prévue", FAILED: "Échec", SENT: "Envoyé" } as Record<string, string>)[draft.scheduleStatus || ""] || "Programmé"} · {new Date(draft.scheduledAt).toLocaleString("fr-FR", { timeZone: draft.scheduledTimezone || "UTC" })} · {draft.scheduledTimezone}{draft.scheduleError ? ` · ${draft.scheduleError}` : ""}</p> : null}</div><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={pending} onClick={() => onOpen(draft.id)}>Rouvrir</Button>{draft.scheduledAt ? <Button demoMutation type="button" variant="outline" disabled={pending || Boolean(draft.scheduleStartedAt)} title={draft.scheduleStartedAt ? "L’envoi a commencé ; son résultat doit être vérifié avant toute modification" : undefined} onClick={() => startTransition(async () => {
+      try { await onCancel(draft); setAttempt(value => value + 1); toast.success("Programmation annulée.") }
+      catch (error) { toast.error(error instanceof Error ? error.message : "Annulation impossible") }
+    })}>Annuler la programmation</Button> : null}<Button demoMutation type="button" variant="outline" disabled={pending || Boolean(draft.scheduledAt)} onClick={async () => {
       if (!await confirm({ title: "Supprimer ce brouillon ?", description: "Cette suppression concerne uniquement votre brouillon.", confirmLabel: "Supprimer", destructive: true })) return
       startTransition(async () => { try {
         await onDelete(draft); setAttempt(value => value + 1)

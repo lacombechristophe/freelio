@@ -1139,6 +1139,14 @@ model EmailDraft {
   cc           Json
   bcc          Json
   attachments  Json     @default("[]")
+  scheduledAt           DateTime?
+  scheduledTimezone     String?
+  scheduledPayload      Json?
+  scheduleStatus        String? // QUEUED, PROCESSING, RETRY, FAILED, SENT
+  scheduleAttempts      Int       @default(0)
+  scheduleNextAttemptAt DateTime?
+  scheduleStartedAt     DateTime?
+  scheduleError         String?
   sentAt       DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -1146,6 +1154,7 @@ model EmailDraft {
   @@unique([companyId, authorUserId, createKey])
   @@unique([companyId, requestKey])
   @@index([companyId, authorUserId, sentAt, updatedAt])
+  @@index([scheduleStatus, scheduleNextAttemptAt])
 }
 
 model EmailMessage {

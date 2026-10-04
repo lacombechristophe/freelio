@@ -21,10 +21,37 @@ import { deleteEmailDraft, EmailDraftConflict, getEmailDraft, listEmailDrafts, s
 import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
 import { readReplyAllRecipients, ReplyAllUnavailable } from "@/lib/communications/reply-all"
 import { readForwardMessage, ForwardUnavailable } from "@/lib/communications/forward"
+import { scheduleEmailDraft, cancelScheduledEmail, EmailScheduleError } from "@/lib/communications/scheduled-emails"
 import type { EmailAttachment } from "@/lib/communications/attachment-types"
 
 export async function getCommunicationDrafts(input: unknown = {}) {
   return withAuth(({ companyId, userId }) => listEmailDrafts(companyId, userId, input), "automation.read")
+}
+
+export async function scheduleCommunicationDraft(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await scheduleEmailDraft(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailScheduleError || error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function cancelCommunicationDraftSchedule(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await cancelScheduledEmail(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailScheduleError || error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
 }
 
 export async function getCommunicationReplyAll(threadId: string) {

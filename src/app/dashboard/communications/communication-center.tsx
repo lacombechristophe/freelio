@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Forward, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
@@ -16,6 +16,7 @@ import { insertEmailSignature, type EmailSignatureDto } from "@/lib/communicatio
 import type { InboxPage } from "@/lib/communications/inbox-reader"
 import type { RecipientPage } from "@/lib/communications/recipient-reader"
 import { RecipientPicker } from "./recipient-picker"
+import { scheduledEmailLocalTime } from "@/lib/communications/scheduled-time"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -93,6 +94,9 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [savedSnapshot, setSavedSnapshotState] = React.useState("")
   const savedSnapshotRef = React.useRef("")
   const [draftNotice, setDraftNotice] = React.useState("")
+  const [localDateTime, setLocalDateTime] = React.useState("")
+  const [scheduleTimezone, setScheduleTimezone] = React.useState("Europe/Paris")
+  const setRecipient = React.useCallback((id: string) => { if (!draft?.scheduledAt) setContactId(id) }, [draft?.scheduledAt])
   const snapshot = JSON.stringify({ channelId, contactId, threadId: replyThreadId, subject, bodyHtml, cc, bcc, attachmentIds: draft?.attachments.map(file => file.id) || [] })
   const latestSnapshot = React.useRef(snapshot)
   React.useLayoutEffect(() => { latestSnapshot.current = snapshot }, [snapshot])
@@ -104,7 +108,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const autosavePausedRef = React.useRef(false)
   const autosaveJob = React.useRef<Promise<EmailDraftDto | null> | null>(null)
   const needsSave = snapshot !== (savedSnapshot || baselineSnapshot)
-  const canAutosave = !isReadOnlyDemo && !autosaveBlocked && !autosavePaused && !draft?.sentAt && needsSave && snapshot !== failedSnapshot
+  const canAutosave = !isReadOnlyDemo && !autosaveBlocked && !autosavePaused && !draft?.sentAt && !draft?.scheduledAt && needsSave && snapshot !== failedSnapshot
   const attachmentInput = React.useRef<HTMLInputElement>(null)
   const sendIntent = React.useRef<{ signature: string; requestKey: string } | null>(null)
   const [showComposePreview, setShowComposePreview] = React.useState(false)
@@ -229,7 +233,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
         // Keep the user's current fields, including edits made during this request.
         setDraft(result.draft); setSavedSnapshot(capturedSnapshot); setFailedSnapshot("")
         setDraftNotice(`Brouillon enregistré · version ${result.draft.version}`)
-      } else restoreDraft(result.draft)
+      } else restoreDraft(result.draft, true)
       return result.draft
     } catch (error) {
       setFailedSnapshot(capturedSnapshot)
@@ -255,13 +259,16 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     return () => clearTimeout(timer)
   }, [snapshot, canAutosave, isPending, isAutosaving])
 
-  function restoreDraft(next: EmailDraftDto) {
+  function restoreDraft(next: EmailDraftDto, keepScheduleInput = false) {
     const fields = { channelId: next.channelId || "", contactId: next.contactId || "", threadId: next.threadId || "", subject: next.subject, bodyHtml: next.bodyHtml, cc: next.cc.join(", "), bcc: next.bcc.join(", "), attachmentIds: next.attachments.map(file => file.id) }
     setChannelId(fields.channelId); setContactId(fields.contactId); setReplyThreadId(fields.threadId)
     setSubject(fields.subject); setBodyHtml(fields.bodyHtml); setCc(fields.cc); setBcc(fields.bcc)
     setDraft(next); createDraftKey.current = next.createKey; setSavedSnapshot(JSON.stringify(fields))
     setAutosaveBlocked(false); setFailedSnapshot("")
-    setDraftNotice(next.sentAt ? "Ce brouillon a déjà été envoyé." : `Brouillon enregistré · version ${next.version}`)
+    if (next.scheduledAt && next.scheduledTimezone) {
+      setLocalDateTime(scheduledEmailLocalTime(next.scheduledAt, next.scheduledTimezone)); setScheduleTimezone(next.scheduledTimezone)
+    } else if (!keepScheduleInput) setLocalDateTime("")
+    setDraftNotice(next.sentAt ? "Ce brouillon a déjà été envoyé." : next.scheduledAt ? next.scheduleError || `Envoi programmé pour ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: next.scheduledTimezone || "UTC" }).format(new Date(next.scheduledAt))} · ${next.scheduledTimezone}` : `Brouillon enregistré · version ${next.version}`)
   }
 
   async function persistDraft() {
@@ -300,6 +307,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     setReplyThreadId(""); setCc(""); setBcc("")
     toast.success("E-mail envoyé et ajouté à l’historique.")
     setSubject(""); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+    setLocalDateTime("")
     setBaselineSnapshot(JSON.stringify({ channelId, contactId, threadId: "", subject: "", bodyHtml: "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>", cc: "", bcc: "", attachmentIds: [] }))
     setAutosaveBlocked(false); setFailedSnapshot("")
     router.refresh()
@@ -323,6 +331,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
         setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice(""); setCc(copies.join(", ")); setBcc("")
         setReplyThreadId(selected.id); setChannelId(mailbox.id); setContactId(contact.id)
         setSubject(`Re: ${selected.subject}`); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+        setLocalDateTime("")
         setAutosaveBlocked(false); setFailedSnapshot("")
         handleTabChange("compose")
       } finally { pauseAutosave(false) }
@@ -339,6 +348,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
         setContactId(""); setReplyThreadId(""); setCc(""); setBcc("")
         setChannelId(result.forward.channelId || "")
         setSubject(result.forward.subject); setBodyHtml(result.forward.bodyHtml)
+        setLocalDateTime("")
         setAutosaveBlocked(false); setFailedSnapshot("")
         handleTabChange("compose")
       } finally { pauseAutosave(false) }
@@ -351,6 +361,28 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
       if (!content) throw new Error("Aperçu indisponible.")
       setComposePreview({ ...content, subject }); setShowPlainPreview(false); setShowComposePreview(true)
     })
+  }
+
+  async function scheduleComposition() {
+    const time = { localDateTime, timezone: scheduleTimezone }
+    pauseAutosave(true)
+    try {
+      const saved = await draftForMutation()
+      const result = await scheduleCommunicationDraft({ id: saved.id, version: saved.version, ...time })
+      if (!result.success) throw new Error(result.error)
+      restoreDraft(result.draft)
+    } finally { pauseAutosave(false) }
+  }
+
+  async function cancelSchedule(listed: { id: string; version: number }) {
+    pauseAutosave(true)
+    try {
+      await autosaveJob.current
+      const version = draftRef.current?.id === listed.id ? draftRef.current.version : listed.version
+      const result = await cancelCommunicationDraftSchedule({ id: listed.id, version })
+      if (!result.success) throw new Error(result.error)
+      if (draftRef.current?.id === listed.id) restoreDraft(result.draft)
+    } finally { pauseAutosave(false) }
   }
 
   return <div className="space-y-5">
@@ -399,8 +431,8 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
 
       <TabsContent value="compose">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.85fr)_minmax(420px,1.15fr)]">
-          <Card className="workspace-panel"><CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Nouvel e-mail</CardTitle><HelpTip label="Conseils de rédaction">Gardez un objet court, un seul appel à l’action et vérifiez l’aperçu avant l’envoi. Les variables et séquences marketing se gèrent dans Automatisations.</HelpTip></div><CardDescription>L’envoi sera automatiquement rattaché au client et suivi dans la boîte de réception.</CardDescription></CardHeader><CardContent><form onSubmit={(event) => { event.preventDefault(); run(submitEmail) }}><fieldset disabled={isPending} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-sender">Expéditeur</Label><select id="email-sender" name="channelId" value={channelId} onChange={(event) => setChannelId(event.target.value)} required className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm"><option value="">Connecter une messagerie…</option>{activeChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.displayName || channel.emailAddress} · {channel.provider === "GOOGLE" ? "Google" : channel.provider === "MICROSOFT" ? "Microsoft" : "Resend"}</option>)}</select></div><RecipientPicker initialPage={initialData.recipients} value={contactId} onChange={setContactId} /></div>
+          <Card className="workspace-panel"><CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Nouvel e-mail</CardTitle><HelpTip label="Conseils de rédaction">Gardez un objet court, un seul appel à l’action et vérifiez l’aperçu avant l’envoi. Les variables et séquences marketing se gèrent dans Automatisations.</HelpTip></div><CardDescription>L’envoi sera automatiquement rattaché au client et suivi dans la boîte de réception.</CardDescription></CardHeader><CardContent><form onSubmit={(event) => { event.preventDefault(); run(submitEmail) }}><fieldset disabled={isPending} className="space-y-4"><fieldset disabled={Boolean(draft?.scheduledAt)} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-sender">Expéditeur</Label><select id="email-sender" name="channelId" value={channelId} onChange={(event) => setChannelId(event.target.value)} required className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm"><option value="">Connecter une messagerie…</option>{activeChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.displayName || channel.emailAddress} · {channel.provider === "GOOGLE" ? "Google" : channel.provider === "MICROSOFT" ? "Microsoft" : "Resend"}</option>)}</select></div><RecipientPicker initialPage={initialData.recipients} value={contactId} onChange={setRecipient} /></div>
             <div className="space-y-1.5"><Label htmlFor="email-cc">CC</Label><Input id="email-cc" value={cc} onChange={event => setCc(event.target.value)} maxLength={5100} placeholder="Adresses séparées par une virgule" /></div>
             <div className="space-y-1.5"><Label htmlFor="email-bcc">CCI</Label><Input id="email-bcc" value={bcc} onChange={event => setBcc(event.target.value)} maxLength={5100} placeholder="Adresses cachées, séparées par une virgule" /></div>
             <div className="space-y-1.5"><Label htmlFor="email-subject">Objet</Label><Input id="email-subject" name="subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={2} maxLength={180} /></div>
@@ -411,14 +443,16 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
                 const file = event.target.files?.[0]; event.target.value = ""
                 if (!file) return
                 if (file.size > MAX_EMAIL_FILE_BYTES) { toast.error("5 Mo maximum par fichier"); return }
-                run(async () => { try { const saved = await draftForMutation(); restoreDraft(await uploadEmailAttachment(saved, file)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Pièce non enregistrée ; rouvrez le brouillon"); throw error } })
+                run(async () => { try { const saved = await draftForMutation(); restoreDraft(await uploadEmailAttachment(saved, file), true) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Pièce non enregistrée ; rouvrez le brouillon"); throw error } })
               }} />
               <Button demoMutation type="button" variant="outline" disabled={isPending || draft?.attachments.length === 5} onClick={() => attachmentInput.current?.click()}>Joindre un fichier</Button>
               <p className="text-xs text-muted-foreground">PDF, PNG ou JPEG · 5 Mo par fichier · 10 Mo au total · 5 pièces maximum</p>
-              {draft?.attachments.length ? <ul className="space-y-1">{draft.attachments.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{file.name} · {(file.size / 1024).toFixed(1)} Ko</span><Button demoMutation type="button" variant="ghost" size="sm" disabled={isPending} aria-label={`Retirer ${file.name}`} onClick={() => run(async () => { try { const saved = await draftForMutation(); restoreDraft(await removeEmailAttachment(saved, file.id)) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Retrait impossible ; rouvrez le brouillon"); throw error } })}>Retirer</Button></li>)}</ul> : null}
+              {draft?.attachments.length ? <ul className="space-y-1">{draft.attachments.map(file => <li key={file.id} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{file.name} · {(file.size / 1024).toFixed(1)} Ko</span><Button demoMutation type="button" variant="ghost" size="sm" disabled={isPending} aria-label={`Retirer ${file.name}`} onClick={() => run(async () => { try { const saved = await draftForMutation(); restoreDraft(await removeEmailAttachment(saved, file.id), true) } catch (error) { setDraftNotice(error instanceof Error ? error.message : "Retrait impossible ; rouvrez le brouillon"); throw error } })}>Retirer</Button></li>)}</ul> : null}
             </div>
+            <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-scheduled-time">Date et heure d’envoi</Label><Input id="email-scheduled-time" type="datetime-local" value={localDateTime} onChange={event => setLocalDateTime(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="email-scheduled-zone">Fuseau horaire</Label><Input id="email-scheduled-zone" value={scheduleTimezone} maxLength={100} onChange={event => setScheduleTimezone(event.target.value)} placeholder="Europe/Paris" /></div></div>
+            </fieldset>
             <p className="text-xs text-muted-foreground" role="status">{isAutosaving || canAutosave ? "Enregistrement en cours" : draftNotice}</p>
-            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="submit" disabled={isPending || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt)} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt) || !localDateTime || !scheduleTimezone || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10} onClick={() => run(scheduleComposition)}>Programmer</Button><Button demoMutation type="submit" disabled={isPending || Boolean(draft?.scheduledAt) || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
           </fieldset></form></CardContent></Card>
           <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Aperçu sécurisé</CardTitle><CardDescription>Les scripts, formulaires et images distantes sont bloqués dans cet aperçu.</CardDescription></CardHeader><CardContent><iframe title="Aperçu du nouvel e-mail" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[560px] w-full rounded-xl border bg-white" /></CardContent></Card>
         </div>
@@ -427,7 +461,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
       <TabsContent value="drafts"><DraftList refreshKey={`${draft?.id || ""}:${draft?.version || ""}`} onOpen={async id => {
         if (!await mayReplaceComposition()) return
         run(async () => { try { restoreDraft(await getCommunicationDraft(id)); handleTabChange("compose") } finally { pauseAutosave(false) } })
-      }} onDelete={async listed => {
+      }} onCancel={cancelSchedule} onDelete={async listed => {
         pauseAutosave(true)
         try {
           await autosaveJob.current

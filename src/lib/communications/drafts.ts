@@ -44,7 +44,10 @@ async function assertLinks(companyId: string, fields: z.output<typeof fieldsSche
 }
 
 function dto(draft: Awaited<ReturnType<typeof readEmailDraft>>) {
-  return { ...draft, attachments: attachmentMetadata(emailAttachmentsSchema.parse(draft.attachments)), cc: copyRecipientsSchema.parse(draft.cc), bcc: copyRecipientsSchema.parse(draft.bcc), createdAt: draft.createdAt.toISOString(), updatedAt: draft.updatedAt.toISOString(), sentAt: draft.sentAt?.toISOString() ?? null }
+  const { scheduledPayload: _privateCommand, ...visible } = draft
+  void _privateCommand
+  return { ...visible, scheduledAt: draft.scheduledAt?.toISOString() ?? null, scheduleNextAttemptAt: draft.scheduleNextAttemptAt?.toISOString() ?? null, scheduleStartedAt: draft.scheduleStartedAt?.toISOString() ?? null,
+    attachments: attachmentMetadata(emailAttachmentsSchema.parse(draft.attachments)), cc: copyRecipientsSchema.parse(draft.cc), bcc: copyRecipientsSchema.parse(draft.bcc), createdAt: draft.createdAt.toISOString(), updatedAt: draft.updatedAt.toISOString(), sentAt: draft.sentAt?.toISOString() ?? null }
 }
 
 export async function readEmailDraft(companyId: string, userId: string, id: string) {
@@ -64,8 +67,8 @@ export async function listEmailDrafts(companyId: string, userId: string, input: 
     const total = await tx.emailDraft.count({ where })
     const pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(requested, pageCount)
     const rows = await tx.emailDraft.findMany({ where, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25,
-      select: { id: true, version: true, subject: true, updatedAt: true } })
-    return { total, page, pageCount, drafts: rows.map(row => ({ ...row, updatedAt: row.updatedAt.toISOString() })) }
+      select: { id: true, version: true, subject: true, updatedAt: true, scheduledAt: true, scheduledTimezone: true, scheduleStatus: true, scheduleStartedAt: true, scheduleError: true } })
+    return { total, page, pageCount, drafts: rows.map(row => ({ ...row, scheduledAt: row.scheduledAt?.toISOString() ?? null, scheduleStartedAt: row.scheduleStartedAt?.toISOString() ?? null, updatedAt: row.updatedAt.toISOString() })) }
   })
 }
 
@@ -83,6 +86,7 @@ export async function saveEmailDraft(companyId: string, userId: string, input: u
   return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id!)
     if (draft.version !== data.version) throw new EmailDraftConflict("Conflit : ce brouillon a changé dans un autre onglet. Votre texte est conservé ; rouvrez la version enregistrée")
+    if (draft.scheduledAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant de le modifier")
     if (draft.sentAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailDraftConflict("Un envoi est déjà préparé pour ce brouillon ; reprenez son résultat avant de le modifier")
     await control.assertOwned()
     const saved = await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId, authorUserId: userId, version: data.version, sentAt: null }, data: { ...fields, version: { increment: 1 }, requestKey: randomUUID() } })
@@ -95,6 +99,7 @@ export async function deleteEmailDraft(companyId: string, userId: string, input:
   const data = identitySchema.parse(input)
   return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id)
+    if (draft.scheduledAt && !draft.sentAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant de le supprimer")
     const delivery = await prisma.emailDelivery.findFirst({ where: { companyId, requestKey: draft.requestKey }, select: { status: true } })
     if (delivery && !acceptedStatuses.includes(delivery.status)) throw new EmailDraftConflict("Résultat de l’envoi à vérifier avant de supprimer ce brouillon")
     await control.assertOwned()
@@ -111,6 +116,7 @@ export async function sendEmailDraft<T>(companyId: string, userId: string, input
   const attachmentIds = z.object({ attachmentIds: z.array(z.string().uuid()).max(5).default([]) }).parse(input).attachmentIds
   return withEmailDraftLease(identity.id, async control => {
     const draft = await readEmailDraft(companyId, userId, identity.id)
+    if (draft.scheduledAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant un envoi immédiat")
     const attachments = emailAttachmentsSchema.parse(draft.attachments)
     if (!isDeepStrictEqual(attachmentIds, attachments.map(file => file.id))) throw new EmailDraftConflict("Conflit : vérifiez les pièces jointes enregistrées avant l’envoi")
     if (draft.version !== identity.version || !isDeepStrictEqual(fieldsSchema.parse(draft), normalizedFields(input))) throw new EmailDraftConflict("Conflit : enregistrez et vérifiez le brouillon avant l’envoi")

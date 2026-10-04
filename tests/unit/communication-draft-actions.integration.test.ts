@@ -17,7 +17,7 @@ vi.mock("@/lib/communications/email-provider", async original => {
 })
 
 import prisma from "@/lib/prisma"
-import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll, getCommunicationForward } from "@/actions/communications"
+import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule } from "@/actions/communications"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 
 describe.sequential("composer draft actions through tenant scopes and durable manual delivery", () => {
@@ -86,6 +86,8 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     const draft = saved.draft
     vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
     await expect(saveCommunicationDraft({ ...draft, subject: "Forbidden" })).rejects.toThrow("lecture seule")
+    await expect(scheduleCommunicationDraft({ id: draft.id, version: draft.version, localDateTime: new Date(Date.now() + 3_600_000).toISOString().slice(0, 16), timezone: "UTC" })).rejects.toThrow("lecture seule")
+    await expect(cancelCommunicationDraftSchedule({ id: draft.id, version: draft.version })).rejects.toThrow("lecture seule")
     await expect(sendCrmEmail({ ...draft, draftId: draft.id, draftVersion: draft.version })).rejects.toThrow("lecture seule")
     expect(sendEmailThroughChannel).not.toHaveBeenCalled()
   })

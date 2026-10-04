@@ -9,6 +9,7 @@ import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/r
 import { emailAttachmentsSchema, attachmentMetadata } from "./attachment-types"
 import { readEmailAttachmentBytes } from "./attachment-content"
 import { emailPlainText } from "./email-content"
+import { EmailDraftConflict } from "./drafts"
 
 const payloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
@@ -20,7 +21,11 @@ const payloadSchema = z.object({
   invoiceSnapshot: z.object({ invoiceId: z.string(), remainingCents: z.number().int().positive() }).optional(),
 })
 
-type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply" | "text"> & { companyId: string; requestKey: string; channelId: string | null; beforeDispatch?: () => Promise<void> }
+export const preparedManualEmailSchema = z.object({ provider: z.enum(["GOOGLE", "MICROSOFT", "RESEND"]), payload: payloadSchema })
+type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply" | "text"> & {
+  companyId: string; requestKey: string; channelId: string | null; beforeDispatch?: () => Promise<void>
+  preparedCommand?: z.infer<typeof preparedManualEmailSchema>; scheduledDraftId?: string
+}
 
 async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInput, "threadId" | "clientId">, channelId: string) {
   if (!payload.threadId) return
@@ -28,20 +33,30 @@ async function assertReplyMailbox(companyId: string, payload: Pick<ManualSendInp
   if (!thread) throw new Error("La conversation ne correspond plus au client ou à la boîte expéditrice")
 }
 
+export async function prepareManualEmailCommand(input: ManualSendInput) {
+  validateRecipients(input.to, input.cc || [], input.bcc || [])
+  const channel = await activeCommunicationChannel(input.companyId, input.channelId)
+  if (channel.mailEnabled === false) throw new Error("Cette connexion autorise uniquement le calendrier")
+  await assertReplyMailbox(input.companyId, input, channel.id)
+  const reply = await freezeReplyContext(input.companyId, input.threadId, channel.provider, input.subject)
+  return preparedManualEmailSchema.parse({ provider: channel.provider, payload: { ...input, cc: input.cc || [], bcc: input.bcc || [], attachments: input.attachments || [], text: emailPlainText(input.html), reply,
+    channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) } })
+}
+
 export async function sendManualEmail(input: ManualSendInput) {
   input = { ...input, cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []), attachments: emailAttachmentsSchema.parse(input.attachments || []) }
   validateRecipients(input.to, input.cc, input.bcc)
+  const scheduled = await prisma.emailDraft.findFirst({ where: { companyId: input.companyId, requestKey: input.requestKey, scheduledAt: { not: null } }, select: { id: true, scheduleStartedAt: true, scheduleStatus: true } })
+  if (scheduled && (input.scheduledDraftId !== scheduled.id || !scheduled.scheduleStartedAt || scheduled.scheduleStatus !== "PROCESSING")) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant un envoi immédiat")
   // Persist the frozen payload and mailbox BEFORE any remote request. A retry
   // with another recipient/body is a different intent, never a replacement.
   let delivery = await prisma.emailDelivery.findUnique({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
   if (!delivery) {
-    const channel = await activeCommunicationChannel(input.companyId, input.channelId)
-    await assertReplyMailbox(input.companyId, input, channel.id)
-    const reply = await freezeReplyContext(input.companyId, input.threadId, channel.provider, input.subject)
-    const payload = payloadSchema.parse({ ...input, text: emailPlainText(input.html), reply, channelId: channel.id, from: formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress) })
+    const prepared = input.preparedCommand ? preparedManualEmailSchema.parse(input.preparedCommand) : await prepareManualEmailCommand(input)
+    const payload = prepared.payload
     delivery = await prisma.emailDelivery.upsert({
       where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } }, update: {},
-      create: { companyId: input.companyId, contactId: input.contactId, requestKey: input.requestKey, recipientEmail: input.to, subject: input.subject, channelId: channel.id === "platform" ? null : channel.id, provider: channel.provider, payload, scheduledAt: new Date() },
+      create: { companyId: input.companyId, contactId: input.contactId, requestKey: input.requestKey, recipientEmail: input.to, subject: input.subject, channelId: payload.channelId === "platform" ? null : payload.channelId, provider: prepared.provider, payload, scheduledAt: new Date() },
     })
   }
   const payload = payloadSchema.parse(delivery.payload)

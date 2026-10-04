@@ -29,7 +29,14 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   const signature = await database.emailSignature.create({ data: { companyId: company.id, authorUserId: user.id, text: "Private fictional signature", version: 3 } })
   const privateBytes = Buffer.from("%PDF-private fictional draft file")
   const privateKey = `private/${company.id}/email-draft/${draft.id}/proof.pdf`
-  const privateDraft = await database.emailDraft.update({ where: { id: draft.id }, data: { attachments: [{ id: randomUUID(), name: "proof.pdf", size: privateBytes.length, type: "application/pdf", sha256: createHash("sha256").update(privateBytes).digest("hex"), relativePath: `local:${privateKey}` }] } })
+  const scheduledContact = await database.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Recipient", email: "recipient@example.test" } })
+  const scheduledChannel = await database.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, visibility: "PRIVATE", provider: "RESEND", emailAddress: "sender@example.test", status: "ACTIVE" } })
+  const privateAttachments = [{ id: randomUUID(), name: "proof.pdf", size: privateBytes.length, type: "application/pdf", sha256: createHash("sha256").update(privateBytes).digest("hex"), relativePath: `local:${privateKey}` }]
+  const privateDraft = await database.emailDraft.update({ where: { id: draft.id }, data: { attachments: privateAttachments,
+    contactId: scheduledContact.id, channelId: scheduledChannel.id, scheduledAt: new Date("2026-10-30T12:00:00Z"), scheduledTimezone: "Europe/Paris", scheduleStatus: "QUEUED", scheduleNextAttemptAt: new Date("2026-10-30T12:00:00Z"),
+    scheduledPayload: { provider: "RESEND", payload: { userId: user.id, contactId: scheduledContact.id, clientId: client.id, channelId: scheduledChannel.id, companyName: company.name,
+      from: "sender@example.test", to: scheduledContact.email, subject: draft.subject, html: draft.bodyHtml, text: "Fictional content only", cc: [], bcc: [], attachments: privateAttachments, threadId: null, serviceTicketId: null, replyTo: null } },
+  } })
   await mkdir(path.join(directory, "data", "files", path.dirname(privateKey)), { recursive: true })
   await writeFile(path.join(directory, "data", "files", privateKey), privateBytes)
   await writeFile(path.join(directory, "demo-access.json"), JSON.stringify({ schema: "freelio.local-demo.v1", authSecret: "synthetic-auth", encryptionKey: "synthetic-encryption", password: "synthetic-password" }))

@@ -12,6 +12,7 @@ export class EmailAttachmentError extends Error {}
 export async function assertEditableDraft(companyId: string, userId: string, id: string, version: number) {
   const draft = await readEmailDraft(companyId, userId, id)
   if (draft.version !== version) throw new EmailDraftConflict("Conflit : rouvrez le brouillon avant de modifier ses pièces jointes")
+  if (draft.scheduledAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant de modifier ses pièces jointes")
   if (draft.sentAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailDraftConflict("Un envoi est déjà préparé ; ses pièces jointes sont figées")
   return draft
 }
