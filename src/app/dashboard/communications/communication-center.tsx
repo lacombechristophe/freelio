@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
+import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Forward, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
@@ -329,6 +329,22 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     })
   }
 
+  async function prepareForward(messageId: string) {
+    if (!await mayReplaceComposition()) return
+    run(async () => {
+      try {
+        const result = await getCommunicationForward(messageId)
+        if (!result.success) throw new Error(result.error)
+        setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice("")
+        setContactId(""); setReplyThreadId(""); setCc(""); setBcc("")
+        setChannelId(result.forward.channelId || "")
+        setSubject(result.forward.subject); setBodyHtml(result.forward.bodyHtml)
+        setAutosaveBlocked(false); setFailedSnapshot("")
+        handleTabChange("compose")
+      } finally { pauseAutosave(false) }
+    })
+  }
+
   function previewComposition() {
     run(async () => {
       const content = await previewCommunicationEmail({ bodyHtml })
@@ -375,7 +391,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{hasPreviousMessages ? <Button variant="outline" size="sm" disabled={isPending} onClick={loadPreviousMessages}>Messages précédents</Button> : null}{selectedMessages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold">{message.direction === "OUTBOUND" ? initialData.company.name : message.fromAddress}</p><Badge variant="outline">{message.direction === "OUTBOUND" ? "Sortant" : "Entrant"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">À : {recipients(message.toAddresses)}</p></div><time className="text-xs text-muted-foreground">{formatDate(message.sentAt || message.receivedAt || message.createdAt)}</time></div>
               <p className="mt-3 text-sm font-medium">{message.subject}</p><p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{message.bodyText || message.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun contenu texte"}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3"><Button variant="ghost" size="sm" onClick={() => setPreviewMessage(message)}><Eye />Aperçu HTML</Button><Badge variant={message.status === "BOUNCED" || message.status === "FAILED" ? "destructive" : "secondary"}>{["DELIVERED", "OPENED", "CLICKED"].includes(message.status) ? <CheckCircle2 /> : null}{statusLabels[message.status] ?? message.status}</Badge>{message.events.slice(-4).map((event) => <span key={event.id} title={formatDate(event.occurredAt)} className="text-[11px] text-muted-foreground">{eventLabels[event.type] ?? event.type}</span>)}</div>
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3"><Button variant="ghost" size="sm" onClick={() => setPreviewMessage(message)}><Eye />Aperçu HTML</Button><Button variant="ghost" size="sm" disabled={isPending} onClick={() => void prepareForward(message.id)}><Forward />Transférer</Button><Badge variant={message.status === "BOUNCED" || message.status === "FAILED" ? "destructive" : "secondary"}>{["DELIVERED", "OPENED", "CLICKED"].includes(message.status) ? <CheckCircle2 /> : null}{statusLabels[message.status] ?? message.status}</Badge>{message.events.slice(-4).map((event) => <span key={event.id} title={formatDate(event.occurredAt)} className="text-[11px] text-muted-foreground">{eventLabels[event.type] ?? event.type}</span>)}</div>
             </article>)}</div>
           </> : <div className="grid h-full place-items-center p-8 text-center text-sm text-muted-foreground">Sélectionnez une conversation.</div>}</div>
         </CardContent></Card>

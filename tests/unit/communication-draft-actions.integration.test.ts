@@ -17,7 +17,7 @@ vi.mock("@/lib/communications/email-provider", async original => {
 })
 
 import prisma from "@/lib/prisma"
-import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll } from "@/actions/communications"
+import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll, getCommunicationForward } from "@/actions/communications"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 
 describe.sequential("composer draft actions through tenant scopes and durable manual delivery", () => {
@@ -104,6 +104,20 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     }
     expect(await prisma.emailDraft.count({ where: { companyId: actor.companyId } })).toBe(1)
     expect(await getCommunicationDraft(saved.draft.id)).toMatchObject({ subject: fields.subject, version: 1 })
+  })
+
+  it("prepares a forward as a scoped read in the public demo without copying recipients or sending", async () => {
+    const fields = await fixture()
+    const thread = await prisma.emailThread.create({ data: { companyId: actor.companyId, channelId: fields.channelId, subject: "Fictional forward" } })
+    const message = await prisma.emailMessage.create({ data: { companyId: actor.companyId, threadId: thread.id, direction: "INBOUND", provider: "RESEND", fromAddress: "original@example.test", toAddresses: ["sender@example.test"], bccAddresses: ["hidden@example.test"], subject: thread.subject, bodyText: "Fictional quoted text" } })
+    vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
+    const result = await getCommunicationForward(message.id)
+    expect(result).toMatchObject({ success: true, forward: { subject: "Tr: Fictional forward", channelId: fields.channelId, bodyHtml: expect.stringContaining("Fictional quoted text") } })
+    expect(JSON.stringify(result)).not.toContain("hidden@example.test")
+    expect(await getCommunicationForward("invalid")).toEqual({ success: false, error: "Message introuvable" })
+    expect(await prisma.emailDraft.count({ where: { companyId: actor.companyId } })).toBe(0)
+    expect(await prisma.emailDelivery.count({ where: { companyId: actor.companyId } })).toBe(0)
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
   })
 
   it("prepares reply-all copies as a scoped read in the public demo without creating a draft or delivery", async () => {

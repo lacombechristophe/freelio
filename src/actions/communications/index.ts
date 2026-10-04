@@ -20,6 +20,7 @@ import { readRecipientPage } from "@/lib/communications/recipient-reader"
 import { deleteEmailDraft, EmailDraftConflict, getEmailDraft, listEmailDrafts, saveEmailDraft, sendEmailDraft } from "@/lib/communications/drafts"
 import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
 import { readReplyAllRecipients, ReplyAllUnavailable } from "@/lib/communications/reply-all"
+import { readForwardMessage, ForwardUnavailable } from "@/lib/communications/forward"
 import type { EmailAttachment } from "@/lib/communications/attachment-types"
 
 export async function getCommunicationDrafts(input: unknown = {}) {
@@ -31,6 +32,16 @@ export async function getCommunicationReplyAll(threadId: string) {
     try { return { success: true as const, reply: await readReplyAllRecipients(companyId, threadId) } }
     catch (error) {
       if (error instanceof ReplyAllUnavailable) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+export async function getCommunicationForward(messageId: string) {
+  return withAuth(async ({ companyId }) => {
+    try { return { success: true as const, forward: await readForwardMessage(companyId, messageId) } }
+    catch (error) {
+      if (error instanceof ForwardUnavailable) return { success: false as const, error: error.message }
       throw error
     }
   }, "automation.read")
