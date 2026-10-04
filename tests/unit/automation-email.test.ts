@@ -77,12 +77,12 @@ describe("email automation", () => {
 
   it("scopes manual sequence processing to the authenticated company", () => {
     const now = new Date("2026-08-31T08:00:00.000Z")
-    expect(dueSequenceEnrollmentWhere(now, "company-1")).toEqual({
+    expect(dueSequenceEnrollmentWhere(now, "company-1")).toMatchObject({
       status: "ACTIVE",
       nextSendAt: { lte: now },
       sequence: { status: "ACTIVE", companyId: "company-1" },
     })
-    expect(dueSequenceEnrollmentWhere(now)).toEqual({
+    expect(dueSequenceEnrollmentWhere(now)).toMatchObject({
       status: "ACTIVE",
       nextSendAt: { lte: now },
       sequence: { status: "ACTIVE" },

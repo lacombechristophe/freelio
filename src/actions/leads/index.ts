@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 import { createConsentWithdrawalToken } from "@/lib/leads/consent-token"
 import prisma from "@/lib/prisma"
 import { refreshSingleLeadIntelligence } from "@/lib/marketing/intelligence"
@@ -68,12 +68,14 @@ export async function updateLeadStatus(leadId: string, status: string) {
     const parsed = z.object({ leadId: idSchema, status: leadStatusSchema }).parse({ leadId, status })
     const lead = await prisma.leadCapture.findFirst({
       where: { id: parsed.leadId, companyId },
-      select: { id: true, clientId: true, opportunityId: true },
+      select: { id: true, clientId: true, opportunityId: true, status: true, updatedAt: true },
     })
     if (!lead) throw new Error("Prospect introuvable")
+    if (lead.status === parsed.status) return { success: true as const }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.leadCapture.update({ where: { id: lead.id }, data: { status: parsed.status } })
+    const eventId = await prisma.$transaction(async (tx) => {
+      const changed = await tx.leadCapture.updateMany({ where: { id: lead.id, companyId, status: lead.status, updatedAt: lead.updatedAt }, data: { status: parsed.status } })
+      if (changed.count !== 1) throw new Error("Le prospect a changé ; actualisez avant de modifier son statut")
       if (lead.opportunityId && ["CONTACTED", "QUALIFIED", "SPAM"].includes(parsed.status)) {
         await tx.opportunity.update({
           where: { id: lead.opportunityId },
@@ -85,22 +87,16 @@ export async function updateLeadStatus(leadId: string, status: string) {
       if (lead.clientId && parsed.status === "CONTACTED") {
         await tx.client.update({ where: { id: lead.clientId }, data: { nextActionAt: null, nextActionLabel: null } })
       }
+      if (["SPAM", "ARCHIVED"].includes(parsed.status)) {
+        await tx.emailSequenceEnrollment.updateMany({
+          where: { leadCaptureId: lead.id, status: { in: ["ACTIVE", "PAUSED"] }, sequence: { companyId } },
+          data: { status: "STOPPED", stopReason: `LEAD_${parsed.status}`, nextSendAt: null, completedAt: new Date() },
+        })
+      }
+      return enqueueAutomationEvent(tx, { companyId, event: "LEAD_STATUS_CHANGED", eventKey: `${lead.id}:status:${parsed.status}:${crypto.randomUUID()}`, subjectModel: "LeadCapture", subjectId: lead.id, leadId: lead.id })
     })
 
-    if (["SPAM", "ARCHIVED"].includes(parsed.status)) {
-      await prisma.emailSequenceEnrollment.updateMany({
-        where: { leadCaptureId: lead.id, status: "ACTIVE", sequence: { companyId } },
-        data: { status: "STOPPED", stopReason: `LEAD_${parsed.status}`, nextSendAt: null, completedAt: new Date() },
-      })
-    }
-    await runAutomationEvent({
-      companyId,
-      event: "LEAD_STATUS_CHANGED",
-      eventKey: `${lead.id}:status:${parsed.status}`,
-      subjectModel: "LeadCapture",
-      subjectId: lead.id,
-      leadId: lead.id,
-    }).catch((error) => console.error("Lead status automation failed", error))
+    await dispatchAutomationEvent(eventId).catch((error) => console.error("Lead status automation deferred", error))
     await refreshSingleLeadIntelligence(companyId, lead.id).catch((error) => console.error("Lead scoring refresh failed", error))
 
     revalidatePath("/dashboard/leads")

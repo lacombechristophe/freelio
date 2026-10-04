@@ -6,13 +6,13 @@ Freelio est un projet personnel de démonstration construit par Christophe Lacom
 
 Présenter le problème : une intervention doit conserver son lien avec le client, le devis, les équipements et les pièces, tandis que les documents financiers gardent un historique stable. Montrer un dossier cohérent plutôt qu’énumérer tous les modules.
 
-Dans le profil de démo en lecture seule, consulter un client, son devis et un PDF ; expliquer que les dossiers sont figés et les sorties fournisseurs désactivées. Ce profil est actuellement qualifié en local, sans URL publique livrée. Montrer ensuite un équipement, son ticket SAV et son intervention. La création, l’émission et l’import se démontrent dans une copie privée modifiable avec données fictives, ou à partir de traces de recette dont la portée est annoncée.
+Dans le profil de démo en lecture seule, consulter un client, son devis et un PDF ; expliquer que les dossiers sont figés et les sorties fournisseurs désactivées. Une [livraison hébergée](livraison-demo-vercel-20261003.md) possède sa qualification datée et sa référence de code : vérifier le déploiement actif avant présentation. Les compléments de la [PR #8](https://github.com/lacombechristophe/freelio/pull/8) restent un candidat distinct, non fusionné ; ils ne doivent pas être présentés comme déjà déployés. Montrer ensuite un équipement, son ticket SAV et son intervention. La création, l’émission et l’import se démontrent dans une copie privée modifiable avec données fictives, ou à partir de traces de recette dont la portée est annoncée.
 
 Terminer par une preuve technique concrète : l’archive d’une facture persiste après modification de l’identité du client, un ID appartenant à une autre entreprise est refusé, ou une restauration recrée base et pièces dans une cible neuve. Ne pas confondre consultation publique et simulation d’un envoi réel.
 
 ## Lecture technique en quinze minutes
 
-1. Lire le [README](../README.md) et le [suivi d’exécution](execution-cto-20261001.md) pour connaître l’état réel.
+1. Lire le [README](../README.md), la [recette récente de complétude](completude-recette-20261003.md) et le [suivi du socle](execution-cto-20261001.md) pour distinguer code livré, candidat testé et fonctions ouvertes.
 2. Examiner les [décisions](decisions-techniques.md) : conserver la stack, PostgreSQL partagé, limites de l’authentification et du rendu PDF.
 3. Suivre une mutation : action → permission → contexte d’entreprise/agence → transaction → audit. Lire `src/lib/auth-wrapper.ts`, `src/lib/prisma.ts` et un cas métier ciblé.
 4. Examiner le calcul commercial, la numérotation et `src/lib/finance/issued-invoice.ts` ; retrouver leurs régressions dans la [carte des preuves](carte-des-preuves.md).
@@ -28,7 +28,9 @@ Terminer par une preuve technique concrète : l’archive d’une facture persis
 
 **Que prouve un compteur de tests ?** Il donne une taille d’exécution, pas un pourcentage de confiance. Les preuves les plus utiles associent un risque, une régression, le composant réel testé et une limite explicite.
 
-**Que reste-t-il avant hébergement ?** CI de la version candidate, configuration HTTPS/limiteur/stockage réels, qualification de la charge et des ressources de la plateforme, récupération distante et choix d’hébergement. Linux/Chrome ont été exécutés dans la recette conteneur. Le budget est de 0 € pour l’instant : aucune URL publique ni disponibilité hébergée n’est revendiquée.
+**Comment reprendre un envoi après un incident ?** La commande et la boîte sont figées avant le transport ; les brouillons fournisseurs et les pièces déjà reçues sont rapprochés avant reprise. Une acceptation confirmée et la réparation du journal SQL sont deux états distincts. Montrer une injection de panne reproductible ; annoncer que les HTTP simulés ne qualifient pas un compte fournisseur réel, ni un « exactement une fois » universel.
+
+**Que reste-t-il avant de déployer le candidat ?** CI du SHA candidat, audit complet des dépendances, migration/configuration du runtime et recette hébergée de cette nouvelle version. La démo publique livrée conserve une portée fictive en lecture seule ; elle ne qualifie ni envois réels ni traitements permanents. Pour un usage commercial restent notamment la charge, les ressources, le stockage/limiteur réels et la récupération distante. Le budget de 0 € ne permet aucun abonnement non approuvé.
 
 ## Critère pour une présentation privée
 

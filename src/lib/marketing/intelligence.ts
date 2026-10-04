@@ -35,7 +35,7 @@ export function calculateLeadScore(lead: ScorableLead, rules: Array<Pick<LeadSco
 
 export type SegmentFilters = { status?: string; source?: string; marketingOptIn?: boolean; cityContains?: string; projectTypeContains?: string; minScore?: number; maxScore?: number; createdWithinDays?: number }
 
-export function leadMatchesSegment(lead: ScorableLead, filters: SegmentFilters) {
+export function leadMatchesSegment(lead: ScorableLead, filters: SegmentFilters, at = new Date()) {
   if (filters.status && lead.status !== filters.status) return false
   if (filters.source && lead.source.toLowerCase() !== filters.source.toLowerCase()) return false
   if (filters.marketingOptIn !== undefined && lead.marketingOptIn !== filters.marketingOptIn) return false
@@ -43,7 +43,7 @@ export function leadMatchesSegment(lead: ScorableLead, filters: SegmentFilters) 
   if (filters.projectTypeContains && !lead.projectType?.toLowerCase().includes(filters.projectTypeContains.toLowerCase())) return false
   if (filters.minScore !== undefined && lead.score < filters.minScore) return false
   if (filters.maxScore !== undefined && lead.score > filters.maxScore) return false
-  if (filters.createdWithinDays !== undefined && lead.createdAt < new Date(Date.now() - filters.createdWithinDays * 24 * 60 * 60 * 1_000)) return false
+  if (filters.createdWithinDays !== undefined && lead.createdAt < new Date(at.getTime() - filters.createdWithinDays * 24 * 60 * 60 * 1_000)) return false
   return true
 }
 

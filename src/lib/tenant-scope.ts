@@ -9,6 +9,7 @@
 export const COMPANY_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "Agency",
   "AutomationRun",
+  "AutomationEventOutbox",
   "AutomationWorkflow",
   "AutomationWorkflowVersion",
   "BankTransaction",
@@ -31,6 +32,8 @@ export const COMPANY_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "DeliveryNote",
   "DocumentManifest",
   "EmailDelivery",
+  "EmailDraft",
+  "EmailSignature",
   "EmailEvent",
   "EmailMessage",
   "EmailSuppression",
@@ -101,6 +104,7 @@ export const COMPANY_SCOPE_SCHEMA_EXCEPTIONS = new Set(["User"] as const)
  */
 const COMPANY_RELATION_SCOPE_BUILDERS: Record<string, (companyId: string, userId: string) => Record<string, unknown>> = {
   AgencyMembership: (companyId) => ({ membership: { companyId } }),
+  AutomationRunAction: (companyId) => ({ run: { companyId } }),
   ApiKey: (_companyId, userId) => ({ userId }),
   AuditLog: (_companyId, userId) => ({ userId }),
   ClientActivity: (companyId) => ({ client: { companyId } }),

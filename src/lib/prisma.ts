@@ -3,6 +3,7 @@ import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
 import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "./demo-policy"
+import { mailboxScope, scopeMailboxIncludes } from "./communications/mailbox-access"
 
 const MUTATION_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"])
 
@@ -166,6 +167,30 @@ const prismaClientSingleton = () => {
             enforceAgencyWrite(model, operation, mutableArgs, context.agencyIds)
           }
 
+          if (context) {
+            if (["EmailDraft", "EmailSignature"].includes(model) && MUTATION_OPERATIONS.has(operation)) {
+              for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                const author = data.authorUserId ?? data.author?.connect?.id
+                if (author !== undefined && author !== context.userId) throw new Error("DRAFT_ACCESS_DENIED")
+                if (TENANT_CREATE_OPERATIONS.has(operation) || data === mutableArgs.create) data.authorUserId = context.userId
+              }
+            }
+            const scope = mailboxScope(model, context)
+            if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) appendWhereScope(mutableArgs, scope)
+            scopeMailboxIncludes(model, mutableArgs, context)
+            if (!["OWNER", "ADMIN"].includes(context.role) && MUTATION_OPERATIONS.has(operation)) {
+              const link = model === "EmailMessage" ? "threadId" : model === "OrganisationTask" ? "calendarChannelId" : ["EmailThread", "EmailDelivery", "AutomationEventOutbox"].includes(model) ? "channelId" : null
+              if (link) {
+                for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                  const linkedId = data[link] ?? data[link === "threadId" ? "thread" : link === "calendarChannelId" ? "calendarChannel" : "channel"]?.connect?.id
+                  if (typeof linkedId !== "string") continue
+                  const allowed = link === "threadId" ? await getPrisma().emailThread.count({ where: { id: linkedId } }) : await getPrisma().communicationChannel.count({ where: { id: linkedId } })
+                  if (allowed !== 1) throw new Error("MAILBOX_ACCESS_DENIED")
+                }
+              }
+            }
+          }
+
           return query(mutableArgs)
         },
       },
@@ -174,6 +199,7 @@ const prismaClientSingleton = () => {
 }
 
 type PrismaClientExtended = ReturnType<typeof prismaClientSingleton>
+export type TransactionClient = Parameters<Parameters<PrismaClientExtended["$transaction"]>[0]>[0]
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientExtended | undefined

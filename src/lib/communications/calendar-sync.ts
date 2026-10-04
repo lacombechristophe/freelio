@@ -1,4 +1,5 @@
 import "server-only"
+import { z } from "zod"
 
 import {
   calendarDurationMinutes,
@@ -12,6 +13,9 @@ import {
 import { activeCommunicationChannel, storeOAuthCalendarCursor, validOAuthCredentials, type ActiveChannel } from "@/lib/communications/email-provider"
 import { EMAIL_OAUTH_PROVIDERS, type EmailOAuthProvider } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
+import { providerFetch as fetch, safeMicrosoftContinuation } from "@/lib/integrations/provider-fetch"
+import { channelConfig, storeChannelSyncState } from "@/lib/communications/sync-state"
+import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
 
 type GooglePage = {
   items?: Array<Record<string, unknown> & { id?: string; status?: string }>
@@ -46,12 +50,6 @@ function calendarHorizon() {
   const end = new Date()
   end.setFullYear(end.getFullYear() + 1)
   return { start, end }
-}
-
-function safeMicrosoftContinuation(value: string) {
-  const url = new URL(value)
-  if (url.protocol !== "https:" || url.hostname !== "graph.microsoft.com") throw new Error("Curseur Microsoft invalide")
-  return url.toString()
 }
 
 async function persistExternalEvent(companyId: string, channel: ActiveChannel, event: ExternalCalendarEvent) {
@@ -97,88 +95,117 @@ async function persistRemoteCancellation(companyId: string, channelId: string, e
   })
 }
 
-async function googleEvents(companyId: string, channel: ActiveChannel, accessToken: string, cursor?: string) {
-  const { start, end } = calendarHorizon()
-  const events: ExternalCalendarEvent[] = []
-  let pageToken: string | undefined
-  let nextCursor: string | undefined
-  for (let page = 0; page < 10; page += 1) {
+const calendarStateSchema = z.object({ continuation: z.string().max(20_000).nullable(), cursor: z.string().max(20_000).nullable(), start: z.string().datetime(), end: z.string().datetime() })
+type CalendarState = z.infer<typeof calendarStateSchema>
+
+async function googleEvents(companyId: string, channel: ActiveChannel, accessToken: string, state: CalendarState, control: ProcessorLeaseControl) {
+  let examined = 0
+  let imported = 0
+  for (let page = 0; page < 4; page += 1) {
+    await control.assertOwned()
     const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events")
     url.searchParams.set("maxResults", "250")
     url.searchParams.set("showDeleted", "true")
     url.searchParams.set("singleEvents", "true")
-    if (cursor) url.searchParams.set("syncToken", cursor)
+    if (state.cursor) url.searchParams.set("syncToken", state.cursor)
     else {
-      url.searchParams.set("timeMin", start.toISOString())
-      url.searchParams.set("timeMax", end.toISOString())
+      url.searchParams.set("timeMin", state.start)
+      url.searchParams.set("timeMax", state.end)
       url.searchParams.set("orderBy", "startTime")
     }
-    if (pageToken) url.searchParams.set("pageToken", pageToken)
+    if (state.continuation) url.searchParams.set("pageToken", state.continuation)
     const response = await fetch(url, { headers: { authorization: `Bearer ${accessToken}` }, cache: "no-store" })
-    if (response.status === 410 && cursor) return googleEvents(companyId, channel, accessToken)
+    if (response.status === 410 && (state.cursor || state.continuation)) {
+      await storeOAuthCalendarCursor(channel, null)
+      await storeChannelSyncState(companyId, channel.id, "calendarSync", null)
+      return { examined, imported, complete: false }
+    }
     const payload = await response.json().catch(() => ({})) as GooglePage
     if (!response.ok) throw new Error(payload.error?.message || `Synchronisation Google Calendar refusée (${response.status})`)
     for (const item of payload.items || []) {
+      await control.assertOwned()
+      examined += 1
       if (item.status === "cancelled" && item.id) {
         await persistRemoteCancellation(companyId, channel.id, item.id)
         continue
       }
       const parsed = parseGoogleCalendarEvent(item)
-      if (parsed) events.push(parsed)
+      if (parsed && await persistExternalEvent(companyId, channel, parsed)) imported += 1
     }
-    pageToken = payload.nextPageToken
-    nextCursor = payload.nextSyncToken || nextCursor
-    if (!pageToken) break
+    if (!payload.nextPageToken) {
+      if (!payload.nextSyncToken) throw new Error("Le calendrier Google n’a pas fourni de checkpoint final")
+      await storeOAuthCalendarCursor(channel, payload.nextSyncToken)
+      await storeChannelSyncState(companyId, channel.id, "calendarSync", null)
+      return { examined, imported, complete: true }
+    }
+    state = { ...state, continuation: payload.nextPageToken }
+    await storeChannelSyncState(companyId, channel.id, "calendarSync", state)
   }
-  return { events, cursor: nextCursor || cursor || null }
+  return { examined, imported, complete: false }
 }
 
-async function microsoftEvents(companyId: string, channelId: string, accessToken: string, cursor?: string) {
-  const { start, end } = calendarHorizon()
-  let nextUrl = cursor
-    ? safeMicrosoftContinuation(cursor)
-    : `https://graph.microsoft.com/v1.0/me/calendarView/delta?startDateTime=${encodeURIComponent(start.toISOString())}&endDateTime=${encodeURIComponent(end.toISOString())}`
-  const events: ExternalCalendarEvent[] = []
-  let nextCursor: string | null = null
-  for (let page = 0; page < 10 && nextUrl; page += 1) {
+async function microsoftEvents(companyId: string, channel: ActiveChannel, accessToken: string, state: CalendarState, control: ProcessorLeaseControl) {
+  let nextUrl = state.continuation || state.cursor
+    ? safeMicrosoftContinuation(state.continuation || state.cursor!)
+    : `https://graph.microsoft.com/v1.0/me/calendarView/delta?startDateTime=${encodeURIComponent(state.start)}&endDateTime=${encodeURIComponent(state.end)}`
+  let examined = 0
+  let imported = 0
+  for (let page = 0; page < 4; page += 1) {
+    await control.assertOwned()
     const response = await fetch(nextUrl, {
       headers: { authorization: `Bearer ${accessToken}`, Prefer: 'outlook.timezone="UTC"' },
       cache: "no-store",
     })
     const payload = await response.json().catch(() => ({})) as MicrosoftPage
-    if (response.status === 410 && cursor) return microsoftEvents(companyId, channelId, accessToken)
+    if (response.status === 410 && (state.cursor || state.continuation)) {
+      await storeOAuthCalendarCursor(channel, null)
+      await storeChannelSyncState(companyId, channel.id, "calendarSync", null)
+      return { examined, imported, complete: false }
+    }
     if (!response.ok) throw new Error(payload.error?.message || `Synchronisation Microsoft Calendar refusée (${response.status})`)
     for (const item of payload.value || []) {
+      await control.assertOwned()
+      examined += 1
       if (item["@removed"] && item.id) {
-        await persistRemoteCancellation(companyId, channelId, item.id)
+        await persistRemoteCancellation(companyId, channel.id, item.id)
         continue
       }
       const parsed = parseMicrosoftCalendarEvent(item)
-      if (parsed) events.push(parsed)
+      if (parsed && await persistExternalEvent(companyId, channel, parsed)) imported += 1
     }
-    nextUrl = payload["@odata.nextLink"] ? safeMicrosoftContinuation(payload["@odata.nextLink"]!) : ""
-    nextCursor = payload["@odata.deltaLink"] ? safeMicrosoftContinuation(payload["@odata.deltaLink"]!) : nextCursor
+    if (!payload["@odata.nextLink"]) {
+      if (!payload["@odata.deltaLink"]) throw new Error("Le calendrier Microsoft n’a pas fourni de checkpoint final")
+      await storeOAuthCalendarCursor(channel, safeMicrosoftContinuation(payload["@odata.deltaLink"]))
+      await storeChannelSyncState(companyId, channel.id, "calendarSync", null)
+      return { examined, imported, complete: true }
+    }
+    nextUrl = safeMicrosoftContinuation(payload["@odata.nextLink"]!)
+    state = { ...state, continuation: nextUrl }
+    await storeChannelSyncState(companyId, channel.id, "calendarSync", state)
   }
-  return { events, cursor: nextCursor || cursor || null }
+  return { examined, imported, complete: false }
 }
 
-export async function syncOAuthCalendarChannel(companyId: string, channelId: string) {
+async function syncOAuthCalendarChannelUnlocked(companyId: string, channelId: string, control: ProcessorLeaseControl) {
   const channel = await activeCommunicationChannel(companyId, channelId)
+  if (channel.calendarEnabled === false) return { examined: 0, imported: 0, complete: true, disabled: true }
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Ce canal ne fournit pas de calendrier OAuth")
   const provider = channel.provider as EmailOAuthProvider
   const credentials = await validOAuthCredentials(channel)
   if (!calendarScopeGranted(provider, credentials.scope)) {
     throw new CalendarReconnectRequiredError("Reconnectez cette messagerie pour autoriser la synchronisation du calendrier")
   }
-  const result = provider === "GOOGLE"
-    ? await googleEvents(companyId, channel, credentials.accessToken, credentials.calendarCursor)
-    : await microsoftEvents(companyId, channel.id, credentials.accessToken, credentials.calendarCursor)
-  let imported = 0
-  for (const event of result.events.sort((left, right) => left.startAt.getTime() - right.startAt.getTime())) {
-    if (await persistExternalEvent(companyId, channel, event)) imported += 1
-  }
-  await storeOAuthCalendarCursor(channel, result.cursor)
-  return { examined: result.events.length, imported }
+  const stored = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, companyId }, select: { config: true } })
+  const horizon = calendarHorizon()
+  const state = calendarStateSchema.parse(channelConfig(stored.config).calendarSync || { continuation: null, cursor: credentials.calendarCursor || null, start: horizon.start.toISOString(), end: horizon.end.toISOString() })
+  return provider === "GOOGLE"
+    ? googleEvents(companyId, channel, credentials.accessToken, state, control)
+    : microsoftEvents(companyId, channel, credentials.accessToken, state, control)
+}
+
+export async function syncOAuthCalendarChannel(companyId: string, channelId: string) {
+  const result = await withProcessorLease(`calendar-sync:${channelId}`, (control) => syncOAuthCalendarChannelUnlocked(companyId, channelId, control))
+  return result.acquired ? result.value : { examined: 0, imported: 0, complete: false }
 }
 
 export async function pushOrganisationTaskToCalendar(companyId: string, taskId: string, channelId: string) {
@@ -187,6 +214,7 @@ export async function pushOrganisationTaskToCalendar(companyId: string, taskId: 
     prisma.organisationTask.findFirst({ where: { id: taskId, companyId } }),
   ])
   if (!task) throw new Error("Tâche introuvable")
+  if (channel.calendarEnabled === false) throw new Error("Le calendrier n’est pas activé pour cette messagerie")
   if (!task.scheduledDate) throw new Error("Une date planifiée est requise pour synchroniser la tâche")
   const provider = channel.provider as EmailOAuthProvider
   if (!EMAIL_OAUTH_PROVIDERS.includes(provider)) throw new Error("Sélectionnez une connexion Google ou Microsoft")
@@ -224,6 +252,7 @@ export async function deleteOrganisationTaskFromCalendar(companyId: string, task
   const task = await prisma.organisationTask.findFirst({ where: { id: taskId, companyId } })
   if (!task?.calendarChannelId || !task.calendarExternalId || !task.calendarProvider) return
   const channel = await activeCommunicationChannel(companyId, task.calendarChannelId)
+  if (channel.calendarEnabled === false) throw new Error("Le calendrier n’est pas activé pour cette messagerie")
   const credentials = await validOAuthCredentials(channel)
   const endpoint = task.calendarProvider === "GOOGLE"
     ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(task.calendarExternalId)}`

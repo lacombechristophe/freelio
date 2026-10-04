@@ -2,6 +2,7 @@ import "server-only"
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 import { z } from "zod"
+import { providerFetch as fetch } from "@/lib/integrations/provider-fetch"
 
 export const EMAIL_OAUTH_PROVIDERS = ["GOOGLE", "MICROSOFT"] as const
 export type EmailOAuthProvider = (typeof EMAIL_OAUTH_PROVIDERS)[number]
@@ -38,6 +39,8 @@ function signature(payload: string) {
 export function createEmailOAuthNonce() {
   return randomBytes(32).toString("base64url")
 }
+
+export function emailOAuthNonceHash(nonce: string) { return createHash("sha256").update(nonce).digest("hex") }
 
 export function createEmailOAuthCodeChallenge(verifier: string) {
   return createHash("sha256").update(verifier).digest("base64url")
@@ -94,14 +97,14 @@ export function isEmailOAuthConfigured(provider: EmailOAuthProvider) {
   }
 }
 
-export function buildEmailAuthorizationUrl(provider: EmailOAuthProvider, redirectUri: string, state: string, codeChallenge: string) {
+export function buildEmailAuthorizationUrl(provider: EmailOAuthProvider, redirectUri: string, state: string, codeChallenge: string, capabilities = { mailEnabled: true, calendarEnabled: true }) {
   const { clientId } = providerCredentials(provider)
   const url = new URL(provider === "GOOGLE"
     ? "https://accounts.google.com/o/oauth2/v2/auth"
     : "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize")
   const scopes = provider === "GOOGLE"
-    ? ["https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/calendar.events"]
-    : ["openid", "profile", "offline_access", "User.Read", "Mail.ReadWrite", "Mail.Send", "Calendars.ReadWrite"]
+    ? ["openid", "email", ...(capabilities.mailEnabled ? ["https://www.googleapis.com/auth/gmail.modify"] : []), ...(capabilities.calendarEnabled ? ["https://www.googleapis.com/auth/calendar.events"] : [])]
+    : ["openid", "profile", "offline_access", "User.Read", ...(capabilities.mailEnabled ? ["Mail.ReadWrite", "Mail.Send"] : []), ...(capabilities.calendarEnabled ? ["Calendars.ReadWrite"] : [])]
   url.searchParams.set("client_id", clientId)
   url.searchParams.set("redirect_uri", redirectUri)
   url.searchParams.set("response_type", "code")
@@ -153,14 +156,15 @@ export async function refreshEmailOAuthAccessToken(provider: EmailOAuthProvider,
   return { ...payload, refresh_token: payload.refresh_token || refreshToken } as OAuthTokenResponse
 }
 
-export async function fetchEmailOAuthIdentity(provider: EmailOAuthProvider, accessToken: string) {
+export async function fetchEmailOAuthIdentity(provider: EmailOAuthProvider, accessToken: string, mailEnabled = true) {
   const endpoint = provider === "GOOGLE"
-    ? "https://gmail.googleapis.com/gmail/v1/users/me/profile"
+    ? mailEnabled ? "https://gmail.googleapis.com/gmail/v1/users/me/profile" : "https://openidconnect.googleapis.com/v1/userinfo"
     : "https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName,displayName"
   const response = await fetch(endpoint, { headers: { authorization: `Bearer ${accessToken}` }, cache: "no-store" })
-  const payload = await response.json().catch(() => ({})) as { emailAddress?: string; mail?: string | null; userPrincipalName?: string; displayName?: string }
+  const payload = await response.json().catch(() => ({})) as { email?: string; email_verified?: boolean; emailAddress?: string; mail?: string | null; userPrincipalName?: string; displayName?: string }
   if (!response.ok) throw new Error("Impossible de vérifier le compte autorisé")
-  const addresses = [payload.emailAddress, payload.mail, payload.userPrincipalName].filter((value): value is string => Boolean(value)).map((value) => value.trim().toLowerCase())
+  if (payload.email_verified === false) throw new Error("Adresse Google non vérifiée")
+  const addresses = [payload.email, payload.emailAddress, payload.mail, payload.userPrincipalName].filter((value): value is string => Boolean(value)).map((value) => value.trim().toLowerCase())
   if (!addresses.length) throw new Error("Le fournisseur n’a retourné aucune adresse de messagerie")
   return { addresses, displayName: payload.displayName || null }
 }

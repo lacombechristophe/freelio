@@ -8,6 +8,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { nextSequenceExecution } from "@/lib/automations/schedule"
 import { evaluateCampaignAudience } from "@/lib/marketing/campaign-audience"
 import prisma from "@/lib/prisma"
+import { pinSequenceSender } from "@/lib/communications/email-provider"
 
 const cuid = z.string().cuid()
 const channelSchema = z.enum(["EMAIL", "SMS", "FORM", "SOCIAL", "ADS", "EVENT", "CONTENT"])
@@ -237,6 +238,8 @@ export async function enrollCampaignAudience(input: unknown) {
           id: true,
           name: true,
           status: true,
+          startAt: true,
+          endAt: true,
           segment: {
             select: {
               _count: { select: { memberships: { where: { leadCapture: { companyId } } } } },
@@ -263,7 +266,7 @@ export async function enrollCampaignAudience(input: unknown) {
       }),
       prisma.emailSequence.findFirst({
         where: { id: data.sequenceId, companyId, campaignId: data.campaignId, status: "ACTIVE" },
-        include: { steps: { orderBy: { position: "asc" }, take: 1 } },
+        include: { steps: { orderBy: { position: "asc" } } },
       }),
     ])
     if (!campaign) throw new Error("Campagne introuvable")
@@ -272,6 +275,7 @@ export async function enrollCampaignAudience(input: unknown) {
     if (!sequence) throw new Error("Choisissez une séquence active rattachée à cette campagne")
     if (!sequence.steps[0]) throw new Error("La séquence ne contient aucune étape")
     if (!["PLANNED", "ACTIVE"].includes(campaign.status)) throw new Error("Planifiez ou activez la campagne avant d’inscrire son audience")
+    if (campaign.endAt && campaign.endAt <= new Date()) throw new Error("La période de cette campagne est terminée")
 
     const leads = campaign.segment.memberships.map((membership) => membership.leadCapture)
     const existing = leads.length
@@ -289,11 +293,14 @@ export async function enrollCampaignAudience(input: unknown) {
     const leadsById = new Map(leads.map((lead) => [lead.id, lead]))
     const firstStep = sequence.steps[0]
     const enrolledAt = new Date()
-    const nextSendAt = nextSequenceExecution(enrolledAt, firstStep.delayHours, sequence)
+    const nextSendAt = nextSequenceExecution(campaign.startAt && campaign.startAt > enrolledAt ? campaign.startAt : enrolledAt, firstStep.delayHours, sequence)
 
     if (eligibleIds.length) {
+      if (sequence.steps.some((step) => step.type === "EMAIL")) await pinSequenceSender(companyId, sequence.id)
       for (let offset = 0; offset < eligibleIds.length; offset += 200) {
         const batch = eligibleIds.slice(offset, offset + 200)
+        const current = await prisma.marketingCampaign.findFirst({ where: { id: campaign.id, companyId }, select: { status: true, endAt: true } })
+        if (!current || !["PLANNED", "ACTIVE"].includes(current.status) || (current.endAt && current.endAt <= new Date())) throw new Error("La campagne ne permet plus de nouvelles inscriptions")
         await prisma.$transaction(
           batch.map((leadCaptureId) => {
             const lead = leadsById.get(leadCaptureId)
@@ -315,7 +322,6 @@ export async function enrollCampaignAudience(input: unknown) {
     }
 
     await Promise.all([
-      prisma.marketingCampaign.update({ where: { id: campaign.id }, data: { status: "ACTIVE" } }),
       logAction({
         userId,
         action: "ENROLL_MARKETING_CAMPAIGN_AUDIENCE",
