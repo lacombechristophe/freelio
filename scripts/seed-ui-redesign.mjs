@@ -38,6 +38,15 @@ try {
     await prisma.emailThread.upsert({ where: { id }, update: {}, create: { id, companyId, channelId, clientId: recipientClientId, contactId: "cuiqarecipient000000000550", subject } })
     await prisma.emailMessage.upsert({ where: { id: `cuiqareplymessage${String(index).padStart(9, "0")}` }, update: {}, create: { id: `cuiqareplymessage${String(index).padStart(9, "0")}`, companyId, threadId: id, direction: "INBOUND", provider: "RESEND", providerId: `fixture-reply-${index}`, internetMessageId: `<fixture-reply-${index}@example.test>`, fromAddress: "recipient550@example.test", toAddresses: [index ? disconnected.emailAddress : mailbox.emailAddress], subject, bodyText: "Données fictives de recette de réponse", status: "RECEIVED" } })
   }
+  const replyAllThreadId = "cuiqareplyallthread000000"
+  const replyAllSubject = "UIQA Reply all paginated"
+  await prisma.emailThread.upsert({ where: { id: replyAllThreadId }, update: {}, create: { id: replyAllThreadId, companyId, channelId: mailbox.id, clientId: recipientClientId, contactId: "cuiqarecipient000000000550", subject: replyAllSubject } })
+  await prisma.emailMessage.upsert({ where: { id: "cuiqareplyallincoming0000" }, update: {}, create: { id: "cuiqareplyallincoming0000", companyId, threadId: replyAllThreadId, direction: "INBOUND", provider: "RESEND", internetMessageId: "<reply-all-incoming@example.test>",
+    fromAddress: "recipient550@example.test", toAddresses: [mailbox.emailAddress, "Copy@example.test", "recipient550@example.test"], ccAddresses: ["copy@example.test", '"Fiction, Other" <Other@example.test>'], bccAddresses: ["hidden@example.test"], subject: replyAllSubject, bodyText: "Incoming copies outside the displayed page", createdAt: new Date("2020-01-01"), status: "RECEIVED" } })
+  for (let index = 0; index < 30; index++) {
+    const id = `cuiqareplyalloutgoing${String(index).padStart(4, "0")}`
+    await prisma.emailMessage.upsert({ where: { id }, update: {}, create: { id, companyId, threadId: replyAllThreadId, direction: "OUTBOUND", provider: "RESEND", fromAddress: mailbox.emailAddress, toAddresses: ["recipient550@example.test"], ccAddresses: ["outgoing-only@example.test"], subject: replyAllSubject, bodyText: `Fictional outgoing ${index}`, createdAt: new Date(Date.UTC(2020, 1, 1, 0, index)), status: "SENT" } })
+  }
   for (let index = 0; index < 125; index++) {
     const id = `cuiqainbox${String(index).padStart(15, "0")}`
     await prisma.emailThread.upsert({ where: { id }, update: {}, create: { id, companyId, channelId: mailbox.id, subject: `UIQA Inbox ${String(index).padStart(3, "0")}`, lastMessageAt: new Date(Date.UTC(2020, 0, 1, 0, index)) } })

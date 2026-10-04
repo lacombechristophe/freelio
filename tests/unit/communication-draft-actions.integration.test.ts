@@ -17,7 +17,7 @@ vi.mock("@/lib/communications/email-provider", async original => {
 })
 
 import prisma from "@/lib/prisma"
-import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail } from "@/actions/communications"
+import { getCommunicationDraft, saveCommunicationDraft, sendCrmEmail, saveCommunicationSignature, previewCommunicationEmail, getCommunicationReplyAll } from "@/actions/communications"
 import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 
 describe.sequential("composer draft actions through tenant scopes and durable manual delivery", () => {
@@ -104,5 +104,21 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     }
     expect(await prisma.emailDraft.count({ where: { companyId: actor.companyId } })).toBe(1)
     expect(await getCommunicationDraft(saved.draft.id)).toMatchObject({ subject: fields.subject, version: 1 })
+  })
+
+  it("prepares reply-all copies as a scoped read in the public demo without creating a draft or delivery", async () => {
+    const fields = await fixture()
+    const thread = await prisma.emailThread.create({ data: { companyId: actor.companyId, channelId: fields.channelId, contactId: fields.contactId, subject: "Fictional incoming", messages: { create: {
+      companyId: actor.companyId, direction: "INBOUND", provider: "RESEND", fromAddress: "recipient@example.test", toAddresses: ["sender@example.test"], ccAddresses: ["copy@example.test"], bccAddresses: ["hidden@example.test"], subject: "Fictional incoming",
+    } } } })
+    vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
+    expect(await getCommunicationReplyAll(thread.id)).toEqual({ success: true, reply: { threadId: thread.id, channelId: fields.channelId, contactId: fields.contactId, cc: ["copy@example.test"] } })
+    expect(await prisma.emailDraft.count({ where: { companyId: actor.companyId } })).toBe(0)
+    expect(await prisma.emailDelivery.count({ where: { companyId: actor.companyId } })).toBe(0)
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+    vi.unstubAllEnvs()
+    await prisma.emailMessage.updateMany({ where: { threadId: thread.id }, data: { direction: "OUTBOUND" } })
+    vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
+    expect(await getCommunicationReplyAll(thread.id)).toMatchObject({ success: false, error: expect.stringContaining("Aucun message reçu") })
   })
 })

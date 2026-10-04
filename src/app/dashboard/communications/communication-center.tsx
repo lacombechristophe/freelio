@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
@@ -305,19 +305,28 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     router.refresh()
   }
 
-  async function prepareReply() {
+  async function prepareReply(replyAll = false) {
     if (!selected?.contact?.id) return toast.error("Associez cette conversation à un contact avant de répondre.")
     const mailbox = activeChannels.find(channel => channel.id === selected.channelId && channel.mailEnabled !== false)
     if (!mailbox) return toast.error("La boîte de cette conversation est déconnectée ou ne permet plus l’envoi ; reconnectez-la avant de répondre.")
     if (!await mayReplaceComposition()) return
-    setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice(""); setCc(""); setBcc("")
-    setReplyThreadId(selected.id)
-    setChannelId(mailbox.id)
-    setContactId(selected.contact.id)
-    setSubject(`Re: ${selected.subject}`)
-    setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
-    setAutosaveBlocked(false); setFailedSnapshot(""); pauseAutosave(false)
-    handleTabChange("compose")
+    const contact = selected.contact
+    run(async () => {
+      try {
+        let copies: string[] = []
+        if (replyAll) {
+          const result = await getCommunicationReplyAll(selected.id)
+          if (!result.success) throw new Error(result.error)
+          if (result.reply.channelId !== mailbox.id || result.reply.contactId !== contact.id) throw new Error("Cette conversation a changé ; actualisez-la avant de répondre à tous")
+          copies = result.reply.cc
+        }
+        setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice(""); setCc(copies.join(", ")); setBcc("")
+        setReplyThreadId(selected.id); setChannelId(mailbox.id); setContactId(contact.id)
+        setSubject(`Re: ${selected.subject}`); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+        setAutosaveBlocked(false); setFailedSnapshot("")
+        handleTabChange("compose")
+      } finally { pauseAutosave(false) }
+    })
   }
 
   function previewComposition() {
@@ -362,7 +371,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
               requestAnimationFrame(() => threadListRef.current?.querySelector<HTMLButtonElement>('[data-selected="true"]')?.focus())
             }}><ArrowLeft />Retour aux conversations</Button></div>
             {selected ? <>
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); await loadInbox(); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" onClick={prepareReply}><Reply />Répondre</Button></div></div>
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); await loadInbox(); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" onClick={() => void prepareReply()}><Reply />Répondre</Button><Button size="sm" onClick={() => void prepareReply(true)}><Reply />Répondre à tous</Button></div></div>
             <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{hasPreviousMessages ? <Button variant="outline" size="sm" disabled={isPending} onClick={loadPreviousMessages}>Messages précédents</Button> : null}{selectedMessages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold">{message.direction === "OUTBOUND" ? initialData.company.name : message.fromAddress}</p><Badge variant="outline">{message.direction === "OUTBOUND" ? "Sortant" : "Entrant"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">À : {recipients(message.toAddresses)}</p></div><time className="text-xs text-muted-foreground">{formatDate(message.sentAt || message.receivedAt || message.createdAt)}</time></div>
               <p className="mt-3 text-sm font-medium">{message.subject}</p><p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{message.bodyText || message.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun contenu texte"}</p>
