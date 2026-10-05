@@ -54,7 +54,10 @@ test("rejects a stale signing page, renews its capture and durably archives the 
   await expect(signing.getByText(/Son PDF archivé est en préparation/)).toBeVisible()
   const processed = await page.request.post("/api/scheduling/process", { headers: { authorization: `Bearer ${secret}` } })
   expect(processed.ok()).toBe(true)
-  expect((await processed.json()).contractArchives).toMatchObject({ generated: 1, failed: 0 })
+  const archives = (await processed.json()).contractArchives
+  expect(archives.failed).toBe(0)
+  // The global cron also archives agreements signed by preceding critical flows.
+  expect(archives.generated).toBeGreaterThanOrEqual(1)
   const pdf = await page.request.get(`/api/pdf/contrat/${id}`)
   expect(pdf.ok()).toBe(true)
   expect(pdf.headers()["content-type"]).toBe("application/pdf")

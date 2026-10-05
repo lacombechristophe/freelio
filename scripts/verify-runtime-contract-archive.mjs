@@ -1,12 +1,14 @@
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { PDFDocument } from "pdf-lib"
-import prisma from "../src/lib/prisma.ts"
+import importedPrisma from "../src/lib/prisma.ts"
 import { prepareContractSnapshot, sealContractSnapshot, processDueContractArchives, readContractArchive } from "../src/lib/contracts/archive.ts"
 
 // Synthetic signature fixture, never a real signer or the public signing API.
 const database = new URL(process.env.DATABASE_URL || "")
 if (process.env.RECIPE_ISOLATED !== "true" || !/^\/freelio_demo_linux_[a-f0-9]+$/.test(database.pathname)) throw Error("Recette Linux fictive explicite requise")
+// tsx exposes this TypeScript default through a CommonJS namespace in the image.
+const prisma = typeof importedPrisma.$disconnect === "function" ? importedPrisma : importedPrisma.default
 const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jskYAAAAASUVORK5CYII="
 try {
   assert.notEqual(process.getuid?.(), 0, "Utilisateur runtime sans privilèges requis")
