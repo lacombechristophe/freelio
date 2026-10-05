@@ -11,6 +11,7 @@ import { generatePdfFromHtml } from "@/lib/pdf/generator"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { hasExpectedSignature, readLocalFile, storeFileBytes } from "@/lib/local-files"
 import { isIssuedInvoice, readIssuedInvoice } from "@/lib/finance/issued-invoice"
+import { readContractArchive } from "@/lib/contracts/archive"
 import { assertEditableDraft, addEmailDraftAttachment } from "./draft-attachments"
 import { getEmailDraft, readEmailDraft } from "./drafts"
 import { emailAttachmentsSchema, emailAttachmentMetadataSchema, MAX_EMAIL_FILE_BYTES } from "./attachment-types"
@@ -18,7 +19,7 @@ import { readCurrentQuoteCopy, captureQuoteCopy } from "./quote-copy"
 import { EmailCrmDocumentError } from "./crm-document-error"
 
 export { EmailCrmDocumentError } from "./crm-document-error"
-const kind = z.enum(["CLIENT_FILE", "ISSUED_INVOICE", "QUOTE_COPY"])
+const kind = z.enum(["CLIENT_FILE", "ISSUED_INVOICE", "QUOTE_COPY", "SIGNED_CONTRACT"])
 const querySchema = z.object({ draftId: z.string().cuid(), kind, search: z.string().trim().max(200).default(""), page: z.number().int().positive().max(100_000).default(1) })
 const attachSchema = z.object({ draftId: z.string().cuid(), version: z.number().int().positive(), kind, sourceId: z.string().cuid(), sourceHash: z.string().regex(/^[a-f0-9]{64}$/), attachmentId: z.string().uuid() })
 const types = ["application/pdf", "image/png", "image/jpeg"]
@@ -28,7 +29,7 @@ const fileName = (name: string) => name.replace(/[\x00-\x1f\x7f/\\]/g, "_").slic
 function assertActor(companyId: string, userId: string, sourceKind: z.infer<typeof kind>) {
   const actor = getContext()
   if (!actor || actor.companyId !== companyId || actor.userId !== userId || !hasPermission(actor.role, "automation.read")) throw new EmailCrmDocumentError("Documents inaccessibles")
-  if (!hasPermission(actor.role, sourceKind === "ISSUED_INVOICE" ? "finance.read" : sourceKind === "QUOTE_COPY" ? "sales.read" : "crm.read")) throw new EmailCrmDocumentError("Vous n’avez pas les droits de lecture de ces documents")
+  if (!hasPermission(actor.role, sourceKind === "ISSUED_INVOICE" ? "finance.read" : sourceKind === "QUOTE_COPY" || sourceKind === "SIGNED_CONTRACT" ? "sales.read" : "crm.read")) throw new EmailCrmDocumentError("Vous n’avez pas les droits de lecture de ces documents")
   return actor
 }
 
@@ -50,8 +51,8 @@ function assertStoredReference(reference: string, companyId: string, storageKind
 }
 
 export type CrmEmailDocumentPage = {
-  kind: z.infer<typeof kind>; clientId: string; total: number; page: number; pageCount: number; canReadInvoices: boolean; canReadQuotes: boolean
-  documents: { id: string; name: string; type: string; size: number | null; sourceHash: string; date: string; quoteVersion?: number }[]
+  kind: z.infer<typeof kind>; clientId: string; total: number; page: number; pageCount: number; canReadInvoices: boolean; canReadQuotes: boolean; canReadContracts: boolean
+  documents: { id: string; name: string; type: string; size: number | null; sourceHash: string; date: string; quoteVersion?: number; title?: string }[]
 }
 
 export async function listCrmEmailDocuments(companyId: string, userId: string, input: unknown): Promise<CrmEmailDocumentPage> {
@@ -61,8 +62,14 @@ export async function listCrmEmailDocuments(companyId: string, userId: string, i
   const actor = assertActor(companyId, userId, query.kind)
   const { clientId } = await clientForDraft(companyId, userId, query.draftId)
   const contains = { contains: query.search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
-  const capabilities = { canReadInvoices: hasPermission(actor.role, "finance.read"), canReadQuotes: hasPermission(actor.role, "sales.read") }
+  const capabilities = { canReadInvoices: hasPermission(actor.role, "finance.read"), canReadQuotes: hasPermission(actor.role, "sales.read"), canReadContracts: hasPermission(actor.role, "sales.read") }
   const result = await prisma.$transaction(async tx => {
+    if (query.kind === "SIGNED_CONTRACT") {
+      const where: Prisma.ContractWhereInput = { companyId, clientId, status: "SIGNED", archiveStatus: "READY", signedDocument: { not: null }, pdfUrl: { not: null }, pdfHash: { not: null }, signatures: { some: {} }, ...(query.search ? { OR: [{ number: contains }, { title: contains }] } : {}) }
+      const total = await tx.contract.count({ where }), pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(query.page, pageCount)
+      const rows = await tx.contract.findMany({ where, select: { id: true, number: true, title: true, pdfHash: true, signatures: { orderBy: [{ signedAt: "desc" }, { id: "desc" }], take: 1, select: { signedAt: true } } }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25 })
+      return { kind: query.kind, clientId, total, page, pageCount, ...capabilities, documents: rows.map(row => ({ id: row.id, name: fileName(`${row.number}.pdf`), title: row.title, type: "application/pdf", size: null, sourceHash: row.pdfHash!, date: row.signatures[0].signedAt.toISOString() })) }
+    }
     if (query.kind === "QUOTE_COPY") {
       const where: Prisma.QuoteWhereInput = { companyId, clientId, versions: { some: {} }, ...(query.search ? { OR: [{ number: contains }, { object: contains }] } : {}) }
       const total = await tx.quote.count({ where }), pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(query.page, pageCount)
@@ -101,7 +108,7 @@ async function captureForEmail(source: Awaited<ReturnType<typeof readCurrentQuot
   }
 }
 
-async function quoteAuthor(companyId: string, userId: string) {
+async function salesDocumentAuthor(companyId: string, userId: string) {
   const member = await prisma.membership.findUnique({ where: { companyId_userId: { companyId, userId } }, select: {
     id: true, status: true, role: true, agencyMemberships: { where: { agency: { active: true } }, select: { agencyId: true } },
   } })
@@ -114,7 +121,7 @@ async function quoteAuthor(companyId: string, userId: string) {
 async function attachQuoteCopy(companyId: string, userId: string, query: z.infer<typeof attachSchema>, clientId: string) {
   const result = await withProcessorLease("crm-quote-pdf", async control => {
     const signal = AbortSignal.any([control.signal, AbortSignal.timeout(45_000)])
-    return requestContext.run(await quoteAuthor(companyId, userId), async () => {
+    return requestContext.run(await salesDocumentAuthor(companyId, userId), async () => {
       const draft = await assertEditableDraft(companyId, userId, query.draftId, query.version)
       const files = emailAttachmentsSchema.parse(draft.attachments)
       if (files.length >= 5 || files.some(file => file.source?.kind === "QUOTE_COPY" && file.source.id === query.sourceId && file.source.fingerprint === query.sourceHash)) throw new EmailCrmDocumentError("Limites ou copie du devis déjà présente ; aucune génération engagée")
@@ -125,7 +132,7 @@ async function attachQuoteCopy(companyId: string, userId: string, query: z.infer
       catch (error) { throw new EmailCrmDocumentError("Génération du devis impossible ou délai dépassé ; aucune copie enregistrée", { cause: error }) }
       if (bytes.length > MAX_EMAIL_FILE_BYTES || !hasExpectedSignature("application/pdf", bytes)) throw new EmailCrmDocumentError("PDF du devis invalide ou supérieur à 5 Mo ; aucune copie enregistrée")
       const metadata = emailAttachmentMetadataSchema.parse({ id: query.attachmentId, name: fileName(`${copy.number}-v${copy.quoteVersion}-copie.pdf`), type: "application/pdf", size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") })
-      return requestContext.run(await quoteAuthor(companyId, userId), () => addEmailDraftAttachment(companyId, userId, query.draftId, query.version, metadata, async () => {
+      return requestContext.run(await salesDocumentAuthor(companyId, userId), () => addEmailDraftAttachment(companyId, userId, query.draftId, query.version, metadata, async () => {
         await control.assertOwned(); signal.throwIfAborted()
         const current = await clientForDraft(companyId, userId, query.draftId)
         if (current.clientId !== clientId) throw new EmailCrmDocumentError("Le client destinataire a changé ; actualisez la sélection")
@@ -164,6 +171,11 @@ export async function attachCrmEmailDocument(companyId: string, userId: string, 
       bytes = await readLocalFile(source.url, source.size)
       if (bytes.length !== source.size) throw new EmailCrmDocumentError("Taille du document invalide")
       name = fileName(source.name); type = source.type
+    } else if (query.kind === "SIGNED_CONTRACT") {
+      const source = await prisma.contract.findFirst({ where: { id: query.sourceId, companyId, clientId, status: "SIGNED", signatures: { some: {} } } })
+      if (!source || source.pdfHash !== query.sourceHash) throw new EmailCrmDocumentError("Contrat archivé indisponible ou modifié ; actualisez la sélection")
+      bytes = (await readContractArchive(source, MAX_EMAIL_FILE_BYTES)).pdf
+      name = fileName(`${source.number}.pdf`); type = "application/pdf"
     } else {
       const source = await prisma.invoice.findFirst({ where: { id: query.sourceId, companyId, clientId }, select: { id: true, companyId: true, number: true, status: true, lockedAt: true, issuedDocument: true, pdfUrl: true, pdfHash: true } })
       if (!source || !isIssuedInvoice(source) || source.pdfHash !== query.sourceHash || !source.pdfUrl) throw new EmailCrmDocumentError("Facture archivée indisponible ou modifiée ; actualisez la sélection")
@@ -177,10 +189,11 @@ export async function attachCrmEmailDocument(companyId: string, userId: string, 
     throw new EmailCrmDocumentError("Document absent, invalide ou supérieur à 5 Mo ; aucun PDF n’a été régénéré")
   }
   const metadata = emailAttachmentMetadataSchema.parse({ id: query.attachmentId, name, type, size: bytes.length, sha256: query.sourceHash })
-  return addEmailDraftAttachment(companyId, userId, draft.id, query.version, metadata, async () => {
+  const copy = () => addEmailDraftAttachment(companyId, userId, draft.id, query.version, metadata, async () => {
     // Recheck the draft's recipient inside its mutation lease before storage.
     const current = await clientForDraft(companyId, userId, draft.id)
     if (current.clientId !== clientId) throw new EmailCrmDocumentError("Le client destinataire a changé ; actualisez la sélection")
     return storeFileBytes({ companyId, kind: "email-draft", resourceId: draft.id, originalName: metadata.name, type: metadata.type, bytes })
   })
+  return query.kind === "SIGNED_CONTRACT" ? requestContext.run(await salesDocumentAuthor(companyId, userId), copy) : copy()
 }

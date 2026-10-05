@@ -1,16 +1,19 @@
-import { afterAll, expect, it } from "vitest"
+import { afterAll, expect, it, vi } from "vitest"
 import { PrismaClient } from "@prisma/client"
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises"
 import { execFileSync, spawnSync } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
 import path from "node:path"
 import os from "node:os"
+import { encrypt, decrypt } from "@/lib/crypto"
 
 let database: PrismaClient | undefined
-afterAll(async () => { await database?.$disconnect() })
+afterAll(async () => { await database?.$disconnect(); vi.unstubAllEnvs() })
 
 it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQLite demo snapshot with unchanged IDs, amounts and attached file bytes, and rejects tampering", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "demo-native-qa-"))
+  const fictionalEncryptionKey = "native-fictitious-contract-key-longer-than-thirty-two-characters"
+  vi.stubEnv("ENCRYPTION_KEY", fictionalEncryptionKey)
   const databasePath = path.join(directory, "demo.db")
   const env = { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, TEMP: directory, TMP: directory, NODE_ENV: "test" as const, DATABASE_URL: `file:${databasePath.replaceAll("\\", "/")}`, CHECKPOINT_DISABLE: "1", NODE_OPTIONS: process.env.NODE_OPTIONS }
   execFileSync(process.execPath, ["node_modules/prisma/build/index.js", "db", "push", "--skip-generate", "--schema", "prisma/schema.prisma"], { env, stdio: "pipe", timeout: 30_000 })
@@ -39,7 +42,12 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   } })
   await mkdir(path.join(directory, "data", "files", path.dirname(privateKey)), { recursive: true })
   await writeFile(path.join(directory, "data", "files", privateKey), privateBytes)
-  await writeFile(path.join(directory, "demo-access.json"), JSON.stringify({ schema: "freelio.local-demo.v1", authSecret: "synthetic-auth", encryptionKey: "synthetic-encryption", password: "synthetic-password" }))
+  const contract = await database.contract.create({ data: { companyId: company.id, clientId: client.id, number: "DEMO-CONTRACT-001", title: "Synthetic signed agreement", content: "Synthetic source", status: "SIGNED" } })
+  const contractBytes = Buffer.from("%PDF-native synthetic signed contract"), contractKey = `${company.id}/generated/${contract.id}/archive.pdf`
+  const signedCapture = { version: 1, contractId: contract.id, companyId: company.id, clientId: client.id, html: "<p>Frozen fictional signed agreement</p>", content: "Frozen fictional agreement", documentHash: "a".repeat(64), signedAt: "2026-10-05T00:00:00.000Z" }
+  const signedContract = await database.contract.update({ where: { id: contract.id }, data: { signedDocument: encrypt(JSON.stringify(signedCapture)), pdfUrl: `local:${contractKey}`, pdfHash: createHash("sha256").update(contractBytes).digest("hex"), archiveStatus: "READY", archiveAttempts: 1 } })
+  await mkdir(path.join(directory, "data", "files", path.dirname(contractKey)), { recursive: true }); await writeFile(path.join(directory, "data", "files", contractKey), contractBytes)
+  await writeFile(path.join(directory, "demo-access.json"), JSON.stringify({ schema: "freelio.local-demo.v1", authSecret: "synthetic-auth", encryptionKey: fictionalEncryptionKey, password: "synthetic-password" }))
   const before = await database.invoice.findUniqueOrThrow({ where: { id: invoice.id }, include: { lines: true } })
   const backup = JSON.parse(execFileSync(process.execPath, ["scripts/backup-demo.mjs", "--dir", directory], { env, encoding: "utf8", timeout: 30_000 }))
   const restored = JSON.parse(execFileSync(process.execPath, ["scripts/backup-demo.mjs", "--restore", backup.backupDirectory], { env, encoding: "utf8", timeout: 30_000 }))
@@ -51,6 +59,10 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
     expect(await readFile(path.join(restored.restoredDirectory, "data", "files", fileKey))).toEqual(bytes)
     expect(await recovered.emailDraft.findUniqueOrThrow({ where: { id: draft.id } })).toEqual(privateDraft)
     expect(await recovered.emailSignature.findUniqueOrThrow({ where: { id: signature.id } })).toEqual(signature)
+    const restoredContract = await recovered.contract.findUniqueOrThrow({ where: { id: contract.id } })
+    expect(restoredContract).toEqual(signedContract)
+    expect(JSON.parse(decrypt(restoredContract.signedDocument!))).toEqual(signedCapture)
+    expect(await readFile(path.join(restored.restoredDirectory, "data", "files", contractKey))).toEqual(contractBytes)
     expect(await readFile(path.join(restored.restoredDirectory, "data", "files", privateKey))).toEqual(privateBytes)
     expect(await readFile(path.join(restored.restoredDirectory, "demo-access.json"))).toEqual(await readFile(path.join(directory, "demo-access.json")))
   } finally { await recovered.$disconnect() }

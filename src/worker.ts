@@ -46,8 +46,8 @@ const processScheduling = async () => {
     const lease = await withProcessorLease("business-scheduling", processScheduledBusinessJobs)
     if (!lease.acquired) return
     const result = lease.value
-    const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled + result.invoiceReminders.sent + result.invoiceReminders.failed + result.scheduledEmails.sent + result.scheduledEmails.failed
-    if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s), ${result.scheduledEmails.sent} scheduled email(s), ${result.scheduledEmails.failed} scheduled email failure(s).`)
+    const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled + result.invoiceReminders.sent + result.invoiceReminders.failed + result.scheduledEmails.sent + result.scheduledEmails.failed + result.contractArchives.generated + result.contractArchives.failed
+    if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s), ${result.scheduledEmails.sent} scheduled email(s), ${result.scheduledEmails.failed} scheduled email failure(s), ${result.contractArchives.generated} contract archive(s), ${result.contractArchives.failed} contract archive failure(s).`)
   } catch (error) {
     console.error(`[Worker] Business scheduling failed: ${error instanceof Error ? error.message : "unknown error"}`)
   }

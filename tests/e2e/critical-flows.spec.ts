@@ -213,8 +213,13 @@ test("new local-first surfaces load and their primary controls respond", async (
     await contractLinks.first().click()
     await expect(page.getByText("Vérifications du document", { exact: true })).toBeVisible()
     const contractPreview = await page.request.get(`${contractHref?.replace("/dashboard/contrats", "/api/pdf/contrat")}?screen=1`)
-    expect(contractPreview.ok()).toBeTruthy()
-    expect(await contractPreview.text()).toContain("Contrat")
+    if (contractPreview.status() === 409) {
+      expect(await contractPreview.json()).toEqual({ error: "Archive historique indisponible" })
+      await expect(page.getByText("Archive historique indisponible", { exact: true })).toBeVisible()
+    } else {
+      expect(contractPreview.ok()).toBeTruthy()
+      expect(await contractPreview.text()).toContain("Contrat")
+    }
   } else {
     testInfo.annotations.push({
       type: "note",

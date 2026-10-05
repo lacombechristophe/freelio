@@ -232,6 +232,7 @@ const FILE_FIELDS: Record<string, Array<{ field: string; size?: string; sha256?:
   ProjectFile: [{ field: "url", size: "size", sha256: "sha256" }],
   InterventionFile: [{ field: "url", size: "size", sha256: "sha256" }],
   Invoice: [{ field: "pdfUrl", sha256: "pdfHash" }],
+  Contract: [{ field: "pdfUrl", sha256: "pdfHash" }],
   ExpenseFile: [{ field: "url", size: "size", sha256: "sha256" }],
   DocumentManifest: [{ field: "storageKey", size: "size", sha256: "sha256", reader: "MIGRATION" }],
   EInvoiceLog: [{ field: "xmlUrl" }],
@@ -242,6 +243,7 @@ const DATE_FIELDS = new Set([
   "happenedAt", "startDate", "endDate", "plannedStartAt", "dueDate", "validUntil", "date", "signedAt",
   "nextGenDate", "periodStart", "periodEnd", "scheduledDate", "recurrenceEnd", "resolvedAt",
   "domainExpiresAt", "lockedAt", "sentAt", "importedAt", "lastUsed", "validFrom",
+  "archiveNextAttemptAt",
 ])
 
 function normalizeRecord(record: Record<string, any>, omitted: string[] = []): any {

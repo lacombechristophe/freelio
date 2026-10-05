@@ -60,6 +60,23 @@ try {
     const line = { sectionId, label: "Fictional installation", quantity: 1, unitPriceCents: 10000, tvaRate: 20, order: 0 }
     await prisma.quoteLine.upsert({ where: { id: `cuiqacrmquoteline${String(index).padStart(8, "0")}` }, update: line, create: { id: `cuiqacrmquoteline${String(index).padStart(8, "0")}`, ...line } })
   }
+  // Explicit synthetic archives, distinct from historical signed documents below.
+  for (let index = 0; index < 31; index++) {
+    const id = `cuiqacrmcontract${String(index).padStart(9, "0")}`, number = `UIQA-CRM-CONTRACT-${String(index).padStart(3, "0")}`
+    const signedAt = new Date(Date.UTC(2020, 0, 1, 0, index)), key = `${companyId}/generated/${id}/fictional-signed-contract.pdf`
+    const bytes = Buffer.from(`%PDF-fictional immutable signed contract ${index}`), target = path.join(process.cwd(), "data", "files", key)
+    await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, bytes)
+    const signedDocument = encrypt(JSON.stringify({ version: 1, contractId: id, companyId, clientId: recipientClientId, html: `<p>Fictional captured signed contract ${index}</p>`, content: `<p>Fictional captured agreement ${index}</p>`, documentHash: createHash("sha256").update(`fictional presented contract ${index}`).digest("hex"), signedAt: signedAt.toISOString() }))
+    const data = { companyId, clientId: recipientClientId, number, title: `Fictional archived agreement ${index}`, content: "Fictional original source", status: "SIGNED", createdAt: signedAt, signedDocument, pdfUrl: `local:${key}`, pdfHash: createHash("sha256").update(bytes).digest("hex"), archiveStatus: "READY", archiveAttempts: 1, archiveNextAttemptAt: null }
+    await prisma.contract.upsert({ where: { id }, update: data, create: { id, ...data } })
+    const signature = { contractId: id, signerName: "Fictional signatory", signerEmail: "recette0@example.test", signedAt }
+    await prisma.contractSignature.upsert({ where: { id: `cuiqacrmcontractsign${String(index).padStart(5, "0")}` }, update: signature, create: { id: `cuiqacrmcontractsign${String(index).padStart(5, "0")}`, ...signature } })
+  }
+  for (const surface of ["desktop", "mobile"]) {
+    const id = `cuiqacontractfreeze${surface}`, data = { companyId, clientId: recipientClientId, number: `UIQA-FROZEN-${surface.toUpperCase()}`, title: "Fictional signing capture", content: "<p>Agreement for {{client.name}} from {{entreprise.name}}.</p>", status: "DRAFT", signedDocument: null, pdfUrl: null, pdfHash: null, archiveStatus: null, archiveAttempts: 0, archiveNextAttemptAt: null, archiveError: null, createdAt: new Date("2020-01-01") }
+    await prisma.contractSigningToken.deleteMany({ where: { contractId: id } }); await prisma.contractSignature.deleteMany({ where: { contractId: id } })
+    await prisma.contract.upsert({ where: { id }, update: data, create: { id, ...data } })
+  }
   await prisma.contract.upsert({ where: { companyId_number: { companyId, number: "UIQA-CONTRACT" } }, update: {}, create: { companyId, clientId: "cuiqaclient00000000000000", number: "UIQA-CONTRACT", title: "Contrat de recette", content: "<h2>Prestations</h2><p>Installation et contrôle des équipements du client.</p>" } })
   await prisma.contract.upsert({ where: { companyId_number: { companyId, number: "UIQA-SIGNED" } }, update: {}, create: { id: "cuiqacontractsigned000000", companyId, clientId: "cuiqaclient00000000000000", number: "UIQA-SIGNED", title: "Contrat signé de recette", status: "SIGNED", content: "<h2>Maintenance</h2><p>Contrat fictif destiné au contrôle du formulaire d’avenant.</p>" } })
   const supplier = await prisma.supplier.upsert({ where: { companyId_name: { companyId, name: "Fournisseur de recette UI" } }, update: {}, create: { id: "cuiqasupplier000000000000", companyId, name: "Fournisseur de recette UI", email: "supplier@example.test" } })

@@ -9,6 +9,7 @@ import { getNextRecurringDate } from "@/lib/workflow-rules"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 import { processDueInvoiceReminders } from "@/lib/finance/invoice-reminder-sender"
 import { processDueScheduledEmails } from "@/lib/communications/scheduled-emails"
+import { processDueContractArchives } from "@/lib/contracts/archive"
 
 const storedTemplateSchema = z.object({
   object: z.string().min(3),
@@ -158,14 +159,15 @@ export async function processScheduledBusinessJobs() {
     where: { status: "SENT", dueDate: { lt: new Date() } },
     data: { status: "OVERDUE" },
   })
-  const [recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, deletedBillingWebhookEvents] = await Promise.all([
+  const [recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents] = await Promise.all([
     processDueRecurringInvoices(),
     processDueMaintenanceVisits(),
     processDueInvoiceReminders(),
     processDueScheduledEmails(),
+    processDueContractArchives(),
     prisma.billingWebhookEvent.deleteMany({
       where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
     }),
   ])
-  return { overdueInvoices: overdueInvoices.count, recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
+  return { overdueInvoices: overdueInvoices.count, recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
 }

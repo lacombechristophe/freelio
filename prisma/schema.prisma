@@ -2997,6 +2997,14 @@ model Contract {
   amendmentReason String?
   effectiveAt     DateTime?
 
+  signedDocument       String? // Encrypted, immutable rendered snapshot after signature
+  pdfUrl               String?
+  pdfHash              String?
+  archiveStatus        String? // PENDING, READY, FAILED; null for historical contracts
+  archiveAttempts      Int       @default(0)
+  archiveNextAttemptAt DateTime?
+  archiveError         String?
+
   signatures    ContractSignature[]
   signingTokens ContractSigningToken[]
   changes       ContractAmendmentChange[]
@@ -3010,6 +3018,7 @@ model Contract {
   @@index([companyId, kind, status])
   @@index([parentContractId])
   @@index([maintenanceContractId])
+  @@index([archiveStatus, archiveNextAttemptAt])
 }
 
 model ContractAmendmentChange {
@@ -3058,6 +3067,9 @@ model ContractSigningToken {
 
   tokenHash   String    @unique
   signerEmail String?
+  documentSnapshot String? // Encrypted content and identities presented by this link
+  documentHash     String?
+  contractRevision DateTime?
   expiresAt   DateTime
   usedAt      DateTime?
   createdAt   DateTime  @default(now())

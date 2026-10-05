@@ -49,7 +49,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   try {
     compiledContent = await compileContractContent(id)
   } catch (error) {
-    console.error("Variable compilation failed, using raw contract content:", error)
+    if (contract.status === "SIGNED") compiledContent = contract.signedDocument ? "Archive du contrat indisponible" : "Archive historique indisponible"
+    else console.error("Variable compilation failed, using raw contract content:", error)
   }
   const safeContractHtml = sanitizeContractHtml(compiledContent)
   const quality = assessContractQuality({

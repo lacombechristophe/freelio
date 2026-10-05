@@ -7,7 +7,7 @@ import { inlineSafePdfImages } from "@/lib/pdf/images"
 
 let embeddedFontSources: Promise<Map<string, string>> | null = null
 
-async function inlinePdfFonts(html: string) {
+export async function inlinePdfFonts(html: string, required = false) {
   embeddedFontSources ??= Promise.all(
     PDF_FONT_FILES.map(async (fileName) => {
       const font = await readFile(path.join(process.cwd(), "public", "fonts", fileName))
@@ -27,6 +27,7 @@ async function inlinePdfFonts(html: string) {
   } catch (error) {
     console.error("PDF font embedding failed:", error)
     embeddedFontSources = null
+    if (required) throw new Error("PDF_FONT_CAPTURE_FAILED", { cause: error })
     return html
   }
 }

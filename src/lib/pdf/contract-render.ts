@@ -102,7 +102,7 @@ function metaItem(label: string, value: string) {
   `
 }
 
-function signatureMarkup(doc: ContractPdfDocument) {
+export function signatureMarkup(doc: Pick<ContractPdfDocument, "signatures">) {
   const signatures = doc.signatures ?? []
 
   if (!signatures.length) {
@@ -130,7 +130,10 @@ function signatureMarkup(doc: ContractPdfDocument) {
     .join("")
 }
 
-export function renderContractHtml(doc: ContractPdfDocument) {
+export const CONTRACT_SIGNATURE_SLOT = "<!--FREELIO_CONTRACT_SIGNATURE_V1-->"
+export const CONTRACT_STATUS_SLOT = "<!--FREELIO_CONTRACT_STATUS_V1-->"
+
+export function renderContractHtml(doc: ContractPdfDocument, options: { signingSnapshot?: boolean } = {}) {
   const safeContent = sanitizeContractHtml(doc.contentHtml)
   const primary = "#202630"
   const logo = safeImageSource(doc.company.logo, true)
@@ -296,7 +299,7 @@ export function renderContractHtml(doc: ContractPdfDocument) {
       <div class="number">${escapeHtml(doc.number)}</div>
     </div>
     <aside class="header-meta">
-      <div class="header-meta-row status"><span>Statut</span><strong>${statusLabel(doc.status)}</strong></div>
+      <div class="header-meta-row status"><span>Statut</span><strong>${options.signingSnapshot ? CONTRACT_STATUS_SLOT : statusLabel(doc.status)}</strong></div>
       <div class="header-meta-row"><span>Cr&eacute;ation</span><strong>${formatDate(doc.createdAt)}</strong></div>
     </aside>
   </header>
@@ -345,7 +348,7 @@ export function renderContractHtml(doc: ContractPdfDocument) {
       <div class="signature-block">
         <div class="label">Pour le client</div>
         <div class="signature-party">${escapeHtml(doc.client.name)}</div>
-        ${signatureMarkup(doc)}
+        ${options.signingSnapshot ? CONTRACT_SIGNATURE_SLOT : signatureMarkup(doc)}
       </div>
     </div>
   </section>

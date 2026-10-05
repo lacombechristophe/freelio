@@ -79,7 +79,7 @@ export function ContractStatusActions({ contractId, status }: { contractId: stri
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {(status === "DRAFT" || status === "SENT") && (
-            <DropdownMenuItem onClick={() => changeStatus("SENT")} className="gap-2">
+            <DropdownMenuItem demoMutation onClick={() => changeStatus("SENT")} className="gap-2">
               <Send className="h-4 w-4" /> {status === "SENT" ? "Régénérer le lien" : "Envoyer pour signature"}
             </DropdownMenuItem>
           )}

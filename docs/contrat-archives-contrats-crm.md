@@ -1,0 +1,50 @@
+# Contenu signé et archives des contrats
+
+État au 5 octobre 2026 : lot visible approuvé (« Oui, appliquer ce lot contrats »), implémenté, qualification en cours. La recette datée consigne les résultats et le SHA final ; ce contrat ne constitue pas à lui seul une preuve de livraison. Sous-lot MAIL-04 / documents immuables de L8.
+
+## Constat avant correction
+
+`getPublicContractForSigning` compile les variables depuis le contrat, le client et la société actuels à chaque lecture. Le jeton ne conserve aucun contenu présenté. `signContractPublic` calcule une empreinte du contenu brut avec les métadonnées du signataire ; elle ne capture pas les variables compilées, coordonnées ou ressources du PDF. Le claim du jeton est atomique, mais la mise à jour du statut du contrat ne compare pas sa révision lue avant transaction. Une modification entre lecture et signature doit donc être reproduite sur SQL avant correction, pas présentée comme un incident fournisseur observé.
+
+`/api/pdf/contrat/[id]` reconstruit le PDF avec les données actuelles et les images de signatures. Il n’existe pas d’archive vérifiée comparable à celle d’une facture émise. Le client interne et la page publique de signature doivent lire le même contenu figé. Le contenu n’est pas une certification de signature électronique ; aucun label de certification ne doit être introduit.
+
+## Périmètre approuvé
+
+1. Pour les nouveaux liens de signature, conserver une capture du contenu compilé, des coordonnées et des ressources de présentation lors de la création du lien. La page présente ce contenu capturé ; une édition du contrat rend le lien inutilisable et nécessite un nouveau lien. Le signataire soumet l’empreinte de ce qu’il a vu, contrôlée côté serveur, sans nouveau champ affiché.
+2. Après signature, produire et conserver un PDF archivé depuis cette capture et les seules métadonnées de signature enregistrées. Le contenu signé reste enregistré même si la génération PDF échoue ; une reprise durable et idempotente crée l’archive sans redemander la signature. Tant que l’archive manque ou est altérée, son téléchargement/ajout est indisponible avec une explication.
+3. Pour les anciens contrats signés sans capture, afficher « Archive historique indisponible » ; ne pas fabriquer une archive depuis les coordonnées actuelles. Ne pas convertir les signatures historiques en nouvelles signatures, ni prétendre que le hash brut ancien couvre les variables compilées. Les anciens liens non utilisés nécessitent leur renouvellement depuis le parcours existant.
+4. Dans le sélecteur CRM existant, ajouter « Contrats signés archivés », recherche et pagination 25. Uniquement les archives vérifiées du client destinataire, avec les droits Sales ; copie privée aux quotas actuels et envoi manuel. Présenter numéro/titre et date de signature, sans couleur ou disposition nouvelle.
+
+L’accord porte sur le contenu présenté par les nouveaux liens, l’explication pour les documents/liens historiques et la nouvelle source du sélecteur. Les brouillons de contrats courants ne sont pas proposés comme documents signés ; leur copie actuelle ferait l’objet d’un lot distinct si nécessaire. Aucun envoi fournisseur ni déploiement n’est engagé par ce lot.
+
+## Implémentation et limites
+
+`prepareContractSnapshot` conserve le HTML du modèle existant, les variables compilées, les identités, les polices et images incorporées. La capture chiffrée est liée au jeton par SHA-256 et à sa révision SQL. Son filtre de commit compare aussi les champs source : une modification à `updatedAt` identique est refusée. Les droits actifs Sales sont relus après capture. Les limites sont 1 Mo de contenu, 4 Mo de rendu capturé, dix secondes de capture de ressources ; aucun Chromium dans la transaction.
+
+La signature soumet l’empreinte présentée et une image PNG bornée à 1,5 million de caractères, dimensions 4096 maximum et quatre millions de pixels. Statut, source, révision et jeton sont revendiqués dans une transaction, avec signature et capture signée chiffrée. La date est celle du serveur. L’intégrité des données et le SHA des octets PDF sont deux preuves distinctes. Il n’existe ni vérification d’identité externe, ni horodatage qualifié, ni certification de signature.
+
+Les champs durables `archiveStatus`, `archiveAttempts` et `archiveNextAttemptAt` utilisent le processeur métier existant du worker/cron. Un bail SQL renouvelé exclut les générations concurrentes ; chaque Chromium reçoit un signal de 45 secondes, chaque PDF est limité à 5 Mo. Cinq tentatives maximum, avec délais de reprise croissants ; la signature et sa capture restent conservées après échec. L’archive READY n’est jamais régénérée. L’arrêt réel d’un processus au milieu du stockage et le nettoyage des orphelins ne sont pas qualifiés par ces tests.
+
+Les routes PDF/aperçu et le contenu interne lisent la capture signée ; le PDF téléchargeable vérifie les octets privés, taille et SHA. L’aperçu HTML peut être consulté avant la fin de génération PDF. Un document historique sans capture retourne 409 avec l’explication approuvée. Un ancien lien non utilisé nécessite son renouvellement. Aucun backfill historique n’est fabriqué. Le portail ne proposait pas les contrats : ce lot n’y ajoute aucun parcours.
+
+Le sélecteur CRM propose les seules archives READY signées du client destinataire, avec recherche/pagination 25 et droits Sales. L’ajout relit les droits actifs, vérifie l’archive et conserve une copie privée indépendante dans les quotas existants (cinq pièces, 5 Mo chacune, 10 Mo total). Les copies déjà autorisées survivent à la suppression de leur source ; changer ensuite le destinataire ne retire pas une pièce manuelle. Aucun HTML, chemin de stockage ou image de signature ne passe dans le DTO de sélection.
+
+La migration PostgreSQL `20261004040000_signed_contract_archives` est additive. SQLite suit la préparation de schéma existante, sans nouvelle histoire de migrations SQLite. Les captures chiffrées et les fichiers PDF sont inclus dans les exports/restaurations ; les jetons bearer de signature restent exclus du backup logique et doivent être renouvelés après restauration. La clé de chiffrement d’origine reste nécessaire. Les fixtures de pagination sont explicitement synthétiques ; la recette de signature exerce séparément le générateur PDF réel.
+
+## Invariants et plan d’implémentation
+
+- Capturer une seule fois les entrées effectives (variables compilées, document et images incorporées), avec schéma versionné, limites explicites et chiffrement des données privées selon les primitives existantes. Chaque nouveau jeton est lié à cette capture et à la révision du contrat. Ne pas utiliser le numéro ou updatedAt comme unique preuve du contenu rendu.
+- Persister le jeton et sa capture avec le changement SENT sous CAS de statut/révision ; invalider les liens antérieurs. Réexaminer permissions, société/agence, client et auteur après une capture de ressources potentiellement longue. Aucun navigateur ou téléchargement externe dans la transaction SQL.
+- La signature compare l’empreinte reçue, le jeton encore valide, le statut/révision du contrat et le snapshot exact, puis enregistre signature/intégrité/état et demande durable de génération dans une transaction. Une signature concurrente ou un changement du contenu refuse l’opération sans consommer le jeton hors transaction. Les données de capture ne changent pas après signature.
+- Générer l’archive depuis le snapshot signé, jamais depuis les coordonnées courantes. Conserver chemin privé, SHA des octets, version de rendu et état de génération distincts. Le hash de données et celui du PDF ne sont pas interchangeables. Réutiliser lease, reprises et protections du worker PDF après examen du modèle existant, sans ajouter une seconde file si elle suffit.
+- Vérifier l’archive à chaque lecture/copie (société/client/droits, référence privée, taille, SHA, signature de fichier). Refuser une ressource altérée/absente. Un PDF issu d’un ancien contrat sans snapshot ne reçoit pas le statut historique par simple régénération.
+- Recenser toutes les entrées : route PDF/aperçu, écran interne de signature, page publique, fichiers portail, CRM et backup/restauration. Préserver l’indépendance des copies e-mail déjà autorisées. Démo publique en lecture seule et aucune transmission réelle.
+- Migration additive SQLite/PostgreSQL compatible avec les données historiques, sans backfill fictif. Les fixtures signées doivent déclarer leur provenance (capture nouvelle vs ancien contrat non archivé). Réversibilité/backup incluent les captures et les archives.
+
+## Critères de fermeture
+
+SQL SQLite/PostgreSQL : capture immuable après modification des coordonnées/contenu/logo ; contenu montré et soumis identique ; deux signatures concurrentes ; édition/resend/expiration entre lecture et commit ; auteur/société/agence/client étrangers ; hash/clé invalide ; absence de capture historique ; limites ; échec PDF puis reprise sans double signature ; archive altérée/manquante ; copie privée et retry après changement de source ; backup/restauration.
+
+Navigateur ordinateur/mobile : lien nouveau et contenu présenté, modification ensuite refusée, signature depuis une page périmée conservée sans faux succès, PDF archivé stable, explication pour historique, recherche/pagination et conservation de l’archive dans le brouillon sans envoi automatique. Ne pas élargir silencieusement les limites de fichiers existantes.
+
+CI : SHA exact sur SQLite/PostgreSQL, parcours du produit et image Linux. Qualification Google/Microsoft/Resend/R2 réelle, identité vérifiée du signataire, horodatage qualifié et certification restent hors de ces preuves techniques. Les lacunes service/prospection et reprise humaine des résultats ambigus de MAIL-04 restent séparées.

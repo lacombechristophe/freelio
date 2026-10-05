@@ -316,6 +316,15 @@ Pour « Devis — copie actuelle », contrôler les droits Sales et l’auteur a
 - la route `POST /api/automations/process` protégée par `AUTOMATION_CRON_SECRET` permet un déclenchement de secours par un ordonnanceur approuvé.
 - la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites, factures récurrentes, relances et brouillons e-mail programmés ; son rejeu conserve les clés d’envoi et ne doit jamais envoyer plusieurs paliers de rattrapage à la même facture dans un passage. Ne pas effacer une commande ou renouveler sa clé pour contourner un résultat distant ambigu ; vérifier d’abord chez le fournisseur.
 
+### Archive PDF de contrat indisponible
+
+- contrôler `archiveStatus`, `archiveAttempts`, `archiveNextAttemptAt` et l’activité du processeur métier existant ; le worker le vérifie toutes les cinq minutes, le cron protégé `/api/scheduling/process` permet le rattrapage ;
+- PENDING/FAILED avec capture signée : conserver la signature et la capture chiffrée ; cinq tentatives maximum, aucune nouvelle signature et aucune reconstruction depuis les coordonnées actuelles ;
+- après épuisement, diagnostiquer polices/Chromium/stockage/clé et tester une restauration isolée avant une reprise opérateur contrôlée. Il n’existe pas de bouton de remise à zéro : ne pas modifier directement les compteurs en production pour cacher un échec ;
+- READY : contrôler la présence des octets privés et leur SHA. Une archive altérée/absente doit être récupérée depuis une sauvegarde intègre ; ne pas la remplacer silencieusement par un document différent ;
+- ancien SIGNED sans capture : « Archive historique indisponible » est attendu. Récupérer l’original par un processus documentaire distinct ; aucune régénération n’est une preuve historique ;
+- restaurer les captures avec leur clé d’origine et les PDF inclus dans l’export. Les liens bearer de signature exclus du backup logique se renouvellent après restauration. Le test natif SQLite porte sur des données fictives et ne qualifie pas R2 hébergé.
+
 ### Capture de leads interrompue
 
 - vérifier `PUBLIC_LEAD_COMPANY_ID`, les origines, Upstash et PostgreSQL ;
