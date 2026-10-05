@@ -28,7 +28,7 @@ export function RecipientPicker({ initialPage, value, onChange }: { initialPage:
       }
     }), 250)
     return () => { active = false; clearTimeout(timer) }
-  }, [search, page, value, attempt, onChange, initialPage])
+  }, [search, page, value, attempt, onChange])
   const contacts = data.selectedContact && !data.contacts.some(contact => contact.id === data.selectedContact!.id)
     ? [data.selectedContact, ...data.contacts] : data.contacts
   return <div className="space-y-1.5" aria-busy={pending}>
