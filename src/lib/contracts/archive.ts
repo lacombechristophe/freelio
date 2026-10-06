@@ -94,9 +94,15 @@ export async function processDueContractArchives(input: { companyId?: string; li
   assertDemoMutationAllowed()
   const summary = { examined: 0, generated: 0, failed: 0 }
   const result = await withProcessorLease("signed-contract-pdf", async control => {
-    const due = await prisma.contract.findMany({ where: { ...(input.companyId ? { companyId: input.companyId } : {}), status: "SIGNED", signedDocument: { not: null }, archiveStatus: { in: ["PENDING", "FAILED"] }, archiveNextAttemptAt: { lte: new Date() }, archiveAttempts: { lt: 5 } }, orderBy: [{ archiveNextAttemptAt: "asc" }, { id: "asc" }], take: Math.max(1, Math.min(input.limit ?? 5, 25)) })
+    const due = await prisma.contract.findMany({ where: { ...(input.companyId ? { companyId: input.companyId } : {}), status: "SIGNED", signedDocument: { not: null }, archiveStatus: { in: ["PENDING", "FAILED"] }, archiveNextAttemptAt: { lte: new Date() } }, orderBy: [{ archiveNextAttemptAt: "asc" }, { id: "asc" }], take: Math.max(1, Math.min(input.limit ?? 5, 25)) })
     summary.examined = due.length
     for (const contract of due) {
+      if (contract.archiveAttempts >= 5) {
+        await control.assertOwned()
+        const retired = await prisma.contract.updateMany({ where: { id: contract.id, companyId: contract.companyId, status: "SIGNED", signedDocument: contract.signedDocument, archiveStatus: contract.archiveStatus, archiveAttempts: contract.archiveAttempts, archiveNextAttemptAt: contract.archiveNextAttemptAt }, data: { archiveStatus: "FAILED", archiveNextAttemptAt: null, archiveError: "Limite des tentatives d’archivage atteinte ; capture conservée" } })
+        summary.failed += retired.count
+        continue
+      }
       let path: string | undefined
       try {
         await control.assertOwned()

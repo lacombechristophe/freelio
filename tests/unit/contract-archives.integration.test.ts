@@ -152,6 +152,23 @@ describe.sequential("frozen contract signing and durable private archives", () =
     expect((await processDueContractArchives({ companyId: terminal.company.id })).examined).toBe(0)
   })
 
+  it("retires an interrupted fifth attempt only after its recovery deadline without regenerating or losing the signature", async () => {
+    const f = await fixture(), prepared = await f.sent()
+    await signContractPublic(prepared.token, prepared.signature)
+    const signed = await prisma.contract.findUniqueOrThrow({ where: { id: f.contract.id } })
+    await prisma.contract.update({ where: { id: signed.id }, data: { archiveAttempts: 5, archiveNextAttemptAt: new Date(Date.now() + 60_000) } })
+    expect(await processDueContractArchives({ companyId: f.company.id })).toEqual({ examined: 0, generated: 0, failed: 0 })
+    await prisma.contract.update({ where: { id: signed.id }, data: { archiveNextAttemptAt: new Date(0) } })
+    const foreign = await fixture()
+    expect(await processDueContractArchives({ companyId: foreign.company.id })).toEqual({ examined: 0, generated: 0, failed: 0 })
+    expect((await prisma.contract.findUniqueOrThrow({ where: { id: signed.id } })).archiveStatus).toBe("PENDING")
+    expect(await processDueContractArchives({ companyId: f.company.id })).toEqual({ examined: 1, generated: 0, failed: 1 })
+    expect(await prisma.contract.findUniqueOrThrow({ where: { id: signed.id } })).toMatchObject({ status: "SIGNED", signedDocument: signed.signedDocument, archiveAttempts: 5, archiveStatus: "FAILED", archiveNextAttemptAt: null, archiveError: expect.any(String), pdfUrl: null, pdfHash: null })
+    expect(await prisma.contractSignature.count({ where: { contractId: signed.id } })).toBe(1)
+    expect(await processDueContractArchives({ companyId: f.company.id })).toEqual({ examined: 0, generated: 0, failed: 0 })
+    expect(mocks.pdf).not.toHaveBeenCalled()
+  })
+
   it("refuses historical or transplanted snapshots, tampered archives and foreign storage references", async () => {
     const f = await fixture()
     await prisma.contract.update({ where: { id: f.contract.id }, data: { status: "SIGNED" } })
