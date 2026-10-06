@@ -1,6 +1,6 @@
 # Contenu signé et archives des contrats
 
-État au 5 octobre 2026 : lot visible approuvé (« Oui, appliquer ce lot contrats »), implémenté, qualification en cours. La recette datée consigne les résultats et le SHA final ; ce contrat ne constitue pas à lui seul une preuve de livraison. Sous-lot MAIL-04 / documents immuables de L8.
+État au 6 octobre 2026 : lot visible approuvé (« Oui, appliquer ce lot contrats »), implémenté et testé sur le candidat `1a41cb7` en CI push SQLite/PostgreSQL/Linux/navigateur. La CI PR de ce SHA est annulée avant les parcours et l’audit complet demeure bloquant. Le correctif ultérieur de dernière tentative interrompue possède sa propre qualification en cours. La recette datée consigne les résultats et les SHA ; ce contrat ne constitue pas à lui seul une preuve de livraison. Sous-lot MAIL-04 / documents immuables de L8.
 
 ## Constat avant correction
 
@@ -23,7 +23,7 @@ L’accord porte sur le contenu présenté par les nouveaux liens, l’explicati
 
 La signature soumet l’empreinte présentée et une image PNG bornée à 1,5 million de caractères, dimensions 4096 maximum et quatre millions de pixels. Statut, source, révision et jeton sont revendiqués dans une transaction, avec signature et capture signée chiffrée. La date est celle du serveur. L’intégrité des données et le SHA des octets PDF sont deux preuves distinctes. Il n’existe ni vérification d’identité externe, ni horodatage qualifié, ni certification de signature.
 
-Les champs durables `archiveStatus`, `archiveAttempts` et `archiveNextAttemptAt` utilisent le processeur métier existant du worker/cron. Un bail SQL renouvelé exclut les générations concurrentes ; chaque Chromium reçoit un signal de 45 secondes, chaque PDF est limité à 5 Mo. Cinq tentatives maximum, avec délais de reprise croissants ; la signature et sa capture restent conservées après échec. L’archive READY n’est jamais régénérée. L’arrêt réel d’un processus au milieu du stockage et le nettoyage des orphelins ne sont pas qualifiés par ces tests.
+Les champs durables `archiveStatus`, `archiveAttempts` et `archiveNextAttemptAt` utilisent le processeur métier existant du worker/cron. Un bail SQL renouvelé exclut les générations concurrentes ; chaque Chromium reçoit un signal de 45 secondes, chaque PDF est limité à 5 Mo. Cinq tentatives maximum, avec délais de reprise croissants ; la signature et sa capture restent conservées après échec. Après interruption de la cinquième tentative, l’échéance déclenche un échec terminal sans nouvelle génération. L’archive READY n’est jamais régénérée. L’arrêt réel d’un processus au milieu du stockage et le nettoyage des orphelins ne sont pas qualifiés par ces tests.
 
 Les routes PDF/aperçu et le contenu interne lisent la capture signée ; le PDF téléchargeable vérifie les octets privés, taille et SHA. L’aperçu HTML peut être consulté avant la fin de génération PDF. Un document historique sans capture retourne 409 avec l’explication approuvée. Un ancien lien non utilisé nécessite son renouvellement. Aucun backfill historique n’est fabriqué. Le portail ne proposait pas les contrats : ce lot n’y ajoute aucun parcours.
 
@@ -48,3 +48,5 @@ SQL SQLite/PostgreSQL : capture immuable après modification des coordonnées/co
 Navigateur ordinateur/mobile : lien nouveau et contenu présenté, modification ensuite refusée, signature depuis une page périmée conservée sans faux succès, PDF archivé stable, explication pour historique, recherche/pagination et conservation de l’archive dans le brouillon sans envoi automatique. Ne pas élargir silencieusement les limites de fichiers existantes.
 
 CI : SHA exact sur SQLite/PostgreSQL, parcours du produit et image Linux. Qualification Google/Microsoft/Resend/R2 réelle, identité vérifiée du signataire, horodatage qualifié et certification restent hors de ces preuves techniques. Les lacunes service/prospection et reprise humaine des résultats ambigus de MAIL-04 restent séparées.
+
+Qualification ultérieure du correctif d’archive : `48f8643` contient `bfb64f4` et passe les deux recettes fonctionnelles push/PR, chacune avec 672 tests SQLite, 671 PostgreSQL plus un natif exclu et 117 E2E/19 exclusions préexistantes. Neuf contrôles Linux passent, dont 54 migrations et une archive synthétique READY rejouée à l’identique. Seul l’audit complet reste rouge (cinq hautes de développement, zéro production). Voir la recette du 6 octobre ; les changements de finalité ultérieurs nécessitent leurs propres preuves.

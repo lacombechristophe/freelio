@@ -72,6 +72,7 @@ Les tests d’intégration et fixtures écrivent et suppriment des données : ut
 - Recette du 30 septembre 2026 : 427 tests dans 100 fichiers, build/typage/lint réussis ; 14 pages et 13 contrôles navigateur ciblés ; sauvegarde/restauration SQLite. Voir le [compte rendu](docs/technical-hardening-20260930.md).
 - La CI définit des jobs SQLite et PostgreSQL. Un workflow existant ne prouve pas son exécution distante : contrôler le résultat du commit exact avant publication.
 - Les validations PostgreSQL, Linux/Docker et exploitation sont consignées dans le [suivi CTO](docs/execution-cto-20261001.md).
+- Les compléments récents de Communications, Marketing, consentements et documents sont suivis dans la [recette de complétude](docs/completude-recette-20261003.md), avec SHA, résultats CI et écarts ouverts. Le candidat de la PR #8 reste distinct de main et de la démo déployée.
 - La livraison locale `review-local-20261002-final` conserve les [rapports](docs/evidence/20261002/README.md) : 457 tests SQLite, 456 tests PostgreSQL, 19 parcours desktop, les contrôles de démo en lecture seule, les seuils de couverture ciblée et une charge locale de 30 minutes sans erreur. Leurs dates, conditions et limites sont explicites ; aucun résultat CI distant n’est revendiqué.
 
 ## Image et exploitation
@@ -83,7 +84,7 @@ node scripts/verify-container-runtime.mjs freelio:local-review
 
 Le Dockerfile prépare le client PostgreSQL et le build sans migrer une base réelle. Il inclut Chromium, utilise un utilisateur non root et tini. Secrets et données locales sont exclus du contexte de build. Les variables NEXT_PUBLIC sont définies au build ; les secrets serveur se fournissent au runtime.
 
-La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker et un PDF Chromium hors réseau. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
+La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker, une archive de contrat depuis une signature synthétique avec rejeu stable, et un PDF Chromium hors réseau. Son résultat doit être contrôlé sur le commit exact ; la présence du script ne prouve pas son succès. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
 
 La génération PDF actuelle désactive la sandbox Chrome : non-root et conteneur ne suffisent pas à attester une isolation complète. Vérifier les restrictions du rendu, les ressources, le réseau et les processus dans le runtime cible.
 
