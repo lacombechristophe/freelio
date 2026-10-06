@@ -15,6 +15,15 @@ try {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: "qa-crm@example.com" } })
   const companyId = user.companyId
   if (!companyId) throw new Error("Seed the QA account first.")
+  for (let index = 0; index < 27; index++) await prisma.marketingCampaign.upsert({ where: { companyId_name: { companyId, name: `UIQA Campaign management volume ${index}` } }, update: {}, create: { companyId, name: `UIQA Campaign management volume ${index}`, objective: "Fictional pagination", channels: ["EMAIL"], createdAt: new Date(Date.UTC(2000, 0, 1, 0, index)) } })
+  for (const surface of ["desktop", "mobile"]) {
+    const name = `UIQA Campaign management ${surface}`
+    const campaign = await prisma.marketingCampaign.upsert({ where: { companyId_name: { companyId, name } }, update: {}, create: { companyId, name, objective: "Fictional editable objective", channels: ["EMAIL"], createdAt: new Date(Date.UTC(1990, 0, 1)) } })
+    for (let index = 0; index < 27; index++) {
+      const id = `cuiqacampaignasset${surface}${String(index).padStart(3, "0")}`
+      await prisma.marketingCampaignAsset.upsert({ where: { id }, update: {}, create: { id, campaignId: campaign.id, name: `UIQA editable asset ${surface} ${index}`, type: "EMAIL", createdAt: new Date(Date.UTC(2000, 0, 1, 0, index)) } })
+    }
+  }
   for (let index = 0; index < 125; index++) {
     const id = `cuiqaclient${String(index).padStart(14, "0")}`
     const legacy = await prisma.client.findUnique({ where: { id: `redesign-client-${index}` } })

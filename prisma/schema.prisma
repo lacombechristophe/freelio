@@ -810,6 +810,8 @@ model MarketingCampaign {
   budgetCents Int       @default(0)
   utmCampaign String?
   notes       String?
+  version          Int       @default(1)
+  audienceLockedAt DateTime?
 
   assets    MarketingCampaignAsset[]
   sequences EmailSequence[]
@@ -835,6 +837,7 @@ model MarketingCampaignAsset {
   url       String?
   dueAt     DateTime?
   metadata  Json?
+  version   Int       @default(1)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 

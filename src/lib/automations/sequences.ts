@@ -9,6 +9,7 @@ import { activeCommunicationChannel, pinSequenceSender } from "@/lib/communicati
 import { formatMailboxSender } from "@/lib/communications/provider-credentials"
 import { nextSequenceExecution, type SequenceSchedule } from "@/lib/automations/schedule"
 import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
+import { lockCampaignAudience, CampaignManagementError } from "@/lib/marketing/campaign-management"
 
 type ProgressionSequence = SequenceSchedule & { steps: Array<{ id: string; position: number; delayHours: number }> }
 
@@ -42,12 +43,17 @@ export async function enrollLeadInSequenceInternal(input: { companyId: string; s
   if (suppression) throw new Error(`Cette adresse est bloquée (${suppression.reason.toLowerCase().replaceAll("_", " ")})`)
   if (sequence.steps.some((step) => step.type === "EMAIL")) await pinSequenceSender(input.companyId, sequence.id)
   const now = new Date()
-  return prisma.emailSequenceEnrollment.upsert({
-    where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId: lead.id } },
-    // Enrollment is an idempotent occurrence, not an implicit restart. Reusing
-    // deliveries/tasks while resetting the cursor would corrupt progression.
-    update: {},
-    create: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: lead.contactId, status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: nextSequenceExecution(now, sequence.steps[0].delayHours, sequence) },
+  return prisma.$transaction(async tx => {
+    if (sequence.campaignId) await lockCampaignAudience(tx, input.companyId, sequence.campaignId)
+    const pinned = await tx.emailSequence.updateMany({ where: { id: sequence.id, companyId: input.companyId, campaignId: sequence.campaignId, status: "ACTIVE" }, data: { updatedAt: new Date() } })
+    if (pinned.count !== 1) throw new CampaignManagementError("La séquence a changé ; actualisez")
+    return tx.emailSequenceEnrollment.upsert({
+      where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId: lead.id } },
+      // Enrollment is an idempotent occurrence, not an implicit restart. Reusing
+      // deliveries/tasks while resetting the cursor would corrupt progression.
+      update: {},
+      create: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: lead.contactId, status: "ACTIVE", nextStepPosition: sequence.steps[0].position, nextSendAt: nextSequenceExecution(now, sequence.steps[0].delayHours, sequence) },
+    })
   })
 }
 
