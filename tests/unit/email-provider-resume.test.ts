@@ -241,6 +241,28 @@ describe("OAuth email crash recovery", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it("never treats an unsent Google draft with the same Message-ID as an accepted send", async () => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("GOOGLE"))
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const target = new URL(String(url))
+      if (target.pathname.endsWith("/drafts/draft-1")) return new Response(null, { status: 404 })
+      if (target.pathname.endsWith("/messages")) return Response.json({ messages: target.searchParams.get("labelIds") === "SENT" ? [] : [{ id: "unsent-draft-message" }] })
+      throw new Error("Unexpected isolated provider request")
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    await expect(sendEmailThroughChannel({ ...baseInput, resume: { provider: "GOOGLE", channelId: "channel-google", providerDraftId: "draft-1", providerMessageId: "<delivery-1@mail.freelio.app>" } })).rejects.toThrow("État d’envoi Google incertain")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([{ messages: [{ id: "sent-one" }, { id: "sent-two" }] }, { messages: [{ id: "sent-one" }], nextPageToken: "fiction-next" }])("refuses ambiguous Google sent matches instead of choosing the first unrelated result (%j)", async result => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("GOOGLE"))
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(Response.json(result))
+    vi.stubGlobal("fetch", fetchMock)
+    await expect(sendEmailThroughChannel({ ...baseInput, resume: { provider: "GOOGLE", channelId: "channel-google", providerDraftId: "draft-1", providerMessageId: "<delivery-1@mail.freelio.app>" } })).rejects.toThrow("État d’envoi Google incertain")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it("persists an immutable Microsoft draft before sending it", async () => {
     prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("MICROSOFT"))
     const fetchMock = vi.fn()

@@ -283,10 +283,11 @@ export async function sendEmailThroughChannel(input: {
       else if (!draftCheck.ok) throw new Error(`Vérification du brouillon Google refusée (${draftCheck.status})`)
     }
     if (!draftId) {
-      const query = new URLSearchParams({ q: `rfc822msgid:${messageId}`, maxResults: "1" })
+      const query = new URLSearchParams({ q: `rfc822msgid:${messageId}`, labelIds: "SENT", maxResults: "2" })
       const sentCheck = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${query}`, { headers })
-      const sentPayload = await sentCheck.json().catch(() => ({})) as { messages?: Array<{ id: string }>; error?: { message?: string } }
+      const sentPayload = await sentCheck.json().catch(() => ({})) as { messages?: Array<{ id: string }>; nextPageToken?: string; error?: { message?: string } }
       if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Google refusée (${sentCheck.status})`)
+      if ((sentPayload.messages?.length || 0) > 1 || sentPayload.nextPageToken) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
       const alreadySentId = sentPayload.messages?.[0]?.id
       if (alreadySentId) return { provider, providerId: `${channel.id}:${alreadySentId}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
       if (persistedDraftDisappeared) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
