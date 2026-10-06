@@ -90,6 +90,18 @@ try {
   await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: "UIQA-PURCHASE" } }, update: {}, create: { id: "cuiqapurchase000000000000", companyId, supplierId: supplier.id, number: "UIQA-PURCHASE" } })
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
   const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE", id: { not: "cuiqareplysecondmailbox00" } } })
+  const recoveryPayload = subject => ({ userId: user.id, contactId: "cuiqarecipient000000000550", clientId: recipientClientId, threadId: null, serviceTicketId: null, channelId: mailbox.id, companyName: "Fictional recovery recipe", replyTo: null, from: mailbox.emailAddress, to: "recipient550@example.test", subject, html: "<p>Frozen fictional recovery original</p>", text: "Frozen fictional recovery original", cc: [], bcc: ["hidden-recovery@example.test"], attachments: [], purpose: "SERVICE" })
+  for (let index = 0; index < 26; index++) {
+    const subject = `UIQA Recovery pagination ${index}`, id = `cuiqarecoverypage${String(index).padStart(8, "0")}`
+    await prisma.emailDelivery.upsert({ where: { id }, update: {}, create: { id, companyId, manualAuthorUserId: user.id, requestKey: randomUUID(), channelId: mailbox.id, provider: "RESEND", recipientEmail: "recipient550@example.test", subject, payload: recoveryPayload(subject), status: "FAILED", attempts: 1, scheduledAt: new Date(), createdAt: new Date(2000, 0, 1, 0, index) } })
+  }
+  for (const surface of ["desktop", "mobile"]) for (const kind of ["Unknown", "Accepted"]) {
+    const subject = `UIQA Recovery ${kind} ${surface}`, requestKey = randomUUID(), id = `cuiqarecovery${kind.toLowerCase()}${surface}`
+    const draftId = `cuiqarecoverydraft${kind.toLowerCase()}${surface}`
+    await prisma.emailDraft.upsert({ where: { id: draftId }, update: {}, create: { id: draftId, companyId, authorUserId: user.id, createKey: randomUUID(), requestKey, channelId: mailbox.id, contactId: "cuiqarecipient000000000550", subject, bodyHtml: "<p>Frozen fictional recovery original</p>", purpose: "SERVICE", cc: [], bcc: ["hidden-recovery@example.test"] } })
+    const draft = await prisma.emailDraft.findUniqueOrThrow({ where: { id: draftId } })
+    await prisma.emailDelivery.upsert({ where: { id }, update: {}, create: { id, companyId, manualAuthorUserId: user.id, requestKey: draft.requestKey, channelId: mailbox.id, contactId: "cuiqarecipient000000000550", provider: "RESEND", recipientEmail: "recipient550@example.test", subject, purpose: "SERVICE", payload: recoveryPayload(subject), status: kind === "Accepted" ? "SENT" : "FAILED", attempts: 1, providerId: kind === "Accepted" ? `fiction-recovery-${surface}` : null, sentAt: kind === "Accepted" ? new Date(2020, 0, 1) : null, scheduledAt: new Date(), createdAt: new Date(kind === "Accepted" ? 2021 : 1990, 0, 1) } })
+  }
   await prisma.communicationChannel.upsert({ where: { id: "cuiqareplysecondmailbox00" }, update: {}, create: { id: "cuiqareplysecondmailbox00", companyId, provider: "RESEND", emailAddress: "second@example.test", displayName: "Boîte fictive secondaire", status: "ACTIVE" } })
   const disconnected = await prisma.communicationChannel.upsert({ where: { id: "cuiqareplydisconnected00" }, update: {}, create: { id: "cuiqareplydisconnected00", companyId, provider: "RESEND", emailAddress: "disconnected@example.test", displayName: "Boîte fictive déconnectée", status: "DISCONNECTED" } })
   for (const [index, channelId, subject] of [[0, mailbox.id, "UIQA Native reply"], [1, disconnected.id, "UIQA Disconnected reply"]]) {

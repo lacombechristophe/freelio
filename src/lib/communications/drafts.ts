@@ -26,6 +26,10 @@ const acceptedStatuses = ["SENT", "DELIVERED", "OPENED", "CLICKED"]
 
 export class EmailDraftConflict extends Error {}
 
+export function assertUnarchivedDraft(draft: { archivedAt?: Date | null }) {
+  if (draft.archivedAt) throw new EmailDraftConflict("Ce brouillon est conservé après classement sans relance ; aucune modification ni diffusion n’est autorisée")
+}
+
 function normalizedFields(input: unknown) {
   const fields = fieldsSchema.parse(input)
   assertPurposeRecipients(fields.purpose, fields.cc, fields.bcc)
@@ -49,7 +53,7 @@ async function assertLinks(companyId: string, fields: z.output<typeof fieldsSche
 function dto(draft: Awaited<ReturnType<typeof readEmailDraft>>) {
   const { scheduledPayload: _privateCommand, ...visible } = draft
   void _privateCommand
-  return { ...visible, scheduledAt: draft.scheduledAt?.toISOString() ?? null, scheduleNextAttemptAt: draft.scheduleNextAttemptAt?.toISOString() ?? null, scheduleStartedAt: draft.scheduleStartedAt?.toISOString() ?? null,
+  return { ...visible, archivedAt: draft.archivedAt?.toISOString() ?? null, scheduledAt: draft.scheduledAt?.toISOString() ?? null, scheduleNextAttemptAt: draft.scheduleNextAttemptAt?.toISOString() ?? null, scheduleStartedAt: draft.scheduleStartedAt?.toISOString() ?? null,
     attachments: attachmentMetadata(emailAttachmentsSchema.parse(draft.attachments)), cc: copyRecipientsSchema.parse(draft.cc), bcc: copyRecipientsSchema.parse(draft.bcc), createdAt: draft.createdAt.toISOString(), updatedAt: draft.updatedAt.toISOString(), sentAt: draft.sentAt?.toISOString() ?? null }
 }
 
@@ -66,7 +70,7 @@ export async function getEmailDraft(companyId: string, userId: string, id: strin
 export async function listEmailDrafts(companyId: string, userId: string, input: unknown = {}) {
   const { page: requested } = z.object({ page: z.number().int().min(1).max(100_000).default(1) }).parse(input)
   return prisma.$transaction(async tx => {
-    const where = { companyId, authorUserId: userId, sentAt: null }
+    const where = { companyId, authorUserId: userId, sentAt: null, archivedAt: null }
     const total = await tx.emailDraft.count({ where })
     const pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(requested, pageCount)
     const rows = await tx.emailDraft.findMany({ where, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25,
@@ -84,11 +88,13 @@ export async function saveEmailDraft(companyId: string, userId: string, input: u
     await control.assertOwned()
     const draft = await prisma.emailDraft.upsert({ where: { companyId_authorUserId_createKey: { companyId, authorUserId: userId, createKey: data.createKey } }, update: {},
       create: { companyId, authorUserId: userId, createKey: data.createKey, requestKey: randomUUID(), ...fields } })
+    assertUnarchivedDraft(draft)
     if (draft.sentAt || draft.version !== 1 || !isDeepStrictEqual(fieldsSchema.parse(draft), fields)) throw new EmailDraftConflict("Cette création de brouillon existe déjà avec un autre contenu ; rouvrez-la")
     return dto(draft)
   })
   return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id!)
+    assertUnarchivedDraft(draft)
     if (draft.version !== data.version) throw new EmailDraftConflict("Conflit : ce brouillon a changé dans un autre onglet. Votre texte est conservé ; rouvrez la version enregistrée")
     if (draft.scheduledAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant de le modifier")
     if (draft.sentAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailDraftConflict("Un envoi est déjà préparé pour ce brouillon ; reprenez son résultat avant de le modifier")
@@ -103,6 +109,7 @@ export async function deleteEmailDraft(companyId: string, userId: string, input:
   const data = identitySchema.parse(input)
   return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id)
+    assertUnarchivedDraft(draft)
     if (draft.scheduledAt && !draft.sentAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant de le supprimer")
     const delivery = await prisma.emailDelivery.findFirst({ where: { companyId, requestKey: draft.requestKey }, select: { status: true } })
     if (delivery && !acceptedStatuses.includes(delivery.status)) throw new EmailDraftConflict("Résultat de l’envoi à vérifier avant de supprimer ce brouillon")
@@ -120,6 +127,7 @@ export async function sendEmailDraft<T>(companyId: string, userId: string, input
   const attachmentIds = z.object({ attachmentIds: z.array(z.string().uuid()).max(5).default([]) }).parse(input).attachmentIds
   return withEmailDraftLease(identity.id, async control => {
     const draft = await readEmailDraft(companyId, userId, identity.id)
+    assertUnarchivedDraft(draft)
     if (draft.scheduledAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant un envoi immédiat")
     const attachments = emailAttachmentsSchema.parse(draft.attachments)
     if (!isDeepStrictEqual(attachmentIds, attachments.map(file => file.id))) throw new EmailDraftConflict("Conflit : vérifiez les pièces jointes enregistrées avant l’envoi")

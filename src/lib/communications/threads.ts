@@ -86,10 +86,10 @@ export async function recordOutgoingEmail(input: {
   bodyHtml?: string | null
   bodyText?: string | null
   sentAt?: Date
-}) {
+}, database?: TransactionClient) {
   const sentAt = input.sentAt || new Date()
   if (input.deliveryId) {
-    const recorded = await prisma.emailMessage.findUnique({ where: { deliveryId: input.deliveryId } })
+    const recorded = await (database || prisma).emailMessage.findUnique({ where: { deliveryId: input.deliveryId } })
     if (recorded) {
       if (recorded.companyId !== input.companyId) throw new Error("Historique d’envoi hors société")
       return recorded
@@ -101,10 +101,24 @@ export async function recordOutgoingEmail(input: {
   // An interrupted history write can leave an empty thread; the durable
   // delivery retries this journal step without another provider send.
   const thread = input.threadId
-    ? await prisma.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId, channelId: input.channelId || null } })
-    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt })
-  return prisma.$transaction(async (tx) => {
+    ? await (database || prisma).emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId, channelId: input.channelId || null } })
+    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt }, database || prisma)
+  const write = async (tx: TransactionClient) => {
   const provider = input.provider || "RESEND"
+  const existing = await tx.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId: input.companyId, provider, providerId: input.providerId } } })
+  if (existing && input.deliveryId && existing.deliveryId !== input.deliveryId) {
+    // Synchronization may have journaled an accepted outbound message before
+    // this durable command repaired its history. Adopt only exact, unbound
+    // content in the same mailbox; never steal another command's reference.
+    const mailboxAddress = (value: string) => (value.match(/<([^<>]+)>$/)?.[1] || value).trim().toLowerCase()
+    const sameRecipients = Array.isArray(existing.toAddresses) && existing.toAddresses.length === input.to.length && existing.toAddresses.every(value => typeof value === "string" && input.to.some(to => mailboxAddress(to) === mailboxAddress(value)))
+    const sameMailbox = await tx.emailThread.count({ where: { id: existing.threadId, companyId: input.companyId, channelId: input.channelId || null } })
+    if (existing.deliveryId || existing.direction !== "OUTBOUND" || !sameMailbox || !sameRecipients || mailboxAddress(existing.fromAddress) !== mailboxAddress(input.from) || existing.subject !== input.subject || existing.bodyHtml !== (input.bodyHtml || null) || (input.internetMessageId && existing.internetMessageId !== input.internetMessageId)) throw new Error("La référence fournisseur est déjà journalisée autrement ; rapprochement manuel nécessaire")
+    const bound = await tx.emailMessage.updateMany({ where: { id: existing.id, companyId: input.companyId, deliveryId: null, updatedAt: existing.updatedAt }, data: { deliveryId: input.deliveryId, purpose: input.purpose || null,
+      ccAddresses: input.cc?.length ? input.cc : Prisma.DbNull, bccAddresses: input.bcc?.length ? input.bcc : Prisma.DbNull, attachments: input.attachments?.length ? input.attachments : Prisma.DbNull,
+      bodyText: input.bodyText || null } })
+    if (bound.count !== 1) throw new Error("La référence fournisseur a changé pendant le rapprochement")
+  }
   const message = await tx.emailMessage.upsert({
     where: { companyId_provider_providerId: { companyId: input.companyId, provider, providerId: input.providerId } },
     update: {},
@@ -130,9 +144,11 @@ export async function recordOutgoingEmail(input: {
       sentAt,
     },
   })
+  if (input.deliveryId && message.deliveryId !== input.deliveryId) throw new Error("La référence fournisseur appartient à une autre commande")
   await tx.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: sentAt } })
   return message
-  })
+  }
+  return database ? write(database) : prisma.$transaction(write)
 }
 
 export function jsonValue(value: unknown): Prisma.InputJsonValue {

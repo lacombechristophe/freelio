@@ -8,7 +8,7 @@ import { resolveAgencyAccess } from "@/lib/agency-access"
 import { hasPermission, normalizeCompanyRole } from "@/lib/permissions"
 import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import { logAction } from "@/lib/audit"
-import { EmailDraftConflict, getEmailDraft, readEmailDraft, withEmailDraftLease } from "./drafts"
+import { assertUnarchivedDraft, EmailDraftConflict, getEmailDraft, readEmailDraft, withEmailDraftLease } from "./drafts"
 import { emailAttachmentsSchema } from "./attachment-types"
 import { prepareManualEmailContent } from "./email-content"
 import { prepareManualEmailCommand, preparedManualEmailSchema, sendManualEmail } from "./manual-send"
@@ -31,6 +31,7 @@ export async function scheduleEmailDraft(companyId: string, userId: string, inpu
   catch (error) { throw new EmailScheduleError(error instanceof Error ? error.message : "Date invalide") }
   return withEmailDraftLease(data.data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.data.id)
+    assertUnarchivedDraft(draft)
     if (draft.version !== data.data.version) throw new EmailDraftConflict("Conflit : rouvrez la dernière version avant de programmer")
     if (draft.scheduledAt || draft.sentAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailScheduleError("Ce brouillon est déjà programmé ou son envoi a commencé")
     if (!draft.channelId || !draft.contactId || draft.subject.trim().length < 2 || draft.bodyHtml.trim().length < 10) throw new EmailScheduleError("Choisissez une boîte, un destinataire, un objet et un contenu avant de programmer")
@@ -65,6 +66,7 @@ export async function cancelScheduledEmail(companyId: string, userId: string, in
   const data = identity.parse(input)
   return withEmailDraftLease(data.id, async control => {
     const draft = await readEmailDraft(companyId, userId, data.id)
+    assertUnarchivedDraft(draft)
     if (draft.version !== data.version) throw new EmailDraftConflict("Conflit : actualisez la programmation avant de l’annuler")
     if (!draft.scheduledAt || draft.sentAt) throw new EmailScheduleError("Ce brouillon n’a pas de programmation à annuler")
     if (draft.scheduleStartedAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailScheduleError("L’envoi a commencé ; son résultat doit être vérifié avant toute modification")
@@ -94,7 +96,7 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
   if (isPublicReadOnlyDemo()) return summary
   const now = input.now || new Date()
   const jobs = await prisma.emailDraft.findMany({ where: { ...(input.companyId ? { companyId: input.companyId } : {}), sentAt: null, scheduledAt: { lte: now },
-    scheduleStatus: { in: ["QUEUED", "PROCESSING", "RETRY"] }, scheduleNextAttemptAt: { lte: now } },
+    archivedAt: null, scheduleStatus: { in: ["QUEUED", "PROCESSING", "RETRY"] }, scheduleNextAttemptAt: { lte: now } },
     select: { id: true, companyId: true, authorUserId: true }, orderBy: [{ scheduleNextAttemptAt: "asc" }, { id: "asc" }], take: Math.min(Math.max(input.limit || 50, 1), 100) })
   summary.examined = jobs.length
   for (const job of jobs) {

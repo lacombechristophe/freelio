@@ -10,7 +10,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   return (
     <div className="workspace-page">
       <PageHeader className="workspace-page-header" eyebrow="Relation client" title="Communications" description="Centralisez les e-mails reçus et envoyés, leurs performances et les réponses clients." />
-      <CommunicationCenter key={`${data.company.id}:${data.signatureOwnerId}`} initialTab={["inbox", "compose", "drafts", "analytics", "integrations"].includes(requestedTab || "") ? requestedTab : "inbox"} initialData={{
+      <CommunicationCenter key={`${data.company.id}:${data.signatureOwnerId}`} initialTab={["inbox", "compose", "drafts", "recovery", "analytics", "integrations"].includes(requestedTab || "") ? requestedTab : "inbox"} initialData={{
         ...data,
         channels: data.channels.map((item) => ({ ...item, lastSyncAt: item.lastSyncAt?.toISOString() ?? null })),
       }} />

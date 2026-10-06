@@ -13,7 +13,7 @@ import { EmailDraftConflict } from "./drafts"
 import { emailPurposeSchema, requireEmailPurpose, assertPurposeRecipients, EmailPurposeError } from "./email-purpose"
 import { marketingAuthorizationSchema, prepareManualMarketingContent, assertManualMarketingConsent } from "./marketing-consent"
 
-const payloadSchema = z.object({
+export const manualEmailPayloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
   channelId: z.string(), companyName: z.string(), replyTo: z.string().nullable(), from: z.string(), to: z.string().email(), subject: z.string(), html: z.string(),
   reply: replyContextSchema.nullable().optional(),
@@ -27,8 +27,8 @@ const payloadSchema = z.object({
   invoiceSnapshot: z.object({ invoiceId: z.string(), remainingCents: z.number().int().positive() }).optional(),
 })
 
-export const preparedManualEmailSchema = z.object({ provider: z.enum(["GOOGLE", "MICROSOFT", "RESEND"]), payload: payloadSchema })
-type ManualSendInput = Omit<z.infer<typeof payloadSchema>, "from" | "channelId" | "reply" | "text" | "marketing" | "renderedHtml" | "marketingHeaders"> & {
+export const preparedManualEmailSchema = z.object({ provider: z.enum(["GOOGLE", "MICROSOFT", "RESEND"]), payload: manualEmailPayloadSchema })
+type ManualSendInput = Omit<z.infer<typeof manualEmailPayloadSchema>, "from" | "channelId" | "reply" | "text" | "marketing" | "renderedHtml" | "marketingHeaders"> & {
   companyId: string; requestKey: string; channelId: string | null; beforeDispatch?: () => Promise<void>
   preparedCommand?: z.infer<typeof preparedManualEmailSchema>; scheduledDraftId?: string
 }
@@ -67,10 +67,10 @@ export async function sendManualEmail(input: ManualSendInput) {
     assertPurposeRecipients(payload.purpose, payload.cc || [], payload.bcc || [])
     delivery = await prisma.emailDelivery.upsert({
       where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } }, update: {},
-      create: { companyId: input.companyId, contactId: input.contactId, requestKey: input.requestKey, recipientEmail: input.to, purpose: payload.purpose, subject: input.subject, channelId: payload.channelId === "platform" ? null : payload.channelId, provider: prepared.provider, payload, scheduledAt: new Date() },
+      create: { companyId: input.companyId, manualAuthorUserId: payload.userId, contactId: input.contactId, requestKey: input.requestKey, recipientEmail: input.to, purpose: payload.purpose, subject: input.subject, channelId: payload.channelId === "platform" ? null : payload.channelId, provider: prepared.provider, payload, scheduledAt: new Date() },
     })
   }
-  const payload = payloadSchema.parse(delivery.payload)
+  const payload = manualEmailPayloadSchema.parse(delivery.payload)
   if (payload.purpose && payload.purpose !== input.purpose) throw new EmailPurposeError("La finalité de cet envoi est déjà fixée ; créez un nouvel envoi")
   if (JSON.stringify(payload.attachments || []) !== JSON.stringify(input.attachments)) throw new Error("Les pièces jointes de cet envoi sont déjà figées")
   if (JSON.stringify(payload.invoiceSnapshot) !== JSON.stringify(input.invoiceSnapshot)) throw new Error("Le contexte financier de cet envoi est déjà figé")
@@ -83,6 +83,7 @@ export async function sendManualEmail(input: ManualSendInput) {
   const deliveryId = delivery.id
   const lease = await withProcessorLease(`manual-email:${deliveryId}`, async (control) => {
     const current = await prisma.emailDelivery.findFirstOrThrow({ where: { id: deliveryId, companyId: input.companyId } })
+    if (current.closedAt) throw new EmailDraftConflict("Cette commande est classée sans relance ; aucun nouvel envoi n’est autorisé")
     if (!["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(current.status)) {
       requireEmailPurpose(payload.purpose)
       assertPurposeRecipients(payload.purpose, payload.cc || [], payload.bcc || [])

@@ -12,6 +12,7 @@ import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
 import { MAX_EMAIL_FILE_BYTES } from "@/lib/communications/attachment-types"
 import { DraftList } from "./draft-list"
+import { RecoveryList } from "./recovery-list"
 import { CrmDocumentPicker } from "./crm-document-picker"
 import { SignatureEditor } from "./signature-editor"
 import { insertEmailSignature, type EmailSignatureDto } from "@/lib/communications/signature-input"
@@ -99,7 +100,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [draftNotice, setDraftNotice] = React.useState("")
   const [localDateTime, setLocalDateTime] = React.useState("")
   const [scheduleTimezone, setScheduleTimezone] = React.useState("Europe/Paris")
-  const recipientFrozen = Boolean(draft?.scheduledAt)
+  const recipientFrozen = Boolean(draft?.scheduledAt || draft?.archivedAt)
   const setRecipient = React.useCallback((id: string) => { if (!recipientFrozen) setContactId(id) }, [recipientFrozen])
   const snapshot = JSON.stringify({ channelId, contactId, threadId: replyThreadId, subject, bodyHtml, purpose, cc, bcc, attachmentIds: draft?.attachments.map(file => file.id) || [] })
   const latestSnapshot = React.useRef(snapshot)
@@ -112,7 +113,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const autosavePausedRef = React.useRef(false)
   const autosaveJob = React.useRef<Promise<EmailDraftDto | null> | null>(null)
   const needsSave = snapshot !== (savedSnapshot || baselineSnapshot)
-  const canAutosave = !isReadOnlyDemo && !autosaveBlocked && !autosavePaused && !draft?.sentAt && !draft?.scheduledAt && needsSave && snapshot !== failedSnapshot
+  const canAutosave = !isReadOnlyDemo && !autosaveBlocked && !autosavePaused && !draft?.archivedAt && !draft?.sentAt && !draft?.scheduledAt && needsSave && snapshot !== failedSnapshot
   const attachmentInput = React.useRef<HTMLInputElement>(null)
   const [crmPickerDraft, setCrmPickerDraft] = React.useState<EmailDraftDto | null>(null)
   const sendIntent = React.useRef<{ signature: string; requestKey: string } | null>(null)
@@ -265,7 +266,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     setChannelId(fields.channelId); setContactId(fields.contactId); setReplyThreadId(fields.threadId)
     setSubject(fields.subject); setBodyHtml(fields.bodyHtml); setPurpose(fields.purpose); setCc(fields.cc); setBcc(fields.bcc)
     setDraft(next); createDraftKey.current = next.createKey; setSavedSnapshot(JSON.stringify(fields))
-    setAutosaveBlocked(false); setFailedSnapshot("")
+    setAutosaveBlocked(Boolean(next.archivedAt)); setFailedSnapshot("")
     if (next.scheduledAt && next.scheduledTimezone) {
       setLocalDateTime(scheduledEmailLocalTime(next.scheduledAt, next.scheduledTimezone)); setScheduleTimezone(next.scheduledTimezone)
     } else if (!keepScheduleInput) setLocalDateTime("")
@@ -394,6 +395,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
         <TabsTrigger value="inbox">Boîte de réception{initialData.stats.unread ? <Badge className="ml-1">{initialData.stats.unread}</Badge> : null}</TabsTrigger>
         <TabsTrigger value="compose">Nouvel e-mail</TabsTrigger>
         <TabsTrigger value="drafts">Brouillons</TabsTrigger>
+        <TabsTrigger value="recovery">Envois à vérifier</TabsTrigger>
         <TabsTrigger value="analytics">Statistiques</TabsTrigger>
         <TabsTrigger value="integrations">Intégrations</TabsTrigger>
       </TabsList>
@@ -434,7 +436,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
 
       <TabsContent value="compose">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.85fr)_minmax(420px,1.15fr)]">
-          <Card className="workspace-panel"><CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Nouvel e-mail</CardTitle><HelpTip label="Conseils de rédaction">Gardez un objet court, un seul appel à l’action et vérifiez l’aperçu avant l’envoi. Les variables et séquences marketing se gèrent dans Automatisations.</HelpTip></div><CardDescription>L’envoi sera automatiquement rattaché au client et suivi dans la boîte de réception.</CardDescription></CardHeader><CardContent><form onSubmit={(event) => { event.preventDefault(); run(submitEmail) }}><fieldset disabled={isPending} className="space-y-4"><fieldset disabled={Boolean(draft?.scheduledAt)} className="space-y-4">
+          <Card className="workspace-panel"><CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Nouvel e-mail</CardTitle><HelpTip label="Conseils de rédaction">Gardez un objet court, un seul appel à l’action et vérifiez l’aperçu avant l’envoi. Les variables et séquences marketing se gèrent dans Automatisations.</HelpTip></div><CardDescription>L’envoi sera automatiquement rattaché au client et suivi dans la boîte de réception.</CardDescription></CardHeader><CardContent><form onSubmit={(event) => { event.preventDefault(); run(submitEmail) }}><fieldset disabled={isPending} className="space-y-4"><fieldset disabled={Boolean(draft?.scheduledAt || draft?.archivedAt)} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-sender">Expéditeur</Label><select id="email-sender" name="channelId" value={channelId} onChange={(event) => setChannelId(event.target.value)} required className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm"><option value="">Connecter une messagerie…</option>{activeChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.displayName || channel.emailAddress} · {channel.provider === "GOOGLE" ? "Google" : channel.provider === "MICROSOFT" ? "Microsoft" : "Resend"}</option>)}</select></div><RecipientPicker initialPage={initialData.recipients} value={contactId} onChange={setRecipient} /></div>
             <div className="space-y-1.5"><Label htmlFor="email-purpose">Finalité</Label><select id="email-purpose" value={purpose || ""} required className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm" onChange={event => {
               if (event.target.value === "MARKETING" && (cc.trim() || bcc.trim())) { toast.error("Retirez les CC et CCI avant de choisir Prospection ; votre saisie est conservée"); return }
@@ -463,7 +465,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-scheduled-time">Date et heure d’envoi</Label><Input id="email-scheduled-time" type="datetime-local" value={localDateTime} onChange={event => setLocalDateTime(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="email-scheduled-zone">Fuseau horaire</Label><Input id="email-scheduled-zone" value={scheduleTimezone} maxLength={100} onChange={event => setScheduleTimezone(event.target.value)} placeholder="Europe/Paris" /></div></div>
             </fieldset>
             <p className="text-xs text-muted-foreground" role="status">{isAutosaving || canAutosave ? "Enregistrement en cours" : draftNotice}</p>
-            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt)} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt) || !purpose || !localDateTime || !scheduleTimezone || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10} onClick={() => run(scheduleComposition)}>Programmer</Button><Button demoMutation type="submit" disabled={isPending || Boolean(draft?.scheduledAt) || !purpose || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt || draft?.archivedAt)} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt || draft?.archivedAt) || !purpose || !localDateTime || !scheduleTimezone || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10} onClick={() => run(scheduleComposition)}>Programmer</Button><Button demoMutation type="submit" disabled={isPending || Boolean(draft?.scheduledAt || draft?.archivedAt) || !purpose || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
           </fieldset></form></CardContent></Card>
           <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Aperçu sécurisé</CardTitle><CardDescription>Les scripts, formulaires et images distantes sont bloqués dans cet aperçu.</CardDescription></CardHeader><CardContent><iframe title="Aperçu du nouvel e-mail" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[560px] w-full rounded-xl border bg-white" /></CardContent></Card>
         </div>
@@ -491,6 +493,15 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             setDraftNotice("Brouillon supprimé ; texte conservé dans le formulaire")
           }
         } finally { pauseAutosave(false) }
+      }} /></TabsContent>
+
+      <TabsContent value="recovery"><RecoveryList onChange={async () => {
+        if (draftRef.current?.id) {
+          const result = await getCommunicationDraft(draftRef.current.id)
+          setDraft(result)
+          if (result.archivedAt) { setAutosaveBlocked(true); setDraftNotice("Brouillon conservé après classement sans relance") }
+        }
+        router.refresh()
       }} /></TabsContent>
 
       <TabsContent value="analytics" className="space-y-5">

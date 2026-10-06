@@ -5,13 +5,14 @@ import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { removeLocalFile, type StoredLocalFile } from "@/lib/local-files"
-import { EmailDraftConflict, getEmailDraft, readEmailDraft, withEmailDraftLease } from "./drafts"
+import { assertUnarchivedDraft, EmailDraftConflict, getEmailDraft, readEmailDraft, withEmailDraftLease } from "./drafts"
 import { emailAttachmentMetadataSchema, emailAttachmentsSchema, emailAttachmentSourceSchema, type EmailAttachment } from "./attachment-types"
 
 export class EmailAttachmentError extends Error {}
 
 export async function assertEditableDraft(companyId: string, userId: string, id: string, version: number) {
   const draft = await readEmailDraft(companyId, userId, id)
+  assertUnarchivedDraft(draft)
   if (draft.version !== version) throw new EmailDraftConflict("Conflit : rouvrez le brouillon avant de modifier ses pièces jointes")
   if (draft.scheduledAt) throw new EmailDraftConflict("Ce brouillon est programmé ; annulez sa programmation avant de modifier ses pièces jointes")
   if (draft.sentAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailDraftConflict("Un envoi est déjà préparé ; ses pièces jointes sont figées")
@@ -24,6 +25,7 @@ export async function addEmailDraftAttachment(companyId: string, userId: string,
   const source = provenance ? emailAttachmentSourceSchema.parse(provenance) : undefined
   return withEmailDraftLease(id, async control => {
     const existingDraft = await readEmailDraft(companyId, userId, id)
+    assertUnarchivedDraft(existingDraft)
     const current = emailAttachmentsSchema.parse(existingDraft.attachments)
     const existing = current.find(file => file.id === metadata.id)
     if (existing) {

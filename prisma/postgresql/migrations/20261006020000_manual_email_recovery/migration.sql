@@ -1,0 +1,10 @@
+ALTER TABLE "EmailDelivery" ADD COLUMN "manualAuthorUserId" TEXT;
+ALTER TABLE "EmailDelivery" ADD COLUMN "recoveryVersion" INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE "EmailDelivery" ADD COLUMN "recoveryCheckedAt" TIMESTAMP(3);
+ALTER TABLE "EmailDelivery" ADD COLUMN "recoveryOutcome" TEXT;
+ALTER TABLE "EmailDelivery" ADD COLUMN "recoveryProof" JSONB;
+ALTER TABLE "EmailDelivery" ADD COLUMN "closedAt" TIMESTAMP(3);
+ALTER TABLE "EmailDelivery" ADD COLUMN "closedByUserId" TEXT;
+ALTER TABLE "EmailDelivery" ADD COLUMN "closureReason" TEXT;
+ALTER TABLE "EmailDraft" ADD COLUMN "archivedAt" TIMESTAMP(3);
+CREATE INDEX "EmailDelivery_manual_recovery_page_idx" ON "EmailDelivery"("companyId", "manualAuthorUserId", "closedAt", "createdAt");

@@ -975,6 +975,14 @@ model EmailDelivery {
   recipientEmail String
   purpose        String? // SERVICE / MARKETING; never backfill historical sends.
   requestKey     String?
+  manualAuthorUserId String? // Validated frozen manual author; unknown legacy stays inaccessible.
+  recoveryVersion Int @default(1)
+  recoveryCheckedAt DateTime?
+  recoveryOutcome String? // ACCEPTED / UNKNOWN / DRAFT / UNAVAILABLE; never proof of non-send.
+  recoveryProof Json?
+  closedAt DateTime?
+  closedByUserId String?
+  closureReason String?
   payload        Json?
   subject        String
   status         String        @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
@@ -1000,6 +1008,7 @@ model EmailDelivery {
 
   @@unique([enrollmentId, stepId])
   @@unique([companyId, requestKey])
+  @@index([companyId, manualAuthorUserId, closedAt, createdAt], map: "EmailDelivery_manual_recovery_page_idx")
   @@index([companyId, createdAt])
   @@index([status, scheduledAt])
   @@index([status, nextAttemptAt])
@@ -1152,6 +1161,7 @@ model EmailDraft {
   scheduleStartedAt     DateTime?
   scheduleError         String?
   sentAt       DateTime?
+  archivedAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

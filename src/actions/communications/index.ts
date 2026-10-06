@@ -27,6 +27,36 @@ import { scheduleEmailDraft, cancelScheduledEmail, EmailScheduleError } from "@/
 import type { EmailAttachment } from "@/lib/communications/attachment-types"
 import { listCrmEmailDocuments, attachCrmEmailDocument, EmailCrmDocumentError } from "@/lib/communications/crm-documents"
 import { EmailAttachmentError } from "@/lib/communications/draft-attachments"
+import { listManualEmailRecovery, recoverManualEmail, EmailRecoveryError } from "@/lib/communications/manual-recovery"
+import { isPublicReadOnlyDemo, DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
+
+export async function getCommunicationRecovery(input: unknown = {}) {
+  return withAuth(async ({ companyId, userId }) => {
+    try { return { success: true as const, page: await listManualEmailRecovery(companyId, userId, input) } }
+    catch (error) {
+      if (error instanceof EmailRecoveryError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+async function recoveryAction(input: unknown, operation: "CHECK" | "REPAIR" | "CLOSE") {
+  if (isPublicReadOnlyDemo()) return { success: false as const, error: DEMO_READ_ONLY_MESSAGE }
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = await recoverManualEmail(companyId, userId, input, operation)
+      revalidatePath("/dashboard/communications")
+      return result
+    } catch (error) {
+      if (error instanceof EmailRecoveryError || error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function checkCommunicationResult(input: unknown) { return recoveryAction(input, "CHECK") }
+export async function repairCommunicationHistory(input: unknown) { return recoveryAction(input, "REPAIR") }
+export async function closeCommunicationWithoutRetry(input: unknown) { return recoveryAction(input, "CLOSE") }
 
 export async function getCommunicationCrmDocuments(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
