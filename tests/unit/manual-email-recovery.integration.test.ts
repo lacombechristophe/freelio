@@ -76,6 +76,15 @@ describe.sequential("human recovery of frozen manual email commands on real SQL"
     expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toMatchObject({ status: "BOUNCED" })
     expect(http).not.toHaveBeenCalled()
   })
+  it("shows a subsequently accepted command ahead of an older inconclusive check", async () => {
+    const f = await fixture()
+    await f.recover("CHECK")
+    await prisma.emailDelivery.update({ where: { id: f.delivery.id }, data: { providerId: "fiction-later-acceptance", sentAt: new Date(), status: "SENT" } })
+    const page = await f.asAuthor(() => listManualEmailRecovery(f.company.id, f.user.id))
+    expect(page.deliveries).toEqual([expect.objectContaining({ id: f.delivery.id, state: "ACCEPTED", canRepair: true })])
+    await expect(f.recover("CLOSE", { version: 2, reason: "Must preserve acceptance", confirmed: true })).rejects.toThrow("acceptation")
+    expect(http).not.toHaveBeenCalled()
+  })
   it("correlates a unique Gmail SENT message and repairs its journal with no second transport", async () => {
     const f = await fixture("GOOGLE")
     http.mockImplementation(async (url?: string | URL | Request, init?: RequestInit) => {

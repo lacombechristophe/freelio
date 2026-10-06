@@ -62,7 +62,7 @@ export async function listManualEmailRecovery(companyId: string, userId: string,
     const total = await tx.emailDelivery.count({ where }), pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(query.data.page, pageCount)
     const rows = await tx.emailDelivery.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 25, skip: (page - 1) * 25,
       select: { id: true, recoveryVersion: true, subject: true, status: true, sentAt: true, providerId: true, recoveryOutcome: true, recoveryCheckedAt: true, createdAt: true, channel: { select: { displayName: true, emailAddress: true } } } })
-    return { total, page, pageCount, deliveries: rows.map(row => ({ id: row.id, version: row.recoveryVersion, subject: row.subject, state: row.recoveryOutcome || (row.sentAt && row.providerId ? "ACCEPTED" : "UNKNOWN"),
+    return { total, page, pageCount, deliveries: rows.map(row => ({ id: row.id, version: row.recoveryVersion, subject: row.subject, state: row.sentAt && row.providerId ? "ACCEPTED" : row.recoveryOutcome || "UNKNOWN",
       canRepair: Boolean(row.providerId && row.sentAt) || row.recoveryOutcome === "ACCEPTED", checkedAt: row.recoveryCheckedAt?.toISOString() ?? null, createdAt: row.createdAt.toISOString(), mailbox: row.channel?.displayName || row.channel?.emailAddress || "Messagerie plateforme" })) }
   })
 }
