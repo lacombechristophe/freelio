@@ -1109,7 +1109,7 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await campaign.getByRole("button", { name: "Ajouter" }).click()
   await expect(page.getByText("Livrable ajouté.")).toBeVisible()
   await campaign.getByLabel(`Rechercher : Séquence à rattacher à ${campaignName}`, { exact: true }).fill(sequenceName)
-  await campaign.getByLabel(`Séquence à rattacher à ${campaignName}`).selectOption({ label: `${sequenceName} · ACTIVE` })
+  await campaign.getByLabel(`Séquence à rattacher à ${campaignName}`, { exact: true }).selectOption({ label: `${sequenceName} · ACTIVE` })
   await campaign.getByRole("button", { name: "Rattacher la séquence" }).click()
   await expect(page.getByText("Séquence rattachée.")).toBeVisible()
   await campaign.getByRole("button", { name: "Inscrire le segment" }).click()

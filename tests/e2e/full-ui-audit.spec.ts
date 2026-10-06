@@ -368,7 +368,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     const fileName = actualRoute.replace(/^\/dashboard\/?/, "").replaceAll("/", "--") || "overview"
     const capture = await captureScrollablePage(page, artifactDirectory, fileName)
     evidence.push({ route: actualRoute, ...capture })
-    if (!capture.complete) findings.push({ severity: "P2", category: "content", route: actualRoute, message: "Capture interrompue après 40 écrans : contenu restant non inspecté" })
+    if (!capture.complete) findings.push({ severity: "P2", category: "content", route: actualRoute, message: `Capture incomplète après ${capture.files.length} écrans (${capture.incompleteReason}) : contenu restant non inspecté` })
   }
 
   for (const [title, titleRoutes] of titles) {
