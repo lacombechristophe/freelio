@@ -37,7 +37,7 @@ describe.sequential("manual email durable command on SQL", () => {
     const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictitious recipient" } })
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Recipient", email: "recipient@example.test" } })
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "sender@example.test", status: "ACTIVE" } })
-    const input = { companyId: company.id, userId: "recipe-user", companyName: company.name, contactId: contact.id, clientId: client.id, channelId: channel.id, requestKey: crypto.randomUUID(), threadId: null, serviceTicketId: null, replyTo: null, to: contact.email!, subject: "Fictitious message", html: "<p>Fictitious data only</p>" }
+    const input = { companyId: company.id, userId: "recipe-user", companyName: company.name, purpose: "SERVICE" as const, contactId: contact.id, clientId: client.id, channelId: channel.id, requestKey: crypto.randomUUID(), threadId: null, serviceTicketId: null, replyTo: null, to: contact.email!, subject: "Fictitious message", html: "<p>Fictitious data only</p>" }
     vi.mocked(sendEmailThroughChannel).mockImplementation(async (command) => {
       const stored = await prisma.emailDelivery.findUniqueOrThrow({ where: { id: command.idempotencyKey } })
       expect(stored.payload).toMatchObject({ to: input.to, html: input.html, channelId: channel.id })

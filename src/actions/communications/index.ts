@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
-import { prepareManualEmailContent } from "@/lib/communications/email-content"
+import { prepareManualEmailContent, emailPlainText } from "@/lib/communications/email-content"
+import { emailPurposeSchema, assertPurposeRecipients, EmailPurposeError } from "@/lib/communications/email-purpose"
+import { prepareManualMarketingContent } from "@/lib/communications/marketing-consent"
 import { getEmailSignature, saveEmailSignature, EmailSignatureConflict } from "@/lib/communications/signatures"
 import { withAuth } from "@/lib/auth-wrapper"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
@@ -113,9 +115,20 @@ export async function saveCommunicationSignature(input: unknown) {
 }
 
 export async function previewCommunicationEmail(input: unknown) {
-  return withAuth(async () => {
-    const { bodyHtml } = z.object({ bodyHtml: z.string().max(100_000) }).parse(input)
-    return prepareManualEmailContent(bodyHtml)
+  return withAuth(async ({ companyId }) => {
+    const data = z.object({ bodyHtml: z.string().max(100_000), purpose: emailPurposeSchema.nullable().default(null), contactId: z.string().optional(), cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]) }).parse(input)
+    try {
+      assertPurposeRecipients(data.purpose, data.cc, data.bcc)
+      const content = prepareManualEmailContent(data.bodyHtml)
+      if (data.purpose !== "MARKETING") return { ...content, purpose: data.purpose, error: null }
+      const contact = data.contactId ? await prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId } }, select: { email: true } }) : null
+      if (!contact?.email) throw new EmailPurposeError("Choisissez un destinataire avant l’aperçu de prospection")
+      const marketing = await prepareManualMarketingContent(companyId, data.contactId!, contact.email, content.html)
+      return { html: marketing.renderedHtml, text: emailPlainText(marketing.renderedHtml), purpose: data.purpose, error: null }
+    } catch (error) {
+      if (error instanceof EmailPurposeError) return { html: "", text: "", purpose: data.purpose, error: error.message }
+      throw error
+    }
   }, "automation.read")
 }
 
@@ -134,7 +147,7 @@ export async function saveCommunicationDraft(input: unknown) {
       revalidatePath("/dashboard/communications")
       return { success: true as const, draft }
     } catch (error) {
-      if (error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError) return { success: false as const, error: error.message }
       throw error
     }
   }, "automation.write")
@@ -209,6 +222,7 @@ const sendSchema = z.object({
   serviceTicketId: z.union([cuid, z.literal("")]).optional(),
   subject: z.string().trim().min(2).max(180),
   bodyHtml: z.string().trim().min(10).max(100_000),
+  purpose: emailPurposeSchema.nullable().default(null),
   cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]),
   draftId: cuid.optional(), draftVersion: z.number().int().positive().optional(),
   attachmentIds: z.array(z.string().uuid()).max(5).default([]),
@@ -217,6 +231,8 @@ const sendSchema = z.object({
 export async function sendCrmEmail(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = sendSchema.parse(input)
+    try { assertPurposeRecipients(data.purpose, data.cc, data.bcc) }
+    catch (error) { if (error instanceof EmailPurposeError) return { success: false as const, error: error.message }; throw error }
     if (data.attachmentIds.length && !data.draftId) throw new Error("Enregistrez les pièces jointes dans un brouillon avant l’envoi")
     const [company, contact] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
@@ -232,12 +248,12 @@ export async function sendCrmEmail(input: unknown) {
     }
     const subject = data.subject.replace(/[\r\n]+/g, " ").trim()
     const { html } = prepareManualEmailContent(data.bodyHtml)
-    const send = (requestKey: string, attachments: EmailAttachment[] = []) => sendManualEmail({ companyId, userId, requestKey, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc, attachments })
+    const send = (requestKey: string, attachments: EmailAttachment[] = []) => sendManualEmail({ companyId, userId, requestKey, purpose: data.purpose || undefined, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc, attachments })
     const message = await (async () => {
       try {
         return data.draftId ? await sendEmailDraft(companyId, userId, { ...data, id: data.draftId, version: data.draftVersion }, send) : await send(data.requestKey || randomUUID())
       } catch (error) {
-        if (error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+        if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError) return { success: false as const, error: error.message }
         throw error
       }
     })()

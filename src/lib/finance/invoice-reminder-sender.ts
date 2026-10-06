@@ -67,7 +67,7 @@ export async function sendInvoiceReminderRecord(input: {
     await prisma.invoiceReminder.updateMany({ where: { id: reminder.id, companyId: input.companyId }, data: { status: "SENDING", subject, message, error: null } })
     try {
       const emailMessage = await sendManualEmail({
-        companyId: input.companyId, userId: "SYSTEM_INVOICE_REMINDER", requestKey,
+        companyId: input.companyId, userId: "SYSTEM_INVOICE_REMINDER", requestKey, purpose: "SERVICE",
         channelId: input.channelId || null, companyName: reminder.invoice.company.name,
         to: contact.email, replyTo: reminder.invoice.company.email,
         contactId: contact.id, clientId: reminder.invoice.clientId, threadId: null, serviceTicketId: null,

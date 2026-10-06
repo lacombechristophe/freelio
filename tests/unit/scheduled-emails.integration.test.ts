@@ -44,7 +44,7 @@ describe.sequential("private frozen schedules, cancellation and durable dispatch
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Contact", email: "recipient@example.test" } })
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", status: "ACTIVE", emailAddress: "sender@example.test", visibility: "PRIVATE", ownerUserId: user.id } })
     const asAuthor = <T>(task: () => Promise<T>) => requestContext.run({ companyId: company.id, userId: user.id, membershipId: member.id, role: "OWNER", agencyIds: null, actionPermission: "automation.write" }, task)
-    const fields = { createKey: crypto.randomUUID(), channelId: channel.id, contactId: contact.id, threadId: "", subject: "Fictional scheduled mail", bodyHtml: "<p>Frozen original body</p>", cc: ["copy@example.test"], bcc: ["hidden@example.test"], attachmentIds: [] }
+    const fields = { createKey: crypto.randomUUID(), purpose: "SERVICE" as const, channelId: channel.id, contactId: contact.id, threadId: "", subject: "Fictional scheduled mail", bodyHtml: "<p>Frozen original body</p>", cc: ["copy@example.test"], bcc: ["hidden@example.test"], attachmentIds: [] }
     const draft = await asAuthor(() => saveEmailDraft(company.id, user.id, fields))
     const localDateTime = new Date(Date.now() + 3_600_000).toISOString().slice(0, 16)
     const queue = () => asAuthor(() => scheduleEmailDraft(company.id, user.id, { id: draft.id, version: draft.version, localDateTime, timezone: "UTC" }))

@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client"
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
-import { createHash } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { encrypt } from "../src/lib/crypto.ts"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
@@ -29,6 +29,13 @@ try {
   const recipientClientId = "cuiqaclient00000000000000"
   const existingRecipients = new Set((await prisma.contact.findMany({ where: { clientId: recipientClientId, firstName: "UIQA Recipient" }, select: { id: true } })).map(contact => contact.id))
   await prisma.contact.createMany({ data: Array.from({ length: 551 }, (_, index) => ({ id: `cuiqarecipient${String(index).padStart(12, "0")}`, clientId: recipientClientId, firstName: "UIQA Recipient", lastName: String(index).padStart(3, "0"), email: `recipient${index}@example.test` })).filter(contact => !existingRecipients.has(contact.id)) })
+  // Explicit evidence for one synthetic marketing recipient; other contacts have none.
+  await prisma.contact.update({ where: { id: "cuiqarecipient000000000549" }, data: { marketingStatus: "OPTED_IN" } })
+  const consentData = { companyId, clientId: recipientClientId, contactId: "cuiqarecipient000000000549", recipientEmail: "recipient549@example.test", channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "FICTIONAL_UI_RECIPE", noticeUrl: "https://example.test/privacy", proofHash: createHash("sha256").update("fictional recipient549 proof").digest("hex") }
+  await prisma.marketingConsent.upsert({ where: { id: "cuiqamanualmarketingproof" }, update: {}, create: { id: "cuiqamanualmarketingproof", ...consentData } })
+  for (const surface of ["desktop", "mobile"]) {
+    await prisma.emailDraft.upsert({ where: { id: `cuiqapurposelegacy${surface}` }, update: {}, create: { id: `cuiqapurposelegacy${surface}`, companyId, authorUserId: user.id, createKey: randomUUID(), requestKey: randomUUID(), subject: `UIQA Historical purpose ${surface}`, bodyHtml: "<p>Historical fictional purpose remains unknown</p>", cc: [], bcc: [] } })
+  }
   // Fictitious existing bytes, never generated again by the email composer.
   for (let index = 0; index < 31; index++) {
     const id = `cuiqacrmfile${String(index).padStart(14, "0")}`

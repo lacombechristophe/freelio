@@ -39,7 +39,7 @@ describe.sequential("current quote revision copies in private drafts", () => {
     } } }, include: { versions: { include: { sections: { include: { lines: true } } } } } })
     const context = { companyId: company.id, userId: user.id, membershipId: member.id, role: "OWNER" as const, agencyIds: null, actionPermission: "automation.write" as const }
     const asActor = <T>(task: () => Promise<T>) => requestContext.run(context, task)
-    const fields = { createKey: randomUUID(), contactId: contact.id, subject: "Fictional quote copy", bodyHtml: "<p>Preserved composer text</p>" }
+    const fields = { createKey: randomUUID(), purpose: "SERVICE" as const, contactId: contact.id, subject: "Fictional quote copy", bodyHtml: "<p>Preserved composer text</p>" }
     const draft = await asActor(() => saveEmailDraft(company.id, user.id, fields))
     const list = () => asActor(() => listCrmEmailDocuments(company.id, user.id, { draftId: draft.id, kind: "QUOTE_COPY" }))
     const selected = (await list()).documents[0]

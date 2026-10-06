@@ -59,6 +59,7 @@ function consentProofHash(input: {
   leadCaptureId: string
   channel: string
   purpose: string
+  recipientEmail: string | null
   status: string
   legalBasis: string
   noticeUrl: string
@@ -234,11 +235,12 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
         contactId: contact.id,
         leadCaptureId: lead.id,
         ...event,
+        recipientEmail: event.channel === "EMAIL" ? email || null : null,
         source: input.source.toUpperCase(),
         noticeUrl,
         noticeLabel: "Politique de confidentialité",
         capturedAt,
-        proofHash: consentProofHash({ companyId: company.id, leadCaptureId: lead.id, ...event, noticeUrl, capturedAt, evidence }),
+        proofHash: consentProofHash({ companyId: company.id, leadCaptureId: lead.id, ...event, recipientEmail: event.channel === "EMAIL" ? email || null : null, noticeUrl, capturedAt, evidence }),
         metadata: {
           landingPage: input.landingPage,
           utmSource: input.utmSource,

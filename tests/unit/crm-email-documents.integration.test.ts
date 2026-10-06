@@ -33,7 +33,7 @@ describe.sequential("CRM document snapshots in private email drafts", () => {
     const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictional client" } })
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Contact", email: "fiction@example.test" } })
     const asActor = <T>(task: () => Promise<T>, role: CompanyRole = "OWNER", actorId = user.id) => requestContext.run({ companyId: company.id, userId: actorId, membershipId: member.id, role, agencyIds: role === "OWNER" ? null : [], actionPermission: "automation.write" }, task)
-    const fields = { createKey: randomUUID(), contactId: contact.id, subject: "Fictional document mail", bodyHtml: "<p>Private frozen document copy</p>" }
+    const fields = { createKey: randomUUID(), purpose: "SERVICE" as const, contactId: contact.id, subject: "Fictional document mail", bodyHtml: "<p>Private frozen document copy</p>" }
     const draft = await asActor(() => saveEmailDraft(company.id, user.id, fields))
     const bytes = Buffer.from("%PDF-fictional original CRM file")
     const stored = await storeFileBytes({ companyId: company.id, kind: "client", resourceId: client.id, originalName: "original.pdf", type: "application/pdf", bytes }); paths.push(stored.relativePath)

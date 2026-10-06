@@ -737,6 +737,7 @@ model MarketingConsent {
 
   channel     String
   purpose     String
+  recipientEmail String? // Frozen normalized address; historical proofs remain null.
   status      String
   legalBasis  String
   source      String
@@ -749,6 +750,7 @@ model MarketingConsent {
 
   @@index([companyId, capturedAt])
   @@index([companyId, channel, status])
+  @@index([companyId, recipientEmail, channel, purpose, capturedAt], map: "MarketingConsent_recipient_purpose_capturedAt_idx")
   @@index([clientId])
   @@index([contactId])
   @@index([leadCaptureId])
@@ -971,6 +973,7 @@ model EmailDelivery {
   contact       Contact?                 @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   recipientEmail String
+  purpose        String? // SERVICE / MARKETING; never backfill historical sends.
   requestKey     String?
   payload        Json?
   subject        String
@@ -1136,6 +1139,7 @@ model EmailDraft {
   threadId     String?
   subject      String   @default("")
   bodyHtml     String   @default("")
+  purpose      String? // SERVICE / MARKETING; historical drafts remain unclassified.
   cc           Json
   bcc          Json
   attachments  Json     @default("[]")
@@ -1167,6 +1171,7 @@ model EmailMessage {
   delivery   EmailDelivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
 
   direction         String
+  purpose           String? // Only classified by the recorded outgoing command.
   provider          String
   providerId        String?
   internetMessageId String?

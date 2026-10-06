@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, attachCommunicationCrmDocument, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
+import { emailPurposeSchema, emailPurposeLabel, type EmailPurpose } from "@/lib/communications/email-purpose"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
 import { uploadEmailAttachment, removeEmailAttachment } from "@/lib/communications/client-attachments"
 import { MAX_EMAIL_FILE_BYTES } from "@/lib/communications/attachment-types"
@@ -86,6 +87,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [channelId, setChannelId] = React.useState(activeChannels[0]?.id ?? "")
   const [subject, setSubject] = React.useState("")
   const [bodyHtml, setBodyHtml] = React.useState("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+  const [purpose, setPurpose] = React.useState<EmailPurpose | null>("SERVICE")
   const [cc, setCc] = React.useState("")
   const [bcc, setBcc] = React.useState("")
   const [replyThreadId, setReplyThreadId] = React.useState("")
@@ -99,7 +101,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [scheduleTimezone, setScheduleTimezone] = React.useState("Europe/Paris")
   const recipientFrozen = Boolean(draft?.scheduledAt)
   const setRecipient = React.useCallback((id: string) => { if (!recipientFrozen) setContactId(id) }, [recipientFrozen])
-  const snapshot = JSON.stringify({ channelId, contactId, threadId: replyThreadId, subject, bodyHtml, cc, bcc, attachmentIds: draft?.attachments.map(file => file.id) || [] })
+  const snapshot = JSON.stringify({ channelId, contactId, threadId: replyThreadId, subject, bodyHtml, purpose, cc, bcc, attachmentIds: draft?.attachments.map(file => file.id) || [] })
   const latestSnapshot = React.useRef(snapshot)
   React.useLayoutEffect(() => { latestSnapshot.current = snapshot }, [snapshot])
   const [baselineSnapshot, setBaselineSnapshot] = React.useState(snapshot)
@@ -115,7 +117,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   const [crmPickerDraft, setCrmPickerDraft] = React.useState<EmailDraftDto | null>(null)
   const sendIntent = React.useRef<{ signature: string; requestKey: string } | null>(null)
   const [showComposePreview, setShowComposePreview] = React.useState(false)
-  const [composePreview, setComposePreview] = React.useState<{ html: string; text: string; subject: string } | null>(null)
+  const [composePreview, setComposePreview] = React.useState<{ html: string; text: string; subject: string; purpose: EmailPurpose | null } | null>(null)
   const [showPlainPreview, setShowPlainPreview] = React.useState(false)
   const [integrationProvider, setIntegrationProvider] = React.useState<IntegrationProvider>("RESEND")
   const [integrationDialogOpen, setIntegrationDialogOpen] = React.useState(false)
@@ -216,10 +218,6 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     if (thread.unreadCount && !isReadOnlyDemo) run(async () => { await updateEmailThread(thread.id, { markRead: true }); await loadInbox(inbox.page, inbox.filter, inbox.search, thread.id); router.refresh() })
   }
 
-  function composeIntent() {
-    return { channelId, contactId, threadId: replyThreadId, subject, bodyHtml, cc: parseCopyRecipients(cc), bcc: parseCopyRecipients(bcc), attachmentIds: draft?.attachments.map(file => file.id) || [] }
-  }
-
   function setDraft(next: EmailDraftDto | null) { draftRef.current = next; setDraftState(next) }
   function setSavedSnapshot(next: string) { savedSnapshotRef.current = next; setSavedSnapshotState(next) }
   function pauseAutosave(paused: boolean) { autosavePausedRef.current = paused; setAutosavePausedState(paused) }
@@ -227,7 +225,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   async function saveDraftRevision(capturedSnapshot: string, automatic: boolean) {
     createDraftKey.current ??= crypto.randomUUID()
     try {
-      const fields = JSON.parse(capturedSnapshot) as Omit<ReturnType<typeof composeIntent>, "cc" | "bcc"> & { cc: string; bcc: string }
+      const fields = JSON.parse(capturedSnapshot) as { channelId: string; contactId: string; threadId: string; subject: string; bodyHtml: string; purpose: EmailPurpose | null; cc: string; bcc: string; attachmentIds: string[] }
       const result = await saveCommunicationDraft({ ...fields, cc: parseCopyRecipients(fields.cc), bcc: parseCopyRecipients(fields.bcc),
         id: draftRef.current?.id, version: draftRef.current?.version, createKey: createDraftKey.current,
         expectedCompanyId: initialData.company.id, expectedAuthorId: initialData.signatureOwnerId })
@@ -263,9 +261,9 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
   }, [snapshot, canAutosave, isPending, isAutosaving])
 
   function restoreDraft(next: EmailDraftDto, keepScheduleInput = false) {
-    const fields = { channelId: next.channelId || "", contactId: next.contactId || "", threadId: next.threadId || "", subject: next.subject, bodyHtml: next.bodyHtml, cc: next.cc.join(", "), bcc: next.bcc.join(", "), attachmentIds: next.attachments.map(file => file.id) }
+    const fields = { channelId: next.channelId || "", contactId: next.contactId || "", threadId: next.threadId || "", subject: next.subject, bodyHtml: next.bodyHtml, purpose: emailPurposeSchema.safeParse(next.purpose).data || null, cc: next.cc.join(", "), bcc: next.bcc.join(", "), attachmentIds: next.attachments.map(file => file.id) }
     setChannelId(fields.channelId); setContactId(fields.contactId); setReplyThreadId(fields.threadId)
-    setSubject(fields.subject); setBodyHtml(fields.bodyHtml); setCc(fields.cc); setBcc(fields.bcc)
+    setSubject(fields.subject); setBodyHtml(fields.bodyHtml); setPurpose(fields.purpose); setCc(fields.cc); setBcc(fields.bcc)
     setDraft(next); createDraftKey.current = next.createKey; setSavedSnapshot(JSON.stringify(fields))
     setAutosaveBlocked(false); setFailedSnapshot("")
     if (next.scheduledAt && next.scheduledTimezone) {
@@ -288,32 +286,33 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     pauseAutosave(true)
     await autosaveJob.current
     const current = latestSnapshot.current
-    const fields = JSON.parse(current) as { subject: string; cc: string; bcc: string; bodyHtml: string }
+    const fields = JSON.parse(current) as { subject: string; cc: string; bcc: string; bodyHtml: string; purpose: EmailPurpose | null }
     let confirmed = true
     if (savedSnapshotRef.current && current !== savedSnapshotRef.current) confirmed = await confirmDialog({ title: "Remplacer les modifications non enregistrées ?", description: "Votre version enregistrée reste disponible dans Brouillons.", confirmLabel: "Remplacer" })
-    else if (!savedSnapshotRef.current && (fields.subject || fields.cc || fields.bcc || fields.bodyHtml !== "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")) confirmed = await confirmDialog({ title: "Remplacer ce texte non enregistré ?", description: "Enregistrez un brouillon pour le retrouver plus tard.", confirmLabel: "Remplacer" })
+    else if (!savedSnapshotRef.current && (fields.subject || fields.cc || fields.bcc || fields.purpose !== "SERVICE" || fields.bodyHtml !== "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")) confirmed = await confirmDialog({ title: "Remplacer ce texte non enregistré ?", description: "Enregistrez un brouillon pour le retrouver plus tard.", confirmLabel: "Remplacer" })
     if (!confirmed) pauseAutosave(false)
     return confirmed
   }
 
   async function submitEmail() {
-    await autosaveJob.current
-    let intent = composeIntent()
-    let saved = draftRef.current
-    if (saved && latestSnapshot.current !== savedSnapshotRef.current) saved = await persistDraft()
-    if (saved) intent = { ...intent, subject: saved.subject, bodyHtml: saved.bodyHtml, cc: saved.cc, bcc: saved.bcc }
-    const signature = JSON.stringify(intent)
-    if (sendIntent.current?.signature !== signature) sendIntent.current = { signature, requestKey: crypto.randomUUID() }
-    const result = await sendCrmEmail({ ...intent, requestKey: sendIntent.current.requestKey, draftId: saved?.id, draftVersion: saved?.version })
-    if (!result.success) { setDraftNotice(result.error); throw new Error(result.error) }
-    sendIntent.current = null; setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice("")
-    setReplyThreadId(""); setCc(""); setBcc("")
-    toast.success("E-mail envoyé et ajouté à l’historique.")
-    setSubject(""); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
-    setLocalDateTime("")
-    setBaselineSnapshot(JSON.stringify({ channelId, contactId, threadId: "", subject: "", bodyHtml: "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>", cc: "", bcc: "", attachmentIds: [] }))
-    setAutosaveBlocked(false); setFailedSnapshot("")
-    router.refresh()
+    pauseAutosave(true)
+    try {
+      const saved = await draftForMutation()
+      const intent = { channelId: saved.channelId || "", contactId: saved.contactId || "", threadId: saved.threadId || "", subject: saved.subject, bodyHtml: saved.bodyHtml,
+        purpose: emailPurposeSchema.safeParse(saved.purpose).data || null, cc: saved.cc, bcc: saved.bcc, attachmentIds: saved.attachments.map(file => file.id) }
+      const signature = JSON.stringify(intent)
+      if (sendIntent.current?.signature !== signature) sendIntent.current = { signature, requestKey: crypto.randomUUID() }
+      const result = await sendCrmEmail({ ...intent, requestKey: sendIntent.current.requestKey, draftId: saved.id, draftVersion: saved.version })
+      if (!result.success) { setDraftNotice(result.error); throw new Error(result.error) }
+      sendIntent.current = null; setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice("")
+      setReplyThreadId(""); setPurpose("SERVICE"); setCc(""); setBcc("")
+      toast.success("E-mail envoyé et ajouté à l’historique.")
+      setSubject(""); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
+      setLocalDateTime("")
+      setBaselineSnapshot(JSON.stringify({ channelId, contactId, threadId: "", subject: "", bodyHtml: "<p>Bonjour,</p><p></p><p>Bien cordialement,</p>", purpose: "SERVICE", cc: "", bcc: "", attachmentIds: [] }))
+      setAutosaveBlocked(false); setFailedSnapshot("")
+      router.refresh()
+    } finally { pauseAutosave(false) }
   }
 
   async function prepareReply(replyAll = false) {
@@ -331,7 +330,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
           if (result.reply.channelId !== mailbox.id || result.reply.contactId !== contact.id) throw new Error("Cette conversation a changé ; actualisez-la avant de répondre à tous")
           copies = result.reply.cc
         }
-        setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice(""); setCc(copies.join(", ")); setBcc("")
+        setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice(""); setPurpose("SERVICE"); setCc(copies.join(", ")); setBcc("")
         setReplyThreadId(selected.id); setChannelId(mailbox.id); setContactId(contact.id)
         setSubject(`Re: ${selected.subject}`); setBodyHtml("<p>Bonjour,</p><p></p><p>Bien cordialement,</p>")
         setLocalDateTime("")
@@ -348,7 +347,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
         const result = await getCommunicationForward(messageId)
         if (!result.success) throw new Error(result.error)
         setDraft(null); createDraftKey.current = null; setSavedSnapshot(""); setDraftNotice("")
-        setContactId(""); setReplyThreadId(""); setCc(""); setBcc("")
+        setContactId(""); setReplyThreadId(""); setPurpose("SERVICE"); setCc(""); setBcc("")
         setChannelId(result.forward.channelId || "")
         setSubject(result.forward.subject); setBodyHtml(result.forward.bodyHtml)
         setLocalDateTime("")
@@ -360,8 +359,9 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
 
   function previewComposition() {
     run(async () => {
-      const content = await previewCommunicationEmail({ bodyHtml })
+      const content = await previewCommunicationEmail({ bodyHtml, purpose, contactId, cc: parseCopyRecipients(cc), bcc: parseCopyRecipients(bcc) })
       if (!content) throw new Error("Aperçu indisponible.")
+      if (content.error) throw new Error(content.error)
       setComposePreview({ ...content, subject }); setShowPlainPreview(false); setShowComposePreview(true)
     })
   }
@@ -425,7 +425,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); await loadInbox(); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" onClick={() => void prepareReply()}><Reply />Répondre</Button><Button size="sm" onClick={() => void prepareReply(true)}><Reply />Répondre à tous</Button></div></div>
             <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{hasPreviousMessages ? <Button variant="outline" size="sm" disabled={isPending} onClick={loadPreviousMessages}>Messages précédents</Button> : null}{selectedMessages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold">{message.direction === "OUTBOUND" ? initialData.company.name : message.fromAddress}</p><Badge variant="outline">{message.direction === "OUTBOUND" ? "Sortant" : "Entrant"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">À : {recipients(message.toAddresses)}</p></div><time className="text-xs text-muted-foreground">{formatDate(message.sentAt || message.receivedAt || message.createdAt)}</time></div>
-              <p className="mt-3 text-sm font-medium">{message.subject}</p><p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{message.bodyText || message.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun contenu texte"}</p>
+              <p className="mt-3 text-sm font-medium">{message.subject}</p>{message.direction === "OUTBOUND" ? <p className="text-xs text-muted-foreground">{emailPurposeLabel(message.purpose)}</p> : null}<p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{message.bodyText || message.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun contenu texte"}</p>
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3"><Button variant="ghost" size="sm" onClick={() => setPreviewMessage(message)}><Eye />Aperçu HTML</Button><Button variant="ghost" size="sm" disabled={isPending} onClick={() => void prepareForward(message.id)}><Forward />Transférer</Button><Badge variant={message.status === "BOUNCED" || message.status === "FAILED" ? "destructive" : "secondary"}>{["DELIVERED", "OPENED", "CLICKED"].includes(message.status) ? <CheckCircle2 /> : null}{statusLabels[message.status] ?? message.status}</Badge>{message.events.slice(-4).map((event) => <span key={event.id} title={formatDate(event.occurredAt)} className="text-[11px] text-muted-foreground">{eventLabels[event.type] ?? event.type}</span>)}</div>
             </article>)}</div>
           </> : <div className="grid h-full place-items-center p-8 text-center text-sm text-muted-foreground">Sélectionnez une conversation.</div>}</div>
@@ -436,8 +436,12 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.85fr)_minmax(420px,1.15fr)]">
           <Card className="workspace-panel"><CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Nouvel e-mail</CardTitle><HelpTip label="Conseils de rédaction">Gardez un objet court, un seul appel à l’action et vérifiez l’aperçu avant l’envoi. Les variables et séquences marketing se gèrent dans Automatisations.</HelpTip></div><CardDescription>L’envoi sera automatiquement rattaché au client et suivi dans la boîte de réception.</CardDescription></CardHeader><CardContent><form onSubmit={(event) => { event.preventDefault(); run(submitEmail) }}><fieldset disabled={isPending} className="space-y-4"><fieldset disabled={Boolean(draft?.scheduledAt)} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-sender">Expéditeur</Label><select id="email-sender" name="channelId" value={channelId} onChange={(event) => setChannelId(event.target.value)} required className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm"><option value="">Connecter une messagerie…</option>{activeChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.displayName || channel.emailAddress} · {channel.provider === "GOOGLE" ? "Google" : channel.provider === "MICROSOFT" ? "Microsoft" : "Resend"}</option>)}</select></div><RecipientPicker initialPage={initialData.recipients} value={contactId} onChange={setRecipient} /></div>
-            <div className="space-y-1.5"><Label htmlFor="email-cc">CC</Label><Input id="email-cc" value={cc} onChange={event => setCc(event.target.value)} maxLength={5100} placeholder="Adresses séparées par une virgule" /></div>
-            <div className="space-y-1.5"><Label htmlFor="email-bcc">CCI</Label><Input id="email-bcc" value={bcc} onChange={event => setBcc(event.target.value)} maxLength={5100} placeholder="Adresses cachées, séparées par une virgule" /></div>
+            <div className="space-y-1.5"><Label htmlFor="email-purpose">Finalité</Label><select id="email-purpose" value={purpose || ""} required className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm" onChange={event => {
+              if (event.target.value === "MARKETING" && (cc.trim() || bcc.trim())) { toast.error("Retirez les CC et CCI avant de choisir Prospection ; votre saisie est conservée"); return }
+              setPurpose(emailPurposeSchema.safeParse(event.target.value).data || null)
+            }}><option value="">Finalité non renseignée</option><option value="SERVICE">Service</option><option value="MARKETING">Prospection</option></select>{purpose === "MARKETING" ? <p className="text-xs text-muted-foreground">Un seul destinataire, preuve de consentement requise et lien de retrait personnel.</p> : null}</div>
+            <div className="space-y-1.5"><Label htmlFor="email-cc">CC</Label><Input id="email-cc" value={cc} disabled={purpose === "MARKETING"} onChange={event => setCc(event.target.value)} maxLength={5100} placeholder="Adresses séparées par une virgule" /></div>
+            <div className="space-y-1.5"><Label htmlFor="email-bcc">CCI</Label><Input id="email-bcc" value={bcc} disabled={purpose === "MARKETING"} onChange={event => setBcc(event.target.value)} maxLength={5100} placeholder="Adresses cachées, séparées par une virgule" /></div>
             <div className="space-y-1.5"><Label htmlFor="email-subject">Objet</Label><Input id="email-subject" name="subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={2} maxLength={180} /></div>
             <div className="space-y-1.5"><div className="flex items-center justify-between"><Label htmlFor="email-html">Contenu HTML</Label><span className="text-xs text-muted-foreground">Balises simples autorisées</span></div><Textarea id="email-html" name="bodyHtml" value={bodyHtml} onChange={(event) => setBodyHtml(event.target.value)} rows={14} required minLength={10} maxLength={100000} className="font-mono text-xs" /></div>
             <SignatureEditor key={`${initialData.company.id}:${initialData.signatureOwnerId}`} initialValue={initialData.signature} onInsert={text => setBodyHtml(insertEmailSignature(bodyHtml, text))} />
@@ -459,7 +463,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="email-scheduled-time">Date et heure d’envoi</Label><Input id="email-scheduled-time" type="datetime-local" value={localDateTime} onChange={event => setLocalDateTime(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="email-scheduled-zone">Fuseau horaire</Label><Input id="email-scheduled-zone" value={scheduleTimezone} maxLength={100} onChange={event => setScheduleTimezone(event.target.value)} placeholder="Europe/Paris" /></div></div>
             </fieldset>
             <p className="text-xs text-muted-foreground" role="status">{isAutosaving || canAutosave ? "Enregistrement en cours" : draftNotice}</p>
-            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt)} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt) || !localDateTime || !scheduleTimezone || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10} onClick={() => run(scheduleComposition)}>Programmer</Button><Button demoMutation type="submit" disabled={isPending || Boolean(draft?.scheduledAt) || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt)} onClick={() => run(async () => { await persistDraft() })}>Enregistrer le brouillon</Button><Button type="button" variant="outline" onClick={previewComposition}><Eye />Vérifier l’aperçu</Button><Button demoMutation type="button" variant="outline" disabled={isPending || Boolean(draft?.scheduledAt) || !purpose || !localDateTime || !scheduleTimezone || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10} onClick={() => run(scheduleComposition)}>Programmer</Button><Button demoMutation type="submit" disabled={isPending || Boolean(draft?.scheduledAt) || !purpose || !channelId || !contactId || subject.trim().length < 2 || bodyHtml.trim().length < 10}>{isPending ? <Activity className="animate-spin" /> : <Send />}Envoyer maintenant</Button></div>
           </fieldset></form></CardContent></Card>
           <Card className="workspace-panel"><CardHeader><CardTitle className="text-base">Aperçu sécurisé</CardTitle><CardDescription>Les scripts, formulaires et images distantes sont bloqués dans cet aperçu.</CardDescription></CardHeader><CardContent><iframe title="Aperçu du nouvel e-mail" sandbox="" srcDoc={previewDocument(bodyHtml, null)} className="h-[560px] w-full rounded-xl border bg-white" /></CardContent></Card>
         </div>
@@ -524,7 +528,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     </Dialog>
 
     <Dialog open={Boolean(previewMessage)} onOpenChange={(open) => { if (!open) setPreviewMessage(null) }}><DialogContent className="sm:max-w-4xl"><DialogHeader><DialogTitle>{previewMessage?.subject}</DialogTitle><DialogDescription>De {previewMessage?.fromAddress} · à {recipients(previewMessage?.toAddresses)}</DialogDescription></DialogHeader><div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]"><iframe title="Aperçu HTML de l’e-mail" sandbox="" srcDoc={previewDocument(previewMessage?.bodyHtml ?? null, previewMessage?.bodyText ?? null)} className="h-[620px] w-full rounded-xl border bg-white" /><aside className="space-y-3 rounded-xl bg-muted/40 p-4"><p className="text-xs font-semibold text-muted-foreground">Chronologie</p>{previewMessage?.events.length ? previewMessage.events.map((event) => <div key={event.id} className="flex gap-2 text-xs"><span className="mt-1 size-2 shrink-0 rounded-full bg-primary" /><span><span className="block font-medium">{eventLabels[event.type] ?? event.type}</span><time className="text-muted-foreground">{formatDate(event.occurredAt)}</time></span></div>) : <p className="text-xs text-muted-foreground">Aucun événement supplémentaire.</p>}</aside></div></DialogContent></Dialog>
-    <Dialog open={showComposePreview} onOpenChange={setShowComposePreview}><DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Aperçu avant envoi</DialogTitle><DialogDescription>{composePreview?.subject || "Sans objet"}</DialogDescription></DialogHeader><Button type="button" variant="outline" aria-pressed={showPlainPreview} onClick={() => setShowPlainPreview(value => !value)}>Version texte</Button>{showPlainPreview ? <pre role="region" aria-label="Version texte de l’e-mail" tabIndex={0} className="h-[620px] overflow-auto whitespace-pre-wrap rounded-xl border p-4 text-sm">{composePreview?.text}</pre> : <iframe title="Aperçu final" sandbox="" srcDoc={previewDocument(composePreview?.html || null, composePreview?.text || null)} className="h-[620px] w-full rounded-xl border bg-white" />}</DialogContent></Dialog>
+    <Dialog open={showComposePreview} onOpenChange={setShowComposePreview}><DialogContent className="sm:max-w-3xl"><DialogHeader><DialogTitle>Aperçu avant envoi</DialogTitle><DialogDescription>{composePreview?.subject || "Sans objet"}</DialogDescription></DialogHeader><p className="text-xs text-muted-foreground">{emailPurposeLabel(composePreview?.purpose)}</p><Button type="button" variant="outline" aria-pressed={showPlainPreview} onClick={() => setShowPlainPreview(value => !value)}>Version texte</Button>{showPlainPreview ? <pre role="region" aria-label="Version texte de l’e-mail" tabIndex={0} className="h-[620px] overflow-auto whitespace-pre-wrap rounded-xl border p-4 text-sm">{composePreview?.text}</pre> : <iframe title="Aperçu final" sandbox="" srcDoc={previewDocument(composePreview?.html || null, composePreview?.text || null)} className="h-[620px] w-full rounded-xl border bg-white" />}</DialogContent></Dialog>
   </div>
 }
 

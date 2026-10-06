@@ -18,7 +18,7 @@ describe.sequential("personal draft storage, optimistic concurrency and send rec
     const company = await prisma.company.create({ data: { name: "Fictional drafts only" } }); companies.push(company.id)
     const author = await prisma.user.create({ data: { name: "Fictional author" } }); users.push(author.id)
     const colleague = await prisma.user.create({ data: { name: "Fictional admin" } }); users.push(colleague.id)
-    const data = { createKey: crypto.randomUUID(), subject: "", bodyHtml: "", cc: [], bcc: [] }
+    const data = { createKey: crypto.randomUUID(), purpose: "SERVICE" as const, subject: "", bodyHtml: "", cc: [], bcc: [] }
     return { companyId: company.id, authorId: author.id, colleagueId: colleague.id, data }
   }
 

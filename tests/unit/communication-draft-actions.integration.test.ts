@@ -39,7 +39,7 @@ describe.sequential("composer draft actions through tenant scopes and durable ma
     const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictional recipient" } })
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Recipient", email: "recipient@example.test" } })
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", status: "ACTIVE", emailAddress: "sender@example.test" } })
-    return { createKey: crypto.randomUUID(), channelId: channel.id, contactId: contact.id, subject: "Fictional mail", bodyHtml: '<p>Safe</p><a href="https://example.test/?a=1&b=2">Lien</a>', cc: ["cc@example.test"], bcc: ["hidden@example.test"] }
+    return { createKey: crypto.randomUUID(), purpose: "SERVICE" as const, channelId: channel.id, contactId: contact.id, subject: "Fictional mail", bodyHtml: '<p>Safe</p><a href="https://example.test/?a=1&b=2">Lien</a>', cc: ["cc@example.test"], bcc: ["hidden@example.test"] }
   }
 
   it("uses the saved revision's server key and refuses to send altered copies or another author's draft", async () => {

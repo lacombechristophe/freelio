@@ -18,7 +18,7 @@ describe.sequential("authenticated bounded attachment HTTP endpoints", () => {
     const company = await prisma.company.create({ data: { name: "Fictional file HTTP" } }); companies.push(company.id)
     const user = await prisma.user.create({ data: { name: "Fictional file owner" } }); users.push(user.id)
     auth.context = { companyId: company.id, userId: user.id, role: "ADMIN", membershipId: "fixture", agencyIds: null }
-    const draft = await saveEmailDraft(company.id, user.id, { createKey: crypto.randomUUID(), subject: "Fictional HTTP", bodyHtml: "" })
+    const draft = await saveEmailDraft(company.id, user.id, { createKey: crypto.randomUUID(), purpose: "SERVICE", subject: "Fictional HTTP", bodyHtml: "" })
     return { companyId: company.id, userId: user.id, draft, params: { params: Promise.resolve({ id: draft.id }) }, endpoint: `http://localhost/api/communications/drafts/${draft.id}/attachments` }
   }
   function upload(endpoint: string, version: number, bytes = "%PDF-fictional", origin = "http://localhost") {

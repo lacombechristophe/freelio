@@ -12,7 +12,7 @@ export type InboxQuery = z.input<typeof inboxQuerySchema>
 const PAGE_SIZE = 50
 const MESSAGE_PAGE_SIZE = 25
 export const messageReadSelect = {
-  id: true, direction: true, provider: true, fromAddress: true, toAddresses: true, ccAddresses: true,
+  id: true, direction: true, purpose: true, provider: true, fromAddress: true, toAddresses: true, ccAddresses: true,
   subject: true, bodyHtml: true, bodyText: true, attachments: true, status: true, sentAt: true, receivedAt: true, createdAt: true,
   events: { select: { id: true, type: true, occurredAt: true }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }] },
 } satisfies Prisma.EmailMessageSelect

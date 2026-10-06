@@ -33,12 +33,14 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   const privateBytes = Buffer.from("%PDF-private fictional draft file")
   const privateKey = `private/${company.id}/email-draft/${draft.id}/proof.pdf`
   const scheduledContact = await database.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Recipient", email: "recipient@example.test" } })
+  const consent = await database.marketingConsent.create({ data: { companyId: company.id, clientId: client.id, contactId: scheduledContact.id, recipientEmail: scheduledContact.email, channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "FICTIONAL_NATIVE_RECIPE", noticeUrl: "https://example.test/privacy", proofHash: "b".repeat(64) } })
+  const historicalDraft = await database.emailDraft.create({ data: { companyId: company.id, authorUserId: user.id, createKey: randomUUID(), requestKey: randomUUID(), subject: "Historical unclassified draft", bodyHtml: "<p>Historical fictional content</p>", cc: [], bcc: [] } })
   const scheduledChannel = await database.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, visibility: "PRIVATE", provider: "RESEND", emailAddress: "sender@example.test", status: "ACTIVE" } })
   const privateAttachments = [{ id: randomUUID(), name: "proof.pdf", size: privateBytes.length, type: "application/pdf", sha256: createHash("sha256").update(privateBytes).digest("hex"), relativePath: `local:${privateKey}` }]
-  const privateDraft = await database.emailDraft.update({ where: { id: draft.id }, data: { attachments: privateAttachments,
+  const privateDraft = await database.emailDraft.update({ where: { id: draft.id }, data: { attachments: privateAttachments, purpose: "SERVICE",
     contactId: scheduledContact.id, channelId: scheduledChannel.id, scheduledAt: new Date("2026-10-30T12:00:00Z"), scheduledTimezone: "Europe/Paris", scheduleStatus: "QUEUED", scheduleNextAttemptAt: new Date("2026-10-30T12:00:00Z"),
     scheduledPayload: { provider: "RESEND", payload: { userId: user.id, contactId: scheduledContact.id, clientId: client.id, channelId: scheduledChannel.id, companyName: company.name,
-      from: "sender@example.test", to: scheduledContact.email, subject: draft.subject, html: draft.bodyHtml, text: "Fictional content only", cc: [], bcc: [], attachments: privateAttachments, threadId: null, serviceTicketId: null, replyTo: null } },
+      from: "sender@example.test", to: scheduledContact.email, purpose: "SERVICE", subject: draft.subject, html: draft.bodyHtml, text: "Fictional content only", cc: [], bcc: [], attachments: privateAttachments, threadId: null, serviceTicketId: null, replyTo: null } },
   } })
   await mkdir(path.join(directory, "data", "files", path.dirname(privateKey)), { recursive: true })
   await writeFile(path.join(directory, "data", "files", privateKey), privateBytes)
@@ -58,6 +60,9 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
     expect(await recovered.membership.count({ where: { companyId: company.id, userId: user.id } })).toBe(1)
     expect(await readFile(path.join(restored.restoredDirectory, "data", "files", fileKey))).toEqual(bytes)
     expect(await recovered.emailDraft.findUniqueOrThrow({ where: { id: draft.id } })).toEqual(privateDraft)
+    expect(await recovered.emailDraft.findUniqueOrThrow({ where: { id: historicalDraft.id } })).toEqual(historicalDraft)
+    expect(historicalDraft.purpose).toBeNull()
+    expect(await recovered.marketingConsent.findUniqueOrThrow({ where: { id: consent.id } })).toEqual(consent)
     expect(await recovered.emailSignature.findUniqueOrThrow({ where: { id: signature.id } })).toEqual(signature)
     const restoredContract = await recovered.contract.findUniqueOrThrow({ where: { id: contract.id } })
     expect(restoredContract).toEqual(signedContract)

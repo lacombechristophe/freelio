@@ -111,11 +111,12 @@ export async function withdrawLeadMarketingConsent(leadId: string) {
     const parsedId = idSchema.parse(leadId)
     const lead = await prisma.leadCapture.findFirst({
       where: { id: parsedId, companyId },
-      select: { id: true, clientId: true, contactId: true },
+      select: { id: true, clientId: true, contactId: true, email: true },
     })
     if (!lead) throw new Error("Prospect introuvable")
     const capturedAt = new Date()
-    const proofHash = createHash("sha256").update(JSON.stringify({ companyId, leadId: lead.id, userId, status: "WITHDRAWN", capturedAt: capturedAt.toISOString() })).digest("hex")
+    const recipientEmail = lead.email?.trim().toLowerCase() || null
+    const proofHash = createHash("sha256").update(JSON.stringify({ companyId, leadId: lead.id, recipientEmail, userId, status: "WITHDRAWN", capturedAt: capturedAt.toISOString() })).digest("hex")
 
     await prisma.$transaction(async (tx) => {
       await tx.marketingConsent.create({
@@ -124,6 +125,7 @@ export async function withdrawLeadMarketingConsent(leadId: string) {
           clientId: lead.clientId,
           contactId: lead.contactId,
           leadCaptureId: lead.id,
+          recipientEmail,
           channel: "EMAIL",
           purpose: "MARKETING",
           status: "WITHDRAWN",

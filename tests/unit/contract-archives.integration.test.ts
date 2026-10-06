@@ -187,7 +187,7 @@ describe.sequential("frozen contract signing and durable private archives", () =
   it("lists only signed archives for the recipient, copies exact bytes privately and reuses the copy after source deletion", async () => {
     const f = await fixture(), prepared = await f.sent(); await signContractPublic(prepared.token, prepared.signature)
     await processDueContractArchives({ companyId: f.company.id })
-    const draft = await f.asActor(() => saveEmailDraft(f.company.id, f.user.id, { createKey: randomUUID(), contactId: f.contact.id, subject: "Fictional archived document", bodyHtml: "<p>Private content</p>", cc: [], bcc: [] }))
+    const draft = await f.asActor(() => saveEmailDraft(f.company.id, f.user.id, { createKey: randomUUID(), purpose: "SERVICE", contactId: f.contact.id, subject: "Fictional archived document", bodyHtml: "<p>Private content</p>", cc: [], bcc: [] }))
     const query = { draftId: draft.id, kind: "SIGNED_CONTRACT" }
     const listed = await f.asActor(() => listCrmEmailDocuments(f.company.id, f.user.id, query))
     expect(listed.total).toBe(1); expect(JSON.stringify(listed)).not.toMatch(/signedDocument|relativePath|contentHtml|data:font/)
@@ -237,7 +237,7 @@ describe.sequential("frozen contract signing and durable private archives", () =
     await processDueContractArchives({ companyId: foreign.company.id })
     const source = await prisma.contract.findUniqueOrThrow({ where: { id: foreign.contract.id } })
     await prisma.membership.update({ where: { id: f.member.id }, data: { status: "ACTIVE" } })
-    const draft = await f.asActor(() => saveEmailDraft(f.company.id, f.user.id, { createKey: randomUUID(), contactId: f.contact.id, subject: "Fictional cross-company refusal", bodyHtml: "<p>Private content</p>", cc: [], bcc: [] }))
+    const draft = await f.asActor(() => saveEmailDraft(f.company.id, f.user.id, { createKey: randomUUID(), purpose: "SERVICE", contactId: f.contact.id, subject: "Fictional cross-company refusal", bodyHtml: "<p>Private content</p>", cc: [], bcc: [] }))
     await expect(f.asActor(() => attachCrmEmailDocument(f.company.id, f.user.id, { draftId: draft.id, version: draft.version, kind: "SIGNED_CONTRACT", sourceId: source.id, sourceHash: source.pdfHash!, attachmentId: randomUUID() }))).rejects.toThrow("indisponible")
     expect((await prisma.emailDraft.findUniqueOrThrow({ where: { id: draft.id } })).attachments).toEqual([])
   })

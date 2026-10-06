@@ -15,6 +15,7 @@ import { prepareManualEmailCommand, preparedManualEmailSchema, sendManualEmail }
 import { scheduledEmailInstant, scheduledTimeInput } from "./scheduled-time"
 import { jsonValue } from "./threads"
 import { activeCommunicationChannel } from "./email-provider"
+import { requireEmailPurpose, EmailPurposeError } from "./email-purpose"
 
 export class EmailScheduleError extends Error {}
 const identity = z.object({ id: z.string().cuid(), version: z.number().int().positive() })
@@ -41,6 +42,7 @@ export async function scheduleEmailDraft(companyId: string, userId: string, inpu
     let prepared: z.infer<typeof preparedManualEmailSchema>
     try {
       prepared = await prepareManualEmailCommand({ companyId, userId, requestKey: draft.requestKey, channelId: draft.channelId, companyName: company.name, replyTo: company.email,
+        purpose: requireEmailPurpose(draft.purpose),
         contactId: contact.id, clientId: contact.clientId, threadId: draft.threadId, serviceTicketId: null, to: contact.email, subject: draft.subject,
         html: prepareManualEmailContent(draft.bodyHtml).html, cc: draft.cc as string[], bcc: draft.bcc as string[], attachments: emailAttachmentsSchema.parse(draft.attachments) })
     } catch (error) {
@@ -114,7 +116,7 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
           summary.failed++; return
         }
         const parsed = preparedManualEmailSchema.safeParse(draft.scheduledPayload)
-        if (!parsed.success || parsed.data.payload.userId !== job.authorUserId || parsed.data.payload.channelId !== draft.channelId || parsed.data.payload.contactId !== draft.contactId) {
+        if (!parsed.success || parsed.data.payload.userId !== job.authorUserId || parsed.data.payload.channelId !== draft.channelId || parsed.data.payload.contactId !== draft.contactId || parsed.data.payload.purpose !== (draft.purpose || undefined)) {
           await control.assertOwned()
           await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: "FAILED", scheduleNextAttemptAt: null, scheduleError: "Commande programmée incohérente ; vérification nécessaire" } })
           summary.failed++; return
@@ -140,10 +142,10 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
             await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { sentAt: new Date(), scheduleStatus: "SENT", scheduleNextAttemptAt: null, scheduleError: null } })
             await logAction({ userId: job.authorUserId, action: "SEND_SCHEDULED_CRM_EMAIL", resource: "EMAIL_MESSAGE", resourceId: message.id, payload: { draftId: draft.id } })
             summary.sent++
-          } catch {
+          } catch (error) {
             await control.assertOwned()
-            const exhausted = draft.scheduleAttempts + 1 >= MAX_ATTEMPTS
-            await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: exhausted ? "FAILED" : "RETRY", ...(exhausted ? { scheduleNextAttemptAt: null } : {}), scheduleError: "Échec de l’envoi programmé ; résultat fournisseur à vérifier" } })
+            const exhausted = error instanceof EmailPurposeError || draft.scheduleAttempts + 1 >= MAX_ATTEMPTS
+            await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: exhausted ? "FAILED" : "RETRY", ...(exhausted ? { scheduleNextAttemptAt: null } : {}), scheduleError: error instanceof EmailPurposeError ? error.message : "Échec de l’envoi programmé ; résultat fournisseur à vérifier" } })
             summary.failed++
           }
         })

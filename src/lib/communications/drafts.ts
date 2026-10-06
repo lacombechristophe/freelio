@@ -8,12 +8,14 @@ import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing
 import { copyRecipientsSchema, validateRecipients } from "./recipients"
 import { attachmentMetadata, emailAttachmentsSchema, type EmailAttachment } from "./attachment-types"
 import { removeLocalFile } from "@/lib/local-files"
+import { emailPurposeSchema, requireEmailPurpose, assertPurposeRecipients } from "./email-purpose"
 
 const optionalId = z.union([z.string().cuid(), z.literal(""), z.null()]).optional().transform(value => value || null)
 const fieldsSchema = z.object({
   channelId: optionalId, contactId: optionalId, threadId: optionalId,
   subject: z.string().trim().max(180).refine(value => !/[\r\n]/.test(value), "Objet invalide"),
   bodyHtml: z.string().trim().max(100_000),
+  purpose: emailPurposeSchema.nullable().default(null),
   cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]),
 })
 const saveSchema = fieldsSchema.extend({
@@ -26,6 +28,7 @@ export class EmailDraftConflict extends Error {}
 
 function normalizedFields(input: unknown) {
   const fields = fieldsSchema.parse(input)
+  assertPurposeRecipients(fields.purpose, fields.cc, fields.bcc)
   return { ...fields, bodyHtml: sanitizeSequenceEmailHtml(fields.bodyHtml) }
 }
 
@@ -67,7 +70,7 @@ export async function listEmailDrafts(companyId: string, userId: string, input: 
     const total = await tx.emailDraft.count({ where })
     const pageCount = Math.max(1, Math.ceil(total / 25)), page = Math.min(requested, pageCount)
     const rows = await tx.emailDraft.findMany({ where, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25,
-      select: { id: true, version: true, subject: true, updatedAt: true, scheduledAt: true, scheduledTimezone: true, scheduleStatus: true, scheduleStartedAt: true, scheduleError: true } })
+      select: { id: true, version: true, subject: true, purpose: true, updatedAt: true, scheduledAt: true, scheduledTimezone: true, scheduleStatus: true, scheduleStartedAt: true, scheduleError: true } })
     return { total, page, pageCount, drafts: rows.map(row => ({ ...row, scheduledAt: row.scheduledAt?.toISOString() ?? null, scheduleStartedAt: row.scheduleStartedAt?.toISOString() ?? null, updatedAt: row.updatedAt.toISOString() })) }
   })
 }
@@ -75,6 +78,7 @@ export async function listEmailDrafts(companyId: string, userId: string, input: 
 export async function saveEmailDraft(companyId: string, userId: string, input: unknown) {
   const data = saveSchema.parse(input)
   const fields = normalizedFields(data)
+  if (!data.id) requireEmailPurpose(fields.purpose)
   await assertLinks(companyId, fields)
   if (!data.id) return withEmailDraftLease(`${companyId}:${userId}:${data.createKey}`, async control => {
     await control.assertOwned()

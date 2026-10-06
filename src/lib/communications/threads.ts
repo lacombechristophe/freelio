@@ -66,6 +66,7 @@ export async function getOrCreateEmailThread(input: {
 
 export async function recordOutgoingEmail(input: {
   companyId: string
+  purpose?: string | null
   channelId?: string | null
   threadId?: string | null
   clientId?: string | null
@@ -112,6 +113,7 @@ export async function recordOutgoingEmail(input: {
       threadId: thread.id,
       deliveryId: input.deliveryId || null,
       direction: "OUTBOUND",
+      purpose: input.purpose || null,
       provider,
       providerId: input.providerId,
       internetMessageId: input.internetMessageId || null,

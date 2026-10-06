@@ -22,7 +22,7 @@ describe.sequential("private attachment bytes, quotas and frozen draft revisions
     const company = await prisma.company.create({ data: { name: "Fictional attachments only" } }); companies.push(company.id)
     const user = await prisma.user.create({ data: { name: "Fictional file author" } }); users.push(user.id)
     const colleague = await prisma.user.create({ data: { name: "Fictional colleague" } }); users.push(colleague.id)
-    const fields = { createKey: randomUUID(), subject: "Fictional files", bodyHtml: "<p>Fictional content only</p>" }
+    const fields = { createKey: randomUUID(), purpose: "SERVICE" as const, subject: "Fictional files", bodyHtml: "<p>Fictional content only</p>" }
     const draft = await saveEmailDraft(company.id, user.id, fields)
     return { companyId: company.id, userId: user.id, colleagueId: colleague.id, draft, fields }
   }

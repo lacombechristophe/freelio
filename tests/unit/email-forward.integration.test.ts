@@ -86,7 +86,7 @@ describe.sequential("scoped forwarding of an exact message into an independent d
     const f = await fixture()
     const forward = await f.asOwner(() => readForwardMessage(f.company.id, f.message.id))
     await requestContext.run({ companyId: f.company.id, userId: f.owner.id, role: "SALES", agencyIds: null, membershipId: "fiction", actionPermission: "automation.write" }, async () => {
-      const draft = await saveEmailDraft(f.company.id, f.owner.id, { ...forward, createKey: crypto.randomUUID(), contactId: "", threadId: "", cc: [], bcc: [], attachmentIds: [] })
+      const draft = await saveEmailDraft(f.company.id, f.owner.id, { ...forward, purpose: "SERVICE", createKey: crypto.randomUUID(), contactId: "", threadId: "", cc: [], bcc: [], attachmentIds: [] })
       expect(draft).toMatchObject({ subject: forward.subject, bodyHtml: forward.bodyHtml, contactId: null, threadId: null, cc: [], bcc: [], attachments: [], sentAt: null })
       expect(await prisma.emailDelivery.count({ where: { companyId: f.company.id } })).toBe(0)
     })
