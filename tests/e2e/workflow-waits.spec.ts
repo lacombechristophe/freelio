@@ -31,6 +31,9 @@ test("creates and simulates a persistent wait, resumes it, and reads the complet
     await page.getByRole("tab", { name: "Journal" }).click()
     await page.getByRole("tab", { name: /Exécutions/ }).click()
     await page.getByLabel("Rechercher une exécution", { exact: true }).fill(name)
+    const result = page.getByRole("tabpanel", { name: /Exécutions/ }).locator("[data-workflow-run]")
+    await expect(result).toHaveCount(1)
+    await expect(result).toContainText(name)
   }
   await openJournal()
   const runs = page.getByRole("tabpanel", { name: /Exécutions/ }), row = runs.locator("[data-workflow-run]")
