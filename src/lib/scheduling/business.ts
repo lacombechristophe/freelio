@@ -159,15 +159,20 @@ export async function processScheduledBusinessJobs() {
     where: { status: "SENT", dueDate: { lt: new Date() } },
     data: { status: "OVERDUE" },
   })
-  const [recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents] = await Promise.all([
+  const deleteProcessedBillingEvents = () => prisma.billingWebhookEvent.deleteMany({
+    where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
+  })
+  // SQLite has one writer. Overlapping interactive transactions can hold each
+  // other's locks until both expire, even under the outer processor lease.
+  const [recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents] = process.env.DATABASE_URL?.startsWith("file:")
+    ? [await processDueRecurringInvoices(), await processDueMaintenanceVisits(), await processDueInvoiceReminders(), await processDueScheduledEmails(), await processDueContractArchives(), await deleteProcessedBillingEvents()] as const
+    : await Promise.all([
     processDueRecurringInvoices(),
     processDueMaintenanceVisits(),
     processDueInvoiceReminders(),
     processDueScheduledEmails(),
     processDueContractArchives(),
-    prisma.billingWebhookEvent.deleteMany({
-      where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
-    }),
+    deleteProcessedBillingEvents(),
   ])
   return { overdueInvoices: overdueInvoices.count, recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
 }
