@@ -1,8 +1,8 @@
 {
-  "scriptSha256": "170a372bfd0029f2032fd42eb1f4ee4a2d7cd911ea0197dbe26fbd5f048901b5",
+  "scriptSha256": "9946317baa37fb76f308fafc1f0206f5323ffe724f665226d896fd0983e36a4d",
   "schema": "freelio.workflow-journal-volume.v1",
   "source": "e6733423b741677c7a79fee4c602c454ad379bf7",
-  "startedAt": "2026-10-07T22:29:35.005Z",
+  "startedAt": "2026-10-07T22:33:07.483Z",
   "runtime": {
     "node": "v24.15.0",
     "os": "win32",
@@ -14,63 +14,63 @@
   "rows": 10000,
   "pageSize": 25,
   "measurements": {
-    "seedMs": 657.49,
+    "seedMs": 600.12,
     "firstPage": {
-      "coldMs": 5.28,
+      "coldMs": 5.32,
       "warmMs": [
-        2.57,
-        2.19,
-        2.18,
-        2.01,
-        2.02
+        2.22,
+        2.12,
+        2.21,
+        1.98,
+        1.96
       ],
-      "warmMedianMs": 2.18
+      "warmMedianMs": 2.12
     },
     "lastPage": {
-      "coldMs": 9.04,
+      "coldMs": 9.16,
       "warmMs": [
-        9.09,
-        9.16,
-        9.06,
-        8.95,
-        8.97
+        10.04,
+        11.41,
+        11.92,
+        9.97,
+        8.81
       ],
-      "warmMedianMs": 9.06
+      "warmMedianMs": 10.04
     },
     "lastRowSearch": {
-      "coldMs": 9.43,
+      "coldMs": 9.84,
       "warmMs": [
-        9.03,
-        9.11,
-        8.94,
-        9.1,
-        8.84
+        8.98,
+        9.01,
+        8.83,
+        8.96,
+        8.85
       ],
-      "warmMedianMs": 9.03
+      "warmMedianMs": 8.96
     },
     "failedFilter": {
-      "coldMs": 5.33,
+      "coldMs": 5.04,
       "warmMs": [
-        5.42,
-        5.44,
-        5.27,
-        5.25,
-        5.03
+        5.23,
+        5.58,
+        5.23,
+        5.36,
+        4.98
       ],
-      "warmMedianMs": 5.27
+      "warmMedianMs": 5.23
     },
     "details": {
-      "coldMs": 1.85,
+      "coldMs": 1.6,
       "warmMs": [
-        0.95,
-        0.9,
-        0.89,
-        0.89,
-        0.88
+        0.92,
+        0.86,
+        0.8,
+        0.81,
+        0.77
       ],
-      "warmMedianMs": 0.89
+      "warmMedianMs": 0.81
     },
-    "rssMiBAtEnd": 104.77
+    "rssMiBAtEnd": 107.12
   },
   "checks": [
     "All 10,000 executions counted; oldest row accessible on page 400",
@@ -85,5 +85,5 @@
     "SIGKILL injection",
     "Browser performance"
   ],
-  "finishedAt": "2026-10-07T22:29:35.956Z"
+  "finishedAt": "2026-10-07T22:33:08.390Z"
 }

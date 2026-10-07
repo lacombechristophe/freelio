@@ -8,13 +8,13 @@ Mesure du 8 octobre 2026 (heure de Paris), sur le code applicatif `e6733423b7416
 
 | Requête | Première mesure (ms) | Médiane des cinq suivantes (ms) |
 | --- | ---: | ---: |
-| Première page | 5,28 | 2,18 |
-| Dernière page, 400 | 9,04 | 9,06 |
-| Recherche de la dernière ligne | 9,43 | 9,03 |
-| Dernière page des échecs, 40 | 5,33 | 5,27 |
-| Détail d’une exécution | 1,85 | 0,89 |
+| Première page | 5,32 | 2,12 |
+| Dernière page, 400 | 9,16 | 10,04 |
+| Recherche de la dernière ligne | 9,84 | 8,96 |
+| Dernière page des échecs, 40 | 5,04 | 5,23 |
+| Détail d’une exécution | 1,60 | 0,81 |
 
-Machine : Windows x64, AMD Ryzen 5 5600X, 12 processeurs logiques ; Node 24.15.0, SQLite 3.46.0. Insertion : 657,49 ms. RSS en fin de mesure : 104,77 Mio, **pas un pic mémoire**. « Première mesure » signifie première invocation de la requête dans ce processus ; ni cache disque vidé ni redémarrage du système.
+Machine : Windows x64, AMD Ryzen 5 5600X, 12 processeurs logiques ; Node 24.15.0, SQLite 3.46.0. Insertion : 600,12 ms. RSS en fin de mesure : 107,12 Mio, **pas un pic mémoire**. « Première mesure » signifie première invocation de la requête dans ce processus ; ni cache disque vidé ni redémarrage du système. Le script mesuré utilise les fins de ligne LF du fichier versionné ; son empreinte correspond aux octets conservés dans Git.
 
 Cette mesure locale séquentielle ne qualifie pas PostgreSQL, la charge concurrente, le navigateur, le stockage hébergé, un fournisseur d’e-mails ou une interruption SIGKILL. Elle ne garantit aucune latence en production. Le journal E-mails est un autre composant, dont le complément de pagination reste proposé séparément.
 
