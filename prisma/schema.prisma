@@ -1354,6 +1354,8 @@ model AutomationRun {
   configuration Json?
   input         Json?
   nextActionPosition Int @default(0)
+  wakeAt        DateTime?
+  failures      Int @default(0)
   attempts      Int @default(0)
   ownerId       String?
   leaseUntil    DateTime?
@@ -1391,7 +1393,11 @@ model AutomationRunAction {
   run       AutomationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   position  Int
   output    Json
-  completedAt DateTime @default(now())
+  status    String @default("COMPLETED")
+  startedAt DateTime?
+  scheduledAt DateTime?
+  errorCode String?
+  completedAt DateTime? @default(now())
 
   @@unique([runId, position])
 }

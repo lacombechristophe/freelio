@@ -15,9 +15,12 @@ import { nextSequenceExecution, sequenceTimezoneIsValid } from "@/lib/automation
 import { customerHealthStatus } from "@/lib/operations/customer-health"
 import { automationProcessRateLimit } from "@/lib/rate-limit"
 import { logAction } from "@/lib/audit"
+import { automationRunJournal, automationRunDetails } from "@/lib/automations/journal"
 import { activeEmailSuppression, clearEmailSuppression } from "@/lib/communications/suppressions"
 
 const idSchema = z.string().cuid()
+export async function getAutomationRunJournal(input: unknown = {}) { return withAuth(({ companyId }) => automationRunJournal(companyId, input), "automation.read") }
+export async function getAutomationRunDetails(input: unknown) { return withAuth(({ companyId }) => automationRunDetails(companyId, input), "automation.read") }
 const templateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   category: z.string().trim().min(2).max(50),

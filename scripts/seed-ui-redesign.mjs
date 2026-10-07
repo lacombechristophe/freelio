@@ -15,6 +15,11 @@ try {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: "qa-crm@example.com" } })
   const companyId = user.companyId
   if (!companyId) throw new Error("Seed the QA account first.")
+  for (const surface of ["desktop", "mobile"]) {
+    const workflow = await prisma.automationWorkflow.create({ data: { companyId, name: `UIQA Journal ${surface}`, trigger: "LEAD_CREATED", status: "ARCHIVED", actions: [{ type: "WAIT", delayHours: 1 }] } })
+    await prisma.automationRun.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, workflowId: workflow.id, event: index === 100 ? `UIQA_LAST_${surface}` : "LEAD_CREATED",
+      eventKey: `fictional-journal-${surface}-${index}`, subjectModel: "LeadCapture", subjectId: "fictional-journal-subject", status: "COMPLETED", startedAt: new Date(Date.UTC(1990, 0, 1, 0, index)) })) })
+  }
   for (let index = 0; index < 27; index++) await prisma.marketingCampaign.upsert({ where: { companyId_name: { companyId, name: `UIQA Campaign management volume ${index}` } }, update: {}, create: { companyId, name: `UIQA Campaign management volume ${index}`, objective: "Fictional pagination", channels: ["EMAIL"], createdAt: new Date(Date.UTC(2000, 0, 1, 0, index)) } })
   for (const surface of ["desktop", "mobile"]) {
     const name = `UIQA Campaign management ${surface}`

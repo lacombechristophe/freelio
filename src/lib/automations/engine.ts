@@ -16,6 +16,7 @@ export const workflowConditionsSchema = z.object({
 }).partial()
 
 const leafActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("WAIT"), delayHours: z.number().int().min(1).max(8_760) }),
   z.object({ type: z.literal("ENROLL_SEQUENCE"), sequenceId: z.string().cuid() }),
   z.object({ type: z.literal("CREATE_TASK"), title: z.string().trim().min(2).max(180), delayHours: z.number().int().min(0).max(8_760).default(0), priority: z.number().int().min(1).max(4).default(2) }),
   z.object({ type: z.literal("NOTIFY_TEAM"), title: z.string().trim().min(2).max(180) }),
