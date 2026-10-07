@@ -1,6 +1,6 @@
 # Journal des e-mails : portefeuille complet — proposition
 
-Date : 8 octobre 2026. Sous-lot AUTO-05 préparé ; ni accord visible ni implémentation présumés.
+Date : 8 octobre 2026. Sous-lot AUTO-05 explicitement approuvé par le propriétaire ; implémentation et qualification en cours.
 
 ## Constat
 
@@ -21,3 +21,9 @@ La recherche porte sur objet, destinataire et nom de séquence ; l’état et la
 Au moins 101 livraisons et 51 séquences fictives, dernière ligne retrouvée par recherche et pagination, filtres combinés, même nom recherché avec choix conservé, page devenue vide après changement de filtre. Société étrangère, boîte privée d’un autre membre, accès révoqué après ouverture, rôle lecture seule et démo. Ordinateur/mobile : pages, recherche de la dernière ligne, sélection d’une séquence hors première page et détail/refus de relance. Types/lint/build et CI du SHA exact.
 
 Ce lot ne fournit ni nouvelles preuves distantes ni classement/réparation des envois automatiques incertains. Cette reprise humaine reste distincte, avec règle explicite de progression/arrêt de l’inscription avant implémentation. Les autres plafonds de modèles/scénarios/suppressions sont suivis séparément ; la pagination de ce journal ne les efface pas.
+
+## Implémentation et qualification locale
+
+Les lecteurs SQL retournent seulement les métadonnées utiles aux cartes/détails : aucun contenu figé, CC/CCI, preuve ou référence brute fournisseur. Count et page partagent une transaction Serializable et les ACL Prisma. Le filtre est un ID de séquence, sans ambiguïté de nom ; sa sélection est relue indépendamment de la page recherchée. Les anciennes séquences archivées restent consultables. L’ouverture d’un détail relit sa visibilité et une réponse devenue obsolète ne remplace pas une sélection plus récente.
+
+La recette ciblée passe dix cas du nouveau fichier et les recettes d’ACL/relance : 31 tests dans trois fichiers. Les E2E préparés portent sur 101 envois et 51 séquences par viewport, l’ancienne ligne/page cinq, filtres combinés, détail, choix de séquence/page trois et conservation du choix lorsque la recherche n’a aucun résultat. Aucun parcours navigateur local n’est annoncé exécuté ; les qualifications finales et les résultats CI restent dans la recette principale.

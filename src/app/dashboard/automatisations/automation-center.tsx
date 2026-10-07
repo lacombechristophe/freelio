@@ -27,7 +27,7 @@ export function AutomationCenter({ initialData }: { initialData: AutomationData 
   const [tab, setTab] = useState("overview")
   const [isPending, startTransition] = useTransition()
   const tabsScrollerRef = useRef<HTMLDivElement>(null)
-  const counts: Record<string, number> = { sequences: initialData.sequences.length, workflows: initialData.workflows.length, templates: initialData.templates.length, history: initialData.deliveries.length }
+  const counts: Record<string, number> = { sequences: initialData.sequences.length, workflows: initialData.workflows.length, templates: initialData.templates.length, history: initialData.deliveryJournal.total }
 
   function selectTab(nextTab: string) {
     setTab(nextTab)

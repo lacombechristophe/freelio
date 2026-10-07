@@ -18,11 +18,15 @@ import { logAction } from "@/lib/audit"
 import { withProcessorLease } from "@/lib/processing/lease"
 import { sequenceRetryNeedsReview, SEQUENCE_RETRY_REVIEW_MESSAGE } from "@/lib/automations/sequence-retry-safety"
 import { automationRunJournal, automationRunDetails } from "@/lib/automations/journal"
-import { activeEmailSuppression, clearEmailSuppression } from "@/lib/communications/suppressions"
+import { readDeliveryJournal, readDeliveryDetails, readJournalSequences } from "@/lib/automations/delivery-journal"
+import { clearEmailSuppression } from "@/lib/communications/suppressions"
 
 const idSchema = z.string().cuid()
 export async function getAutomationRunJournal(input: unknown = {}) { return withAuth(({ companyId }) => automationRunJournal(companyId, input), "automation.read") }
 export async function getAutomationRunDetails(input: unknown) { return withAuth(({ companyId }) => automationRunDetails(companyId, input), "automation.read") }
+export async function getAutomationDeliveryJournal(input: unknown = {}) { return withAuth(({ companyId }) => readDeliveryJournal(companyId, input), "automation.read") }
+export async function getAutomationDeliveryDetails(input: unknown) { return withAuth(({ companyId }) => readDeliveryDetails(companyId, input), "automation.read") }
+export async function getAutomationJournalSequences(input: unknown = {}) { return withAuth(({ companyId }) => readJournalSequences(companyId, input), "automation.read") }
 const templateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   category: z.string().trim().min(2).max(50),
@@ -135,7 +139,7 @@ export async function getAutomationDashboard() {
         orderBy: { updatedAt: "desc" },
         take: 200,
       }),
-      prisma.emailDelivery.findMany({ where: { companyId }, include: { sequence: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 50 }),
+      readDeliveryJournal(companyId),
       prisma.leadCapture.findMany({
         where: { companyId, marketingOptIn: true, email: { not: null }, status: { notIn: ["SPAM", "ARCHIVED"] } },
         select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true },
@@ -244,22 +248,8 @@ export async function getAutomationDashboard() {
           createdAt: version.createdAt.toISOString(),
         })),
       })),
-      deliveries: deliveries.map((delivery) => ({
-        id: delivery.id,
-        recipientEmail: delivery.recipientEmail,
-        subject: delivery.subject,
-        status: delivery.status,
-        error: delivery.error,
-        attempts: delivery.attempts,
-        maxAttempts: delivery.maxAttempts,
-        nextAttemptAt: delivery.nextAttemptAt?.toISOString() ?? null,
-        deadLetteredAt: delivery.deadLetteredAt?.toISOString() ?? null,
-        provider: delivery.provider,
-        scheduledAt: delivery.scheduledAt.toISOString(),
-        sentAt: delivery.sentAt?.toISOString() ?? null,
-        createdAt: delivery.createdAt.toISOString(),
-        sequence: delivery.sequence,
-      })),
+      deliveries: deliveries.rows,
+      deliveryJournal: deliveries,
       leads: leads.filter((lead) => !suppressions.some((suppression) => suppression.email === lead.email?.trim().toLowerCase())),
       suppressions: suppressions.map((suppression) => ({
         id: suppression.id,

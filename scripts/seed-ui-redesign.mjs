@@ -113,6 +113,12 @@ try {
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
   const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE", id: { not: "cuiqareplysecondmailbox00" } } })
   for (const surface of ["desktop", "mobile"]) {
+    const sequences = []
+    for (let index = 0; index < 51; index++) sequences.push(await prisma.emailSequence.create({ data: { companyId, senderChannelId: mailbox.id, name: `UIQA Mail selector ${surface} ${String(index).padStart(3, "0")}`, status: "ARCHIVED" } }))
+    await prisma.emailDelivery.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, channelId: mailbox.id, sequenceId: sequences[index % 51].id,
+      recipientEmail: `journal-${surface}-${index}@example.test`, subject: `UIQA Mail journal ${surface} ${String(index).padStart(3, "0")}`, status: "FAILED", scheduledAt: new Date("1990-01-01"), createdAt: new Date(Date.UTC(1990, 0, 1, 0, index)) })) })
+  }
+  for (const surface of ["desktop", "mobile"]) {
     const name = `UIQA Activation ${surface}`
     const client = await prisma.client.create({ data: { companyId, name: `Fictional activation contacts ${surface}` } })
     const segment = await prisma.marketingSegment.create({ data: { companyId, name, kind: "STATIC", filters: {}, lastBuiltAt: new Date() } })
