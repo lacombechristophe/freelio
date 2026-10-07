@@ -31,3 +31,12 @@ Les fichiers ci-dessous donnent des points d’entrée pour une revue technique.
 | Accessibilité et usage | Parcours E2E, `full-ui-audit.spec.ts`, navigation clavier et mobile | Audit manuel représentatif et correction visible soumise à approbation |
 
 Les noms de tests unitaires sont relatifs à `tests/unit/`. Un résultat local ne se transpose pas automatiquement à un fournisseur, à un volume supérieur ou à une infrastructure distante. Chaque affirmation de démonstration doit citer une recette datée et une version du code.
+
+## Compléments du candidat Scénarios
+
+| Risque / invariant | Preuves à examiner | Portée restante |
+| --- | --- | --- |
+| Attente conservée, effets antérieurs non répétés et erreur réelle distincte du réveil | tests/unit/workflow-waits.integration.test.ts ; tests/e2e/workflow-waits.spec.ts ; migration 20261007010000_workflow_waits ; [contrat](contrat-attentes-scenarios.md) | Deux attentes/branches, échéances persistées, checkpoint atomique, pause/archive, concurrence, frère épuisé ; CI du SHA à qualifier. Rejeu SQL/horloge contrôlée, sans SIGKILL réel ni promesse de ponctualité hébergée. |
+| Journal complet et détail limité à sa société | tests/unit/workflow-waits.integration.test.ts ; tests/e2e/workflow-waits.spec.ts | 101 lignes, recherche/filtre/pages de 25, historique absent explicite, aucune entrée/configuration brute. La pagination du journal des e-mails automatiques reste un lot distinct. |
+| Écritures métier compatibles avec SQLite | tests/unit/business-scheduling-concurrency.test.ts ; [défaut CI et correction](qualification-sqlite-ci-20261007.md) | Tâches séquentielles SQLite, parallélisme PostgreSQL conservé, échec propagé ; un test à portes contrôlées ne constitue pas un stress multi-instance. |
+| Reprise des auteurs historiques sans plafond et sans transaction par ligne | tests/unit/manual-email-recovery.integration.test.ts | Validations/CAS conservés, lots transactionnels de 100, 501 commandes et dernière page ; rétention, migration massive et interruption réelle restent à mesurer. |
