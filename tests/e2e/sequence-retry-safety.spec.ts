@@ -5,7 +5,7 @@ test("refuses retry of an expired uncertain delivery and preserves the refusal a
   const message = "Résultat fournisseur incertain : vérifiez le résultat avant toute relance."
   const open = async () => {
     await page.goto("/dashboard/automatisations")
-    await page.getByRole("tab", { name: "Journal", exact: true }).click()
+    await page.getByRole("tab", { name: /^Journal/ }).click()
     await page.getByRole("tab", { name: /E-mails/ }).click()
     await page.getByRole("button").filter({ has: page.getByText(subject, { exact: true }) }).click()
   }
