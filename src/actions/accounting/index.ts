@@ -510,5 +510,5 @@ export async function getAccountingSnapshot() {
       projectProfitability,
       recentPaid,
     }
-  })
+  }, "finance.read")
 }

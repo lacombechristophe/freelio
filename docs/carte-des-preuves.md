@@ -5,6 +5,7 @@ Les fichiers ci-dessous donnent des points d’entrée pour une revue technique.
 | Risque / invariant | Preuves à examiner | Portée restante |
 | --- | --- | --- |
 | Isolation entreprise, agence et droits lecture/écriture | `tenant-scope.test.ts`, `agency-access.test.ts`, `permissions.test.ts`, `commercial-read-permissions.test.ts`, `expense-permissions.test.ts` | Revue complète des entrées HTTP/actions et des nouveaux modèles |
+| Lecture bancaire et synthèse comptable réservées à Finance | `banking-permissions.integration.test.ts` ; [qualification du contrôle d’accès](qualification-droits-banque-20261008.md) | Vraies actions et adhésions SQL, session fictive ; CI du nouveau candidat à qualifier. Politique des indicateurs transversaux et concurrence des rapprochements restent distinctes. |
 | Identifiants, MFA, sessions et tokens | `password.test.ts`, `mfa.test.ts`, `password-reset-token.test.ts`, `route-auth.test.ts`, `consent-token.test.ts`, inscription/connexion E2E | Limiteur distribué réel, reverse proxy, TLS et révocation multi-instance |
 | Numérotation concurrente et calcul en centimes | `numbering.test.ts`, `document-numbering-core.test.ts`, `commercial-calculation.test.ts` | Stress concurrent et bornes sur le runtime final |
 | Immutabilité d’une facture émise | `issued-invoice.integration.test.ts`, `issued-invoice.test.ts`, `docgen-worker-status.test.ts`, `portal-invoice-archive.test.ts`, `document-studio-archive.test.ts` | Course émission/queue avec Redis réel ; volumes d’archives |

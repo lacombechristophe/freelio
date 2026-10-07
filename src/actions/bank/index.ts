@@ -34,7 +34,7 @@ export async function getBankingDashboard() {
       }),
     ])
     return { transactions, invoices, expenses }
-  })
+  }, "finance.read")
 }
 
 export async function importBankTransactions(input: unknown) {
@@ -68,7 +68,7 @@ export async function importBankTransactions(input: unknown) {
     if (unique.length) await prisma.bankTransaction.createMany({ data: unique })
     revalidatePath("/dashboard/comptabilite/banque")
     return { imported: unique.length, ignored: prepared.length - unique.length }
-  })
+  }, "finance.write")
 }
 
 export async function matchTransactionToInvoice(transactionId: string, invoiceId: string) {
@@ -103,7 +103,7 @@ export async function matchTransactionToInvoice(transactionId: string, invoiceId
     revalidatePath("/dashboard/comptabilite/banque")
     revalidatePath(`/dashboard/factures/${invoiceId}`)
     return { ok: true }
-  }))
+  }), "finance.write")
 }
 
 export async function matchTransactionToExpense(transactionId: string, expenseId: string) {
@@ -119,7 +119,7 @@ export async function matchTransactionToExpense(transactionId: string, expenseId
     await tx.bankTransaction.update({ where: { id: transactionId }, data: { matchedExpenseId: expenseId } })
     revalidatePath("/dashboard/comptabilite/banque")
     return { ok: true }
-  }))
+  }), "finance.write")
 }
 
 export async function createExpenseFromTransaction(transactionId: string) {
@@ -146,5 +146,5 @@ export async function createExpenseFromTransaction(transactionId: string) {
     revalidatePath("/dashboard/comptabilite/banque")
     revalidatePath("/dashboard/depenses")
     return expense
-  }))
+  }), "finance.write")
 }
