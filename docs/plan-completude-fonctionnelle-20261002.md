@@ -284,6 +284,8 @@ La revue L8 reproduit ensuite une lecture bancaire et une synthèse comptable ac
 
 ## Journal complet et reprise des séquences — 8 octobre 2026
 
-Le journal E-mails complet est approuvé, implémenté et poussé dans 170a6cd, avec ses preuves locales consignées dans 6cc3d8a : 782 tests SQLite, types/lint/build réussis. Les deux CI de 6cc3d8a doivent confirmer PostgreSQL, Linux et navigateur ; aucune qualification E2E locale n’est revendiquée.
+Le journal E-mails complet est approuvé, implémenté et poussé dans 170a6cd, avec ses preuves locales consignées dans 6cc3d8a : 782 tests SQLite, types/lint/build réussis. Les deux CI de 6cc3d8a confirment PostgreSQL, Linux et navigateur (135 E2E réussis, 19 exclusions historiques) ; seul l’audit complet échoue. Aucune qualification E2E locale n’est revendiquée.
 
 Le propriétaire approuve ensuite la reprise humaine des séquences. Le contrat et les trois opérations sont implémentés : vérification fournisseur en lecture seule, réparation SQL avec inscription conservée en pause, classement motivé arrêtant l’inscription sans effacer la commande. Le résultat inconnu reste inconnu et les preuves privées sont exclues du détail. Qualification complète et CI propres restent en cours ; les journaux ne clôturent pas les plafonds des studios ni L8/L9.
+
+Les listes des studios Modèles/Séquences/Scénarios, des inscriptions et des suppressions sont ensuite approuvées et implémentées. Recherche/filtre complets, pages de 25 et sélection indépendante de la page sont couverts par neuf tests SQL ; suite locale complète : 809 tests dans 150 fichiers. Le candidat met aussi Next à 16.3.8 pour les nouveaux avis de sécurité. L’[index courant](completude-recette-20261003.md) distingue les CI achevées des parcours restant à qualifier. L8/L9, les autres sélecteurs et l’audit complet restent ouverts.

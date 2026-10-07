@@ -18,7 +18,7 @@ Le rôle de migration et le rôle de l’application sont distincts. La démo pu
 
 ## D03 — Node 24 et dépendances verrouillées
 
-**Décision retenue.** Aligner le lanceur local, package.json, CI et image sur Node 24.x. Verrouiller Next, son environnement et ESLint à 16.3.6. Les dépendances transitives corrigées sont inscrites dans le lockfile. L’audit initial du socle ne signalait aucune vulnérabilité connue ; les CI du candidat du 5 octobre rapportent zéro alerte de production et huit alertes hautes de développement. L’audit complet reste bloquant, comme détaillé dans la recette datée et l’inventaire des dépendances.
+**Décision retenue.** Aligner le lanceur local, package.json, CI et image sur Node 24.x. Le candidat du 8 octobre verrouille Next et @next/env à 16.3.8, correctif minimal des nouveaux avis ; ESLint Next reste à 16.4.0. Les versions et dépendances transitives sont inscrites dans le lockfile. L’audit initial du socle ne signalait aucune vulnérabilité connue ; les résultats datés ne qualifient pas les avis publiés ensuite. Le contrôle courant du lockfile corrigé donne zéro alerte de production et cinq hautes de développement. L’audit complet reste bloquant. La [qualification de sécurité](qualification-next-20261008.md) distingue le candidat, ses recettes et le runtime déployé.
 
 L’audit npm ne prouve pas l’absence de vulnérabilités applicatives. Les mises à jour proposées par Dependabot restent soumises à revue et recette. Les changements majeurs ne sont pas regroupés avec les correctifs métier.
 
