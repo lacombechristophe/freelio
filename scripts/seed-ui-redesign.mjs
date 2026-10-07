@@ -112,6 +112,16 @@ try {
   await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: "UIQA-PURCHASE" } }, update: {}, create: { id: "cuiqapurchase000000000000", companyId, supplierId: supplier.id, number: "UIQA-PURCHASE" } })
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
   const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE", id: { not: "cuiqareplysecondmailbox00" } } })
+  for (const surface of ["desktop", "mobile"]) for (const kind of ["Unknown", "Accepted"]) {
+    const subject = `UIQA Sequence recovery ${kind} ${surface}`
+    const lead = await prisma.leadCapture.create({ data: { companyId, firstName: "Fiction", lastName: "Sequence recovery", email: `sequence-recovery-${kind.toLowerCase()}-${surface}@example.test`, privacyAccepted: true, fingerprint: subject } })
+    const sequence = await prisma.emailSequence.create({ data: { companyId, senderChannelId: mailbox.id, name: subject, status: "ARCHIVED", steps: { create: { position: 0, subject, bodyHtml: "<p>Fictional sequence original</p>" } } }, include: { steps: true } })
+    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, status: "PAUSED", stopReason: "DELIVERY_RESULT_UNCERTAIN" } })
+    await prisma.emailDelivery.create({ data: { companyId, sequenceId: sequence.id, stepId: sequence.steps[0].id, enrollmentId: enrollment.id, leadCaptureId: lead.id, channelId: mailbox.id, provider: "RESEND", recipientEmail: lead.email, subject,
+      payload: { kind: "SEQUENCE", companyName: "Fictional company", replyTo: null, from: mailbox.emailAddress, to: lead.email, subject, html: "<p>Fictional sequence original</p>", headers: {} },
+      status: kind === "Accepted" ? "SENT" : "DEAD_LETTER", attempts: 2, providerId: kind === "Accepted" ? `fiction-sequence-recovery-${surface}` : null, sentAt: kind === "Accepted" ? new Date("2020-01-01") : null,
+      firstAttemptAt: new Date(Date.now() - 86_400_000), scheduledAt: new Date(), createdAt: new Date("2001-01-01") } })
+  }
   for (const surface of ["desktop", "mobile"]) {
     const sequences = []
     for (let index = 0; index < 51; index++) sequences.push(await prisma.emailSequence.create({ data: { companyId, senderChannelId: mailbox.id, name: `UIQA Mail selector ${surface} ${String(index).padStart(3, "0")}`, status: "ARCHIVED" } }))

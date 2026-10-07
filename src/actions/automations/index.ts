@@ -19,14 +19,34 @@ import { withProcessorLease } from "@/lib/processing/lease"
 import { sequenceRetryNeedsReview, SEQUENCE_RETRY_REVIEW_MESSAGE } from "@/lib/automations/sequence-retry-safety"
 import { automationRunJournal, automationRunDetails } from "@/lib/automations/journal"
 import { readDeliveryJournal, readDeliveryDetails, readJournalSequences } from "@/lib/automations/delivery-journal"
+import { recoverSequenceEmail, sequenceRecoveryState, SequenceRecoveryError } from "@/lib/automations/sequence-recovery"
 import { clearEmailSuppression } from "@/lib/communications/suppressions"
 
 const idSchema = z.string().cuid()
 export async function getAutomationRunJournal(input: unknown = {}) { return withAuth(({ companyId }) => automationRunJournal(companyId, input), "automation.read") }
 export async function getAutomationRunDetails(input: unknown) { return withAuth(({ companyId }) => automationRunDetails(companyId, input), "automation.read") }
 export async function getAutomationDeliveryJournal(input: unknown = {}) { return withAuth(({ companyId }) => readDeliveryJournal(companyId, input), "automation.read") }
-export async function getAutomationDeliveryDetails(input: unknown) { return withAuth(({ companyId }) => readDeliveryDetails(companyId, input), "automation.read") }
+export async function getAutomationDeliveryDetails(input: unknown) { return withAuth(async ({ companyId, userId }) => {
+  const row = await readDeliveryDetails(companyId, input)
+  return row ? { ...row, recovery: row.sequence ? await sequenceRecoveryState(companyId, userId, row.id) : null } : null
+}, "automation.read") }
 export async function getAutomationJournalSequences(input: unknown = {}) { return withAuth(({ companyId }) => readJournalSequences(companyId, input), "automation.read") }
+async function sequenceRecoveryAction(input: unknown, operation: "CHECK" | "REPAIR" | "CLOSE") {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = await recoverSequenceEmail(companyId, userId, input, operation)
+      revalidatePath("/dashboard/automatisations")
+      revalidatePath("/dashboard/communications")
+      return result
+    } catch (error) {
+      if (error instanceof SequenceRecoveryError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+export async function checkSequenceEmailResult(input: unknown) { return sequenceRecoveryAction(input, "CHECK") }
+export async function repairSequenceEmailHistory(input: unknown) { return sequenceRecoveryAction(input, "REPAIR") }
+export async function closeSequenceEmailWithoutRetry(input: unknown) { return sequenceRecoveryAction(input, "CLOSE") }
 const templateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   category: z.string().trim().min(2).max(50),

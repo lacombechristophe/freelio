@@ -1,8 +1,8 @@
-# Reprise humaine des envois de séquence — proposition
+# Reprise humaine des envois de séquence
 
-8 octobre 2026. Complément AUTO-05 explicitement approuvé par le propriétaire, en préparation technique. Le blocage des relances incertaines et le journal paginé ont leurs accords et preuves distincts.
+8 octobre 2026. Complément AUTO-05 explicitement approuvé par le propriétaire, implémenté et en qualification. Le blocage des relances incertaines et le journal paginé ont leurs accords et preuves distincts.
 
-## Parcours à approuver
+## Parcours approuvé
 
 Dans le détail existant du journal E-mails, ajouter pour les commandes de séquence incertaines : « Vérifier le résultat », état de vérification, « Réparer l’historique » après preuve positive, et « Classer sans relance » avec motif et confirmation. Conserver les cartes, styles, couleurs et commandes actuelles. Aucune nouvelle émission lors de ces opérations.
 
@@ -23,3 +23,11 @@ Classer réunit commande, arrêt de l’inscription et audit dans la même trans
 SQL SQLite/PostgreSQL : sociétés et boîtes étrangères, visibilité/adhésion révoquées, révision obsolète, processeur occupé, payload historique invalide, résultat arrivé entre lecture et commit, rollback au checkpoint/audit, réparation répétée sans doublon et inscription restée en pause, classement conservé avec inscription arrêtée, preuve tardive sans réactivation. HTTP simulé : uniquement GET, aucun refresh OAuth ni send ; preuve corrélée positive, résultat absent/ambigu/brouillon, 403/404/429/panne. Navigateur ordinateur/mobile : état exact, commandes conditionnelles, motif/confirmation et états conservés après rechargement.
 
 CI du SHA candidat requise. Les recettes simulées ne qualifient ni un compte fournisseur réel, ni la délivrabilité, ni SIGKILL pendant commit, ni une garantie universelle « exactement une fois ». Ce complément ne ferme pas les autres plafonds d’Automatisations ni L8/L9.
+
+## Réalisation
+
+Les trois Server Actions exigent automation.write. Le détail relit la commande et retourne une projection d’état, sans preuve fournisseur ni motif privé. La réparation conserve la finalité historique, y compris null, et les événements plus récents ; elle ne progresse pas l’étape. La clôture modifie commande et inscription dans la même transaction Serializable que l’audit. La vérification relit droits et références après l’appel distant, puis compare la commande et l’inscription avant de conserver l’observation. Une preuve ne correspondant plus à la boîte ne permet ni réparation ni affichage « Acceptation confirmée ».
+
+Les champs de reprise existants sont réutilisés, sans migration. L’historique utilise la fonction commune de rapprochement des messages, qui refuse une référence déjà liée à un autre envoi. Le thread est préparé avant la transaction : les ACL Prisma des messages consultent sa présence dans la vue SQL commise. Une panne peut donc laisser un thread vide, mais aucun message, classement, arrêt ou audit partiel ; le rejeu réutilise ce thread. Cette limite est identique à celle de la reprise manuelle.
+
+La recette SQL appelle les vraies Server Actions, l’authentification et les memberships sur une base fictive. Seuls la session, le cache Next et HTTP sont simulés. Deux parcours navigateur ordinateur/mobile sont préparés ; leurs résultats et ceux de la suite complète restent à qualifier sur le candidat poussé.

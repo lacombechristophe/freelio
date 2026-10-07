@@ -46,7 +46,7 @@ describe.sequential("complete delivery journal with mailbox ACL and safe project
       expect(JSON.stringify(value)).not.toMatch(/FICTIONAL_SECRET|FICTIONAL_PROOF|hidden@example/)
       expect(value && "payload" in value).toBe(false)
     }
-    expect(detail).toEqual(page.rows[0])
+    expect(detail).toEqual({ ...page.rows[0], recovery: null })
   })
   it("paginates sequence choices including archived history and retains a selection outside the query", async () => {
     expect(await getAutomationJournalSequences({ page: 3 })).toMatchObject({ total: 52, page: 3, pageCount: 3 })
