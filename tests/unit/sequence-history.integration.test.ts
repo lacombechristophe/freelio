@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/automations/email", async (original) => ({
@@ -31,6 +31,7 @@ describe.sequential("accepted sequence transport and durable history", () => {
       return { provider: "RESEND", providerId: `fiction-${input.idempotencyKey}`, providerDraftId: null, providerMessageId: `fiction-${input.idempotencyKey}`, channelId: input.channelId!, from: "sender@example.test", subject: input.prepared!.subject, html: input.prepared!.html }
     })
   })
+  afterEach(() => vi.useRealTimers())
   afterAll(async () => {
     for (const id of companies) {
       await prisma.leadCapture.deleteMany({ where: { companyId: id } })
@@ -143,4 +144,22 @@ describe.sequential("accepted sequence transport and durable history", () => {
     expect(sendSequenceEmail).not.toHaveBeenCalled()
     expect(await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: enrollment.id } })).toMatchObject({ status: "STOPPED", stopReason: "CONSENT_PROOF_INVALID", nextSendAt: null })
   })
+  it("holds a retry whose original Resend window expires while its content is being prepared", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    const now = new Date("2035-01-02T08:00:00Z"); vi.setSystemTime(now)
+    const f = await fixture()
+    const firstAttemptAt = new Date(now.getTime() - 23 * 3_600_000 + 1)
+    const delivery = await prisma.emailDelivery.create({ data: { companyId: f.company.id, sequenceId: f.sequence.id, enrollmentId: f.enrollment.id,
+      stepId: f.sequence.steps[0].id, leadCaptureId: f.lead.id, recipientEmail: f.lead.email!, subject: "Original subject", provider: "RESEND",
+      status: "FAILED", attempts: 0, firstAttemptAt, scheduledAt: new Date(), nextAttemptAt: new Date(0) } })
+    const renderer = vi.mocked(prepareSequenceEmail).getMockImplementation()!
+    vi.mocked(prepareSequenceEmail).mockImplementationOnce(async input => { const output = await renderer(input); vi.setSystemTime(new Date(now.getTime() + 1)); return output })
+    const result = await processDueSequenceEmails(10, f.company.id)
+    expect(result).toMatchObject({ sent: 0, deadLettered: 1 })
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: delivery.id } })).toMatchObject({ status: "DEAD_LETTER", providerId: null, sentAt: null, firstAttemptAt })
+    expect(await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: f.enrollment.id } })).toMatchObject({ status: "PAUSED", stopReason: "DELIVERY_RESULT_UNCERTAIN" })
+    expect(await prisma.emailMessage.count({ where: { deliveryId: delivery.id } })).toBe(0)
+    await prisma.processorLease.deleteMany({ where: { name: "email-sequences" } })
+  })
+
 })

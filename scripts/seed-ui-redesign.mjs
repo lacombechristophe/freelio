@@ -20,6 +20,14 @@ try {
     await prisma.automationRun.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, workflowId: workflow.id, event: index === 100 ? `UIQA_LAST_${surface}` : "LEAD_CREATED",
       eventKey: `fictional-journal-${surface}-${index}`, subjectModel: "LeadCapture", subjectId: "fictional-journal-subject", status: "COMPLETED", startedAt: new Date(Date.UTC(1990, 0, 1, 0, index)) })) })
   }
+  for (const surface of ["desktop", "mobile"]) {
+    const subject = `UIQA Expired Retry ${surface}`
+    const lead = await prisma.leadCapture.create({ data: { companyId, firstName: "Fiction", lastName: "Expired retry", email: `expired-retry-${surface}@example.test`, privacyAccepted: true, fingerprint: subject, source: "ISOLATED_RETRY_E2E" } })
+    const sequence = await prisma.emailSequence.create({ data: { companyId, name: subject, status: "ACTIVE", steps: { create: { position: 0, subject, bodyHtml: "<p>Fictional uncertain result</p>" } } }, include: { steps: true } })
+    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, status: "PAUSED", stopReason: "DELIVERY_RESULT_UNCERTAIN" } })
+    await prisma.emailDelivery.create({ data: { companyId, sequenceId: sequence.id, enrollmentId: enrollment.id, stepId: sequence.steps[0].id, leadCaptureId: lead.id, recipientEmail: lead.email, subject,
+      provider: "RESEND", status: "DEAD_LETTER", attempts: 2, firstAttemptAt: new Date(Date.now() - 24 * 3_600_000), scheduledAt: new Date(), createdAt: new Date("2040-01-01T00:00:00Z") } })
+  }
   for (let index = 0; index < 27; index++) await prisma.marketingCampaign.upsert({ where: { companyId_name: { companyId, name: `UIQA Campaign management volume ${index}` } }, update: {}, create: { companyId, name: `UIQA Campaign management volume ${index}`, objective: "Fictional pagination", channels: ["EMAIL"], createdAt: new Date(Date.UTC(2000, 0, 1, 0, index)) } })
   for (const surface of ["desktop", "mobile"]) {
     const name = `UIQA Campaign management ${surface}`

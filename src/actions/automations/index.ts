@@ -15,6 +15,8 @@ import { nextSequenceExecution, sequenceTimezoneIsValid } from "@/lib/automation
 import { customerHealthStatus } from "@/lib/operations/customer-health"
 import { automationProcessRateLimit } from "@/lib/rate-limit"
 import { logAction } from "@/lib/audit"
+import { withProcessorLease } from "@/lib/processing/lease"
+import { sequenceRetryNeedsReview, SEQUENCE_RETRY_REVIEW_MESSAGE } from "@/lib/automations/sequence-retry-safety"
 import { automationRunJournal, automationRunDetails } from "@/lib/automations/journal"
 import { activeEmailSuppression, clearEmailSuppression } from "@/lib/communications/suppressions"
 
@@ -876,25 +878,38 @@ export async function processSequenceEmailsNow() {
   }, "automation.write")
 }
 
+class SequenceRetryConflict extends Error {}
+
 export async function retryEmailDelivery(deliveryId: string) {
   return withAuth(async ({ companyId, userId }) => {
-    const id = idSchema.parse(deliveryId)
-    const delivery = await prisma.emailDelivery.findFirst({
-      where: { id, companyId, status: { in: ["FAILED", "DEAD_LETTER"] } },
-      select: { id: true, enrollmentId: true, recipientEmail: true, status: true },
-    })
-    if (!delivery) throw new Error("Envoi en échec introuvable")
-    if (!delivery.enrollmentId) throw new Error("Seuls les envois rattachés à une séquence peuvent être relancés depuis ce journal")
-    if (await activeEmailSuppression(companyId, delivery.recipientEmail)) throw new Error("Cette adresse est bloquée. Le blocage doit d’abord être levé explicitement.")
-    const now = new Date()
-    const enrollmentId = delivery.enrollmentId
-    await prisma.$transaction([
-      prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", attempts: 0, nextAttemptAt: now, lastAttemptAt: null, deadLetteredAt: null, error: null } }),
-      prisma.emailSequenceEnrollment.update({ where: { id: enrollmentId }, data: { status: "ACTIVE", stopReason: null, completedAt: null, nextSendAt: now } }),
-    ])
-    await logAction({ userId, action: "RETRY_EMAIL_DELIVERY", resource: "EMAIL_DELIVERY", resourceId: delivery.id, payload: { previousStatus: delivery.status } })
-    revalidatePath("/dashboard/automatisations")
-    return { success: true as const }
+    const parsed = idSchema.safeParse(deliveryId)
+    if (!parsed.success) return { success: false as const, error: "Envoi en échec introuvable" }
+    try {
+      const result = await withProcessorLease("email-sequences", control => prisma.$transaction(async tx => {
+        await control.assertOwned(tx)
+        const delivery = await tx.emailDelivery.findFirst({ where: { id: parsed.data, companyId, status: { in: ["FAILED", "DEAD_LETTER"] } } })
+        if (!delivery) return { success: false as const, error: "Envoi en échec introuvable" }
+        if (!delivery.enrollmentId || !delivery.sequenceId || !delivery.stepId) return { success: false as const, error: "Seuls les envois rattachés à une séquence peuvent être relancés depuis ce journal" }
+        const now = new Date()
+        if (sequenceRetryNeedsReview(delivery, now)) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+        if (await tx.emailSuppression.count({ where: { companyId, email: delivery.recipientEmail.trim().toLowerCase(), active: true } })) return { success: false as const, error: "Cette adresse est bloquée. Le blocage doit d’abord être levé explicitement." }
+        const enrollment = await tx.emailSequenceEnrollment.findFirst({ where: { id: delivery.enrollmentId, sequenceId: delivery.sequenceId, sequence: { companyId }, status: { in: ["ACTIVE", "PAUSED"] } }, include: { sequence: { select: { steps: { where: { id: delivery.stepId }, select: { position: true } } } } } })
+        if (!enrollment || enrollment.sequence.steps[0]?.position !== enrollment.nextStepPosition) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+        const saved = await tx.emailDelivery.updateMany({ where: { id: delivery.id, companyId, status: delivery.status, updatedAt: delivery.updatedAt, recoveryVersion: delivery.recoveryVersion, closedAt: null, providerId: delivery.providerId, sentAt: delivery.sentAt },
+          data: { status: "FAILED", attempts: 0, recoveryVersion: { increment: 1 }, nextAttemptAt: now, deadLetteredAt: null, error: null } })
+        const resumed = await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, sequence: { companyId }, status: enrollment.status, updatedAt: enrollment.updatedAt, nextStepPosition: enrollment.nextStepPosition },
+          data: { status: "ACTIVE", stopReason: null, completedAt: null, nextSendAt: now } })
+        if (saved.count !== 1 || resumed.count !== 1) throw new SequenceRetryConflict()
+        await tx.auditLog.create({ data: { userId, action: "RETRY_EMAIL_DELIVERY", resource: "EMAIL_DELIVERY", resourceId: delivery.id, payload: { companyId, previousStatus: delivery.status, previousAttempts: delivery.attempts, firstAttemptAt: delivery.firstAttemptAt?.toISOString() || null } } })
+        return { success: true as const }
+      }))
+      if (!result.acquired) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+      if (result.value.success) revalidatePath("/dashboard/automatisations")
+      return result.value
+    } catch (error) {
+      if (error instanceof SequenceRetryConflict) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+      throw error
+    }
   }, "automation.write")
 }
 
