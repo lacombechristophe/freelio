@@ -142,17 +142,23 @@ export async function normalizeLegacyManualAuthors(companyId?: string) {
   for (;;) {
     const rows = await prisma.emailDelivery.findMany({ where: { ...(companyId ? { companyId } : {}), ...(cursor ? { id: { gt: cursor } } : {}), manualAuthorUserId: null, requestKey: { not: null }, sequenceId: null, stepId: null, enrollmentId: null }, orderBy: { id: "asc" }, take: 100 })
     if (!rows.length) break
-    for (const row of rows) {
-      examined++
-      const decoded = manualEmailPayloadSchema.safeParse(row.payload)
-      if (!decoded.success || !["RESEND", "GOOGLE", "MICROSOFT"].includes(row.provider || "") || decoded.data.to !== row.recipientEmail || decoded.data.subject !== row.subject || (decoded.data.channelId === "platform" ? row.channelId !== null : decoded.data.channelId !== row.channelId)) continue
-      if (!await prisma.membership.count({ where: { companyId: row.companyId, userId: decoded.data.userId } })) continue
-      if (decoded.data.invoiceSnapshot || !await prisma.client.count({ where: { id: decoded.data.clientId, companyId: row.companyId } })) continue
-      if (row.contactId && (row.contactId !== decoded.data.contactId || !await prisma.contact.count({ where: { id: row.contactId, clientId: decoded.data.clientId, client: { companyId: row.companyId } } }))) continue
-      if (row.channelId && !await prisma.communicationChannel.count({ where: { id: row.channelId, companyId: row.companyId, provider: row.provider! } })) continue
-      const saved = await prisma.emailDelivery.updateMany({ where: { id: row.id, companyId: row.companyId, manualAuthorUserId: null, updatedAt: row.updatedAt }, data: { manualAuthorUserId: decoded.data.userId } })
-      normalized += saved.count
-    }
+    // Commit one bounded batch instead of one SQLite fsync per historical row.
+    const batch = await prisma.$transaction(async tx => {
+      let examined = 0, normalized = 0
+      for (const row of rows) {
+        examined++
+        const decoded = manualEmailPayloadSchema.safeParse(row.payload)
+        if (!decoded.success || !["RESEND", "GOOGLE", "MICROSOFT"].includes(row.provider || "") || decoded.data.to !== row.recipientEmail || decoded.data.subject !== row.subject || (decoded.data.channelId === "platform" ? row.channelId !== null : decoded.data.channelId !== row.channelId)) continue
+        if (!await tx.membership.count({ where: { companyId: row.companyId, userId: decoded.data.userId } })) continue
+        if (decoded.data.invoiceSnapshot || !await tx.client.count({ where: { id: decoded.data.clientId, companyId: row.companyId } })) continue
+        if (row.contactId && (row.contactId !== decoded.data.contactId || !await tx.contact.count({ where: { id: row.contactId, clientId: decoded.data.clientId, client: { companyId: row.companyId } } }))) continue
+        if (row.channelId && !await tx.communicationChannel.count({ where: { id: row.channelId, companyId: row.companyId, provider: row.provider! } })) continue
+        const saved = await tx.emailDelivery.updateMany({ where: { id: row.id, companyId: row.companyId, manualAuthorUserId: null, updatedAt: row.updatedAt }, data: { manualAuthorUserId: decoded.data.userId } })
+        normalized += saved.count
+      }
+      return { examined, normalized }
+    }, { timeout: 30_000 })
+    examined += batch.examined; normalized += batch.normalized
     cursor = rows.at(-1)!.id
   }
   return { examined, normalized }
