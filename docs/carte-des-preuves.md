@@ -42,3 +42,10 @@ Les noms de tests unitaires sont relatifs à `tests/unit/`. Un résultat local n
 | Journal Scénarios au-delà de la première tranche | scripts/benchmark-workflow-journal.mjs ; [mesure SQLite de 10 000 lignes](evidence/20261008-workflow-journal/README.md) | Page 400, totaux exacts et isolation vérifiés sur le code e673342 ; mesures locales séquentielles, sans preuve de capacité hébergée, PostgreSQL ou navigateur. |
 | Écritures métier compatibles avec SQLite | tests/unit/business-scheduling-concurrency.test.ts ; [défaut CI et correction](qualification-sqlite-ci-20261007.md) | Tâches séquentielles SQLite, parallélisme PostgreSQL conservé, échec propagé ; un test à portes contrôlées ne constitue pas un stress multi-instance. |
 | Reprise des auteurs historiques sans plafond et sans transaction par ligne | tests/unit/manual-email-recovery.integration.test.ts | Validations/CAS conservés, lots transactionnels de 100, 501 commandes et dernière page ; rétention, migration massive et interruption réelle restent à mesurer. |
+
+## Journal E-mails et reprise des séquences
+
+| Risque / invariant | Preuves à examiner | Portée restante |
+| --- | --- | --- |
+| Recherche sur tout l’historique autorisé, sélection conservée et détail relu | tests/unit/delivery-journal.integration.test.ts ; tests/e2e/delivery-journal.spec.ts ; contrat-journal-courriels-complet.md | 101 livraisons et 51 séquences ; société/boîte privées, accès révoqué, projection limitée. CI du candidat 6cc3d8a à qualifier ; autres studios plafonnés séparément. |
+| Décision humaine sans émission ni progression implicite | tests/unit/sequence-recovery.integration.test.ts ; tests/e2e/sequence-recovery.spec.ts ; contrat-reprise-humaine-sequences.md | Vraies actions/droits/SQL ; HTTP fictif GET seulement, preuve corrélée, pause/arrêt, CAS et audit. Thread vide possible après rollback ; fournisseur réel et SIGKILL non qualifiés. CI propre à obtenir. |

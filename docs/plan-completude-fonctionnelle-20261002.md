@@ -281,3 +281,9 @@ La reprise humaine manuelle est ensuite qualifiée fonctionnellement par b1e130b
 Une recette SQL de 10 000 exécutions vérifie le journal Scénarios jusqu’à la page 400, les totaux, le détail limité et le nettoyage fictif. Le [rapport reproductible](evidence/20261008-workflow-journal/README.md) donne source, empreinte du script, moteur et mesures locales ; ce résultat ne qualifie ni PostgreSQL, ni navigateur, ni charge hébergée.
 
 La revue L8 reproduit ensuite une lecture bancaire et une synthèse comptable accessibles par appel direct à quatre rôles sans droit Finance. Le [correctif limité aux wrappers serveur](qualification-droits-banque-20261008.md) conserve la matrice et les messages d’autorisation existants. Aucun contrôle visuel n’est ajouté. La qualification finale propre à ce candidat reste nécessaire ; pagination/import concurrent/rapprochement et L8 ne sont pas clôturés par ce contrôle d’accès.
+
+## Journal complet et reprise des séquences — 8 octobre 2026
+
+Le journal E-mails complet est approuvé, implémenté et poussé dans 170a6cd, avec ses preuves locales consignées dans 6cc3d8a : 782 tests SQLite, types/lint/build réussis. Les deux CI de 6cc3d8a doivent confirmer PostgreSQL, Linux et navigateur ; aucune qualification E2E locale n’est revendiquée.
+
+Le propriétaire approuve ensuite la reprise humaine des séquences. Le contrat et les trois opérations sont implémentés : vérification fournisseur en lecture seule, réparation SQL avec inscription conservée en pause, classement motivé arrêtant l’inscription sans effacer la commande. Le résultat inconnu reste inconnu et les preuves privées sont exclues du détail. Qualification complète et CI propres restent en cours ; les journaux ne clôturent pas les plafonds des studios ni L8/L9.
