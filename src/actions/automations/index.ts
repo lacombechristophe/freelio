@@ -20,6 +20,7 @@ import { sequenceRetryNeedsReview, SEQUENCE_RETRY_REVIEW_MESSAGE } from "@/lib/a
 import { automationRunJournal, automationRunDetails } from "@/lib/automations/journal"
 import { readDeliveryJournal, readDeliveryDetails, readJournalSequences } from "@/lib/automations/delivery-journal"
 import { recoverSequenceEmail, sequenceRecoveryState, SequenceRecoveryError } from "@/lib/automations/sequence-recovery"
+import { readTemplateStudio, readSequenceStudio, readWorkflowStudio, readSequenceEnrollments, readEmailSuppressions, sequenceMailboxWhere, readEnrollmentTasks } from "@/lib/automations/studio-readers"
 import { clearEmailSuppression } from "@/lib/communications/suppressions"
 
 const idSchema = z.string().cuid()
@@ -31,6 +32,11 @@ export async function getAutomationDeliveryDetails(input: unknown) { return with
   return row ? { ...row, recovery: row.sequence ? await sequenceRecoveryState(companyId, userId, row.id) : null } : null
 }, "automation.read") }
 export async function getAutomationJournalSequences(input: unknown = {}) { return withAuth(({ companyId }) => readJournalSequences(companyId, input), "automation.read") }
+export async function getAutomationTemplates(input: unknown = {}) { return withAuth(({ companyId }) => readTemplateStudio(companyId, input), "automation.read") }
+export async function getAutomationSequences(input: unknown = {}) { return withAuth(({ companyId }) => readSequenceStudio(companyId, input), "automation.read") }
+export async function getAutomationWorkflows(input: unknown = {}) { return withAuth(({ companyId }) => readWorkflowStudio(companyId, input), "automation.read") }
+export async function getAutomationEnrollments(input: unknown) { return withAuth(({ companyId }) => readSequenceEnrollments(companyId, input), "automation.read") }
+export async function getAutomationSuppressions(input: unknown = {}) { return withAuth(({ companyId }) => readEmailSuppressions(companyId, input), "automation.read") }
 async function sequenceRecoveryAction(input: unknown, operation: "CHECK" | "REPAIR" | "CLOSE") {
   return withAuth(async ({ companyId, userId }) => {
     try {
@@ -129,12 +135,13 @@ function assertWorkflowCompatibility(trigger: z.infer<typeof automationTriggerSc
 
 export async function getAutomationDashboard() {
   return withAuth(async ({ companyId }) => {
+    const sequenceScope = await sequenceMailboxWhere(companyId)
     const senderChannels = await prisma.communicationChannel.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, emailAddress: true, provider: true }, orderBy: { emailAddress: "asc" } })
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
     const [templates, sequences, workflows, deliveries, leads, clients, deliveryStats, runStats, emailChannel, stepDeliveryStats, suppressions, processor] = await Promise.all([
       prisma.emailTemplate.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.emailSequence.findMany({
-        where: { companyId, status: { not: "ARCHIVED" } },
+        where: { AND: [sequenceScope, { status: { not: "ARCHIVED" } }] },
         include: {
           steps: { orderBy: { position: "asc" } },
           enrollments: {
@@ -144,7 +151,7 @@ export async function getAutomationDashboard() {
               leadCapture: { select: { firstName: true, lastName: true, email: true } },
               taskExecutions: {
                 orderBy: { createdAt: "desc" },
-                include: { step: { select: { taskTitle: true, type: true } }, organisationTask: { select: { id: true, status: true, title: true } } },
+                select: { completedAt: true, organisationTaskId: true, step: { select: { taskTitle: true, type: true } } },
               },
             },
           },
@@ -180,6 +187,7 @@ export async function getAutomationDashboard() {
       prisma.processorLease.findUnique({ where: { name: "email-sequences" } }),
     ])
     const deliveryStatsByStep = new Map<string, Record<string, number>>()
+    const enrollmentTasks = await readEnrollmentTasks(prisma, sequences.flatMap(sequence => sequence.enrollments))
     for (const item of stepDeliveryStats) {
       if (!item.stepId) continue
       const stats = deliveryStatsByStep.get(item.stepId) ?? {}
@@ -187,6 +195,12 @@ export async function getAutomationDashboard() {
       deliveryStatsByStep.set(item.stepId, stats)
     }
     return {
+      studioTotals: {
+        templates: await prisma.emailTemplate.count({ where: { companyId, status: "ACTIVE" } }),
+        sequences: await prisma.emailSequence.count({ where: { AND: [sequenceScope, { status: { not: "ARCHIVED" } }] } }),
+        workflows: await prisma.automationWorkflow.count({ where: { companyId, status: { not: "ARCHIVED" } } }),
+        suppressions: await prisma.emailSuppression.count({ where: { companyId, active: true } }),
+      },
       senderChannels,
       templates: templates.map((template) => ({
         id: template.id,
@@ -232,11 +246,10 @@ export async function getAutomationDashboard() {
           enrolledAt: enrollment.enrolledAt.toISOString(),
           completedAt: enrollment.completedAt?.toISOString() ?? null,
           leadCapture: enrollment.leadCapture,
-          taskExecutions: enrollment.taskExecutions.map((execution) => ({
-            completedAt: execution.completedAt?.toISOString() ?? null,
-            step: execution.step,
-            organisationTask: execution.organisationTask,
-          })),
+          taskExecutions: enrollment.taskExecutions.flatMap((execution) => {
+            const organisationTask = enrollmentTasks.get(execution.organisationTaskId)
+            return organisationTask ? [{ completedAt: execution.completedAt?.toISOString() ?? null, step: execution.step, organisationTask }] : []
+          }),
         })),
       })),
       workflows: workflows.map((workflow) => ({

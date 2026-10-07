@@ -112,6 +112,23 @@ try {
   await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: "UIQA-PURCHASE" } }, update: {}, create: { id: "cuiqapurchase000000000000", companyId, supplierId: supplier.id, number: "UIQA-PURCHASE" } })
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
   const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE", id: { not: "cuiqareplysecondmailbox00" } } })
+  for (const surface of ["desktop", "mobile"]) {
+    let oldestSequence
+    for (let index = 0; index < 201; index++) {
+      const suffix = String(index).padStart(3, "0"), updatedAt = new Date(Date.UTC(1995, 0, 1, 0, index))
+      if (index < 101) {
+        await prisma.emailTemplate.create({ data: { companyId, name: `UIQA Studio model ${surface} ${suffix}`, category: "NURTURE", subject: `Fictional studio ${suffix}`, bodyHtml: "<p>Fictional studio template</p>", updatedAt } })
+        await prisma.emailSuppression.create({ data: { companyId, email: `studio-blocked-${surface}-${suffix}@example.test`, reason: "MANUAL", suppressedAt: updatedAt } })
+      }
+      const sequence = await prisma.emailSequence.create({ data: { companyId, senderChannelId: mailbox.id, name: `UIQA Studio sequence ${surface} ${suffix}`, status: "DRAFT", updatedAt } })
+      if (!index) oldestSequence = sequence
+      await prisma.automationWorkflow.create({ data: { companyId, name: `UIQA Studio workflow ${surface} ${suffix}`, trigger: "LEAD_CREATED", status: "DRAFT", actions: [], updatedAt } })
+    }
+    for (let index = 0; index < 26; index++) {
+      const lead = await prisma.leadCapture.create({ data: { companyId, firstName: "Fiction", lastName: `Studio ${String(index).padStart(3, "0")}`, email: `studio-enrollment-${surface}-${index}@example.test`, privacyAccepted: true, fingerprint: randomUUID() } })
+      await prisma.emailSequenceEnrollment.create({ data: { sequenceId: oldestSequence.id, leadCaptureId: lead.id, status: "PAUSED", enrolledAt: new Date(Date.UTC(1995, 0, 1, 0, index)) } })
+    }
+  }
   for (const surface of ["desktop", "mobile"]) for (const kind of ["Unknown", "Accepted"]) {
     const subject = `UIQA Sequence recovery ${kind} ${surface}`
     const lead = await prisma.leadCapture.create({ data: { companyId, firstName: "Fiction", lastName: "Sequence recovery", email: `sequence-recovery-${kind.toLowerCase()}-${surface}@example.test`, privacyAccepted: true, fingerprint: subject } })
