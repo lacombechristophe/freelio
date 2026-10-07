@@ -17,12 +17,22 @@ import { sendSequenceEmail } from "@/lib/automations/email"
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { pinSequenceSender } from "@/lib/communications/email-provider"
 import { enrollCampaignAudience } from "@/actions/campaigns"
+import { captureCampaignAudience, changeCampaignActivation, processCampaignActivations } from "@/lib/marketing/campaign-activation"
+import { fictionalMarketingProof } from "../helpers/fictional-marketing-proof"
 
 describe.sequential("campaign gate and enrollment identity", () => {
   const companies: string[] = []
+  const users: string[] = []
   beforeEach(() => vi.clearAllMocks())
   afterAll(async () => {
-    for (const id of companies) await prisma.company.delete({ where: { id } })
+    for (const id of companies) {
+      await prisma.leadCapture.deleteMany({ where: { companyId: id } })
+      await prisma.contact.deleteMany({ where: { client: { companyId: id } } })
+      await prisma.client.deleteMany({ where: { companyId: id } })
+      await prisma.company.delete({ where: { id } })
+    }
+    await prisma.auditLog.deleteMany({ where: { userId: { in: users } } })
+    await prisma.user.deleteMany({ where: { id: { in: users } } })
     await prisma.processorLease.deleteMany({ where: { name: "email-sequences" } })
   })
 
@@ -30,9 +40,10 @@ describe.sequential("campaign gate and enrollment identity", () => {
     const company = await prisma.company.create({ data: { name: "Fictitious campaign gate" } })
     companies.push(company.id)
     const lead = await prisma.leadCapture.create({ data: { companyId: company.id, firstName: "Fiction", lastName: "Campaign", email: "campaign@example.test", marketingOptIn: true, privacyAccepted: true, fingerprint: "recipe" } })
+    const proof = await fictionalMarketingProof(company.id, lead.id, lead.email!)
     const campaign = await prisma.marketingCampaign.create({ data: { companyId: company.id, name: "Fixture", objective: "Gate", channels: ["EMAIL"], status, startAt, endAt } })
     const sequence = await prisma.emailSequence.create({ data: { companyId: company.id, campaignId: campaign.id, name: "Fixture", status: "ACTIVE", businessDaysOnly: false, timezone: "UTC", steps: { create: { position: 0, subject: "Fixture", bodyHtml: "<p>Fixture</p>" } } } })
-    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, nextSendAt: new Date(Date.now() - 60_000) } })
+    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: proof.contact.id, nextSendAt: new Date(Date.now() - 60_000) } })
     return { company, campaign, sequence, lead, enrollment }
   }
 
@@ -66,12 +77,17 @@ describe.sequential("campaign gate and enrollment identity", () => {
     const startAt = new Date(Date.now() + 86_400_000)
     const { company, campaign, sequence, lead, enrollment } = await fixture("PLANNED", startAt)
     authContext.companyId = company.id
-    await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "campaign-sender@example.test", status: "ACTIVE" } })
+    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "campaign-sender@example.test", status: "ACTIVE" } })
+    const user = await prisma.user.create({ data: { name: "Fictional activation author" } }); users.push(user.id)
+    await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER" } })
+    await prisma.emailSequence.update({ where: { id: sequence.id }, data: { senderChannelId: channel.id } })
     await prisma.emailSequenceEnrollment.delete({ where: { id: enrollment.id } })
     const segment = await prisma.marketingSegment.create({ data: { companyId: company.id, name: "Fictitious audience", filters: {}, memberships: { create: { leadCaptureId: lead.id } } } })
     await prisma.marketingCampaign.update({ where: { id: campaign.id }, data: { segmentId: segment.id } })
-    const result = await enrollCampaignAudience({ campaignId: campaign.id, sequenceId: sequence.id })
-    expect(result.enrolled).toBe(1)
+    expect(await enrollCampaignAudience({ campaignId: campaign.id, sequenceId: sequence.id })).toMatchObject({ success: false })
+    const captured = await captureCampaignAudience(company.id, user.id, { campaignId: campaign.id, sequenceId: sequence.id, version: campaign.version })
+    await changeCampaignActivation(company.id, user.id, { audienceId: captured.audienceId, version: 1, operation: "START" })
+    expect((await processCampaignActivations({ companyId: company.id })).enrolled).toBe(1)
     expect((await prisma.marketingCampaign.findUniqueOrThrow({ where: { id: campaign.id } })).status).toBe("PLANNED")
     expect((await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId: lead.id } } })).nextSendAt!.getTime()).toBeGreaterThanOrEqual(startAt.getTime())
   })

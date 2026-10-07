@@ -1,4 +1,4 @@
-import { createConsentWithdrawalToken } from "@/lib/leads/consent-token"
+import { prepareManualMarketingContent } from "@/lib/communications/marketing-consent"
 import { sendEmailThroughChannel, type EmailProviderState, type PreparedEmailProviderState } from "@/lib/communications/email-provider"
 
 type EmailContext = {
@@ -10,6 +10,7 @@ type EmailContext = {
     email: string | null
     projectType: string | null
     city: string | null
+    contactId?: string | null
   }
 }
 
@@ -56,12 +57,6 @@ export function sanitizeSequenceEmailHtml(html: string) {
     .replace(/<\/([a-z][a-z0-9-]*)\s*>/gi, (_tag, rawName: string) => allowed.has(rawName.toLowerCase()) ? `</${rawName.toLowerCase()}>` : "")
 }
 
-function appBaseUrl() {
-  const configured = process.env.PUBLIC_APP_URL || process.env.AUTH_URL || process.env.NEXTAUTH_URL
-  if (!configured && process.env.NODE_ENV === "production") throw new Error("PUBLIC_APP_URL est requis pour les liens de désinscription")
-  return (configured || "http://localhost:3000").replace(/\/$/, "")
-}
-
 export function senderFor(companyName: string) {
   const configured = process.env.EMAIL_FROM?.trim()
   if (!configured || configured.includes("example.invalid")) throw new Error("EMAIL_FROM et RESEND_API_KEY doivent être configurés")
@@ -72,14 +67,11 @@ export function senderFor(companyName: string) {
 export async function prepareSequenceEmail(input: EmailContext & { subjectTemplate: string; bodyTemplate: string }) {
   if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
 
-  const token = await createConsentWithdrawalToken({ companyId: input.company.id, leadId: input.lead.id })
-  const unsubscribeUrl = `${appBaseUrl()}/consent/withdraw/${token}`
-  const oneClickUnsubscribeUrl = `${appBaseUrl()}/api/public/consent/one-click/${token}`
+  if (!input.lead.contactId) throw new Error("La prospection nécessite un contact avec une preuve liée à son adresse")
   const subject = renderEmailVariables(input.subjectTemplate, input, false).replace(/[\r\n]+/g, " ").trim()
   const content = sanitizeSequenceEmailHtml(renderEmailVariables(input.bodyTemplate, input, true))
-  const html = `<!doctype html><html lang="fr"><body><main>${content}</main><hr><p style="color:#667085;font-size:12px;line-height:1.5">Vous recevez cet e-mail selon vos préférences de communication. <a href="${escapeHtml(unsubscribeUrl)}">Se désinscrire</a>.</p></body></html>`
-
-  return { subject, html, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }
+  const marketing = await prepareManualMarketingContent(input.company.id, input.lead.contactId, input.lead.email, `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`)
+  return { subject, html: marketing.renderedHtml, headers: marketing.headers, marketing: marketing.authorization }
 }
 
 export async function sendSequenceEmail(input: EmailContext & {

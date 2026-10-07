@@ -113,4 +113,3 @@ export function CampaignAssets({ campaign }: { campaign: Campaign }) {
     {data ? <div className="flex flex-wrap items-center gap-2 text-xs"><Button type="button" variant="outline" size="sm" aria-label={`Page précédente : livrables ${campaign.name}`} disabled={pending || data.page <= 1} onClick={() => setPage(data.page - 1)}>Page précédente</Button><span>{data.total} livrable(s) · Page {data.page} sur {data.pageCount}</span><Button type="button" variant="outline" size="sm" aria-label={`Page suivante : livrables ${campaign.name}`} disabled={pending || data.page >= data.pageCount} onClick={() => setPage(data.page + 1)}>Page suivante</Button></div> : null}
   </div>
 }
-

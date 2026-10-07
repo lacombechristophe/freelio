@@ -2,14 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Activity, BarChart3, CircleAlert, Link2, Megaphone, Plus, Rocket, Send, Target } from "lucide-react"
+import { Activity, BarChart3, CircleAlert, Link2, Megaphone, Plus, Send, Target } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   addMarketingCampaignAsset,
   attachSequenceToCampaign,
   createMarketingCampaign,
-  enrollCampaignAudience,
   updateMarketingCampaignStatus,
 } from "@/actions/campaigns"
 import { Badge } from "@/components/ui/badge"
@@ -19,7 +18,7 @@ import { HelpTip } from "@/components/ui/help-tip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useConfirm } from "@/components/shared/confirm-provider"
+import { CampaignActivation } from "./campaign-activation"
 import { CampaignAssets, CampaignChoiceSelect, CampaignEditor, CampaignSequences } from "./campaign-management"
 
 type CampaignData = NonNullable<Awaited<ReturnType<typeof import("@/actions/campaigns").getCampaignDashboard>>>
@@ -56,7 +55,6 @@ function formatEuro(cents: number) {
 
 export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
   const router = useRouter()
-  const confirm = useConfirm()
   const [pending, startTransition] = React.useTransition()
   const [selectedChannels, setSelectedChannels] = React.useState<string[]>(["EMAIL"])
   const { active, plannedBudget, attributedLeads, deliveries } = initialData.summary
@@ -76,23 +74,6 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
     )
   }
 
-  async function launchAudience(campaignId: string, campaignName: string, sequenceId: string, audienceSize: number) {
-    if (!sequenceId) return
-    const accepted = await confirm({
-      title: `Inscrire l’audience de « ${campaignName} » ?`,
-      description: `Jusqu’à ${audienceSize} prospect(s) du segment seront contrôlés. Seuls les contacts avec une adresse valide et un consentement actif seront inscrits.`,
-      confirmLabel: "Inscrire l’audience",
-    })
-    if (!accepted) return
-    startTransition(() => void enrollCampaignAudience({ campaignId, sequenceId })
-      .then((result) => {
-        const exclusions = result.missingEmail + result.missingConsent + result.optedOut + result.excludedStatus
-        const duplicates = result.alreadyEnrolled ? ` · ${result.alreadyEnrolled} déjà inscrit(s)` : ""
-        toast.success(`${result.enrolled} prospect(s) inscrit(s)${exclusions ? ` · ${exclusions} exclu(s) par les contrôles` : ""}${duplicates}.`)
-        router.refresh()
-      })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "Inscription impossible.")))
-  }
 
   return (
     <div className="space-y-6">
@@ -312,28 +293,8 @@ export function CampaignCenter({ initialData }: { initialData: CampaignData }) {
                           <Link2 />
                         </Button>
                       </form>
-                      {campaign.activeSequenceCount > 0 && campaign.segment ? (
-                        <form
-                          className="mt-4 rounded-[10px] border bg-muted/25 p-3"
-                          onSubmit={(event) => {
-                            event.preventDefault()
-                            const data = new FormData(event.currentTarget)
-                            void launchAudience(campaign.id, campaign.name, String(data.get("launchSequenceId")), campaign.segment?._count.memberships ?? 0)
-                          }}
-                        >
-                          <div className="flex items-start gap-3">
-                            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Rocket className="size-4" /></span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold">Activer l’audience</p>
-                              <p className="mt-1 text-xs leading-5 text-muted-foreground">Contrôle le consentement, les oppositions et les doublons avant toute inscription. Les envois suivent ensuite la fenêtre de la séquence.</p>
-                            </div>
-                          </div>
-                          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                            <CampaignChoiceSelect key={campaign.sequences.find(sequence => sequence.status === "ACTIVE")?.id} kind="SEQUENCE" name="launchSequenceId" label={`Séquence de diffusion pour ${campaign.name}`} campaignId={campaign.id} attachedOnly defaultValue={campaign.sequences.find(sequence => sequence.status === "ACTIVE")?.id} defaultLabel={campaign.sequences.find(sequence => sequence.status === "ACTIVE")?.name} required />
-                            <Button demoMutation type="submit" disabled={pending || !["PLANNED", "ACTIVE"].includes(campaign.status)} className="shrink-0"><Rocket />Inscrire le segment</Button>
-                          </div>
-                          {!["PLANNED", "ACTIVE"].includes(campaign.status) ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Passez d’abord la campagne au statut Planifiée ou Active.</p> : null}
-                        </form>
+                      {(campaign.activeSequenceCount > 0 && campaign.segment) || campaign.audienceCount > 0 ? (
+                        <CampaignActivation campaign={campaign} />
                       ) : (
                         <p className="mt-4 rounded-[10px] border border-dashed p-3 text-xs leading-5 text-muted-foreground">Pour lancer l’audience, associez un segment et une séquence au statut Active.</p>
                       )}

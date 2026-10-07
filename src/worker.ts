@@ -25,7 +25,10 @@ console.log("[Worker] Redis connection configured; credentials are never printed
 
 const processAutomations = async () => {
   try {
-    const [scenarios, sequences] = await processAutomationBatch()
+    const [scenarios, sequences, activations] = await processAutomationBatch()
+    if (activations.status === "fulfilled") {
+      if (activations.value.examined) console.log(`[Worker] Campaign activations: ${activations.value.processed} processed, ${activations.value.enrolled} enrolled, ${activations.value.failed} failed.`)
+    } else console.error("[Worker] Campaign activation processing failed", activations.reason)
     if (scenarios.status === "fulfilled") {
       if (scenarios.value.examined) console.log(`[Worker] Scenarios: ${scenarios.value.examined} event(s), ${scenarios.value.completed} workflow(s) completed.`)
     } else console.error("[Worker] Scenario processing failed", scenarios.reason)

@@ -108,6 +108,8 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   related("MarketingSegmentMember", { segment: { companyId: "$companyId" } }),
   direct("MarketingCampaign"),
   related("MarketingCampaignAsset", { campaign: { companyId: "$companyId" } }),
+  direct("CampaignAudience"),
+  related("CampaignAudienceMember", { audience: { companyId: "$companyId" } }),
   direct("AutomationWorkflow"),
   direct("AutomationWorkflowVersion"),
   direct("AutomationRun"),
@@ -578,6 +580,7 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 }
 
 const LEGACY_UNREPRESENTED_TABLES = [
+  "CampaignAudience", "CampaignAudienceMember",
   "Agency", "AgencyMembership", "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
   "InventoryItem", "StockMovement", "StockTransfer", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",

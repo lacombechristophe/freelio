@@ -5,13 +5,11 @@ import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
 import { withAuth } from "@/lib/auth-wrapper"
-import { nextSequenceExecution } from "@/lib/automations/schedule"
-import { evaluateCampaignAudience } from "@/lib/marketing/campaign-audience"
 import prisma from "@/lib/prisma"
-import { pinSequenceSender } from "@/lib/communications/email-provider"
-import { campaignSchema, campaignAssetSchema, CampaignManagementError, editCampaign, editCampaignAsset, lockCampaignAudience } from "@/lib/marketing/campaign-management"
+import { campaignSchema, campaignAssetSchema, CampaignManagementError, editCampaign, editCampaignAsset } from "@/lib/marketing/campaign-management"
 import { campaignDashboard, campaignAssets, campaignChoices, campaignSequences } from "@/lib/marketing/campaign-directory"
 import { isPublicReadOnlyDemo, DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
+import { captureCampaignAudience, changeCampaignActivation, campaignAudienceReport, campaignAudienceHistory } from "@/lib/marketing/campaign-activation"
 
 const cuid = z.string().cuid()
 const statusSchema = z.enum(["DRAFT", "PLANNED", "ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"])
@@ -149,120 +147,10 @@ export async function attachSequenceToCampaign(campaignId: string, sequenceId: s
   }, "automation.write")
 }
 
-const campaignAudienceSchema = z.object({ campaignId: cuid, sequenceId: cuid })
-
+/** Historical entry point cannot bypass the verified durable activation. */
 export async function enrollCampaignAudience(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
-    const data = campaignAudienceSchema.parse(input)
-    const [campaign, sequence] = await Promise.all([
-      prisma.marketingCampaign.findFirst({
-        where: { id: data.campaignId, companyId },
-        select: {
-          id: true,
-          name: true,
-          status: true,
-          startAt: true,
-          endAt: true,
-          version: true,
-          segment: {
-            select: {
-              _count: { select: { memberships: { where: { leadCapture: { companyId } } } } },
-              memberships: {
-                where: { leadCapture: { companyId } },
-                orderBy: { addedAt: "asc" },
-                take: 5_000,
-                select: {
-                  leadCapture: {
-                    select: {
-                      id: true,
-                      email: true,
-                      marketingOptIn: true,
-                      status: true,
-                      contactId: true,
-                      contact: { select: { marketingStatus: true } },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      }),
-      prisma.emailSequence.findFirst({
-        where: { id: data.sequenceId, companyId, campaignId: data.campaignId, status: "ACTIVE" },
-        include: { steps: { orderBy: { position: "asc" } } },
-      }),
-    ])
-    if (!campaign) throw new Error("Campagne introuvable")
-    if (!campaign.segment) throw new Error("Associez un segment à la campagne avant de lancer l’audience")
-    if (campaign.segment._count.memberships > 5_000) throw new Error("Ce segment dépasse 5 000 prospects. Créez des sous-segments pour préserver la délivrabilité et le suivi des lots")
-    if (!sequence) throw new Error("Choisissez une séquence active rattachée à cette campagne")
-    if (!sequence.steps[0]) throw new Error("La séquence ne contient aucune étape")
-    if (!["PLANNED", "ACTIVE"].includes(campaign.status)) throw new Error("Planifiez ou activez la campagne avant d’inscrire son audience")
-    if (campaign.endAt && campaign.endAt <= new Date()) throw new Error("La période de cette campagne est terminée")
-
-    const leads = campaign.segment.memberships.map((membership) => membership.leadCapture)
-    const existing = leads.length
-      ? await prisma.emailSequenceEnrollment.findMany({
-          where: { sequenceId: sequence.id, leadCaptureId: { in: leads.map((lead) => lead.id) } },
-          select: { leadCaptureId: true },
-        })
-      : []
-    const suppressedEmails = await prisma.emailSuppression.findMany({
-      where: { companyId, active: true, email: { in: leads.flatMap((lead) => lead.email ? [lead.email.trim().toLowerCase()] : []) } },
-      select: { email: true },
-    })
-    const readiness = evaluateCampaignAudience(leads, existing.map((enrollment) => enrollment.leadCaptureId), suppressedEmails.map((suppression) => suppression.email))
-    const { eligibleIds, ...audienceCounts } = readiness
-    const leadsById = new Map(leads.map((lead) => [lead.id, lead]))
-    const firstStep = sequence.steps[0]
-    const enrolledAt = new Date()
-    const nextSendAt = nextSequenceExecution(campaign.startAt && campaign.startAt > enrolledAt ? campaign.startAt : enrolledAt, firstStep.delayHours, sequence)
-
-    if (eligibleIds.length) {
-      if (sequence.steps.some((step) => step.type === "EMAIL")) await pinSequenceSender(companyId, sequence.id)
-      let campaignVersion = campaign.version
-      for (let offset = 0; offset < eligibleIds.length; offset += 200) {
-        const batch = eligibleIds.slice(offset, offset + 200)
-        const current = await prisma.marketingCampaign.findFirst({ where: { id: campaign.id, companyId }, select: { status: true, endAt: true } })
-        if (!current || !["PLANNED", "ACTIVE"].includes(current.status) || (current.endAt && current.endAt <= new Date())) throw new Error("La campagne ne permet plus de nouvelles inscriptions")
-        campaignVersion = await prisma.$transaction(async tx => {
-          const nextVersion = await lockCampaignAudience(tx, companyId, campaign.id, campaignVersion)
-          const pinned = await tx.emailSequence.updateMany({ where: { id: sequence.id, companyId, campaignId: campaign.id, status: "ACTIVE" }, data: { updatedAt: new Date() } })
-          if (pinned.count !== 1) throw new CampaignManagementError("La séquence a changé ; actualisez")
-          for (const leadCaptureId of batch) {
-            const lead = leadsById.get(leadCaptureId)
-            await tx.emailSequenceEnrollment.upsert({
-              where: { sequenceId_leadCaptureId: { sequenceId: sequence.id, leadCaptureId } },
-              update: {},
-              create: {
-                sequenceId: sequence.id,
-                leadCaptureId,
-                contactId: lead?.contactId || null,
-                status: "ACTIVE",
-                nextStepPosition: firstStep.position,
-                nextSendAt,
-              },
-            })
-          }
-          return nextVersion
-        })
-      }
-    }
-
-    await Promise.all([
-      logAction({
-        userId,
-        action: "ENROLL_MARKETING_CAMPAIGN_AUDIENCE",
-        resource: "MARKETING_CAMPAIGN",
-        resourceId: campaign.id,
-        payload: { sequenceId: sequence.id, enrolled: eligibleIds.length, ...audienceCounts },
-      }),
-    ])
-    revalidatePath("/dashboard/campagnes")
-    revalidatePath("/dashboard/automatisations")
-    return { success: true as const, enrolled: eligibleIds.length, ...audienceCounts }
-  }, "automation.write")
+  void input
+  return withAuth(async () => ({ success: false as const, error: "Vérifiez l’audience puis inscrivez la capture vérifiée ; le lancement direct n’est plus disponible" }), "automation.write")
 }
 
 async function campaignEditAction(input: unknown, resource: boolean) {
@@ -283,3 +171,23 @@ async function campaignEditAction(input: unknown, resource: boolean) {
 }
 export async function updateMarketingCampaign(input: unknown) { return campaignEditAction(input, false) }
 export async function updateMarketingCampaignAsset(input: unknown) { return campaignEditAction(input, true) }
+
+async function activationAction(input: unknown, capture: boolean) {
+  if (isPublicReadOnlyDemo()) return { success: false as const, error: DEMO_READ_ONLY_MESSAGE }
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = capture ? await captureCampaignAudience(companyId, userId, input) : await changeCampaignActivation(companyId, userId, input)
+      revalidatePath("/dashboard/campagnes")
+      return result
+    } catch (error) {
+      if (error instanceof CampaignManagementError) return { success: false as const, error: error.message }
+      if (error instanceof z.ZodError) return { success: false as const, error: "Paramètres d’activation invalides" }
+      if (error && typeof error === "object" && "code" in error && ["P2034", "P2028"].includes(String(error.code))) return { success: false as const, error: "Vérification interrompue ou conflit ; l’ancienne capture est conservée. Actualisez puis réessayez." }
+      throw error
+    }
+  }, "automation.write")
+}
+export async function verifyMarketingCampaignAudience(input: unknown) { return activationAction(input, true) }
+export async function controlMarketingCampaignActivation(input: unknown) { return activationAction(input, false) }
+export async function getMarketingCampaignAudienceReport(input: unknown) { return withAuth(({ companyId }) => campaignAudienceReport(companyId, input), "automation.read") }
+export async function getMarketingCampaignAudienceHistory(input: unknown) { return withAuth(({ companyId }) => campaignAudienceHistory(companyId, input), "automation.read") }

@@ -1,7 +1,7 @@
 import "server-only"
 import { createHash } from "node:crypto"
 import { z } from "zod"
-import prisma from "@/lib/prisma"
+import prisma, { type TransactionClient } from "@/lib/prisma"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { createManualMarketingWithdrawalToken, type ManualMarketingWithdrawalToken } from "@/lib/leads/consent-token"
 import { EmailPurposeError } from "./email-purpose"
@@ -11,18 +11,18 @@ const digest = (value: string) => createHash("sha256").update(value).digest("hex
 export const marketingAuthorizationSchema = z.object({ consentId: z.string().cuid(), proofHash: z.string().regex(/^[a-f0-9]{64}$/), addressHash: z.string().regex(/^[a-f0-9]{64}$/) })
 export type MarketingAuthorization = z.infer<typeof marketingAuthorizationSchema>
 
-export async function assertManualMarketingConsent(companyId: string, contactId: string, to: string, frozen?: MarketingAuthorization) {
+export async function assertManualMarketingConsent(companyId: string, contactId: string, to: string, frozen?: MarketingAuthorization, database: TransactionClient = prisma) {
   const email = normalizedAddress(to)
   const [contact, consent] = await Promise.all([
-    prisma.contact.findFirst({ where: { id: contactId, client: { companyId } }, select: { email: true, marketingStatus: true } }),
-    prisma.marketingConsent.findFirst({ where: { companyId, recipientEmail: email, channel: "EMAIL", purpose: "MARKETING" }, orderBy: [{ capturedAt: "desc" }, { id: "desc" }],
+    database.contact.findFirst({ where: { id: contactId, client: { companyId } }, select: { email: true, marketingStatus: true } }),
+    database.marketingConsent.findFirst({ where: { companyId, recipientEmail: email, channel: "EMAIL", purpose: "MARKETING" }, orderBy: [{ capturedAt: "desc" }, { id: "desc" }],
       select: { id: true, contactId: true, proofHash: true, status: true, withdrawnAt: true, capturedAt: true, source: true, legalBasis: true, noticeUrl: true } }),
   ])
   if (!contact || normalizedAddress(contact.email || "") !== email || contact.marketingStatus === "OPTED_OUT" || !consent || consent.contactId !== contactId || consent.status !== "GRANTED" || consent.withdrawnAt || consent.legalBasis !== "CONSENT" || !consent.source.trim() || !consent.noticeUrl || !/^[a-f0-9]{64}$/.test(consent.proofHash)) {
     throw new EmailPurposeError("Prospection refusée : aucune preuve de consentement active pour cette adresse et cette société")
   }
   // A withdrawal/decline wins even when two events share a millisecond.
-  if (await prisma.marketingConsent.count({ where: { companyId, recipientEmail: email, channel: "EMAIL", purpose: "MARKETING", status: { not: "GRANTED" }, capturedAt: { gte: consent.capturedAt } } })) {
+  if (await database.marketingConsent.count({ where: { companyId, recipientEmail: email, channel: "EMAIL", purpose: "MARKETING", status: { not: "GRANTED" }, capturedAt: { gte: consent.capturedAt } } })) {
     throw new EmailPurposeError("Prospection refusée : consentement retiré ou non confirmé pour cette adresse")
   }
   const authorization = { consentId: consent.id, proofHash: consent.proofHash, addressHash: digest(email) }
@@ -57,7 +57,7 @@ export async function withdrawManualMarketingConsent(payload: ManualMarketingWit
     const claimed = await tx.marketingConsent.updateMany({ where: { id: latest.id, companyId: payload.companyId, withdrawnAt: null }, data: { withdrawnAt: capturedAt } })
     if (!claimed.count) return false
     await tx.marketingConsent.create({ data: { companyId: payload.companyId, clientId: latest.clientId, contactId: latest.contactId, leadCaptureId: latest.leadCaptureId,
-      recipientEmail, channel: "EMAIL", purpose: "MARKETING", status: "WITHDRAWN", legalBasis: "CONSENT", source: "MANUAL_EMAIL_WITHDRAWAL", capturedAt, withdrawnAt: capturedAt,
+      recipientEmail, channel: "EMAIL", purpose: "MARKETING", status: "WITHDRAWN", legalBasis: "CONSENT", source: "EMAIL_MARKETING_WITHDRAWAL", capturedAt, withdrawnAt: capturedAt,
       proofHash: digest(JSON.stringify({ companyId: payload.companyId, consentId: latest.id, recipientEmail, status: "WITHDRAWN", capturedAt: capturedAt.toISOString(), ...evidence })), metadata: evidence } })
     if (latest.contactId) {
       const contact = await tx.contact.findFirst({ where: { id: latest.contactId, client: { companyId: payload.companyId } }, select: { email: true } })

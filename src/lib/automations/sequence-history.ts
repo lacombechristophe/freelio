@@ -4,10 +4,12 @@ import { recordOutgoingEmail } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
 import type { ProcessorLeaseControl } from "@/lib/processing/lease"
 import { validInternetMessageId } from "@/lib/communications/reply-context"
+import { marketingAuthorizationSchema } from "@/lib/communications/marketing-consent"
 
 export const sequencePayloadSchema = z.object({
   kind: z.literal("SEQUENCE"), companyName: z.string(), replyTo: z.string().nullable(),
   to: z.string().email(), from: z.string(), subject: z.string(), html: z.string(), headers: z.record(z.string(), z.string()),
+  marketing: marketingAuthorizationSchema.optional(),
 })
 
 export async function ensureSequenceHistory(deliveryId: string, companyId: string) {
@@ -17,7 +19,7 @@ export async function ensureSequenceHistory(deliveryId: string, companyId: strin
   const payload = sequencePayloadSchema.parse(delivery.payload)
   await recordOutgoingEmail({ companyId, deliveryId, channelId: delivery.channelId, contactId: delivery.contactId, leadCaptureId: delivery.leadCaptureId,
     provider: delivery.provider, providerId: delivery.providerId, internetMessageId: validInternetMessageId(delivery.providerMessageId) ? delivery.providerMessageId : null,
-    from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: delivery.sentAt })
+    from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: delivery.sentAt, purpose: delivery.purpose })
 }
 
 /** Repair confirmed transport history independently of campaign/enrollment state. */

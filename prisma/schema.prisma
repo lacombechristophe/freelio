@@ -229,6 +229,7 @@ model Company {
   leadScoringRules           LeadScoringRule[]
   marketingSegments          MarketingSegment[]
   marketingCampaigns         MarketingCampaign[]
+  campaignAudiences          CampaignAudience[]
   automationWorkflows        AutomationWorkflow[]
   automationWorkflowVersions AutomationWorkflowVersion[]
   automationRuns             AutomationRun[]
@@ -815,6 +816,7 @@ model MarketingCampaign {
 
   assets    MarketingCampaignAsset[]
   sequences EmailSequence[]
+  audiences CampaignAudience[]
   createdAt DateTime                 @default(now())
   updatedAt DateTime                 @updatedAt
 
@@ -855,6 +857,64 @@ model MarketingSegmentMember {
 
   @@unique([segmentId, leadCaptureId])
   @@index([leadCaptureId])
+}
+
+// Immutable audience evidence; enrollment progress shares its batch transaction.
+model CampaignAudience {
+  id                String   @id @default(cuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaignId        String
+  campaign          MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sequenceId        String
+  segmentId         String
+  authorUserId      String
+  campaignVersion   Int
+  campaignHash      String
+  sequenceHash      String
+  configuration     Json
+  segmentUpdatedAt  DateTime
+  status            String   @default("READY")
+  version           Int      @default(1)
+  total             Int      @default(0)
+  eligible          Int      @default(0)
+  excluded          Int      @default(0)
+  processed         Int      @default(0)
+  enrolled          Int      @default(0)
+  existing          Int      @default(0)
+  rejected          Int      @default(0)
+  afterMemberId     String?
+  errorCode         String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  closedAt          DateTime?
+  closedByUserId    String?
+  closureReason     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  members           CampaignAudienceMember[]
+
+  @@index([companyId, campaignId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model CampaignAudienceMember {
+  id                String @id @default(cuid())
+  audienceId        String
+  audience          CampaignAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+  leadCaptureId     String // Frozen identity survives deletion of the source.
+  contactId         String?
+  recipientEmail    String?
+  name              String
+  authorization     Json?
+  decision          String
+  reason            String?
+  result            String @default("PENDING")
+  resultReason      String?
+  processedAt       DateTime?
+
+  @@unique([audienceId, leadCaptureId])
+  @@index([audienceId, id])
 }
 
 // ══════════════════════════════════════════════════════════
@@ -947,6 +1007,7 @@ model EmailSequenceEnrollment {
   nextSendAt       DateTime?
   lastSentAt       DateTime?
   stopReason       String?
+  marketingAuthorization Json? // Address-bound proof for new marketing occurrences.
   enrolledAt       DateTime  @default(now())
   completedAt      DateTime?
   updatedAt        DateTime  @updatedAt

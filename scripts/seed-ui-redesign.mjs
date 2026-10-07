@@ -99,6 +99,20 @@ try {
   await prisma.purchaseOrder.upsert({ where: { companyId_number: { companyId, number: "UIQA-PURCHASE" } }, update: {}, create: { id: "cuiqapurchase000000000000", companyId, supplierId: supplier.id, number: "UIQA-PURCHASE" } })
   await prisma.migrationRun.upsert({ where: { id: "cuiqamigration0000000000" }, update: {}, create: { id: "cuiqamigration0000000000", companyId, provider: "MANUAL", kind: "IMPORT", status: "PENDING" } })
   const mailbox = await prisma.communicationChannel.findFirstOrThrow({ where: { companyId, provider: "RESEND", status: "ACTIVE", id: { not: "cuiqareplysecondmailbox00" } } })
+  for (const surface of ["desktop", "mobile"]) {
+    const name = `UIQA Activation ${surface}`
+    const client = await prisma.client.create({ data: { companyId, name: `Fictional activation contacts ${surface}` } })
+    const segment = await prisma.marketingSegment.create({ data: { companyId, name, kind: "STATIC", filters: {}, lastBuiltAt: new Date() } })
+    const campaign = await prisma.marketingCampaign.create({ data: { companyId, segmentId: segment.id, name, objective: "Fictional resumable activation", channels: ["EMAIL"], status: "PLANNED", startAt: new Date("2030-01-01"), createdAt: new Date("1985-01-01") } })
+    await prisma.emailSequence.create({ data: { companyId, campaignId: campaign.id, senderChannelId: mailbox.id, name, status: "ACTIVE", businessDaysOnly: false, timezone: "UTC", steps: { create: { position: 0, subject: "Fictional unsent activation", bodyHtml: "<p>Fictional recipe only</p>" } } } })
+    for (let index = 0; index < 26; index++) {
+      const email = `activation-${surface}-${index}@example.test`
+      const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: `Activation ${index}`, email, marketingStatus: "OPTED_IN" } })
+      const lead = await prisma.leadCapture.create({ data: { companyId, clientId: client.id, contactId: contact.id, firstName: "Fiction", lastName: `Activation ${index}`, email, privacyAccepted: true, marketingOptIn: true, fingerprint: `activation-${surface}-${index}` } })
+      await prisma.marketingSegmentMember.create({ data: { segmentId: segment.id, leadCaptureId: lead.id } })
+      if (index < 24) await prisma.marketingConsent.create({ data: { companyId, clientId: client.id, contactId: contact.id, leadCaptureId: lead.id, recipientEmail: email, channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "ISOLATED_FICTIONAL_E2E", noticeUrl: "https://example.test/privacy", proofHash: createHash("sha256").update(`fictional-activation-${surface}-${index}`).digest("hex") } })
+    }
+  }
   const recoveryPayload = subject => ({ userId: user.id, contactId: "cuiqarecipient000000000550", clientId: recipientClientId, threadId: null, serviceTicketId: null, channelId: mailbox.id, companyName: "Fictional recovery recipe", replyTo: null, from: mailbox.emailAddress, to: "recipient550@example.test", subject, html: "<p>Frozen fictional recovery original</p>", text: "Frozen fictional recovery original", cc: [], bcc: ["hidden-recovery@example.test"], attachments: [], purpose: "SERVICE" })
   for (let index = 0; index < 26; index++) {
     const subject = `UIQA Recovery pagination ${index}`, id = `cuiqarecoverypage${String(index).padStart(8, "0")}`

@@ -15,6 +15,8 @@ import prisma from "@/lib/prisma"
 import { prepareSequenceEmail, sendSequenceEmail } from "@/lib/automations/email"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
+import { assertManualMarketingConsent } from "@/lib/communications/marketing-consent"
+import { fictionalMarketingProof } from "../helpers/fictional-marketing-proof"
 
 describe.sequential("accepted sequence transport and durable history", () => {
   const companies: string[] = []
@@ -22,7 +24,7 @@ describe.sequential("accepted sequence transport and durable history", () => {
     vi.resetAllMocks()
     const actual = await vi.importActual<typeof import("@/lib/communications/threads")>("@/lib/communications/threads")
     vi.mocked(recordOutgoingEmail).mockImplementation(actual.recordOutgoingEmail)
-    vi.mocked(prepareSequenceEmail).mockImplementation(async (input) => ({ subject: input.subjectTemplate, html: input.bodyTemplate, headers: { "List-Unsubscribe": "<https://example.test/frozen-token>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }))
+    vi.mocked(prepareSequenceEmail).mockImplementation(async (input) => ({ subject: input.subjectTemplate, html: input.bodyTemplate, marketing: await assertManualMarketingConsent(input.company.id, input.lead.contactId!, input.lead.email!), headers: { "List-Unsubscribe": "<https://example.test/frozen-token>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }))
     vi.mocked(sendSequenceEmail).mockImplementation(async (input) => {
       await input.beforeDispatch?.()
       await input.onPrepared?.({ provider: "RESEND", channelId: input.channelId!, providerDraftId: null, providerMessageId: null })
@@ -30,7 +32,12 @@ describe.sequential("accepted sequence transport and durable history", () => {
     })
   })
   afterAll(async () => {
-    for (const id of companies) await prisma.company.delete({ where: { id } })
+    for (const id of companies) {
+      await prisma.leadCapture.deleteMany({ where: { companyId: id } })
+      await prisma.contact.deleteMany({ where: { client: { companyId: id } } })
+      await prisma.client.deleteMany({ where: { companyId: id } })
+      await prisma.company.delete({ where: { id } })
+    }
     await prisma.processorLease.deleteMany({ where: { name: "email-sequences" } })
   })
   async function fixture() {
@@ -38,9 +45,10 @@ describe.sequential("accepted sequence transport and durable history", () => {
     companies.push(company.id)
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "sender@example.test", status: "ACTIVE", visibility: "SHARED" } })
     const lead = await prisma.leadCapture.create({ data: { companyId: company.id, firstName: "Fiction", lastName: "History", email: "recipient@example.test", marketingOptIn: true, privacyAccepted: true, fingerprint: "recipe" } })
+    const proof = await fictionalMarketingProof(company.id, lead.id, lead.email!)
     const campaign = await prisma.marketingCampaign.create({ data: { companyId: company.id, name: "Fixture", objective: "History", channels: ["EMAIL"], status: "ACTIVE" } })
     const sequence = await prisma.emailSequence.create({ data: { companyId: company.id, campaignId: campaign.id, senderChannelId: channel.id, name: "Fixture", status: "ACTIVE", businessDaysOnly: false, timezone: "UTC", steps: { create: { position: 0, subject: "Original subject", bodyHtml: "<p>Original body</p>" } } }, include: { steps: true } })
-    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, nextSendAt: new Date(Date.now() - 60_000) } })
+    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: proof.contact.id, nextSendAt: new Date(Date.now() - 60_000) } })
     return { company, channel, lead, campaign, sequence, enrollment }
   }
 
@@ -113,5 +121,26 @@ describe.sequential("accepted sequence transport and durable history", () => {
     await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "ACTIVE", nextSendAt: new Date(0) } })
     expect((await processDueSequenceEmails(10, company.id)).completed).toBe(1)
     expect(sendSequenceEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it("holds an address proof withdrawn during preparation and never reaches transport or silently adopts a replacement grant", async () => {
+    const { company, lead, enrollment } = await fixture()
+    const currentLead = await prisma.leadCapture.findUniqueOrThrow({ where: { id: lead.id } })
+    const proof = await assertManualMarketingConsent(company.id, currentLead.contactId!, lead.email!)
+    await prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { marketingAuthorization: proof } })
+    const renderer = vi.mocked(prepareSequenceEmail).getMockImplementation()!
+    vi.mocked(prepareSequenceEmail).mockImplementationOnce(async input => {
+      const prepared = await renderer(input)
+      await prisma.marketingConsent.update({ where: { id: proof.consentId }, data: { withdrawnAt: new Date() } })
+      const original = await prisma.marketingConsent.findUniqueOrThrow({ where: { id: proof.consentId } })
+      await prisma.marketingConsent.create({ data: { companyId: company.id, clientId: original.clientId, contactId: original.contactId, recipientEmail: original.recipientEmail,
+        channel: "EMAIL", purpose: "MARKETING", legalBasis: "CONSENT", status: "GRANTED", source: "ISOLATED_REPLACEMENT_PROOF", noticeUrl: "https://example.test/privacy", proofHash: "b".repeat(64), capturedAt: new Date(original.capturedAt.getTime() + 1000) } })
+      return prepared
+    })
+    const result = await processDueSequenceEmails(10, company.id)
+    expect(result.sent).toBe(0)
+    expect(result.stopped).toBe(1)
+    expect(sendSequenceEmail).not.toHaveBeenCalled()
+    expect(await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: enrollment.id } })).toMatchObject({ status: "STOPPED", stopReason: "CONSENT_PROOF_INVALID", nextSendAt: null })
   })
 })

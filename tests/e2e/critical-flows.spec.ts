@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test"
 import { mkdir } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
 
 const evidenceDir = path.join(os.tmpdir(), "crm-e2e-evidence")
 
@@ -1112,11 +1114,18 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await campaign.getByLabel(`Séquence à rattacher à ${campaignName}`, { exact: true }).selectOption({ label: `${sequenceName} · ACTIVE` })
   await campaign.getByRole("button", { name: "Rattacher la séquence" }).click()
   await expect(page.getByText("Séquence rattachée.")).toBeVisible()
-  await campaign.getByRole("button", { name: "Inscrire le segment" }).click()
-  const confirmation = page.getByRole("dialog", { name: /Inscrire l’audience/ })
-  await expect(confirmation.getByText(/Seuls les contacts avec une adresse valide et un consentement actif/)).toBeVisible()
-  await confirmation.getByRole("button", { name: "Inscrire l’audience" }).click()
-  await expect(page.getByText("1 prospect(s) inscrit(s).")).toBeVisible()
+  await campaign.getByRole("button", { name: "Vérifier l’audience", exact: true }).click()
+  await expect(page.getByText("Audience vérifiée sans inscription.", { exact: true })).toBeVisible()
+  const report = campaign.getByLabel(`Rapport d’audience pour ${campaignName}`, { exact: true })
+  await expect(report).toContainText("1 prospect(s) · 1 éligible(s) · 0 exclu(s)")
+  await report.getByRole("button", { name: "Inscrire l’audience vérifiée", exact: true }).click()
+  const confirmation = page.getByRole("dialog", { name: /Inscrire l’audience vérifiée/ })
+  await expect(confirmation.getByText(/Leurs retraits, preuves et adresses seront relus/)).toBeVisible()
+  await confirmation.getByRole("button", { name: "Inscrire l’audience vérifiée", exact: true }).click()
+  await expect(report).toContainText("Inscription en cours")
+  await promisify(execFile)(process.execPath, ["--conditions=react-server", "--import", "tsx", "scripts/verify-e2e-campaign-activation.mjs", campaignName], { timeout: 30_000 })
+  await page.reload()
+  await expect(report).toContainText("1/1 traité(s) · 1 inscrit(s)")
   await expect(campaign.locator("div.rounded-lg.border.p-3").filter({ has: page.getByText(sequenceName, { exact: true }) })).toContainText("1 inscription(s)")
 })
 

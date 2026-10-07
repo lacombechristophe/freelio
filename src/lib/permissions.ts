@@ -88,6 +88,8 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   MarketingSegmentMember: "automation.write",
   MarketingCampaign: "automation.write",
   MarketingCampaignAsset: "automation.write",
+  CampaignAudience: "automation.write",
+  CampaignAudienceMember: "automation.write",
   AutomationWorkflow: "automation.write",
   AutomationWorkflowVersion: "automation.write",
   AutomationRun: "automation.write",

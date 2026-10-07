@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ events: vi.fn(), sequences: vi.fn(), periodic: vi.fn(), close: vi.fn() }))
+const mocks = vi.hoisted(() => ({ events: vi.fn(), activations: vi.fn(), sequences: vi.fn(), periodic: vi.fn(), close: vi.fn() }))
+vi.mock("@/lib/marketing/campaign-activation", () => ({ processCampaignActivations: mocks.activations }))
 vi.mock("@/lib/automations/engine", () => ({ processAutomationEvents: mocks.events }))
 vi.mock("@/lib/automations/sequences", () => ({ processDueSequenceEmails: mocks.sequences }))
 vi.mock("@/lib/bullmq/worker", () => ({ docGenWorker: { close: mocks.close } }))
@@ -16,6 +17,7 @@ describe("automation processor entry points", () => {
   beforeEach(() => {
     mocks.events.mockReset().mockResolvedValue({ examined: 0, completed: 0 })
     mocks.sequences.mockReset().mockResolvedValue({ examined: 0, sent: 0, failed: 0 })
+    mocks.activations.mockReset().mockResolvedValue({ examined: 0, processed: 0, enrolled: 0, failed: 0 })
     mocks.periodic.mockReset().mockReturnValue({ run: vi.fn(), stop: vi.fn() })
   })
 
@@ -29,6 +31,7 @@ describe("automation processor entry points", () => {
     expect(await batch).toEqual([
       { status: "fulfilled", value: { examined: 41, completed: 41 } },
       { status: "fulfilled", value: { examined: 0, sent: 0, failed: 0 } },
+      { status: "fulfilled", value: { examined: 0, processed: 0, enrolled: 0, failed: 0 } },
     ])
     expect(mocks.sequences).toHaveBeenCalledWith(100)
   })
@@ -39,8 +42,22 @@ describe("automation processor entry points", () => {
     mocks.sequences.mockRejectedValue(sequenceError)
     expect(await processAutomationBatch()).toEqual([
       { status: "rejected", reason: eventError }, { status: "rejected", reason: sequenceError },
+      { status: "fulfilled", value: { examined: 0, processed: 0, enrolled: 0, failed: 0 } },
     ])
     expect(mocks.sequences).toHaveBeenCalledTimes(1)
+  })
+
+  it("finishes an activation batch before dispatch and reports its partial failure as HTTP 503", async () => {
+    vi.stubEnv("AUTOMATION_CRON_SECRET", "isolated-processor-test-secret")
+    let release!: () => void
+    mocks.activations.mockImplementation(() => new Promise(resolve => { release = () => resolve({ examined: 1, processed: 0, enrolled: 0, failed: 1 }) }))
+    const response = POST(new Request("https://example.test/api/automations/process", { headers: { authorization: "Bearer isolated-processor-test-secret" } }))
+    await vi.waitFor(() => expect(mocks.activations).toHaveBeenCalled())
+    expect(mocks.sequences).not.toHaveBeenCalled()
+    release()
+    expect((await response).status).toBe(503)
+    expect(mocks.sequences).toHaveBeenCalledTimes(1)
+    vi.unstubAllEnvs()
   })
 
   it("preserves cron authorization and exposes partial failure as HTTP 503", async () => {
@@ -52,7 +69,7 @@ describe("automation processor entry points", () => {
       mocks.events.mockRejectedValue(new Error("outbox unavailable"))
       const response = await POST(new Request("https://example.test/api/automations/process", { headers: { authorization: "Bearer isolated-processor-test-secret" } }))
       expect(response.status).toBe(503)
-      expect(await response.json()).toEqual({ success: false, scenarios: { error: "Traitement indisponible" }, summary: { examined: 0, sent: 0, failed: 0 } })
+      expect(await response.json()).toEqual({ success: false, scenarios: { error: "Traitement indisponible" }, summary: { examined: 0, sent: 0, failed: 0 }, activations: { examined: 0, processed: 0, enrolled: 0, failed: 0 } })
       expect(mocks.sequences).toHaveBeenCalledTimes(1)
     } finally {
       log.mockRestore()

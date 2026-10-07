@@ -12,7 +12,7 @@ export async function campaignDashboard(companyId: string, input: unknown = {}) 
     const campaigns = await tx.marketingCampaign.findMany({ where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 25, skip: (page - 1) * 25,
       include: { segment: { select: { id: true, name: true, _count: { select: { memberships: true } } } }, ownerMembership: { select: { id: true, user: { select: { name: true, email: true } } } },
         assets: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 25 }, sequences: { include: { _count: { select: { enrollments: true, deliveries: true } } }, orderBy: [{ updatedAt: "desc" }, { id: "desc" }], take: 25 },
-        _count: { select: { assets: true, sequences: true } } } })
+        _count: { select: { assets: true, sequences: true, audiences: true } } } })
     const [segments, sequences, members, active, budget, deliveries] = await Promise.all([
       tx.marketingSegment.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, name: true, _count: { select: { memberships: true } } }, orderBy: [{ name: "asc" }, { id: "asc" }], take: 25 }),
       tx.emailSequence.findMany({ where: { companyId, status: { not: "ARCHIVED" } }, select: { id: true, name: true, status: true, campaignId: true }, orderBy: [{ name: "asc" }, { id: "asc" }], take: 25 }),
@@ -35,7 +35,7 @@ export async function campaignDashboard(companyId: string, input: unknown = {}) 
       const count = (states: string[]) => stats.filter(item => states.includes(item.status)).reduce((sum, item) => sum + item._count._all, 0)
       return { ...campaign, channels: Array.isArray(campaign.channels) ? campaign.channels.filter((item): item is string => typeof item === "string") : [],
         startAt: campaign.startAt?.toISOString() ?? null, endAt: campaign.endAt?.toISOString() ?? null, audienceLockedAt: campaign.audienceLockedAt?.toISOString() ?? null,
-        createdAt: campaign.createdAt.toISOString(), updatedAt: campaign.updatedAt.toISOString(), audienceLocked: Boolean(campaign.audienceLockedAt || engaged), assetCount: campaign._count.assets, readyAssetCount: readyAssets, sequenceCount: campaign._count.sequences, activeSequenceCount,
+        createdAt: campaign.createdAt.toISOString(), updatedAt: campaign.updatedAt.toISOString(), audienceLocked: Boolean(campaign.audienceLockedAt || engaged), audienceCount: campaign._count.audiences, assetCount: campaign._count.assets, readyAssetCount: readyAssets, sequenceCount: campaign._count.sequences, activeSequenceCount,
         assets: campaign.assets.map(asset => ({ ...asset, dueAt: asset.dueAt?.toISOString() ?? null, createdAt: asset.createdAt.toISOString(), updatedAt: asset.updatedAt.toISOString() })),
         attributedLeads, deliveryStats: { total: stats.reduce((sum, item) => sum + item._count._all, 0), delivered: count(["DELIVERED", "OPENED", "CLICKED"]), opened: count(["OPENED", "CLICKED"]), clicked: count(["CLICKED"]), failed: count(["FAILED", "BOUNCED", "COMPLAINED", "SUPPRESSED"]) } }
     }))
