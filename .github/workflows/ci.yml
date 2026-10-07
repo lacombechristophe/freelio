@@ -43,7 +43,10 @@ jobs:
           retention-days: 14
   quality-and-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Chromium system-package installation took 429 seconds on 2026-10-07.
+    # Leave room for the complete security audit and evidence uploads; retain
+    # every test timeout and the failing audit gate.
+    timeout-minutes: 35
     env:
       DATABASE_URL: file:./e2e-ci.db
       AUTH_SECRET: ci-auth-secret-longer-than-thirty-two-characters
