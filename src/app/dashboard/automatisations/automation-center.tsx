@@ -46,7 +46,11 @@ export function AutomationCenter({ initialData }: { initialData: AutomationData 
   function run(operation: () => Promise<unknown>, successMessage: string, options?: { form?: HTMLFormElement; after?: () => void }) {
     startTransition(async () => {
       try {
-        await operation()
+        const result = await operation()
+        if (result === null) throw new Error("Action impossible")
+        if (typeof result === "object" && result !== null && "success" in result && result.success === false) {
+          throw new Error("error" in result && typeof result.error === "string" ? result.error : "Action impossible")
+        }
         options?.form?.reset()
         options?.after?.()
         toast.success(successMessage)
