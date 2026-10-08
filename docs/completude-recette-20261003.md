@@ -4,27 +4,27 @@
 
 ## Dernière référence qualifiée fonctionnellement
 
-**6cc3d8a9d3c1c421303a3e76a49df90c78d89170** : journal E-mails complet, protection des relances incertaines et droits Banque/Comptabilité. Les [CI push](https://github.com/lacombechristophe/freelio/actions/runs/37700641265) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37700645951) sont achevées.
+**f5573b0d0696b832389a1c1ec0b2f9a18a94e23c** : listes complètes des studios, reprise humaine des séquences et correctif Next 16.3.8, avec les lots précédents. Les [CI push](https://github.com/lacombechristophe/freelio/actions/runs/37704659344) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37704662879) sont achevées.
 
 | Contrôle | Résultat |
 | --- | --- |
 | Types, lint, build et couverture ciblée | Réussis |
-| SQLite | 782 tests / 148 fichiers |
-| PostgreSQL | 781 réussis, une exclusion native SQLite |
-| Navigateur | 135 réussis par run ; 19 exclusions historiques |
+| SQLite | 809 tests / 150 fichiers |
+| PostgreSQL | 808 réussis, une exclusion native SQLite |
+| Navigateur | 139 réussis par run ; 19 exclusions historiques |
 | Audit UI PR | 64 routes par format, zéro finding P0–P3 |
 | Image Linux | Neuf contrôles ; 59 migrations ; PostgreSQL 18.6 ; UID 1000 |
-| Audit complet | Échec : six paquets hauts au moment du run |
+| Audit production / complet | Zéro en production ; échec complet : cinq paquets hauts de développement |
 
-Image testée : `sha256:3df716ca10eee400b461becbeccf4f64c51e983f29ec5788c1bfcf67bab2e401`. Le checkout de fusion PR `2bf64b3b5cea3025517bb369ee78541f5d724558` partage l’arbre `ac9093ec02118d978f99408d390fcf3bb75e298a` du candidat, vérifié via GitHub et Git local. Les traces des autres versions restent dans le [journal historique](journal-recettes-completude-20261003.md).
+Image testée : `sha256:0ad1b63a382465682685ad6b74fac28a4476e9b796273a431bf71db424ffd4f4`. Le checkout de fusion PR `e2fee95d00dc0093213240361311b72f3f6726e7` partage l’arbre `b9b6a4690fe1a3652f027772c8779e85e9cad8b1` du candidat, vérifié via GitHub et Git local. Les [preuves résumées](evidence/20261008-next-studios/README.md) conservent dépendances, runtime et contrôles ciblés. Les traces des autres versions restent dans le [journal historique](journal-recettes-completude-20261003.md).
 
-## Ajouts suivants
+## Portée des derniers lots
 
 La reprise humaine des séquences est implémentée dans **38bd589**, avec contrat et preuves dans **1598302**. Localement : 800 tests SQLite / 149 fichiers, types/lint/build réussis. Les opérations vérifient sans émission, réparent l’historique avec inscription conservée en pause, ou classent avec motif/confirmation et arrêt de l’inscription. Leurs [règles et limites](contrat-reprise-humaine-sequences.md) expliquent notamment le thread vide possible après rollback et l’absence de progression implicite.
 
-Les CI [push](https://github.com/lacombechristophe/freelio/actions/runs/37702825363) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37702831865) de 1598302 échouent au contrôle de dépendances de production avant les recettes SQLite/navigateur. PostgreSQL et Linux réussissent ; les nouveaux E2E de reprise ne sont donc pas encore qualifiés.
+Les CI de 1598302 étaient interrompues avant SQLite/navigateur par les nouveaux avis Next. Les deux CI de f5573b0 qualifient désormais les parcours de reprise et de studios sur ordinateur/mobile ; leurs contrôles fonctionnels réussissent et seul l’audit complet échoue.
 
-Le contrôle courant détecte des avis Next.js publiés après le précédent résultat de production. Le correctif minimal **16.3.8** est implémenté dans **e9c2519** : audits du lockfile et de l’installation physique, zéro vulnérabilité en production et cinq hautes de développement dans la chaîne braces. La [qualification Next](qualification-next-20261008.md) conserve les sources et versions. Les lectures complètes des studios et inscriptions sont [approuvées et implémentées](contrat-listes-automatisations-completes.md) dans **151007b**, après la désactivation des commandes de reprise en démo publique (**39bc392**). Recette locale commune : **809 tests SQLite / 150 fichiers**, types/lint réussis, build de 74 pages réussi. 160 E2E / 36 fichiers sont découverts ; ils ne sont pas annoncés exécutés localement. La CI du prochain candidat devra couvrir ces ajouts ensemble.
+Le correctif minimal **16.3.8** est implémenté dans **e9c2519** : audits du lockfile et de l’installation physique, zéro vulnérabilité en production et cinq hautes de développement dans la chaîne braces. La [qualification Next](qualification-next-20261008.md) conserve les sources et versions. Les lectures complètes des studios et inscriptions sont [approuvées et implémentées](contrat-listes-automatisations-completes.md) dans **151007b**, après la désactivation des commandes de reprise en démo publique (**39bc392**). Recette locale commune : **809 tests SQLite / 150 fichiers**, types/lint réussis, build de 74 pages réussi. La découverte locale de 160 E2E / 36 fichiers reste distincte de leur exécution CI : 139 réussis et 19 exclus dans son environnement. Aucun navigateur local récent n’est annoncé exécuté.
 
 ## Comment reproduire les preuves
 
@@ -37,7 +37,7 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 ## Ce qui reste à fermer
 
 - Audit complet sans alerte bloquante et CI propre du candidat final. Aucun seuil réduit ou contrôle retiré.
-- Recette des listes complètes et reprise des séquences sur ordinateur/mobile, PostgreSQL et Linux.
+- Banque : [historique et correspondances](contrat-banque-listes-completes.md), puis [dates impossibles d’import](contrat-banque-dates-import.md), propositions visibles en attente de confirmation. La normalisation de date et le conflit d’import simultané sont reproduits séparément sur SQLite fictive, sans correction annoncée.
 - Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
 
