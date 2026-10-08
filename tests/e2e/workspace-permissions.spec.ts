@@ -10,6 +10,7 @@ const domains = [
 ] as const
 
 async function login(page: Page, role: string, surface: string) {
+  await page.context().clearCookies()
   await page.goto("/auth/login")
   await page.getByLabel("Adresse e-mail professionnelle").fill(`analytics-${role}-${surface}@example.test`)
   await page.getByLabel("Mot de passe", { exact: true }).fill(process.env.E2E_USER_PASSWORD || "RecetteSolide2026")
