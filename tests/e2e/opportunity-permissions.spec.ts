@@ -1,12 +1,13 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 import { mkdir } from "node:fs/promises"
 import path from "node:path"
 import { captureScrollablePage } from "./helpers/visual-evidence"
 
-async function capture(page: Page, surface: string, role: string, state: string) {
+async function capture(page: Page, surface: string, role: string, state: string, scrollContainer: Locator = page.locator("#dashboard-main")) {
   const directory = path.join(process.cwd(), "test-results", "opportunity-permissions", surface, role)
   await mkdir(directory, { recursive: true })
-  expect((await captureScrollablePage(page, directory, state)).complete).toBe(true)
+  await expect(scrollContainer).toBeVisible()
+  expect((await captureScrollablePage(page, directory, state, scrollContainer)).complete).toBe(true)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) + 1)
 }
 
@@ -35,6 +36,6 @@ for (const role of ["owner", "admin", "sales", "viewer"]) {
     await page.goto(`/dashboard/pipeline/copportunity${surface}inconsistent`)
     await expect(page.getByRole("heading", { name: "Cette page n’existe pas.", exact: true })).toBeVisible()
     await expect(page.getByText("Fictional foreign opportunity client", { exact: true })).toHaveCount(0)
-    await capture(page, surface, role, "inconsistent-client")
+    await capture(page, surface, role, "inconsistent-client", page.locator("html"))
   })
 }
