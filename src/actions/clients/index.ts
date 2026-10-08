@@ -1,12 +1,25 @@
 "use server"
 
 import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, type AuthContext } from "@/lib/auth-wrapper"
+import type { Client } from "@prisma/client"
 import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { ClientActivitySchema, ClientNextActionSchema, ClientSchema, ContactSchema } from "@/lib/validations"
 import { boundedPageSize } from "@/lib/pagination"
 import { hasPermission } from "@/lib/permissions"
+
+function clientMutationResponse(client: Client, context: Pick<AuthContext, "role" | "agencyIds">) {
+  const canReadFinance = hasPermission(context.role, "finance.read")
+  const canReadGlobalFinance = canReadFinance && context.agencyIds === null
+  return {
+    ...client,
+    totalRevenueCents: canReadGlobalFinance ? client.totalRevenueCents : null,
+    totalUnpaidCents: canReadGlobalFinance ? client.totalUnpaidCents : null,
+    renewalAmountCents: canReadFinance ? client.renewalAmountCents : null,
+    relationScore: canReadGlobalFinance ? client.relationScore : null,
+  }
+}
 
 export async function getClients(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId, role, agencyIds }) => {
@@ -151,7 +164,7 @@ export async function getClientsMinimal() {
 }
 
 export async function createClient(data: unknown) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, role, agencyIds }) => {
     const validated = ClientSchema.parse(data)
     const client = await prisma.client.create({
       data: { ...validated, companyId },
@@ -166,12 +179,12 @@ export async function createClient(data: unknown) {
     })
 
     revalidatePath("/dashboard/clients")
-    return client
+    return clientMutationResponse(client, { role, agencyIds })
   })
 }
 
 export async function updateClient(id: string, data: unknown) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, role, agencyIds }) => {
     const validated = ClientSchema.parse(data)
     // Scope to companyId by checking first
     const existing = await prisma.client.findFirst({ where: { id, companyId } })
@@ -192,7 +205,7 @@ export async function updateClient(id: string, data: unknown) {
 
     revalidatePath("/dashboard/clients")
     revalidatePath(`/dashboard/clients/${id}`)
-    return client
+    return clientMutationResponse(client, { role, agencyIds })
   })
 }
 
@@ -294,7 +307,7 @@ export async function deleteClientActivity(id: string) {
 }
 
 export async function setClientNextAction(clientId: string, data: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const validated = ClientNextActionSchema.parse(data)
     const existing = await prisma.client.findFirst({ where: { id: clientId, companyId } })
     if (!existing) throw new Error("Client introuvable")
@@ -307,6 +320,6 @@ export async function setClientNextAction(clientId: string, data: unknown) {
     })
     revalidatePath("/dashboard/clients")
     revalidatePath(`/dashboard/clients/${clientId}`)
-    return client
+    return clientMutationResponse(client, { role, agencyIds })
   })
 }
