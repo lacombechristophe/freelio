@@ -19,20 +19,17 @@ describe.sequential("complete bank history and reconciliation candidates", () =>
     await prisma.agencyMembership.create({ data: { membershipId, agencyId } })
     const client = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional bank client" } })
     const project = await prisma.project.create({ data: { companyId: session.companyId, clientId: client.id, agencyId, name: "Fictional bank project" } })
-    for (let index = 0; index < 251; index++) {
-      const row = await prisma.bankTransaction.create({ data: { companyId: session.companyId, label: `History ${String(index).padStart(3, "0")}`, reference: `Reference ${index}`, date: new Date(Date.UTC(2030, 0, 1, 0, index)), amountCents: index === 250 ? 100 : -100, fingerprint: randomUUID() } })
-      if (!index) debitId = row.id
-      if (index === 250) creditId = row.id
-    }
+    const movements = Array.from({ length: 251 }, (_, index) => ({ id: randomUUID(), companyId: session.companyId, label: `History ${String(index).padStart(3, "0")}`, reference: `Reference ${index}`, date: new Date(Date.UTC(2030, 0, 1, 0, index)), amountCents: index === 250 ? 100 : -100, fingerprint: randomUUID() }))
+    await prisma.bankTransaction.createMany({ data: movements })
+    debitId = movements[0].id
+    creditId = movements[250].id
     foreignMovementId = (await prisma.bankTransaction.create({ data: { companyId: foreignCompanyId, label: "Foreign confidential movement", amountCents: -100, date: new Date(), fingerprint: randomUUID() } })).id
-    for (let index = 0; index < 101; index++) {
-      const row = await prisma.expense.create({ data: { companyId: session.companyId, projectId: project.id, label: `Expense ${String(index).padStart(3, "0")}`, amountCents: 100, category: "Autre", date: new Date(Date.UTC(2030, 0, 1, 0, index)) } })
-      if (!index) expenseId = row.id
-    }
-    for (let index = 0; index < 26; index++) {
-      const row = await prisma.invoice.create({ data: { id: `bank-list-${randomUUID()}-${String(index).padStart(3, "0")}`, companyId: session.companyId, projectId: project.id, clientId: client.id, number: `Invoice ${index}`, object: "Fictional bank", status: "SENT", dueDate: new Date(), totalHtCents: 200, totalTvaCents: 0, totalTtcCents: 200, paidAmountCents: 50 } })
-      if (!index) invoiceId = row.id
-    }
+    const expenses = Array.from({ length: 101 }, (_, index) => ({ id: randomUUID(), companyId: session.companyId, projectId: project.id, label: `Expense ${String(index).padStart(3, "0")}`, amountCents: 100, category: "Autre", date: new Date(Date.UTC(2030, 0, 1, 0, index)) }))
+    await prisma.expense.createMany({ data: expenses })
+    expenseId = expenses[0].id
+    const invoices = Array.from({ length: 26 }, (_, index) => ({ id: `bank-list-${randomUUID()}-${String(index).padStart(3, "0")}`, companyId: session.companyId, projectId: project.id, clientId: client.id, number: `Invoice ${index}`, object: "Fictional bank", status: "SENT", dueDate: new Date(), totalHtCents: 200, totalTvaCents: 0, totalTtcCents: 200, paidAmountCents: 50 }))
+    await prisma.invoice.createMany({ data: invoices })
+    invoiceId = invoices[0].id
     excludedInvoiceId = (await prisma.invoice.create({ data: { companyId: session.companyId, projectId: project.id, clientId: client.id, number: "Insufficient balance", object: "Fictional partial payment", status: "SENT", dueDate: new Date(), totalHtCents: 200, totalTvaCents: 0, totalTtcCents: 200, paidAmountCents: 150 } })).id
     await prisma.invoice.create({ data: { companyId: session.companyId, clientId: client.id, number: "Other agency invoice", object: "Confidential agency", status: "SENT", dueDate: new Date(), totalHtCents: 200, totalTvaCents: 0, totalTtcCents: 200 } })
   })
