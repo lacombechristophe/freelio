@@ -16,6 +16,8 @@ Le choix déjà sélectionné reste visible au changement de page ou de recherch
 
 Ajouter un rattachement relationnel nullable `projectId` au modèle récurrent et son index. Le client et le chantier doivent appartenir à la même société et correspondre l’un à l’autre ; un entretien rattaché et son site doivent respecter la même cohérence. Les filtres de lecture et de mutation utilisent le chantier, ou le site de l’entretien lorsqu’il n’y a pas de chantier, avec relecture des agences autorisées à chaque appel ; les occurrences sont bornées à un modèle accessible.
 
+Lorsqu’un chantier et un entretien sont tous deux renseignés, les deux références doivent être cohérentes et autorisées. Ne pas choisir le rattachement le plus permissif pour contourner une agence interdite.
+
 La migration PostgreSQL reprend uniquement un `template.projectId` existant dont la société et le client sont cohérents. La procédure SQLite suit la même règle. Ne pas attribuer d’agence aux anciens modèles sans chantier et ne pas transformer une référence JSON incohérente en modèle valide sans chantier. Conserver ces références pour diagnostic, les exclure des lectures usuelles et bloquer leur génération. Les nouveaux modèles écrivent un rattachement cohérent ; le worker vérifie les références avant chaque génération.
 
 Les factures déjà générées restent inchangées. Une suppression de modèle conserve ses factures selon le comportement actuel ; le contrôle du périmètre interdit la suppression d’un modèle inaccessible. La migration ne réactive aucun modèle et ne lance aucun job.
