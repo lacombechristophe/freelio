@@ -90,43 +90,83 @@ function availableQuantity(items: Array<{ quantity: number; reservedQuantity: nu
   return items.reduce((sum, item) => sum + item.quantity - item.reservedQuantity, 0)
 }
 
-export async function getProductCatalogue() {
+const catalogueQuerySchema = z.object({
+  search: z.string().trim().max(200).default(""),
+  page: z.number().int().min(1).max(1_000_000).default(1),
+})
+
+function productSearch(search: string) {
+  const contains = { contains: search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+  return search ? { OR: [{ sku: contains }, { label: contains }, { family: contains }, { manufacturer: contains }, { variantLabel: contains }] } : {}
+}
+
+export async function getProductCatalogue(input: unknown = {}) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
-    const products = await prisma.product.findMany({
-        where: { companyId },
-        include: {
-          supplier: { select: { id: true, name: true } },
-          parentProduct: { select: { id: true, label: true } },
-          inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { quantity: true, reservedQuantity: true } },
-          _count: { select: { variants: true, optionGroups: true, assemblyComponents: true } },
-        },
-        orderBy: [{ active: "desc" }, { family: "asc" }, { label: "asc" }],
-    })
-    return {
-      canManage: hasPermission(role, "operations.write"),
-      products: products.map((product) => ({
-        id: product.id,
-        sku: product.sku,
-        label: product.label,
-        description: product.description,
-        kind: product.kind,
-        manufacturer: product.manufacturer,
-        family: product.family,
-        unit: product.unit,
-        purchasePriceCents: product.purchasePriceCents,
-        salePriceCents: product.salePriceCents,
-        tvaRate: product.tvaRate,
-        stockTracked: product.stockTracked,
-        active: product.active,
-        supplierId: product.supplierId,
-        supplier: product.supplier,
-        parentProductId: product.parentProductId,
-        parentProduct: product.parentProduct,
-        variantLabel: product.variantLabel,
-        availableQuantity: availableQuantity(product.inventoryItems),
-        counts: product._count,
-      })),
-    }
+    const query = catalogueQuerySchema.parse(input)
+    return prisma.$transaction(async tx => {
+      const where = { companyId, ...productSearch(query.search) }
+      const total = await tx.product.count({ where })
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
+      const [active, variants, optionGroups, products] = await Promise.all([
+        tx.product.count({ where: { companyId, active: true } }),
+        tx.product.count({ where: { companyId, parentProductId: { not: null } } }),
+        tx.productOptionGroup.count({ where: { companyId, product: { companyId } } }),
+        tx.product.findMany({
+          where,
+          include: {
+            supplier: { select: { id: true, name: true } },
+            parentProduct: { select: { id: true, label: true } },
+            inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { quantity: true, reservedQuantity: true } },
+            _count: { select: { variants: true, optionGroups: true, assemblyComponents: true } },
+          },
+          orderBy: [{ active: "desc" }, { family: "asc" }, { label: "asc" }, { id: "asc" }],
+          skip: (page - 1) * 25, take: 25,
+        }),
+      ])
+      return {
+        canManage: hasPermission(role, "operations.write"),
+        total, page, search: query.search,
+        metrics: { active, variants, optionGroups },
+        products: products.map((product) => ({
+          id: product.id,
+          sku: product.sku,
+          label: product.label,
+          description: product.description,
+          kind: product.kind,
+          manufacturer: product.manufacturer,
+          family: product.family,
+          unit: product.unit,
+          purchasePriceCents: product.purchasePriceCents,
+          salePriceCents: product.salePriceCents,
+          tvaRate: product.tvaRate,
+          stockTracked: product.stockTracked,
+          active: product.active,
+          supplierId: product.supplierId,
+          supplier: product.supplier,
+          parentProductId: product.parentProductId,
+          parentProduct: product.parentProduct,
+          variantLabel: product.variantLabel,
+          availableQuantity: availableQuantity(product.inventoryItems),
+          counts: product._count,
+        })),
+      }
+    }, { isolationLevel: "Serializable" })
+  }, "sales.read")
+}
+
+export async function getProductParentChoices(input: unknown = {}) {
+  return withAuth(async ({ companyId }) => {
+    const query = catalogueQuerySchema.extend({ selectedId: id.optional(), productId: id.optional() }).parse(input)
+    const scope = { companyId, active: true, parentProductId: null, ...(query.productId ? { id: { not: query.productId } } : {}) }
+    const where = { ...scope, ...productSearch(query.search) }
+    return prisma.$transaction(async tx => {
+      const total = await tx.product.count({ where })
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
+      const select = { id: true, sku: true, label: true } as const
+      const items = await tx.product.findMany({ where, select, skip: (page - 1) * 25, take: 25, orderBy: [{ label: "asc" }, { id: "asc" }] })
+      const selected = query.selectedId && query.selectedId !== query.productId ? await tx.product.findFirst({ where: { ...scope, id: query.selectedId }, select }) : null
+      return { items, selected, total, page }
+    }, { isolationLevel: "Serializable" })
   }, "sales.read")
 }
 
