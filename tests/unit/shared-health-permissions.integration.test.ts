@@ -47,6 +47,7 @@ describe.sequential("shared global health permissions on real SQL", () => {
     if (reader === "list") expect((await getClients()).clients[0].relationScore).toBeNull()
     else if (reader === "detail") expect((await getClientById(clientId))?.relationScore).toBeNull()
     else if (reader === "directory") expect((await getClientDirectory(directoryQuerySchema.parse({}))).rows[0].relationScore).toBeNull()
+    else if (reader === "SERVICE" && ["SALES", "ACCOUNTING"].includes(role)) await expect(getWorkspaceOverview("SERVICE")).rejects.toThrow("droits nécessaires")
     else expect((await getWorkspaceOverview(reader as "CRM" | "SERVICE")).clientHealth).toBeNull()
   })
   it.each(["SALES", "SERVICE", "OPERATIONS"])("does not expose global health in automation subject choices to %s", async role => {

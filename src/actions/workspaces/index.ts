@@ -3,6 +3,7 @@
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
 import { hasPermission } from "@/lib/permissions"
+import { z } from "zod"
 
 function dateKey(value: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(value)
@@ -42,14 +43,21 @@ function dailyAmountSeries(days: number, now: Date, events: Array<{ date: Date; 
 }
 
 export type WorkspaceScope = "ALL" | "CRM" | "SALES" | "MARKETING" | "SERVICE" | "REVENUE"
+const workspaceScopeSchema = z.enum(["ALL", "CRM", "SALES", "MARKETING", "SERVICE", "REVENUE"])
+const workspacePermission = { ALL: "crm.read", CRM: "crm.read", SALES: "sales.read", MARKETING: "automation.read", SERVICE: "service.read", REVENUE: "finance.read" } as const
 
 export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
+  const selectedScope = workspaceScopeSchema.parse(scope)
   return withAuth(async ({ companyId, role, agencyIds }) => {
-    const canReadGlobalHealth = hasPermission(role, "finance.read") && agencyIds === null
+    const canReadFinance = hasPermission(role, "finance.read")
+    const canReadSales = hasPermission(role, "sales.read")
+    const canReadAutomation = hasPermission(role, "automation.read")
+    const canReadService = hasPermission(role, "service.read")
+    const canReadGlobalHealth = canReadFinance && agencyIds === null
     const now = new Date()
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1_000)
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000)
-    const needs = (...scopes: WorkspaceScope[]) => scope === "ALL" || scopes.includes(scope)
+    const needs = (...scopes: WorkspaceScope[]) => selectedScope === "ALL" || scopes.includes(selectedScope)
     const [
       clients, contacts, activeLeads, openDeals, activeProjects, openTickets,
       scheduledInterventions, invoices, overdueInvoices, pendingPurchases,
@@ -64,27 +72,27 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
       prisma.client.count({ where: { companyId } }),
       prisma.contact.count({ where: { client: { companyId } } }),
       prisma.leadCapture.count({ where: { companyId, status: { notIn: ["ARCHIVED", "SPAM"] } } }),
-      prisma.opportunity.aggregate({ where: { pipeline: { companyId }, status: { notIn: ["WON", "LOST"] } }, _count: { _all: true }, _sum: { valueCents: true } }),
+      canReadSales ? prisma.opportunity.aggregate({ where: { pipeline: { companyId }, status: { notIn: ["WON", "LOST"] } }, _count: { _all: true }, _sum: { valueCents: true } }) : Promise.resolve(null),
       prisma.project.count({ where: { companyId, status: "ACTIVE" } }),
-      prisma.serviceTicket.count({ where: { companyId, status: { notIn: ["RESOLVED", "CLOSED", "CANCELLED"] } } }),
+      canReadService ? prisma.serviceTicket.count({ where: { companyId, status: { notIn: ["RESOLVED", "CLOSED", "CANCELLED"] } } }) : Promise.resolve(null),
       prisma.fieldIntervention.count({ where: { companyId, status: { in: ["PLANNED", "IN_PROGRESS"] }, scheduledStart: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1_000) } } }),
-      prisma.invoice.aggregate({ where: { companyId, status: { in: ["SENT", "OVERDUE"] } }, _sum: { totalTtcCents: true, paidAmountCents: true } }),
-      prisma.invoice.count({ where: { companyId, status: { in: ["SENT", "OVERDUE"] }, dueDate: { lt: now } } }),
+      canReadFinance ? prisma.invoice.aggregate({ where: { companyId, status: { in: ["SENT", "OVERDUE"] } }, _sum: { totalTtcCents: true, paidAmountCents: true } }) : Promise.resolve(null),
+      canReadFinance ? prisma.invoice.count({ where: { companyId, status: { in: ["SENT", "OVERDUE"] }, dueDate: { lt: now } } }) : Promise.resolve(null),
       prisma.purchaseOrder.count({ where: { companyId, status: { in: ["DRAFT", "SUBMITTED", "APPROVED", "SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED"] } } }),
       prisma.emailThread.aggregate({ where: { companyId, status: "OPEN" }, _sum: { unreadCount: true } }),
-      prisma.automationWorkflow.count({ where: { companyId, status: "ACTIVE" } }),
-      prisma.marketingSegment.count({ where: { companyId, status: "ACTIVE" } }),
+      canReadAutomation ? prisma.automationWorkflow.count({ where: { companyId, status: "ACTIVE" } }) : Promise.resolve(null),
+      canReadAutomation ? prisma.marketingSegment.count({ where: { companyId, status: "ACTIVE" } }) : Promise.resolve(null),
       prisma.product.count({ where: { companyId, active: true } }),
       prisma.maintenanceContract.count({ where: { companyId, status: "ACTIVE" } }),
       prisma.membership.count({ where: { companyId, status: "ACTIVE" } }),
       prisma.migrationRun.count({ where: { companyId } }),
       prisma.dataSourceConnection.count({ where: { companyId, status: "ACTIVE" } }),
-      prisma.quote.count({ where: { companyId, status: { not: "ARCHIVED" } } }),
-      prisma.contract.count({ where: { companyId, status: { not: "ARCHIVED" } } }),
+      canReadSales ? prisma.quote.count({ where: { companyId, status: { not: "ARCHIVED" } } }) : Promise.resolve(null),
+      canReadSales ? prisma.contract.count({ where: { companyId, status: { not: "ARCHIVED" } } }) : Promise.resolve(null),
       prisma.organisationTask.count({ where: { companyId, status: { notIn: ["DONE"] }, dueDate: { lte: new Date(now.getTime() + 48 * 60 * 60 * 1_000) } } }),
       needs("CRM") ? prisma.client.findMany({
         where: { companyId },
-        select: { id: true, name: true, relationScore: canReadGlobalHealth, nextActionAt: true, nextActionLabel: true, _count: { select: { contacts: true, projects: true } } },
+        select: { id: true, name: true, relationScore: canReadGlobalHealth, nextActionAt: true, nextActionLabel: true, _count: { select: { contacts: true, projects: { where: { companyId, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) } } } } },
         orderBy: { updatedAt: "desc" },
         take: 5,
       }) : Promise.resolve([]),
@@ -94,31 +102,31 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
         orderBy: [{ priority: "asc" }, { dueDate: "asc" }, { updatedAt: "desc" }],
         take: 6,
       }) : Promise.resolve([]),
-      needs("SALES") ? prisma.opportunity.findMany({
+      canReadSales && needs("SALES") ? prisma.opportunity.findMany({
         where: { pipeline: { companyId }, status: { notIn: ["WON", "LOST"] } },
         select: { id: true, title: true, status: true, valueCents: true, probability: true, closeDate: true, client: { select: { name: true } } },
         orderBy: [{ closeDate: "asc" }, { updatedAt: "desc" }],
         take: 6,
       }) : Promise.resolve([]),
-      needs("MARKETING") ? prisma.marketingCampaign.findMany({
+      canReadAutomation && needs("MARKETING") ? prisma.marketingCampaign.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         select: { id: true, name: true, objective: true, status: true, budgetCents: true, startAt: true, _count: { select: { assets: true, sequences: true } } },
         orderBy: { updatedAt: "desc" },
         take: 6,
       }) : Promise.resolve([]),
-      needs("MARKETING") ? prisma.automationWorkflow.findMany({
+      canReadAutomation && needs("MARKETING") ? prisma.automationWorkflow.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         select: { id: true, name: true, trigger: true, status: true, _count: { select: { runs: true } } },
         orderBy: { updatedAt: "desc" },
         take: 6,
       }) : Promise.resolve([]),
-      needs("SERVICE") ? prisma.serviceTicket.findMany({
+      canReadService && needs("SERVICE") ? prisma.serviceTicket.findMany({
         where: { companyId, status: { notIn: ["RESOLVED", "CLOSED", "CANCELLED", "MERGED"] } },
         select: { id: true, number: true, title: true, priority: true, status: true, dueAt: true, client: { select: { name: true } } },
         orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
         take: 8,
       }) : Promise.resolve([]),
-      needs("REVENUE") ? prisma.invoice.findMany({
+      canReadFinance && needs("REVENUE") ? prisma.invoice.findMany({
         where: { companyId, status: { not: "CANCELLED" } },
         select: { id: true, number: true, object: true, status: true, dueDate: true, totalTtcCents: true, paidAmountCents: true, client: { select: { name: true } } },
         orderBy: { date: "desc" },
@@ -136,13 +144,13 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
         orderBy: { lastMessageAt: "desc" },
         take: 6,
       }) : Promise.resolve([]),
-      needs("SALES") ? prisma.quote.findMany({
+      canReadSales && needs("SALES") ? prisma.quote.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         select: { id: true, number: true, object: true, status: true, validUntil: true, client: { select: { name: true } }, versions: { select: { totalHtCents: true, totalTtcCents: true }, orderBy: { version: "desc" }, take: 1 } },
         orderBy: { updatedAt: "desc" },
         take: 6,
       }) : Promise.resolve([]),
-      needs("MARKETING") ? prisma.emailSequence.findMany({
+      canReadAutomation && needs("MARKETING") ? prisma.emailSequence.findMany({
         where: { companyId, status: { not: "ARCHIVED" } },
         select: { id: true, name: true, status: true, _count: { select: { enrollments: true, deliveries: true, steps: true } } },
         orderBy: { updatedAt: "desc" },
@@ -151,9 +159,9 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
       needs("CRM", "MARKETING") ? prisma.clientActivity.findMany({ where: { client: { companyId }, happenedAt: { gte: thirtyDaysAgo } }, select: { happenedAt: true }, take: 2_000 }) : Promise.resolve([]),
       needs("CRM", "MARKETING") ? prisma.leadCapture.findMany({ where: { companyId, createdAt: { gte: thirtyDaysAgo } }, select: { createdAt: true }, take: 2_000 }) : Promise.resolve([]),
       needs("CRM", "MARKETING") ? prisma.emailMessage.findMany({ where: { companyId, createdAt: { gte: thirtyDaysAgo } }, select: { createdAt: true, direction: true }, take: 3_000 }) : Promise.resolve([]),
-      needs("MARKETING") ? prisma.leadCapture.findMany({ where: { companyId, createdAt: { gte: ninetyDaysAgo }, status: { notIn: ["ARCHIVED", "SPAM"] } }, select: { source: true, utmSource: true, createdAt: true }, take: 3_000 }) : Promise.resolve([]),
-      needs("REVENUE") ? prisma.invoicePayment.findMany({ where: { invoice: { companyId }, date: { gte: ninetyDaysAgo } }, select: { amountCents: true, date: true }, take: 3_000 }) : Promise.resolve([]),
-      needs("REVENUE") ? prisma.invoice.findMany({
+      canReadAutomation && needs("MARKETING") ? prisma.leadCapture.findMany({ where: { companyId, createdAt: { gte: ninetyDaysAgo }, status: { notIn: ["ARCHIVED", "SPAM"] } }, select: { source: true, utmSource: true, createdAt: true }, take: 3_000 }) : Promise.resolve([]),
+      canReadFinance && needs("REVENUE") ? prisma.invoicePayment.findMany({ where: { invoice: { companyId }, date: { gte: ninetyDaysAgo } }, select: { amountCents: true, date: true }, take: 3_000 }) : Promise.resolve([]),
+      canReadFinance && needs("REVENUE") ? prisma.invoice.findMany({
         where: { companyId, status: { in: ["SENT", "OVERDUE"] } },
         select: { id: true, number: true, object: true, status: true, dueDate: true, totalTtcCents: true, paidAmountCents: true, client: { select: { name: true } } },
         orderBy: { dueDate: "asc" },
@@ -163,15 +171,16 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
     ])
 
     return {
+      access: { finance: canReadFinance, sales: canReadSales, automation: canReadAutomation, service: canReadService },
       clients,
       contacts,
       activeLeads,
-      openDeals: openDeals._count._all,
-      openDealValueCents: openDeals._sum.valueCents ?? 0,
+      openDeals: openDeals?._count._all ?? null,
+      openDealValueCents: openDeals ? openDeals._sum.valueCents ?? 0 : null,
       activeProjects,
       openTickets,
       scheduledInterventions,
-      outstandingCents: Math.max(0, (invoices._sum.totalTtcCents ?? 0) - (invoices._sum.paidAmountCents ?? 0)),
+      outstandingCents: invoices ? Math.max(0, (invoices._sum.totalTtcCents ?? 0) - (invoices._sum.paidAmountCents ?? 0)) : null,
       overdueInvoices,
       pendingPurchases,
       unreadEmail: unreadEmail._sum.unreadCount ?? 0,
@@ -207,7 +216,7 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
         return accumulator
       }, {})).sort((left, right) => right[1] - left[1]).slice(0, 6).map(([name, value]) => ({ name, value })),
       paymentSeries: dailyAmountSeries(30, now, paymentEvents),
-      paymentsLast90DaysCents: paymentEvents.reduce((sum, payment) => sum + payment.amountCents, 0),
+      paymentsLast90DaysCents: canReadFinance ? paymentEvents.reduce((sum, payment) => sum + payment.amountCents, 0) : null,
       outstandingInvoices,
       clientHealth: canReadGlobalHealth ? {
         healthy: clientHealth.filter((client) => client.relationScore >= 80).length,
@@ -215,5 +224,5 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
         risk: clientHealth.filter((client) => client.relationScore < 60).length,
       } : null,
     }
-  }, "crm.read")
+  }, workspacePermission[selectedScope])
 }

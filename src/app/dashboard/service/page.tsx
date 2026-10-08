@@ -1,13 +1,19 @@
 import { BarChart3, BookOpen, CalendarDays, ClipboardCheck, Gauge, Headphones, Inbox, MessageSquareHeart, MessageSquareText, Repeat2, SlidersHorizontal, Tickets } from "lucide-react"
 
 import { getWorkspaceOverview } from "@/actions/workspaces"
+import { resolveAuthContext } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
+import { WorkspaceAccessRequired } from "@/app/dashboard/_components/workspace-access-required"
 import { formatWorkspaceDate, WorkspaceHub } from "@/app/dashboard/_components/workspace-hub"
 import { WorkspaceDistributionPanel } from "@/app/dashboard/_components/workspace-insights"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
 
 export default async function ServiceWorkspacePage() {
+  const context = await resolveAuthContext()
+  if (context && !hasPermission(context.role, "service.read")) return <WorkspaceAccessRequired title="Accès Service requis" />
   const data = await getWorkspaceOverview("SERVICE")
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de gérer le service client." />
+  if (data.openTickets === null) return <WorkspaceAccessRequired title="Accès Service requis" />
 
   return (
     <WorkspaceHub
