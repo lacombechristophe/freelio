@@ -29,7 +29,10 @@ test("Owner retains complete financial signals, history and editing", async ({ p
   await expect(card.getByText("+5 depuis le dernier relevé", { exact: true })).toBeVisible()
   const debt = card.getByText("Encours échu", { exact: true }).locator("..")
   await expect(debt).toContainText(new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(10.21))
-  await expect(card.getByText(`UIQA Financial health ${info.project.name}`, { exact: true })).toBeVisible()
+  const financialRule = `UIQA Financial health ${info.project.name}`
+  await expect(card.locator("summary").getByText(financialRule, { exact: true })).toBeVisible()
+  const alerts = card.getByRole("heading", { name: "Alertes actives", exact: true }).locator("..")
+  await expect(alerts.getByText(financialRule, { exact: true })).toBeVisible()
   await expect(page.getByRole("option", { name: "Encours échu", exact: true })).toHaveCount(1)
 })
 
