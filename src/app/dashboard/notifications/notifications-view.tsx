@@ -31,6 +31,7 @@ type Notification = {
   message: string
   isRead: boolean
   createdAt: Date | string
+  ageLabel: string
 }
 
 const typeConfig: Record<string, { icon: React.ElementType; color: string }> = {
@@ -39,16 +40,6 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string }> = {
   BILLING: { icon: Receipt, color: "text-primary bg-primary/10" },
   OVERDUE: { icon: AlertCircle, color: "text-danger bg-danger/10" },
   CONTRACT: { icon: FileSignature, color: "text-primary bg-primary/10" },
-}
-
-function relativeTime(d: Date | string) {
-  const date = new Date(d)
-  const diff = (Date.now() - date.getTime()) / 1000
-  if (diff < 60) return "à l'instant"
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
-  if (diff < 2_592_000) return `il y a ${Math.floor(diff / 86400)}j`
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
 }
 
 export function NotificationsView({ notifications }: { notifications: Notification[] }) {
@@ -143,7 +134,7 @@ export function NotificationsView({ notifications }: { notifications: Notificati
                         </div>
                         <p className="text-sm text-muted-foreground leading-snug">{notif.message}</p>
                         <p className="pt-1 text-xs font-medium text-muted-foreground">
-                          {relativeTime(notif.createdAt)}
+                          {notif.ageLabel}
                         </p>
                       </div>
                     </div>

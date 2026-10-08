@@ -3,14 +3,17 @@
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
+import { notificationAge } from "@/lib/notification-age"
 
 export async function getNotifications() {
   return await withAuth(async ({ userId }) => {
-    return await prisma.notification.findMany({
+    const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 50,
     })
+    const referenceTime = Date.now()
+    return notifications.map(notification => ({ ...notification, ageLabel: notificationAge(notification.createdAt, referenceTime), compactAgeLabel: notificationAge(notification.createdAt, referenceTime, true) }))
   })
 }
 

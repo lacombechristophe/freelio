@@ -4,6 +4,8 @@
 
 ## Dernière référence qualifiée fonctionnellement
 
+La CI suivante de **e1e67f9**, qui ne changeait que la documentation, a reproduit une erreur React 418 dans Notifications. La réussite antérieure ci-dessous reste une preuve datée, pas une preuve d’absence de ce défaut intermittent. Le [correctif et sa qualification](qualification-notifications-20261008.md) sont préparés ; leur recette navigateur reste à exécuter sur le nouveau candidat.
+
 **f5573b0d0696b832389a1c1ec0b2f9a18a94e23c** : listes complètes des studios, reprise humaine des séquences et correctif Next 16.3.8, avec les lots précédents. Les [CI push](https://github.com/lacombechristophe/freelio/actions/runs/37704659344) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37704662879) sont achevées.
 
 | Contrôle | Résultat |
