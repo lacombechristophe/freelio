@@ -1,0 +1,108 @@
+{
+  "schema": "freelio.permission-comparison.v1",
+  "method": "Selected historical source files substituted only in the isolated recipe, then restored; other candidate files remain current.",
+  "before": {
+    "schema": "freelio.permission-regression.v1",
+    "kind": "auth",
+    "engine": "SQLite",
+    "node": "v24.15.0",
+    "reference": "653cddc6c03fd8f3cf73c6fc12e07696181fb545",
+    "exitCode": 1,
+    "total": 7,
+    "passed": 0,
+    "failed": 7,
+    "testSha256": "2af6dc70e2d1ce67a87c7810d0607bf0aa82aad6ec2b32ff296f64e7edff0283",
+    "source": [
+      {
+        "file": "src/lib/auth-wrapper.ts",
+        "sha256": "9e63c23cd75713ed46d8937d7d2d3edf094cca8de89d4343878d7bd4d23d98ba"
+      }
+    ],
+    "reportSha256": "c514e52db9c613d3b3c44f8e1caf56c37c6a9e962edc9682540cd24512a62aaf",
+    "cases": [
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses general Client editing through a service action",
+        "status": "failed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses financial Client editing through a service action",
+        "status": "failed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses nested Client writes through a service action",
+        "status": "failed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses bulk profile writes through a service action",
+        "status": "failed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses profile writes through a service read action",
+        "status": "failed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context keeps lazy Prisma reads inside their company authorization context",
+        "status": "failed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context scopes lazy Owner updates to their authorized company",
+        "status": "failed"
+      }
+    ]
+  },
+  "after": {
+    "schema": "freelio.permission-regression.v1",
+    "kind": "auth",
+    "engine": "SQLite",
+    "node": "v24.15.0",
+    "reference": "working-tree-with-uncommitted-changes",
+    "exitCode": 0,
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "testSha256": "2af6dc70e2d1ce67a87c7810d0607bf0aa82aad6ec2b32ff296f64e7edff0283",
+    "source": [
+      {
+        "file": "src/lib/auth-wrapper.ts",
+        "sha256": "be094e67157f2d66c55d72b35936858be291f4a803307e882f24ea3eaa8f056b"
+      }
+    ],
+    "reportSha256": "59b5000f0d0c970deb062a8846dc3b1591ba2b1af4f49cd2c8a278f7c5127390",
+    "cases": [
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses general Client editing through a service action",
+        "status": "passed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses financial Client editing through a service action",
+        "status": "passed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses nested Client writes through a service action",
+        "status": "passed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses bulk profile writes through a service action",
+        "status": "passed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context refuses profile writes through a service read action",
+        "status": "passed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context keeps lazy Prisma reads inside their company authorization context",
+        "status": "passed"
+      },
+      {
+        "name": "lazy Prisma promises retain their authorization context scopes lazy Owner updates to their authorized company",
+        "status": "passed"
+      }
+    ]
+  },
+  "limits": [
+    "SQLite only at this stage.",
+    "Session and Next cache simulated where imported; SQL, membership, DAL and transactions real.",
+    "Failed baselines are not counted as successful qualification.",
+    "No external provider or existing application data used."
+  ]
+}
