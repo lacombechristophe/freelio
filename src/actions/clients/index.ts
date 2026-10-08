@@ -1,25 +1,13 @@
 "use server"
 
 import prisma from "@/lib/prisma"
-import { withAuth, type AuthContext } from "@/lib/auth-wrapper"
-import type { Client } from "@prisma/client"
+import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { ClientActivitySchema, ClientNextActionSchema, ClientSchema, ContactSchema } from "@/lib/validations"
 import { boundedPageSize } from "@/lib/pagination"
 import { hasPermission } from "@/lib/permissions"
-
-function clientMutationResponse(client: Client, context: Pick<AuthContext, "role" | "agencyIds">) {
-  const canReadFinance = hasPermission(context.role, "finance.read")
-  const canReadGlobalFinance = canReadFinance && context.agencyIds === null
-  return {
-    ...client,
-    totalRevenueCents: canReadGlobalFinance ? client.totalRevenueCents : null,
-    totalUnpaidCents: canReadGlobalFinance ? client.totalUnpaidCents : null,
-    renewalAmountCents: canReadFinance ? client.renewalAmountCents : null,
-    relationScore: canReadGlobalFinance ? client.relationScore : null,
-  }
-}
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 export async function getClients(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId, role, agencyIds }) => {
@@ -179,7 +167,7 @@ export async function createClient(data: unknown) {
     })
 
     revalidatePath("/dashboard/clients")
-    return clientMutationResponse(client, { role, agencyIds })
+    return clientWithAccessibleMetrics(client, { role, agencyIds })
   })
 }
 
@@ -205,7 +193,7 @@ export async function updateClient(id: string, data: unknown) {
 
     revalidatePath("/dashboard/clients")
     revalidatePath(`/dashboard/clients/${id}`)
-    return clientMutationResponse(client, { role, agencyIds })
+    return clientWithAccessibleMetrics(client, { role, agencyIds })
   })
 }
 
@@ -320,6 +308,6 @@ export async function setClientNextAction(clientId: string, data: unknown) {
     })
     revalidatePath("/dashboard/clients")
     revalidatePath(`/dashboard/clients/${clientId}`)
-    return clientMutationResponse(client, { role, agencyIds })
+    return clientWithAccessibleMetrics(client, { role, agencyIds })
   })
 }

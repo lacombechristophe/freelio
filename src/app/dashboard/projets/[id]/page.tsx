@@ -133,9 +133,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" /> Devis ({project.quotes.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" /> Devis{project.access.sales ? ` (${project.quotes.length})` : ""}</CardTitle></CardHeader>
           <CardContent>
-            {project.quotes.length === 0 ? (
+            {!project.access.sales ? <p className="py-3 text-sm text-muted-foreground">Accès commercial requis</p> : project.quotes.length === 0 ? (
               <p className="py-3 text-sm text-muted-foreground">Aucun devis relié à ce projet.</p>
             ) : (
               <ul className="space-y-1 text-sm">
@@ -151,9 +151,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt className="h-4 w-4" /> Factures ({project.invoices.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Receipt className="h-4 w-4" /> Factures{project.access.finance ? ` (${project.invoices.length})` : ""}</CardTitle></CardHeader>
           <CardContent>
-            {project.invoices.length === 0 ? (
+            {!project.access.finance ? <p className="py-3 text-sm text-muted-foreground">Accès Finance requis</p> : project.invoices.length === 0 ? (
               <p className="py-3 text-sm text-muted-foreground">Aucune facture reliée à ce projet.</p>
             ) : (
               <ul className="space-y-1 text-sm">

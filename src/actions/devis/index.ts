@@ -13,6 +13,7 @@ import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstrai
 import { boundedPageSize } from "@/lib/pagination"
 import { CONTRACT_TEMPLATE_PRESETS } from "@/lib/contracts/templates"
 import { assertQuoteStatusTransition, quoteStatusDates, type QuoteStatus } from "@/lib/quotes/workflow"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
@@ -61,9 +62,9 @@ export async function getQuotes(cursor?: string, limit = 50) {
 }
 
 export async function getQuoteById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.quote.findFirst({
-      where: { id, companyId },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const quote = await prisma.quote.findFirst({
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: true,
@@ -89,6 +90,7 @@ export async function getQuoteById(id: string) {
         },
       },
     })
+    return quote ? { ...quote, client: clientWithAccessibleMetrics(quote.client, { role, agencyIds }) } : null
   }, "sales.read")
 }
 

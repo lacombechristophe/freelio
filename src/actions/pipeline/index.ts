@@ -12,7 +12,7 @@ import {
   validatePipelineStages,
 } from "@/lib/pipeline-rules"
 import prisma from "@/lib/prisma"
-import { hasPermission } from "@/lib/permissions"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 const id = z.string().cuid()
 const optionalId = z.union([id, z.literal(""), z.null()]).optional().transform((value) => value || null)
@@ -292,8 +292,6 @@ export async function getOpportunityDetail(opportunityId: string) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(opportunityId)
     if (!parsedId.success) return null
-    const canReadFinance = hasPermission(role, "finance.read")
-    const canReadGlobalFinance = canReadFinance && agencyIds === null
     const projectScope = { companyId, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
     const documentScope = {
       companyId,
@@ -338,11 +336,7 @@ export async function getOpportunityDetail(opportunityId: string) {
       activities: opportunity.activities.map((activity) => ({ ...activity, createdAt: activity.createdAt.toISOString() })),
       leadCaptures: opportunity.leadCaptures.map((lead) => ({ ...lead, createdAt: lead.createdAt.toISOString(), updatedAt: lead.updatedAt.toISOString() })),
       client: {
-        ...opportunity.client,
-        totalRevenueCents: canReadGlobalFinance ? opportunity.client.totalRevenueCents : null,
-        totalUnpaidCents: canReadGlobalFinance ? opportunity.client.totalUnpaidCents : null,
-        renewalAmountCents: canReadFinance ? opportunity.client.renewalAmountCents : null,
-        relationScore: canReadGlobalFinance ? opportunity.client.relationScore : null,
+        ...clientWithAccessibleMetrics(opportunity.client, { role, agencyIds }),
         nextActionAt: opportunity.client.nextActionAt?.toISOString() ?? null,
         createdAt: opportunity.client.createdAt.toISOString(),
         updatedAt: opportunity.client.updatedAt.toISOString(),

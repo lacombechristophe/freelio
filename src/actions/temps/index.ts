@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 // Default hourly rate used to convert tracked time into a consumed budget estimate.
 // Matches the common "jour @ 500€" rate — can later be made per-project.
@@ -22,14 +23,15 @@ async function recomputeProjectConsumed(projectId: string) {
 }
 
 export async function getTimeEntries() {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.timeEntry.findMany({
-      where: { project: { companyId } },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const entries = await prisma.timeEntry.findMany({
+      where: { project: { companyId, client: { companyId } } },
       include: { project: { include: { client: true } } },
       orderBy: { date: "desc" },
       take: 500,
     })
-  })
+    return entries.map(entry => ({ ...entry, project: { ...entry.project, client: clientWithAccessibleMetrics(entry.project.client, { role, agencyIds }) } }))
+  }, "operations.read")
 }
 
 export async function createTimeEntry(data: { projectId: string; durationSec: number; description?: string; date?: Date; isBillable?: boolean }) {

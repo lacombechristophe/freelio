@@ -18,6 +18,7 @@ import { boundedPageSize } from "@/lib/pagination"
 import { prepareContractSnapshot, readContractSnapshot, sealContractSnapshot, readSignedContractDocument, contractSnapshotWhere } from "@/lib/contracts/archive"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { hasExpectedSignature } from "@/lib/local-files"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 type ContractInput = z.input<typeof ContractSchema>
 
@@ -59,9 +60,9 @@ export async function getContracts(cursor?: string, limit = 50) {
 }
 
 export async function getContractById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.contract.findFirst({
-      where: { id, companyId },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const contract = await prisma.contract.findFirst({
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: true,
@@ -72,6 +73,7 @@ export async function getContractById(id: string) {
         maintenanceContract: { select: { id: true, number: true, label: true, renewalStatus: true } },
       },
     })
+    return contract ? { ...contract, client: clientWithAccessibleMetrics(contract.client, { role, agencyIds }) } : null
   }, "sales.read")
 }
 

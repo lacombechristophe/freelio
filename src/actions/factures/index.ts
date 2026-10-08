@@ -13,6 +13,7 @@ import { buildInvoiceReminderContent } from "@/lib/finance/invoice-reminders"
 import { sendInvoiceReminderRecord } from "@/lib/finance/invoice-reminder-sender"
 import { boundedPageSize } from "@/lib/pagination"
 import { prepareIssuedInvoice, discardIssuedInvoice } from "@/lib/finance/issued-invoice"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
 type PaymentInput = z.input<typeof PaymentSchema>
@@ -63,9 +64,9 @@ export async function getInvoices(cursor?: string, limit = 50) {
 }
 
 export async function getInvoiceById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.invoice.findFirst({
-      where: { id, companyId },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: { select: {
@@ -82,6 +83,7 @@ export async function getInvoiceById(id: string) {
         reminders: { orderBy: { createdAt: "desc" } },
       },
     })
+    return invoice ? { ...invoice, client: clientWithAccessibleMetrics(invoice.client, { role, agencyIds }) } : null
   }, "finance.read")
 }
 
