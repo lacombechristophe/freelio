@@ -110,6 +110,28 @@ describe.sequential("customer-success financial permissions on real SQL", () => 
     expect(workspace.rules).toHaveLength(5)
     expect(workspace.rules.every(rule => rule.metric !== "OVERDUE_BALANCE_CENTS")).toBe(true)
   })
+  it.each(["ACTIVE", "ARCHIVED"])("preserves %s financial rules in default-name collisions for Service", async status => {
+    const existing = await prisma.customerHealthRule.create({ data: {
+      companyId: session.companyId, name: "Au moins un ticket hors délai", metric: "OVERDUE_BALANCE_CENTS",
+      operator: "GT", threshold: 777, impact: -77, priority: 42, status,
+    } })
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "SERVICE" } })
+    await installDefaultCustomerHealthRules()
+    expect(await prisma.customerHealthRule.findUniqueOrThrow({ where: { id: existing.id } })).toEqual(existing)
+    expect((await getCustomerSuccessWorkspace()).rules).toHaveLength(4)
+    const audit = await prisma.auditLog.findFirstOrThrow({ where: { userId: session.userId, action: "INSTALL_CUSTOMER_HEALTH_RULES" } })
+    expect(audit.payload).toEqual({ count: 4 })
+  })
+  it("keeps authorized Owner updates available in default-name collisions", async () => {
+    const existing = await prisma.customerHealthRule.create({ data: {
+      companyId: session.companyId, name: "Au moins un ticket hors délai", metric: "OVERDUE_BALANCE_CENTS",
+      operator: "GT", threshold: 777, impact: -77, priority: 42, status: "ARCHIVED",
+    } })
+    await installDefaultCustomerHealthRules()
+    expect(await prisma.customerHealthRule.findUniqueOrThrow({ where: { id: existing.id } })).toMatchObject({
+      metric: "OVERDUE_TICKETS", operator: "GTE", threshold: 1, impact: -20, priority: 90, status: "ACTIVE",
+    })
+  })
   it("keeps authorized financial writes and rule management available to Owner", async () => {
     await updateClientSuccessProfile({ clientId, renewalAmountEuros: 99.9 })
     expect((await prisma.client.findUniqueOrThrow({ where: { id: clientId } })).renewalAmountCents).toBe(9990)

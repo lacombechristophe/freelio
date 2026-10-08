@@ -120,13 +120,20 @@ export async function getCustomerSuccessWorkspace(input: unknown = {}) {
 
 export async function installDefaultCustomerHealthRules() {
   return withAuth(async ({ companyId, userId, role }) => {
-    const allowedRules = defaultCustomerHealthRules.filter(rule => rule.metric !== "OVERDUE_BALANCE_CENTS" || hasPermission(role, "finance.write"))
-    await prisma.$transaction(allowedRules.map((rule) => prisma.customerHealthRule.upsert({
-      where: { companyId_name: { companyId, name: rule.name } },
-      update: { ...rule, status: "ACTIVE" },
-      create: { companyId, ...rule },
-    })))
-    await logAction({ userId, action: "INSTALL_CUSTOMER_HEALTH_RULES", resource: "CUSTOMER_HEALTH_RULE", payload: { count: allowedRules.length } })
+    const financeWrite = hasPermission(role, "finance.write")
+    const allowedRules = defaultCustomerHealthRules.filter(rule => rule.metric !== "OVERDUE_BALANCE_CENTS" || financeWrite)
+    const installed = await prisma.$transaction(async (transaction) => {
+      let count = 0
+      for (const rule of allowedRules) {
+        const where = { companyId_name: { companyId, name: rule.name } }
+        const existing = await transaction.customerHealthRule.findUnique({ where, select: { metric: true } })
+        if (existing?.metric === "OVERDUE_BALANCE_CENTS" && !financeWrite) continue
+        await transaction.customerHealthRule.upsert({ where, update: { ...rule, status: "ACTIVE" }, create: { companyId, ...rule } })
+        count++
+      }
+      return count
+    }, { isolationLevel: "Serializable" })
+    await logAction({ userId, action: "INSTALL_CUSTOMER_HEALTH_RULES", resource: "CUSTOMER_HEALTH_RULE", payload: { count: installed } })
     revalidatePath("/dashboard/service/customer-success")
     return { success: true as const }
   }, "service.write")
