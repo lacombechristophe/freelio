@@ -19,8 +19,7 @@ const storedTemplateSchema = z.object({
 })
 
 async function auditUser(companyId: string, preferred?: string) {
-  if (preferred) return preferred
-  const membership = await prisma.membership.findFirst({ where: { companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "ACCOUNTING", "OPERATIONS"] } }, orderBy: { createdAt: "asc" }, select: { userId: true } })
+  const membership = await prisma.membership.findFirst({ where: { companyId, ...(preferred ? { userId: preferred } : {}), status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "ACCOUNTING", "OPERATIONS"] } }, orderBy: { createdAt: "asc" }, select: { userId: true } })
   return membership?.userId ?? null
 }
 
@@ -61,6 +60,12 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
     try {
       await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
         if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return
+        const client = await tx.client.findFirst({ where: { id: recurring.clientId, companyId: recurring.companyId }, select: { id: true } })
+        if (!client) throw new Error("Client de récurrence incompatible avec la société")
+        if (parsed.data.projectId) {
+          const project = await tx.project.findFirst({ where: { id: parsed.data.projectId, companyId: recurring.companyId, clientId: recurring.clientId }, select: { id: true } })
+          if (!project) throw new Error("Chantier de récurrence incompatible avec le client ou la société")
+        }
         const prefix = buildYearlyDocumentPrefix(recurring.company.invoicePrefix, "FACT-")
         const last = await readCompanyDocumentNumbers(() => tx.invoice.findMany({ where: { companyId: recurring.companyId, number: { startsWith: prefix } }, select: { number: true } }))
         const number = nextDocumentNumber(last, prefix)
