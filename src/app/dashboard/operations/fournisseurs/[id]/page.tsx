@@ -93,7 +93,7 @@ export default async function SupplierDetailPage({
         />
       </section>
       <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
@@ -141,7 +141,7 @@ export default async function SupplierDetailPage({
           </Card>
           <SupplierProductHistory supplierId={supplier.id} initial={supplier.products} />
         </div>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <SupplierOrderHistory supplierId={supplier.id} initial={supplier.purchaseOrders} />
           <SupplierReturnHistory supplierId={supplier.id} initial={supplier.supplierReturns} />
         </div>

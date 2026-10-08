@@ -33,3 +33,9 @@ La recette suivante conserve 301 produits, 101 commandes et 101 retours par form
 Cette isolation rétablit l’indépendance des parcours et ne résout pas le catalogue général à plus de 600 produits. Sa pagination serveur est une proposition distincte dans le [contrat Catalogue](contrat-catalogue-volume.md), soumise à confirmation visible.
 
 Le correctif de recette **8d988ca** passe types, ESLint et Oxlint. Le build compile en 17,3 secondes et génère 75 pages, le schéma PostgreSQL est validé sans connexion et les 176 E2E / 40 fichiers restent découverts. Ces contrôles locaux ne remplacent pas l’exécution des nouvelles connexions et captures dans la CI navigateur.
+
+## Contrôle mobile supplémentaire
+
+La [CI de PR 41238b0](https://github.com/lacombechristophe/freelio/actions/runs/37785164370) passe PostgreSQL (935 réussites, une exclusion native SQLite), Linux et 154 parcours navigateur ; 19 exclusions historiques restent présentes. Elle échoue sur la nouvelle assertion de largeur du catalogue fournisseur en mobile : son bord atteint 589 pixels pour un viewport de 412. Les échecs de sélecteurs et de capture Catalogue précédents ne réapparaissent pas. Les audits généraux parcourent 65 routes par format sans finding ; ils ne remplaçaient pas cette nouvelle vérification de la fiche avec volume.
+
+Le correctif ajoute uniquement `min-w-0` aux deux colonnes de la fiche : elles peuvent réduire leur largeur dans la grille, au lieu d’imposer la largeur intrinsèque de leur contenu. Cartes, proportions desktop, commandes et couleurs sont conservées. La même assertion et les captures complètes restent obligatoires. Build local de 75 pages réussi (compilation 15,5 secondes), schéma PostgreSQL validé sans connexion et 176 E2E / 40 fichiers découverts. Nouvelle exécution navigateur requise.

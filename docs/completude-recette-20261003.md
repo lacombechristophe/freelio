@@ -2,7 +2,7 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
-Le candidat complète les historiques et indicateurs Fournisseurs approuvés, l’import concurrent et les trois rapprochements bancaires. La recette locale commune réussit **936 tests / 158 fichiers**, types et les deux moteurs de lint. La [preuve PostgreSQL avant/après](qualification-rapprochements-bancaires-20261008.md) reproduit quatre courses puis leur correction sur e0726f6. Les CI complètes de 5616823 restent en échec sur des captures Catalogue et des sélecteurs E2E ; la [qualification Fournisseurs](qualification-fournisseurs-historiques-20261008.md) détaille ces échecs et l’isolation de la recette suivante. Main et le déploiement restent inchangés.
+Le candidat complète les historiques et indicateurs Fournisseurs approuvés, l’import concurrent et les trois rapprochements bancaires. La recette locale commune réussit **936 tests / 158 fichiers**, types et les deux moteurs de lint. La [preuve PostgreSQL avant/après](qualification-rapprochements-bancaires-20261008.md) reproduit quatre courses puis leur correction sur e0726f6. Après les échecs de 5616823, la CI de PR 41238b0 passe PostgreSQL, Linux et 154 E2E, mais échoue sur la largeur de la nouvelle fiche Fournisseur en mobile. Le correctif borne ses deux colonnes sans assouplir l’assertion ; la [qualification Fournisseurs](qualification-fournisseurs-historiques-20261008.md) conserve les résultats et limites. Main et le déploiement restent inchangés.
 
 ## Dernière référence entièrement verte en CI
 
