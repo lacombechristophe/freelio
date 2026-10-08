@@ -55,12 +55,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </p>
           )}
         </div>
-        <Button demoMutation nativeButton={false} render={<Link href={`/dashboard/devis/new?clientId=${encodeURIComponent(client.id)}`} />} className="w-fit"><Plus />Créer un devis</Button>
+        {client.access.salesWrite ? <Button demoMutation nativeButton={false} render={<Link href={`/dashboard/devis/new?clientId=${encodeURIComponent(client.id)}`} />} className="w-fit"><Plus />Créer un devis</Button> : null}
       </div>
 
       <RecordSummary label="Synthèse du client" items={[
-        { label: "CA total", value: formatEuro(client.totalRevenueCents) },
-        { label: "Impayé", value: <span className={client.totalUnpaidCents > 0 ? "text-danger" : undefined}>{formatEuro(client.totalUnpaidCents)}</span> },
+        { label: "CA total", value: client.totalRevenueCents === null ? "Accès Finance requis" : formatEuro(client.totalRevenueCents) },
+        { label: "Impayé", value: client.totalUnpaidCents === null ? "Accès Finance requis" : <span className={client.totalUnpaidCents > 0 ? "text-danger" : undefined}>{formatEuro(client.totalUnpaidCents)}</span> },
         { label: "Score relation", value: `${client.relationScore} %`, detail: <Link href="/dashboard/service/customer-success" className="inline-flex min-h-6 items-center font-medium text-primary hover:underline">Voir dans le portefeuille</Link> },
       ]} />
 
@@ -96,10 +96,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 </> },
         { id: "documents", label: "Documents", content: <>      <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Devis récents ({client.quotes.length})</CardTitle>
+          <CardTitle className="text-sm">Devis récents{client.access.sales ? ` (${client.quotes.length})` : ""}</CardTitle>
         </CardHeader>
         <CardContent>
-          {client.quotes.length === 0 ? (
+          {!client.access.sales ? <p className="py-3 text-sm text-muted-foreground">Accès commercial requis</p> : client.quotes.length === 0 ? (
             <p className="py-3 text-sm text-muted-foreground">Aucun devis relié à ce client.</p>
           ) : (
             <Table>
@@ -134,10 +134,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Factures récentes ({client.invoices.length})</CardTitle>
+          <CardTitle className="text-sm">Factures récentes{client.access.finance ? ` (${client.invoices.length})` : ""}</CardTitle>
         </CardHeader>
         <CardContent>
-          {client.invoices.length === 0 ? (
+          {!client.access.finance ? <p className="py-3 text-sm text-muted-foreground">Accès Finance requis</p> : client.invoices.length === 0 ? (
             <p className="py-3 text-sm text-muted-foreground">Aucune facture reliée à ce client.</p>
           ) : (
             <Table>

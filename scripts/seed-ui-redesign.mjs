@@ -44,6 +44,24 @@ try {
     await prisma.supplierReturn.createMany({ data: orders.map((order, index) => ({ companyId: historyCompanyId, supplierId: supplier.id, warehouseId: warehouse.id, productId: product.id, purchaseOrderId: order.id, purchaseOrderLineId: lines.find(line => line.purchaseOrderId === order.id).id, stockMovementId: movements.find(movement => movement.reference === order.number).id, number: `UIQA-RETURN-${surface}-${String(index).padStart(3, "0")}`, quantity: 1, unitCostCents: 1000, reason: "Fictional history", creditReference: index === 100 ? `UIQA-OLDEST-CREDIT-${surface}` : null, shippedAt: order.orderDate })) })
   }
   for (const surface of ["desktop", "mobile"]) {
+    const clientCompany = await prisma.company.create({ data: { name: `Fictional client permissions ${surface}` } })
+    const permitted = await prisma.agency.create({ data: { companyId: clientCompany.id, code: "PERMITTED", name: "Fictional assigned agency" } })
+    const other = await prisma.agency.create({ data: { companyId: clientCompany.id, code: "OTHER", name: "Fictional other agency" } })
+    await prisma.saasSubscription.create({ data: { companyId: clientCompany.id, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+    const passwordHash = await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026")
+    for (const role of ["OWNER", "TECHNICIAN", "SALES"]) {
+      const reader = await prisma.user.create({ data: { companyId: clientCompany.id, email: `client-reader-${role.toLowerCase()}-${surface}@example.test`, name: `Fictional ${role} reader`, emailVerified: new Date(), passwordHash } })
+      const membership = await prisma.membership.create({ data: { companyId: clientCompany.id, userId: reader.id, role, status: "ACTIVE" } })
+      await prisma.agencyMembership.create({ data: { agencyId: permitted.id, membershipId: membership.id } })
+    }
+    const client = await prisma.client.create({ data: { companyId: clientCompany.id, name: `UIQA Client permissions ${surface}`, totalRevenueCents: 999999, totalUnpaidCents: 888888 } })
+    for (const [marker, agencyId] of [["PERMITTED", permitted.id], ["OTHER", other.id]]) {
+      const project = await prisma.project.create({ data: { companyId: clientCompany.id, clientId: client.id, agencyId, name: `UIQA Client project ${marker}` } })
+      await prisma.quote.create({ data: { companyId: clientCompany.id, clientId: client.id, projectId: project.id, number: `UIQA-CLIENT-QUOTE-${marker}`, object: "Fictional quote", versions: { create: { version: 1, totalHtCents: 1000, totalTvaCents: 0, totalTtcCents: 1000 } } } })
+      await prisma.invoice.create({ data: { companyId: clientCompany.id, clientId: client.id, projectId: project.id, number: `UIQA-CLIENT-INVOICE-${marker}`, object: "Fictional invoice", dueDate: new Date("2030-01-01"), status: "PAID", totalHtCents: 1000, totalTvaCents: 0, totalTtcCents: 1000, paidAmountCents: 1000 } })
+    }
+  }
+  for (const surface of ["desktop", "mobile"]) {
     await prisma.notification.create({ data: { userId: user.id, type: "SYSTEM", title: `UIQA Notification hydration ${surface}`, message: "Fictional hydration regression", isRead: true } })
     const workflow = await prisma.automationWorkflow.create({ data: { companyId, name: `UIQA Journal ${surface}`, trigger: "LEAD_CREATED", status: "ARCHIVED", actions: [{ type: "WAIT", delayHours: 1 }] } })
     await prisma.automationRun.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, workflowId: workflow.id, event: index === 100 ? `UIQA_LAST_${surface}` : "LEAD_CREATED",

@@ -6,6 +6,7 @@ import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { ClientActivitySchema, ClientNextActionSchema, ClientSchema, ContactSchema } from "@/lib/validations"
 import { boundedPageSize } from "@/lib/pagination"
+import { hasPermission } from "@/lib/permissions"
 
 export async function getClients(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId }) => {
@@ -74,21 +75,30 @@ export async function getClients(cursor?: string, limit: number = 20) {
 }
 
 export async function getClientById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    const client = await prisma.client.findFirst({
+  return await withAuth(async ({ companyId, agencyIds, role }) => prisma.$transaction(async tx => {
+    if (typeof id !== "string" || !id.trim() || id.length > 200) return null
+    const canReadSales = hasPermission(role, "sales.read")
+    const canReadFinance = hasPermission(role, "finance.read")
+    const projectScope = { companyId, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const documentScope = {
+      companyId,
+      ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: projectScope }),
+    }
+    const client = await tx.client.findFirst({
       where: { id, companyId },
       include: {
         contacts: true,
         activities: { orderBy: { happenedAt: "desc" }, take: 50 },
         files: { orderBy: { createdAt: "desc" }, take: 100 },
-        projects: { orderBy: { createdAt: "desc" }, take: 100 },
+        projects: { where: projectScope, orderBy: { createdAt: "desc" }, take: 100 },
         quotes: {
+          where: { ...documentScope, ...(canReadSales ? {} : { id: { in: [] } }) },
           orderBy: { createdAt: "desc" },
           take: 10,
           include: { versions: { orderBy: { version: "desc" }, take: 1 } },
         },
-        invoices: { orderBy: { createdAt: "desc" }, take: 10 },
-        contracts: { orderBy: { createdAt: "desc" }, take: 10 },
+        invoices: { where: { ...documentScope, ...(canReadFinance ? {} : { id: { in: [] } }) }, orderBy: { createdAt: "desc" }, take: 10 },
+        contracts: { where: { companyId, ...(canReadSales ? {} : { id: { in: [] } }) }, orderBy: { createdAt: "desc" }, take: 10 },
         portalAccesses: {
           orderBy: { createdAt: "desc" },
           take: 25,
@@ -108,21 +118,21 @@ export async function getClientById(id: string) {
     })
     if (!client) return null
 
-    const [paidAgg, unpaidAgg] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { companyId, clientId: id, status: "PAID" },
+    const [paidAgg, unpaidAgg] = canReadFinance ? await Promise.all([
+      tx.invoice.aggregate({
+        where: { ...documentScope, clientId: id, status: "PAID" },
         _sum: { totalHtCents: true },
       }),
-      prisma.invoice.aggregate({
-        where: { companyId, clientId: id, status: { in: ["SENT", "OVERDUE"] } },
+      tx.invoice.aggregate({
+        where: { ...documentScope, clientId: id, status: { in: ["SENT", "OVERDUE"] } },
         _sum: { totalTtcCents: true, paidAmountCents: true },
       }),
-    ])
-    const totalRevenueCents = paidAgg._sum.totalHtCents ?? 0
-    const totalUnpaidCents = (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0)
+    ]) : [null, null]
+    const totalRevenueCents = paidAgg ? paidAgg._sum.totalHtCents ?? 0 : null
+    const totalUnpaidCents = unpaidAgg ? (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0) : null
 
-    return { ...client, totalRevenueCents, totalUnpaidCents }
-  })
+    return { ...client, totalRevenueCents, totalUnpaidCents, access: { sales: canReadSales, finance: canReadFinance, salesWrite: hasPermission(role, "sales.write") } }
+  }, { isolationLevel: "Serializable" }), "crm.read")
 }
 
 export async function getClientsMinimal() {
