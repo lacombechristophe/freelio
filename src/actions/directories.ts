@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import { DIRECTORY_PAGE_SIZE, compareDirectoryValues, directoryQuerySchema, matchesDirectoryFilter, type DirectoryQuery } from "@/lib/directory-query"
 
 function contains(value: string) {
@@ -67,7 +68,9 @@ export async function getInvoiceDirectory(input: DirectoryQuery) {
 // Only matching rows are returned to the browser; the simple name directory uses DB pagination.
 export async function getClientDirectory(input: DirectoryQuery) {
   const query = directoryQuerySchema.parse(input)
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const invoiceScope = { companyId, ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: { companyId, agencyId: { in: agencyIds } } }) }
     const where = { companyId, ...(query.search.trim() ? { OR: [
       { name: contains(query.search) }, { address: contains(query.search) }, { siret: contains(query.search) },
       { contacts: { some: { OR: [{ firstName: contains(query.search) }, { lastName: contains(query.search) }, { email: contains(query.search) }] } } },
@@ -82,20 +85,20 @@ export async function getClientDirectory(input: DirectoryQuery) {
     })
     const ids = candidates.map((client) => client.id)
     const [paid, unpaid, properties] = ids.length ? await Promise.all([
-      prisma.invoice.groupBy({ by: ["clientId"], where: { companyId, clientId: { in: ids }, status: "PAID" }, _sum: { totalHtCents: true } }),
-      prisma.invoice.groupBy({ by: ["clientId"], where: { companyId, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } }, _sum: { totalTtcCents: true, paidAmountCents: true } }),
+      canReadFinance ? prisma.invoice.groupBy({ by: ["clientId"], where: { ...invoiceScope, clientId: { in: ids }, status: "PAID" }, _sum: { totalHtCents: true } }) : [],
+      canReadFinance ? prisma.invoice.groupBy({ by: ["clientId"], where: { ...invoiceScope, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } }, _sum: { totalTtcCents: true, paidAmountCents: true } }) : [],
       prisma.crmPropertyValue.findMany({ where: { companyId, recordId: { in: ids }, definition: { objectType: "CLIENT", archivedAt: null } }, select: { recordId: true, definitionId: true, value: true } }),
     ]) : [[], [], []]
     const paidMap = new Map(paid.map((item) => [item.clientId, item._sum.totalHtCents ?? 0]))
     const unpaidMap = new Map(unpaid.map((item) => [item.clientId, (item._sum.totalTtcCents ?? 0) - (item._sum.paidAmountCents ?? 0)]))
     const propertyMap = new Map<string, Record<string, unknown>>()
     for (const property of properties) propertyMap.set(property.recordId, { ...propertyMap.get(property.recordId), [property.definitionId]: property.value })
-    const hydrated = candidates.map((client) => ({ ...client, totalRevenueCents: paidMap.get(client.id) ?? 0, totalUnpaidCents: unpaidMap.get(client.id) ?? 0, propertyValues: propertyMap.get(client.id) ?? {} }))
+    const hydrated = candidates.map((client) => ({ ...client, totalRevenueCents: canReadFinance ? paidMap.get(client.id) ?? 0 : null, totalUnpaidCents: canReadFinance ? unpaidMap.get(client.id) ?? 0 : null, propertyValues: propertyMap.get(client.id) ?? {} }))
     function field(client: typeof hydrated[number], key: string): unknown {
       if (key === "name") return client.name
       if (key === "type") return client.type
-      if (key === "revenue") return client.totalRevenueCents / 100
-      if (key === "unpaid") return client.totalUnpaidCents / 100
+      if (key === "revenue") return client.totalRevenueCents === null ? null : client.totalRevenueCents / 100
+      if (key === "unpaid") return client.totalUnpaidCents === null ? null : client.totalUnpaidCents / 100
       if (key === "relation") return client.relationScore
       return client.propertyValues[key] ?? null
     }

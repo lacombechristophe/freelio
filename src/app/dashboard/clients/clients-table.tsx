@@ -42,8 +42,8 @@ type Client = {
   siret?: string | null
   tvaNumber?: string | null
   address?: string | null
-  totalRevenueCents: number
-  totalUnpaidCents: number
+  totalRevenueCents: number | null
+  totalUnpaidCents: number | null
   relationScore: number
   contacts: Array<{ firstName: string; lastName: string; email?: string | null }>
   propertyValues: Record<string, unknown>
@@ -79,7 +79,8 @@ const OPERATOR_LABELS: Record<string, string> = {
   is_not_empty: "est renseigné",
 }
 
-function formatEuro(cents: number) {
+function formatEuro(cents: number | null) {
+  if (cents === null) return "Accès Finance requis"
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
 }
 
@@ -104,8 +105,8 @@ function propertyValueLabel(definition: PropertyDefinition, value: unknown) {
 
 function clientFieldValue(client: Client, field: string) {
   if (field === "type") return client.type
-  if (field === "revenue") return client.totalRevenueCents / 100
-  if (field === "unpaid") return client.totalUnpaidCents / 100
+  if (field === "revenue") return client.totalRevenueCents === null ? null : client.totalRevenueCents / 100
+  if (field === "unpaid") return client.totalUnpaidCents === null ? null : client.totalUnpaidCents / 100
   if (field === "relation") return client.relationScore
   return client.propertyValues[field] ?? null
 }
@@ -223,7 +224,7 @@ export function ClientsTable({
           primary ? `${primary.firstName} ${primary.lastName}` : "",
           ...columns.map((column) => {
             const value = clientFieldValue(client, column.id)
-            if (column.id === "revenue" || column.id === "unpaid") return String(value ?? "")
+            if (column.id === "revenue" || column.id === "unpaid") return value === null ? "Accès Finance requis" : String(value ?? "")
             const definition = columnDefinitions.get(column.id)
             return definition ? propertyValueLabel(definition, value) : String(value ?? "")
           }),
@@ -281,7 +282,7 @@ export function ClientsTable({
               const primary = client.contacts[0]
               return <TableRow key={client.id} data-state={selected.has(client.id) ? "selected" : undefined}>
                 <TableCell><Checkbox aria-label={`Sélectionner ${client.name}`} checked={selected.has(client.id)} onCheckedChange={(checked) => setSelected((current) => { const next = new Set(current); if (checked === true) next.add(client.id); else next.delete(client.id); return next })} /></TableCell>
-                <TableCell><Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3"><Avatar className="size-9 border"><AvatarFallback className="bg-primary/5 text-xs text-primary">{client.name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0"><span className="block whitespace-normal font-medium hover:underline">{client.name}</span>{primary ? <span className="block truncate text-xs text-muted-foreground">{primary.firstName} {primary.lastName}{primary.email ? ` · ${primary.email}` : ""}</span> : null}<span className="mt-1 block text-xs text-muted-foreground sm:hidden">{client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}{client.totalUnpaidCents > 0 ? ` · À encaisser : ${formatEuro(client.totalUnpaidCents)}` : ""}</span></span></Link></TableCell>
+                <TableCell><Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3"><Avatar className="size-9 border"><AvatarFallback className="bg-primary/5 text-xs text-primary">{client.name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0"><span className="block whitespace-normal font-medium hover:underline">{client.name}</span>{primary ? <span className="block truncate text-xs text-muted-foreground">{primary.firstName} {primary.lastName}{primary.email ? ` · ${primary.email}` : ""}</span> : null}<span className="mt-1 block text-xs text-muted-foreground sm:hidden">{client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}{client.totalUnpaidCents !== null && client.totalUnpaidCents > 0 ? ` · À encaisser : ${formatEuro(client.totalUnpaidCents)}` : ""}</span></span></Link></TableCell>
                 {visibleColumns.map((columnId) => <ClientColumn key={columnId} columnId={columnId} client={client} definition={columnDefinitions.get(columnId)} />)}
                 <TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Ouvrir les actions du client"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel>{primary?.email ? <DropdownMenuItem demoMutation onClick={() => window.open(`mailto:${primary.email}`)}><Mail />Envoyer un e-mail</DropdownMenuItem> : null}<DropdownMenuItem onClick={() => router.push(`/dashboard/clients/${client.id}`)}>Ouvrir la fiche</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem demoMutation onClick={() => setEditTarget(client)}>Modifier</DropdownMenuItem><DropdownMenuItem demoMutation variant="destructive" onClick={() => handleDelete(client.id, client.name)}>Supprimer</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell>
               </TableRow>
@@ -303,7 +304,7 @@ function FilterValueControl({ field, value, onChange }: { field: { type: string;
 function ClientColumn({ columnId, client, definition }: { columnId: string; client: Client; definition?: PropertyDefinition }) {
   if (columnId === "type") return <TableCell data-column={columnId}><Badge variant="secondary" className="font-normal"><Building2 />{client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}</Badge></TableCell>
   if (columnId === "revenue") return <TableCell data-column={columnId} className="text-right font-medium tabular-nums">{formatEuro(client.totalRevenueCents)}</TableCell>
-  if (columnId === "unpaid") return <TableCell data-column={columnId} className={cn("text-right font-medium tabular-nums", client.totalUnpaidCents > 0 ? "text-danger" : "text-muted-foreground")}>{formatEuro(client.totalUnpaidCents)}</TableCell>
+  if (columnId === "unpaid") return <TableCell data-column={columnId} className={cn("text-right font-medium tabular-nums", client.totalUnpaidCents !== null && client.totalUnpaidCents > 0 ? "text-danger" : "text-muted-foreground")}>{formatEuro(client.totalUnpaidCents)}</TableCell>
   if (columnId === "relation") return <TableCell data-column={columnId}><div className="flex items-center gap-2"><div className="h-1.5 w-14 overflow-hidden rounded-full bg-muted"><div className={cn("h-full", client.relationScore > 80 ? "bg-success" : client.relationScore > 60 ? "bg-warning" : "bg-danger")} style={{ width: `${client.relationScore}%` }} /></div><span className="text-xs font-medium">{client.relationScore}%</span></div></TableCell>
   const label = definition ? propertyValueLabel(definition, client.propertyValues[columnId]) : "—"
   return <TableCell data-column={columnId} className="max-w-[240px] truncate" title={label}>{label}</TableCell>

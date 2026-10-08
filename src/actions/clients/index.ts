@@ -9,7 +9,9 @@ import { boundedPageSize } from "@/lib/pagination"
 import { hasPermission } from "@/lib/permissions"
 
 export async function getClients(cursor?: string, limit: number = 20) {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const invoiceScope = { companyId, ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: { companyId, agencyId: { in: agencyIds } } }) }
     const pageSize = boundedPageSize(limit, 20, 100)
     const [clients, propertyDefinitions] = await Promise.all([
       prisma.client.findMany({
@@ -35,16 +37,16 @@ export async function getClients(cursor?: string, limit: number = 20) {
     if (ids.length === 0) return { clients: [], propertyDefinitions }
 
     const [paidAgg, unpaidAgg, propertyValues] = await Promise.all([
-      prisma.invoice.groupBy({
+      canReadFinance ? prisma.invoice.groupBy({
         by: ["clientId"],
-        where: { companyId, clientId: { in: ids }, status: "PAID" },
+        where: { ...invoiceScope, clientId: { in: ids }, status: "PAID" },
         _sum: { totalHtCents: true },
-      }),
-      prisma.invoice.groupBy({
+      }) : [],
+      canReadFinance ? prisma.invoice.groupBy({
         by: ["clientId"],
-        where: { companyId, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } },
+        where: { ...invoiceScope, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } },
         _sum: { totalTtcCents: true, paidAmountCents: true },
-      }),
+      }) : [],
       prisma.crmPropertyValue.findMany({
         where: { companyId, recordId: { in: ids }, definition: { objectType: "CLIENT", archivedAt: null } },
         select: { recordId: true, definitionId: true, value: true },
@@ -66,12 +68,12 @@ export async function getClients(cursor?: string, limit: number = 20) {
       propertyDefinitions,
       clients: clients.map((c) => ({
         ...c,
-        totalRevenueCents: paidMap.get(c.id) ?? 0,
-        totalUnpaidCents: unpaidMap.get(c.id) ?? 0,
+        totalRevenueCents: canReadFinance ? paidMap.get(c.id) ?? 0 : null,
+        totalUnpaidCents: canReadFinance ? unpaidMap.get(c.id) ?? 0 : null,
         propertyValues: propertyValuesByClient.get(c.id) ?? {},
       })),
     }
-  })
+  }, "crm.read")
 }
 
 export async function getClientById(id: string) {

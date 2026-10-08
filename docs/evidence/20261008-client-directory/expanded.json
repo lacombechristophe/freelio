@@ -1,0 +1,275 @@
+{
+  "schema": "freelio.client-directory-regression.v1",
+  "engine": "SQLite",
+  "nodeVersion": "v24.15.0",
+  "isolated": true,
+  "sessionMocked": true,
+  "sqlAndDalReal": true,
+  "testFile": "tests/unit/client-directory-permissions.integration.test.ts",
+  "testSha256": "fe9e65daaaf5b0a4ba187d7f6469c8e01f30b197cb8dacbe7ac48c632d8a66db",
+  "baseline": {
+    "sourceCommit": "3be747db3eae72f04ae359fcabf9bb2d8c2a9bc6",
+    "readerSha256": {
+      "src/actions/clients/index.ts": "9b8046e523d56665474c0a753b4222cb4f5a8c6c5e9ee2d5cd03b1770b948dd1",
+      "src/actions/directories.ts": "f8ed0791e7af36eccd4c65da073cd020d6f3cb825cc1249eda211bf85731e03e"
+    },
+    "reportSha256": "df6c09703650dbc6dd11abb62a595cd171adea52d862ae6da2f88b95f7aefdc0",
+    "total": 30,
+    "passed": 10,
+    "failed": 20,
+    "cases": [
+      {
+        "name": "keeps authorized OWNER financial values",
+        "status": "failed"
+      },
+      {
+        "name": "keeps authorized ACCOUNTING financial values",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'TECHNICIAN' through 'legacy'",
+        "status": "failed"
+      },
+      {
+        "name": "does not return financial values to 'TECHNICIAN' through 'directory'",
+        "status": "failed"
+      },
+      {
+        "name": "does not return financial values to 'SERVICE' through 'legacy'",
+        "status": "failed"
+      },
+      {
+        "name": "does not return financial values to 'SERVICE' through 'directory'",
+        "status": "failed"
+      },
+      {
+        "name": "does not return financial values to 'SALES' through 'legacy'",
+        "status": "failed"
+      },
+      {
+        "name": "does not return financial values to 'SALES' through 'directory'",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'equals' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'not_equals' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'contains' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'greater_than' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'less_than' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'is_not_empty' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'equals' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'not_equals' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'contains' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'greater_than' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'less_than' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'is_not_empty' comparison",
+        "status": "failed"
+      },
+      {
+        "name": "reports revenue as unavailable for every client without Finance",
+        "status": "failed"
+      },
+      {
+        "name": "reports unpaid as unavailable for every client without Finance",
+        "status": "failed"
+      },
+      {
+        "name": "keeps hidden financial sorting asc stable by ID",
+        "status": "failed"
+      },
+      {
+        "name": "keeps hidden financial sorting desc stable by ID",
+        "status": "passed"
+      },
+      {
+        "name": "does not even read invoice aggregates without Finance",
+        "status": "failed"
+      },
+      {
+        "name": "rereads inactive agency access before returning amounts",
+        "status": "passed"
+      },
+      {
+        "name": "rereads unassigned agency access before returning amounts",
+        "status": "passed"
+      },
+      {
+        "name": "does not return foreign clients through a searched directory",
+        "status": "passed"
+      },
+      {
+        "name": "refuses suspended membership in both readers",
+        "status": "passed"
+      },
+      {
+        "name": "keeps nonfinancial directory reads available in the public demo without writing",
+        "status": "failed"
+      }
+    ]
+  },
+  "fixed": {
+    "readerSha256": {
+      "src/actions/clients/index.ts": "64f2daeb03a3469b1bb540b6a56c448dae78364d8676a5ec143bd3577b195589",
+      "src/actions/directories.ts": "61bf9ee399fb63ced9a37b242a2b3a6b16b1006f7697958cc322effc12dc45b9"
+    },
+    "reportSha256": "5667de663c2e7bf39c22adb461e1aaac2d45753fb881d6b8a757c740351fb526",
+    "total": 30,
+    "passed": 30,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "keeps authorized OWNER financial values",
+        "status": "passed"
+      },
+      {
+        "name": "keeps authorized ACCOUNTING financial values",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'TECHNICIAN' through 'legacy'",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'TECHNICIAN' through 'directory'",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'SERVICE' through 'legacy'",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'SERVICE' through 'directory'",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'SALES' through 'legacy'",
+        "status": "passed"
+      },
+      {
+        "name": "does not return financial values to 'SALES' through 'directory'",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'equals' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'not_equals' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'contains' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'greater_than' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'less_than' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'revenue' through a hidden 'is_not_empty' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'equals' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'not_equals' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'contains' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'greater_than' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'less_than' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "does not expose 'unpaid' through a hidden 'is_not_empty' comparison",
+        "status": "passed"
+      },
+      {
+        "name": "reports revenue as unavailable for every client without Finance",
+        "status": "passed"
+      },
+      {
+        "name": "reports unpaid as unavailable for every client without Finance",
+        "status": "passed"
+      },
+      {
+        "name": "keeps hidden financial sorting asc stable by ID",
+        "status": "passed"
+      },
+      {
+        "name": "keeps hidden financial sorting desc stable by ID",
+        "status": "passed"
+      },
+      {
+        "name": "does not even read invoice aggregates without Finance",
+        "status": "passed"
+      },
+      {
+        "name": "rereads inactive agency access before returning amounts",
+        "status": "passed"
+      },
+      {
+        "name": "rereads unassigned agency access before returning amounts",
+        "status": "passed"
+      },
+      {
+        "name": "does not return foreign clients through a searched directory",
+        "status": "passed"
+      },
+      {
+        "name": "refuses suspended membership in both readers",
+        "status": "passed"
+      },
+      {
+        "name": "keeps nonfinancial directory reads available in the public demo without writing",
+        "status": "passed"
+      }
+    ]
+  }
+}
