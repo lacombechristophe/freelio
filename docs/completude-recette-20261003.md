@@ -6,6 +6,8 @@ Le candidat complète les historiques et indicateurs Fournisseurs approuvés, l�
 
 ## Dernière référence entièrement verte en CI
 
+Le [correctif approuvé de la fiche Client](qualification-fiche-client-droits-20261008.md) est en qualification : douze échecs reproduits avec le lecteur précédent, puis dix-sept cas réussis en SQLite. La suite locale commune passe 953 tests / 159 fichiers, types et lint ; build de 75 pages réussi. Les preuves CI ci-dessous ne lui sont pas encore attribuées.
+
 **1e5e3bcdf67fdfb1e6a1abb6906e0773e95e9885** : gestion des fournisseurs, frontières d’agence, récupération du CSV et préparation des studios par lots. La [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37773059619) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37773066937) réussissent.
 
 | Contrôle | Résultat de branche |
