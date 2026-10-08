@@ -12,6 +12,8 @@ Définir un résultat vérifiable : scénario déclencheur, comportement attendu
 
 Exécuter types, lint, tests pertinents puis build. Utiliser exclusivement une base isolée pour les tests SQL et les fixtures ; ne jamais lancer `verify`, un seed ou `db push` sur une base partagée. Les tests SQL s’exécutent sans parallélisme entre fichiers pour éviter les collisions sur leurs fixtures.
 
+`npm run lint` exécute ESLint puis Oxlint : les deux moteurs sont requis. La [politique](tooling/lint/README.md) conserve les niveaux de règles antérieurs et les cas de contrôle. Une évolution de Next ou d’un plugin doit vérifier cette politique et la règle Next conservée sous licence MIT.
+
 Pour une règle financière ou un droit d’accès, ajouter une régression qui reproduit le défaut. Pour une migration, vérifier une base vide et une base représentative de la version précédente. Pour un flux utilisateur, utiliser le serveur compilé avec `E2E_USE_PRODUCTION_SERVER=true`, avec son moteur SQL et des identifiants fictifs.
 
 Les fixtures E2E sont consommées par les parcours. `seed-e2e.mjs` réutilise une entreprise déjà présente et ne réinitialise pas ses dossiers : chaque recette complète doit donc partir d’une base neuve. Une nouvelle base est préférable à une suppression globale. Les contextes navigateur destinés aux visiteurs anonymes doivent déclarer un `storageState` vide.

@@ -357,7 +357,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
         title="Organisation"
         description="Transformez les priorités, objectifs et échéances de votre activité en un plan de travail réaliste."
         actions={<>
-          <a href="/api/organisation/calendar.ics">
+          <a download href="/api/organisation/calendar.ics">
             <Button variant="outline" className="gap-2"><Download className="h-4 w-4" /> Calendrier ICS</Button>
           </a>
           <Button variant="outline" className="gap-2" onClick={() => setGoalDialogOpen(true)}>

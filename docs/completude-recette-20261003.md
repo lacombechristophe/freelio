@@ -2,6 +2,8 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
+Le candidat suivant corrige Notifications et complète les lots Banque approuvés. Sa [qualification locale finale](qualification-lint-20261008.md) passe 875 tests SQLite, types, les deux moteurs de lint et le build. Les audits production/complet donnent zéro alerte après retrait de la chaîne de développement vulnérable. Les exécutions CI/navigateur de cette nouvelle référence restent à obtenir ; elles ne sont pas remplacées par les résultats antérieurs ci-dessous.
+
 ## Dernière référence qualifiée fonctionnellement
 
 La CI suivante de **e1e67f9**, qui ne changeait que la documentation, a reproduit une erreur React 418 dans Notifications. La réussite antérieure ci-dessous reste une preuve datée, pas une preuve d’absence de ce défaut intermittent. Le [correctif et sa qualification](qualification-notifications-20261008.md) sont préparés ; leur recette navigateur reste à exécuter sur le nouveau candidat.
@@ -38,7 +40,7 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 
 ## Ce qui reste à fermer
 
-- Audit complet sans alerte bloquante et CI propre du candidat final. Aucun seuil réduit ou contrôle retiré.
+- CI propre du candidat final. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent désormais zéro alerte, sans seuil réduit ni contrôle retiré. La qualification du nouveau commit reste requise.
 - Banque : [historique et correspondances](contrat-banque-listes-completes.md) et [dates impossibles d’import](contrat-banque-dates-import.md), approuvés et implémentés, avec recette navigateur/CI du candidat à qualifier. Le conflit d’import simultané est reproduit séparément sur SQLite fictive, sans correction annoncée.
 - Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
