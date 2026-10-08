@@ -66,7 +66,7 @@ test("hides stale products on read failure and retries the same search", async (
     else await route.continue()
   })
   await page.getByRole("textbox", { name: "Rechercher un produit", exact: true }).fill("CAT-600")
-  await expect(page.getByRole("alert")).toContainText("Impossible d’actualiser la liste.")
+  await expect(page.getByRole("alert").filter({ hasText: "Impossible d’actualiser la liste." })).toContainText("Impossible d’actualiser la liste.")
   await expect(page.getByText("Fictional catalogue 000", { exact: true }).filter({ visible: true })).toHaveCount(0)
   await expect(page.getByText("Aucun produit ne correspond", { exact: true })).not.toBeVisible()
   await page.unroute("**/dashboard/catalogue")
