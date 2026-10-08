@@ -89,6 +89,18 @@ describe.sequential("bank reconciliation preserves persisted payment and expense
     await prisma.user.delete({ where: { id: session.userId } })
   })
   const movement = (amountCents: number) => prisma.bankTransaction.create({ data: { companyId: session.companyId, date: new Date("2030-01-01"), label: "Fictional reconciliation movement", amountCents, fingerprint: randomUUID() } })
+  it.each(["invoice", "expense", "convert"])("rejects a missing transaction ID before %s can mutate the first bank row", async kind => {
+    const row = await movement(kind === "invoice" ? 100 : -100)
+    const expense = kind === "expense" ? await prisma.expense.create({ data: { companyId: session.companyId, label: "Fictional validation expense", amountCents: 100, category: "Autre", date: row.date } }) : null
+    // Server Actions receive runtime input; TypeScript annotations do not validate it.
+    const missingId = undefined as unknown as string
+    const action = kind === "invoice" ? () => matchTransactionToInvoice(missingId, invoiceIds[0]) : kind === "expense" ? () => matchTransactionToExpense(missingId, expense!.id) : () => createExpenseFromTransaction(missingId)
+    await expect(action()).rejects.toThrow()
+    expect(await prisma.bankTransaction.findUniqueOrThrow({ where: { id: row.id } })).toMatchObject({ matchedPaymentId: null, matchedExpenseId: null })
+    expect((await prisma.invoice.aggregate({ where: { companyId: session.companyId }, _sum: { paidAmountCents: true } }))._sum.paidAmountCents).toBe(0)
+    expect(await prisma.invoicePayment.count({ where: { invoice: { companyId: session.companyId } } })).toBe(0)
+    expect(await prisma.expense.count({ where: { companyId: session.companyId } })).toBe(kind === "expense" ? 1 : 0)
+  })
   it("retains partial payment, settles the exact balance and refuses a replay", async () => {
     const first = await movement(50), second = await movement(150)
     await matchTransactionToInvoice(first.id, invoiceIds[0])

@@ -1,0 +1,48 @@
+{
+  "schema": "freelio.bank-reconciliation-baseline.v1",
+  "commit": "cc17e94ae4cf358d3fc20c9ca6cc3569a4c646f8",
+  "run": "https://github.com/lacombechristophe/freelio/actions/runs/37779333944",
+  "postgresJob": 113318150256,
+  "artifactId": 11551650734,
+  "artifactJsonSha256": "12fab46c37d98a143e8eec62a3227e46da4f9453f9081dbc62f2a49a39501fcd",
+  "engine": "PostgreSQL on GitHub Actions",
+  "suite": {
+    "passed": 928,
+    "failed": 4,
+    "pending": 1,
+    "total": 933
+  },
+  "cases": [
+    {
+      "name": "retains partial payment, settles the exact balance and refuses a replay",
+      "status": "passed"
+    },
+    {
+      "name": "does not lose either of two eligible concurrent payments on one invoice",
+      "status": "failed"
+    },
+    {
+      "name": "uses a bank credit only once when two different invoices compete",
+      "status": "failed"
+    },
+    {
+      "name": "creates exactly one expense when a bank debit is converted concurrently",
+      "status": "failed"
+    },
+    {
+      "name": "does not overwrite an expense match when two existing expenses compete",
+      "status": "failed"
+    }
+  ],
+  "observedInvoice": {
+    "expected": {
+      "paidAmountCents": 200,
+      "status": "PAID"
+    },
+    "actual": {
+      "paidAmountCents": 100,
+      "status": "SENT"
+    }
+  },
+  "workflow": "Cancelled after the PostgreSQL job completed with four reproduced failures; not a release qualification."
+}
