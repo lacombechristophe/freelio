@@ -17,3 +17,5 @@ La suite active étend le probe à 22 cas : droits, stockage, société étrang�
 Cette correction concerne ces trois actions. Les lecteurs Client imbriqués dans d’autres domaines et les traces d’automatisation restent à qualifier séparément.
 
 La correction est dans 852a67c. La [qualification locale](local.json) passe types, ESLint/Oxlint, 1 239 tests SQLite dans 170 fichiers et build de 75 pages ; 186 contrôles ciblés passent, dont les 22 nouveaux. Les cas de prochaine action sont indépendants du nom établi par les autres tests. La découverte charge les 244 E2E existants dans 46 fichiers, sans exécution locale ; le schéma PostgreSQL est validé sans connexion. La CI SQL PostgreSQL et navigateur de ce complément est une qualification distincte de celle des synthèses.
+
+Les deux [CI vertes de a98f275](../20261008-context-module-reload/ci-a98f275.json) passent les 22 cas de mutation sur PostgreSQL et la suite SQLite complète de 1 247 cas. Leurs 225 E2E réussissent, mais ne constituent pas 22 parcours navigateur dédiés à ces réponses serveur. Le lecteur d’affaire ajouté ensuite possède sa propre baseline et qualification.

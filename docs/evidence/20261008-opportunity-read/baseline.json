@@ -1,0 +1,110 @@
+{
+  "schema": "freelio.opportunity-client-read-baseline.v1",
+  "reference": "a98f27511909ff6a506fcefe55ee1e297ff2f6e6",
+  "node": "v24.15.0",
+  "engine": "SQLite",
+  "passed": 3,
+  "failed": 11,
+  "hookErrors": "",
+  "probeSha256": "36829e284e8531c253fa52fe3c72697b34c5833b02bbbe09f551fc70cefb26a4",
+  "rawReportSha256": "dbcf94538962236ff6d47867ea339ce89515ca1aae862fad6f9d375cddb715f6",
+  "cases": [
+    {
+      "name": "opportunity nested client read scope on real SQL omits inaccessible totalRevenueCents from the Sales detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 45678 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL omits inaccessible totalUnpaidCents from the Sales detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 9876 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL omits inaccessible renewalAmountCents from the Sales detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 12345 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL omits inaccessible relationScore from the Sales detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 37 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL omits global totalRevenueCents from the agency-limited Viewer detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 45678 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL omits global totalUnpaidCents from the agency-limited Viewer detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 9876 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL omits global relationScore from the agency-limited Viewer detail",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 37 to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL limits nested projects to assigned agencies",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv00ntmm000j55hs6a5b5ui0', …(1) ] to deeply equal [ 'cmv00ntm9000d55hscxf6smfd' ]"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL limits nested quotes to company and assigned agencies",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv00ntnd000w55hsnvu015bc', …(2) ] to deeply equal [ 'cmv00ntmd000f55hsk2bt4wjh' ]"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL does not include a foreign quote even for Owner",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected false to be true // Object.is equality"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL refuses an opportunity whose client belongs to another company",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected { …(22) } to be null"
+      ]
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL preserves the Owner company-wide client values and projects",
+      "status": "passed",
+      "failureSummary": []
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL refuses a foreign pipeline",
+      "status": "passed",
+      "failureSummary": []
+    },
+    {
+      "name": "opportunity nested client read scope on real SQL refuses consultation after membership suspension",
+      "status": "passed",
+      "failureSummary": []
+    }
+  ],
+  "limits": [
+    "Real actions, permissions, Prisma and isolated fictitious SQLite; session and Next cache mocked.",
+    "Inconsistent relations are fixture data; current mutation acceptance is not established.",
+    "No implementation or browser qualification of this complement yet."
+  ]
+}

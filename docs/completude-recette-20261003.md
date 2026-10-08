@@ -2,6 +2,8 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
+Dernière référence entièrement qualifiée : **a98f275**, avec deux CI vertes. Le détail d’affaire approuvé est ensuite corrigé dans 6578c47 et ses E2E préparés dans c88a0c6 ; ce complément passe localement mais attend sa propre CI. Les paragraphes historiques ci-dessous conservent les résultats antérieurs.
+
 Le candidat complète les historiques Fournisseurs, l’import et les rapprochements bancaires, les droits Sales/Finance Client et [Suivi client](qualification-suivi-client-droits-20261008.md), puis le [contexte des requêtes différées](qualification-contexte-auth-20261008.md). Les deux CI de **949adca** passent types, les deux moteurs de lint, build, couverture, **1 023 tests SQLite / 163 fichiers**, **1 022 PostgreSQL et une exclusion native SQLite**, **175 E2E et 19 exclusions historiques**, neuf contrôles Linux et audits à zéro. Les huit parcours Suivi client passent sur ordinateur/mobile ; la démo hébergée reste une référence distincte.
 
 Les deux CI de 81aa846 passent 1 020 SQLite, 1 019 PostgreSQL plus une exclusion native et neuf contrôles Linux. Le navigateur donne 173 réussites, deux échecs Owner sur un sélecteur ambigu et 19 exclusions historiques. Six des huit nouveaux parcours Suivi client passent ; le sélecteur vérifie désormais séparément résumé et alertes. Les trois cas de collision de nom des règles recommandées et leur correctif sont postérieurs à cette CI. La [preuve](evidence/20261008-customer-success-permissions/ci-81aa846.json) conserve cet échec sans qualifier ces nouveaux changements.
@@ -14,16 +16,18 @@ La [preuve PostgreSQL bancaire avant/après](qualification-rapprochements-bancai
 
 La fiche Client reproduit douze échecs avant correction, puis dix-sept réussites en SQLite et PostgreSQL. Le [complément approuvé d’annuaire et CSV](qualification-annuaire-client-droits-20261008.md) reproduit vingt échecs sur trente cas avant correction, puis trente réussites ; les douze parcours fiche/CSV et quatre Fournisseurs restent réussis dans les deux nouvelles CI. Les 29 cas Suivi client et sept cas de contexte d’autorisation passent aussi sur les deux moteurs.
 
-**71ebdca862206d70c2263633fe4d7dbc37006c32** : la [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37829367538) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37829370404) réussissent. La fusion de test a bien main et ce candidat pour parents. Les [métadonnées](evidence/20261008-shared-health-permissions/ci-71ebdca.json) conservent rapports, empreintes, exclusions et identité des fichiers hors documentation. Cette référence qualifie Catalogue, Sites/parc, Analyses Service, montant de renouvellement et scores partagés ; le lot ultérieur des synthèses par domaine est distinct.
+**a98f27511909ff6a506fcefe55ee1e297ff2f6e6** : la [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37842778495) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37842784893) réussissent. La fusion de test a bien main et ce candidat pour parents. Les [métadonnées](evidence/20261008-context-module-reload/ci-a98f275.json) conservent rapports, empreintes, exclusions et identité des fichiers hors documentation. Cette référence qualifie aussi les synthèses par domaine, les 22 réponses Client et le contexte partagé entre modules, avec Handlebars 4.7.10 ; le complément ultérieur du détail d’affaire est distinct.
 
 | Contrôle | Résultat de branche |
 | --- | --- |
 | Types, deux moteurs de lint, build et couverture ciblée | Réussis |
-| SQLite | 1 186 tests / 168 fichiers |
-| PostgreSQL | 1 185 réussis, une exclusion native SQLite |
-| Navigateur | 213 réussis ; 19 exclusions historiques |
+| SQLite | 1 247 tests / 171 fichiers |
+| PostgreSQL | 1 246 réussis, une exclusion native SQLite |
+| Navigateur | 225 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audit production / complet | Zéro vulnérabilité |
+
+La [référence précédente 71ebdca](evidence/20261008-shared-health-permissions/ci-71ebdca.json) conserve ses deux CI vertes, 1 186 SQLite, 1 185 PostgreSQL et une exclusion native, 213 E2E et les 19 exclusions, Linux et audits. Les échecs Viewer de fda7be9 et le blocage Handlebars de 77dbf8d restent conservés séparément de la réussite actuelle.
 
 Le rapport automatisé historique de 949adca couvre 65 routes sur chaque format, sans résultat P0/P1/P2/P3. Il ne certifie ni toute l’accessibilité ni tous les états du produit. La [référence précédente 653cddc](evidence/20261008-client-directory/ci-653cddc.json) reste conservée avec ses deux CI vertes et sa propre fusion de test.
 
@@ -59,7 +63,11 @@ Les [deux recettes de fda7be9](evidence/20261008-workspace-access/ci-fda7be9.jso
 
 Les deux [CI de 77dbf8d](evidence/20261008-handlebars/ci-77dbf8d.json) valident ensuite 1 246 PostgreSQL et une exclusion native SQLite, dont les huit cas de contexte, les 22 réponses Client et les 31 synthèses, ainsi que neuf contrôles Linux. Elles échouent sur les nouveaux avis Handlebars avant SQLite et navigateur. La [mise à jour de sécurité](evidence/20261008-handlebars/README.md) conserve ce blocage, ses sources et une correction ciblée vers 4.7.10, sans contrôle abaissé.
 
-- Suivi client et contexte d’autorisation sont qualifiés par les deux CI de 949adca. Les Analyses Service passent leur recette SQL et navigateur dans les deux CI de 3def5cd, dont l’échec global Catalogue est conservé. Les lecteurs de scores partagés sont qualifiés par les deux CI vertes de 71ebdca ; les synthèses par domaine ont leur correctif approuvé et leur recette locale. Leurs nouvelles CI et les traces/sorties des automatismes restent à fermer. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable, sans seuil réduit ni contrôle retiré.
+Le [détail d’affaire](contrat-affaire-client-droits.md) reproduit onze divulgations sur quatorze assertions. Le complément approuvé dans 6578c47 borne client, devis et chantiers à la société/agence et masque les caches inaccessibles. Ses 23 régressions, types/lints, 1 270 SQLite / 172 fichiers et build de 75 pages passent localement. Les huit nouveaux E2E de c88a0c6 sont découverts parmi 252 cas / 47 fichiers ; PostgreSQL et navigateur doivent encore qualifier ce code.
+
+Les deux CI de a98f275 qualifient entre-temps les synthèses et le contexte compilé : les douze E2E passent, dont Viewer à 100 € et Owner à 300 €. Les 31 synthèses, huit contextes et 22 réponses Client passent sur PostgreSQL. Ces résultats ne sont pas attribués au nouveau détail d’affaire.
+
+- Suivi client et contexte d’autorisation sont qualifiés par les deux CI de 949adca. Les Analyses Service passent leur recette SQL et navigateur dans les deux CI de 3def5cd, dont l’échec global Catalogue est conservé. Les lecteurs de scores partagés passent les deux CI de 71ebdca ; les synthèses et le contexte entre modules sont qualifiés par a98f275. La CI du détail d’affaire, les autres lecteurs imbriqués et les traces/sorties des automatismes restent à fermer. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable, sans seuil réduit ni contrôle retiré.
 - Banque : historique, correspondances, dates impossibles et récupération du CSV qualifiés par 1e5e3bc ; [import concurrent](qualification-import-bancaire-concurrent-20261008.md) et [trois rapprochements](qualification-rapprochements-bancaires-20261008.md) passent PostgreSQL. Autres entrées de paiement, remboursements, avoirs, réservations et stress restent à qualifier.
 - Fournisseurs : [lot approuvé et implémenté](contrat-fournisseurs-gestion.md), [historiques et indicateurs](contrat-fournisseurs-historiques.md) qualifiés par les deux CI de 653cddc. Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
