@@ -3,7 +3,7 @@ export async function seedCatalogueAssets(prisma, passwordHash) {
     for (const kind of ["catalogue", "assets", "analytics"]) {
       const company = await prisma.company.create({ data: { name: `Fictional ${kind} recipe ${surface}` } })
       const companyId = company.id
-      const roles = kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER"] : ["OWNER"]
+      const roles = kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"] : ["OWNER"]
       const localAgency = await prisma.agency.create({ data: { companyId, code: "LOCAL", name: "Fictional local agency", isDefault: true } })
       const otherAgency = await prisma.agency.create({ data: { companyId, code: "OTHER", name: "Fictional other agency" } })
       for (const role of roles) {
@@ -34,6 +34,9 @@ export async function seedCatalogueAssets(prisma, passwordHash) {
           await prisma.automationWorkflow.create({ data: { companyId, name: "Fictional health permission simulation", trigger: "CUSTOMER_HEALTH_CHANGED", conditions: { healthScoreBelow: 50, healthScoreDropAtLeast: 10 }, actions: [{ type: "CREATE_TASK", title: "Fictional simulated follow-up", delayHours: 0, priority: 2 }] } })
           const survey = await prisma.satisfactionSurvey.create({ data: { companyId, name: "Fictional analytics CSAT", question: "Fictional question" } })
           for (const [agency, suffix, score] of [[localAgency, "local", 5], [otherAgency, "other", 1]]) {
+            const project = await prisma.project.create({ data: { companyId, clientId: client.id, agencyId: agency.id, name: `Fictional ${suffix} workspace project` } })
+            const amount = suffix === "local" ? 10000 : 20000
+            await prisma.invoice.create({ data: { companyId, clientId: client.id, projectId: project.id, number: `WORKSPACE-${suffix}`, object: `Fictional ${suffix} workspace invoice`, status: "SENT", dueDate: new Date("2020-01-01"), totalHtCents: amount, totalTvaCents: 0, totalTtcCents: amount } })
             const site = await prisma.customerSite.create({ data: { companyId, clientId: client.id, agencyId: agency.id, label: `Fictional ${suffix} site`, address1: "Fictional address" } })
             const ticket = await prisma.serviceTicket.create({ data: { companyId, clientId: client.id, siteId: site.id, number: suffix, title: `Fictional ${suffix} ticket`, description: "Fictional ticket" } })
             await prisma.serviceTicketDiagnostic.create({ data: { companyId, ticketId: ticket.id, guideSnapshot: { name: `Fictional ${suffix} guide` }, completedStepIds: [], warrantyStatus: "UNKNOWN", symptom: "Fictional symptom", outcome: "Fictional outcome" } })
