@@ -23,4 +23,4 @@ Les mutations qui créent un rattachement relisent l’activité. Une édition d
 
 Au moins 201 fournisseurs fictifs, recherche de l’ancien et pagination finale ; choix hors page, fournisseur étranger, permissions/révocation et démo publique. Vraies actions/SQL pour édition, conflit de révision, doublon de nom/code, désactivation/réactivation, nouveau rattachement refusé et ancien produit encore modifiable. E2E ordinateur/mobile pour annuaire, modification, désactivation et sélecteur. Les historiques plafonnés de la fiche, autres référentiels et concurrence financière restent des sous-lots séparés.
 
-Implémentation et recette locale décrites dans la [qualification](qualification-banque-fournisseurs-20261008.md). L’exécution des nouveaux E2E en CI reste requise.
+Implémentation et recette locale décrites dans la [qualification](qualification-banque-fournisseurs-20261008.md). La branche 1e5e3bc et sa PR exécutent désormais ces nouveaux parcours avec succès dans les deux formats ; voir les références datées de qualification.

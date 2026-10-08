@@ -2,23 +2,22 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
-Le candidat courant ajoute la gestion Fournisseurs approuvée, corrige les lectures de stock et d’historique par agence et récupère un CSV choisi avant l’attachement des gestionnaires du client. Sa [qualification locale](qualification-banque-fournisseurs-20261008.md) passe 907 tests SQLite, types, les deux moteurs de lint et le build de 75 pages. Les nouveaux parcours navigateur restent à qualifier en CI. Main et le déploiement restent inchangés.
+Le candidat **e67a1b4** complète les historiques et indicateurs Fournisseurs approuvés, après le correctif d’import bancaire concurrent. Leur [qualification locale](qualification-fournisseurs-historiques-20261008.md) réussit 928 tests / 157 fichiers, types, les deux moteurs de lint et build de 75 pages ; CI propre à ce lot restante. Main et le déploiement restent inchangés.
 
 ## Dernière référence exécutée en CI
 
-**ff3b0f3c321d003fa719152d4e8de45cabc5d435** : Banque, notifications et retrait de la chaîne de lint vulnérable. La [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37767742082) réussit, mais la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37767747724) échoue sur le dépôt CSV ordinateur. Cette référence n’est donc pas une livraison entièrement qualifiée.
+**1e5e3bcdf67fdfb1e6a1abb6906e0773e95e9885** : gestion des fournisseurs, frontières d’agence, récupération du CSV et préparation des studios par lots. La [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37773059619) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37773066937) réussissent.
 
-| Contrôle | Résultat |
+| Contrôle | Résultat de branche |
 | --- | --- |
 | Types, deux moteurs de lint, build et couverture ciblée | Réussis |
-| SQLite | 875 tests / 153 fichiers |
-| PostgreSQL | 874 réussis, une exclusion native SQLite |
-| Navigateur de branche | 145 réussis ; 19 exclusions historiques |
-| Navigateur de PR | Échec du dépôt CSV ordinateur ; correctif en recette |
+| SQLite | 907 tests / 155 fichiers |
+| PostgreSQL | 906 réussis, une exclusion native SQLite |
+| Navigateur | 151 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
-| Audit production / complet de branche | Zéro vulnérabilité |
+| Audit production / complet | Zéro vulnérabilité |
 
-La [qualification](qualification-banque-fournisseurs-20261008.md) distingue les deux exécutions et le correctif. Les [preuves historiques Next/studios](evidence/20261008-next-studios/README.md) et le [journal](journal-recettes-completude-20261003.md) conservent leurs versions et leurs limites. Le résultat f5573b0 et son audit complet rouge ne sont pas attribués au candidat actuel.
+La [qualification Banque/Fournisseurs](qualification-banque-fournisseurs-20261008.md) conserve l’échec du CSV sur la PR ff3b0f3, sa correction et les résultats ultérieurs. Les [preuves historiques Next/studios](evidence/20261008-next-studios/README.md) et le [journal](journal-recettes-completude-20261003.md) conservent leurs versions et leurs limites. Aucun résultat antérieur n’est attribué aux nouveaux historiques ou à l’import concurrent.
 
 ## Portée des derniers lots
 
@@ -38,9 +37,9 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 
 ## Ce qui reste à fermer
 
-- CI propre du candidat final, incluant Fournisseurs et récupération du CSV. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent désormais zéro alerte, sans seuil réduit ni contrôle retiré. La qualification du nouveau commit reste requise.
-- Banque : [historique et correspondances](contrat-banque-listes-completes.md) et [dates impossibles d’import](contrat-banque-dates-import.md), approuvés et implémentés, avec recette navigateur/CI du candidat à qualifier. Le conflit d’import simultané est reproduit séparément sur SQLite fictive, sans correction annoncée.
-- Fournisseurs : [lot approuvé et implémenté](contrat-fournisseurs-gestion.md), avec CI navigateur restante. Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
+- CI propre du candidat final, incluant les nouveaux historiques Fournisseurs et l’import concurrent. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent désormais zéro alerte, sans seuil réduit ni contrôle retiré. La qualification du nouveau commit reste requise.
+- Banque : historique, correspondances, dates impossibles et récupération du CSV qualifiés par 1e5e3bc ; [import concurrent corrigé et testé localement](qualification-import-bancaire-concurrent-20261008.md), CI de ce correctif restante. La concurrence des rapprochements et paiements reste ouverte.
+- Fournisseurs : [lot approuvé et implémenté](contrat-fournisseurs-gestion.md), qualifié en CI ; [historiques et indicateurs](contrat-fournisseurs-historiques.md) approuvés et en qualification. Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
 
 Le [plan fonctionnel](plan-completude-fonctionnelle-20261002.md) détaille ces travaux. La [carte des preuves](carte-des-preuves.md) relie les risques aux fichiers de test ; la [revue CTO](revue-cto.md) donne le parcours de présentation. Les décisions d’interface déjà approuvées sont conservées dans leurs contrats.
