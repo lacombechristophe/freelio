@@ -1,9 +1,9 @@
 export async function seedCatalogueAssets(prisma, passwordHash) {
   for (const surface of ["desktop", "mobile"]) {
-    for (const kind of ["catalogue", "assets", "analytics"]) {
+    for (const kind of ["catalogue", "assets", "analytics", "opportunity"]) {
       const company = await prisma.company.create({ data: { name: `Fictional ${kind} recipe ${surface}` } })
       const companyId = company.id
-      const roles = kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"] : ["OWNER"]
+      const roles = kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"] : kind === "opportunity" ? ["OWNER", "ADMIN", "SALES", "VIEWER"] : ["OWNER"]
       const localAgency = await prisma.agency.create({ data: { companyId, code: "LOCAL", name: "Fictional local agency", isDefault: true } })
       const otherAgency = await prisma.agency.create({ data: { companyId, code: "OTHER", name: "Fictional other agency" } })
       for (const role of roles) {
@@ -12,6 +12,22 @@ export async function seedCatalogueAssets(prisma, passwordHash) {
         await prisma.agencyMembership.create({ data: { agencyId: localAgency.id, membershipId: membership.id } })
       }
       await prisma.saasSubscription.create({ data: { companyId, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+      if (kind === "opportunity") {
+        const client = await prisma.client.create({ data: { companyId, name: "Fictional opportunity client", relationScore: 37, totalRevenueCents: 45678, totalUnpaidCents: 9876, renewalAmountCents: 12345 } })
+        const pipeline = await prisma.pipeline.create({ data: { companyId, name: "Fictional opportunity pipeline", stages: [{ id: "PROSPECT", title: "Prospect" }, { id: "WON", title: "Gagné" }] } })
+        await prisma.opportunity.create({ data: { id: `copportunity${surface}local`, pipelineId: pipeline.id, clientId: client.id, title: "Fictional scoped opportunity", status: "PROSPECT" } })
+        let localProjectId
+        for (const [agency, suffix] of [[localAgency, "local"], [otherAgency, "other"]]) {
+          const project = await prisma.project.create({ data: { companyId, clientId: client.id, agencyId: agency.id, name: `Fictional ${suffix} opportunity project` } })
+          await prisma.quote.create({ data: { companyId, clientId: client.id, projectId: project.id, number: `OPP-${suffix.toUpperCase()}`, object: `Fictional ${suffix} opportunity quote` } })
+          if (suffix === "local") localProjectId = project.id
+        }
+        const foreign = await prisma.company.create({ data: { name: `Fictional foreign opportunity company ${surface}` } })
+        const foreignClient = await prisma.client.create({ data: { companyId: foreign.id, name: "Fictional foreign opportunity client" } })
+        await prisma.quote.create({ data: { companyId: foreign.id, clientId: client.id, projectId: localProjectId, number: "OPP-FOREIGN", object: "Fictional inconsistent foreign quote" } })
+        await prisma.opportunity.create({ data: { id: `copportunity${surface}inconsistent`, pipelineId: pipeline.id, clientId: foreignClient.id, title: "Fictional inconsistent opportunity", status: "PROSPECT" } })
+        continue
+      }
       if (kind === "catalogue") {
         await prisma.product.createMany({ data: Array.from({ length: 601 }, (_, index) => ({ companyId, sku: `CAT-${String(index).padStart(3, "0")}`, label: `Fictional catalogue ${String(index).padStart(3, "0")}` })) })
         const parent = await prisma.product.findFirstOrThrow({ where: { companyId, sku: "CAT-600" } })

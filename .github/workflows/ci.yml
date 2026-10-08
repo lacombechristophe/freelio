@@ -134,6 +134,7 @@ jobs:
             test-results/operations-assets/
             test-results/shared-health-permissions/
             test-results/workspace-permissions/
+            test-results/opportunity-permissions/
           if-no-files-found: ignore
           retention-days: 14
 
