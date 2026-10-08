@@ -1,0 +1,17 @@
+# Références de la génération récurrente
+
+La [baseline](baseline.json) sur `83ac918` conserve sept cas : quatre échecs et trois réussites, sans erreur de hook. Le worker réel crée un brouillon avec un client étranger, un chantier étranger ou appartenant à un autre client, puis accepte un auteur d’audit explicite hors société. Ce dernier cas appelle directement la fonction interne ; aucun point d’entrée HTTP exploitable n’est établi.
+
+Les fixtures insèrent directement les références incohérentes. Elles ne prouvent pas leur création par les actions actuelles. Les contrôles positifs vérifient la génération cohérente, l’absence de doublon à échéance identique et le support d’un modèle sans chantier. Aucun PDF émis, fournisseur ou envoi n’intervient.
+
+Dans une copie isolée de cette référence avec les dépendances du lockfile, Prisma SQLite et une base neuve, copier le [reproducer](reproducer.test.ts.txt) en `tests/unit/recurring-generation.probe.test.ts`, puis exécuter :
+
+```sh
+npm run test:unit -- tests/unit/recurring-generation.probe.test.ts
+```
+
+La correction vérifie client, société et chantier dans la transaction avant création du brouillon. L’auteur préféré suit le même périmètre société, statut actif et liste de rôles que l’auteur choisi automatiquement ; un auteur invalide ne provoque pas de repli. Le helper partagé conserve cette règle pour les visites d’entretien. Un refus ne modifie ni l’échéance ni l’activation et n’écrit aucune facture ou occurrence partielle.
+
+Le correctif est dans `470966a`. Ses [preuves locales](local.json) passent les douze cas actifs de `tests/unit/recurring-generation.integration.test.ts`, avec les trois contrôles existants d’ordonnancement SQLite/PostgreSQL simulé : quinze réussites, zéro échec. La suite complète passe 1 376 tests dans 175 fichiers, types et deux lints sans avertissement, puis le build de 75 pages. L’empreinte conserve les 931 entrées Git hors documentation du code testé. PostgreSQL réel et la CI de ce nouveau correctif restent à qualifier.
+
+Les six défauts du [lecteur des récurrences](../../qualification-factures-recurrentes-20261009.md) sont distincts et restent ouverts ; ce correctif interne ne modifie pas l’interface ni le rattachement d’agence des modèles. La cohérence des références d’entretien, les claims simultanés et une reprise après interruption réelle restent des qualifications séparées. Le test du worker ne certifie pas toute la chaîne de facturation.

@@ -1,0 +1,51 @@
+{
+  "schema": "freelio.recurring-generation-local.v1",
+  "reference": "470966acea6b1ac6e2c32fe062d4d575052a3c93",
+  "node": "v24.15.0",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 931,
+    "sha256": "a18a63cfc73e9b6aa4e8282298adc67502713b4497c23c09d85f7417e9d55d61"
+  },
+  "fullSuite": {
+    "passed": 1376,
+    "files": 175,
+    "seconds": 179.33,
+    "logSha256": "30ba543b2720764a0079e21357d4d61d3dab3cc21b4cbf1ebe0d35910cc5d299"
+  },
+  "targeted": {
+    "passed": 15,
+    "failed": 0,
+    "reportSha256": "c1d0034ee1d38b6aa34e21bce326c4fc3e64a1a227800b166f9749e1c6418bd4",
+    "files": [
+      {
+        "file": "business-scheduling-concurrency.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "recurring-generation.integration.test.ts",
+        "status": "passed",
+        "passed": 12
+      }
+    ]
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75
+  },
+  "checkLogSha256": {
+    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eslint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "oxlint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build": "e5ad565cc5fb61c4f658bdeb8141a43f27d8f48cca9f3076ec381d01506cc942"
+  },
+  "limits": [
+    "Real SQLite and production worker on fictitious fixtures; no invoice issuance, PDF emission or external provider.",
+    "PostgreSQL execution of the twelve new cases and CI of this source reference remain pending.",
+    "Recurring reader permissions, agency bindings, maintenance reference coherence and simultaneous occurrence claims are separate qualifications.",
+    "The latest catalogue/browser CI tests an earlier reference and does not qualify this new worker change."
+  ]
+}
