@@ -130,6 +130,21 @@ try {
       await prisma.emailSequenceEnrollment.create({ data: { sequenceId: oldestSequence.id, leadCaptureId: lead.id, status: "PAUSED", enrolledAt: new Date(Date.UTC(1995, 0, 1, 0, index)) } })
     }
   }
+  for (const surface of ["desktop", "mobile"]) {
+    const amountCents = surface === "desktop" ? 912345 : 912346
+    const client = await prisma.client.create({ data: { companyId, name: `UIQA Bank client ${surface}` } })
+    await prisma.bankTransaction.createMany({ data: Array.from({ length: 251 }, (_, index) => ({
+      companyId, label: `UIQA Bank history ${surface} ${String(index).padStart(3, "0")}`, reference: `UIQA Bank reference ${surface} ${index}`,
+      date: new Date(Date.UTC(1995, 0, 1, 0, index)), fingerprint: randomUUID(), amountCents: index === 250 ? amountCents : -amountCents,
+    })) })
+    await prisma.expense.createMany({ data: Array.from({ length: 101 }, (_, index) => ({
+      companyId, label: `UIQA Bank expense ${surface} ${String(index).padStart(3, "0")}`, amountCents, category: "Autre", date: new Date(Date.UTC(1995, 0, 1, 0, index)),
+    })) })
+    await prisma.invoice.createMany({ data: Array.from({ length: 26 }, (_, index) => ({
+      companyId, clientId: client.id, number: `UIQA-BANK-${surface}-${String(index).padStart(3, "0")}`, object: "Fictional banking candidate", status: "SENT",
+      date: new Date("1995-01-01T12:00:00Z"), dueDate: new Date("1995-02-01T12:00:00Z"), totalHtCents: amountCents * 2, totalTvaCents: 0, totalTtcCents: amountCents * 2,
+    })) })
+  }
   for (const surface of ["desktop", "mobile"]) for (const kind of ["Unknown", "Accepted"]) {
     const subject = `UIQA Sequence recovery ${kind} ${surface}`
     const lead = await prisma.leadCapture.create({ data: { companyId, firstName: "Fiction", lastName: "Sequence recovery", email: `sequence-recovery-${kind.toLowerCase()}-${surface}@example.test`, privacyAccepted: true, fingerprint: subject } })

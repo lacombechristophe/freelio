@@ -39,7 +39,7 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 ## Ce qui reste à fermer
 
 - Audit complet sans alerte bloquante et CI propre du candidat final. Aucun seuil réduit ou contrôle retiré.
-- Banque : [historique et correspondances](contrat-banque-listes-completes.md), puis [dates impossibles d’import](contrat-banque-dates-import.md), propositions visibles en attente de confirmation. La normalisation de date et le conflit d’import simultané sont reproduits séparément sur SQLite fictive, sans correction annoncée.
+- Banque : [historique et correspondances](contrat-banque-listes-completes.md) et [dates impossibles d’import](contrat-banque-dates-import.md), approuvés et implémentés, avec recette navigateur/CI du candidat à qualifier. Le conflit d’import simultané est reproduit séparément sur SQLite fictive, sans correction annoncée.
 - Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
 

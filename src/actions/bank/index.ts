@@ -5,44 +5,22 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { BankImportSchema } from "@/lib/validations"
 import { bankTransactionFingerprint } from "@/lib/workflow-rules"
+import { readBankHistory, readBankTargets } from "@/lib/banking-readers"
+import { parseBankDate } from "@/lib/bank-date"
 
-export async function getBankingDashboard() {
-  return withAuth(async ({ companyId }) => {
-    const [transactions, invoices, expenses] = await Promise.all([
-      prisma.bankTransaction.findMany({
-        where: { companyId },
-        orderBy: [{ date: "desc" }, { importedAt: "desc" }],
-        take: 250,
-        include: {
-          matchedPayment: { include: { invoice: { select: { id: true, number: true } } } },
-          matchedExpense: { select: { id: true, label: true } },
-        },
-      }),
-      prisma.invoice.findMany({
-        where: { companyId, status: { in: ["SENT", "OVERDUE"] } },
-        orderBy: { dueDate: "asc" },
-        select: {
-          id: true, number: true, totalTtcCents: true, paidAmountCents: true,
-          client: { select: { name: true } },
-        },
-      }),
-      prisma.expense.findMany({
-        where: { companyId, bankTransaction: null },
-        orderBy: { date: "desc" },
-        take: 100,
-        select: { id: true, label: true, amountCents: true, date: true },
-      }),
-    ])
-    return { transactions, invoices, expenses }
-  }, "finance.read")
+export async function getBankingDashboard(input: unknown = {}) {
+  return withAuth(({ companyId }) => readBankHistory(companyId, input), "finance.read")
+}
+
+export async function getBankingTargets(input: unknown) {
+  return withAuth(({ companyId }) => readBankTargets(companyId, input), "finance.read")
 }
 
 export async function importBankTransactions(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const { rows } = BankImportSchema.parse(input)
     const prepared = rows.map((row) => {
-      const date = new Date(`${row.date}T12:00:00`)
-      if (Number.isNaN(date.getTime())) throw new Error(`Date invalide : ${row.date}`)
+      const date = parseBankDate(row.date)
       return {
         companyId,
         date,
