@@ -1,0 +1,124 @@
+{
+  "reference": "bf8b6ee463cf2721dfc08a3fab24ddfaf975c92b",
+  "engine": "SQLite",
+  "isolatedFictitiousData": true,
+  "exitCode": 1,
+  "reportSha256": "7a4cd45882623085fea5abdf24ed777681ac3f59336a5d25fb6fcc55be4a6414",
+  "testSha256": "2590ac7e59924d092caee49b386771be64e51606bb1824df2bcf2552ef75f5f7",
+  "total": 21,
+  "passed": 4,
+  "failed": 17,
+  "cases": [
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'list' to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'detail' to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'directory' to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'CRM' to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'SERVICE' to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'list' to 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'detail' to 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'directory' to 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'CRM' to 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'SERVICE' to 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'list' to 'VIEWER'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'detail' to 'VIEWER'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'directory' to 'VIEWER'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'CRM' to 'VIEWER'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health through 'SERVICE' to 'VIEWER'",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health in automation subject choices to SALES",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL does not expose global health in automation subject choices to SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL preserves Owner list and detail scores",
+      "status": "passed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL preserves Owner directory and workspace health",
+      "status": "passed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL preserves Owner automation subject score",
+      "status": "passed"
+    },
+    {
+      "name": "shared global health permission probe on real SQL refuses consultation after membership suspension",
+      "status": "passed"
+    }
+  ],
+  "schema": "freelio.shared-health-baseline.v1",
+  "sources": [
+    {
+      "file": "src/actions/clients/index.ts",
+      "sha256": "5367fdbafeec2c3f8ad72cfb787cab5d4057f0a42ac5ae2efcf92c84d1e58bb1"
+    },
+    {
+      "file": "src/actions/directories.ts",
+      "sha256": "61bf9ee399fb63ced9a37b242a2b3a6b16b1006f7697958cc322effc12dc45b9"
+    },
+    {
+      "file": "src/actions/workspaces/index.ts",
+      "sha256": "e71d7a8ef553e8f36ebf1c3361f8eafa14dd804b011a75b0e42ac5280b92252a"
+    },
+    {
+      "file": "src/actions/automations/index.ts",
+      "sha256": "5a8c076e225ae1dcf8d478d79cbcaa207e67b3e8c45a89327359bdaba3d6e958"
+    },
+    {
+      "file": "src/lib/auth-wrapper.ts",
+      "sha256": "be094e67157f2d66c55d72b35936858be291f4a803307e882f24ea3eaa8f056b"
+    },
+    {
+      "file": "src/lib/prisma.ts",
+      "sha256": "12993e685f7269b9c74b72b8571fb01dca5ffbceeec00d93564ed6add864e5b3"
+    }
+  ]
+}
