@@ -1,0 +1,561 @@
+{
+  "schema": "freelio.shared-client-reader-ci.v1",
+  "candidate": "8ef8e79bfa8cf963a7f3aab61865d3c39657fb54",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 927,
+    "sha256": "2e65d788b883e8d684999c0c76e3b0e5370d090da80ca2a9d5de4ea2cc78224d"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37851361542",
+      "conclusion": "failure",
+      "testedCommit": "8ef8e79bfa8cf963a7f3aab61865d3c39657fb54",
+      "parents": [
+        "ff0c8954ddc197cc75fef08288e9a6823f0f65bc"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113564775184,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 113564775491,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113564775503,
+          "conclusion": "success"
+        }
+      ],
+      "postgres": {
+        "artifactId": 11581254841,
+        "reportSha256": "5156c27c1964885ec8d384622356dce19db10ebba61a2e7bde47427794d33357",
+        "passed": 1327,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "passed": 23,
+            "failed": 0
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "passed": 58,
+            "failed": 0
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11582241706,
+        "reportSha256": "0f6f5019bcd9fbaf1b297aa55a9918604279f46ee58b65116089d18cc10458fe",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "sqlite": [
+        "Test Files  173 passed (173)",
+        "Tests  1328 passed (1328)",
+        "Test Files  173 passed (173)",
+        "Tests  1328 passed (1328)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "16 failed",
+          "19 skipped",
+          "231 passed (19.1m)"
+        ],
+        "opportunityCases": [
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for owner",
+            "status": "passed",
+            "seconds": 1.6
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for admin",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for sales",
+            "status": "passed",
+            "seconds": 1.4
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for viewer",
+            "status": "passed",
+            "seconds": 1.4
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for owner",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for admin",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for sales",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for viewer",
+            "status": "passed",
+            "seconds": 1.5
+          }
+        ],
+        "projectCases": [
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for owner",
+            "status": "failed",
+            "seconds": 15.9
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for admin",
+            "status": "failed",
+            "seconds": 15.9
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for technician",
+            "status": "failed",
+            "seconds": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for service",
+            "status": "failed",
+            "seconds": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for sales",
+            "status": "failed",
+            "seconds": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for accounting",
+            "status": "failed",
+            "seconds": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for viewer",
+            "status": "failed",
+            "seconds": 16.1
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for owner",
+            "status": "failed",
+            "seconds": 15.8
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for admin",
+            "status": "failed",
+            "seconds": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for technician",
+            "status": "failed",
+            "seconds": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for service",
+            "status": "failed",
+            "seconds": 15.9
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for sales",
+            "status": "failed",
+            "seconds": 15.9
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for accounting",
+            "status": "failed",
+            "seconds": 15.9
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for viewer",
+            "status": "failed",
+            "seconds": 15.9
+          }
+        ],
+        "failures": [
+          {
+            "file": "project-reader-permissions.spec.ts",
+            "count": 14,
+            "assertion": "Expected /500\\s*€/; rendered Budget : 500,00 €.",
+            "correction": "Expect French currency cents; preserve values and all domain assertions."
+          },
+          {
+            "file": "catalogue-volume.spec.ts",
+            "count": 1,
+            "assertion": "capture.complete === true failed on page 1."
+          },
+          {
+            "file": "task-usability.spec.ts",
+            "surface": "mobile",
+            "count": 1,
+            "assertion": "capture.complete === true failed on Catalogue / Produits & configurations."
+          }
+        ]
+      }
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37851364077",
+      "conclusion": "failure",
+      "testedCommit": "03c0e82d13ba1dd77183b76069ff1ba11c2a19b7",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "8ef8e79bfa8cf963a7f3aab61865d3c39657fb54"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113564781761,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113564781904,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 113564782123,
+          "conclusion": "failure"
+        }
+      ],
+      "postgres": {
+        "artifactId": 11581339925,
+        "reportSha256": "1150c5a7857d70da4c293906fb046d08c8fc26f1607a592c0f68723ef0af3973",
+        "passed": 1327,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "passed": 23,
+            "failed": 0
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "passed": 58,
+            "failed": 0
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11581973445,
+        "reportSha256": "bf079ddd0d5152de3c896d9f65257d74c99a84d02ee108512314b566fbf02851",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "sqlite": [
+        "Test Files  173 passed (173)",
+        "Tests  1328 passed (1328)",
+        "Test Files  173 passed (173)",
+        "Tests  1328 passed (1328)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "15 failed",
+          "19 skipped",
+          "232 passed (22.6m)"
+        ],
+        "opportunityCases": [
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for owner",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for admin",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for sales",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "desktop",
+            "name": "opportunity references respect company and agency scope for viewer",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for owner",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for admin",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for sales",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "opportunity-permissions",
+            "surface": "mobile",
+            "name": "opportunity references respect company and agency scope for viewer",
+            "status": "passed",
+            "seconds": 2.1
+          }
+        ],
+        "projectCases": [
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for owner",
+            "status": "failed",
+            "seconds": 16.3
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for admin",
+            "status": "failed",
+            "seconds": 16.4
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for technician",
+            "status": "failed",
+            "seconds": 16.4
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for service",
+            "status": "failed",
+            "seconds": 16.4
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for sales",
+            "status": "failed",
+            "seconds": 16.4
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for accounting",
+            "status": "failed",
+            "seconds": 16.5
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "desktop",
+            "name": "project documents respect domain permissions for viewer",
+            "status": "failed",
+            "seconds": 16.4
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for owner",
+            "status": "failed",
+            "seconds": 16.3
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for admin",
+            "status": "failed",
+            "seconds": 16.3
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for technician",
+            "status": "failed",
+            "seconds": 16.5
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for service",
+            "status": "failed",
+            "seconds": 16.3
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for sales",
+            "status": "failed",
+            "seconds": 16.3
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for accounting",
+            "status": "failed",
+            "seconds": 16.3
+          },
+          {
+            "file": "project-reader-permissions",
+            "surface": "mobile",
+            "name": "project documents respect domain permissions for viewer",
+            "status": "failed",
+            "seconds": 16.4
+          }
+        ],
+        "failures": [
+          {
+            "file": "project-reader-permissions.spec.ts",
+            "count": 14,
+            "assertion": "Expected /500\\s*€/; rendered Budget : 500,00 €.",
+            "correction": "Expect French currency cents; preserve values and all domain assertions."
+          },
+          {
+            "file": "task-usability.spec.ts",
+            "surface": "mobile",
+            "count": 1,
+            "assertion": "capture.complete === true failed on Catalogue / Produits & configurations."
+          }
+        ]
+      }
+    }
+  ],
+  "captureDiagnosis": {
+    "artifacts": [
+      {
+        "run": 37851361542,
+        "name": "playwright-report",
+        "id": 11583496217
+      },
+      {
+        "run": 37851361542,
+        "name": "ui-audit-reports",
+        "id": 11583560650
+      }
+    ],
+    "observations": [
+      "The two incomplete Catalogue captures stop after two frames.",
+      "The mobile second frame displays Actualisation… with the product list absent.",
+      "The Catalogue starts a server action 200 ms after mounting, replacing the visible list while pending.",
+      "The branch Catalogue action returned HTTP 200 in 12.584 ms during the capture."
+    ],
+    "inference": "Capturing before the mount refresh finishes allows the list height to change during scrolling. Wait for that specific action and the rendered result state before capturing.",
+    "limits": [
+      "The original helper did not persist its numeric scroll positions.",
+      "No scroll-completeness assertion, timeout, skip or overflow threshold is relaxed."
+    ]
+  },
+  "limits": [
+    "Contacts are absent from this candidate and are not qualified by these runs.",
+    "Both runs failed globally; successful PostgreSQL/Linux jobs do not make browser qualification green.",
+    "Fictitious isolated recipe; no real provider or hosted commercial qualification."
+  ]
+}
