@@ -49,6 +49,7 @@ function money(cents: number) {
 }
 
 function metricValue(metric: CustomerHealthMetric, value: number | null) {
+  if (metric === "OVERDUE_BALANCE_CENTS" && value === null) return "Accès Finance requis"
   if (value === null) return "Non disponible"
   if (metric === "OVERDUE_BALANCE_CENTS") return money(value)
   if (metric === "SATISFACTION_PERCENT") return `${value}%`
@@ -59,7 +60,7 @@ function statusVariant(status: string) {
   return status === "RISK" ? "destructive" as const : status === "HEALTHY" ? "secondary" as const : "outline" as const
 }
 
-function ClientCard({ client, members, pending, run }: { client: PortfolioClient; members: Workspace["members"]; pending: boolean; run: (task: () => Promise<unknown>, success: string) => void }) {
+function ClientCard({ client, members, access, pending, run }: { client: PortfolioClient; members: Workspace["members"]; access: Workspace["access"]; pending: boolean; run: (task: () => Promise<unknown>, success: string) => void }) {
   const trend = client.previousScore === null ? null : client.score - client.previousScore
   return <details className="group rounded-xl border bg-card">
     <summary className="grid cursor-pointer list-none gap-4 p-4 transition-colors hover:bg-muted/20 lg:grid-cols-[minmax(220px,1.2fr)_100px_1fr_180px] lg:items-center">
@@ -73,6 +74,7 @@ function ClientCard({ client, members, pending, run }: { client: PortfolioClient
       <div>
         <div className="flex items-baseline gap-1"><span className="text-2xl font-semibold tabular-nums">{client.score}</span><span className="text-xs text-muted-foreground">/100</span></div>
         {trend !== null && trend !== 0 && <p className={`text-[11px] font-medium ${trend > 0 ? "text-success" : "text-destructive"}`}>{trend > 0 ? "+" : ""}{trend} depuis le dernier relevé</p>}
+        {!access.globalHistory && <p className="text-[11px] text-muted-foreground">Historique global indisponible</p>}
       </div>
       <div>
         <Progress value={client.score} className="h-1.5" />
@@ -102,12 +104,12 @@ function ClientCard({ client, members, pending, run }: { client: PortfolioClient
           </div>)}</div> : <p className="mt-3 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">Aucun seuil de risque déclenché.</p>}
         </div>
       </div>
-      <form key={[client.owner?.id, dateInput(client.renewalAt), client.renewalAmountCents, dateInput(client.nextActionAt), client.nextActionLabel, client.successPlan, client.expansionNotes].join("|")} className="space-y-4 rounded-xl border bg-background p-4" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); run(() => updateClientSuccessProfile({ clientId: client.id, successOwnerMembershipId: data.get("successOwnerMembershipId"), renewalAt: data.get("renewalAt"), renewalAmountEuros: data.get("renewalAmountEuros"), nextActionAt: data.get("nextActionAt"), nextActionLabel: data.get("nextActionLabel"), successPlan: data.get("successPlan"), expansionNotes: data.get("expansionNotes") }), "Suivi client enregistré.") }}>
+      <form key={[client.owner?.id, dateInput(client.renewalAt), client.renewalAmountCents, dateInput(client.nextActionAt), client.nextActionLabel, client.successPlan, client.expansionNotes].join("|")} className="space-y-4 rounded-xl border bg-background p-4" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); run(() => updateClientSuccessProfile({ clientId: client.id, successOwnerMembershipId: data.get("successOwnerMembershipId"), renewalAt: data.get("renewalAt"), ...(access.financeWrite ? { renewalAmountEuros: data.get("renewalAmountEuros") } : {}), nextActionAt: data.get("nextActionAt"), nextActionLabel: data.get("nextActionLabel"), successPlan: data.get("successPlan"), expansionNotes: data.get("expansionNotes") }), "Suivi client enregistré.") }}>
         <div><h3 className="text-sm font-semibold">Plan de suivi</h3><p className="mt-1 text-xs text-muted-foreground">Un score n’est utile que s’il mène à un responsable et une prochaine action.</p></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Responsable"><select aria-label="Responsable du portefeuille" name="successOwnerMembershipId" defaultValue={client.owner?.id || ""} className={controlClass}><option value="">Non affecté</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></Field>
           <Field label="Renouvellement"><Input aria-label="Date de renouvellement" name="renewalAt" type="date" defaultValue={dateInput(client.renewalAt)} /></Field>
-          <Field label="Montant du renouvellement"><Input aria-label="Montant du renouvellement" name="renewalAmountEuros" type="number" min="0" step="0.01" defaultValue={(client.renewalAmountCents / 100).toFixed(2)} /></Field>
+          <Field label="Montant du renouvellement">{client.renewalAmountCents === null ? <p className="text-sm text-muted-foreground">Accès Finance requis</p> : <Input aria-label="Montant du renouvellement" name="renewalAmountEuros" type="number" min="0" step="0.01" disabled={!access.financeWrite} defaultValue={(client.renewalAmountCents / 100).toFixed(2)} />}</Field>
           <Field label="Date de prochaine action"><Input aria-label="Date de prochaine action" name="nextActionAt" type="date" defaultValue={dateInput(client.nextActionAt)} /></Field>
         </div>
         <Field label="Prochaine action"><Input aria-label="Prochaine action du portefeuille" name="nextActionLabel" maxLength={500} defaultValue={client.nextActionLabel || ""} placeholder="Appeler pour préparer le renouvellement" /></Field>
@@ -151,7 +153,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
     </section>
 
     <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 lg:flex-row lg:items-center">
-      <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">Portefeuille priorisé</h2><p className="mt-1 text-xs text-muted-foreground">Les scores affichés sont recalculés en direct ; l’action « Figer les scores » crée l’historique de tendance.</p></div>
+      <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">Portefeuille priorisé</h2><p className="mt-1 text-xs text-muted-foreground">Score calculé sur les mesures accessibles. Les scores affichés sont recalculés en direct ; l’action « Figer les scores » crée l’historique de tendance.</p></div>
       <div className="flex flex-wrap gap-2">
         {initialData.rules.length === 0 && <Button demoMutation type="button" variant="outline" disabled={pending} onClick={() => run(installDefaultCustomerHealthRules, "Règles de départ installées.")}><ShieldCheck />Installer les règles recommandées</Button>}
         <Button demoMutation type="button" disabled={pending} onClick={() => run(recomputeCustomerHealth, "Scores recalculés et historisés.")}>{pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}Figer les scores</Button>
@@ -165,7 +167,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
           <select aria-label="Filtrer par santé" value={status} onChange={(event) => setStatus(event.target.value)} className={controlClass}><option value="ALL">Tous les niveaux</option><option value="RISK">À risque</option><option value="WATCH">À surveiller</option><option value="HEALTHY">Sains</option></select>
         </div>
         <p className="text-xs text-muted-foreground">Recherche et indicateurs sur les {initialData.totalClients} clients du portefeuille complet de la société.</p>
-        {visible.length ? visible.map((client) => <ClientCard key={client.id} client={client} members={initialData.members} pending={pending} run={run} />) : <div className="rounded-lg border border-dashed bg-card py-12 text-center text-sm text-muted-foreground"><p>Aucun client ne correspond à ces filtres.</p><Button className="mt-3" variant="outline" onClick={() => updateView({ search: "", status: "ALL" })}>Réinitialiser</Button></div>}
+        {visible.length ? visible.map((client) => <ClientCard key={client.id} client={client} members={initialData.members} access={initialData.access} pending={pending} run={run} />) : <div className="rounded-lg border border-dashed bg-card py-12 text-center text-sm text-muted-foreground"><p>Aucun client ne correspond à ces filtres.</p><Button className="mt-3" variant="outline" onClick={() => updateView({ search: "", status: "ALL" })}>Réinitialiser</Button></div>}
         <DirectoryPagination total={initialData.total} page={page} pending={pending} error={false} onPage={(page) => updateView({ page })} onRetry={() => router.refresh()} />
       </section>
 
@@ -174,7 +176,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
           <CardHeader><div className="flex items-center gap-2"><CardTitle className="text-base">Nouvelle règle de santé</CardTitle><HelpTip label="Calcul transparent">Chaque règle compare une mesure à un seuil et ajoute ou retire des points à une base de 100. Les facteurs déclenchés sont visibles client par client.</HelpTip></div><CardDescription>Commencez par des signaux mesurables et actionnables.</CardDescription></CardHeader>
           <CardContent><form className="space-y-4" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); run(() => createCustomerHealthRule({ name: data.get("name"), metric: data.get("metric"), operator: data.get("operator"), threshold: data.get("threshold"), impact: data.get("impact"), priority: data.get("priority") }), "Règle de santé créée.", event.currentTarget) }}>
             <Field label="Nom"><Input aria-label="Nom de la règle" name="name" required minLength={2} maxLength={120} placeholder="Plus de deux tickets en retard" /></Field>
-            <Field label="Mesure"><select aria-label="Mesure de santé" name="metric" className={controlClass}>{Object.entries(customerHealthMetricDefinitions).map(([value, definition]) => <option key={value} value={value}>{definition.label}</option>)}</select></Field>
+            <Field label="Mesure"><select aria-label="Mesure de santé" name="metric" className={controlClass}>{Object.entries(customerHealthMetricDefinitions).filter(([value]) => value !== "OVERDUE_BALANCE_CENTS" || initialData.access.financeWrite).map(([value, definition]) => <option key={value} value={value}>{definition.label}</option>)}</select></Field>
             <div className="grid grid-cols-2 gap-3"><Field label="Comparaison"><select aria-label="Comparaison de la règle" name="operator" defaultValue="GTE" className={controlClass}>{Object.entries(operatorLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field><Field label="Seuil"><Input aria-label="Seuil de la règle" name="threshold" type="number" step="0.01" required defaultValue="1" /></Field></div>
             <div className="grid grid-cols-2 gap-3"><Field label="Impact"><Input aria-label="Impact de la règle" name="impact" type="number" min="-100" max="100" required defaultValue="-15" /></Field><Field label="Priorité"><Input aria-label="Priorité de la règle" name="priority" type="number" min="0" max="100" defaultValue="50" /></Field></div>
             <Button demoMutation type="submit" disabled={pending}><Plus />Créer la règle</Button>
@@ -183,7 +185,7 @@ export function CustomerSuccessCenter({ initialData }: { initialData: Workspace 
         <Card>
           <CardHeader><CardTitle className="text-base">Règles actives</CardTitle><CardDescription>{initialData.rules.length} règle(s) appliquée(s) au portefeuille.</CardDescription></CardHeader>
           <CardContent>{initialData.rules.length ? <div className="space-y-2">{initialData.rules.map((rule) => <div key={rule.id} className="rounded-lg border p-3">
-            <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="text-xs font-semibold">{rule.name}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{customerHealthMetricDefinitions[rule.metric as CustomerHealthMetric]?.label || rule.metric} {operatorLabels[rule.operator] || rule.operator} {rule.metric === "OVERDUE_BALANCE_CENTS" ? money(rule.threshold) : rule.threshold} · impact {rule.impact > 0 ? "+" : ""}{rule.impact}</p></div><Button demoMutation type="button" size="icon-xs" variant="ghost" aria-label={`Archiver ${rule.name}`} disabled={pending} onClick={() => void confirm({ title: `Archiver « ${rule.name} » ?`, description: "Elle ne participera plus aux prochains calculs. L’historique des scores reste conservé.", confirmLabel: "Archiver", destructive: true }).then((accepted) => { if (accepted) run(() => archiveCustomerHealthRule(rule.id), "Règle archivée.") })}><Trash2 /></Button></div>
+            <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><p className="text-xs font-semibold">{rule.name}</p><p className="mt-1 text-[11px] leading-5 text-muted-foreground">{customerHealthMetricDefinitions[rule.metric as CustomerHealthMetric]?.label || rule.metric} {operatorLabels[rule.operator] || rule.operator} {rule.metric === "OVERDUE_BALANCE_CENTS" ? money(rule.threshold) : rule.threshold} · impact {rule.impact > 0 ? "+" : ""}{rule.impact}</p></div><Button demoMutation type="button" size="icon-xs" variant="ghost" aria-label={`Archiver ${rule.name}`} disabled={pending || (rule.metric === "OVERDUE_BALANCE_CENTS" && !initialData.access.financeWrite)} onClick={() => void confirm({ title: `Archiver « ${rule.name} » ?`, description: "Elle ne participera plus aux prochains calculs. L’historique des scores reste conservé.", confirmLabel: "Archiver", destructive: true }).then((accepted) => { if (accepted) run(() => archiveCustomerHealthRule(rule.id), "Règle archivée.") })}><Trash2 /></Button></div>
           </div>)}</div> : <p className="rounded-lg border border-dashed p-4 text-xs text-muted-foreground">Sans règle active, tous les clients restent à 100. Installez le socle recommandé ou créez vos propres seuils.</p>}</CardContent>
         </Card>
       </aside>

@@ -17,6 +17,7 @@ import {
 import prisma from "@/lib/prisma"
 import { loadCustomerHealthMetrics } from "@/lib/operations/customer-health-metrics"
 import { withProcessorLease } from "@/lib/processing/lease"
+import { hasPermission } from "@/lib/permissions"
 
 const cuid = z.string().cuid()
 const optionalText = (max: number) => z.preprocess((value) => typeof value === "string" && value.trim() ? value.trim() : undefined, z.string().max(max).optional())
@@ -34,7 +35,7 @@ const profileSchema = z.object({
   clientId: cuid,
   successOwnerMembershipId: z.union([cuid, z.literal("")]).optional().transform((value) => value || null),
   renewalAt: optionalDate,
-  renewalAmountEuros: z.coerce.number().finite().min(0).max(100_000_000).default(0),
+  renewalAmountEuros: z.coerce.number().finite().min(0).max(100_000_000).optional(),
   nextActionAt: optionalDate,
   nextActionLabel: optionalText(500),
   successPlan: optionalText(10_000),
@@ -52,21 +53,23 @@ const healthSummarySelect = {
 } as const satisfies Prisma.ClientSelect
 
 function summarizeHealth(client: Prisma.ClientGetPayload<{ select: typeof healthSummarySelect }>,
-  completeMetrics: Awaited<ReturnType<typeof loadCustomerHealthMetrics>>, rules: Parameters<typeof evaluateCustomerHealth>[1]) {
+  completeMetrics: Awaited<ReturnType<typeof loadCustomerHealthMetrics>>, rules: Parameters<typeof evaluateCustomerHealth>[1], globalHistory: boolean) {
   const { metrics, renewalAt } = completeMetrics.get(client.id)!
   const health = evaluateCustomerHealth(metrics, rules)
   return {
     id: client.id, name: client.name, score: health.score, status: health.status, factors: health.factors, metrics,
-    storedScore: client.relationScore, lastComputedAt: client.healthLastComputedAt,
-    previousScore: client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null, renewalAt,
+    storedScore: globalHistory ? client.relationScore : null, lastComputedAt: client.healthLastComputedAt,
+    previousScore: globalHistory ? client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null : null, renewalAt,
   }
 }
 
-async function loadCustomerSuccessWorkspace(companyId: string, query: z.infer<typeof portfolioQuerySchema>) {
+async function loadCustomerSuccessWorkspace(companyId: string, query: z.infer<typeof portfolioQuerySchema>,
+  access: { financeRead: boolean; financeWrite: boolean; agencyIds: string[] | null }) {
   const now = new Date()
+  const globalHistory = access.financeRead && access.agencyIds === null
   return prisma.$transaction(async (transaction) => {
     const [rules, members] = await Promise.all([
-      transaction.customerHealthRule.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: [{ priority: "desc" }, { name: "asc" }] }),
+      transaction.customerHealthRule.findMany({ where: { companyId, status: "ACTIVE", ...(!access.financeRead ? { metric: { not: "OVERDUE_BALANCE_CENTS" } } : {}) }, orderBy: [{ priority: "desc" }, { name: "asc" }] }),
       transaction.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
     ])
     const summaries: ReturnType<typeof summarizeHealth>[] = []
@@ -75,8 +78,8 @@ async function loadCustomerSuccessWorkspace(companyId: string, query: z.infer<ty
       const clients = await transaction.client.findMany({ where: { companyId, ...(cursor ? { id: { gt: cursor } } : {}) },
         select: healthSummarySelect, orderBy: { id: "asc" }, take: 200 })
       if (!clients.length) break
-      const completeMetrics = await loadCustomerHealthMetrics(transaction, companyId, clients, now)
-      summaries.push(...clients.map((client) => summarizeHealth(client, completeMetrics, rules)))
+      const completeMetrics = await loadCustomerHealthMetrics(transaction, companyId, clients, now, { finance: access.financeRead, agencyIds: access.agencyIds })
+      summaries.push(...clients.map((client) => summarizeHealth(client, completeMetrics, rules, globalHistory)))
       cursor = clients.at(-1)!.id
     }
     const search = query.search.toLocaleLowerCase("fr-FR")
@@ -92,10 +95,12 @@ async function loadCustomerSuccessWorkspace(companyId: string, query: z.infer<ty
     return {
       portfolio: visible.map((client) => {
         const { successOwnerMembership, ...profile } = profileById.get(client.id)!
-        return { ...client, ...profile, owner: successOwnerMembership ? { id: successOwnerMembership.id, name: successOwnerMembership.user.name || successOwnerMembership.user.email || "Membre" } : null }
+        return { ...client, ...profile, renewalAmountCents: access.financeRead ? profile.renewalAmountCents : null,
+          owner: successOwnerMembership ? { id: successOwnerMembership.id, name: successOwnerMembership.user.name || successOwnerMembership.user.email || "Membre" } : null }
       }),
       page, total: filtered.length, totalClients: summaries.length,
       rules,
+      access: { financeRead: access.financeRead, financeWrite: access.financeWrite, globalHistory },
       members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Membre" })),
       metrics: {
         healthy: summaries.filter((client) => client.status === "HEALTHY").length,
@@ -108,25 +113,29 @@ async function loadCustomerSuccessWorkspace(companyId: string, query: z.infer<ty
 }
 
 export async function getCustomerSuccessWorkspace(input: unknown = {}) {
-  return withAuth(({ companyId }) => loadCustomerSuccessWorkspace(companyId, portfolioQuerySchema.parse(input)), "service.read")
+  return withAuth(({ companyId, role, agencyIds }) => loadCustomerSuccessWorkspace(companyId, portfolioQuerySchema.parse(input), {
+    financeRead: hasPermission(role, "finance.read"), financeWrite: hasPermission(role, "finance.write"), agencyIds,
+  }), "service.read")
 }
 
 export async function installDefaultCustomerHealthRules() {
-  return withAuth(async ({ companyId, userId }) => {
-    await prisma.$transaction(defaultCustomerHealthRules.map((rule) => prisma.customerHealthRule.upsert({
+  return withAuth(async ({ companyId, userId, role }) => {
+    const allowedRules = defaultCustomerHealthRules.filter(rule => rule.metric !== "OVERDUE_BALANCE_CENTS" || hasPermission(role, "finance.write"))
+    await prisma.$transaction(allowedRules.map((rule) => prisma.customerHealthRule.upsert({
       where: { companyId_name: { companyId, name: rule.name } },
       update: { ...rule, status: "ACTIVE" },
       create: { companyId, ...rule },
     })))
-    await logAction({ userId, action: "INSTALL_CUSTOMER_HEALTH_RULES", resource: "CUSTOMER_HEALTH_RULE", payload: { count: defaultCustomerHealthRules.length } })
+    await logAction({ userId, action: "INSTALL_CUSTOMER_HEALTH_RULES", resource: "CUSTOMER_HEALTH_RULE", payload: { count: allowedRules.length } })
     revalidatePath("/dashboard/service/customer-success")
     return { success: true as const }
   }, "service.write")
 }
 
 export async function createCustomerHealthRule(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, role }) => {
     const data = ruleSchema.parse(input)
+    if (data.metric === "OVERDUE_BALANCE_CENTS" && !hasPermission(role, "finance.write")) throw new AuthorizationError("Accès Finance requis pour modifier une règle financière")
     if (await prisma.customerHealthRule.findFirst({ where: { companyId, name: data.name }, select: { id: true } })) throw new Error("Une règle porte déjà ce nom")
     const rule = await prisma.customerHealthRule.create({ data: { companyId, ...data } })
     await logAction({ userId, action: "CREATE_CUSTOMER_HEALTH_RULE", resource: "CUSTOMER_HEALTH_RULE", resourceId: rule.id, payload: { name: rule.name } })
@@ -136,10 +145,11 @@ export async function createCustomerHealthRule(input: unknown) {
 }
 
 export async function archiveCustomerHealthRule(ruleId: string) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, role }) => {
     const id = cuid.parse(ruleId)
-    const rule = await prisma.customerHealthRule.findFirst({ where: { id, companyId, status: "ACTIVE" }, select: { id: true, name: true } })
+    const rule = await prisma.customerHealthRule.findFirst({ where: { id, companyId, status: "ACTIVE" }, select: { id: true, name: true, metric: true } })
     if (!rule) throw new Error("Règle de santé introuvable")
+    if (rule.metric === "OVERDUE_BALANCE_CENTS" && !hasPermission(role, "finance.write")) throw new AuthorizationError("Accès Finance requis pour modifier une règle financière")
     await prisma.customerHealthRule.update({ where: { id: rule.id }, data: { status: "ARCHIVED" } })
     await logAction({ userId, action: "ARCHIVE_CUSTOMER_HEALTH_RULE", resource: "CUSTOMER_HEALTH_RULE", resourceId: rule.id, payload: { name: rule.name } })
     revalidatePath("/dashboard/service/customer-success")
@@ -148,15 +158,16 @@ export async function archiveCustomerHealthRule(ruleId: string) {
 }
 
 export async function updateClientSuccessProfile(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, role }) => {
     const data = profileSchema.parse(input)
+    if (data.renewalAmountEuros !== undefined && !hasPermission(role, "finance.write")) throw new AuthorizationError("Accès Finance requis pour modifier le montant de renouvellement")
     const client = await prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true, name: true } })
     if (!client) throw new Error("Client introuvable")
     if (data.successOwnerMembershipId && !await prisma.membership.findFirst({ where: { id: data.successOwnerMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })) throw new Error("Responsable introuvable")
     await prisma.client.update({ where: { id: client.id }, data: {
       successOwnerMembershipId: data.successOwnerMembershipId,
       renewalAt: data.renewalAt,
-      renewalAmountCents: Math.round(data.renewalAmountEuros * 100),
+      ...(data.renewalAmountEuros !== undefined ? { renewalAmountCents: Math.round(data.renewalAmountEuros * 100) } : {}),
       nextActionAt: data.nextActionAt,
       nextActionLabel: data.nextActionLabel || null,
       successPlan: data.successPlan || null,

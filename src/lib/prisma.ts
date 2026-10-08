@@ -11,6 +11,7 @@ const TENANT_READ_OPERATIONS = new Set(["aggregate", "count", "findFirst", "find
 
 const TENANT_CREATE_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn"])
 const TENANT_UPDATE_OPERATIONS = new Set(["update", "updateMany", "updateManyAndReturn"])
+const SERVICE_PROFILE_FIELDS = new Set(["successOwnerMembershipId", "renewalAt", "nextActionAt", "nextActionLabel", "successPlan", "expansionNotes"])
 
 function appendWhereScope(args: { where?: Record<string, unknown> }, scope: Record<string, unknown>) {
   const existingAnd = args.where?.AND
@@ -121,12 +122,17 @@ const prismaClientSingleton = () => {
           const mutableArgs = args as any
 
           const requiredPermission = requiredMutationPermission(model)
+          const profileFields = Object.keys(mutableArgs.data ?? {})
+          // Service can edit its follow-up fields, never the general client or money.
+          const serviceProfileUpdate = model === "Client" && operation === "update" && context?.actionPermission === "service.write" &&
+            hasPermission(context.role, "service.write") && profileFields.length > 0 && profileFields.every(field => SERVICE_PROFILE_FIELDS.has(field))
 
           if (
             context &&
             requiredPermission &&
             MUTATION_OPERATIONS.has(operation) &&
             !hasPermission(context.role, requiredPermission) &&
+            !serviceProfileUpdate &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)

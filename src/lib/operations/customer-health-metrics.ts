@@ -6,22 +6,24 @@ type HealthClient = { id: string; createdAt: Date; renewalAt: Date | null }
 const activeTicketStatuses = ["OPEN", "QUALIFIED", "PLANNED", "WAITING"]
 
 /** Aggregate complete histories for a bounded client batch; never sample rows. */
-export async function loadCustomerHealthMetrics(database: HealthDatabase, companyId: string, clients: HealthClient[], now: Date) {
+export async function loadCustomerHealthMetrics(database: HealthDatabase, companyId: string, clients: HealthClient[], now: Date,
+  access: { finance: boolean; agencyIds: string[] | null } = { finance: true, agencyIds: null }) {
   const clientId = { in: clients.map((client) => client.id) }
+  const invoiceScope = { companyId, clientId, ...(access.agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: { companyId, agencyId: { in: access.agencyIds } } }) }
   const ticketWhere = { companyId, clientId, status: { not: "MERGED" }, mergedIntoTicketId: null }
   const [tickets, overdueTickets, recentTickets, activities, invoices, contracts, responses, surveys] = await Promise.all([
     database.serviceTicket.groupBy({ by: ["clientId", "status"], where: ticketWhere, _count: { _all: true }, _max: { requestedAt: true } }),
     database.serviceTicket.groupBy({ by: ["clientId"], where: { ...ticketWhere, status: { in: activeTicketStatuses }, dueAt: { lt: now } }, _count: { _all: true } }),
     database.serviceTicket.groupBy({ by: ["clientId"], where: { ...ticketWhere, requestedAt: { gte: new Date(now.getTime() - 90 * 86_400_000) } }, _count: { _all: true } }),
     database.clientActivity.groupBy({ by: ["clientId"], where: { clientId, client: { companyId } }, _max: { happenedAt: true } }),
-    database.invoice.groupBy({ by: ["clientId"], where: { companyId, clientId }, _max: { date: true } }),
+    access.finance ? database.invoice.groupBy({ by: ["clientId"], where: invoiceScope, _max: { date: true } }) : [],
     database.maintenanceContract.groupBy({ by: ["clientId"], where: { companyId, clientId, status: "ACTIVE" }, _count: { _all: true }, _min: { endDate: true } }),
     database.satisfactionRequest.groupBy({ by: ["clientId", "surveyId"], where: { companyId, clientId, respondedAt: { not: null }, score: { not: null } }, _sum: { score: true }, _count: { score: true } }),
     database.satisfactionSurvey.findMany({ where: { companyId }, select: { id: true, scaleMin: true, scaleMax: true } }),
   ])
   const result = new Map(clients.map((client) => [client.id, { renewalAt: client.renewalAt,
     metrics: { OPEN_TICKETS: 0, OVERDUE_TICKETS: 0, TICKETS_90D: 0, SATISFACTION_PERCENT: null, DAYS_SINCE_ACTIVITY: 0,
-      OVERDUE_BALANCE_CENTS: 0, DAYS_TO_RENEWAL: null, ACTIVE_CONTRACTS: 0 } as CustomerHealthMetrics,
+      OVERDUE_BALANCE_CENTS: access.finance ? 0 : null, DAYS_TO_RENEWAL: null, ACTIVE_CONTRACTS: 0 } as CustomerHealthMetrics,
   }]))
   const lastActivity = new Map(clients.map((client) => [client.id, client.createdAt.getTime()]))
   const markActivity = (id: string, at: Date | null) => { if (at) lastActivity.set(id, Math.max(lastActivity.get(id) ?? 0, at.getTime())) }
@@ -51,8 +53,8 @@ export async function loadCustomerHealthMetrics(database: HealthDatabase, compan
   // Clamp each outstanding invoice separately: an overpayment must not offset
   // a different unpaid invoice. Drafts and credit notes are never overdue debt.
   let cursor: string | undefined
-  while (true) {
-    const debt = await database.invoice.findMany({ where: { companyId, clientId, type: { not: "CREDIT_NOTE" },
+  while (access.finance) {
+    const debt = await database.invoice.findMany({ where: { ...invoiceScope, type: { not: "CREDIT_NOTE" },
       status: { notIn: ["DRAFT", "PAID", "CANCELED"] }, dueDate: { lt: now }, ...(cursor ? { id: { gt: cursor } } : {}),
     }, select: { id: true, clientId: true, totalTtcCents: true, paidAmountCents: true }, orderBy: { id: "asc" }, take: 400 })
     for (const invoice of debt) result.get(invoice.clientId)!.metrics.OVERDUE_BALANCE_CENTS! += Math.max(0, invoice.totalTtcCents - invoice.paidAmountCents)

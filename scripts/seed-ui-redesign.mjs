@@ -62,6 +62,25 @@ try {
     }
   }
   for (const surface of ["desktop", "mobile"]) {
+    const healthCompany = await prisma.company.create({ data: { name: `Fictional customer success permissions ${surface}` } })
+    const permitted = await prisma.agency.create({ data: { companyId: healthCompany.id, code: "PERMITTED", name: "Fictional assigned agency" } })
+    const other = await prisma.agency.create({ data: { companyId: healthCompany.id, code: "OTHER", name: "Fictional other agency" } })
+    await prisma.saasSubscription.create({ data: { companyId: healthCompany.id, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+    const passwordHash = await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026")
+    for (const role of ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER"]) {
+      const reader = await prisma.user.create({ data: { companyId: healthCompany.id, email: `success-reader-${role.toLowerCase()}-${surface}@example.test`, name: `Fictional ${role} success reader`, emailVerified: new Date(), passwordHash } })
+      const membership = await prisma.membership.create({ data: { companyId: healthCompany.id, userId: reader.id, role, status: "ACTIVE" } })
+      await prisma.agencyMembership.create({ data: { agencyId: permitted.id, membershipId: membership.id } })
+    }
+    const client = await prisma.client.create({ data: { companyId: healthCompany.id, name: `UIQA Success permissions ${surface}`, renewalAmountCents: 12345, relationScore: 37, createdAt: new Date("2020-01-01") } })
+    await prisma.customerHealthRule.create({ data: { companyId: healthCompany.id, name: `UIQA Financial health ${surface}`, metric: "OVERDUE_BALANCE_CENTS", operator: "GTE", threshold: 1, impact: -60 } })
+    await prisma.customerHealthSnapshot.create({ data: { companyId: healthCompany.id, clientId: client.id, score: 35, status: "RISK", factors: [], computedAt: new Date("2020-01-01") } })
+    for (const [marker, agencyId, amount] of [["PERMITTED", permitted.id, 321], ["OTHER", other.id, 700]]) {
+      const project = await prisma.project.create({ data: { companyId: healthCompany.id, clientId: client.id, agencyId, name: `UIQA Success project ${marker}` } })
+      await prisma.invoice.create({ data: { companyId: healthCompany.id, clientId: client.id, projectId: project.id, number: `UIQA-SUCCESS-${marker}`, object: "Fictional success invoice", dueDate: new Date("2020-01-01"), status: "SENT", totalHtCents: amount, totalTvaCents: 0, totalTtcCents: amount } })
+    }
+  }
+  for (const surface of ["desktop", "mobile"]) {
     await prisma.notification.create({ data: { userId: user.id, type: "SYSTEM", title: `UIQA Notification hydration ${surface}`, message: "Fictional hydration regression", isRead: true } })
     const workflow = await prisma.automationWorkflow.create({ data: { companyId, name: `UIQA Journal ${surface}`, trigger: "LEAD_CREATED", status: "ARCHIVED", actions: [{ type: "WAIT", delayHours: 1 }] } })
     await prisma.automationRun.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, workflowId: workflow.id, event: index === 100 ? `UIQA_LAST_${surface}` : "LEAD_CREATED",
