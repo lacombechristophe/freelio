@@ -13,3 +13,5 @@ npm run test:unit -- tests/unit/shared-health-permissions.probe.test.ts
 Un retour non nul et les 17 assertions échouées sont attendus sur cette référence. Le probe reste hors découverte des tests actifs. Aucun fournisseur, message sortant ou navigateur n’a été utilisé pour cette régression.
 
 La [qualification locale](local.json) distingue le probe initial des 65 cas étendus et des 68 contrôles Client préexistants. Les types, les deux lints et 1 186 tests SQLite passent ; la nouvelle CI PostgreSQL et navigateur est distincte des deux échecs de sélecteur Catalogue de 3def5cd.
+
+Les [deux CI de 71ebdca](ci-71ebdca.json) réussissent : 1 186 SQLite, 1 185 PostgreSQL et une exclusion native SQLite, 213 E2E et les 19 exclusions historiques, neuf contrôles Linux, types/lints/build/couverture et audits à zéro. Les 65 cas SQL et vingt nouveaux cas navigateur passent sur les deux runs. La fusion de test PR a bien main et 71ebdca pour parents ; les empreintes relient les rapports au code testé. Le lot ultérieur des synthèses par domaine possède sa propre qualification.

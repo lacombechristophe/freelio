@@ -25,3 +25,5 @@ Les [deux CI de 3def5cd](evidence/20261008-service-analytics-permissions/ci-3def
 La découverte locale de ce premier candidat comptait 212 cas dans 44 fichiers. Les nouvelles fixtures sont isolées par société et format, hors des anciens parcours partagés. Les captures de chaque page de volume gardent le budget de capture existant ; le workflow conserve désormais ces captures aussi en cas de réussite. Les anciens seuils, assertions et exclusions restent inchangés.
 
 Les résultats de 949adca et 8126729 restent valides pour leur propre code ; ils ne qualifient pas par avance ces nouveaux lots. Main et la démonstration hébergée restent distincts du candidat.
+
+Le correctif de sélecteur est désormais vérifié dans les [deux CI vertes de 71ebdca](evidence/20261008-shared-health-permissions/ci-71ebdca.json) : les dix-huit nouveaux parcours de ce lot passent, dont les deux reprises Catalogue. Les 17 cas Catalogue, 20 Sites/parc et 40 Analyses Service passent aussi sur PostgreSQL. Les échecs de 3def5cd restent conservés, sans baisse d’assertion ni ajout d’exclusion.

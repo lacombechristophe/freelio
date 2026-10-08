@@ -1,0 +1,124 @@
+{
+  "reference": "71ebdca862206d70c2263633fe4d7dbc37006c32",
+  "engine": "SQLite",
+  "isolatedFictitiousData": true,
+  "exitCode": 1,
+  "reportSha256": "32426b573cfb983ee24f63648eaaa8d0627c64b69cac016e9cd24b0ed7dd6180",
+  "testSha256": "7c5d42a12ca49a88de584ef411d9dbeee1a2678effbeb4aabcbec437762394a6",
+  "total": 23,
+  "passed": 6,
+  "failed": 17,
+  "cases": [
+    {
+      "name": "workspace access probe on real SQL does not serialize unused financial amounts in 'CRM' for 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL does not serialize unused financial amounts in 'SERVICE' for 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL does not serialize unused financial amounts in 'CRM' for 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL does not serialize unused financial amounts in 'SERVICE' for 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL does not serialize unused financial amounts in 'CRM' for 'SALES'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL does not serialize unused financial amounts in 'SERVICE' for 'SALES'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses the Finance workspace reader to TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses the Finance workspace reader to SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses the Finance workspace reader to SALES",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses the Sales workspace reader to TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses the Sales workspace reader to SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL limits Service overview counts and details to assigned agencies",
+      "status": "passed"
+    },
+    {
+      "name": "workspace access probe on real SQL limits a Viewer financial overview to its assigned agency",
+      "status": "passed"
+    },
+    {
+      "name": "workspace access probe on real SQL preserves Owner company-wide financial totals",
+      "status": "passed"
+    },
+    {
+      "name": "workspace access probe on real SQL preserves Owner company-wide Service tickets",
+      "status": "passed"
+    },
+    {
+      "name": "workspace access probe on real SQL does not count another agency projects in recent CRM clients",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL preserves Owner recent CRM client project count",
+      "status": "passed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses a 'MARKETING' workspace without its domain permission to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses a 'MARKETING' workspace without its domain permission to 'VIEWER'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses a 'MARKETING' workspace without its domain permission to 'ACCOUNTING'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses a 'SERVICE' workspace without its domain permission to 'SALES'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses a 'SERVICE' workspace without its domain permission to 'ACCOUNTING'",
+      "status": "failed"
+    },
+    {
+      "name": "workspace access probe on real SQL refuses workspace consultation after suspension",
+      "status": "passed"
+    }
+  ],
+  "schema": "freelio.workspace-access-baseline.v1",
+  "sources": [
+    {
+      "file": "src/actions/workspaces/index.ts",
+      "sha256": "7665e2e9cbfa7d0db8e27fb2947dec3774081dc986bc09269b9c5596dd544d85"
+    },
+    {
+      "file": "src/lib/auth-wrapper.ts",
+      "sha256": "be094e67157f2d66c55d72b35936858be291f4a803307e882f24ea3eaa8f056b"
+    },
+    {
+      "file": "src/lib/prisma.ts",
+      "sha256": "12993e685f7269b9c74b72b8571fb01dca5ffbceeec00d93564ed6add864e5b3"
+    },
+    {
+      "file": "src/lib/permissions.ts",
+      "sha256": "ac03996a51721f0425bc74b807679868672fa030b166fb9e2d20ce850f43f966"
+    }
+  ]
+}

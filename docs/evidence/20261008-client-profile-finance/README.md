@@ -13,3 +13,5 @@ npm run test:unit -- tests/unit/client-profile-finance.integration.test.ts tests
 ```
 
 Pour reproduire le défaut, remplacer uniquement `src/actions/clients/index.ts` dans cette copie par sa version de 3def5cd, puis restaurer le fichier courant. Les [contrôles complets locaux de bf8b6ee](local.json) passent : types, deux moteurs de lint, 1 121 tests SQLite dans 167 fichiers et build de 75 pages. Playwright découvre 212 cas dans 44 fichiers, sans exécution locale ; le schéma PostgreSQL est validé sans connexion. PostgreSQL SQL et CI du nouveau candidat restent à obtenir. Aucun parcours navigateur n’est annoncé modifié par ces deux champs de réponse serveur.
+
+Les [deux CI de 71ebdca](../20261008-shared-health-permissions/ci-71ebdca.json) sont maintenant vertes. Les 21 cas de cette suite passent sur PostgreSQL dans les deux runs, avec les 65 cas du lot suivant de scores partagés. Cela qualifie ces lecteurs et conserve les limites propres aux réponses des mutations Client.
