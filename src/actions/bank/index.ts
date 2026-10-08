@@ -7,6 +7,7 @@ import { BankImportSchema } from "@/lib/validations"
 import { bankTransactionFingerprint } from "@/lib/workflow-rules"
 import { readBankHistory, readBankTargets } from "@/lib/banking-readers"
 import { parseBankDate } from "@/lib/bank-date"
+import { isUniqueConstraintConflict } from "@/lib/document-numbering"
 
 export async function getBankingDashboard(input: unknown = {}) {
   return withAuth(({ companyId }) => readBankHistory(companyId, input), "finance.read")
@@ -35,17 +36,32 @@ export async function importBankTransactions(input: unknown) {
         }),
       }
     })
-    const existing = await prisma.bankTransaction.findMany({
-      where: { companyId, fingerprint: { in: prepared.map((row) => row.fingerprint) } },
-      select: { fingerprint: true },
+    const fingerprints = new Set<string>()
+    const distinct = prepared.filter(row => {
+      if (fingerprints.has(row.fingerprint)) return false
+      fingerprints.add(row.fingerprint)
+      return true
     })
-    const known = new Set(existing.map((row) => row.fingerprint))
-    const unique = prepared.filter((row, index, array) => (
-      !known.has(row.fingerprint) && array.findIndex((candidate) => candidate.fingerprint === row.fingerprint) === index
-    ))
-    if (unique.length) await prisma.bankTransaction.createMany({ data: unique })
+    let imported = 0
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const existing = await prisma.bankTransaction.findMany({
+        where: { companyId, fingerprint: { in: [...fingerprints] } },
+        select: { fingerprint: true },
+      })
+      const known = new Set(existing.map(row => row.fingerprint))
+      const missing = distinct.filter(row => !known.has(row.fingerprint))
+      if (!missing.length) break
+      try {
+        imported = (await prisma.bankTransaction.createMany({ data: missing })).count
+        break
+      } catch (error) {
+        // createMany is atomic. Another import can win after the read; reread
+        // committed fingerprints before retrying this file's remaining rows.
+        if (attempt === 2 || !isUniqueConstraintConflict(error, "fingerprint")) throw error
+      }
+    }
     revalidatePath("/dashboard/comptabilite/banque")
-    return { imported: unique.length, ignored: prepared.length - unique.length }
+    return { imported, ignored: prepared.length - imported }
   }, "finance.write")
 }
 
