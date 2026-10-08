@@ -1,0 +1,142 @@
+{
+  "schema": "freelio.permission-regression.v1",
+  "reference": "8126729ce8b163cf05ee5eba5ca9d0d137538b53",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "exitCode": 1,
+  "total": 26,
+  "passed": 6,
+  "failed": 20,
+  "testSha256": "25306d097c9809f841f81b26df9ddc6e215780ed3f0f5e139aa5c486977bb333",
+  "reportSha256": "2b9b3cb0cfe819da1db0d21a798925ffc51980be95369e2b4e9fe168b6d8c20e",
+  "source": [
+    {
+      "file": "src/actions/service-analytics/index.ts",
+      "sha256": "f9b1890f16fad9cd5844cd437219bdda0902aee75e11c4f9883b97660cdc1942"
+    },
+    {
+      "file": "src/app/api/service/analytics/export/route.ts",
+      "sha256": "b18138c2b41c29c897e96838f383bcc0831d57280a605507119e6c628d53ee4e"
+    },
+    {
+      "file": "src/lib/auth-wrapper.ts",
+      "sha256": "be094e67157f2d66c55d72b35936858be291f4a803307e882f24ea3eaa8f056b"
+    },
+    {
+      "file": "src/lib/prisma.ts",
+      "sha256": "12993e685f7269b9c74b72b8571fb01dca5ffbceeec00d93564ed6add864e5b3"
+    }
+  ],
+  "wholeExecution": {
+    "total": 1049,
+    "passed": 1029,
+    "failed": 20,
+    "otherCasesPassed": 1023
+  },
+  "cases": [
+    {
+      "name": "service analytics permissions on real SQL preserves Owner ticket and company boundaries",
+      "status": "passed"
+    },
+    {
+      "name": "service analytics permissions on real SQL excludes a diagnostic linked to a foreign-company ticket for Owner",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL excludes foreign-company ticket and survey responses for Owner",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not expose a global health average to TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not expose a global health average to SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not expose a global health average to VIEWER",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not expose global health cohorts to TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not expose global health cohorts to SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not expose global health cohorts to VIEWER",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL preserves accessible ticket counts for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "name": "service analytics permissions on real SQL preserves accessible ticket counts for SERVICE",
+      "status": "passed"
+    },
+    {
+      "name": "service analytics permissions on real SQL preserves accessible ticket counts for VIEWER",
+      "status": "passed"
+    },
+    {
+      "name": "service analytics permissions on real SQL scopes diagnostic names to the current agencies for TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL scopes diagnostic names to the current agencies for SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL scopes diagnostic names to the current agencies for VIEWER",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL scopes satisfaction to authorized tickets and company surveys for TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL scopes satisfaction to authorized tickets and company surveys for SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL scopes satisfaction to authorized tickets and company surveys for VIEWER",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not export the restricted health value or diagnostic for TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not export the restricted health value or diagnostic for SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL does not export the restricted health value or diagnostic for VIEWER",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL rereads inactive agency access for diagnostics and satisfaction",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL rereads unassigned agency access for diagnostics and satisfaction",
+      "status": "failed"
+    },
+    {
+      "name": "service analytics permissions on real SQL refuses suspended membership in the reader",
+      "status": "passed"
+    },
+    {
+      "name": "service analytics permissions on real SQL refuses suspended membership in the export",
+      "status": "passed"
+    },
+    {
+      "name": "service analytics permissions on real SQL keeps read-only demo ticket consultation while restricting global health",
+      "status": "failed"
+    }
+  ]
+}

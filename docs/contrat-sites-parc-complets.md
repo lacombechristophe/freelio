@@ -1,4 +1,4 @@
-# Sites clients et parc installé — proposition
+# Sites clients et parc installé
 
 Dans l’onglet Sites d’Opérations, le lecteur charge au maximum 100 sites et 200 équipements. Les deux listes n’ont ni recherche ni pagination ; les anciens objets deviennent inaccessibles depuis cet écran. Ce lot complète la consultation des référentiels de L8. Il ne crée pas d’édition de site ou d’équipement.
 
@@ -18,5 +18,5 @@ Les compteurs d’équipements et tickets de chaque site conservent le même pé
 
 201 sites et 301 équipements fictifs ; retrouver les plus anciens par recherche et dernière page, puis conserver les recherches au changement d’agence. Vérifier autre société, agence non autorisée, révocation, membre suspendu et lecture en démo publique. Parcours ordinateur/mobile, liste vide, réponse périmée et échec/reprise. Aucun compte externe ni donnée existante.
 
-Statut : proposition ; aucune interface ni lecteur de ce lot n’est implémenté avant son accord spécifique.
+Statut : lot approuvé le 8 octobre, puis implémenté avec deux lecteurs indépendants. Les tests SQL et navigateur sont dans `operations-assets.integration.test.ts` et `operations-assets.spec.ts`. La [qualification commune](qualification-catalogue-sites-service-20261008.md) distingue vérifications locales et CI du candidat. Les cartes de synthèse et sélecteurs des autres onglets conservent leurs propres limites.
 

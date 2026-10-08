@@ -1,4 +1,4 @@
-# Catalogue à volume — proposition
+# Catalogue à volume
 
 La recette 5616823 charge 602 produits fictifs supplémentaires dans la société utilisée par tous les parcours. Le catalogue rend chaque référence ; son audit ordinateur/mobile ne termine pas la capture en une minute. Les rapports conservent un P2 « contenu restant non inspecté », sans défaut P0/P1 constaté. Les seuils et assertions restent inchangés. Isoler les données Fournisseurs évite de polluer les autres parcours, mais ne qualifie pas le catalogue à ce volume.
 
@@ -14,4 +14,4 @@ Lecteurs sous les permissions actuelles, avec société/membership/agences relus
 
 Recette dédiée avec plus de 600 références, parents au-delà de la première page, variante avec parent hors filtre, inactifs, société/agence étrangère, révocation et démo publique. Vérifier la dernière page, la recherche sur tout le catalogue et les totaux constants ; audit complet de chaque état paginé sur ordinateur/mobile, sans relever le budget de capture. La pagination des prestations, autres sélecteurs et configuration d’options/composants restent des lots distincts à examiner.
 
-Statut : proposition ; aucun changement de cette interface n’est appliqué sans accord spécifique.
+Statut : lot approuvé le 8 octobre, puis implémenté. La recherche et les deux paginations utilisent des lecteurs bornés ; le choix du parent est relu indépendamment de la page. Les tests SQL et navigateur sont dans `catalogue-pagination.integration.test.ts` et `catalogue-volume.spec.ts`. La [qualification commune](qualification-catalogue-sites-service-20261008.md) distingue vérifications locales et CI du candidat.
