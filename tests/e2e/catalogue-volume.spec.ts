@@ -10,7 +10,14 @@ test.beforeEach(async ({ page }, info) => {
   await page.getByLabel("Mot de passe", { exact: true }).fill(process.env.E2E_USER_PASSWORD || "RecetteSolide2026")
   await page.getByRole("button", { name: "Se connecter", exact: true }).click()
   await page.waitForURL(url => url.pathname === "/dashboard", { timeout: 60_000 })
-  await page.goto("/dashboard/catalogue")
+  // The hydrated catalogue refreshes its server data once on mount.
+  // Wait for that action before capturing a list that it briefly replaces.
+  const [refresh] = await Promise.all([
+    page.waitForResponse(response => response.url().endsWith("/dashboard/catalogue") && response.request().method() === "POST" && Boolean(response.request().headers()["next-action"])),
+    page.goto("/dashboard/catalogue"),
+  ])
+  expect(refresh.ok()).toBe(true)
+  await refresh.finished()
   await expect(page.getByText("603 résultats", { exact: true })).toBeVisible()
 })
 
@@ -24,6 +31,7 @@ test("reads every paginated catalogue state at volume with constant full counter
   await mkdir(directory, { recursive: true })
   for (let current = 1; current <= 25; current++) {
     await expect(page.getByText(`Page ${current} sur 25`, { exact: true })).toBeVisible()
+    await expect(page.getByRole("tabpanel").getByRole("status")).toHaveText("603 résultats")
     expect((await captureScrollablePage(page, directory, `page-${current}`)).complete).toBe(true)
     expect(await counters.innerText()).toBe(originalCounters)
     if (current < 25) await page.getByRole("button", { name: "Page suivante", exact: true }).click()

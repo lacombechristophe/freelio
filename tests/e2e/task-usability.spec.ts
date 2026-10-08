@@ -6,7 +6,17 @@ import { captureScrollablePage } from "./helpers/visual-evidence"
 test.use({ actionTimeout: 15_000 })
 
 async function openWorkspace(page: Page, route: string) {
-  await page.goto(route)
+  if (route === "/dashboard/catalogue") {
+    const [refresh] = await Promise.all([
+      page.waitForResponse(response => response.url().endsWith(route) && response.request().method() === "POST" && Boolean(response.request().headers()["next-action"])),
+      page.goto(route),
+    ])
+    expect(refresh.ok()).toBe(true)
+    await refresh.finished()
+    await expect(page.getByRole("tabpanel").getByRole("status")).toHaveText(/\d+ résultats?/)
+  } else {
+    await page.goto(route)
+  }
   await expect(page.locator("html[data-app-hydrated='true']")).toHaveCount(1)
 }
 

@@ -17,8 +17,8 @@ for (const role of ["owner", "admin", "technician", "service", "sales", "account
     await expect(page.getByText("Fictional reader time", { exact: true })).toBeVisible()
     await expect(page.getByText("1h 00m", { exact: true })).toBeVisible()
     const budget = page.locator('[data-slot="card"]').filter({ has: page.getByText("Budget", { exact: true }) })
-    await expect(budget).toContainText(/500\s*€/)
-    await expect(budget).toContainText(/50\s*€/)
+    await expect(budget).toContainText(/500,00\s*€/)
+    await expect(budget).toContainText(/50,00\s*€/)
     const sales = role !== "technician" && role !== "service"
     const finance = ["owner", "admin", "accounting", "viewer"].includes(role)
     if (sales) {
