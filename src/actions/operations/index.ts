@@ -17,6 +17,7 @@ import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
+import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
 
 const id = z.string().cuid()
@@ -528,7 +529,7 @@ async function findInterventionSlotConflict({
 }
 
 export async function getOperationsDashboard() {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const [
       agencies,
       clients,
@@ -564,7 +565,7 @@ export async function getOperationsDashboard() {
       prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
       prisma.product.findMany({
         where: { companyId, active: true },
-        include: { supplier: { select: { name: true } }, inventoryItems: { select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
+        include: { supplier: { select: { name: true } }, inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
         orderBy: { label: "asc" },
         take: 500,
       }),
@@ -974,16 +975,17 @@ export async function getEquipmentDetail(equipmentId: string) {
 }
 
 export async function getSupplierDetail(supplierId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const parsedId = id.safeParse(supplierId)
     if (!parsedId.success) return null
+    const agency = agencyIds === null ? {} : { agencyId: { in: agencyIds } }
     return prisma.supplier.findFirst({
       where: { id: parsedId.data, companyId },
       include: {
-        products: { include: { inventoryItems: true }, orderBy: { label: "asc" }, take: 300 },
-        productPrices: { include: { product: { select: { id: true, sku: true, label: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
-        purchaseOrders: { include: { project: { select: { id: true, name: true } }, lines: true, issues: true }, orderBy: { orderDate: "desc" }, take: 100 },
-        supplierReturns: { include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
+        products: { where: { companyId }, include: { inventoryItems: { where: inventoryReadWhere(companyId, agencyIds) } }, orderBy: { label: "asc" }, take: 300 },
+        productPrices: { where: { companyId, product: { companyId } }, include: { product: { select: { id: true, sku: true, label: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
+        purchaseOrders: { where: { companyId, ...(agencyIds === null ? {} : { project: { companyId, ...agency } }) }, include: { project: { select: { id: true, name: true } }, lines: true, issues: true }, orderBy: { orderDate: "desc" }, take: 100 },
+        supplierReturns: { where: { companyId, product: { companyId }, warehouse: { companyId, ...agency }, purchaseOrder: { companyId, ...(agencyIds === null ? {} : { project: { companyId, ...agency } }) } }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
       },
     })
   }, "operations.read")

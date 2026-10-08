@@ -6,6 +6,7 @@ import { z } from "zod"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { hasPermission } from "@/lib/permissions"
+import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
 
 const id = z.string().cuid()
@@ -89,14 +90,14 @@ function availableQuantity(items: Array<{ quantity: number; reservedQuantity: nu
 }
 
 export async function getProductCatalogue() {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const [products, suppliers] = await Promise.all([
       prisma.product.findMany({
         where: { companyId },
         include: {
           supplier: { select: { id: true, name: true } },
           parentProduct: { select: { id: true, label: true } },
-          inventoryItems: { select: { quantity: true, reservedQuantity: true } },
+          inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { quantity: true, reservedQuantity: true } },
           _count: { select: { variants: true, optionGroups: true, assemblyComponents: true } },
         },
         orderBy: [{ active: "desc" }, { family: "asc" }, { label: "asc" }],
@@ -133,7 +134,7 @@ export async function getProductCatalogue() {
 }
 
 export async function getProductDetail(productId: string) {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.parse(productId)
     const [product, references, suppliers] = await Promise.all([
       prisma.product.findFirst({
@@ -145,7 +146,7 @@ export async function getProductDetail(productId: string) {
           optionGroups: { include: { values: { orderBy: [{ active: "desc" }, { order: "asc" }, { label: "asc" }] } }, orderBy: [{ order: "asc" }, { name: "asc" }] },
           assemblyComponents: { include: { componentProduct: { select: { id: true, sku: true, label: true, unit: true, purchasePriceCents: true } } }, orderBy: { componentProduct: { label: "asc" } } },
           priceHistory: { include: { supplier: { select: { name: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
-          inventoryItems: { include: { warehouse: { select: { name: true } } }, orderBy: { warehouse: { name: "asc" } } },
+          inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), include: { warehouse: { select: { name: true } } }, orderBy: { warehouse: { name: "asc" } } },
         },
       }),
       prisma.product.findMany({ where: { companyId, active: true }, select: { id: true, sku: true, label: true, parentProductId: true }, orderBy: { label: "asc" } }),
