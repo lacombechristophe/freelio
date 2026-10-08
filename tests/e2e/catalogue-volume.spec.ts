@@ -11,14 +11,13 @@ test.beforeEach(async ({ page }, info) => {
   await page.getByRole("button", { name: "Se connecter", exact: true }).click()
   await page.waitForURL(url => url.pathname === "/dashboard", { timeout: 60_000 })
   // The hydrated catalogue refreshes its server data once on mount.
-  // Wait for that action before capturing a list that it briefly replaces.
+  // Wait for its response and rendered state; the RSC stream can remain open.
   const [refresh] = await Promise.all([
-    page.waitForResponse(response => response.url().endsWith("/dashboard/catalogue") && response.request().method() === "POST" && Boolean(response.request().headers()["next-action"])),
+    page.waitForResponse(response => response.url().endsWith("/dashboard/catalogue") && response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]), { timeout: 15_000 }),
     page.goto("/dashboard/catalogue"),
   ])
   expect(refresh.ok()).toBe(true)
-  await refresh.finished()
-  await expect(page.getByText("603 résultats", { exact: true })).toBeVisible()
+  await expect(page.getByRole("tabpanel").getByRole("status")).toHaveText("603 résultats")
 })
 
 test("reads every paginated catalogue state at volume with constant full counters", async ({ page }, info) => {

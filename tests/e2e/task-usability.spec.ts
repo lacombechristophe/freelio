@@ -8,11 +8,10 @@ test.use({ actionTimeout: 15_000 })
 async function openWorkspace(page: Page, route: string) {
   if (route === "/dashboard/catalogue") {
     const [refresh] = await Promise.all([
-      page.waitForResponse(response => response.url().endsWith(route) && response.request().method() === "POST" && Boolean(response.request().headers()["next-action"])),
+      page.waitForResponse(response => response.url().endsWith(route) && response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]), { timeout: 15_000 }),
       page.goto(route),
     ])
     expect(refresh.ok()).toBe(true)
-    await refresh.finished()
     await expect(page.getByRole("tabpanel").getByRole("status")).toHaveText(/\d+ résultats?/)
   } else {
     await page.goto(route)
