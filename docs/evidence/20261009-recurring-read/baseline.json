@@ -1,0 +1,51 @@
+{
+  "schema": "freelio.recurring-read-baseline.v1",
+  "reference": "13a89e7942c71518a39fc12ce4bba804ff2bfe8b",
+  "node": "v24.15.0",
+  "passed": 2,
+  "failed": 6,
+  "total": 8,
+  "hookErrors": 0,
+  "reportSha256": "59dc92f270e84061a17be8112f864c4d9137018052ebb4b09b29e5d2729e78f6",
+  "reproducerSha256": "b4fb8c6e76390593a4ed8c8157472096da040244ab330077689e17024a1558d2",
+  "cases": [
+    {
+      "name": "recurring invoice read scope on real SQL refuses recurrence templates without Finance for SALES",
+      "status": "failed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL refuses recurrence templates without Finance for OPERATIONS",
+      "status": "failed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL refuses recurrence templates without Finance for TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL refuses recurrence templates without Finance for SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL excludes another agency recurrence from Accounting",
+      "status": "failed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL excludes a recurrence whose client belongs to another company",
+      "status": "failed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL preserves coherent recurrence templates for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "recurring invoice read scope on real SQL preserves a coherent local recurrence for Accounting",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "Fictitious isolated SQLite; session and Next cache mocked.",
+    "No invoice generation, worker or provider calls.",
+    "An incoherent client reference is created directly by the fixture, without proof that application mutations permit its creation.",
+    "Correction and visible page guard are not implemented."
+  ]
+}
