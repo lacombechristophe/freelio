@@ -2,26 +2,30 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
-Le candidat complète les historiques Fournisseurs, l’import et les rapprochements bancaires, puis les droits Sales/Finance de la fiche et de l’annuaire Client. Les deux CI de 653cddc qualifient ces lots et les [quatre courses de paiements manuels](qualification-paiements-concurrents-20261008.md) sur PostgreSQL. Les nouveaux correctifs [Suivi client](qualification-suivi-client-droits-20261008.md) et [contexte des requêtes différées](qualification-contexte-auth-20261008.md) passent localement **1 023 tests / 163 fichiers**, types, les deux moteurs de lint et build de 75 pages. Les 196 E2E / 42 fichiers sont découverts ; la CI complète du nouveau candidat reste à obtenir.
+Le candidat complète les historiques Fournisseurs, l’import et les rapprochements bancaires, les droits Sales/Finance Client et [Suivi client](qualification-suivi-client-droits-20261008.md), puis le [contexte des requêtes différées](qualification-contexte-auth-20261008.md). Les deux CI de **949adca** passent types, les deux moteurs de lint, build, couverture, **1 023 tests SQLite / 163 fichiers**, **1 022 PostgreSQL et une exclusion native SQLite**, **175 E2E et 19 exclusions historiques**, neuf contrôles Linux et audits à zéro. Les huit parcours Suivi client passent sur ordinateur/mobile ; la démo hébergée reste une référence distincte.
 
 Les deux CI de 81aa846 passent 1 020 SQLite, 1 019 PostgreSQL plus une exclusion native et neuf contrôles Linux. Le navigateur donne 173 réussites, deux échecs Owner sur un sélecteur ambigu et 19 exclusions historiques. Six des huit nouveaux parcours Suivi client passent ; le sélecteur vérifie désormais séparément résumé et alertes. Les trois cas de collision de nom des règles recommandées et leur correctif sont postérieurs à cette CI. La [preuve](evidence/20261008-customer-success-permissions/ci-81aa846.json) conserve cet échec sans qualifier ces nouveaux changements.
 
+La [découverte locale corrigée](evidence/20261008-customer-success-permissions/local-discovery.json) compte 194 cas / 41 fichiers. Les anciennes découvertes de 196 / 42 incluaient un probe temporaire absent du dépôt, désormais archivé hors du dossier de tests ; les inventaires `src`, unitaires et E2E correspondent au dépôt. Les 19 exclusions navigateur comprennent quinze doublons mobiles de parcours anciens exécutés sur ordinateur et quatre contrôles propres à un format. Elles limitent la couverture des mutations mobiles ; les huit nouveaux parcours Suivi client ne sont pas exclus.
+
 La [preuve PostgreSQL bancaire avant/après](qualification-rapprochements-bancaires-20261008.md) reproduit quatre courses puis leur correction sur e0726f6. Le débordement Fournisseur de 41238b0 est corrigé : la CI de PR 5b72db6 réussit, sa CI de branche échoue ailleurs. Sur 3be747d, les deux CI échouent sur quatre sélecteurs du nouveau test Client : « Créer un devis » expose le rôle bouton. Le sélecteur est corrigé sans modifier le produit ni assouplir d’assertion ; les deux CI 653cddc réussissent ensuite. Les [qualifications Fournisseurs](qualification-fournisseurs-historiques-20261008.md) et [Client](qualification-fiche-client-droits-20261008.md) conservent ces résultats. Main et le déploiement restent inchangés.
 
-## Dernière référence entièrement verte en CI
+## Référence de code qualifiée en CI
 
-La fiche Client reproduit douze échecs avant correction, puis dix-sept réussites en SQLite et PostgreSQL. Le [complément approuvé d’annuaire et CSV](qualification-annuaire-client-droits-20261008.md) reproduit vingt échecs sur trente cas avant correction, puis trente réussites en SQLite et PostgreSQL ; les douze parcours fiche/CSV passent sur ordinateur/mobile. Ces résultats précèdent les changements Suivi client/authentification suivants.
+La fiche Client reproduit douze échecs avant correction, puis dix-sept réussites en SQLite et PostgreSQL. Le [complément approuvé d’annuaire et CSV](qualification-annuaire-client-droits-20261008.md) reproduit vingt échecs sur trente cas avant correction, puis trente réussites ; les douze parcours fiche/CSV et quatre Fournisseurs restent réussis dans les deux nouvelles CI. Les 29 cas Suivi client et sept cas de contexte d’autorisation passent aussi sur les deux moteurs.
 
-**653cddc6c03fd8f3cf73c6fc12e07696181fb545** : historiques Fournisseurs, concurrence bancaire/manuelle, fiche et annuaire Client. La [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37799746983) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37799765287) réussissent. La fusion de test `1898d8ca08bf005fef77515bc47a625c3edfeff7` a bien main et ce candidat pour parents ; les [métadonnées](evidence/20261008-client-directory/ci-653cddc.json) conservent leur identité.
+**949adca2d9bb5b3e0b7ca11bc6a60ff02cf35439** : la [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37811536931) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37811543438) réussissent. La fusion de test `f69504520b8a2ea35480131979cc3d3de68bf473` a bien main et ce candidat pour parents. Les [métadonnées](evidence/20261008-customer-success-permissions/ci-949adca.json) conservent rapports, empreintes, exclusions et identité des fichiers hors documentation ; une consolidation des seules preuves ne constitue pas un nouveau correctif métier.
 
 | Contrôle | Résultat de branche |
 | --- | --- |
 | Types, deux moteurs de lint, build et couverture ciblée | Réussis |
-| SQLite | 987 tests / 161 fichiers |
-| PostgreSQL | 986 réussis, une exclusion native SQLite |
-| Navigateur | 167 réussis ; 19 exclusions historiques |
+| SQLite | 1 023 tests / 163 fichiers |
+| PostgreSQL | 1 022 réussis, une exclusion native SQLite |
+| Navigateur | 175 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audit production / complet | Zéro vulnérabilité |
+
+Le rapport automatisé de branche couvre 65 routes sur chaque format, sans résultat P0/P1/P2/P3. Il ne certifie ni toute l’accessibilité ni tous les états du produit. La [référence précédente 653cddc](evidence/20261008-client-directory/ci-653cddc.json) reste conservée avec ses deux CI vertes et sa propre fusion de test.
 
 La [qualification Banque/Fournisseurs](qualification-banque-fournisseurs-20261008.md) conserve l’échec du CSV sur la PR ff3b0f3, sa correction et les résultats ultérieurs. Les [preuves historiques Next/studios](evidence/20261008-next-studios/README.md) et le [journal](journal-recettes-completude-20261003.md) conservent leurs versions et leurs limites. Aucun résultat antérieur n’est attribué aux nouveaux historiques ou à l’import concurrent.
 
@@ -43,7 +47,7 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 
 ## Ce qui reste à fermer
 
-- CI propre des nouveaux correctifs Suivi client et contexte d’autorisation. Les lots précédents passent les deux CI de 653cddc. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable, sans seuil réduit ni contrôle retiré.
+- Suivi client et contexte d’autorisation sont qualifiés par les deux CI de 949adca. Les autres scores partagés, analyses Service et collections CRM nécessitent leurs propres recettes ; la restriction de ce lot ne clôture pas tous les droits. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable, sans seuil réduit ni contrôle retiré.
 - Banque : historique, correspondances, dates impossibles et récupération du CSV qualifiés par 1e5e3bc ; [import concurrent](qualification-import-bancaire-concurrent-20261008.md) et [trois rapprochements](qualification-rapprochements-bancaires-20261008.md) passent PostgreSQL. Autres entrées de paiement, remboursements, avoirs, réservations et stress restent à qualifier.
 - Fournisseurs : [lot approuvé et implémenté](contrat-fournisseurs-gestion.md), [historiques et indicateurs](contrat-fournisseurs-historiques.md) qualifiés par les deux CI de 653cddc. Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.

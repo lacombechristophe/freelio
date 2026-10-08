@@ -1,6 +1,6 @@
 # Suivi client : accès aux mesures financières
 
-Lot approuvé le 8 octobre 2026, en cours de qualification. La matrice des rôles reste inchangée. Le complément Annuaire possède sa propre qualification.
+Lot approuvé le 8 octobre 2026, implémenté et [qualifié par les deux CI de 949adca](qualification-suivi-client-droits-20261008.md). La matrice des rôles reste inchangée. Le complément Annuaire possède sa propre qualification.
 
 ## Défaut reproduit
 
