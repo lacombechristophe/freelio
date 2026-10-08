@@ -4,6 +4,7 @@ import path from "node:path"
 import { createHash, randomUUID } from "node:crypto"
 import { hashPassword } from "../src/lib/auth/password-core.ts"
 import { encrypt } from "../src/lib/crypto.ts"
+import { seedCatalogueAssets } from "./seed-catalogue-assets.mjs"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -16,6 +17,7 @@ try {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: "qa-crm@example.com" } })
   const companyId = user.companyId
   if (!companyId) throw new Error("Seed the QA account first.")
+  await seedCatalogueAssets(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   for (const surface of ["desktop", "mobile"]) {
     await prisma.supplier.createMany({ data: Array.from({ length: 201 }, (_, index) => ({
       companyId, name: `UIQA Supplier ${surface} ${String(index).padStart(3, "0")}`, code: `UIQA-SUP-${surface}-${index}`, contactName: "Fictional supplier contact",
