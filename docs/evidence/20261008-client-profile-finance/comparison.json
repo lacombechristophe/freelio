@@ -1,0 +1,433 @@
+{
+  "schema": "freelio.permission-comparison.v1",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "method": "Same corrected test file in both runs; only src/actions/clients/index.ts substituted with the historical version inside the isolated recipe, then restored in finally.",
+  "initialFixtureIssue": {
+    "before": {
+      "total": 21,
+      "passed": 11,
+      "failed": 10
+    },
+    "firstFixedRun": {
+      "total": 68,
+      "passed": 68,
+      "failed": 0,
+      "exitCode": 1
+    },
+    "cause": "Fixture teardown attempted to delete Company before Client, whose company relation does not cascade. Explicit fixture-client deletion corrected the hook, and both comparisons were rerun.",
+    "removedPriorProbeCompanies": 4,
+    "removedPriorProbeUsers": 2
+  },
+  "before": {
+    "exitCode": 1,
+    "total": 21,
+    "passed": 11,
+    "failed": 10,
+    "reportSha256": "8695c8ea9efe72df3af4a9181e6198712d5e5537a290ade4369cb36f30e3cbc3",
+    "testSha256": "82730e13e01781b6cbfcb816169bebaa5ba59f02ede5f2b633e7aae3ad4e36c3",
+    "suites": [
+      {
+        "file": "client-profile-finance.integration.test.ts",
+        "status": "failed",
+        "cases": [
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'SALES'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'SALES'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'OPERATIONS'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'OPERATIONS'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'TECHNICIAN'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'TECHNICIAN'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'SERVICE'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'SERVICE'",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'OWNER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'OWNER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'ADMIN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'ADMIN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not return or read a foreign-company financial profile",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses keeps the minimal reader free of financial fields",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses rereads a revoked role with the same session",
+            "status": "failed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses refuses both financial profile readers after suspension",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses keeps public-demo consultation without the inaccessible renewal field",
+            "status": "failed"
+          }
+        ]
+      }
+    ],
+    "reference": "3def5cddc14f11cdd86f436c5ef8949197eaa603",
+    "sourceSha256": "64f2daeb03a3469b1bb540b6a56c448dae78364d8676a5ec143bd3577b195589"
+  },
+  "after": {
+    "exitCode": 0,
+    "total": 68,
+    "passed": 68,
+    "failed": 0,
+    "reportSha256": "ffd7de12b9fc23aef4e9d28abea449858af88796bbcd621af9b34f1fe634b9b4",
+    "testSha256": "82730e13e01781b6cbfcb816169bebaa5ba59f02ede5f2b633e7aae3ad4e36c3",
+    "suites": [
+      {
+        "file": "client-directory-permissions.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "client directory respects Finance reading permissions keeps authorized OWNER financial values",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps authorized ACCOUNTING financial values",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'TECHNICIAN' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'TECHNICIAN' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SERVICE' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SERVICE' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SALES' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SALES' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'not_equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'contains' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'greater_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'less_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'is_not_empty' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'not_equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'contains' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'greater_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'less_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'is_not_empty' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions reports revenue as unavailable for every client without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions reports unpaid as unavailable for every client without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps hidden financial sorting asc stable by ID",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps hidden financial sorting desc stable by ID",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not even read invoice aggregates without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions rereads inactive agency access before returning amounts",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions rereads unassigned agency access before returning amounts",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return foreign clients through a searched directory",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions refuses suspended membership in both readers",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps nonfinancial directory reads available in the public demo without writing",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "client-profile-finance.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'OWNER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'OWNER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'ADMIN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'ADMIN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not return or read a foreign-company financial profile",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses keeps the minimal reader free of financial fields",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses rereads a revoked role with the same session",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses refuses both financial profile readers after suspension",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses keeps public-demo consultation without the inaccessible renewal field",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "client-read-scope.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps company-wide OWNER reads without disclosing foreign nested documents",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps company-wide ADMIN reads without disclosing foreign nested documents",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps Accounting reads within its currently assigned agency",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not return Finance or Sales documents to TECHNICIAN through a CRM read",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not return Finance or Sales documents to SERVICE through a CRM read",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes preserves Sales documents and writing rights without returning financial amounts or invoices",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes preserves Viewer document reads without giving Sales writing rights",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes rereads inactive agency access rather than retaining old document visibility",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes rereads unassigned agency access rather than retaining old document visibility",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes reads permitted client data in public demo mode without writing",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID undefined",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID null",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID ",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID  ",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes refuses a foreign client even when its ID is supplied directly",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes refuses a suspended membership before reading client detail",
+            "status": "passed"
+          }
+        ]
+      }
+    ],
+    "reference": "working tree with two return-value guards",
+    "sourceSha256": "5367fdbafeec2c3f8ad72cfb787cab5d4057f0a42ac5ae2efcf92c84d1e58bb1"
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "postgresExecuted": false,
+    "browserChange": false
+  }
+}
