@@ -27,6 +27,11 @@ export async function seedCatalogueAssets(prisma, passwordHash) {
           const otherSite = await prisma.customerSite.create({ data: { companyId, clientId: client.id, agencyId: otherAgency.id, label: "Fictional other agency site", address1: "Fictional address" } })
           await prisma.equipment.create({ data: { companyId, siteId: otherSite.id, label: "Fictional other agency equipment" } })
         } else {
+          await prisma.customerHealthSnapshot.createMany({ data: [
+            { companyId, clientId: client.id, score: 91, status: "HEALTHY", factors: [], computedAt: new Date("2030-01-01") },
+            { companyId, clientId: client.id, score: 37, status: "RISK", factors: [], computedAt: new Date("2035-01-01") },
+          ] })
+          await prisma.automationWorkflow.create({ data: { companyId, name: "Fictional health permission simulation", trigger: "CUSTOMER_HEALTH_CHANGED", conditions: { healthScoreBelow: 50, healthScoreDropAtLeast: 10 }, actions: [{ type: "CREATE_TASK", title: "Fictional simulated follow-up", delayHours: 0, priority: 2 }] } })
           const survey = await prisma.satisfactionSurvey.create({ data: { companyId, name: "Fictional analytics CSAT", question: "Fictional question" } })
           for (const [agency, suffix, score] of [[localAgency, "local", 5], [otherAgency, "other", 1]]) {
             const site = await prisma.customerSite.create({ data: { companyId, clientId: client.id, agencyId: agency.id, label: `Fictional ${suffix} site`, address1: "Fictional address" } })

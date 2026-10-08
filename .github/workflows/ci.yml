@@ -130,6 +130,9 @@ jobs:
             test-results/full-ui-audit/
             test-results/task-usability/
             test-results/supplier-history/
+            test-results/catalogue-volume/
+            test-results/operations-assets/
+            test-results/shared-health-permissions/
           if-no-files-found: ignore
           retention-days: 14
 
