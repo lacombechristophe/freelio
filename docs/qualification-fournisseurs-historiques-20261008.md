@@ -21,3 +21,15 @@ Deux parcours par format sont préparés : accès aux dernières pages des trois
 La CI de [branche 1e5e3bc](https://github.com/lacombechristophe/freelio/actions/runs/37773059619) et sa [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37773066937) ont réussi le lot d’annuaire et les corrections Banque précédents ; elles ne qualifient pas ces nouveaux historiques ni le correctif d’import concurrent e18da50.
 
 Ces lectures ne démontrent ni charge hébergée, ni résolution de la concurrence des rapprochements/paiements. Main et la démo hébergée restent une livraison distincte.
+
+## Résultat CI et isolation de la recette
+
+Les CI de [branche 5616823](https://github.com/lacombechristophe/freelio/actions/runs/37777822124) et de [PR](https://github.com/lacombechristophe/freelio/actions/runs/37777827194) échouent : respectivement 150 et 149 E2E réussis, cinq et six échecs, 19 exclusions historiques. PostgreSQL réussit 927 tests avec une exclusion native SQLite ; Linux réussit. Les 19 cas SQL d’historiques et les quatre nouveaux parcours fournisseur passent.
+
+Les volumes fournisseurs avaient été ajoutés à la société commune à tous les parcours. Son catalogue sans pagination dépasse alors le budget de capture UI et affecte les tests de navigation. Deux sélecteurs anciens rencontrent aussi plusieurs boutons « Enregistrer » ; la PR rencontre deux notifications identiques après les transferts successifs. Ces échecs restent conservés dans les exécutions ci-dessus.
+
+La recette suivante conserve 301 produits, 101 commandes et 101 retours par format, mais les place dans deux sociétés fictives distinctes, avec leurs sessions propres. Les captures complètes des premières pages et des historiques filtrés sont publiées ; les tests de transfert vérifient leurs directions persistées, en plus des notifications. Aucun délai, exclusion ou seuil n’est assoupli. La suite locale commune réussit 936 tests / 158 fichiers en 134,71 secondes ; nouvelle CI navigateur requise.
+
+Cette isolation rétablit l’indépendance des parcours et ne résout pas le catalogue général à plus de 600 produits. Sa pagination serveur est une proposition distincte dans le [contrat Catalogue](contrat-catalogue-volume.md), soumise à confirmation visible.
+
+Le correctif de recette **8d988ca** passe types, ESLint et Oxlint. Le build compile en 17,3 secondes et génère 75 pages, le schéma PostgreSQL est validé sans connexion et les 176 E2E / 40 fichiers restent découverts. Ces contrôles locaux ne remplacent pas l’exécution des nouvelles connexions et captures dans la CI navigateur.

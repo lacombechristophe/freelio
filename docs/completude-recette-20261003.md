@@ -2,9 +2,9 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
-Le candidat **e67a1b4** complète les historiques et indicateurs Fournisseurs approuvés, après le correctif d’import bancaire concurrent. Leur [qualification locale](qualification-fournisseurs-historiques-20261008.md) réussit 928 tests / 157 fichiers, types, les deux moteurs de lint et build de 75 pages ; CI propre à ce lot restante. Main et le déploiement restent inchangés.
+Le candidat complète les historiques et indicateurs Fournisseurs approuvés, l’import concurrent et les trois rapprochements bancaires. La recette locale commune réussit **936 tests / 158 fichiers**, types et les deux moteurs de lint. La [preuve PostgreSQL avant/après](qualification-rapprochements-bancaires-20261008.md) reproduit quatre courses puis leur correction sur e0726f6. Les CI complètes de 5616823 restent en échec sur des captures Catalogue et des sélecteurs E2E ; la [qualification Fournisseurs](qualification-fournisseurs-historiques-20261008.md) détaille ces échecs et l’isolation de la recette suivante. Main et le déploiement restent inchangés.
 
-## Dernière référence exécutée en CI
+## Dernière référence entièrement verte en CI
 
 **1e5e3bcdf67fdfb1e6a1abb6906e0773e95e9885** : gestion des fournisseurs, frontières d’agence, récupération du CSV et préparation des studios par lots. La [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37773059619) et la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37773066937) réussissent.
 
@@ -37,8 +37,8 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 
 ## Ce qui reste à fermer
 
-- CI propre du candidat final, incluant les nouveaux historiques Fournisseurs et l’import concurrent. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent désormais zéro alerte, sans seuil réduit ni contrôle retiré. La qualification du nouveau commit reste requise.
-- Banque : historique, correspondances, dates impossibles et récupération du CSV qualifiés par 1e5e3bc ; [import concurrent corrigé et testé localement](qualification-import-bancaire-concurrent-20261008.md), CI de ce correctif restante. La concurrence des rapprochements et paiements reste ouverte.
+- CI propre du candidat final, incluant les historiques Fournisseurs, les imports et rapprochements concurrents et l’isolation des fixtures. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent zéro alerte, sans seuil réduit ni contrôle retiré.
+- Banque : historique, correspondances, dates impossibles et récupération du CSV qualifiés par 1e5e3bc ; [import concurrent](qualification-import-bancaire-concurrent-20261008.md) et [trois rapprochements](qualification-rapprochements-bancaires-20261008.md) passent PostgreSQL. Autres entrées de paiement, remboursements, avoirs, réservations et stress restent à qualifier.
 - Fournisseurs : [lot approuvé et implémenté](contrat-fournisseurs-gestion.md), qualifié en CI ; [historiques et indicateurs](contrat-fournisseurs-historiques.md) approuvés et en qualification. Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
 

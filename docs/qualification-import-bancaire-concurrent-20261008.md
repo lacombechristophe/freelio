@@ -13,3 +13,5 @@ La recette ciblée du correctif réussit ses 44 cas Banque, dont les huit import
 Ce contrôle ne clôture pas les courses de rapprochement, les paiements ni une charge PostgreSQL. La limite de trois tentatives peut encore refuser un import soumis à des conflits répétés ; elle conserve l’erreur plutôt que d’annoncer un faux succès.
 
 Test : [banking-concurrency.integration.test.ts](../tests/unit/banking-concurrency.integration.test.ts). Action : [bank/index.ts](../src/actions/bank/index.ts).
+
+La [CI de branche 5616823](https://github.com/lacombechristophe/freelio/actions/runs/37777822124) et sa [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37777827194) exécutent les deux cas d’import concurrent sur PostgreSQL avec succès. Les parcours Banque passent également. Ces workflows restent en échec sur des parcours Catalogue et des sélecteurs Opérations, détaillés dans la [qualification Fournisseurs](qualification-fournisseurs-historiques-20261008.md) ; ces réussites ciblées ne constituent pas une CI globale verte.

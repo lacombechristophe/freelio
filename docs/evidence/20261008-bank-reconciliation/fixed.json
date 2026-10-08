@@ -1,0 +1,50 @@
+{
+  "schema": "freelio.bank-reconciliation-fixed.v1",
+  "commit": "e0726f63872767ab60766cedfd5512c7715dd311",
+  "run": "https://github.com/lacombechristophe/freelio/actions/runs/37781478830",
+  "postgresJob": 113325380407,
+  "artifactId": 11553037068,
+  "artifactJsonSha256": "e1fa22741bedfc217f6db67104bd46bfde71bd679159efddb1abdaef38df7866",
+  "engine": "PostgreSQL on GitHub Actions",
+  "suite": {
+    "passed": 935,
+    "failed": 0,
+    "pending": 1,
+    "total": 936
+  },
+  "cases": [
+    {
+      "name": "rejects a missing transaction ID before invoice can mutate the first bank row",
+      "status": "passed"
+    },
+    {
+      "name": "rejects a missing transaction ID before expense can mutate the first bank row",
+      "status": "passed"
+    },
+    {
+      "name": "rejects a missing transaction ID before convert can mutate the first bank row",
+      "status": "passed"
+    },
+    {
+      "name": "retains partial payment, settles the exact balance and refuses a replay",
+      "status": "passed"
+    },
+    {
+      "name": "does not lose either of two eligible concurrent payments on one invoice",
+      "status": "passed"
+    },
+    {
+      "name": "uses a bank credit only once when two different invoices compete",
+      "status": "passed"
+    },
+    {
+      "name": "creates exactly one expense when a bank debit is converted concurrently",
+      "status": "passed"
+    },
+    {
+      "name": "does not overwrite an expense match when two existing expenses compete",
+      "status": "passed"
+    }
+  ],
+  "workflow": "Cancelled after PostgreSQL and Linux jobs passed; full browser qualification remains separate."
+}

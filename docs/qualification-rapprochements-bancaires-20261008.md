@@ -25,3 +25,9 @@ La recette ciblée locale passe 53 cas Banque, dont huit cas de rapprochement. L
 Une première transformation des trois appels laissait le dernier avec des parenthèses incompatibles ; le parseur a refusé le fichier avant les tests. Les trois appels corrigés passent la même recette ciblée, sans modifier les délais, assertions ou exclusions.
 
 Tests : [banking-reconciliation.integration.test.ts](../tests/unit/banking-reconciliation.integration.test.ts). Helper : [bank-reconciliation.ts](../src/lib/bank-reconciliation.ts). Actions : [bank/index.ts](../src/actions/bank/index.ts).
+
+### Résultat PostgreSQL de la correction
+
+Le commit **e0726f63872767ab60766cedfd5512c7715dd311** passe le job PostgreSQL de la [recette dédiée](https://github.com/lacombechristophe/freelio/actions/runs/37781478830) : **935 réussites, zéro échec et une exclusion native SQLite**, dont les huit cas de rapprochement. Les quatre courses reproduites sur cc17e94 passent avec la même barrière de lectures réelles. Le job Linux réussit également. La [synthèse de l’artifact](evidence/20261008-bank-reconciliation/fixed.json) conserve la référence et son empreinte.
+
+Le reste du workflow a été annulé après ces jobs : cette exécution établit la correction PostgreSQL, sans qualifier toute la CI navigateur. La CI finale de la branche doit également intégrer l’isolation des fixtures fournisseurs et les sélecteurs E2E corrigés. Les autres écritures financières restent hors de cette preuve.
