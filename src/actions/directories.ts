@@ -70,6 +70,7 @@ export async function getClientDirectory(input: DirectoryQuery) {
   const query = directoryQuerySchema.parse(input)
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const canReadFinance = hasPermission(role, "finance.read")
+    const canReadGlobalHealth = canReadFinance && agencyIds === null
     const invoiceScope = { companyId, ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: { companyId, agencyId: { in: agencyIds } } }) }
     const where = { companyId, ...(query.search.trim() ? { OR: [
       { name: contains(query.search) }, { address: contains(query.search) }, { siret: contains(query.search) },
@@ -81,7 +82,7 @@ export async function getClientDirectory(input: DirectoryQuery) {
     const candidates = await prisma.client.findMany({ where,
       ...(!computed ? { skip: (initialPage - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE } : {}),
       orderBy: [{ name: query.sort.direction }, { id: "asc" }],
-      select: { id: true, name: true, type: true, siret: true, tvaNumber: true, address: true, relationScore: true, contacts: { where: { isPrimary: true }, take: 1, select: { firstName: true, lastName: true, email: true } } },
+      select: { id: true, name: true, type: true, siret: true, tvaNumber: true, address: true, relationScore: canReadGlobalHealth, contacts: { where: { isPrimary: true }, take: 1, select: { firstName: true, lastName: true, email: true } } },
     })
     const ids = candidates.map((client) => client.id)
     const [paid, unpaid, properties] = ids.length ? await Promise.all([
@@ -93,7 +94,7 @@ export async function getClientDirectory(input: DirectoryQuery) {
     const unpaidMap = new Map(unpaid.map((item) => [item.clientId, (item._sum.totalTtcCents ?? 0) - (item._sum.paidAmountCents ?? 0)]))
     const propertyMap = new Map<string, Record<string, unknown>>()
     for (const property of properties) propertyMap.set(property.recordId, { ...propertyMap.get(property.recordId), [property.definitionId]: property.value })
-    const hydrated = candidates.map((client) => ({ ...client, totalRevenueCents: canReadFinance ? paidMap.get(client.id) ?? 0 : null, totalUnpaidCents: canReadFinance ? unpaidMap.get(client.id) ?? 0 : null, propertyValues: propertyMap.get(client.id) ?? {} }))
+    const hydrated = candidates.map((client) => ({ ...client, relationScore: canReadGlobalHealth ? client.relationScore : null, totalRevenueCents: canReadFinance ? paidMap.get(client.id) ?? 0 : null, totalUnpaidCents: canReadFinance ? unpaidMap.get(client.id) ?? 0 : null, propertyValues: propertyMap.get(client.id) ?? {} }))
     function field(client: typeof hydrated[number], key: string): unknown {
       if (key === "name") return client.name
       if (key === "type") return client.type

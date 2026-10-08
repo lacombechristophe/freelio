@@ -22,7 +22,7 @@ export default async function ServiceWorkspacePage() {
         { label: "Contrats actifs", value: data.maintenanceContracts, detail: "Entretien et maintenance", icon: Repeat2, tone: "amber", href: "/dashboard/operations?tab=maintenance" },
         { label: "Messages non lus", value: data.unreadEmail, detail: "Conversations ouvertes", icon: Inbox, tone: "red", alert: data.unreadEmail > 0, status: data.unreadEmail ? "À lire" : "À jour", href: "/dashboard/communications" },
       ]}
-      featured={<div className="grid gap-3 xl:grid-cols-2"><WorkspaceDistributionPanel title="Couverture relationnelle" description="Répartition du portefeuille selon le score de santé calculé." items={[{ label: "Relation saine", value: data.clientHealth.healthy }, { label: "À surveiller", value: data.clientHealth.watch }, { label: "À risque", value: data.clientHealth.risk }]} href="/dashboard/service/customer-success" linkLabel="Ouvrir l’analyse de santé" /><WorkspaceDistributionPanel title="Répartition de la file SAV" description="Volume ouvert par niveau de priorité." items={["URGENT", "HIGH", "NORMAL", "LOW"].map((priority) => ({ label: priority === "URGENT" ? "Urgent" : priority === "HIGH" ? "Haute" : priority === "NORMAL" ? "Normale" : "Faible", value: data.priorityTickets.filter((ticket) => ticket.priority === priority).length }))} href="/dashboard/service/help-desk" linkLabel="Ouvrir le centre de support" /></div>}
+      featured={<div className="grid gap-3 xl:grid-cols-2"><WorkspaceDistributionPanel title="Couverture relationnelle" unavailable={data.clientHealth === null ? "Historique global indisponible" : undefined} description="Répartition du portefeuille selon le score de santé calculé." items={[{ label: "Relation saine", value: data.clientHealth?.healthy ?? 0 }, { label: "À surveiller", value: data.clientHealth?.watch ?? 0 }, { label: "À risque", value: data.clientHealth?.risk ?? 0 }]} href="/dashboard/service/customer-success" linkLabel="Ouvrir l’analyse de santé" /><WorkspaceDistributionPanel title="Répartition de la file SAV" description="Volume ouvert par niveau de priorité." items={["URGENT", "HIGH", "NORMAL", "LOW"].map((priority) => ({ label: priority === "URGENT" ? "Urgent" : priority === "HIGH" ? "Haute" : priority === "NORMAL" ? "Normale" : "Faible", value: data.priorityTickets.filter((ticket) => ticket.priority === priority).length }))} href="/dashboard/service/help-desk" linkLabel="Ouvrir le centre de support" /></div>}
       panels={[
         {
           title: "File SAV prioritaire",
@@ -43,12 +43,12 @@ export default async function ServiceWorkspacePage() {
         {
           title: "Dossiers clients suivis",
           description: "Clients récemment actifs, classés par score relationnel.",
-          rows: [...data.recentClients].sort((left, right) => left.relationScore - right.relationScore).map((client) => ({
+          rows: [...data.recentClients].sort((left, right) => left.relationScore === null || right.relationScore === null ? 0 : left.relationScore - right.relationScore).map((client) => ({
             title: client.name,
             detail: client.nextActionLabel || `${client._count.projects} projet(s) · ${client._count.contacts} contact(s)`,
-            meta: `${client.relationScore}/100`,
-            status: client.relationScore < 60 ? "À risque" : client.relationScore < 80 ? "À suivre" : "Sain",
-            tone: client.relationScore < 60 ? "red" : client.relationScore < 80 ? "amber" : "teal",
+            meta: client.relationScore === null ? "Historique global indisponible" : `${client.relationScore}/100`,
+            status: client.relationScore === null ? "Historique global indisponible" : client.relationScore < 60 ? "À risque" : client.relationScore < 80 ? "À suivre" : "Sain",
+            tone: client.relationScore === null ? "blue" : client.relationScore < 60 ? "red" : client.relationScore < 80 ? "amber" : "teal",
             href: `/dashboard/clients/${client.id}`,
             icon: Gauge,
           })),

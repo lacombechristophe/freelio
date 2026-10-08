@@ -44,7 +44,7 @@ type Client = {
   address?: string | null
   totalRevenueCents: number | null
   totalUnpaidCents: number | null
-  relationScore: number
+  relationScore: number | null
   contacts: Array<{ firstName: string; lastName: string; email?: string | null }>
   propertyValues: Record<string, unknown>
 }
@@ -225,6 +225,7 @@ export function ClientsTable({
           ...columns.map((column) => {
             const value = clientFieldValue(client, column.id)
             if (column.id === "revenue" || column.id === "unpaid") return value === null ? "Accès Finance requis" : String(value ?? "")
+            if (column.id === "relation" && value === null) return "Historique global indisponible"
             const definition = columnDefinitions.get(column.id)
             return definition ? propertyValueLabel(definition, value) : String(value ?? "")
           }),
@@ -305,7 +306,7 @@ function ClientColumn({ columnId, client, definition }: { columnId: string; clie
   if (columnId === "type") return <TableCell data-column={columnId}><Badge variant="secondary" className="font-normal"><Building2 />{client.type === "INDIVIDUAL" ? "Particulier" : "Entreprise"}</Badge></TableCell>
   if (columnId === "revenue") return <TableCell data-column={columnId} className="text-right font-medium tabular-nums">{formatEuro(client.totalRevenueCents)}</TableCell>
   if (columnId === "unpaid") return <TableCell data-column={columnId} className={cn("text-right font-medium tabular-nums", client.totalUnpaidCents !== null && client.totalUnpaidCents > 0 ? "text-danger" : "text-muted-foreground")}>{formatEuro(client.totalUnpaidCents)}</TableCell>
-  if (columnId === "relation") return <TableCell data-column={columnId}><div className="flex items-center gap-2"><div className="h-1.5 w-14 overflow-hidden rounded-full bg-muted"><div className={cn("h-full", client.relationScore > 80 ? "bg-success" : client.relationScore > 60 ? "bg-warning" : "bg-danger")} style={{ width: `${client.relationScore}%` }} /></div><span className="text-xs font-medium">{client.relationScore}%</span></div></TableCell>
+  if (columnId === "relation") return <TableCell data-column={columnId}>{client.relationScore === null ? <span className="text-xs text-muted-foreground">Historique global indisponible</span> : <div className="flex items-center gap-2"><div className="h-1.5 w-14 overflow-hidden rounded-full bg-muted"><div className={cn("h-full", client.relationScore > 80 ? "bg-success" : client.relationScore > 60 ? "bg-warning" : "bg-danger")} style={{ width: `${client.relationScore}%` }} /></div><span className="text-xs font-medium">{client.relationScore}%</span></div>}</TableCell>
   const label = definition ? propertyValueLabel(definition, client.propertyValues[columnId]) : "—"
   return <TableCell data-column={columnId} className="max-w-[240px] truncate" title={label}>{label}</TableCell>
 }

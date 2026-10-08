@@ -10,6 +10,7 @@ import { evaluateWorkflowConfiguration, workflowConfigurationSchema, automationT
 import { POOL_AUTOMATION_SEQUENCES, POOL_AUTOMATION_WORKFLOWS, POOL_EMAIL_TEMPLATES } from "@/lib/automations/presets"
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 import { nextSequenceExecution, sequenceTimezoneIsValid } from "@/lib/automations/schedule"
 import { customerHealthStatus } from "@/lib/operations/customer-health"
@@ -134,7 +135,8 @@ function assertWorkflowCompatibility(trigger: z.infer<typeof automationTriggerSc
 }
 
 export async function getAutomationDashboard() {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadGlobalHealth = hasPermission(role, "finance.read") && agencyIds === null
     const sequenceScope = await sequenceMailboxWhere(companyId)
     const senderChannels = await prisma.communicationChannel.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, emailAddress: true, provider: true }, orderBy: { emailAddress: "asc" } })
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
@@ -175,7 +177,7 @@ export async function getAutomationDashboard() {
       }),
       prisma.client.findMany({
         where: { companyId },
-        select: { id: true, name: true, relationScore: true, healthSnapshots: { select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
+        select: { id: true, name: true, relationScore: canReadGlobalHealth, healthSnapshots: { where: { companyId, ...(canReadGlobalHealth ? {} : { id: { in: [] } }) }, select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
         orderBy: { name: "asc" },
         take: 300,
       }),
@@ -294,10 +296,11 @@ export async function getAutomationDashboard() {
       clients: clients.map((client) => ({
         id: client.id,
         name: client.name,
-        score: client.relationScore,
-        status: customerHealthStatus(client.relationScore),
-        previousScore: client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null,
+        score: canReadGlobalHealth ? client.relationScore : null,
+        status: canReadGlobalHealth ? customerHealthStatus(client.relationScore) : null,
+        previousScore: canReadGlobalHealth ? client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null : null,
       })),
+      access: { globalHealth: canReadGlobalHealth },
       stats: {
         deliveries: Object.fromEntries(deliveryStats.map((item) => [item.status, item._count._all])),
         runs: Object.fromEntries(runStats.map((item) => [item.status, item._count._all])),
@@ -848,7 +851,7 @@ export async function updateAutomationWorkflowStatus(workflowId: string, status:
 }
 
 export async function simulateAutomationWorkflow(workflowId: string, subjectId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const workflow = await prisma.automationWorkflow.findFirst({
       where: { id: idSchema.parse(workflowId), companyId },
       select: { id: true, name: true, trigger: true, conditions: true, actions: true },
@@ -856,9 +859,10 @@ export async function simulateAutomationWorkflow(workflowId: string, subjectId: 
     if (!workflow) throw new Error("Scénario introuvable")
     const parsedSubjectId = idSchema.parse(subjectId)
     if (workflow.trigger === "CUSTOMER_HEALTH_CHANGED") {
+      if (!hasPermission(role, "finance.read") || agencyIds !== null) throw new Error("Historique global indisponible : simulation de santé réservée à un accès Finance sur toute la société.")
       const client = await prisma.client.findFirst({
         where: { id: parsedSubjectId, companyId },
-        select: { id: true, name: true, relationScore: true, healthSnapshots: { select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
+        select: { id: true, name: true, relationScore: true, healthSnapshots: { where: { companyId }, select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
       })
       if (!client) throw new Error("Client introuvable")
       const previousHealthScore = client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null

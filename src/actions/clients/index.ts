@@ -68,6 +68,7 @@ export async function getClients(cursor?: string, limit: number = 20) {
       propertyDefinitions,
       clients: clients.map((c) => ({
         ...c,
+        relationScore: canReadFinance && agencyIds === null ? c.relationScore : null,
         renewalAmountCents: canReadFinance ? c.renewalAmountCents : null,
         totalRevenueCents: canReadFinance ? paidMap.get(c.id) ?? 0 : null,
         totalUnpaidCents: canReadFinance ? unpaidMap.get(c.id) ?? 0 : null,
@@ -134,7 +135,7 @@ export async function getClientById(id: string) {
     const totalRevenueCents = paidAgg ? paidAgg._sum.totalHtCents ?? 0 : null
     const totalUnpaidCents = unpaidAgg ? (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0) : null
 
-    return { ...client, renewalAmountCents: canReadFinance ? client.renewalAmountCents : null, totalRevenueCents, totalUnpaidCents, access: { sales: canReadSales, finance: canReadFinance, salesWrite: hasPermission(role, "sales.write") } }
+    return { ...client, relationScore: canReadFinance && agencyIds === null ? client.relationScore : null, renewalAmountCents: canReadFinance ? client.renewalAmountCents : null, totalRevenueCents, totalUnpaidCents, access: { sales: canReadSales, finance: canReadFinance, salesWrite: hasPermission(role, "sales.write") } }
   }, { isolationLevel: "Serializable" }), "crm.read")
 }
 

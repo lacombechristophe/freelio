@@ -2,6 +2,7 @@
 
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
+import { hasPermission } from "@/lib/permissions"
 
 function dateKey(value: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(value)
@@ -43,7 +44,8 @@ function dailyAmountSeries(days: number, now: Date, events: Array<{ date: Date; 
 export type WorkspaceScope = "ALL" | "CRM" | "SALES" | "MARKETING" | "SERVICE" | "REVENUE"
 
 export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadGlobalHealth = hasPermission(role, "finance.read") && agencyIds === null
     const now = new Date()
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1_000)
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000)
@@ -82,7 +84,7 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
       prisma.organisationTask.count({ where: { companyId, status: { notIn: ["DONE"] }, dueDate: { lte: new Date(now.getTime() + 48 * 60 * 60 * 1_000) } } }),
       needs("CRM") ? prisma.client.findMany({
         where: { companyId },
-        select: { id: true, name: true, relationScore: true, nextActionAt: true, nextActionLabel: true, _count: { select: { contacts: true, projects: true } } },
+        select: { id: true, name: true, relationScore: canReadGlobalHealth, nextActionAt: true, nextActionLabel: true, _count: { select: { contacts: true, projects: true } } },
         orderBy: { updatedAt: "desc" },
         take: 5,
       }) : Promise.resolve([]),
@@ -157,7 +159,7 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
         orderBy: { dueDate: "asc" },
         take: 100,
       }) : Promise.resolve([]),
-      needs("CRM", "SERVICE") ? prisma.client.findMany({ where: { companyId }, select: { relationScore: true }, take: 2_000 }) : Promise.resolve([]),
+      canReadGlobalHealth && needs("CRM", "SERVICE") ? prisma.client.findMany({ where: { companyId }, select: { relationScore: true }, take: 2_000 }) : Promise.resolve([]),
     ])
 
     return {
@@ -183,7 +185,7 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
       quotes,
       contracts,
       dueTasks,
-      recentClients,
+      recentClients: recentClients.map(client => ({ ...client, relationScore: canReadGlobalHealth ? client.relationScore : null })),
       priorityTasks,
       opportunities,
       campaigns,
@@ -207,11 +209,11 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
       paymentSeries: dailyAmountSeries(30, now, paymentEvents),
       paymentsLast90DaysCents: paymentEvents.reduce((sum, payment) => sum + payment.amountCents, 0),
       outstandingInvoices,
-      clientHealth: {
+      clientHealth: canReadGlobalHealth ? {
         healthy: clientHealth.filter((client) => client.relationScore >= 80).length,
         watch: clientHealth.filter((client) => client.relationScore >= 60 && client.relationScore < 80).length,
         risk: clientHealth.filter((client) => client.relationScore < 60).length,
-      },
+      } : null,
     }
   }, "crm.read")
 }

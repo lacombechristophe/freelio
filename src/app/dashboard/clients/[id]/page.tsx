@@ -61,7 +61,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <RecordSummary label="Synthèse du client" items={[
         { label: "CA total", value: client.totalRevenueCents === null ? "Accès Finance requis" : formatEuro(client.totalRevenueCents) },
         { label: "Impayé", value: client.totalUnpaidCents === null ? "Accès Finance requis" : <span className={client.totalUnpaidCents > 0 ? "text-danger" : undefined}>{formatEuro(client.totalUnpaidCents)}</span> },
-        { label: "Score relation", value: `${client.relationScore} %`, detail: <Link href="/dashboard/service/customer-success" className="inline-flex min-h-6 items-center font-medium text-primary hover:underline">Voir dans le portefeuille</Link> },
+        { label: "Score relation", value: client.relationScore === null ? "Historique global indisponible" : `${client.relationScore} %`, detail: <Link href="/dashboard/service/customer-success" className="inline-flex min-h-6 items-center font-medium text-primary hover:underline">Voir dans le portefeuille</Link> },
       ]} />
 
       <RecordTabs sections={[
