@@ -1,17 +1,51 @@
+const RECIPE_ROLES = {
+  catalogue: ["OWNER"],
+  assets: ["OWNER"],
+  analytics: ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"],
+  opportunity: ["OWNER", "ADMIN", "SALES", "VIEWER"],
+  "project-readers": ["OWNER", "ADMIN", "TECHNICIAN", "SERVICE", "SALES", "ACCOUNTING", "VIEWER"],
+  "contact-readers": ["OWNER", "ADMIN", "TECHNICIAN", "SERVICE", "SALES", "ACCOUNTING", "VIEWER", "OPERATIONS"],
+}
+
 export async function seedCatalogueAssets(prisma, passwordHash) {
   for (const surface of ["desktop", "mobile"]) {
-    for (const kind of ["catalogue", "assets", "analytics", "opportunity", "project-readers"]) {
+    for (const [kind, roles] of Object.entries(RECIPE_ROLES)) {
       const company = await prisma.company.create({ data: { name: `Fictional ${kind} recipe ${surface}` } })
       const companyId = company.id
-      const roles = kind === "project-readers" ? ["OWNER", "ADMIN", "TECHNICIAN", "SERVICE", "SALES", "ACCOUNTING", "VIEWER"] : kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"] : kind === "opportunity" ? ["OWNER", "ADMIN", "SALES", "VIEWER"] : ["OWNER"]
       const localAgency = await prisma.agency.create({ data: { companyId, code: "LOCAL", name: "Fictional local agency", isDefault: true } })
       const otherAgency = await prisma.agency.create({ data: { companyId, code: "OTHER", name: "Fictional other agency" } })
+      const usersByRole = new Map()
       for (const role of roles) {
         const user = await prisma.user.create({ data: { companyId, email: `${kind}-${role.toLowerCase()}-${surface}@example.test`, name: `Fictional ${kind} reader`, emailVerified: new Date(), passwordHash } })
         const membership = await prisma.membership.create({ data: { companyId, userId: user.id, role, status: "ACTIVE" } })
+        usersByRole.set(role, user.id)
         await prisma.agencyMembership.create({ data: { agencyId: localAgency.id, membershipId: membership.id } })
       }
       await prisma.saasSubscription.create({ data: { companyId, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+      if (kind === "contact-readers") {
+        const client = await prisma.client.create({ data: { companyId, name: "Fictional contact reader client" } })
+        const contact = await prisma.contact.create({ data: { id: `ccontactreaders${surface}local`, clientId: client.id, firstName: "Fictional", lastName: "Local", email: "contact@example.test", marketingStatus: "OPTED_IN" } })
+        let sharedChannelId
+        for (const [visibility, ownerRole, label] of [["SHARED", null, "shared"], ["PRIVATE", "SALES", "personal"], ["PRIVATE", "OWNER", "colleague"]]) {
+          const channel = await prisma.communicationChannel.create({ data: { companyId, visibility, ownerUserId: ownerRole ? usersByRole.get(ownerRole) : null, provider: "GOOGLE", emailAddress: `${label}@example.test` } })
+          await prisma.emailThread.create({ data: { companyId, channelId: channel.id, contactId: contact.id, subject: `Fictional ${label} contact thread`, messages: { create: { companyId, direction: "INBOUND", provider: "GOOGLE", fromAddress: contact.email, toAddresses: [channel.emailAddress], subject: `Fictional ${label} contact message` } } } })
+          if (label === "shared") sharedChannelId = channel.id
+        }
+        const lead = await prisma.leadCapture.create({ data: { companyId, clientId: client.id, contactId: contact.id, firstName: "Fictional", lastName: "Local", privacyAccepted: true, fingerprint: `fictional-contact-${surface}`, source: "FICTIONAL-LOCAL" } })
+        const sequence = await prisma.emailSequence.create({ data: { companyId, name: "Fictional local contact sequence" } })
+        const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId: contact.id } })
+        await prisma.emailDelivery.create({ data: { companyId, channelId: sharedChannelId, contactId: contact.id, enrollmentId: enrollment.id, recipientEmail: contact.email, subject: "Fictional local contact delivery", status: "SENT", sentAt: new Date(), scheduledAt: new Date() } })
+        await prisma.marketingConsent.create({ data: { companyId, contactId: contact.id, channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "FICTIONAL-LOCAL", proofHash: "fictional-local-contact-proof" } })
+        await prisma.clientPortalAccess.create({ data: { companyId, clientId: client.id, contactId: contact.id, label: "Fictional local portal", tokenHash: `fictional-contact-portal-${surface}`, expiresAt: new Date("2030-01-01") } })
+        const foreign = await prisma.company.create({ data: { name: `Fictional foreign contact reader company ${surface}` } })
+        const foreignLead = await prisma.leadCapture.create({ data: { companyId: foreign.id, contactId: contact.id, firstName: "Fictional", lastName: "Foreign", privacyAccepted: true, fingerprint: `fictional-foreign-contact-${surface}`, source: "FICTIONAL-FOREIGN" } })
+        const foreignSequence = await prisma.emailSequence.create({ data: { companyId: foreign.id, name: "Fictional foreign contact sequence" } })
+        await prisma.emailSequenceEnrollment.create({ data: { sequenceId: foreignSequence.id, leadCaptureId: foreignLead.id, contactId: contact.id } })
+        await prisma.emailThread.create({ data: { companyId: foreign.id, channelId: sharedChannelId, contactId: contact.id, subject: "Fictional foreign contact thread" } })
+        await prisma.emailDelivery.create({ data: { companyId: foreign.id, channelId: sharedChannelId, contactId: contact.id, enrollmentId: enrollment.id, recipientEmail: contact.email, subject: "Fictional foreign contact delivery", status: "SENT", scheduledAt: new Date() } })
+        await prisma.marketingConsent.create({ data: { companyId: foreign.id, contactId: contact.id, channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "FICTIONAL-FOREIGN", proofHash: "fictional-foreign-contact-proof", capturedAt: new Date("2035-01-01") } })
+        continue
+      }
       if (kind === "project-readers") {
         const client = await prisma.client.create({ data: { companyId, name: "Fictional project reader client", relationScore: 37, totalRevenueCents: 45678, totalUnpaidCents: 9876, renewalAmountCents: 12345 } })
         const project = await prisma.project.create({ data: { id: `cprojectreaders${surface}local`, companyId, clientId: client.id, agencyId: localAgency.id, name: "Fictional scoped reader project", budgetCents: 50000, consumedCents: 5000 } })

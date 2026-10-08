@@ -136,6 +136,7 @@ jobs:
             test-results/workspace-permissions/
             test-results/opportunity-permissions/
             test-results/project-reader-permissions/
+            test-results/contact-history-permissions/
           if-no-files-found: ignore
           retention-days: 14
 
