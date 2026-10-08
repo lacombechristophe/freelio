@@ -19,24 +19,24 @@ describe.sequential("complete automation libraries, enrollments and suppressions
     await prisma.membership.create({ data: { companyId: foreignCompanyId, userId, role: "OWNER" } })
     mailboxId = (await prisma.communicationChannel.create({ data: { companyId, provider: "RESEND", visibility: "SHARED", emailAddress: "shared@example.test" } })).id
     privateId = (await prisma.communicationChannel.create({ data: { companyId, provider: "GOOGLE", ownerUserId: colleagueId, visibility: "PRIVATE", emailAddress: "private@example.test" } })).id
-    templates = []; sequences = []; workflows = []
-    for (let index = 0; index < 201; index++) {
-      const suffix = String(index).padStart(3, "0"), updatedAt = new Date(Date.UTC(2000, 0, 1, 0, index))
-      if (index < 101) templates.push(await prisma.emailTemplate.create({ data: { companyId, name: `Fictional model ${suffix}`, subject: `Fictional subject ${suffix}`, category: index % 2 ? "SERVICE" : "NURTURE", bodyHtml: "<p>Fictional template</p>", updatedAt }, select: { id: true, name: true } }))
-      sequences.push(await prisma.emailSequence.create({ data: { companyId, senderChannelId: mailboxId, name: `Fictional sequence ${suffix}`, description: `Fictional description ${suffix}`, status: index % 2 ? "ACTIVE" : "DRAFT", updatedAt }, select: { id: true, name: true } }))
-      workflows.push(await prisma.automationWorkflow.create({ data: { companyId, name: `Fictional workflow ${suffix}`, trigger: "LEAD_CREATED", status: index % 2 ? "ACTIVE" : "DRAFT", actions: [], updatedAt }, select: { id: true, name: true } }))
-      if (index < 101) await prisma.emailSuppression.create({ data: { companyId, email: `blocked${suffix}@example.test`, reason: "MANUAL", suppressedAt: updatedAt, details: { private: "FICTIONAL_SUPPRESSION_DETAILS" } } })
-    }
+    const fixtures = Array.from({ length: 201 }, (_, index) => ({ index, suffix: String(index).padStart(3, "0"), updatedAt: new Date(Date.UTC(2000, 0, 1, 0, index)) }))
+    await prisma.emailTemplate.createMany({ data: fixtures.slice(0, 101).map(({ index, suffix, updatedAt }) => ({ companyId, name: `Fictional model ${suffix}`, subject: `Fictional subject ${suffix}`, category: index % 2 ? "SERVICE" : "NURTURE", bodyHtml: "<p>Fictional template</p>", updatedAt })) })
+    await prisma.emailSequence.createMany({ data: fixtures.map(({ index, suffix, updatedAt }) => ({ companyId, senderChannelId: mailboxId, name: `Fictional sequence ${suffix}`, description: `Fictional description ${suffix}`, status: index % 2 ? "ACTIVE" : "DRAFT", updatedAt })) })
+    await prisma.automationWorkflow.createMany({ data: fixtures.map(({ index, suffix, updatedAt }) => ({ companyId, name: `Fictional workflow ${suffix}`, trigger: "LEAD_CREATED", status: index % 2 ? "ACTIVE" : "DRAFT", actions: [], updatedAt })) })
+    await prisma.emailSuppression.createMany({ data: fixtures.slice(0, 101).map(({ suffix, updatedAt }) => ({ companyId, email: `blocked${suffix}@example.test`, reason: "MANUAL", suppressedAt: updatedAt, details: { private: "FICTIONAL_SUPPRESSION_DETAILS" } })) })
+    const select = { id: true, name: true } as const
+    templates = await prisma.emailTemplate.findMany({ where: { companyId }, select, orderBy: { name: "asc" } })
+    sequences = await prisma.emailSequence.findMany({ where: { companyId }, select, orderBy: { name: "asc" } })
+    workflows = await prisma.automationWorkflow.findMany({ where: { companyId }, select, orderBy: { name: "asc" } })
     const privateSequence = await prisma.emailSequence.create({ data: { companyId, senderChannelId: privateId, name: "Private studio sequence" } }); privateSequenceId = privateSequence.id
     await prisma.emailSequence.create({ data: { companyId, name: "Archived studio sequence", status: "ARCHIVED" } })
     await prisma.emailTemplate.create({ data: { companyId, name: "Archived studio model", subject: "Archive", category: "SERVICE", bodyHtml: "<p>Archive</p>", status: "ARCHIVED" } })
     await prisma.automationWorkflow.create({ data: { companyId, name: "Archived studio workflow", trigger: "LEAD_CREATED", status: "ARCHIVED", actions: [] } })
     await prisma.emailSequence.create({ data: { companyId: foreignCompanyId, name: "Foreign studio sequence" } })
-    for (let index = 0; index < 26; index++) {
-      const lead = await prisma.leadCapture.create({ data: { companyId, firstName: "Fiction", lastName: String(index).padStart(3, "0"), email: `enrollment${index}@example.test`, fingerprint: randomUUID(), privacyAccepted: true } })
-      await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequences[0].id, leadCaptureId: lead.id, status: "ACTIVE", enrolledAt: new Date(Date.UTC(2000, 0, 1, 0, index)) } })
-      if (index === 0) await prisma.emailSequenceEnrollment.create({ data: { sequenceId: privateSequence.id, leadCaptureId: lead.id } })
-    }
+    await prisma.leadCapture.createMany({ data: Array.from({ length: 26 }, (_, index) => ({ companyId, firstName: "Fiction", lastName: String(index).padStart(3, "0"), email: `enrollment${index}@example.test`, fingerprint: randomUUID(), privacyAccepted: true })) })
+    const leads = await prisma.leadCapture.findMany({ where: { companyId }, select: { id: true }, orderBy: { lastName: "asc" } })
+    await prisma.emailSequenceEnrollment.createMany({ data: leads.map((lead, index) => ({ sequenceId: sequences[0].id, leadCaptureId: lead.id, status: "ACTIVE", enrolledAt: new Date(Date.UTC(2000, 0, 1, 0, index)) })) })
+    await prisma.emailSequenceEnrollment.create({ data: { sequenceId: privateSequence.id, leadCaptureId: leads[0].id } })
     session.companyId = companyId; session.userId = userId
   })
   afterEach(async () => { vi.unstubAllEnvs(); session.companyId = companyId; session.userId = userId; await prisma.membership.update({ where: { id: memberId }, data: { role: "OWNER", status: "ACTIVE" } }); await prisma.communicationChannel.update({ where: { id: mailboxId }, data: { visibility: "SHARED", ownerUserId: null } }) })

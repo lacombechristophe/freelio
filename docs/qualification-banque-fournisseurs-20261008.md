@@ -20,4 +20,6 @@ Recette locale isolée : **23 tests SQL fournisseurs**, neuf tests de lectures p
 
 La première recette ciblée réussissait ses 32 assertions, mais échouait au nettoyage du compte fictif à cause de son journal d’audit. Le nettoyage supprime maintenant ce journal avant le compte ; les mêmes assertions passent, sans changement de délai ni exclusion.
 
+Une répétition complète sur Windows échoue ensuite avant les neuf assertions du studio Automatisations : sa préparation par insertions individuelles dépasse les dix secondes du hook (898 autres tests réussis). Les mêmes 101 modèles/suppressions, 201 séquences/scénarios et 26 inscriptions sont désormais créés par lots puis relus dans leur ordre initial. Les neuf assertions passent en recette ciblée ; le délai et les tests ne changent pas. Une nouvelle qualification complète est requise après ce correctif de préparation.
+
 Contrat : [gestion des fournisseurs](contrat-fournisseurs-gestion.md). Tests : [SQL](../tests/unit/supplier-management.integration.test.ts), [navigateur](../tests/e2e/supplier-management.spec.ts), [Banque](../tests/e2e/banking-history.spec.ts). Les historiques plafonnés de la fiche, autres référentiels et concurrence financière restent ouverts. Aucun fournisseur, mail, secret ou jeu de données existant n’est utilisé.
