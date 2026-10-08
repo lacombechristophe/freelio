@@ -1,9 +1,9 @@
 export async function seedCatalogueAssets(prisma, passwordHash) {
   for (const surface of ["desktop", "mobile"]) {
-    for (const kind of ["catalogue", "assets", "analytics", "opportunity"]) {
+    for (const kind of ["catalogue", "assets", "analytics", "opportunity", "project-readers"]) {
       const company = await prisma.company.create({ data: { name: `Fictional ${kind} recipe ${surface}` } })
       const companyId = company.id
-      const roles = kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"] : kind === "opportunity" ? ["OWNER", "ADMIN", "SALES", "VIEWER"] : ["OWNER"]
+      const roles = kind === "project-readers" ? ["OWNER", "ADMIN", "TECHNICIAN", "SERVICE", "SALES", "ACCOUNTING", "VIEWER"] : kind === "analytics" ? ["OWNER", "TECHNICIAN", "SERVICE", "VIEWER", "SALES", "ACCOUNTING"] : kind === "opportunity" ? ["OWNER", "ADMIN", "SALES", "VIEWER"] : ["OWNER"]
       const localAgency = await prisma.agency.create({ data: { companyId, code: "LOCAL", name: "Fictional local agency", isDefault: true } })
       const otherAgency = await prisma.agency.create({ data: { companyId, code: "OTHER", name: "Fictional other agency" } })
       for (const role of roles) {
@@ -12,6 +12,19 @@ export async function seedCatalogueAssets(prisma, passwordHash) {
         await prisma.agencyMembership.create({ data: { agencyId: localAgency.id, membershipId: membership.id } })
       }
       await prisma.saasSubscription.create({ data: { companyId, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+      if (kind === "project-readers") {
+        const client = await prisma.client.create({ data: { companyId, name: "Fictional project reader client", relationScore: 37, totalRevenueCents: 45678, totalUnpaidCents: 9876, renewalAmountCents: 12345 } })
+        const project = await prisma.project.create({ data: { id: `cprojectreaders${surface}local`, companyId, clientId: client.id, agencyId: localAgency.id, name: "Fictional scoped reader project", budgetCents: 50000, consumedCents: 5000 } })
+        await prisma.quote.create({ data: { companyId, clientId: client.id, projectId: project.id, number: "READER-QUOTE", object: "Fictional reader quote" } })
+        await prisma.invoice.create({ data: { companyId, clientId: client.id, projectId: project.id, number: "READER-INVOICE", object: "Fictional reader invoice", dueDate: new Date("2030-01-01"), totalHtCents: 10000, totalTvaCents: 0, totalTtcCents: 10000 } })
+        await prisma.timeEntry.create({ data: { projectId: project.id, durationSec: 3600, description: "Fictional reader time" } })
+        const foreign = await prisma.company.create({ data: { name: `Fictional foreign project reader company ${surface}` } })
+        const foreignClient = await prisma.client.create({ data: { companyId: foreign.id, name: "Fictional foreign project reader client" } })
+        await prisma.project.create({ data: { id: `cprojectreaders${surface}inconsistent`, companyId, clientId: foreignClient.id, agencyId: localAgency.id, name: "Fictional inconsistent reader project" } })
+        await prisma.quote.create({ data: { companyId, clientId: foreignClient.id, projectId: project.id, number: "READER-INCONSISTENT-QUOTE", object: "Fictional inconsistent reader quote" } })
+        await prisma.invoice.create({ data: { companyId, clientId: foreignClient.id, projectId: project.id, number: "READER-INCONSISTENT-INVOICE", object: "Fictional inconsistent reader invoice", dueDate: new Date("2030-01-01"), totalHtCents: 20000, totalTvaCents: 0, totalTtcCents: 20000 } })
+        continue
+      }
       if (kind === "opportunity") {
         const client = await prisma.client.create({ data: { companyId, name: "Fictional opportunity client", relationScore: 37, totalRevenueCents: 45678, totalUnpaidCents: 9876, renewalAmountCents: 12345 } })
         const pipeline = await prisma.pipeline.create({ data: { companyId, name: "Fictional opportunity pipeline", stages: [{ id: "PROSPECT", title: "Prospect" }, { id: "WON", title: "Gagné" }] } })

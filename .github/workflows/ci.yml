@@ -135,6 +135,7 @@ jobs:
             test-results/shared-health-permissions/
             test-results/workspace-permissions/
             test-results/opportunity-permissions/
+            test-results/project-reader-permissions/
           if-no-files-found: ignore
           retention-days: 14
 
