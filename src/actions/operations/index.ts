@@ -19,6 +19,7 @@ import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTa
 import { hasPermission } from "@/lib/permissions"
 import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
+import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 
 const id = z.string().cuid()
@@ -954,17 +955,17 @@ export async function getSupplierDetail(supplierId: string) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(supplierId)
     if (!parsedId.success) return null
-    const agency = agencyIds === null ? {} : { agencyId: { in: agencyIds } }
-    const supplier = await prisma.supplier.findFirst({
-      where: { id: parsedId.data, companyId },
-      include: {
-        products: { where: { companyId }, include: { inventoryItems: { where: inventoryReadWhere(companyId, agencyIds) } }, orderBy: { label: "asc" }, take: 300 },
-        productPrices: { where: { companyId, product: { companyId } }, include: { product: { select: { id: true, sku: true, label: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
-        purchaseOrders: { where: { companyId, ...(agencyIds === null ? {} : { project: { companyId, ...agency } }) }, include: { project: { select: { id: true, name: true } }, lines: true, issues: true }, orderBy: { orderDate: "desc" }, take: 100 },
-        supplierReturns: { where: { companyId, product: { companyId }, warehouse: { companyId, ...agency }, purchaseOrder: { companyId, ...(agencyIds === null ? {} : { project: { companyId, ...agency } }) } }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
-      },
-    })
-    return supplier ? { ...supplier, canManage: hasPermission(role, "operations.write") } : null
+    return prisma.$transaction(async tx => {
+      const supplier = await tx.supplier.findFirst({ where: { id: parsedId.data, companyId } })
+      if (!supplier) return null
+      const scope = { companyId, agencyIds, supplierId: supplier.id }
+      const query = supplierHistoryQuery.parse({})
+      const metrics = await readSupplierMetrics(tx, scope)
+      const products = await readSupplierProducts(tx, scope, query)
+      const purchaseOrders = await readSupplierOrders(tx, scope, query)
+      const supplierReturns = await readSupplierReturns(tx, scope, query)
+      return { ...supplier, metrics, products, purchaseOrders, supplierReturns, canManage: hasPermission(role, "operations.write") }
+    }, { isolationLevel: "Serializable" })
   }, "operations.read")
 }
 

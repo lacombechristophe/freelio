@@ -1,14 +1,16 @@
-# Fiche fournisseur : historiques et indicateurs — proposition
+# Fiche fournisseur : historiques et indicateurs
 
-Complément de CRM-01 / L8, distinct de l’annuaire et de l’édition approuvés. La fiche ne lit que 300 produits et 100 commandes/retours. Ses cartes calculent achats cumulés, ponctualité, anomalies et nombre de références sur ces tranches. Les accès d’agence sont corrigés séparément ; une permission correcte ne rend pas ces indicateurs complets.
+Complément de CRM-01 / L8, distinct de l’annuaire et de l’édition approuvés. Avant ce lot, la fiche ne lisait que 300 produits et 100 commandes/retours. Ses cartes calculaient achats cumulés, ponctualité, anomalies et nombre de références sur ces tranches. Les accès d’agence sont corrigés séparément ; une permission correcte ne rend pas ces indicateurs complets.
 
-## Lot visible proposé
+## Lot visible approuvé
 
 - Calculer les quatre cartes sur tous les rattachements accessibles, indépendamment de la recherche et des pages.
 - Dans Catalogue fournisseur, Historique des commandes et Retours et avoirs, ajouter une recherche et les commandes de pagination existantes, par 25, avec total et numéro de page.
 - Conserver les cartes, leurs couleurs, les colonnes générales et les liens actuels. Ne pas ajouter de suppression, d’envoi ou de mutation.
 
 Chaque bloc conserve sa recherche et sa page indépendamment des deux autres. Les résultats périmés sont masqués pendant l’actualisation ; une erreur ne se présente pas comme une liste vide. Le retour à la page précédente reste possible. Une recherche ne modifie pas les quatre indicateurs globaux.
+
+Accord utilisateur du 8 octobre 2026 : « Oui, compléter les historiques et indicateurs ». Implémentation et vérifications dans la [qualification](qualification-fournisseurs-historiques-20261008.md).
 
 ## Contrat serveur
 

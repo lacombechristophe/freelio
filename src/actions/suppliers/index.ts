@@ -7,6 +7,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { supplierSchema } from "@/lib/operations/suppliers"
 import { isUniqueConstraintConflict } from "@/lib/document-numbering"
+import { readSupplierProducts, readSupplierOrders, readSupplierReturns, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 
 const id = z.string().cuid()
 const contains = (search: string) => ({ contains: search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) })
@@ -15,6 +16,39 @@ const querySchema = z.object({
   status: z.enum(["ALL", "ACTIVE", "INACTIVE"]).default("ALL"),
   page: z.number().int().min(1).max(1_000_000).default(1),
 })
+
+export async function getSupplierProductHistory(supplierId: string, input: unknown = {}) {
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const scope = { companyId, agencyIds, supplierId: id.parse(supplierId) }
+    const query = supplierHistoryQuery.parse(input)
+    return prisma.$transaction(async tx => {
+      if (!await tx.supplier.findFirst({ where: { id: scope.supplierId, companyId }, select: { id: true } })) throw new Error("Fournisseur introuvable")
+      return readSupplierProducts(tx, scope, query)
+    }, { isolationLevel: "Serializable" })
+  }, "operations.read")
+}
+
+export async function getSupplierOrderHistory(supplierId: string, input: unknown = {}) {
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const scope = { companyId, agencyIds, supplierId: id.parse(supplierId) }
+    const query = supplierHistoryQuery.parse(input)
+    return prisma.$transaction(async tx => {
+      if (!await tx.supplier.findFirst({ where: { id: scope.supplierId, companyId }, select: { id: true } })) throw new Error("Fournisseur introuvable")
+      return readSupplierOrders(tx, scope, query)
+    }, { isolationLevel: "Serializable" })
+  }, "operations.read")
+}
+
+export async function getSupplierReturnHistory(supplierId: string, input: unknown = {}) {
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const scope = { companyId, agencyIds, supplierId: id.parse(supplierId) }
+    const query = supplierHistoryQuery.parse(input)
+    return prisma.$transaction(async tx => {
+      if (!await tx.supplier.findFirst({ where: { id: scope.supplierId, companyId }, select: { id: true } })) throw new Error("Fournisseur introuvable")
+      return readSupplierReturns(tx, scope, query)
+    }, { isolationLevel: "Serializable" })
+  }, "operations.read")
+}
 
 export async function getSupplierDirectory(input: unknown = {}) {
   return withAuth(async ({ companyId }) => {

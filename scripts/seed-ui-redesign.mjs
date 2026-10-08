@@ -21,6 +21,20 @@ try {
     })) })
   }
   for (const surface of ["desktop", "mobile"]) {
+    const supplier = await prisma.supplier.create({ data: { companyId, name: `UIQA Supplier history ${surface}` } })
+    const warehouse = await prisma.warehouse.create({ data: { companyId, code: `UIQA-HISTORY-${surface}`, name: `Fictional history warehouse ${surface}` } })
+    await prisma.product.createMany({ data: Array.from({ length: 301 }, (_, index) => ({ companyId, supplierId: supplier.id, sku: `UIQA-HISTORY-${surface}-${String(index).padStart(3, "0")}`, label: `UIQA History product ${surface} ${String(index).padStart(3, "0")}`, active: index !== 300 })) })
+    const product = await prisma.product.findFirstOrThrow({ where: { companyId, supplierId: supplier.id }, orderBy: { sku: "asc" } })
+    await prisma.purchaseOrder.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, supplierId: supplier.id, number: `UIQA-HISTORY-${surface}-${String(index).padStart(3, "0")}`, totalHtCents: 1000, status: index === 100 ? "CANCELED" : "RECEIVED", orderDate: new Date(Date.UTC(1995, 0, 101 - index)), receivedAt: index === 100 ? null : new Date("1995-06-15"), expectedAt: new Date(index % 2 === 0 ? "1995-06-16" : "1995-06-14") })) })
+    const orders = await prisma.purchaseOrder.findMany({ where: { companyId, supplierId: supplier.id }, orderBy: { number: "asc" } })
+    await prisma.purchaseOrderLine.createMany({ data: orders.map(order => ({ purchaseOrderId: order.id, productId: product.id, label: "Fictional history line", quantity: 1, receivedQuantity: 1, unitPriceCents: 1000 })) })
+    const lines = await prisma.purchaseOrderLine.findMany({ where: { purchaseOrder: { companyId, supplierId: supplier.id } } })
+    await prisma.purchaseIssue.createMany({ data: orders.map((order, index) => ({ companyId, purchaseOrderId: order.id, purchaseOrderLineId: lines.find(line => line.purchaseOrderId === order.id).id, type: "DAMAGE", quantity: 1, status: index === 100 ? "OPEN" : "RESOLVED" })) })
+    await prisma.stockMovement.createMany({ data: orders.map(order => ({ companyId, warehouseId: warehouse.id, productId: product.id, type: "RETURN", quantity: -1, reference: order.number })) })
+    const movements = await prisma.stockMovement.findMany({ where: { companyId, warehouseId: warehouse.id } })
+    await prisma.supplierReturn.createMany({ data: orders.map((order, index) => ({ companyId, supplierId: supplier.id, warehouseId: warehouse.id, productId: product.id, purchaseOrderId: order.id, purchaseOrderLineId: lines.find(line => line.purchaseOrderId === order.id).id, stockMovementId: movements.find(movement => movement.reference === order.number).id, number: `UIQA-RETURN-${surface}-${String(index).padStart(3, "0")}`, quantity: 1, unitCostCents: 1000, reason: "Fictional history", creditReference: index === 100 ? `UIQA-OLDEST-CREDIT-${surface}` : null, shippedAt: order.orderDate })) })
+  }
+  for (const surface of ["desktop", "mobile"]) {
     await prisma.notification.create({ data: { userId: user.id, type: "SYSTEM", title: `UIQA Notification hydration ${surface}`, message: "Fictional hydration regression", isRead: true } })
     const workflow = await prisma.automationWorkflow.create({ data: { companyId, name: `UIQA Journal ${surface}`, trigger: "LEAD_CREATED", status: "ARCHIVED", actions: [{ type: "WAIT", delayHours: 1 }] } })
     await prisma.automationRun.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, workflowId: workflow.id, event: index === 100 ? `UIQA_LAST_${surface}` : "LEAD_CREATED",

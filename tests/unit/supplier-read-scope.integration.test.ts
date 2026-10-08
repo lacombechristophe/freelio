@@ -8,6 +8,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import prisma from "@/lib/prisma"
 import { getOperationsDashboard, getSupplierDetail } from "@/actions/operations"
 import { getProductCatalogue, getProductDetail } from "@/actions/products"
+import { getSupplierProductHistory, getSupplierOrderHistory, getSupplierReturnHistory } from "@/actions/suppliers"
 
 describe.sequential("supplier detail retains the current agency boundary on nested reads", () => {
   let supplierId: string, productId: string, foreignSupplierId: string, foreignCompanyId: string, membershipId: string, agencyId: string
@@ -48,9 +49,12 @@ describe.sequential("supplier detail retains the current agency boundary on nest
   })
   it("reads a shared supplier without exposing the other agency's stock or orders", async () => {
     const supplier = await getSupplierDetail(supplierId)
-    expect(supplier?.products[0].inventoryItems.map(row => row.quantity)).toEqual([2])
-    expect(supplier?.purchaseOrders.map(row => row.number)).toEqual(["PERMITTED"])
-    expect(supplier?.supplierReturns.map(row => row.number)).toEqual(["RETURN-PERMITTED"])
+    expect(supplier?.products.items[0].inventoryItems.map(row => row.quantity)).toEqual([2])
+    expect(supplier?.purchaseOrders.items.map(row => row.number)).toEqual(["PERMITTED"])
+    expect(supplier?.supplierReturns.items.map(row => row.number)).toEqual(["RETURN-PERMITTED"])
+    expect((await getSupplierProductHistory(supplierId)).items[0].inventoryItems.map(row => row.quantity)).toEqual([2])
+    expect((await getSupplierOrderHistory(supplierId)).items.map(row => row.number)).toEqual(["PERMITTED"])
+    expect((await getSupplierReturnHistory(supplierId)).items.map(row => row.number)).toEqual(["RETURN-PERMITTED"])
   })
   it("keeps the same stock boundary in the operations dashboard", async () => {
     const dashboard = await getOperationsDashboard()
@@ -67,18 +71,18 @@ describe.sequential("supplier detail retains the current agency boundary on nest
   it.each(["OWNER", "ADMIN"])("preserves the company-wide supplier view for %s", async role => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role } })
     const supplier = await getSupplierDetail(supplierId)
-    expect(supplier?.products[0].inventoryItems.map(row => row.quantity).sort()).toEqual([2, 99])
-    expect(supplier?.purchaseOrders).toHaveLength(2)
-    expect(supplier?.supplierReturns).toHaveLength(2)
+    expect(supplier?.products.items[0].inventoryItems.map(row => row.quantity).sort()).toEqual([2, 99])
+    expect(supplier?.purchaseOrders.items).toHaveLength(2)
+    expect(supplier?.supplierReturns.items).toHaveLength(2)
     expect((await getProductCatalogue()).products.find(row => row.id === productId)?.availableQuantity).toBe(101)
     expect((await getProductDetail(productId))?.product.inventoryItems).toHaveLength(2)
   })
   it("rechecks agency revocation with the same session", async () => {
     await prisma.agency.update({ where: { id: agencyId }, data: { active: false } })
     const supplier = await getSupplierDetail(supplierId)
-    expect(supplier?.products[0].inventoryItems).toEqual([])
-    expect(supplier?.purchaseOrders).toEqual([])
-    expect(supplier?.supplierReturns).toEqual([])
+    expect(supplier?.products.items[0].inventoryItems).toEqual([])
+    expect(supplier?.purchaseOrders.items).toEqual([])
+    expect(supplier?.supplierReturns.items).toEqual([])
     expect((await getProductCatalogue()).products.find(row => row.id === productId)?.availableQuantity).toBe(0)
     expect((await getProductDetail(productId))?.product.inventoryItems).toEqual([])
     expect((await getOperationsDashboard()).products.find(row => row.id === productId)?.inventoryItems).toEqual([])
@@ -86,7 +90,7 @@ describe.sequential("supplier detail retains the current agency boundary on nest
   it("keeps the same agency restriction in public demo", async () => {
     vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
     const supplier = await getSupplierDetail(supplierId)
-    expect(supplier?.products[0].inventoryItems.map(row => row.quantity)).toEqual([2])
+    expect(supplier?.products.items[0].inventoryItems.map(row => row.quantity)).toEqual([2])
   })
   it("refuses a foreign supplier and a revoked membership", async () => {
     expect(await getSupplierDetail(foreignSupplierId)).toBeNull()
