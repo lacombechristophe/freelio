@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { hasPermission } from "@/lib/permissions"
+import { contactEngagementSelection } from "@/lib/contact-engagement"
 import { DIRECTORY_PAGE_SIZE, compareDirectoryValues, directoryQuerySchema, matchesDirectoryFilter, type DirectoryQuery } from "@/lib/directory-query"
 
 function contains(value: string) {
@@ -15,7 +16,8 @@ function pageFor(total: number, requested: number) {
 
 export async function getContactDirectory(input: DirectoryQuery) {
   const query = directoryQuerySchema.parse(input)
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role }) => {
+    const canReadAutomations = hasPermission(role, "automation.read")
     const where = { client: { companyId },
       ...(["OPTED_IN", "OPTED_OUT"].includes(query.status) ? { marketingStatus: query.status } : {}),
       ...(query.search.trim() ? { OR: [{ firstName: contains(query.search) }, { lastName: contains(query.search) }, { email: contains(query.search) }, { phone: contains(query.search) }, { role: contains(query.search) }, { client: { name: contains(query.search) } }] } : {}),
@@ -24,9 +26,12 @@ export async function getContactDirectory(input: DirectoryQuery) {
     const page = pageFor(total, query.page)
     const contacts = await prisma.contact.findMany({ where, skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE,
       orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
-      include: { client: { select: { id: true, name: true, type: true } }, _count: { select: { emailDeliveries: true, sequenceEnrollments: true } } },
+      include: { client: { select: { id: true, name: true, type: true } }, _count: canReadAutomations ? { select: contactEngagementSelection(companyId) } : false },
     })
-    return { rows: contacts.map((contact) => ({ ...contact, createdAt: contact.createdAt.toISOString(), updatedAt: contact.updatedAt.toISOString() })), total, page }
+    return { rows: contacts.map((contact) => ({ ...contact, _count: {
+      emailDeliveries: canReadAutomations ? contact._count.emailDeliveries : null,
+      sequenceEnrollments: canReadAutomations ? contact._count.sequenceEnrollments : null,
+    }, access: { automation: canReadAutomations }, createdAt: contact.createdAt.toISOString(), updatedAt: contact.updatedAt.toISOString() })), total, page }
   }, "crm.read")
 }
 
