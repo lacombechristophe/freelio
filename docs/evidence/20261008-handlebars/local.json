@@ -1,0 +1,90 @@
+{
+  "schema": "freelio.handlebars-security-local.v1",
+  "reference": "8efecb88dae8188996cecabb4e07f2850e94d033",
+  "node": "v24.15.0",
+  "engine": "SQLite",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 922,
+    "sha256": "e047743a01a36ffeed5b99e11aa4975de7b7270ebbee4c0be6a33469a75fc9dc"
+  },
+  "dependency": {
+    "package": "handlebars",
+    "previous": "4.7.9",
+    "installed": "4.7.10",
+    "lockSha256": "0aa5f905da5df448892debe9030f1aae63244b304a7cecdf91383a661ad35514",
+    "audits": {
+      "production": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "full": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      }
+    }
+  },
+  "fullSuite": {
+    "passed": 1247,
+    "files": 171,
+    "seconds": 223.11
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 244,
+      "files": 46,
+      "execution": false
+    }
+  },
+  "logs": [
+    {
+      "check": "final-types",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-lint-eslint",
+      "sha256": "1a73194bbfea1346a7897812c24cb4121c59472388ba90fdcda7c5cbe4199257"
+    },
+    {
+      "check": "final-lint-next",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-unit",
+      "sha256": "f4bca4b38cbf9a6bb00aa1565a6edacde1c6f91e9079e6484e5914141ad0cf12"
+    },
+    {
+      "check": "schema",
+      "sha256": "e6566cae6f527d286fe08c21280760428ebdcd811359eff6a019d83790a465cd"
+    },
+    {
+      "check": "postgres",
+      "sha256": "8eeef3570aaf550387c6e2e76df0d40e4827a3e8be1e0d7183b3ed770638c393"
+    },
+    {
+      "check": "e2e-list",
+      "sha256": "284a6b56aae21e7b259ccc321e0cc65401c47f6e74231dae31f7d88786a87223"
+    },
+    {
+      "check": "build",
+      "sha256": "3b6cfd44074091de1aed15a7e6665c624e6c68d25a6dc6820dc98c99e6c54335"
+    }
+  ],
+  "exclusions": [
+    "Fictitious local SQLite recipe; no provider calls or browser execution.",
+    "PostgreSQL schema validation does not connect to a database."
+  ]
+}
