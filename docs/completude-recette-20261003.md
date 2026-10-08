@@ -2,25 +2,23 @@
 
 État du 8 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et la démo hébergée sont une livraison distincte. Les résultats ci-dessous ne constituent pas une certification du produit ou de ses fournisseurs.
 
-Le candidat suivant corrige Notifications et complète les lots Banque approuvés. Sa [qualification locale finale](qualification-lint-20261008.md) passe 875 tests SQLite, types, les deux moteurs de lint et le build. Les audits production/complet donnent zéro alerte après retrait de la chaîne de développement vulnérable. Les exécutions CI/navigateur de cette nouvelle référence restent à obtenir ; elles ne sont pas remplacées par les résultats antérieurs ci-dessous.
+Le candidat courant ajoute la gestion Fournisseurs approuvée, corrige les lectures de stock et d’historique par agence et récupère un CSV choisi avant l’attachement des gestionnaires du client. Sa [qualification locale](qualification-banque-fournisseurs-20261008.md) passe 907 tests SQLite, types, les deux moteurs de lint et le build de 75 pages. Les nouveaux parcours navigateur restent à qualifier en CI. Main et le déploiement restent inchangés.
 
-## Dernière référence qualifiée fonctionnellement
+## Dernière référence exécutée en CI
 
-La CI suivante de **e1e67f9**, qui ne changeait que la documentation, a reproduit une erreur React 418 dans Notifications. La réussite antérieure ci-dessous reste une preuve datée, pas une preuve d’absence de ce défaut intermittent. Le [correctif et sa qualification](qualification-notifications-20261008.md) sont préparés ; leur recette navigateur reste à exécuter sur le nouveau candidat.
-
-**f5573b0d0696b832389a1c1ec0b2f9a18a94e23c** : listes complètes des studios, reprise humaine des séquences et correctif Next 16.3.8, avec les lots précédents. Les [CI push](https://github.com/lacombechristophe/freelio/actions/runs/37704659344) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37704662879) sont achevées.
+**ff3b0f3c321d003fa719152d4e8de45cabc5d435** : Banque, notifications et retrait de la chaîne de lint vulnérable. La [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37767742082) réussit, mais la [CI de PR](https://github.com/lacombechristophe/freelio/actions/runs/37767747724) échoue sur le dépôt CSV ordinateur. Cette référence n’est donc pas une livraison entièrement qualifiée.
 
 | Contrôle | Résultat |
 | --- | --- |
-| Types, lint, build et couverture ciblée | Réussis |
-| SQLite | 809 tests / 150 fichiers |
-| PostgreSQL | 808 réussis, une exclusion native SQLite |
-| Navigateur | 139 réussis par run ; 19 exclusions historiques |
-| Audit UI PR | 64 routes par format, zéro finding P0–P3 |
-| Image Linux | Neuf contrôles ; 59 migrations ; PostgreSQL 18.6 ; UID 1000 |
-| Audit production / complet | Zéro en production ; échec complet : cinq paquets hauts de développement |
+| Types, deux moteurs de lint, build et couverture ciblée | Réussis |
+| SQLite | 875 tests / 153 fichiers |
+| PostgreSQL | 874 réussis, une exclusion native SQLite |
+| Navigateur de branche | 145 réussis ; 19 exclusions historiques |
+| Navigateur de PR | Échec du dépôt CSV ordinateur ; correctif en recette |
+| Image Linux | Neuf contrôles réussis |
+| Audit production / complet de branche | Zéro vulnérabilité |
 
-Image testée : `sha256:0ad1b63a382465682685ad6b74fac28a4476e9b796273a431bf71db424ffd4f4`. Le checkout de fusion PR `e2fee95d00dc0093213240361311b72f3f6726e7` partage l’arbre `b9b6a4690fe1a3652f027772c8779e85e9cad8b1` du candidat, vérifié via GitHub et Git local. Les [preuves résumées](evidence/20261008-next-studios/README.md) conservent dépendances, runtime et contrôles ciblés. Les traces des autres versions restent dans le [journal historique](journal-recettes-completude-20261003.md).
+La [qualification](qualification-banque-fournisseurs-20261008.md) distingue les deux exécutions et le correctif. Les [preuves historiques Next/studios](evidence/20261008-next-studios/README.md) et le [journal](journal-recettes-completude-20261003.md) conservent leurs versions et leurs limites. Le résultat f5573b0 et son audit complet rouge ne sont pas attribués au candidat actuel.
 
 ## Portée des derniers lots
 
@@ -40,9 +38,9 @@ Le [rapport de volume](evidence/20261008-workflow-journal/README.md) donne le sc
 
 ## Ce qui reste à fermer
 
-- CI propre du candidat final. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent désormais zéro alerte, sans seuil réduit ni contrôle retiré. La qualification du nouveau commit reste requise.
+- CI propre du candidat final, incluant Fournisseurs et récupération du CSV. La [séparation des règles Next](../tooling/lint/README.md) retire la chaîne vulnérable : les [audits locaux](evidence/20261008-lint-policy/README.md) du lockfile et de l’installation donnent désormais zéro alerte, sans seuil réduit ni contrôle retiré. La qualification du nouveau commit reste requise.
 - Banque : [historique et correspondances](contrat-banque-listes-completes.md) et [dates impossibles d’import](contrat-banque-dates-import.md), approuvés et implémentés, avec recette navigateur/CI du candidat à qualifier. Le conflit d’import simultané est reproduit séparément sur SQLite fictive, sans correction annoncée.
-- Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
+- Fournisseurs : [lot approuvé et implémenté](contrat-fournisseurs-gestion.md), avec CI navigateur restante. Autres sélecteurs encore plafonnés, préférences Marketing, référentiels et chaînes métier de L8 ; installation/récupération et trois démonstrations de L9.
 - Qualification de comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations restent hors recette fictive et budget de 0 €.
 
 Le [plan fonctionnel](plan-completude-fonctionnelle-20261002.md) détaille ces travaux. La [carte des preuves](carte-des-preuves.md) relie les risques aux fichiers de test ; la [revue CTO](revue-cto.md) donne le parcours de présentation. Les décisions d’interface déjà approuvées sont conservées dans leurs contrats.
