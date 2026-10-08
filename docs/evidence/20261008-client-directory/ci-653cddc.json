@@ -1,0 +1,285 @@
+{
+  "schema": "freelio.client-payment-ci.v1",
+  "candidate": "653cddc6c03fd8f3cf73c6fc12e07696181fb545",
+  "testedMerge": "1898d8ca08bf005fef77515bc47a625c3edfeff7",
+  "parents": [
+    "0e9109483cb596dd760bb755c50a831952bdf8ab",
+    "653cddc6c03fd8f3cf73c6fc12e07696181fb545"
+  ],
+  "run": "https://github.com/lacombechristophe/freelio/actions/runs/37799765287",
+  "jobId": 113388537168,
+  "artifactId": 11560555740,
+  "node": "v24.21.0",
+  "postgres": {
+    "skipped": 1,
+    "reportSha256": "5f2bd8dd36b8d0cf61ed560719be0c6117a7950b0285537f0f5027a1556bfc8b",
+    "focused": [
+      {
+        "file": "client-directory-permissions.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "client directory respects Finance reading permissions keeps authorized OWNER financial values",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps authorized ACCOUNTING financial values",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'TECHNICIAN' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'TECHNICIAN' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SERVICE' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SERVICE' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SALES' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SALES' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'not_equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'contains' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'greater_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'less_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'is_not_empty' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'not_equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'contains' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'greater_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'less_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'is_not_empty' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions reports revenue as unavailable for every client without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions reports unpaid as unavailable for every client without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps hidden financial sorting asc stable by ID",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps hidden financial sorting desc stable by ID",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not even read invoice aggregates without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions rereads inactive agency access before returning amounts",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions rereads unassigned agency access before returning amounts",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return foreign clients through a searched directory",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions refuses suspended membership in both readers",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps nonfinancial directory reads available in the public demo without writing",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "client-read-scope.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps company-wide OWNER reads without disclosing foreign nested documents",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps company-wide ADMIN reads without disclosing foreign nested documents",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps Accounting reads within its currently assigned agency",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not return Finance or Sales documents to TECHNICIAN through a CRM read",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not return Finance or Sales documents to SERVICE through a CRM read",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes preserves Sales documents and writing rights without returning financial amounts or invoices",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes preserves Viewer document reads without giving Sales writing rights",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes rereads inactive agency access rather than retaining old document visibility",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes rereads unassigned agency access rather than retaining old document visibility",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes reads permitted client data in public demo mode without writing",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID undefined",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID null",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID ",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID  ",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes refuses a foreign client even when its ID is supplied directly",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes refuses a suspended membership before reading client detail",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "invoice-payment-concurrency.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "manual payments and bank reconciliation preserve persisted invoice balances preserves a 100-cent manual payment racing with bank reconciliation",
+            "status": "passed"
+          },
+          {
+            "name": "manual payments and bank reconciliation preserve persisted invoice balances preserves a 200-cent manual payment racing with bank reconciliation",
+            "status": "passed"
+          },
+          {
+            "name": "manual payments and bank reconciliation preserve persisted invoice balances preserves concurrent manual payments with shared reference false",
+            "status": "passed"
+          },
+          {
+            "name": "manual payments and bank reconciliation preserve persisted invoice balances preserves concurrent manual payments with shared reference true",
+            "status": "passed"
+          }
+        ]
+      }
+    ],
+    "failed": 0,
+    "passed": 986,
+    "total": 987
+  },
+  "limits": [
+    "Session et cache simulés ; SQL, DAL, membership et transactions réels.",
+    "Une exclusion PostgreSQL pour la restauration native SQLite ; 19 exclusions navigateur historiques.",
+    "Fournisseurs réels, forte contention et autres écritures financières non qualifiés.",
+    "Ces résultats sont attribués au candidat 653cddc, pas aux changements Suivi client/authentification suivants."
+  ],
+  "finalCi": {
+    "branch": {
+      "conclusion": "success",
+      "postgresArtifactId": 11559044945,
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37799746983",
+      "testedCommit": "653cddc6c03fd8f3cf73c6fc12e07696181fb545"
+    },
+    "pullRequest": {
+      "conclusion": "success",
+      "testedCommit": "1898d8ca08bf005fef77515bc47a625c3edfeff7",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37799765287"
+    },
+    "sqlite": {
+      "passed": 987,
+      "files": 161
+    },
+    "browser": {
+      "clientCasesPassed": 12,
+      "passed": 167,
+      "surfaces": [
+        "desktop",
+        "mobile"
+      ],
+      "skipped": 19
+    },
+    "linux": {
+      "checks": 9,
+      "success": true,
+      "artifactId": 11560770212
+    },
+    "audit": {
+      "production": 0,
+      "complete": 0
+    }
+  }
+}

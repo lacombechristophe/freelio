@@ -22,6 +22,8 @@ Les quatre cas passent localement en SQLite, types et ESLint. La barrière Postg
 
 La suite commune passe d’abord 957 tests / 160 fichiers en 155,80 secondes, puis 987 / 161 en 267,78 secondes après ajout du lot d’annuaire Client, avec types, ESLint et Oxlint. Ces résultats locaux ne qualifient pas la barrière PostgreSQL. Aucun test, assertion ou délai existant n’est retiré.
 
+Les deux CI de [branche](https://github.com/lacombechristophe/freelio/actions/runs/37799746983) et de [PR](https://github.com/lacombechristophe/freelio/actions/runs/37799765287) qualifient ensuite les quatre courses sur PostgreSQL, dont la barrière exigeant deux lectures initiales de zéro. Les [résultats ciblés, empreinte du rapport et commit testé](evidence/20261008-client-directory/ci-653cddc.json) sont conservés. Les workflows complets réussissent avec 987 SQLite, 986 PostgreSQL et une exclusion native, 167 E2E et 19 exclusions historiques, neuf contrôles Linux et audits à zéro. Ces preuves ne sont pas attribuées aux changements d’autorisation ultérieurs.
+
 ## Limites
 
 Pas de paiement fournisseur réel, d’acceptation exactement une fois face à une coupure réseau, de stress sous forte contention ni de reprise du paiement manuel après une facture entièrement réglée. Avoirs, remboursements, encaissements par migration et réservations nécessitent leurs propres tests. La qualification Banque et ce test ne ferment pas toute la chaîne financière.

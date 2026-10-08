@@ -22,6 +22,10 @@ La suite commune locale passe 987 tests dans 161 fichiers en 267,78 secondes, ty
 
 Les schémas SQLite et PostgreSQL sont validés ; le build de 75 pages réussit. La découverte de 188 E2E dans 41 fichiers n’est pas une exécution navigateur.
 
+## CI du candidat 653cddc
+
+Les [CI de branche](https://github.com/lacombechristophe/freelio/actions/runs/37799746983) et de [PR](https://github.com/lacombechristophe/freelio/actions/runs/37799765287) réussissent : 987 tests SQLite, 986 PostgreSQL et une exclusion native SQLite, 167 E2E et 19 exclusions historiques, neuf contrôles Linux, audits production/complet à zéro. Les trente cas d’annuaire et les six parcours CSV passent dans les deux exécutions. Les [métadonnées de l’artefact PostgreSQL](evidence/20261008-client-directory/ci-653cddc.json) relient la fusion de test à main et au candidat ; elles conservent aussi les 17 cas de fiche et les quatre courses de paiements réussis. Ces résultats précèdent les nouveaux correctifs Suivi client et contexte d’autorisation.
+
 ## Limites
 
 La correction couvre les deux lecteurs et l’export de cet annuaire. Elle ne qualifie pas les autres tableaux de bord ou métriques métier, les propriétés CRM personnalisées, toute l’isolation CRM ni la charge des tris calculés sur un grand portefeuille. Les historiques Client et autres propositions visibles restent distincts.
