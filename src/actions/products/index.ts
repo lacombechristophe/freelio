@@ -8,6 +8,7 @@ import { logAction } from "@/lib/audit"
 import { hasPermission } from "@/lib/permissions"
 import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
+import { lockActiveSupplier } from "@/lib/operations/suppliers"
 
 const id = z.string().cuid()
 const optionalId = z.union([id, z.literal(""), z.null()]).optional().transform((value) => value || null)
@@ -62,9 +63,9 @@ function revalidateProduct(productId?: string) {
   if (productId) revalidatePath(`/dashboard/catalogue/produits/${productId}`)
 }
 
-async function assertSupplierAndParent(companyId: string, supplierId: string | null, parentProductId: string | null, productId?: string) {
+async function assertSupplierAndParent(companyId: string, supplierId: string | null, parentProductId: string | null, productId?: string, retainedSupplierId?: string | null) {
   const [supplier, parent] = await Promise.all([
-    supplierId ? prisma.supplier.findFirst({ where: { id: supplierId, companyId, active: true }, select: { id: true } }) : null,
+    supplierId ? prisma.supplier.findFirst({ where: { id: supplierId, companyId, ...(supplierId === retainedSupplierId ? {} : { active: true }) }, select: { id: true } }) : null,
     parentProductId ? prisma.product.findFirst({ where: { id: parentProductId, companyId, active: true, parentProductId: null }, select: { id: true } }) : null,
   ])
   if (supplierId && !supplier) throw new Error("Fournisseur introuvable")
@@ -91,8 +92,7 @@ function availableQuantity(items: Array<{ quantity: number; reservedQuantity: nu
 
 export async function getProductCatalogue() {
   return withAuth(async ({ companyId, role, agencyIds }) => {
-    const [products, suppliers] = await Promise.all([
-      prisma.product.findMany({
+    const products = await prisma.product.findMany({
         where: { companyId },
         include: {
           supplier: { select: { id: true, name: true } },
@@ -101,12 +101,9 @@ export async function getProductCatalogue() {
           _count: { select: { variants: true, optionGroups: true, assemblyComponents: true } },
         },
         orderBy: [{ active: "desc" }, { family: "asc" }, { label: "asc" }],
-      }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    ])
+    })
     return {
       canManage: hasPermission(role, "operations.write"),
-      suppliers,
       products: products.map((product) => ({
         id: product.id,
         sku: product.sku,
@@ -136,7 +133,7 @@ export async function getProductCatalogue() {
 export async function getProductDetail(productId: string) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.parse(productId)
-    const [product, references, suppliers] = await Promise.all([
+    const [product, references] = await Promise.all([
       prisma.product.findFirst({
         where: { id: parsedId, companyId },
         include: {
@@ -150,13 +147,11 @@ export async function getProductDetail(productId: string) {
         },
       }),
       prisma.product.findMany({ where: { companyId, active: true }, select: { id: true, sku: true, label: true, parentProductId: true }, orderBy: { label: "asc" } }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     ])
     if (!product) return null
     return {
       canManage: hasPermission(role, "operations.write"),
       references: references.filter((reference) => reference.id !== product.id),
-      suppliers,
       product: {
         ...product,
         createdAt: product.createdAt.toISOString(),
@@ -219,6 +214,7 @@ export async function createCatalogProduct(input: unknown) {
     await assertSupplierAndParent(companyId, data.supplierId, data.parentProductId)
     if (await prisma.product.findFirst({ where: { companyId, sku: data.sku }, select: { id: true } })) throw new Error("Cette référence existe déjà")
     const product = await prisma.$transaction(async (tx) => {
+      if (data.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
       const created = await tx.product.create({ data: { companyId, ...data } })
       const now = new Date()
       await tx.productPrice.createMany({ data: [
@@ -237,12 +233,14 @@ export async function updateCatalogProduct(productId: string, input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const parsedId = id.parse(productId)
     const data = productSchema.parse(input)
-    const existing = await prisma.product.findFirst({ where: { id: parsedId, companyId }, select: { id: true, sku: true, supplierId: true, purchasePriceCents: true, salePriceCents: true } })
+    const existing = await prisma.product.findFirst({ where: { id: parsedId, companyId }, select: { id: true, sku: true, supplierId: true, purchasePriceCents: true, salePriceCents: true, updatedAt: true } })
     if (!existing) throw new Error("Produit introuvable")
-    await assertSupplierAndParent(companyId, data.supplierId, data.parentProductId, existing.id)
+    await assertSupplierAndParent(companyId, data.supplierId, data.parentProductId, existing.id, existing.supplierId)
     if (await prisma.product.findFirst({ where: { companyId, sku: data.sku, id: { not: existing.id } }, select: { id: true } })) throw new Error("Cette référence existe déjà")
     await prisma.$transaction(async (tx) => {
-      await tx.product.update({ where: { id: existing.id }, data })
+      if (data.supplierId && data.supplierId !== existing.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
+      const changed = await tx.product.updateMany({ where: { id: existing.id, companyId, updatedAt: existing.updatedAt }, data })
+      if (changed.count !== 1) throw new Error("Le produit a changé. Rechargez sa fiche.")
       const now = new Date()
       for (const price of [
         { kind: "PURCHASE", previous: existing.purchasePriceCents, amount: data.purchasePriceCents, supplierId: data.supplierId },

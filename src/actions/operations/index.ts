@@ -19,6 +19,7 @@ import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTa
 import { hasPermission } from "@/lib/permissions"
 import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
+import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -66,28 +67,6 @@ const siteSchema = z.object({
   accessNotes: optionalText,
   latitude: optionalCoordinate.refine((value) => value == null || (value >= -90 && value <= 90), "Latitude invalide"),
   longitude: optionalCoordinate.refine((value) => value == null || (value >= -180 && value <= 180), "Longitude invalide"),
-})
-
-const supplierSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  code: z
-    .string()
-    .trim()
-    .max(40)
-    .optional()
-    .transform((value) => value || null),
-  contactName: optionalText,
-  email: z
-    .union([z.string().trim().email(), z.literal("")])
-    .optional()
-    .transform((value) => value || null),
-  phone: z
-    .string()
-    .trim()
-    .max(40)
-    .optional()
-    .transform((value) => value || null),
-  deliveryDays: z.coerce.number().int().min(0).max(365).optional().nullable(),
 })
 
 const productSchema = z.object({
@@ -534,7 +513,6 @@ export async function getOperationsDashboard() {
       agencies,
       clients,
       sites,
-      suppliers,
       products,
       warehouses,
       purchaseOrders,
@@ -562,7 +540,6 @@ export async function getOperationsDashboard() {
         orderBy: { updatedAt: "desc" },
         take: 100,
       }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
       prisma.product.findMany({
         where: { companyId, active: true },
         include: { supplier: { select: { name: true } }, inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
@@ -701,7 +678,6 @@ export async function getOperationsDashboard() {
       agencies,
       clients,
       sites,
-      suppliers,
       products,
       warehouses,
       purchaseOrders,
@@ -975,11 +951,11 @@ export async function getEquipmentDetail(equipmentId: string) {
 }
 
 export async function getSupplierDetail(supplierId: string) {
-  return withAuth(async ({ companyId, agencyIds }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(supplierId)
     if (!parsedId.success) return null
     const agency = agencyIds === null ? {} : { agencyId: { in: agencyIds } }
-    return prisma.supplier.findFirst({
+    const supplier = await prisma.supplier.findFirst({
       where: { id: parsedId.data, companyId },
       include: {
         products: { where: { companyId }, include: { inventoryItems: { where: inventoryReadWhere(companyId, agencyIds) } }, orderBy: { label: "asc" }, take: 300 },
@@ -988,6 +964,7 @@ export async function getSupplierDetail(supplierId: string) {
         supplierReturns: { where: { companyId, product: { companyId }, warehouse: { companyId, ...agency }, purchaseOrder: { companyId, ...(agencyIds === null ? {} : { project: { companyId, ...agency } }) } }, include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
       },
     })
+    return supplier ? { ...supplier, canManage: hasPermission(role, "operations.write") } : null
   }, "operations.read")
 }
 
@@ -1101,9 +1078,14 @@ export async function createCustomerSite(input: unknown) {
 }
 
 export async function createSupplier(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const data = supplierSchema.parse(input)
-    const supplier = await prisma.supplier.create({ data: { companyId, ...data } })
+    let supplier
+    try { supplier = await prisma.supplier.create({ data: { companyId, ...data } }) } catch (error) {
+      if (isUniqueConstraintConflict(error, "name") || isUniqueConstraintConflict(error, "code")) throw new Error("Ce nom ou ce code fournisseur existe déjà.")
+      throw error
+    }
+    await logAction({ userId, action: "CREATE_SUPPLIER", resource: "SUPPLIER", resourceId: supplier.id, payload: { fields: Object.keys(data) } })
     revalidateOperations()
     return { success: true as const, id: supplier.id }
   }, "operations.write")
@@ -1112,8 +1094,10 @@ export async function createSupplier(input: unknown) {
 export async function createProduct(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = productSchema.parse(input)
-    if (data.supplierId && !(await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } }))) throw new Error("Fournisseur introuvable")
-    const product = await prisma.product.create({ data: { companyId, ...data } })
+    const product = await prisma.$transaction(async tx => {
+      if (data.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
+      return tx.product.create({ data: { companyId, ...data } })
+    })
     revalidateOperations()
     return { success: true as const, id: product.id }
   }, "operations.write")
@@ -1494,7 +1478,6 @@ export async function createPurchaseOrder(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = purchaseOrderSchema.parse(input)
     const lines = data.lines?.length ? data.lines : [{ productId: data.productId, label: data.label!, quantity: data.quantity!, unitPriceCents: data.unitPriceCents! }]
-    if (!(await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } }))) throw new Error("Fournisseur introuvable")
     if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new Error("Chantier introuvable")
     const productIds = [...new Set(lines.flatMap((line) => (line.productId ? [line.productId] : [])))]
     if (productIds.length && (await prisma.product.count({ where: { id: { in: productIds }, companyId, active: true } })) !== productIds.length)
@@ -1503,18 +1486,21 @@ export async function createPurchaseOrder(input: unknown) {
     const totalHtCents = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceCents, 0)
     const order = await withDocumentNumberRetry(
       async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.purchaseOrder.create({
-          data: {
-            companyId,
-            supplierId: data.supplierId,
-            projectId: data.projectId,
-            expectedAt: data.expectedAt,
-            notes: data.notes,
-            number: nextDocumentNumber(last, prefix),
-            totalHtCents,
-            lines: { create: lines.map((line, order) => ({ ...line, order })) },
-          },
+        const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        return prisma.$transaction(async tx => {
+          await lockActiveSupplier(tx, companyId, data.supplierId)
+          return tx.purchaseOrder.create({
+            data: {
+              companyId,
+              supplierId: data.supplierId,
+              projectId: data.projectId,
+              expectedAt: data.expectedAt,
+              notes: data.notes,
+              number: nextDocumentNumber(last, prefix),
+              totalHtCents,
+              lines: { create: lines.map((line, order) => ({ ...line, order })) },
+            },
+          })
         })
       },
       { label: "la commande fournisseur" },

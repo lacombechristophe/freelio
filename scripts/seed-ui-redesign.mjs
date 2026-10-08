@@ -16,6 +16,11 @@ try {
   const companyId = user.companyId
   if (!companyId) throw new Error("Seed the QA account first.")
   for (const surface of ["desktop", "mobile"]) {
+    await prisma.supplier.createMany({ data: Array.from({ length: 201 }, (_, index) => ({
+      companyId, name: `UIQA Supplier ${surface} ${String(index).padStart(3, "0")}`, code: `UIQA-SUP-${surface}-${index}`, contactName: "Fictional supplier contact",
+    })) })
+  }
+  for (const surface of ["desktop", "mobile"]) {
     await prisma.notification.create({ data: { userId: user.id, type: "SYSTEM", title: `UIQA Notification hydration ${surface}`, message: "Fictional hydration regression", isRead: true } })
     const workflow = await prisma.automationWorkflow.create({ data: { companyId, name: `UIQA Journal ${surface}`, trigger: "LEAD_CREATED", status: "ARCHIVED", actions: [{ type: "WAIT", delayHours: 1 }] } })
     await prisma.automationRun.createMany({ data: Array.from({ length: 101 }, (_, index) => ({ companyId, workflowId: workflow.id, event: index === 100 ? `UIQA_LAST_${surface}` : "LEAD_CREATED",

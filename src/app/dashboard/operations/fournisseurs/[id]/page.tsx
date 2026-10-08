@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupplierActions } from "../supplier-actions";
 import { notFound } from "next/navigation";
 import {
   Boxes,
@@ -69,6 +70,7 @@ export default async function SupplierDetailPage({
                 Écrire
               </a>
             )}
+            <SupplierActions canManage={supplier.canManage} supplier={{ id: supplier.id, name: supplier.name, code: supplier.code, contactName: supplier.contactName, email: supplier.email, phone: supplier.phone, address: supplier.address, paymentTerms: supplier.paymentTerms, deliveryDays: supplier.deliveryDays, active: supplier.active, updatedAt: supplier.updatedAt.toISOString() }} />
             <Badge variant={supplier.active ? "secondary" : "outline"}>
               {supplier.active ? "Actif" : "Inactif"}
             </Badge>

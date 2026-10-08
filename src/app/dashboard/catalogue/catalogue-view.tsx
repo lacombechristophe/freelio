@@ -96,8 +96,8 @@ export function CatalogueView({ services, categories, productData }: {
 
       <ServiceFormDialog open={serviceCreateOpen} onOpenChange={setServiceCreateOpen} categories={categories} />
       {serviceEditTarget ? <ServiceFormDialog open onOpenChange={(open) => { if (!open) setServiceEditTarget(null) }} categories={categories} service={serviceEditTarget} /> : null}
-      <ProductFormDialog open={productCreateOpen} onOpenChange={setProductCreateOpen} products={productChoices} suppliers={productData.suppliers} />
-      {productEditTarget ? <ProductFormDialog open onOpenChange={(open) => { if (!open) setProductEditTarget(null) }} product={productEditTarget as CatalogProductFormValue} products={productChoices} suppliers={productData.suppliers} /> : null}
+      <ProductFormDialog open={productCreateOpen} onOpenChange={setProductCreateOpen} products={productChoices} />
+      {productEditTarget ? <ProductFormDialog open onOpenChange={(open) => { if (!open) setProductEditTarget(null) }} product={productEditTarget as CatalogProductFormValue} products={productChoices} /> : null}
 
       <Tabs defaultValue="products" className="space-y-4">
         <TabsList><TabsTrigger value="products"><Boxes />Produits & configurations</TabsTrigger><TabsTrigger value="services"><Wrench />Prestations</TabsTrigger></TabsList>

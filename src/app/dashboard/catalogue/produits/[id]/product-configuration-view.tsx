@@ -67,8 +67,8 @@ export function ProductConfigurationView({ detail }: { detail: Detail }) {
         actions={<div className="flex flex-wrap gap-2"><Link href="/dashboard/catalogue" className={buttonVariants({ variant: "outline" })}><ArrowLeft />Catalogue</Link>{detail.canManage ? <><Button demoMutation variant="outline" onClick={() => setEditOpen(true)}><Pencil />Modifier</Button>{!product.parentProductId ? <Button demoMutation onClick={() => setVariantOpen(true)}><Plus />Ajouter une variante</Button> : null}</> : null}</div>}
       />
 
-      <ProductFormDialog open={editOpen} onOpenChange={setEditOpen} product={product as CatalogProductFormValue} products={references} suppliers={detail.suppliers} />
-      <ProductFormDialog open={variantOpen} onOpenChange={setVariantOpen} products={[{ id: product.id, sku: product.sku, label: product.label, parentProductId: product.parentProductId }, ...references]} suppliers={detail.suppliers} defaultParentProductId={product.id} defaultKind="VARIANT" />
+      <ProductFormDialog open={editOpen} onOpenChange={setEditOpen} product={product as CatalogProductFormValue} products={references} />
+      <ProductFormDialog open={variantOpen} onOpenChange={setVariantOpen} products={[{ id: product.id, sku: product.sku, label: product.label, parentProductId: product.parentProductId }, ...references]} defaultParentProductId={product.id} defaultKind="VARIANT" />
 
       <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 lg:grid-cols-4">
         <div className="p-4"><p className="text-xs text-muted-foreground">Prix de vente HT</p><p className="mt-1 text-lg font-semibold tabular-nums">{formatEuro(product.salePriceCents)}</p></div>
