@@ -129,6 +129,7 @@ jobs:
           path: |
             test-results/full-ui-audit/
             test-results/task-usability/
+            test-results/supplier-history/
           if-no-files-found: ignore
           retention-days: 14
 

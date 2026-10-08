@@ -300,14 +300,23 @@ test("agencies connect teams, warehouses and operational records", async ({ page
     await expect(transferSection).toContainText(`Dépôt QA`)
     await expect(transferSection).toContainText(destinationWarehouse)
     await expect(transferSection).toContainText(`TRF-QA-${suffix}`)
+    const outboundTransfer = transferSection.locator("p").filter({ hasText: `TRF-QA-${suffix}` })
+    await expect(outboundTransfer.locator(":scope > span").nth(0)).toHaveText("Dépôt QA")
+    await expect(outboundTransfer.locator(":scope > span").nth(1)).toHaveText(destinationWarehouse)
 
     await selectOperationType(page, "Transfert de stock")
     await page.getByLabel("Dépôt de départ").selectOption({ label: destinationWarehouse })
     await page.getByLabel("Dépôt d’arrivée").selectOption({ label: "Dépôt QA" })
     await page.getByLabel("Produit suivi").selectOption({ label: "QA-COVER · Couverture de test" })
     await page.getByLabel("Quantité *", { exact: true }).fill("1")
+    await page.getByLabel("Référence", { exact: true }).fill(`TRF-RETURN-QA-${suffix}`)
     await page.getByRole("button", { name: "Enregistrer", exact: true }).click()
-    await expect(page.getByText("Transfert de stock enregistré.")).toBeVisible()
+    // Both successful saves can have identical notifications still visible.
+    // Verify the persisted reverse direction, not only the notification text.
+    await expect(page.getByText("Transfert de stock enregistré.", { exact: true }).last()).toBeVisible()
+    const returnTransfer = transferSection.locator("p").filter({ hasText: `TRF-RETURN-QA-${suffix}` })
+    await expect(returnTransfer.locator(":scope > span").nth(0)).toHaveText(destinationWarehouse)
+    await expect(returnTransfer.locator(":scope > span").nth(1)).toHaveText("Dépôt QA")
 
     await page.getByRole("combobox", { name: "Filtrer par agence" }).click()
     await page.getByRole("option", { name: agencyName }).click()
@@ -1221,7 +1230,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await page.getByLabel("Produit").selectOption({ label: "QA-COVER · Couverture de test" })
   await page.getByLabel("Commande client").selectOption({ index: 1 })
   await page.getByLabel("Quantité").fill("1")
-  await page.getByRole("button", { name: "Enregistrer" }).click()
+  await page.locator('[data-slot="card"]').filter({ has: page.getByRole("combobox", { name: "Type d’opération", exact: true }) }).getByRole("button", { name: "Enregistrer", exact: true }).click()
   await expect(page.getByText("Réservation de stock enregistré.")).toBeVisible()
   await expect(page.getByText("Couverture de test").last()).toBeVisible()
 
@@ -1236,7 +1245,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await page.getByLabel("Ligne livrée").selectOption({ index: 1 })
   await page.getByLabel("Quantité").fill("1")
   await page.getByLabel("Réceptionnaire").fill("Camille Piscine")
-  await page.getByRole("button", { name: "Enregistrer" }).click()
+  await page.locator('[data-slot="card"]').filter({ has: page.getByRole("combobox", { name: "Type d’opération", exact: true }) }).getByRole("button", { name: "Enregistrer", exact: true }).click()
   await expect(page.getByText("Bon de livraison enregistré.")).toBeVisible()
   await page.getByRole("tab", { name: "Commandes" }).click()
   const deliverySection = page.getByText("Derniers bons de livraison").locator("..").locator("..")
