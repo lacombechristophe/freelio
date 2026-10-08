@@ -58,8 +58,8 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
       totalTtcCents: calculation.totalTtcCents,
     }
     try {
-      await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
-        if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return
+      const created = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
+        if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return false
         const client = await tx.client.findFirst({ where: { id: recurring.clientId, companyId: recurring.companyId }, select: { id: true } })
         if (!client) throw new Error("Client de récurrence incompatible avec la société")
         if (parsed.data.projectId) {
@@ -87,8 +87,10 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
         const advanced = await tx.recurringInvoice.updateMany({ where: { id: recurring.id, nextGenDate: scheduledFor, isActive: true }, data: { lastGenDate: now, nextGenDate: getNextRecurringDate(scheduledFor, recurring.frequency) } })
         if (advanced.count !== 1) throw new Error("Échéance récurrente déjà traitée")
         await tx.auditLog.create({ data: { userId, action: "GENERATE_RECURRING_INVOICE", resource: "INVOICE", resourceId: invoice.id, payload: { recurringId: recurring.id, scheduledFor: scheduledFor.toISOString(), number } } })
+        return true
       }), { label: "la facture récurrente" })
-      summary.generated += 1
+      if (created) summary.generated += 1
+      else summary.skipped += 1
     } catch (error) {
       console.error("Recurring invoice scheduling failed", { recurringId: recurring.id, error: error instanceof Error ? error.message : "unknown" })
       summary.failed += 1

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
 import prisma from "@/lib/prisma"
@@ -38,6 +38,7 @@ describe.sequential("recurring generation validates stored references on real SQ
     await prisma.invoice.deleteMany({ where: { companyId } })
     await prisma.auditLog.deleteMany({ where: { userId: { in: [userId, foreignUserId] } } })
   })
+  afterEach(() => vi.restoreAllMocks())
   afterAll(async () => {
     if (!companyId || !foreignCompanyId) return
     const companies = [companyId, foreignCompanyId]
@@ -69,6 +70,25 @@ describe.sequential("recurring generation validates stored references on real SQ
     await prisma.recurringInvoice.update({ where: { id: recurring.id }, data: { nextGenDate: due } })
     expect(await processDueRecurringInvoices({ companyId })).toMatchObject({ generated: 0, skipped: 1 })
     expect(await prisma.invoice.count({ where: { companyId } })).toBe(1)
+  })
+  it("reports a second worker committing after the initial read as skipped", async () => {
+    const recurring = await create()
+    const findOccurrence = prisma.recurringInvoiceOccurrence.findUnique.bind(prisma.recurringInvoiceOccurrence)
+    let secondResult: Awaited<ReturnType<typeof processDueRecurringInvoices>> | undefined
+    vi.spyOn(prisma.recurringInvoiceOccurrence, "findUnique").mockImplementationOnce((args) => {
+      const read = findOccurrence(args)
+      return read.then(async (observed) => {
+        expect(observed).toBeNull()
+        secondResult = await processDueRecurringInvoices({ companyId })
+        return observed
+      }) as typeof read
+    })
+    const result = await processDueRecurringInvoices({ companyId })
+    expect(secondResult).toMatchObject({ generated: 1, failed: 0 })
+    expect(result).toMatchObject({ generated: 0, skipped: 1, failed: 0 })
+    expect(await prisma.invoice.count({ where: { companyId } })).toBe(1)
+    expect(await prisma.recurringInvoiceOccurrence.count({ where: { recurringId: recurring.id } })).toBe(1)
+    expect(await prisma.auditLog.count({ where: { userId, action: "GENERATE_RECURRING_INVOICE" } })).toBe(1)
   })
   it("rejects a local plan referencing a foreign client before writing a draft", async () => {
     await create(foreignClientId, null)
