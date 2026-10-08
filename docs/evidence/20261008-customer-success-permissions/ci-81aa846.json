@@ -1,0 +1,592 @@
+{
+  "schema": "freelio.customer-success-ci.v1",
+  "candidate": "81aa8462a2f0fbca7eb06b4f555de2a42d8a6ef3",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37807881224",
+      "conclusion": "failure",
+      "testedCommit": "81aa8462a2f0fbca7eb06b4f555de2a42d8a6ef3",
+      "parents": [
+        "46a1fa0543b723c79a57c7fa5e29bc451b19ab46"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113416829332,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113416829492,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 113416829573,
+          "conclusion": "failure"
+        }
+      ],
+      "linux": {
+        "artifactId": 11563553581,
+        "reportSha256": "db29b81a7c895ff7caee36eb85f7a5f58e192c87ac972ac8b56b1218284b521b",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "postgres": {
+        "artifactId": 11564525049,
+        "reportSha256": "d718b0bdc106d7f3a0e50757da9694c3d70b4212e69b1ecbf17deec1a082998d",
+        "passed": 1019,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "auth-context.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses general Client editing through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses financial Client editing through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses nested Client writes through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses bulk profile writes through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses profile writes through a service read action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context keeps lazy Prisma reads inside their company authorization context",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context scopes lazy Owner updates to their authorized company",
+                "status": "passed"
+              }
+            ]
+          },
+          {
+            "file": "customer-success-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "customer-success financial permissions on real SQL preserves authorized Owner values",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'TECHNICIAN'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'TECHNICIAN'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'SERVICE'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'SERVICE'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL excludes invoice activity from TECHNICIAN operational metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL excludes invoice activity from SERVICE operational metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when TECHNICIAN saves other fields",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when SERVICE saves other fields",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects direct creation of a financial rule by Service",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects direct archiving of a financial rule by Service",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL installs operational defaults without overwriting the existing financial rule",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL keeps authorized financial writes and rule management available to Owner",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL keeps Finance-readable Viewer values within the assigned agency and refuses writes",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not query invoice aggregates or debts when Finance is unavailable",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rereads inactive agency access for Finance-readable metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rereads unassigned agency access for Finance-readable metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL refuses suspended membership",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not return or update a foreign client",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL keeps the public demo readable while refusing profile writes",
+                "status": "passed"
+              }
+            ]
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "surface": "desktop",
+            "name": "Owner retains complete financial signals, history and editing",
+            "status": "failed",
+            "seconds": 1.2
+          },
+          {
+            "surface": "desktop",
+            "name": "technician saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.6
+          },
+          {
+            "surface": "desktop",
+            "name": "service saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.7
+          },
+          {
+            "surface": "desktop",
+            "name": "Viewer reads assigned financial signals without financial editing or a global trend",
+            "status": "passed",
+            "seconds": 1.1
+          },
+          {
+            "surface": "mobile",
+            "name": "Owner retains complete financial signals, history and editing",
+            "status": "failed",
+            "seconds": 1.2
+          },
+          {
+            "surface": "mobile",
+            "name": "technician saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "surface": "mobile",
+            "name": "service saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "surface": "mobile",
+            "name": "Viewer reads assigned financial signals without financial editing or a global trend",
+            "status": "passed",
+            "seconds": 1
+          }
+        ],
+        "preservedCases": [
+          "✓    7 [desktop] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (1.6s)",
+          "✓    8 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.4s)",
+          "✓    9 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.3s)",
+          "✓   10 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.3s)",
+          "✓   11 [desktop] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (1.5s)",
+          "✓   12 [desktop] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (1.6s)",
+          "✓   77 [desktop] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (10.3s)",
+          "✓   78 [desktop] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.6s)",
+          "✓  104 [mobile] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (2.0s)",
+          "✓  105 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.5s)",
+          "✓  106 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.3s)",
+          "✓  107 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.2s)",
+          "✓  108 [mobile] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (1.9s)",
+          "✓  109 [mobile] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (1.9s)",
+          "✓  174 [mobile] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (10.9s)",
+          "✓  175 [mobile] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.6s)"
+        ],
+        "failures": [],
+        "totals": [
+          "2 failed",
+          "19 skipped",
+          "173 passed (14.5m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  162 passed | 1 skipped (163)",
+        "Tests  1019 passed | 1 skipped (1020)",
+        "Test Files  163 passed (163)",
+        "Tests  1020 passed (1020)",
+        "Test Files  163 passed (163)",
+        "Tests  1020 passed (1020)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37807888669",
+      "conclusion": "failure",
+      "testedCommit": "1a606847ff98c69c393301849c757078a7546bff",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "81aa8462a2f0fbca7eb06b4f555de2a42d8a6ef3"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 113416855599,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113416855880,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113416856032,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11563583250,
+        "reportSha256": "45f38f9f6409142905010e83825fde71108fc953679c4820003a047b6e280d36",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "postgres": {
+        "artifactId": 11564145845,
+        "reportSha256": "4fa96bde5ac256400f700e2243d697d010f4c7dd80672c17a63b86bb9ce2a391",
+        "passed": 1019,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "auth-context.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses general Client editing through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses financial Client editing through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses nested Client writes through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses bulk profile writes through a service action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context refuses profile writes through a service read action",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context keeps lazy Prisma reads inside their company authorization context",
+                "status": "passed"
+              },
+              {
+                "name": "lazy Prisma promises retain their authorization context scopes lazy Owner updates to their authorized company",
+                "status": "passed"
+              }
+            ]
+          },
+          {
+            "file": "customer-success-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "customer-success financial permissions on real SQL preserves authorized Owner values",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'TECHNICIAN'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'TECHNICIAN'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'SERVICE'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'SERVICE'",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL excludes invoice activity from TECHNICIAN operational metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL excludes invoice activity from SERVICE operational metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when TECHNICIAN saves other fields",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when SERVICE saves other fields",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects direct creation of a financial rule by Service",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rejects direct archiving of a financial rule by Service",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL installs operational defaults without overwriting the existing financial rule",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL keeps authorized financial writes and rule management available to Owner",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL keeps Finance-readable Viewer values within the assigned agency and refuses writes",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not query invoice aggregates or debts when Finance is unavailable",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rereads inactive agency access for Finance-readable metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL rereads unassigned agency access for Finance-readable metrics",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL refuses suspended membership",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL does not return or update a foreign client",
+                "status": "passed"
+              },
+              {
+                "name": "customer-success financial permissions on real SQL keeps the public demo readable while refusing profile writes",
+                "status": "passed"
+              }
+            ]
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "surface": "desktop",
+            "name": "Owner retains complete financial signals, history and editing",
+            "status": "failed",
+            "seconds": 1.3
+          },
+          {
+            "surface": "desktop",
+            "name": "technician saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.7
+          },
+          {
+            "surface": "desktop",
+            "name": "service saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.7
+          },
+          {
+            "surface": "desktop",
+            "name": "Viewer reads assigned financial signals without financial editing or a global trend",
+            "status": "passed",
+            "seconds": 1.1
+          },
+          {
+            "surface": "mobile",
+            "name": "Owner retains complete financial signals, history and editing",
+            "status": "failed",
+            "seconds": 1.2
+          },
+          {
+            "surface": "mobile",
+            "name": "technician saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "surface": "mobile",
+            "name": "service saves service fields without reading or replacing financial values",
+            "status": "passed",
+            "seconds": 1.5
+          },
+          {
+            "surface": "mobile",
+            "name": "Viewer reads assigned financial signals without financial editing or a global trend",
+            "status": "passed",
+            "seconds": 1.1
+          }
+        ],
+        "preservedCases": [
+          "✓    7 [desktop] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (1.6s)",
+          "✓    8 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.3s)",
+          "✓    9 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.3s)",
+          "✓   10 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.3s)",
+          "✓   11 [desktop] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (1.5s)",
+          "✓   12 [desktop] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (1.6s)",
+          "✓   77 [desktop] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (10.3s)",
+          "✓   78 [desktop] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.7s)",
+          "✓  104 [mobile] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (2.0s)",
+          "✓  105 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.5s)",
+          "✓  106 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.3s)",
+          "✓  107 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.3s)",
+          "✓  108 [mobile] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (2.0s)",
+          "✓  109 [mobile] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (2.0s)",
+          "✓  174 [mobile] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (11.3s)",
+          "✓  175 [mobile] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.7s)"
+        ],
+        "failures": [],
+        "totals": [
+          "2 failed",
+          "19 skipped",
+          "173 passed (14.6m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  163 passed (163)",
+        "Tests  1020 passed (1020)",
+        "Test Files  163 passed (163)",
+        "Tests  1020 passed (1020)",
+        "Test Files  162 passed | 1 skipped (163)",
+        "Tests  1019 passed | 1 skipped (1020)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    }
+  ],
+  "limits": [
+    "Fictitious isolated recipe; no real provider or hosted commercial qualification.",
+    "Historical browser exclusions and native SQLite-only PostgreSQL exclusion retained.",
+    "Other shared health scores, Service analytics and remaining CRM collections are separate."
+  ]
+}

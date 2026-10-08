@@ -10,3 +10,5 @@ npm run test:unit -- tests/unit/customer-success-permissions.probe.test.ts
 ```
 
 Le retour attendu est non nul. La recette courante a supprimé son fichier temporaire après exécution et nettoyé ses fixtures. Session et cache Next sont simulés ; aucune donnée SQL n’est fabriquée par un mock. Cette preuve SQLite ne qualifie ni PostgreSQL, ni navigateur, ni correction future.
+
+La suite de 26 cas correspond au [fichier conservé dans 46a1fa0](https://github.com/lacombechristophe/freelio/blob/46a1fa0/tests/unit/customer-success-permissions.integration.test.ts). Trois cas ajoutés ensuite reproduisent une collision de nom dans les règles recommandées : deux remplacements financiers interdits échouent, le cas Owner passe. Le [même fichier et les mêmes trois cas](default-collisions.json) passent après correction. La sélection de ces trois cas exclut les 26 autres dans cette seule comparaison ; aucune exclusion n’est ajoutée à la suite complète. Les permissions, la valeur conservée et le compte réellement installé de l’audit sont vérifiés en SQL.

@@ -14,7 +14,7 @@ Terminer par une preuve technique concrète : l’archive d’une facture persis
 
 1. Lire le [README](../README.md), la [recette récente de complétude](completude-recette-20261003.md) et le [suivi du socle](execution-cto-20261001.md) pour distinguer code livré, candidat testé et fonctions ouvertes.
 2. Examiner les [décisions](decisions-techniques.md) : conserver la stack, PostgreSQL partagé, limites de l’authentification et du rendu PDF.
-3. Suivre une mutation : action → permission → contexte d’entreprise/agence → transaction → audit. Lire `src/lib/auth-wrapper.ts`, `src/lib/prisma.ts` et un cas métier ciblé.
+3. Suivre une mutation : action → permission → contexte d’entreprise/agence → transaction → audit. Lire `src/lib/auth-wrapper.ts`, `src/lib/prisma.ts` et un cas métier ciblé. Les régressions du [contexte des requêtes différées](qualification-contexte-auth-20261008.md) et de [Suivi client](qualification-suivi-client-droits-20261008.md) montrent un refus SQL précis et une sauvegarde opérationnelle qui préserve un montant inaccessible ; leurs résultats sont liés au candidat, pas à la démo déjà livrée.
 4. Examiner le calcul commercial, la numérotation et `src/lib/finance/issued-invoice.ts` ; retrouver leurs régressions dans la [carte des preuves](carte-des-preuves.md).
 5. Lire une migration SQL, les scripts de récupération et les limites d’exploitation. Relier l’exécution au code testé, puis demander une modification limitée dans une base fictive.
 
