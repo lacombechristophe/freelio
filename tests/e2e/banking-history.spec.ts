@@ -1,5 +1,19 @@
 import { expect, test } from "@playwright/test"
 
+test("recovers a CSV selected before the client handlers are attached", async ({ page }) => {
+  let release!: () => void
+  const scripts = new Promise<void>(resolve => { release = resolve })
+  await page.route("**/_next/static/**/*.js", async route => { await scripts; await route.continue() })
+  try {
+    await page.goto("/dashboard/comptabilite/banque", { waitUntil: "commit" })
+    await page.getByLabel("Sélectionner un relevé bancaire CSV", { exact: true }).setInputFiles({
+      name: "early-fictional.csv", mimeType: "text/csv", buffer: Buffer.from("Date;Libellé;Montant\n01/01/2030;Fictional early selection;1,00\n"),
+    })
+  } finally { release() }
+  await expect(page.getByText("1 ligne(s) valide(s) sur 1", { exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Importer", exact: true })).toBeEnabled()
+})
+
 test("pages the full bank history and keeps CSV mapping and an off-page expense choice", async ({ page }, info) => {
   const prefix = `UIQA Bank history ${info.project.name}`
   await page.goto("/dashboard/comptabilite/banque")

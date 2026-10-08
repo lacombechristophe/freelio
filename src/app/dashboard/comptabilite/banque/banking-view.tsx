@@ -93,7 +93,8 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
   })).filter(row => row.label && row.amountCents !== 0), [rawRows, mapping])
   const validRowCount = normalizedRows.filter(row => { try { parseBankDate(row.date); return true } catch { return false } }).length
 
-  function readCsv(file: File | undefined) {
+  const csvInput = React.useRef<HTMLInputElement>(null)
+  const readCsv = React.useCallback((file: File | undefined) => {
     if (!file) return
     Papa.parse<RawRow>(file, {
       header: true,
@@ -111,7 +112,12 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
       },
       error: (error) => toast.error(error.message),
     })
-  }
+  }, [])
+  React.useEffect(() => {
+    // A native file picker can be used before React attaches its change handler.
+    // Recover that selection once on mount rather than losing the chosen CSV.
+    readCsv(csvInput.current?.files?.[0])
+  }, [readCsv])
 
   async function importRows() {
     if (!normalizedRows.length) return toast.error("Aucune ligne exploitable.")
@@ -179,7 +185,7 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-sm"><FileUp /> Importer un relevé CSV</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <Input aria-label="Sélectionner un relevé bancaire CSV" type="file" accept=".csv,text/csv" onChange={(event) => readCsv(event.target.files?.[0])} />
+          <Input ref={csvInput} aria-label="Sélectionner un relevé bancaire CSV" type="file" accept=".csv,text/csv" onChange={(event) => readCsv(event.target.files?.[0])} />
           {headers.length > 0 && <>
             <div className="grid gap-3 sm:grid-cols-4">
               {(["date", "label", "amount", "reference"] as const).map((field) => (
