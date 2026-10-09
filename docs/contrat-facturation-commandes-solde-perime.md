@@ -6,7 +6,7 @@ Une recette SQL fictive modifie le montant d'un acompte après la lecture initia
 
 La modification intermédiaire est injectée via une lecture instrumentée : elle prouve ce chemin périmé, sans qualifier deux connexions concurrentes. Session et cache Next sont simulés ; données, action, DAL et transactions SQL sont réels. Aucun document n'est émis, aucun fournisseur, PDF ou paiement n'est utilisé.
 
-## Correctif proposé, à confirmer
+## Correctif approuvé le 9 octobre 2026
 
 Avant de créer l'acompte ou le solde, recontrôler dans la transaction les montants et états des factures liés utilisés pour le calcul. Si le résultat diffère de la lecture initiale, refuser avec le message existant « La facturation de cette commande a changé. Rechargez la page puis réessayez. », sans nouvelle facture, changement de l'état de commande ni nouvel audit.
 
