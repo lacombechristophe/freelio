@@ -1763,18 +1763,23 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
     const data = customerOrderInvoiceSchema.parse(input)
     const order = await prisma.customerOrder.findFirst({
       where: { id: data.customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
-      include: { project: { select: { clientId: true } }, invoices: { select: { id: true, number: true, type: true, status: true, totalTtcCents: true } } },
+      include: { project: { select: { clientId: true } }, invoices: { select: { id: true, companyId: true, clientId: true, projectId: true, number: true, type: true, status: true, totalTtcCents: true } } },
     })
     if (!order || (order.project && order.project.clientId !== order.clientId)) throw new Error("Commande client introuvable")
+    if (order.invoices.some(invoice => invoice.companyId !== companyId || invoice.clientId !== order.clientId || invoice.projectId !== order.projectId)) throw new Error("Commande client introuvable")
     const orderScope = {
       id: order.id, companyId, clientId: order.clientId, projectId: order.projectId,
       client: { companyId },
       OR: [{ projectId: null }, { project: { companyId, clientId: order.clientId, client: { companyId } } }],
+      invoices: { every: { companyId, clientId: order.clientId, projectId: order.projectId } },
     }
     if (order.status === "CANCELLED") throw new Error("Une commande annulée ne peut pas être facturée")
     if (data.mode === "DEPOSIT") {
       const existingDeposit = order.invoices.find((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED")
-      if (existingDeposit) return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      if (existingDeposit) {
+        if (!await prisma.customerOrder.findFirst({ where: orderScope, select: { id: true } })) throw new Error("Commande client introuvable")
+        return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      }
       if (order.depositCents <= 0) throw new Error("Aucun acompte n’est défini sur cette commande")
     }
     const remaining = remainingOrderAmount(order.totalTtcCents, order.invoices)
