@@ -17,6 +17,7 @@ import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
@@ -699,7 +700,7 @@ export async function getOperationsDashboard() {
 }
 
 export async function getServiceTicketDetail(ticketId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
     const [ticket, members, company, serviceMacros, diagnosticGuides] = await Promise.all([
@@ -895,6 +896,7 @@ export async function getServiceTicketDetail(ticketId: string) {
     }))
     return {
       ...ticket,
+      client: clientWithAccessibleMetrics(ticket.client, { role, agencyIds }),
       mergedInto,
       mergedTickets: mergedTicketSummaries,
       interventions,
@@ -912,10 +914,10 @@ export async function getServiceTicketDetail(ticketId: string) {
 }
 
 export async function getFieldInterventionDetail(interventionId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(interventionId)
     if (!parsedId.success) return null
-    return prisma.fieldIntervention.findFirst({
+    const intervention = await prisma.fieldIntervention.findFirst({
       where: { id: parsedId.data, companyId },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
@@ -929,14 +931,15 @@ export async function getFieldInterventionDetail(interventionId: string) {
         reservations: { orderBy: { createdAt: "desc" } },
       },
     })
+    return intervention ? { ...intervention, site: { ...intervention.site, client: clientWithAccessibleMetrics(intervention.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
 export async function getEquipmentDetail(equipmentId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(equipmentId)
     if (!parsedId.success) return null
-    return prisma.equipment.findFirst({
+    const equipment = await prisma.equipment.findFirst({
       where: { id: parsedId.data, companyId },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
@@ -948,6 +951,7 @@ export async function getEquipmentDetail(equipmentId: string) {
         maintenanceContracts: { include: { contract: true }, orderBy: { contract: { createdAt: "desc" } } },
       },
     })
+    return equipment ? { ...equipment, site: { ...equipment.site, client: clientWithAccessibleMetrics(equipment.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
