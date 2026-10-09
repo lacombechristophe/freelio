@@ -1,0 +1,150 @@
+{
+  "schema": "freelio.operations-order-finance-local.v1",
+  "codeCommit": "b32c5635cede5dd8be44a24a512b2ed9e92d450e",
+  "files": [
+    {
+      "file": "src/actions/operations/index.ts",
+      "sha256": "d64f21fa3e59dbc6cabdb19a3dbd0497e482d57b125d36d205d0900004da8d53"
+    },
+    {
+      "file": "src/app/dashboard/operations/operations-center.tsx",
+      "sha256": "4640112e2dc3726ae176afdbd399952472da873129ccb1f3b0d7cc8d77f50db6"
+    },
+    {
+      "file": "tests/unit/operations-order-finance.integration.test.ts",
+      "sha256": "641050b12e4eefecf71c2373dccb1cfe343bb2225b5e55b8d3a0d24933619ce7"
+    },
+    {
+      "file": "tests/e2e/operations-order-finance.spec.ts",
+      "sha256": "7feaef799f5626c58a1342deac4bafad4d325ef8a1b1ae4567560fa5b2505aa8"
+    },
+    {
+      "file": "scripts/seed-operations-order-finance.mjs",
+      "sha256": "c921ef9e9ea3ce980f15c95d8d942780a48b8eb6f9134e9fa15197cd4cf93708"
+    }
+  ],
+  "database": "isolated fictitious SQLite",
+  "unit": {
+    "passed": 1539,
+    "failed": 0,
+    "files": 182
+  },
+  "targeted": {
+    "passed": 16,
+    "failed": 0
+  },
+  "cases": [
+    {
+      "name": "excludes 'invoices' for 'TECHNICIAN' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'count' for 'TECHNICIAN' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'status' for 'TECHNICIAN' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'invoices' for 'OPERATIONS' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'count' for 'OPERATIONS' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'status' for 'OPERATIONS' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'invoices' for 'SERVICE' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'count' for 'SERVICE' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'status' for 'SERVICE' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized billing and commands for OWNER",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized billing and commands for ADMIN",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized billing and commands for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "name": "preserves Finance reads without billing commands for Viewer",
+      "status": "passed"
+    },
+    {
+      "name": "reevaluates a role change in the same session",
+      "status": "passed"
+    },
+    {
+      "name": "does not offer billing in the public read-only demo",
+      "status": "passed"
+    },
+    {
+      "name": "removes the order after agency access is revoked",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 21.548
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 101.251
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.553
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 437.465
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 137.73
+    }
+  ],
+  "firstTypecheck": {
+    "exitCode": 2,
+    "reason": "Two test calls supplied positional arguments instead of the single input object. Corrected to the actual action signature; production authorization was unchanged."
+  },
+  "limits": [
+    "Session and Next cache simulated; coherent fictitious orders, real SQL and DAL.",
+    "Write denials occur before business execution; no issued invoice or provider call is claimed.",
+    "The six compiled browser checks are prepared, not locally executed. PostgreSQL and Linux require candidate CI.",
+    "Operational prices are preserved; other Operations relations, volumes and financial mutations remain distinct."
+  ],
+  "publicationScan": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1160,
+    "historyBlobsChecked": 3310,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "browser": {
+    "listed": 6,
+    "executedLocally": false
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "schema": "freelio.service-detail-metrics-local.v1",
+  "codeCommit": "f88fa41c2c3db328297ba83930eed47d15ec357e",
+  "files": [
+    {
+      "file": "tests/unit/service-detail-client-metrics.integration.test.ts",
+      "sha256": "4533bfe09874bd87fa1feec78fdcfe3f7c53ab1af3b86e98cdda74173c59b13d"
+    },
+    {
+      "file": "src/actions/operations/index.ts",
+      "sha256": "e5e98219c4186bf97cf26270c8717ef86919108b9c3e20bf69c15d0318122922"
+    }
+  ],
+  "database": "isolated fictitious SQLite",
+  "unit": {
+    "passed": 1523,
+    "failed": 0,
+    "files": 181
+  },
+  "targeted": {
+    "passed": 51,
+    "failed": 0,
+    "files": 3
+  },
+  "cases": [
+    {
+      "name": "excludes 'totalRevenueCents' from 'equipment' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'totalUnpaidCents' from 'equipment' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'renewalAmountCents' from 'equipment' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'relationScore' from 'equipment' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'totalRevenueCents' from 'intervention' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'totalUnpaidCents' from 'intervention' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'renewalAmountCents' from 'intervention' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'relationScore' from 'intervention' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'totalRevenueCents' from 'ticket' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'totalUnpaidCents' from 'ticket' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'renewalAmountCents' from 'ticket' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "excludes 'relationScore' from 'ticket' without Finance",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'OWNER' in 'equipment'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'ADMIN' in 'equipment'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'OWNER' in 'intervention'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'ADMIN' in 'intervention'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'OWNER' in 'ticket'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'ADMIN' in 'ticket'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized renewal but hides global caches for Viewer in equipment",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized renewal but hides global caches for Viewer in intervention",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized renewal but hides global caches for Viewer in ticket",
+      "status": "passed"
+    },
+    {
+      "name": "reevaluates the role in the same session for equipment",
+      "status": "passed"
+    },
+    {
+      "name": "reevaluates the role in the same session for intervention",
+      "status": "passed"
+    },
+    {
+      "name": "reevaluates the role in the same session for ticket",
+      "status": "passed"
+    },
+    {
+      "name": "preserves client identity and contacts for Service in equipment",
+      "status": "passed"
+    },
+    {
+      "name": "preserves client identity and contacts for Service in intervention",
+      "status": "passed"
+    },
+    {
+      "name": "preserves client identity and contacts for Service in ticket",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 14.243
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 31.065
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.211
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 207.485
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 68.18
+    }
+  ],
+  "limits": [
+    "Session and Next cache simulated; coherent fixtures, real SQL, DAL and reader responses.",
+    "No visual components changed; current detail pages do not render the four client caches.",
+    "This suite covers the three response projections, not all nested relations or Operations finance data.",
+    "PostgreSQL, browser and Linux qualification require the CI candidate containing this code."
+  ]
+}

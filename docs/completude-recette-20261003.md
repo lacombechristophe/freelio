@@ -4,18 +4,18 @@
 
 ## Référence documentée en CI
 
-**de24513** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37911641818) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37911648371) réussies.
+**88ce8dd** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37964507103) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37964515152) réussies.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 472 tests / 178 fichiers |
-| PostgreSQL | 1 471 réussis ; une exclusion native SQLite |
+| SQLite, suite unitaire et couverture | 1 484 tests / 179 fichiers |
+| PostgreSQL | 1 483 réussis ; une exclusion native SQLite |
 | Navigateur | 277 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
-Ce candidat qualifie aussi les actions de facturation : 34 cas SQL, neuf de relances et quatre de paiements concurrents. Les [rapports](evidence/20261009-invoice-actions/ci-de24513.json) vérifient l’identité des 942 entrées Git hors documentation avec la fusion de test PR. Documents et Récurrences conservent leurs 33 et 26 cas SQL, 13 cas worker, six et huit E2E. Les exclusions navigateur limitent certains anciens parcours mobiles ; les nouveaux tests de ces deux lots ne sont pas exclus. Les [preuves Documents antérieures](evidence/20261009-document-relations/ci-ae88e47.json) restent conservées.
+Ce candidat qualifie les douze cas de réservation concurrente sur PostgreSQL réel ; il conserve les actions de facturation : 34 cas SQL, neuf de relances et quatre de paiements concurrents. Les [rapports](evidence/20261009-stock-reservations/ci-88ce8dd.json) vérifient l’identité des 943 entrées Git hors documentation avec la fusion de test PR. Documents et Récurrences conservent leurs 33 et 26 cas SQL, 13 cas worker, six et huit E2E. Les exclusions navigateur limitent certains anciens parcours mobiles ; les nouveaux tests de ces deux lots ne sont pas exclus. Les [preuves de facturation antérieures](evidence/20261009-invoice-actions/ci-de24513.json) restent conservées.
 
 ## Portée du lot Récurrences
 
@@ -31,10 +31,16 @@ Les tests SQL utilisent les vraies actions et transactions selon leur périmètr
 
 ## Travaux encore nécessaires
 
-Le correctif des [actions de facturation](evidence/20261009-invoice-actions/README.md), `e13d3d7`, passe localement 1 472 tests SQLite / 178 fichiers, types, lints et build. Les deux CI de de24513 qualifient ce correctif. Il couvre droits Finance explicites, société du client, calcul des avoirs cohérents et relecture des relances ; il ne ferme pas toute la chaîne financière. La [recette des réservations concurrentes](qualification-reservations-stock-20261009.md) passe douze cas SQLite, sans modification métier ; sa barrière PostgreSQL reste à qualifier.
+Le correctif des [actions de facturation](evidence/20261009-invoice-actions/README.md), `e13d3d7`, passe localement 1 472 tests SQLite / 178 fichiers, types, lints et build. Les deux CI de de24513 qualifient ce correctif. Il couvre droits Finance explicites, société du client, calcul des avoirs cohérents et relecture des relances ; il ne ferme pas toute la chaîne financière. La [recette des réservations concurrentes](qualification-reservations-stock-20261009.md) est qualifiée par les deux CI de 88ce8dd, sans modification métier.
 
 - Compléter la qualification des autres écritures financières : remboursements, avoirs, réservations et contention forte. Les [paiements concurrents](qualification-paiements-concurrents-20261008.md) et les [rapprochements](qualification-rapprochements-bancaires-20261008.md) ont leurs propres preuves.
 - Vérifier les traces et sorties des scénarios, les sélecteurs encore plafonnés et les chaînes métier restantes du [plan fonctionnel](plan-completude-fonctionnelle-20261002.md), puis installation, récupération et démonstrations de L9.
 - Qualifier comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations sont hors recette fictive et budget de 0 €.
+
+Le correctif des [rattachements de réservation](evidence/20261009-stock-reservation-scope/README.md), `e25c8d1`, passe localement 1 496 tests SQLite / 180 fichiers, types, les deux lints et build. Ses douze cas de relations passent avec les douze cas de concurrence. Sa CI propre reste requise ; les CI antérieures ne qualifient pas ce code.
+
+Le correctif serveur des [projections Client dans les détails Service](evidence/20261009-service-detail-metrics/README.md), `f88fa41`, conserve la présentation et applique la règle commune aux tickets, équipements et interventions. Ses 27 cas passent localement, puis la suite complète de 1 523 tests / 181 fichiers, types, lints et build. Les deux correctifs attendent leur propre qualification CI.
+
+Le [lot approuvé des commandes Opérations](evidence/20261009-operations-order-finance/README.md), `b32c563`, exclut les références et compteurs de factures sans Finance, protège les commandes de facturation et conserve les prix opérationnels. Seize cas SQL passent ; la qualification locale commune passe 1 539 tests / 182 fichiers, types, les deux lints et compilation. Les six E2E sont chargés mais restent à exécuter. La CI commune à ces trois correctifs reste requise.
 
 La [revue CTO](revue-cto.md) donne un parcours de présentation et expose ces limites. Les résultats automatisés ne certifient ni tout le produit, ni l’accessibilité complète, ni les services externes.

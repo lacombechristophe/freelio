@@ -24,7 +24,7 @@ npm run test:unit -- tests/unit/stock-reservation-concurrency.integration.test.t
 
 Les douze cas passent localement en SQLite. Une première exécution avait onze réussites et une assertion incorrecte du test : `toBe` comparait l'objet matcher à la chaîne de statut. `toEqual` vérifie maintenant le statut attendu ; aucun code métier, délai ou condition d'acceptation n'a changé.
 
-La qualification de la barrière PostgreSQL reste requise dans la CI du candidat. La [facturation précédente](evidence/20261009-invoice-actions/README.md) conserve ses propres preuves ; ses CI ne qualifient pas ce nouveau fichier.
+Les [deux CI de 88ce8dd](evidence/20261009-stock-reservations/ci-88ce8dd.json) passent les douze cas sur PostgreSQL réel, avec la barrière de lectures exigée. Elles passent aussi 1 484 tests SQLite dans 179 fichiers, 1 483 PostgreSQL et une exclusion native, 277 parcours navigateur et 19 exclusions historiques, neuf contrôles Linux et les deux audits à zéro. La fusion de test PR possède les mêmes 943 entrées Git hors documentation que le candidat. Ce résultat qualifie le test de concurrence ; il ne qualifie pas les correctifs de rattachement et de projection Client ajoutés après 88ce8dd.
 
 ## Limites
 
