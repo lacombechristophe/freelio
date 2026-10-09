@@ -55,7 +55,7 @@ describe.sequential("recurring generation validates stored references on real SQ
     await prisma.company.deleteMany({ where: { id: { in: companies } } })
     await prisma.user.deleteMany({ where: { id: { in: [userId, foreignUserId] } } })
   })
-  const create = (client = clientId, project: string | null = projectId) => prisma.recurringInvoice.create({ data: { companyId, clientId: client, label: "Fictional worker plan", frequency: "MONTHLY", nextGenDate: due, template: template(project) } })
+  const create = (client = clientId, project: string | null = projectId) => prisma.recurringInvoice.create({ data: { companyId, clientId: client, projectId: project, label: "Fictional worker plan", frequency: "MONTHLY", nextGenDate: due, template: template(project) } })
 
   it("generates a coherent draft, occurrence and audit without issuing the invoice", async () => {
     const recurring = await create()
@@ -128,7 +128,7 @@ describe.sequential("recurring generation validates stored references on real SQ
     expect(await prisma.invoice.count({ where: { companyId } })).toBe(0)
   })
   it("reports a nonexistent stored project without writing a partial occurrence", async () => {
-    const recurring = await create(clientId, "fictional-missing-project")
+    const recurring = await prisma.recurringInvoice.create({ data: { companyId, clientId, projectId: null, label: "Fictional historical missing project", frequency: "MONTHLY", nextGenDate: due, template: template("fictional-missing-project") } })
     expect(await processDueRecurringInvoices({ companyId })).toMatchObject({ generated: 0, failed: 1 })
     expect(await prisma.invoice.count({ where: { companyId } })).toBe(0)
     expect(await prisma.recurringInvoiceOccurrence.count({ where: { recurringId: recurring.id } })).toBe(0)

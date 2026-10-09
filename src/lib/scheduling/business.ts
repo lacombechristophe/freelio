@@ -39,6 +39,10 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
       summary.disabled += 1
       continue
     }
+    if ((parsed.data.projectId || null) !== recurring.projectId) {
+      summary.failed += 1
+      continue
+    }
     const scheduledFor = recurring.nextGenDate
     const existing = await prisma.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })
     if (existing) {
@@ -62,10 +66,13 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
         if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return false
         const client = await tx.client.findFirst({ where: { id: recurring.clientId, companyId: recurring.companyId }, select: { id: true } })
         if (!client) throw new Error("Client de récurrence incompatible avec la société")
-        if (parsed.data.projectId) {
-          const project = await tx.project.findFirst({ where: { id: parsed.data.projectId, companyId: recurring.companyId, clientId: recurring.clientId }, select: { id: true } })
+        if (recurring.projectId) {
+          const project = await tx.project.findFirst({ where: { id: recurring.projectId, companyId: recurring.companyId, clientId: recurring.clientId }, select: { id: true } })
           if (!project) throw new Error("Chantier de récurrence incompatible avec le client ou la société")
         }
+        if (recurring.maintenanceContractId && !await tx.maintenanceContract.findFirst({
+          where: { id: recurring.maintenanceContractId, companyId: recurring.companyId, clientId: recurring.clientId, site: { companyId: recurring.companyId, clientId: recurring.clientId } }, select: { id: true },
+        })) throw new Error("Entretien de récurrence incompatible avec le client ou la société")
         const prefix = buildYearlyDocumentPrefix(recurring.company.invoicePrefix, "FACT-")
         const last = await readCompanyDocumentNumbers(() => tx.invoice.findMany({ where: { companyId: recurring.companyId, number: { startsWith: prefix } }, select: { number: true } }))
         const number = nextDocumentNumber(last, prefix)
@@ -73,7 +80,7 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
           data: {
             companyId: recurring.companyId,
             clientId: recurring.clientId,
-            projectId: parsed.data.projectId || null,
+            projectId: recurring.projectId,
             number,
             object: parsed.data.object,
             status: "DRAFT",

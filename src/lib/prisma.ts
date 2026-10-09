@@ -25,6 +25,11 @@ const DIRECT_AGENCY_MODELS = new Set(["CustomerSite", "Project", "Warehouse"])
 
 function agencyWhere(model: string, agencyIds: string[]) {
   const direct = { agencyId: { in: agencyIds } }
+  const recurring = { AND: [
+    { OR: [{ projectId: null }, { project: direct }] },
+    { OR: [{ maintenanceContractId: null }, { maintenanceContract: { site: direct } }] },
+    { OR: [{ projectId: { not: null } }, { maintenanceContractId: { not: null } }] },
+  ] }
   const scopes: Record<string, Record<string, unknown>> = {
     Agency: { id: { in: agencyIds } },
     CustomerSite: direct,
@@ -36,6 +41,8 @@ function agencyWhere(model: string, agencyIds: string[]) {
     PurchaseOrder: { project: direct },
     Quote: { project: direct },
     Invoice: { project: direct },
+    RecurringInvoice: recurring,
+    RecurringInvoiceOccurrence: { recurring },
     Expense: { OR: [{ project: direct }, { intervention: { site: direct } }] },
     GoodsReceipt: { warehouse: direct },
     StockReservation: { warehouse: direct },

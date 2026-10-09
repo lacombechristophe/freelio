@@ -1448,6 +1448,7 @@ model Project {
   timeEntries       TimeEntry[]
   quotes            Quote[]
   invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
   organisationTasks OrganisationTask[]
   expenses          Expense[]
   technicalProfile  ProjectTechnicalProfile?
@@ -3017,6 +3018,8 @@ model RecurringInvoice {
   company               Company              @relation(fields: [companyId], references: [id])
   clientId              String
   client                Client               @relation(fields: [clientId], references: [id])
+  projectId             String?
+  project               Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
   maintenanceContractId String?              @unique
   maintenanceContract   MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: SetNull)
 
@@ -3028,6 +3031,8 @@ model RecurringInvoice {
 
   template    Json // Invoice template for generation
   occurrences RecurringInvoiceOccurrence[]
+
+  @@index([companyId, projectId])
 }
 
 model RecurringInvoiceOccurrence {
