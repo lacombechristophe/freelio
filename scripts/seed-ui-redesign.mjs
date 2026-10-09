@@ -7,6 +7,7 @@ import { encrypt } from "../src/lib/crypto.ts"
 import { seedCatalogueAssets } from "./seed-catalogue-assets.mjs"
 import { seedDocumentRelations } from "./seed-document-relations.mjs"
 import { seedRecurringInvoices } from "./seed-recurring-invoices.mjs"
+import { seedOperationsOrderFinance } from "./seed-operations-order-finance.mjs"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -22,6 +23,7 @@ try {
   await seedCatalogueAssets(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedDocumentRelations(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedRecurringInvoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedOperationsOrderFinance(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   for (const surface of ["desktop", "mobile"]) {
     await prisma.supplier.createMany({ data: Array.from({ length: 201 }, (_, index) => ({
       companyId, name: `UIQA Supplier ${surface} ${String(index).padStart(3, "0")}`, code: `UIQA-SUP-${surface}-${index}`, contactName: "Fictional supplier contact",

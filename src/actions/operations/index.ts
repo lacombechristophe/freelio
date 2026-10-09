@@ -18,6 +18,7 @@ import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/s
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
+import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
@@ -511,6 +512,7 @@ async function findInterventionSlotConflict({
 
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
     const [
       agencies,
       clients,
@@ -632,8 +634,8 @@ export async function getOperationsDashboard() {
           client: { select: { name: true } },
           project: { select: { name: true, agencyId: true } },
           lines: true,
-          invoices: { select: { id: true, type: true, status: true } },
-          _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } },
+          invoices: canReadFinance ? { where: { companyId, client: { companyId } }, select: { id: true, type: true, status: true } } : false,
+          _count: { select: { deliveryNotes: true, stockReservations: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 150,
@@ -689,12 +691,18 @@ export async function getOperationsDashboard() {
       contracts,
       projects,
       members,
-      customerOrders,
+      customerOrders: customerOrders.map(order => ({
+        ...order,
+        billingStatus: canReadFinance ? order.billingStatus : null,
+        invoices: canReadFinance ? order.invoices : [],
+        _count: { ...order._count, invoices: canReadFinance ? order.invoices.length : null },
+      })),
       goodsReceipts,
       reservations,
       deliveryNotes,
       stockTransfers,
       canApprovePurchases: hasPermission(role, "purchases.approve"),
+      canBillOrders: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
     }
   }, "operations.read")
 }
