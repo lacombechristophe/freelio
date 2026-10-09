@@ -1,0 +1,104 @@
+{
+  "schema": "freelio.partial-ci.v1",
+  "candidate": "6c8cffb9a5a2de78d2bf143e6594a1dfdaca4f42",
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/37991223995",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114025595578,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114025595933,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114025595978,
+          "conclusion": "failure"
+        }
+      ],
+      "quality": {
+        "sqlite": [
+          "Test Files  187 passed (187)",
+          "Tests  1609 passed (1609)",
+          "Test Files  187 passed (187)",
+          "Tests  1609 passed (1609)"
+        ],
+        "browser": [
+          "19 skipped",
+          "291 passed (18.8m)"
+        ],
+        "audits": [
+          "found 0 vulnerabilities",
+          "found 0 vulnerabilities"
+        ],
+        "logSha256": "8b05eb107c3e7a21b9dc81891546df35277cfd813f180d1e024d6cf520c30fd5"
+      },
+      "postgres": {
+        "testsExecuted": false,
+        "reason": "Docker Hub anonymous pull quota before service initialization"
+      },
+      "linux": {
+        "checksExecuted": false,
+        "reason": "Docker Hub 429 before Node base image build"
+      }
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/37991230632",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114025616472,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114025616523,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114025616546,
+          "conclusion": "failure"
+        }
+      ],
+      "quality": {
+        "sqlite": [
+          "Test Files  187 passed (187)",
+          "Tests  1609 passed (1609)",
+          "Test Files  187 passed (187)",
+          "Tests  1609 passed (1609)"
+        ],
+        "browser": [
+          "19 skipped",
+          "291 passed (22.6m)"
+        ],
+        "audits": [
+          "found 0 vulnerabilities",
+          "found 0 vulnerabilities"
+        ],
+        "logSha256": "83b1126714e7b62470991c0f0d623fb1ff32aae81a3c7db29b821b54b08bb3bd"
+      },
+      "postgres": {
+        "testsExecuted": false,
+        "reason": "Docker Hub anonymous pull quota before service initialization"
+      },
+      "linux": {
+        "checksExecuted": false,
+        "reason": "Docker Hub 429 before Node base image build"
+      }
+    }
+  ],
+  "limits": [
+    "The failed runs stay failed. Quality success does not qualify PostgreSQL or Linux.",
+    "These runs do not include the later stale-billing or registry fixes."
+  ]
+}
