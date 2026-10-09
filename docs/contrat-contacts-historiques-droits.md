@@ -20,4 +20,6 @@ Le [probe et sa baseline](evidence/20261008-contact-history/README.md) sont cons
 
 Les [CI de 13a89e7](evidence/20261008-contact-history/ci-13a89e7.json) qualifient ensuite les 36 cas PostgreSQL et les seize parcours ordinateur/mobile Contacts dans les deux runs. La PR réussit globalement ; la branche est annulée après un timeout Catalogue indépendant de ce lot. La correction de synchronisation du test Catalogue doit encore être exécutée. Les résultats locaux ci-dessus et leur découverte précèdent cette qualification distante.
 
+Les [deux CI de 83ac918](evidence/20261008-contact-history/ci-83ac918.json) réussissent ensuite globalement et conservent les 36 cas PostgreSQL et seize E2E Contacts. Elles qualifient aussi la correction Catalogue, sans assouplissement des contrôles. Les correctifs ultérieurs du worker restent distincts de ce résultat.
+
 Les indicateurs de la fiche conservent leur calcul actuel sur les historiques récents chargés ; ce lot protège leurs droits et leur périmètre, sans revendiquer une mesure exhaustive de l’activité ni changer la définition d’un e-mail envoyé.
