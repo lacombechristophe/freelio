@@ -1773,11 +1773,17 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
       OR: [{ projectId: null }, { project: { companyId, clientId: order.clientId, client: { companyId } } }],
       invoices: { every: { companyId, clientId: order.clientId, projectId: order.projectId } },
     }
+    const invoiceRead = { id: true, type: true, status: true, totalTtcCents: true } as const
+    const invoiceState = (invoices: Array<{ id: string; type: string; status: string; totalTtcCents: number }>) =>
+      JSON.stringify([...invoices].sort((a, b) => a.id.localeCompare(b.id)).map(invoice => [invoice.id, invoice.type, invoice.status, invoice.totalTtcCents]))
+    const expectedInvoiceState = invoiceState(order.invoices)
     if (order.status === "CANCELLED") throw new Error("Une commande annulée ne peut pas être facturée")
     if (data.mode === "DEPOSIT") {
       const existingDeposit = order.invoices.find((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED")
       if (existingDeposit) {
-        if (!await prisma.customerOrder.findFirst({ where: orderScope, select: { id: true } })) throw new Error("Commande client introuvable")
+        const current = await prisma.customerOrder.findFirst({ where: orderScope, select: { invoices: { select: invoiceRead } } })
+        if (!current) throw new Error("Commande client introuvable")
+        if (invoiceState(current.invoices) !== expectedInvoiceState) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
         return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
       }
       if (order.depositCents <= 0) throw new Error("Aucun acompte n’est défini sur cette commande")
@@ -1798,7 +1804,9 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
-          if (!await tx.customerOrder.findFirst({ where: orderScope, select: { id: true } })) throw new Error("Commande client introuvable")
+          const current = await tx.customerOrder.findFirst({ where: orderScope, select: { invoices: { select: invoiceRead } } })
+          if (!current) throw new Error("Commande client introuvable")
+          if (invoiceState(current.invoices) !== expectedInvoiceState) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
           const nextRemaining = remaining - amountTtcCents
           const claimed = await tx.customerOrder.updateMany({
             where: { ...orderScope, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
