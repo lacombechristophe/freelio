@@ -23,9 +23,7 @@ import {
   createStockTransfer,
   createSupplier,
   createWarehouse,
-  consumeStockReservation,
   consumeInterventionMaterial,
-  releaseStockReservation,
   rescheduleFieldIntervention,
   resolveInterventionReservation,
   reserveStock,
@@ -43,6 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { planningEnd, planningSlotsOverlap, routeDistanceKm } from "@/lib/operations/planning"
 import { PurchaseWorkflow } from "./purchase-workflow"
 import { AssetsDirectory } from "./assets-directory"
+import { OrdersDirectory } from "./orders-directory"
 import { MaintenanceRenewalPanel } from "./_components/maintenance-renewal-panel"
 
 const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
@@ -142,6 +141,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
   const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
   const [agencyId, setAgencyId] = useState("ALL")
+  const [ordersRevision, setOrdersRevision] = useState(0)
   const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1")
   useEffect(() => setSourceData(serverData), [serverData])
   const data = useMemo(() => filterOperationsByAgency(sourceData, agencyId), [sourceData, agencyId])
@@ -203,7 +203,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
 
   function mutate(message: string, operation: () => Promise<unknown>) {
     startTransition(async () => {
-      try { await operation(); toast.success(message); router.refresh() }
+      try { await operation(); setOrdersRevision(current => current + 1); toast.success(message); router.refresh() }
       catch (error) { toast.error(error instanceof Error ? error.message : "Mise à jour impossible.") }
     })
   }
@@ -422,7 +422,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
           </div>
         </TabsContent>
         <TabsContent value="maintenance"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Contrats d’entretien</h2><p className="mt-1 text-xs text-muted-foreground">Visites, facturation, préavis, décisions et continuité des termes.</p></div>{initialData.contracts.length ? <div className="divide-y">{initialData.contracts.map((contract) => <MaintenanceRenewalPanel key={contract.id} contract={contract} />)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun contrat d’entretien.</p>}</section></TabsContent>
-        <TabsContent value="orders"><div className="grid gap-6 xl:grid-cols-2"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Commandes client</h2></div>{initialData.customerOrders.length ? <div className="divide-y">{initialData.customerOrders.map((order) => <div key={order.id} className="px-5 py-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-mono text-xs font-semibold">{order.number}</p><p className="mt-1 text-sm font-medium">{order.client.name}</p><p className="mt-1 text-xs text-muted-foreground">{order.project?.name || "Sans chantier"} · {order.lines.length} ligne{order.lines.length > 1 ? "s" : ""} · {order._count.stockReservations} réservation{order._count.stockReservations > 1 ? "s" : ""}</p><div className="mt-3 flex flex-wrap gap-2">{initialData.canBillOrders && order.depositCents > 0 && !order.invoices.some((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED") ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => invoiceOrder(order.id, "DEPOSIT")}>Facturer l’acompte</Button> : null}{initialData.canBillOrders && order.billingStatus !== "INVOICED" ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => invoiceOrder(order.id, "BALANCE")}>Facturer le solde</Button> : null}</div></div><div className="text-left sm:text-right"><div className="flex flex-wrap gap-2 sm:justify-end"><Badge variant="outline">{order.status}</Badge><Badge variant="secondary">{order.billingStatus ?? "Accès Finance requis"}</Badge></div><p className="mt-2 text-xs font-medium tabular-nums">{formatMoney(order.totalTtcCents)} TTC</p></div></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune commande client.</p>}</section><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Réservations actives</h2></div>{initialData.reservations.length ? <div className="divide-y">{initialData.reservations.map((reservation) => <div key={reservation.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><p className="text-sm font-medium">{reservation.product.label}</p><p className="mt-1 text-xs text-muted-foreground">{reservation.quantity} · {reservation.warehouse.name}{reservation.project ? ` · ${reservation.project.name}` : ""}{reservation.customerOrder ? ` · ${reservation.customerOrder.number}` : ""}</p></div><div className="flex gap-2"><Button size="sm" disabled={isPending} onClick={() => mutate("Stock consommé pour le dossier.", () => consumeStockReservation(reservation.id))}>Consommer</Button><Button size="sm" variant="outline" disabled={isPending} onClick={() => mutate("Réservation libérée.", () => releaseStockReservation(reservation.id))}>Libérer</Button></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune réservation active.</p>}</section></div>{initialData.deliveryNotes.length ? <section className="mt-6 overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Derniers bons de livraison</h2></div><div className="divide-y">{initialData.deliveryNotes.map((note) => <div key={note.id} className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-mono text-xs font-semibold">{note.number}</p><Badge variant={note.signedAt ? "secondary" : "outline"}>{note.signedAt ? "Signé" : "Livré"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{note.customerOrder.client.name} · {note.lines.reduce((sum, line) => sum + line.quantity, 0)} unité{note.lines.reduce((sum, line) => sum + line.quantity, 0) > 1 ? "s" : ""}{note.recipientName ? ` · ${note.recipientName}` : ""}</p></div><div className="flex flex-wrap gap-2">{!note.signedAt ? <Button size="sm" onClick={() => setDeliverySignId(note.id)} disabled={isPending}><PenLine />Faire signer</Button> : null}<a className={buttonVariants({ variant: "outline", size: "sm" })} href={`/api/pdf/livraison/${note.id}`} target="_blank" rel="noreferrer"><FileText />PDF</a></div></div>)}</div></section> : null}</TabsContent>
+        <TabsContent value="orders"><OrdersDirectory agencyId={agencyId} revision={[serverData, ordersRevision]} isPending={isPending} invoiceOrder={invoiceOrder} mutate={mutate} />{initialData.deliveryNotes.length ? <section className="mt-6 overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Derniers bons de livraison</h2></div><div className="divide-y">{initialData.deliveryNotes.map((note) => <div key={note.id} className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-mono text-xs font-semibold">{note.number}</p><Badge variant={note.signedAt ? "secondary" : "outline"}>{note.signedAt ? "Signé" : "Livré"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{note.customerOrder.client.name} · {note.lines.reduce((sum, line) => sum + line.quantity, 0)} unité{note.lines.reduce((sum, line) => sum + line.quantity, 0) > 1 ? "s" : ""}{note.recipientName ? ` · ${note.recipientName}` : ""}</p></div><div className="flex flex-wrap gap-2">{!note.signedAt ? <Button size="sm" onClick={() => setDeliverySignId(note.id)} disabled={isPending}><PenLine />Faire signer</Button> : null}<a className={buttonVariants({ variant: "outline", size: "sm" })} href={`/api/pdf/livraison/${note.id}`} target="_blank" rel="noreferrer"><FileText />PDF</a></div></div>)}</div></section> : null}</TabsContent>
         <TabsContent value="stock">
           <div className="space-y-5">
             <PurchaseWorkflow data={initialData} />

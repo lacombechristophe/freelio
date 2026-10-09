@@ -1,42 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState, useTransition } from "react"
+import { useOperationsDirectory } from "./use-operations-directory"
 import { MapPin } from "lucide-react"
 import { getCustomerSiteDirectory, getEquipmentDirectory } from "@/actions/operations-assets"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 
-function useAssetDirectory<T extends { total: number; page: number }>(agencyId: string, revision: unknown, load: (input: { search: string; page: number; agencyId?: string }) => Promise<T>) {
-  const [query, setQuery] = useState({ search: "", page: 1, agencyId })
-  const [retry, setRetry] = useState(0)
-  const [pending, startTransition] = useTransition()
-  const [result, setResult] = useState<{ key: string; data: T } | null>(null)
-  const [error, setError] = useState(false)
-  const page = query.agencyId === agencyId ? query.page : 1
-  const key = JSON.stringify([query.search, page, agencyId, retry, revision])
-  useEffect(() => { setQuery(current => ({ ...current, page: 1, agencyId })); setError(false) }, [agencyId])
-  useEffect(() => {
-    let current = true
-    const timer = setTimeout(() => startTransition(async () => {
-      try {
-        const data = await load({ search: query.search, page, agencyId: agencyId === "ALL" ? undefined : agencyId })
-        if (!data) throw new Error("Liste indisponible")
-        if (current) { setResult({ key, data }); setError(false) }
-      } catch { if (current) setError(true) }
-    }), 200)
-    return () => { current = false; clearTimeout(timer) }
-  }, [query.search, page, agencyId, key, load])
-  const fresh = result?.key === key
-  return { search: query.search, setSearch: (search: string) => { setQuery({ search, page: 1, agencyId }); setError(false) },
-    data: result?.data, visible: fresh && result && !error ? result.data : null, pending: pending || (!fresh && !error), error,
-    page: fresh && result ? result.data.page : page, setPage: (next: number) => { setQuery(current => ({ ...current, page: next, agencyId })); setError(false) }, retry: () => { setError(false); setRetry(current => current + 1) } }
-}
-
 export function AssetsDirectory({ agencyId, revision }: { agencyId: string; revision: unknown }) {
-  const sites = useAssetDirectory(agencyId, revision, getCustomerSiteDirectory)
-  const equipment = useAssetDirectory(agencyId, revision, getEquipmentDirectory)
+  const sites = useOperationsDirectory(agencyId, revision, getCustomerSiteDirectory)
+  const equipment = useOperationsDirectory(agencyId, revision, getEquipmentDirectory)
   return <div className="grid gap-6 xl:grid-cols-2">
     <section className="min-w-0 overflow-hidden rounded-xl border bg-card" aria-label="Sites clients">
       <div className="space-y-3 border-b px-5 py-4"><h2 className="text-sm font-semibold">Sites clients</h2>
