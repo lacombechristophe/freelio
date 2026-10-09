@@ -21,18 +21,20 @@ type QuoteStatusActionsProps = {
   status: string
   hasOrder?: boolean
   hasContract?: boolean
+  unavailableRelations: { project: boolean; customerOrder: boolean; generatedContract: boolean }
 }
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "L’action n’a pas pu être terminée."
 }
 
-export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContract = false }: QuoteStatusActionsProps) {
+export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [pending, setPending] = React.useState(false)
   const [launchOpen, setLaunchOpen] = React.useState(false)
   const [includeContract, setIncludeContract] = React.useState(!hasContract)
+  const launchUnavailable = Object.values(unavailableRelations).some(Boolean)
 
   async function changeStatus(next: QuoteStatus) {
     if (next === "ACCEPTED") {
@@ -126,7 +128,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
           </Button>
         ) : null}
         {status === "ACCEPTED" && !hasOrder ? (
-          <Button demoMutation disabled={pending} onClick={() => setLaunchOpen(true)}>
+          <Button demoMutation disabled={pending || launchUnavailable} onClick={() => setLaunchOpen(true)}>
             <FileCheck2 />
             Lancer le dossier
           </Button>
@@ -146,7 +148,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
               </>
             ) : null}
             {status === "ACCEPTED" ? (
-              <DropdownMenuItem onClick={createContract} className="gap-2">
+              <DropdownMenuItem disabled={unavailableRelations.generatedContract} onClick={createContract} className="gap-2">
                 <ScrollText /> {hasContract ? "Ouvrir le contrat" : "Préparer le contrat"}
               </DropdownMenuItem>
             ) : null}

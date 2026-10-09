@@ -1652,7 +1652,15 @@ export async function convertQuoteToCustomerOrder(input: unknown) {
       },
     })
     if (!quote) throw new Error("Devis introuvable")
-    if (quote.customerOrder) return { success: true as const, id: quote.customerOrder.id, number: quote.customerOrder.number, existing: true as const }
+    if (quote.projectId && !await prisma.project.findFirst({ where: { id: quote.projectId, companyId, clientId: quote.clientId, client: { companyId } }, select: { id: true } })) throw new Error("Référence liée indisponible")
+    if (quote.customerOrder) {
+      const existing = await prisma.customerOrder.findFirst({
+        where: { id: quote.customerOrder.id, companyId, clientId: quote.clientId, client: { companyId }, project: { companyId, clientId: quote.clientId } },
+        select: { id: true, number: true },
+      })
+      if (!existing) throw new Error("Référence liée indisponible")
+      return { success: true as const, id: existing.id, number: existing.number, existing: true as const }
+    }
     if (quote.status !== "ACCEPTED") throw new Error("Enregistrez l’accord du client avant de lancer la commande")
     const version = quote.versions[0]
     if (!version) throw new Error("Le devis ne contient aucune version")

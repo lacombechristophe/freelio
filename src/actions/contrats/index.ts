@@ -63,17 +63,25 @@ export async function getContractById(id: string) {
   return await withAuth(async ({ companyId, role, agencyIds }) => {
     const contract = await prisma.contract.findFirst({
       where: { id, companyId, client: { companyId } },
-      include: {
-        client: true,
-        company: true,
-        signatures: true,
-        changes: { orderBy: { order: "asc" } },
-        parentContract: { select: { id: true, number: true, title: true, status: true } },
-        amendments: { select: { id: true, number: true, title: true, status: true, effectiveAt: true }, orderBy: { createdAt: "desc" } },
-        maintenanceContract: { select: { id: true, number: true, label: true, renewalStatus: true } },
-      },
+      include: { client: true, company: true, signatures: true, changes: { orderBy: { order: "asc" } } },
     })
-    return contract ? { ...contract, client: clientWithAccessibleMetrics(contract.client, { role, agencyIds }) } : null
+    if (!contract) return null
+    const contractScope = { companyId, clientId: contract.clientId, client: { companyId } }
+    const [parentContract, amendments, maintenanceContract, sourceQuote] = await Promise.all([
+      contract.parentContractId ? prisma.contract.findFirst({ where: { id: contract.parentContractId, ...contractScope }, select: { id: true, number: true, title: true, status: true } }) : null,
+      prisma.contract.findMany({ where: { parentContractId: contract.id, ...contractScope }, select: { id: true, number: true, title: true, status: true, effectiveAt: true }, orderBy: { createdAt: "desc" } }),
+      contract.maintenanceContractId ? prisma.maintenanceContract.findFirst({
+        where: { id: contract.maintenanceContractId, companyId, clientId: contract.clientId, client: { companyId }, site: { companyId, clientId: contract.clientId, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) } },
+        select: { id: true, number: true, label: true, renewalStatus: true },
+      }) : null,
+      contract.sourceQuoteId ? prisma.quote.findFirst({ where: { id: contract.sourceQuoteId, ...contractScope }, select: { id: true } }) : null,
+    ])
+    return {
+      ...contract, parentContractId: parentContract?.id ?? null, maintenanceContractId: maintenanceContract?.id ?? null, sourceQuoteId: sourceQuote?.id ?? null,
+      parentContract, amendments, maintenanceContract,
+      unavailableRelations: { parentContract: Boolean(contract.parentContractId && !parentContract), maintenanceContract: Boolean(contract.maintenanceContractId && !maintenanceContract) },
+      client: clientWithAccessibleMetrics(contract.client, { role, agencyIds }),
+    }
   }, "sales.read")
 }
 

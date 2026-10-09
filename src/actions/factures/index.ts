@@ -74,16 +74,24 @@ export async function getInvoiceById(id: string) {
           siret: true, tvaNumber: true, apeCode: true, rcsNumber: true, iban: true,
           isTvaApplicable: true, latePenaltyRate: true, brandColor: true, pdfTemplate: true,
         } },
-        project: true,
-        lines: { orderBy: { order: "asc" } },
-        payments: { orderBy: { date: "desc" } },
-        creditNotes: true,
-        creditInvoices: { orderBy: { date: "desc" } },
-        originalInvoice: { select: { id: true, number: true } },
-        reminders: { orderBy: { createdAt: "desc" } },
+        lines: { orderBy: { order: "asc" } }, payments: { orderBy: { date: "desc" } },
+        creditNotes: true, reminders: { orderBy: { createdAt: "desc" } },
       },
     })
-    return invoice ? { ...invoice, client: clientWithAccessibleMetrics(invoice.client, { role, agencyIds }) } : null
+    if (!invoice) return null
+    const projectScope = { companyId, clientId: invoice.clientId, client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const invoiceScope = { companyId, clientId: invoice.clientId, client: { companyId }, OR: [{ projectId: null }, { project: projectScope }] }
+    const [project, originalInvoice, creditInvoices] = await Promise.all([
+      invoice.projectId ? prisma.project.findFirst({ where: { id: invoice.projectId, ...projectScope }, select: { id: true, name: true } }) : null,
+      invoice.originalInvoiceId ? prisma.invoice.findFirst({ where: { id: invoice.originalInvoiceId, ...invoiceScope }, select: { id: true, number: true } }) : null,
+      prisma.invoice.findMany({ where: { originalInvoiceId: invoice.id, ...invoiceScope }, select: { id: true, number: true, totalTtcCents: true }, orderBy: { date: "desc" } }),
+    ])
+    return {
+      ...invoice, projectId: project?.id ?? null, originalInvoiceId: originalInvoice?.id ?? null,
+      project, originalInvoice, creditInvoices,
+      unavailableRelations: { project: Boolean(invoice.projectId && !project), originalInvoice: Boolean(invoice.originalInvoiceId && !originalInvoice) },
+      client: clientWithAccessibleMetrics(invoice.client, { role, agencyIds }),
+    }
   }, "finance.read")
 }
 

@@ -3,6 +3,7 @@
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
@@ -68,29 +69,46 @@ export async function getQuoteById(id: string) {
       include: {
         client: true,
         company: true,
-        project: {
-          include: {
-            purchaseOrders: { select: { id: true, number: true, status: true } },
-          },
-        },
-        customerOrder: {
-          include: {
-            invoices: { select: { id: true, number: true, status: true, type: true } },
-          },
-        },
-        generatedContract: { select: { id: true, number: true, status: true } },
+        customerOrder: { select: { id: true } },
+        generatedContract: { select: { id: true } },
         versions: {
           orderBy: { version: "desc" },
-          include: {
-            sections: {
-              orderBy: { order: "asc" },
-              include: { lines: { orderBy: { order: "asc" } } },
-            },
-          },
+          include: { sections: { orderBy: { order: "asc" }, include: { lines: { orderBy: { order: "asc" } } } } },
         },
       },
     })
-    return quote ? { ...quote, client: clientWithAccessibleMetrics(quote.client, { role, agencyIds }) } : null
+    if (!quote) return null
+    const canReadFinance = hasPermission(role, "finance.read")
+    const projectScope = { companyId, clientId: quote.clientId, client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const [project, customerOrder, generatedContract] = await Promise.all([
+      quote.projectId ? prisma.project.findFirst({
+        where: { id: quote.projectId, ...projectScope },
+        select: { id: true, name: true, purchaseOrders: {
+          where: { companyId, supplier: { companyId }, project: projectScope },
+          select: { id: true, number: true, status: true },
+        } },
+      }) : null,
+      quote.customerOrder ? prisma.customerOrder.findFirst({
+        where: { id: quote.customerOrder.id, companyId, clientId: quote.clientId, client: { companyId }, project: projectScope },
+        select: { id: true, number: true, status: true, billingStatus: canReadFinance,
+          invoices: canReadFinance ? {
+            where: { companyId, clientId: quote.clientId, client: { companyId }, OR: [{ projectId: null }, { project: projectScope }] },
+            select: { id: true, number: true, status: true, type: true },
+          } : false,
+        },
+      }) : null,
+      quote.generatedContract ? prisma.contract.findFirst({
+        where: { id: quote.generatedContract.id, companyId, clientId: quote.clientId, client: { companyId } },
+        select: { id: true, number: true, status: true },
+      }) : null,
+    ])
+    return {
+      ...quote, projectId: project?.id ?? null, project, generatedContract,
+      customerOrder: customerOrder ? { ...customerOrder, billingStatus: canReadFinance ? customerOrder.billingStatus : null, invoices: canReadFinance ? customerOrder.invoices : [] } : null,
+      canReadFinance,
+      unavailableRelations: { project: Boolean(quote.projectId && !project), customerOrder: Boolean(quote.customerOrder && !customerOrder), generatedContract: Boolean(quote.generatedContract && !generatedContract) },
+      client: clientWithAccessibleMetrics(quote.client, { role, agencyIds }),
+    }
   }, "sales.read")
 }
 
@@ -453,9 +471,9 @@ export async function createContractFromQuote(quoteId: string) {
   return await withAuth(async ({ companyId, userId }) => {
     const parsedQuoteId = quoteIdSchema.parse(quoteId)
     const quote = await prisma.quote.findFirst({
-      where: { id: parsedQuoteId, companyId },
+      where: { id: parsedQuoteId, companyId, client: { companyId } },
       include: {
-        generatedContract: true,
+        generatedContract: { select: { id: true } },
         versions: {
           orderBy: { version: "desc" },
           take: 1,
@@ -469,7 +487,11 @@ export async function createContractFromQuote(quoteId: string) {
       },
     })
     if (!quote) throw new Error("Devis introuvable")
-    if (quote.generatedContract) return quote.generatedContract
+    if (quote.generatedContract) {
+      const existing = await prisma.contract.findFirst({ where: { id: quote.generatedContract.id, companyId, clientId: quote.clientId, client: { companyId } } })
+      if (!existing) throw new Error("Référence liée indisponible")
+      return existing
+    }
     if (quote.status !== "ACCEPTED") throw new Error("Le devis doit être accepté avant de préparer le contrat")
 
     const latest = quote.versions[0]

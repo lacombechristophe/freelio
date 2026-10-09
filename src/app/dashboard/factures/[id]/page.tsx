@@ -137,6 +137,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           Avoir lié à <Link className="font-medium text-foreground hover:underline" href={`/dashboard/factures/${invoice.originalInvoice.id}`}>{invoice.originalInvoice.number}</Link>
         </div>
       )}
+      {invoice.unavailableRelations.originalInvoice && <p className="text-sm text-muted-foreground">Facture source : Référence liée indisponible</p>}
 
       <RecordSummary label="Montants de la facture" items={[
         { label: "Total HT", value: formatEuro(invoice.totalHtCents) },
