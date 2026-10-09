@@ -1,0 +1,51 @@
+{
+  "schema": "freelio.local-qualification.v1",
+  "reference": "ae88e4709523fb1c73fdba737798fc914a824ea8",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "sourceIdentity": {
+    "entries": 934,
+    "sha256": "3ecfcd058b4e34221c001343307fdcfe2b91ca40243782d896712c5808f80f39",
+    "method": "Git entries outside docs/"
+  },
+  "fullSuite": {
+    "passed": 1410,
+    "files": 176,
+    "seconds": 168.53,
+    "logSha256": "bc220557dcd805b189e64b981c17f5877e5f883216bc84d29e5385db2b843ffe"
+  },
+  "targeted": {
+    "passed": 33,
+    "failed": 0,
+    "reportSha256": "a420551836a11073eee01011102d1163db847d5ff54901b74ff278412c1776f3",
+    "files": [
+      {
+        "file": "document-read-scope.integration.test.ts",
+        "cases": 33,
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75
+  },
+  "logs": {
+    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eslint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "oxlint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build": "a2981922da432d9054868e03fc7ba02649b0fd5918658c7f7060a57e6e3e0b23"
+  },
+  "discovery": {
+    "cases": 288,
+    "files": 50,
+    "logSha256": "22d2e2ee22c2b0a42b90e9bc62e8747a9e36174bb2847df87abb1db5769d88c1",
+    "executed": false
+  },
+  "limits": [
+    "Isolated fictitious data only. No real provider, invoice issuance or hosted load qualification.",
+    "Browser discovery and fixture creation do not constitute browser execution. PostgreSQL and compiled browser results need their own CI reference."
+  ]
+}

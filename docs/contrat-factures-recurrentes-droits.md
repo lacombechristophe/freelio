@@ -4,7 +4,7 @@
 
 Le [lecteur](qualification-factures-recurrentes-20261009.md) reproduit six échecs sur huit assertions : accès sans Finance, modèle d’une autre agence et client étranger. Le [worker](evidence/20261009-recurring-generation/README.md) reproduit quatre échecs sur sept cas de références historiques et auteur explicite. La correction interne du worker ne ferme pas les défauts de lecture ni de rattachement d’agence.
 
-## Lot visible proposé, accord requis
+## Lot approuvé le 9 octobre 2026
 
 Sans `finance.read`, la page affiche « Accès Finance requis » avant tout chargement de modèle financier. Les actions de création, activation et suppression exigent `finance.write` et leurs commandes restent indisponibles sans ce droit, ainsi qu’en démo publique.
 
@@ -25,3 +25,5 @@ Les factures déjà générées restent inchangées. Une suppression de modèle 
 ## Qualification requise
 
 Rejouer les huit assertions de lecture, puis couvrir Owner/Admin, Finance d’une seule agence, rôles interdits, révocation, société/client incohérents, ancien modèle sans chantier et ancien JSON invalide. Vérifier mutations directes, occurrences, sélection conservée, pagination et démo publique. Exécuter les migrations sur données historiques fictives SQLite/PostgreSQL et conserver les contrôles du worker. La CI Contacts ne qualifie pas ce lot proposé.
+
+La correction `565986e` et ses [preuves locales](evidence/20261009-recurring-read/README.md) sont disponibles. Les 26 régressions du lecteur et les contrôles antérieurs du worker passent en SQLite ; PostgreSQL et les huit nouveaux E2E attendent leur CI.
