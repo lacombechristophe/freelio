@@ -48,3 +48,5 @@ Un retour de version doit sélectionner un artefact déjà qualifié en lecture 
 ## Vérification du 10 octobre
 
 Le [contrôle courant de preview](evidence/20261010-preview-readiness/README.md) identifie une configuration incomplète, un schéma public historique à 43 migrations sur 60, puis prépare une nouvelle base fictive et un rôle lecteur distincts. Le propriétaire indique que les comptes R2/Upstash ne sont pas encore créés. Les sondes et parcours historiques ci-dessus ne prouvent pas leur disponibilité : les mentions de configuration conservée ne valent pas qualification des fournisseurs. La production historique reste inchangée ; la preview du candidat courant n’est pas prête.
+
+Le propriétaire configure ensuite Upstash et renonce à activer R2. Le [rejeu de 92a07a3 sans stockage](qualification-demo-sans-stockage-20261010.md) réussit sondes, connexion, lectures, restrictions et PDF, mais conserve un échec navigateur lié aux dates et au fuseau. Cette preview est distincte de la production historique ; aucune configuration ou donnée de celle-ci n’est modifiée.

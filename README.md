@@ -21,7 +21,7 @@ Chaque parcours doit être relié à des tests, à une version et à ses limites
 | Accès | Auth.js, mots de passe, MFA, memberships et droits par domaine |
 | Documents | Puppeteer/Chromium, pdf-lib et XML Factur-X ; aucune certification globale |
 | Travaux de fond | BullMQ/Redis TCP ; Upstash REST pour la limitation distribuée |
-| Fichiers | Local en développement ; R2 privé pour le runtime de production actuel |
+| Fichiers | Local en développement ; R2 privé en production modifiable ; stockage désactivé possible en démo publique |
 | Vérification | Vitest, intégrations SQL, Playwright et GitHub Actions |
 
 L’architecture est un monolithe modulaire avec un processus worker séparé. Les règles financières ne dépendent pas du rendu des écrans. Les clients sont partagés au niveau entreprise ; les dossiers opérationnels peuvent être bornés aux agences. Voir les [frontières métier](docs/architecture-domain-boundaries.md).
@@ -86,7 +86,7 @@ La recette crée uniquement des conteneurs fictifs nommés de manière unique, s
 
 La génération PDF actuelle désactive la sandbox Chrome : non-root et conteneur ne suffisent pas à attester une isolation complète. Vérifier les restrictions du rendu, les ressources, le réseau et les processus dans le runtime cible.
 
-Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production actuel exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. Voir le [runbook](docs/production-runbook.md).
+Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production modifiable exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. La [démo publique sans stockage](docs/qualification-demo-sans-stockage-20261010.md) conserve PostgreSQL et Upstash, refuse tous les accès persistants aux fichiers et calcule les PDF de brouillons à la demande. Voir le [runbook](docs/production-runbook.md).
 
 ## Documentation et collaboration
 

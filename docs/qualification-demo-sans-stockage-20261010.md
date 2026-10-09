@@ -22,4 +22,14 @@ Reproduction sans fournisseur ni données réelles :
 npx vitest run tests/unit/readiness.test.ts tests/unit/disabled-storage.test.ts tests/unit/direct-upload-integrity.test.ts --no-file-parallelism
 ```
 
-Ces contrôles ne prouvent pas encore la connexion hébergée, la disponibilité Upstash ni le rendu PDF Vercel. La [préparation de preview](evidence/20261010-preview-readiness/README.md) conserve les contrôles SQL et les sondes antérieures ; la recette du nouveau déploiement doit préciser son commit exact.
+## Preview de 92a07a3
+
+Le déploiement `dpl_3NVEFHHHCNpvpjsBoajxKqvH1jGj`, construit depuis `92a07a3c81e672bff16b2628f8c04f223ad19ece`, utilise les vrais paramètres Upstash renseignés par le propriétaire et les deux drivers désactivés. L’alias de branche est vérifié contre l’identifiant exact du déploiement. Les [rapports ordinateur et mobile](evidence/20261010-preview-readiness/hosted-92a07a3.json) sont exécutés via l’accès d’automatisation Vercel existant ; aucun nouvel accès n’est créé.
+
+Les sondes live/ready répondent HTTP 200, la connexion par mot de passe réussit et les lectures clients/devis/factures/dépenses fonctionnent. Les commandes de mutation restent désactivées ; les points d’entrée interdits répondent HTTP 403 avant et après connexion. Les PDF du devis et de la facture brouillon répondent HTTP 200 avec signature `%PDF-`, sans stockage objet. La recherche serveur, la déconnexion et la navigation à 390 px fonctionnent.
+
+**La recette navigateur reste en échec** : trois erreurs React 418 sont relevées sur chaque parcours. Les requêtes externes sont bloquées ; seul `vercel.live` est demandé. Le rejeu avec l’en-tête officiel `x-vercel-skip-toolbar: 1` conserve les erreurs. Aucune assertion n’est supprimée et aucune ressource externe n’est autorisée pour les masquer.
+
+Le [diagnostic de fuseau](evidence/20261010-preview-readiness/date-timezone.json) lit uniquement une date fictive : `2026-10-09T22:40:48.512Z`. Le formatage UTC produit « 9 oct. 2026 », le navigateur Europe/Paris « 10 oct. 2026 ». Les lecteurs utilisent actuellement le fuseau implicite. La correction visible proposée est d’afficher le jour calendaire enregistré dans les listes Devis/Factures/Dépenses, indépendamment du navigateur ; elle attend la confirmation du propriétaire. Aucun changement d’affichage n’est appliqué dans le lot sans stockage.
+
+Ces contrôles ne qualifient ni la charge distribuée Upstash, ni un incident fournisseur, ni une récupération d’archives. La [préparation de preview](evidence/20261010-preview-readiness/README.md) conserve les contrôles SQL et les sondes antérieures. La CI du nouveau commit reste une vérification distincte.

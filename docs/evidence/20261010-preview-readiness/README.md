@@ -16,10 +16,12 @@ Le [profil sans stockage](../../qualification-demo-sans-stockage-20261010.md) pe
 
 La présence de paramètres ou un HTTP 200 historique ne prouve ni l’existence ni la disponibilité des services correspondants. La [qualification historique](../../livraison-demo-vercel-20261003.md) reste attachée à son ancien code et à ses limites explicites sur R2/Upstash.
 
-Upstash annonce un [plan Free](https://upstash.com/pricing/redis) de 256 Mo et 500 000 commandes par mois sans carte bancaire. R2 Standard annonce [10 Go et des quotas d’opérations inclus](https://developers.cloudflare.com/r2/pricing/), avec facturation des dépassements et [activation par souscription](https://developers.cloudflare.com/r2/get-started/). Tarifs consultés le 10 octobre ; aucune création de compte ni souscription n’a été effectuée. Le budget de 0 € reste la contrainte, sans garantie de gratuité permanente des services hébergés.
+Upstash annonce un [plan Free](https://upstash.com/pricing/redis) de 256 Mo et 500 000 commandes par mois sans carte bancaire. R2 Standard annonce [10 Go et des quotas d’opérations inclus](https://developers.cloudflare.com/r2/pricing/), avec facturation des dépassements et [activation par souscription](https://developers.cloudflare.com/r2/get-started/). Tarifs consultés le 10 octobre ; le compte Upstash est créé par le propriétaire, sans souscription R2. Le budget de 0 € reste la contrainte, sans garantie de gratuité permanente des services hébergés.
 
 ## Reproduire
 
 Utiliser un rôle de migration uniquement sur une base neuve explicitement désignée, appliquer les migrations du commit et `scripts/seed-demo.mjs` avec `DEMO_DATABASE_NAME` concordant. Créer un rôle lecteur propre à cette base, sans droits de création ou d’administration, puis contrôler ses privilèges et les refus métier dans des transactions annulées. Les scripts locaux de provisionnement du dépôt gardent leur restriction localhost ; cette préparation distante ne l’assouplit pas. Ne pas importer de données réelles, secrets ou fichiers d’environnement dans une copie de recette.
 
-Ces résultats ne qualifient pas R2, Upstash, la charge hébergée, une restauration distante ou un déploiement futur. Le nouvel environnement n’est pas annoncé prêt.
+Le [rejeu hébergé de 92a07a3](hosted-92a07a3.json) vérifie ensuite les sondes HTTP 200, la connexion, les lectures et les deux PDF sans R2. Les parcours ordinateur et mobile restent en échec à cause de trois erreurs d’hydratation React chacun. Le [diagnostic de dates](date-timezone.json) et le [compte rendu](../../qualification-demo-sans-stockage-20261010.md) décrivent le défaut et la correction visible en attente d’accord. Le candidat n’est pas annoncé prêt à présenter.
+
+Ces résultats ne qualifient pas R2, la charge distribuée Upstash, une restauration distante ou un déploiement futur.

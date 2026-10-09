@@ -47,7 +47,7 @@ Contraintes :
 - exécution Node.js complète, pas un runtime Edge ;
 - environnement capable d'exécuter Puppeteer/Chromium pour les PDF ;
 - processus worker séparé si le flux BullMQ de génération de documents est utilisé ;
-- PostgreSQL et R2 obligatoires en production ;
+- PostgreSQL obligatoire en production ; R2 obligatoire pour le profil modifiable ;
 - TLS de bout en bout et bucket non public.
 
 Le dépôt fournit un Dockerfile et un Compose de développement. La recette Linux du 1er octobre a exécuté les migrations PostgreSQL 18.6, Prisma, le serveur et ses sondes, un worker Redis/BullMQ et Chromium ; le suivi CTO conserve sa portée et l’identité d’image. Le runtime de l’hébergeur reste à qualifier. `GET /api/health/live` indique la vie du processus ; `GET /api/health/ready` vérifie la base et la configuration critique. Cette sonde ne vérifie pas la disponibilité de R2/Upstash. `npm start` refuse une configuration incomplète avant d’écouter ; le conteneur lance directement Node pour transmettre les signaux.
@@ -72,7 +72,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 
 ### Requis selon la topologie
 
-- `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires dès que plusieurs instances servent du trafic ou que la capture publique est ouverte ;
+- `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires pour le runtime de production actuel, y compris la démo publique ;
 - `REDIS_URL` (`redis://` ou `rediss://`) ou `REDIS_HOST`/`REDIS_PORT` et identifiants explicites : pour BullMQ. En production, aucune connexion implicite à localhost ; certificat TLS vérifié pour `rediss://`. Les retries du worker sont distincts de ceux du producteur ;
 - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` : pour l’e-mail plateforme et le lien magique ; facultatifs si les entreprises utilisent exclusivement BYOK/OAuth et la connexion par mot de passe.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` : obligatoires avant d’ouvrir les offres payantes.
@@ -85,9 +85,9 @@ Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur p
 
 ### Profil de démonstration publique
 
-Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif, un rôle PostgreSQL lecteur et des accès R2 limités aux objets fictifs. La [qualification hébergée du 3 octobre](livraison-demo-vercel-20261003.md) identifie le code, le déploiement et les parcours contrôlés. Vérifier le déploiement actif avant présentation ; les compléments de la PR #8 restent une référence distincte tant qu'ils ne sont pas livrés et qualifiés sur l'hébergeur.
+Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif et un rôle PostgreSQL lecteur. Pour présenter des archives, limiter les accès R2 aux objets fictifs. Pour une démo sans pièces jointes ni archives émises, régler les deux drivers sur `disabled` : aucun accès persistant, aucune URL signée ni repli local ; les PDF de brouillons restent calculés à la demande. Le [contrat sans stockage](qualification-demo-sans-stockage-20261010.md) précise les contrôles et limites. La [qualification hébergée du 3 octobre](livraison-demo-vercel-20261003.md) reste historique ; vérifier le déploiement actif avant présentation.
 
-Le budget choisi est de 0 € pour l’instant, sans ouverture commerciale. La livraison documentée utilise le plan Vercel Hobby et les services PostgreSQL, R2 et Upstash déjà présents, sans nouvel abonnement payant. Son rapport ne garantit ni les quotas/factures de ces services, ni un SLA ou une gratuité permanente. La [proposition d’hébergement](hebergement-demo-proposition.md) décrit une autre option préparatoire et n’autorise aucun abonnement.
+Le budget choisi est de 0 € pour l’instant, sans ouverture commerciale. Le 10 octobre, le propriétaire crée Upstash et renonce à activer R2. La nouvelle preview conserve le service PostgreSQL existant et Vercel Hobby, avec stockage désactivé. Les anciens rapports ne prouvent pas la disponibilité des fournisseurs ; la [préparation courante](evidence/20261010-preview-readiness/README.md) identifie les vérifications. Aucun rapport ne garantit un SLA ou une gratuité permanente. La [proposition d’hébergement](hebergement-demo-proposition.md) décrit une autre option préparatoire et n’autorise aucun abonnement.
 
 ### CORS du bucket R2 privé
 

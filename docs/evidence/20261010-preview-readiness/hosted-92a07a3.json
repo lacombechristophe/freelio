@@ -1,0 +1,166 @@
+{
+  "schema": "freelio.hosted-storage-free-attempts.v1",
+  "commit": "92a07a3c81e672bff16b2628f8c04f223ad19ece",
+  "success": false,
+  "earlierAttempts": [
+    {
+      "startedAt": "2026-10-09T23:25:11.37Z",
+      "viewport": "desktop-1440",
+      "checks": 11,
+      "pageErrors": 3,
+      "success": false
+    },
+    {
+      "startedAt": "2026-10-09T23:26:29.843Z",
+      "viewport": "desktop-1440",
+      "checks": 11,
+      "pageErrors": 3,
+      "blockedHosts": [
+        "vercel.live"
+      ],
+      "success": false
+    }
+  ],
+  "automationOnlyHeader": "x-vercel-skip-toolbar: 1",
+  "desktop": {
+    "schema": "freelio.hosted-storage-free.v1",
+    "startedAt": "2026-10-09T23:27:46.072Z",
+    "commit": "92a07a3c81e672bff16b2628f8c04f223ad19ece",
+    "deployment": {
+      "id": "dpl_3NVEFHHHCNpvpjsBoajxKqvH1jGj",
+      "url": "https://freelio-8smea0d4s-hyhyhyhyhytest-8931s-projects.vercel.app",
+      "state": "READY",
+      "createdAt": 1791588140646
+    },
+    "baseURL": "https://freelio-git-codex-function-c9a645-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "viewport": "desktop-1440",
+    "checks": [
+      {
+        "route": "/api/health/live",
+        "http": 200,
+        "status": "ok"
+      },
+      {
+        "route": "/api/health/ready",
+        "http": 200,
+        "status": "ready",
+        "components": {
+          "database": "ok",
+          "configuration": "ok"
+        }
+      },
+      "Hidden, mutation and unknown entry points return 403 before authentication",
+      "Public entry and disabled registration, reset and email login",
+      "Password login with configured Upstash and read-only notice",
+      "Clients, quotes, invoices and expenses: reads succeed, mutations disabled",
+      {
+        "document": "quote",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 278326
+      },
+      {
+        "document": "draft invoice",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 240101
+      },
+      "Server read actions still filter data",
+      "Authenticated uploads and billing refused",
+      "Logout"
+    ],
+    "pageErrors": [
+      {
+        "path": "/dashboard/devis",
+        "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      },
+      {
+        "path": "/dashboard/devis",
+        "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      },
+      {
+        "path": "/dashboard/devis",
+        "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      }
+    ],
+    "externalRequestsBlocked": 8,
+    "blockedHosts": [
+      "vercel.live"
+    ],
+    "finishedAt": "2026-10-09T23:28:11.99Z"
+  },
+  "mobile": {
+    "schema": "freelio.hosted-storage-free.v1",
+    "startedAt": "2026-10-09T23:29:49.771Z",
+    "commit": "92a07a3c81e672bff16b2628f8c04f223ad19ece",
+    "deployment": {
+      "id": "dpl_3NVEFHHHCNpvpjsBoajxKqvH1jGj",
+      "url": "https://freelio-8smea0d4s-hyhyhyhyhytest-8931s-projects.vercel.app",
+      "state": "READY",
+      "createdAt": 1791588140646
+    },
+    "baseURL": "https://freelio-git-codex-function-c9a645-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "viewport": "mobile-390",
+    "checks": [
+      {
+        "route": "/api/health/live",
+        "http": 200,
+        "status": "ok"
+      },
+      {
+        "route": "/api/health/ready",
+        "http": 200,
+        "status": "ready",
+        "components": {
+          "database": "ok",
+          "configuration": "ok"
+        }
+      },
+      "Hidden, mutation and unknown entry points return 403 before authentication",
+      "Public entry and disabled registration, reset and email login",
+      "Password login with configured Upstash and read-only notice",
+      "Clients, quotes, invoices and expenses: reads succeed, mutations disabled",
+      {
+        "document": "quote",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 278326
+      },
+      {
+        "document": "draft invoice",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 240105
+      },
+      "Server read actions still filter data",
+      "Authenticated uploads and billing refused",
+      "Mobile navigation and page width",
+      "Logout"
+    ],
+    "pageErrors": [
+      {
+        "path": "/dashboard/devis",
+        "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      },
+      {
+        "path": "/dashboard/devis",
+        "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      },
+      {
+        "path": "/dashboard/devis",
+        "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+      }
+    ],
+    "externalRequestsBlocked": 8,
+    "blockedHosts": [
+      "vercel.live"
+    ],
+    "finishedAt": "2026-10-09T23:30:15.807Z"
+  },
+  "qualification": "Functional checks pass, browser gate fails on React hydration errors",
+  "limits": [
+    "Existing Vercel automation access; anonymous public access not qualified",
+    "No new provider subscription or production change",
+    "No distributed load or provider outage qualification"
+  ]
+}
