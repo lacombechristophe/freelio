@@ -1,0 +1,35 @@
+{
+  "schema": "freelio.preview-environment.v1",
+  "observedAt": "2026-10-09T22:50:02.686Z",
+  "branch": "codex/functional-completeness-20261003",
+  "keys": [
+    "MIGRATION_STORAGE_DRIVER",
+    "FILE_STORAGE_DRIVER",
+    "PUBLIC_PRIVACY_NOTICE_URL",
+    "PUBLIC_APP_URL",
+    "NEXTAUTH_URL",
+    "AUTH_URL",
+    "REQUIRE_PLATFORM_EMAIL",
+    "REQUIRE_BILLING",
+    "AUTH_TRUST_HOST",
+    "NEXT_PUBLIC_DEMO_READ_ONLY",
+    "NEXT_PUBLIC_DEMO_MODE",
+    "DEMO_ACCESS_MODE",
+    "JWT_SECRET",
+    "ENCRYPTION_KEY",
+    "AUTH_SECRET",
+    "DATABASE_URL"
+  ],
+  "productionChanged": false,
+  "dedicatedReader": true,
+  "credentialsPersistedInRepository": false,
+  "missingServiceKeys": [
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "R2_ACCOUNT_ID",
+    "R2_BUCKET_NAME",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY"
+  ],
+  "newProviderSubscription": false
+}

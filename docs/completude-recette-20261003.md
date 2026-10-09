@@ -1,21 +1,23 @@
 # Qualification du candidat Freelio
 
-État du 9 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et le déploiement sont des références distinctes. Les résultats restent attachés au commit testé.
+État du 10 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et le déploiement sont des références distinctes. Les résultats restent attachés au commit testé.
 
 ## Référence documentée en CI
 
-**d88a6bb** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37985420118) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37985422245) réussies.
+**369f413** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37994677438) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37994680099) réussies. Le job Linux de branche a réussi après une relance ciblée ; son premier échec de quota ECR reste enregistré.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 591 tests / 185 fichiers |
-| PostgreSQL | 1 590 réussis ; une exclusion native SQLite |
+| SQLite, suite unitaire et couverture | 1 615 tests / 188 fichiers |
+| PostgreSQL | 1 614 réussis ; une exclusion native SQLite |
 | Navigateur | 291 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
-Ce candidat qualifie les contrôles de stock, les projections Client Service, les permissions Finance des commandes et leur pagination, puis les quatorze cas de cohérence client/chantier et les dix-neuf cas de facturation et de rôles. Les quatre E2E Comptabilité passent avec les six Finance et les quatre de pagination. Les [rapports de d88a6bb](evidence/20261009-order-billing-roles/ci-d88a6bb.json) vérifient 958 entrées hors documentation identiques à la fusion de test. Aucun des quatorze E2E concernés ne fait partie des dix-neuf exclusions historiques. Le contrôle des anciennes factures liées reste un complément distinct, non qualifié par d88a6bb.
+Les [rapports de 369f413](evidence/20261009-order-billing-stale-balance/ci-369f413.json) vérifient 961 entrées hors documentation identiques à la fusion de test. Ils qualifient les quatorze cas des anciennes factures liées, les quatre cas d'avoirs concurrents et les six cas de calcul périmé, en conservant les contrôles antérieurs. Les quatre E2E Comptabilité, six Finance et quatre de pagination passent dans les deux runs ; aucun n'appartient aux dix-neuf exclusions. Les [rapports de d88a6bb](evidence/20261009-order-billing-roles/ci-d88a6bb.json) restent la référence antérieure.
+
+La preview de ce candidat répond à la sonde de vie mais refuse la sonde de préparation : configuration incomplète, HTTP 503. La [préparation du 10 octobre](evidence/20261010-preview-readiness/README.md) crée une base fictive dédiée à 60 migrations et vérifie huit contrôles du rôle lecteur. Les paramètres de branche sont appliqués pour le prochain build ; R2/Upstash restent à configurer. Ce constat est distinct de la CI et de la démo publique historique ; aucune livraison de ce candidat n'est annoncée.
 
 Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json), de [0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
 
@@ -51,8 +53,8 @@ La [revue CTO](revue-cto.md) donne un parcours de présentation et expose ces li
 
 Le correctif `39a3965` des [rattachements de facturation](evidence/20261009-order-billing-references/README.md) et de [Comptabilité](evidence/20261009-order-billing-roles/README.md) passe 33 nouveaux cas SQL, puis la suite locale de 1 591 tests / 185 fichiers, types, deux lints et compilation. Il recontrôle le client et le chantier avant la revendication transactionnelle et limite l'exemption Finance à `updateMany` de `billingStatus`. Les deux CI de d88a6bb qualifient ensuite les 33 cas sur PostgreSQL réel et les quatre E2E Comptabilité sur les deux surfaces. Les [résultats locaux](evidence/20261009-order-billing-roles/local.json) distinguent chargement et exécution.
 
-Le complément `02a6e10` des [anciennes factures liées](evidence/20261009-order-linked-invoices/README.md) refuse les incohérences avant retour d'un acompte existant et calcul du solde, puis avant revendication transactionnelle. Les quatorze cas dédiés passent, ainsi que 1 605 tests / 186 fichiers, types, deux lints et compilation. La qualification CI de ce complément reste requise. Les [quatre tests d'avoirs](qualification-avoirs-concurrents-20261009.md) qualifient séparément une garde existante, sans changement métier.
+Le complément `02a6e10` des [anciennes factures liées](evidence/20261009-order-linked-invoices/README.md) refuse les incohérences avant retour d'un acompte existant et calcul du solde, puis avant revendication transactionnelle. Les quatorze cas dédiés passent, ainsi que 1 605 tests / 186 fichiers, types, deux lints et compilation. Les quatorze cas passent aussi sur PostgreSQL dans les deux CI de 369f413. Les [quatre tests d'avoirs](qualification-avoirs-concurrents-20261009.md) qualifient séparément une garde existante, sans changement métier.
 
-Le commit de tests `bfa6125` passe la suite commune de 1 609 tests / 187 fichiers, types et deux lints ; aucun code de production n'a changé depuis le build de `02a6e10`. La qualification des quatre avoirs sur PostgreSQL reste requise. Un diagnostic distinct reproduit un [solde périmé après modification d'acompte](contrat-facturation-commandes-solde-perime.md). Le refus approuvé est implémenté dans `061173c` : six cas dédiés, puis [1 615 tests / 188 fichiers](evidence/20261009-order-billing-stale-balance/local.json), types, deux lints et build réussis. Ces résultats ne clôturent pas toute la chaîne financière.
+Le commit de tests `bfa6125` passe la suite commune de 1 609 tests / 187 fichiers, types et deux lints ; aucun code de production n'a changé depuis le build de `02a6e10`. Les quatre avoirs passent sur PostgreSQL dans les deux CI de 369f413, avec la barrière de lectures réelles. Un diagnostic distinct reproduit un [solde périmé après modification d'acompte](contrat-facturation-commandes-solde-perime.md). Le refus approuvé est implémenté dans `061173c` : six cas dédiés, puis [1 615 tests / 188 fichiers](evidence/20261009-order-billing-stale-balance/local.json), types, deux lints et build réussis. Ces résultats ne clôturent pas toute la chaîne financière.
 
-Les jobs PostgreSQL et Linux des deux CI de `6c8cffb` échouent avant qualification pour dépassement du quota anonyme Docker Hub. Le [diagnostic du registre](evidence/20261009-ci-registry/README.md) conserve ces échecs. Le commit `7eda750` utilise les mêmes versions d'images officielles sur ECR Public ; des lectures de manifests réussies ne remplacent pas sa propre CI.
+Les jobs PostgreSQL et Linux des deux CI de `6c8cffb` échouent avant qualification pour dépassement du quota anonyme Docker Hub. Le [diagnostic du registre](evidence/20261009-ci-registry/README.md) conserve ces échecs. Le commit `7eda750` utilise les mêmes versions d'images officielles sur ECR Public ; les deux CI de 369f413 qualifient ensuite PostgreSQL et les neuf contrôles Linux. Le premier essai Linux de branche échoue sur un quota ECR, puis réussit sans changement de code après relance ciblée.
