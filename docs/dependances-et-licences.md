@@ -1,5 +1,7 @@
 # Inventaire des dépendances et licences
 
+État courant du candidat : les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json) donnent zéro vulnérabilité dans les audits production et complet. Les résultats datés ci-dessous conservent les anciens lockfiles, leurs alertes et leurs corrections ; ils ne remplacent pas cette référence.
+
 Le lockfile est la référence des versions réellement installées. `node scripts/inventory-dependencies.mjs` produit un inventaire JSON reproductible, avec SHA-256 du lockfile, métadonnées de licence, dépendances de développement et éléments à examiner manuellement. Les métadonnées npm ne constituent pas une validation des droits de redistribution.
 
 Au contrôle du 1er octobre 2026, 1 039 entrées possèdent une licence déclarée ; aucune n’est sans métadonnée. Certaines déclarent LGPL, MPL ou CC-BY : conserver et examiner les textes/attributions applicables avant distribution. Ne pas présenter l’ensemble comme exclusivement MIT. Les composants système de Debian/Chromium, les images de services, les polices et les assets ne sont pas couverts par le lockfile.
@@ -8,7 +10,7 @@ L’audit npm du même lockfile, répété le 2 octobre 2026, ne signale aucune 
 
 État distinct du candidat au 5 octobre : les CI récentes trouvent huit alertes hautes de développement et aucune alerte de production. L’avis [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), revérifié ce jour, indique aucune version corrigée pour braces. Le contrôle complet reste bloquant, sans exclusion ni seuil abaissé. Les résultats exacts et les versions du code sont consignés dans la [recette récente](completude-recette-20261003.md) ; le résultat historique ci-dessus ne qualifie pas le lockfile courant.
 
-Le dépôt est public, sans licence de redistribution du code propre choisie. L’inventaire n’autorise pas implicitement une publication open source. Les notices de bibliothèques et la provenance des assets doivent accompagner un partage public. La qualification d’un service Redis managé inclut les conditions de son fournisseur et de la version utilisée ; le conteneur Redis de recette n’est pas une décision d’hébergement.
+Le dépôt est public. Le 9 octobre 2026, le propriétaire a choisi de conserver pour l’instant l’absence de licence de redistribution du code propre. L’inventaire n’autorise pas implicitement une publication open source. Les notices de bibliothèques et la provenance des assets doivent accompagner un partage public. La qualification d’un service Redis managé inclut les conditions de son fournisseur et de la version utilisée ; le conteneur Redis de recette n’est pas une décision d’hébergement.
 
 La livraison Vercel du 2 octobre ajoute `@sparticuz/chromium` 152.0.0, déclaré MIT. Son binaire Chromium et ses composants demandent leur propre examen de notices ; la métadonnée npm ne suffit pas. Le [nouvel inventaire](evidence/20261002-hosted/dependencies.json) identifie ce lockfile ; l'inventaire précédent reste une preuve historique.
 

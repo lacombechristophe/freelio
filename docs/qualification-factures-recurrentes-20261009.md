@@ -16,6 +16,6 @@ Les [preuves de `565986e`](evidence/20261009-recurring-read/local.json) passent 
 - 13 cas du worker et 33 cas Documents, soit 72 contrôles ciblés ;
 - 1 436 tests SQLite dans 177 fichiers, types, les deux lints et build de 75 pages.
 
-Huit parcours navigateur sont préparés et découverts parmi 296 cas dans 51 fichiers. Leur exécution compilée et la nouvelle migration PostgreSQL restent à qualifier en CI. La découverte locale ne constitue pas leur réussite.
+Les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json) qualifient ensuite ce code : 1 435 tests PostgreSQL et une exclusion native SQLite, 1 436 SQLite dans chacune des deux suites, 277 E2E et 19 exclusions historiques, neuf contrôles Linux et audits à zéro. Les 26 cas de périmètre, 13 cas worker et 33 cas Documents passent sur PostgreSQL ; les huit nouveaux E2E Récurrences et six Documents passent sur ordinateur/mobile. Types, lints, build et couverture réussissent. La migration PostgreSQL est appliquée sur base neuve et son UPDATE historique est rejoué dans la suite SQL.
 
 Le [contrat approuvé](contrat-factures-recurrentes-droits.md) précise les comportements visibles. Les [preuves antérieures du worker](evidence/20261009-recurring-generation/README.md) restent attachées à leur code ; elles ne qualifient pas ce nouveau lecteur. Concurrence multi-processus, interruption réelle et toute la chaîne d’émission restent des vérifications distinctes.

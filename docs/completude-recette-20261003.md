@@ -2,24 +2,24 @@
 
 État du 9 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et le déploiement sont des références distinctes. Les résultats restent attachés au commit testé.
 
-## Dernière référence qualifiée en CI
+## Référence documentée en CI
 
-**ae88e47** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37897664616) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37897668228) réussies.
+**0f45087** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37901727356) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37901731575) réussies.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 410 tests / 176 fichiers |
-| PostgreSQL | 1 409 réussis ; une exclusion native SQLite |
-| Navigateur | 269 réussis ; 19 exclusions historiques |
+| SQLite, suite unitaire et couverture | 1 436 tests / 177 fichiers |
+| PostgreSQL | 1 435 réussis ; une exclusion native SQLite |
+| Navigateur | 277 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
-Ce candidat protège les relations Documents par société, client, agence et domaine. Les 33 cas SQL et six parcours navigateur du lot passent. Les [rapports](evidence/20261009-document-relations/ci-ae88e47.json) vérifient l’identité des 934 entrées Git hors documentation entre le candidat et la fusion de test PR. Les exclusions navigateur limitent la couverture de certains anciens parcours mobiles ; elles ne concernent pas les nouveaux tests Documents.
+Ce candidat qualifie Documents et Récurrences : 33 et 26 cas SQL, 13 cas worker, six et huit E2E. Les [rapports](evidence/20261009-recurring-read/ci-0f45087.json) vérifient l’identité des 941 entrées Git hors documentation avec la fusion de test PR. Les exclusions navigateur limitent certains anciens parcours mobiles ; les nouveaux tests de ces deux lots ne sont pas exclus. Les [preuves Documents antérieures](evidence/20261009-document-relations/ci-ae88e47.json) restent conservées.
 
-## Candidat suivant
+## Portée du lot Récurrences
 
-**565986e** implémente le [lot Récurrences approuvé](qualification-factures-recurrentes-20261009.md) : droits Finance, chantier relationnel, périmètre d’entretien et recherche/pagination complète. Sa [recette locale](evidence/20261009-recurring-read/local.json) passe 26 cas de périmètre, 13 cas worker et 33 cas Documents, puis 1 436 tests SQLite / 177 fichiers, types, lints et build de 75 pages. Huit nouveaux E2E sont préparés ; PostgreSQL et navigateur compilé restent à qualifier pour ce code.
+**565986e** implémente le [lot Récurrences approuvé](qualification-factures-recurrentes-20261009.md) : droits Finance, chantier relationnel, périmètre d’entretien et recherche/pagination complète. Sa [recette locale](evidence/20261009-recurring-read/local.json) passe 26 cas de périmètre, 13 cas worker et 33 cas Documents, puis 1 436 tests SQLite / 177 fichiers, types, lints et build de 75 pages. Le candidat 0f45087 qualifie ensuite ce code sur PostgreSQL et dans le navigateur compilé, avec les huit nouveaux E2E.
 
 ## Reproduire et examiner
 
@@ -31,7 +31,6 @@ Les tests SQL utilisent les vraies actions et transactions selon leur périmètr
 
 ## Travaux encore nécessaires
 
-- Qualifier le nouveau lot Récurrences sur PostgreSQL et dans le navigateur compilé.
 - Compléter la qualification des autres écritures financières : remboursements, avoirs, réservations et contention forte. Les [paiements concurrents](qualification-paiements-concurrents-20261008.md) et les [rapprochements](qualification-rapprochements-bancaires-20261008.md) ont leurs propres preuves.
 - Vérifier les traces et sorties des scénarios, les sélecteurs encore plafonnés et les chaînes métier restantes du [plan fonctionnel](plan-completude-fonctionnelle-20261002.md), puis installation, récupération et démonstrations de L9.
 - Qualifier comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations sont hors recette fictive et budget de 0 €.

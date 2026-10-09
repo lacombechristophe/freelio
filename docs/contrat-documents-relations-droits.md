@@ -20,6 +20,6 @@ Conserver les documents racines accessibles, leurs lignes, montants autorisés, 
 
 ## Qualification
 
-Conserver la baseline et son reproducer, puis étendre les tests SQL à Owner/Admin, Sales sans Finance, Finance autorisé, sociétés étrangères, agences révoquées et relations locales cohérentes. Vérifier aussi l’absence de calcul sur les données masquées et la distinction entre référence absente et inaccessible. Qualifier types/lints, SQLite/PostgreSQL et rendu ordinateur/mobile sur le candidat corrigé. La CI Contacts de 13a89e7 ne qualifie pas ce lot proposé.
+Conserver la baseline et son reproducer, puis étendre les tests SQL à Owner/Admin, Sales sans Finance, Finance autorisé, sociétés étrangères, agences révoquées et relations locales cohérentes. Vérifier aussi l’absence de calcul sur les données masquées et la distinction entre référence absente et inaccessible. Qualifier types/lints, SQLite/PostgreSQL et rendu ordinateur/mobile sur le candidat corrigé. Les résultats de ce lot sont qualifiés par ses propres références ci-dessous.
 
 Le correctif `ae88e47` passe désormais les 33 régressions SQL et les six E2E dans ses deux CI. Les [résultats et limites](evidence/20261009-document-relations/README.md) conservent la baseline et les références testées.

@@ -22,8 +22,8 @@ La migration PostgreSQL reprend uniquement un `template.projectId` existant dont
 
 Les factures déjà générées restent inchangées. Une suppression de modèle conserve ses factures selon le comportement actuel ; le contrôle du périmètre interdit la suppression d’un modèle inaccessible. La migration ne réactive aucun modèle et ne lance aucun job.
 
-## Qualification requise
+## Qualification
 
-Rejouer les huit assertions de lecture, puis couvrir Owner/Admin, Finance d’une seule agence, rôles interdits, révocation, société/client incohérents, ancien modèle sans chantier et ancien JSON invalide. Vérifier mutations directes, occurrences, sélection conservée, pagination et démo publique. Exécuter les migrations sur données historiques fictives SQLite/PostgreSQL et conserver les contrôles du worker. La CI Contacts ne qualifie pas ce lot proposé.
+Rejouer les huit assertions de lecture, puis couvrir Owner/Admin, Finance d’une seule agence, rôles interdits, révocation, société/client incohérents, ancien modèle sans chantier et ancien JSON invalide. Vérifier mutations directes, occurrences, sélection conservée, pagination et démo publique. Exécuter les migrations sur données historiques fictives SQLite/PostgreSQL et conserver les contrôles du worker. Les résultats sont attachés à la référence corrigée, pas aux CI antérieures de Contacts.
 
-La correction `565986e` et ses [preuves locales](evidence/20261009-recurring-read/README.md) sont disponibles. Les 26 régressions du lecteur et les contrôles antérieurs du worker passent en SQLite ; PostgreSQL et les huit nouveaux E2E attendent leur CI.
+La correction `565986e` et ses [preuves locales](evidence/20261009-recurring-read/README.md) sont disponibles. Les 26 régressions du lecteur et les treize cas worker passent en SQLite et PostgreSQL. Les huit nouveaux E2E passent dans les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json), avec les six Documents conservés.

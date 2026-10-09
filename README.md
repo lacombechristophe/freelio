@@ -69,11 +69,9 @@ npm run test:e2e
 
 Les tests d’intégration et fixtures écrivent et suppriment des données : utiliser exclusivement une base isolée. `npm run verify` prépare la base configurée avant les contrôles ; il n’est pas destiné à un environnement partagé. Les E2E nécessitent leur propre jeu de données ; leur réussite ne se déduit pas d’un build.
 
-- Recette du 30 septembre 2026 : 427 tests dans 100 fichiers, build/typage/lint réussis ; 14 pages et 13 contrôles navigateur ciblés ; sauvegarde/restauration SQLite. Voir le [compte rendu](docs/technical-hardening-20260930.md).
-- La CI définit des jobs SQLite et PostgreSQL. Un workflow existant ne prouve pas son exécution distante : contrôler le résultat du commit exact avant publication.
-- Les validations PostgreSQL, Linux/Docker et exploitation sont consignées dans le [suivi CTO](docs/execution-cto-20261001.md).
-- Les compléments récents de Communications, Marketing, consentements et documents sont suivis dans la [recette de complétude](docs/completude-recette-20261003.md), avec SHA, résultats CI et écarts ouverts. Le candidat de la PR #8 reste distinct de main et de la démo déployée.
-- La livraison locale `review-local-20261002-final` conserve les [rapports](docs/evidence/20261002/README.md) : 457 tests SQLite, 456 tests PostgreSQL, 19 parcours desktop, les contrôles de démo en lecture seule, les seuils de couverture ciblée et une charge locale de 30 minutes sans erreur. Leurs dates, conditions et limites sont explicites ; aucun résultat CI distant n’est revendiqué.
+Les [résultats courants](docs/completude-recette-20261003.md) identifient le commit, les deux CI, les contrôles exécutés et les exclusions. La [carte des preuves](docs/carte-des-preuves.md) relie chaque risque à ses tests. Le candidat de la PR #8 reste distinct de main et de la démo déployée.
+
+Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 
 ## Image et exploitation
 
@@ -108,4 +106,4 @@ Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dé
 
 Les rapports d’audit et de déploiement sont historiques et datés. Les changements se présentent par lots cohérents, avec leur validation et leur périmètre. Aucun ancien lien de déploiement n’est présenté ici comme une démo courante vérifiée.
 
-Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. Décider la licence de distribution du code propre avant partage public et inventorier les licences des dépendances/assets.
+Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. À la demande du propriétaire, le dépôt public reste sans licence de redistribution du code propre. Les licences des dépendances et assets sont distinctes ; leur [inventaire](docs/dependances-et-licences.md) précise les notices à examiner.

@@ -18,7 +18,7 @@ Le rôle de migration et le rôle de l’application sont distincts. La démo pu
 
 ## D03 — Node 24 et dépendances verrouillées
 
-**Décision retenue.** Aligner le lanceur local, package.json, CI et image sur Node 24.x. Le candidat du 8 octobre verrouille Next et @next/env à 16.3.8, correctif minimal des nouveaux avis. La configuration ESLint Next 16.3.6 est ensuite remplacée par les mêmes plugins ESLint et les règles Next d’Oxlint 1.87.0, avec une règle officielle conservée sous MIT : [politique et entretien](../tooling/lint/README.md). Les versions et dépendances transitives sont inscrites dans le lockfile. Les [audits du nouveau lockfile et de son installation](evidence/20261008-lint-policy/README.md) donnent zéro alerte en production et dans l’audit complet ; la CI du commit final reste nécessaire. La [qualification Next](qualification-next-20261008.md) distingue les recettes successives et le runtime déployé.
+**Décision retenue.** Aligner le lanceur local, package.json, CI et image sur Node 24.x. Le candidat du 8 octobre verrouille Next et @next/env à 16.3.8, correctif minimal des nouveaux avis. La configuration ESLint Next 16.3.6 est ensuite remplacée par les mêmes plugins ESLint et les règles Next d’Oxlint 1.87.0, avec une règle officielle conservée sous MIT : [politique et entretien](../tooling/lint/README.md). Les versions et dépendances transitives sont inscrites dans le lockfile. Les [audits du nouveau lockfile et de son installation](evidence/20261008-lint-policy/README.md) donnent zéro alerte en production et dans l’audit complet. Les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json) confirment ensuite ces audits à zéro. La [qualification Next](qualification-next-20261008.md) distingue les recettes successives et le runtime déployé.
 
 L’audit npm ne prouve pas l’absence de vulnérabilités applicatives. Les mises à jour proposées par Dependabot restent soumises à revue et recette. Les changements majeurs ne sont pas regroupés avec les correctifs métier.
 
@@ -58,9 +58,9 @@ Les nouveaux liens de contrat figent contenu compilé, coordonnées et ressource
 
 **Décision ouverte.** Préparer une image Node complète avec Chromium et un processus worker séparé si utilisé. Choisir l’hébergeur, la région, le domaine, les services et le budget après qualification de l’image. Aucun abonnement, fournisseur ou déploiement n’est créé par ce registre.
 
-Le propriétaire a fixé un budget de 0 € pour l’instant. La référence locale et son dossier de revue sont la livraison immédiate ; la proposition hébergée reste préparatoire. Un palier gratuit ne sera pas présenté comme un runtime disponible et récupérable tant que ses limitations ne sont pas qualifiées.
+Le propriétaire a fixé un budget de 0 € pour l’instant. La [démo en lecture seule livrée début octobre](livraison-demo-vercel-20261003.md) possède sa qualification datée. Le candidat de complétude reste distinct et ne doit pas être présenté comme déjà déployé. Un palier gratuit ne sera pas présenté comme un runtime disponible et récupérable tant que ses limitations ne sont pas qualifiées.
 
-Le dépôt contient aussi des changements de présentation antérieurs à cette stabilisation. La référence de livraison doit être revue par lots et reliée à la CI avant partage. Aucun choix de licence publique du code propre n’est fait sans son propriétaire. Une présentation privée peut montrer les preuves locales en annonçant précisément leur portée.
+Le dépôt contient aussi des changements de présentation antérieurs à cette stabilisation. La référence de livraison doit être revue par lots et reliée à la CI avant partage. Le 9 octobre, le propriétaire a choisi de conserver pour l’instant le dépôt public sans licence de redistribution du code propre. Une présentation privée peut montrer les preuves locales en annonçant précisément leur portée.
 
 ## D10 — Finalité explicite des courriels manuels
 
@@ -75,3 +75,13 @@ Lot visible approuvé le 6 octobre : commandes personnelles paginées, contrôle
 ## D12 — Édition versionnée et audience verrouillée des campagnes
 
 Le premier sous-lot visible et la pagination des séquences rattachées sont approuvés. Conserver le monolithe et des transactions SQL : révision explicite par campagne/livrable, saisie liée à sa version d’ouverture, vérification des références société/membres et listes de 25 avec agrégats complets. Inscription et édition revendiquent la même ligne ; une première inscription fige segment/rattachements, même après retrait ultérieur des inscriptions. Les inscriptions historiques PostgreSQL produisent un verrou à partir de leur premier enrolledAt, sans consentement inventé. Un échec de batch reste un échec ; ce sous-lot ne prétend pas fournir la future commande d’activation durable. Le [contrat Campagnes](contrat-campagnes-activation.md) conserve les sous-lots et leurs recettes séparés.
+
+## D13 — Périmètre relationnel des factures récurrentes
+
+Décision approuvée le 9 octobre. Le chantier d’une récurrence était conservé dans son JSON de facture ; le DAL ne pouvait pas le traiter comme une relation d’agence. Le candidat ajoute une relation nullable et reprend uniquement les références historiques de même société et même client. Un modèle incohérent reste inaccessible ; l’absence de chantier ne reçoit pas une agence inventée.
+
+Le lecteur compare aussi le client du chantier avec celui de la ligne par SQL paramétré. Prisma ne permet pas cette égalité entre les deux lignes dans son filtre relationnel. Ce contrôle intervient avant comptage et pagination, avec le périmètre du site d’entretien quand il existe. Il a deux variantes limitées pour les expressions JSON et de recherche SQLite/PostgreSQL ; la même suite d’intégration doit passer sur les deux moteurs.
+
+Owner/Admin conservent les modèles historiques sans chantier ni entretien. Un rôle limité aux agences exige au moins un rattachement accessible et, si les deux sont présents, l’accès aux deux. À la création, le chantier est obligatoire pour ces rôles. Le worker vérifie la concordance JSON/relation et les références d’entretien avant génération. La nouvelle colonne est additive ; elle ne réécrit ni factures existantes, ni échéances, ni contenu historique incohérent. Une ancienne version applicative ne doit pas reprendre les écritures sur ce modèle sans procédure de compatibilité.
+
+Les [tests et résultats](qualification-factures-recurrentes-20261009.md) couvrent droits, volumes, migration rejouée et refus de génération. Cette décision ne qualifie pas une mise à niveau commerciale avec trafic, ni une concurrence multi-processus.
