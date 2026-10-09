@@ -1762,10 +1762,15 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = customerOrderInvoiceSchema.parse(input)
     const order = await prisma.customerOrder.findFirst({
-      where: { id: data.customerOrderId, companyId },
-      include: { invoices: { select: { id: true, number: true, type: true, status: true, totalTtcCents: true } } },
+      where: { id: data.customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
+      include: { project: { select: { clientId: true } }, invoices: { select: { id: true, number: true, type: true, status: true, totalTtcCents: true } } },
     })
-    if (!order) throw new Error("Commande client introuvable")
+    if (!order || (order.project && order.project.clientId !== order.clientId)) throw new Error("Commande client introuvable")
+    const orderScope = {
+      id: order.id, companyId, clientId: order.clientId, projectId: order.projectId,
+      client: { companyId },
+      OR: [{ projectId: null }, { project: { companyId, clientId: order.clientId, client: { companyId } } }],
+    }
     if (order.status === "CANCELLED") throw new Error("Une commande annulée ne peut pas être facturée")
     if (data.mode === "DEPOSIT") {
       const existingDeposit = order.invoices.find((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED")
@@ -1788,9 +1793,10 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
+          if (!await tx.customerOrder.findFirst({ where: orderScope, select: { id: true } })) throw new Error("Commande client introuvable")
           const nextRemaining = remaining - amountTtcCents
           const claimed = await tx.customerOrder.updateMany({
-            where: { id: order.id, companyId, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
+            where: { ...orderScope, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
             data: { billingStatus: nextRemaining <= 0 ? "INVOICED" : "PARTIALLY_INVOICED" },
           })
           if (claimed.count !== 1) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")

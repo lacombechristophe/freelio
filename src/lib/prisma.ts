@@ -133,6 +133,9 @@ const prismaClientSingleton = () => {
           // Service can edit its follow-up fields, never the general client or money.
           const serviceProfileUpdate = model === "Client" && operation === "update" && context?.actionPermission === "service.write" &&
             hasPermission(context.role, "service.write") && profileFields.length > 0 && profileFields.every(field => SERVICE_PROFILE_FIELDS.has(field))
+          // Finance claims billing only; it cannot edit the operational order.
+          const orderBillingUpdate = model === "CustomerOrder" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "billingStatus"
 
           if (
             context &&
@@ -140,6 +143,7 @@ const prismaClientSingleton = () => {
             MUTATION_OPERATIONS.has(operation) &&
             !hasPermission(context.role, requiredPermission) &&
             !serviceProfileUpdate &&
+            !orderBillingUpdate &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)

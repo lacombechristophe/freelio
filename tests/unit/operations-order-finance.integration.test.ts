@@ -48,7 +48,7 @@ describe.sequential("Operations order billing permissions on real SQL", () => {
     expect(dashboard.canBillOrders).toBe(false)
     expect(order).toMatchObject({ status: "CONFIRMED", totalTtcCents: 1200 })
   })
-  it.each(["OWNER", "ADMIN", "ACCOUNTING"])("preserves authorized billing and commands for %s", async role => {
+  it.each(["OWNER", "ADMIN", "ACCOUNTING"])("preserves Finance metadata and billing availability for %s", async role => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role } })
     const { dashboard, order } = await read()
     expect(order?.invoices.map(item => item.id)).toEqual([invoiceId])
