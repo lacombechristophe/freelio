@@ -25,4 +25,6 @@ Les [résultats locaux](local.json) passent 34 cas des actions, neuf cas de comm
 
 Session et cache Next sont simulés ; droits, contexte, Prisma et transactions sont réels. L'archive est simulée dans la nouvelle suite : son appel est vérifié, pas son rendu. Le transport des relances est simulé, avec préparation de commande et historique SQL réels. Les contrôles positifs conservent les rôles autorisés, les lectures Viewer et les corrections d'avoirs cohérents. Les refus de factures incohérentes vérifient l'absence de paiements, relances, avoirs et appels au générateur.
 
-La CI de ce candidat reste à qualifier sur PostgreSQL, Linux et dans le navigateur compilé. Les résultats du commit précédent ne lui sont pas attribués. Remboursements, contention des avoirs, charge hébergée et comptes fournisseur réels restent distincts.
+Les [deux CI de de24513](ci-de24513.json) passent 1 471 tests PostgreSQL et une exclusion native SQLite ; 1 472 tests SQLite dans les deux suites ; 277 E2E et 19 exclusions historiques ; neuf contrôles Linux et les deux audits à zéro. Les 34 cas des actions, neuf des relances et quatre des paiements concurrents passent sur PostgreSQL. Les 942 entrées Git hors documentation correspondent exactement à la fusion de test PR. Types, lints, build et couverture réussissent.
+
+Le navigateur conserve notamment les six parcours Documents et huit Récurrences ; aucun E2E spécifique aux appels directs des nouvelles actions n'est revendiqué. Remboursements, contention des avoirs, charge hébergée et comptes fournisseur réels restent distincts.
