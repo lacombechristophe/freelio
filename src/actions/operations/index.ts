@@ -2141,14 +2141,24 @@ export async function creditSupplierReturn(supplierReturnId: string, creditRefer
   }, "operations.write")
 }
 
+async function stockReservationReferences(companyId: string, projectId?: string | null, customerOrderId?: string | null) {
+  const [project, order] = await Promise.all([
+    projectId ? prisma.project.findFirst({ where: { id: projectId, companyId, client: { companyId } }, select: { id: true } }) : null,
+    customerOrderId ? prisma.customerOrder.findFirst({
+      where: { id: customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
+      select: { id: true, clientId: true, project: { select: { clientId: true } } },
+    }) : null,
+  ])
+  return { project, customerOrder: order && (!order.project || order.project.clientId === order.clientId) ? order : null }
+}
+
 export async function reserveStock(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = reservationSchema.parse(input)
-    const [warehouse, product, project, customerOrder] = await Promise.all([
+    const [warehouse, product, { project, customerOrder }] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
       prisma.product.findFirst({ where: { id: data.productId, companyId, active: true }, select: { id: true } }),
-      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }) : null,
-      data.customerOrderId ? prisma.customerOrder.findFirst({ where: { id: data.customerOrderId, companyId }, select: { id: true } }) : null,
+      stockReservationReferences(companyId, data.projectId, data.customerOrderId),
     ])
     if (!warehouse || !product) throw new Error("Dépôt ou produit introuvable")
     if (data.projectId && !project) throw new Error("Chantier introuvable")
@@ -2191,6 +2201,8 @@ export async function releaseStockReservation(reservationId: string) {
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
+    const references = await stockReservationReferences(companyId, reservation.projectId, reservation.customerOrderId)
+    if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
@@ -2230,6 +2242,8 @@ export async function consumeStockReservation(reservationId: string) {
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
+    const references = await stockReservationReferences(companyId, reservation.projectId, reservation.customerOrderId)
+    if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
