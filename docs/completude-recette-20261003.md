@@ -4,18 +4,20 @@
 
 ## Référence documentée en CI
 
-**0b6b8b3** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37971308847) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37971318218) réussies.
+**3f1ca72** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37976432768) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37976438080) réussies.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 539 tests / 182 fichiers |
-| PostgreSQL | 1 538 réussis ; une exclusion native SQLite |
-| Navigateur | 283 réussis ; 19 exclusions historiques |
+| SQLite, suite unitaire et couverture | 1 558 tests / 183 fichiers |
+| PostgreSQL | 1 557 réussis ; une exclusion native SQLite |
+| Navigateur | 287 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
-Ce candidat qualifie les douze contrôles de rattachement et les douze cas de concurrence des réservations, les 27 projections Client des détails Service et les seize protections Finance des commandes Opérations sur PostgreSQL réel. Les six E2E Finance passent sur les deux surfaces. Les [rapports](evidence/20261009-operations-order-finance/ci-0b6b8b3.json) vérifient les 948 entrées Git hors documentation avec la fusion de test PR. Les dix-neuf exclusions historiques du navigateur restent explicites ; aucun des six nouveaux E2E Finance ne fait partie des exclusions. Les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservées.
+Ce candidat qualifie les douze contrôles de rattachement et les douze cas de concurrence des réservations, les 27 projections Client des détails Service, les seize protections Finance des commandes Opérations et les 19 cas de recherche/pagination des commandes et réservations actives sur PostgreSQL réel. Les six E2E Finance et les quatre E2E de pagination passent sur les deux surfaces. Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json) vérifient 954 entrées hors documentation identiques à la fusion de test. Aucun des dix E2E concernés ne fait partie des dix-neuf exclusions historiques. La création effective d'une facture par Comptabilité n'était pas couverte par les tests de disponibilité des commandes.
+
+Les [rapports de 0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
 
 ## Portée du lot Récurrences
 
@@ -43,6 +45,8 @@ Le correctif serveur des [projections Client dans les détails Service](evidence
 
 Le [lot approuvé des commandes Opérations](evidence/20261009-operations-order-finance/README.md), `b32c563`, exclut les références et compteurs de factures sans Finance, protège les commandes de facturation et conserve les prix opérationnels. Seize cas SQL passent ; la qualification locale commune passe 1 539 tests / 182 fichiers, types, les deux lints et compilation. Les deux CI de 0b6b8b3 qualifient les seize cas PostgreSQL et les six E2E.
 
-Le [lot de listes Commandes / Réservations](evidence/20261009-operations-list-volume/README.md), `67f90e8`, remplace les deux cartes plafonnées par des lecteurs paginés et autorisés avant total/recherche. Les commandes de stock sont réservées à Opérations en écriture, hors démo publique. Dix-neuf cas SQL et 1 558 tests / 183 fichiers passent localement, avec types, lints et compilation. Les quatre nouveaux parcours navigateur et les six Finance conservés sont chargés ; la qualification compilée se vérifie sur le candidat exact dans les [checks de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks). Les tableaux du bootstrap et autres sélecteurs restent distincts.
+Le [lot de listes Commandes / Réservations](evidence/20261009-operations-list-volume/README.md), `67f90e8`, remplace les deux cartes plafonnées par des lecteurs paginés et autorisés avant total/recherche. Les commandes de stock sont réservées à Opérations en écriture, hors démo publique. Les deux CI de 3f1ca72 qualifient les dix-neuf cas PostgreSQL, les quatre nouveaux parcours navigateur et les six Finance conservés. Les tableaux du bootstrap et autres sélecteurs restent distincts.
 
 La [revue CTO](revue-cto.md) donne un parcours de présentation et expose ces limites. Les résultats automatisés ne certifient ni tout le produit, ni l’accessibilité complète, ni les services externes.
+
+Le correctif `39a3965` des [rattachements de facturation](evidence/20261009-order-billing-references/README.md) et de [Comptabilité](evidence/20261009-order-billing-roles/README.md) passe 33 nouveaux cas SQL, puis la suite locale de 1 591 tests / 185 fichiers, types, deux lints et compilation. Il recontrôle le client et le chantier avant la revendication transactionnelle et limite l'exemption Finance à `updateMany` de `billingStatus`. Quatre E2E Comptabilité sont préparés ; la qualification PostgreSQL et navigateur doit être vérifiée sur le candidat exact dans les checks de la PR. Les [résultats locaux](evidence/20261009-order-billing-roles/local.json) distinguent chargement et exécution.

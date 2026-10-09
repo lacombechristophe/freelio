@@ -1,6 +1,6 @@
 # Rattachements de la facturation d'une commande
 
-Le [contrat proposé](../../contrat-facturation-commandes-relations.md) reste soumis à l'accord sur le refus visible. Aucun correctif métier n'est appliqué à ce stade.
+Le [contrat](../../contrat-facturation-commandes-relations.md) a été approuvé le 9 octobre 2026. La baseline conserve le comportement antérieur au correctif.
 
 La [baseline](baseline.json), sur `3f1ca72`, passe deux témoins et échoue dans six refus attendus. Une facture brouillon, une modification de l'état de la commande et un audit sont réellement enregistrés dans chacun des six cas incohérents. Le [probe SQL](probe.test-source.txt) contrôle ces effets persistés.
 
@@ -11,3 +11,7 @@ npm run test:unit -- tests/unit/order-billing-reference-probe.integration.test.t
 ```
 
 Session et cache Next sont simulés ; action, DAL et SQL restent réels. Les fixtures incohérentes sont insérées directement et ne démontrent pas une création possible par les formulaires actuels. La création manuelle vérifie déjà que le chantier correspond au client. Les témoins créent des brouillons d'acompte et de solde cohérents. Aucun document n'est émis, aucun PDF n'est rendu et aucun fournisseur n'est appelé.
+
+La suite maintenue `order-billing-references.integration.test.ts` ajoute aux cas initiaux le chantier d'un autre client local, un changement de client du chantier après la lecture initiale et les commandes sans chantier pour Owner. Quatorze cas vérifient la cohérence et l'absence de facture, changement d'état ou audit lors des refus. La modification injectée entre les lectures vérifie la relecture transactionnelle ; elle ne constitue pas un test de contention entre deux connexions.
+
+Le correctif `39a3965` et la [recette commune](../20261009-order-billing-roles/local.json) passent 33 cas dédiés puis 1 591 tests / 185 fichiers, types, deux lints et compilation. La qualification PostgreSQL et navigateur reste attachée au candidat de la PR. Un premier essai du test de modification intermédiaire échouait avant son injection, car le proxy Prisma n'expose pas `$transaction` au spy Vitest ; l'injection porte désormais sur la lecture réelle du délégué. Les assertions métier et les timeouts sont conservés.
