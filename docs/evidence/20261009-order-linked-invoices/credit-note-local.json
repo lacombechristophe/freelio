@@ -1,0 +1,48 @@
+{
+  "schema": "freelio.credit-note-local.v1",
+  "date": "2026-10-09",
+  "source": "bfa6125336a0880f38d0b230f18355a9ade2309f",
+  "steps": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 9.517
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 27.552
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.178
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 195.024
+    }
+  ],
+  "unchangedProductionBuild": {
+    "codeCommit": "02a6e10bc1091d08ee7d76787a107a624441ff0d",
+    "reason": "Only a SQL test added after the production code build",
+    "result": {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 71.54
+    }
+  },
+  "unit": {
+    "reportSha256": "d0fd28ed5a144d70f59228e9d705b7cd24d4c14bf777ee67ac1efdf7341eadf1",
+    "focused": 4,
+    "passed": 1609,
+    "failed": 0,
+    "files": 187
+  },
+  "limits": [
+    "SQLite concurrent calls can serialize; PostgreSQL barrier requires own CI",
+    "PDF/rendering and storage mocked; no bank refund, R2 or supplier qualification",
+    "Source amount 200 cents and zero VAT; not multi-rate tax qualification"
+  ]
+}

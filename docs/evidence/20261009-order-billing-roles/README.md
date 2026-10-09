@@ -14,4 +14,6 @@ La suite maintenue `order-billing-roles.integration.test.ts` vérifie dix-neuf c
 
 Aucun élargissement général des droits Opérations, émission, PDF, paiement ou compte fournisseur ne fait partie de cette qualification. La contention forte et la cohérence des anciennes factures liées restent des sujets distincts.
 
-Le correctif `39a3965` passe la [recette locale](local.json) : 1 591 tests / 185 fichiers, les 33 cas dédiés, types, deux lints et compilation. Les quatorze tests navigateur du périmètre (quatre Comptabilité, quatre pagination et six Finance conservés) sont chargés sans exécution locale. La qualification compilée et PostgreSQL du candidat est à vérifier dans les checks de la PR #8.
+Le correctif `39a3965` passe la [recette locale](local.json) : 1 591 tests / 185 fichiers, les 33 cas dédiés, types, deux lints et compilation. Les quatorze tests navigateur du périmètre (quatre Comptabilité, quatre pagination et six Finance conservés) sont chargés sans exécution locale.
+
+Les deux [CI de d88a6bb](ci-d88a6bb.json) qualifient ensuite ce code : 1 590 tests PostgreSQL plus une exclusion native SQLite, les 33 nouveaux cas dédiés, quatre E2E Comptabilité et 291 parcours navigateur réussis avec 19 exclusions historiques dans chaque run. SQLite passe 1 591 tests / 185 fichiers, les neuf contrôles Linux, types, deux lints, build, couverture et audits réussissent. Les 958 entrées hors documentation sont identiques à la fusion de test. Le complément concernant les anciennes factures liées reste distinct et n'est pas qualifié par ces résultats.

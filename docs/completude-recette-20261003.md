@@ -4,20 +4,20 @@
 
 ## Référence documentée en CI
 
-**3f1ca72** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37976432768) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37976438080) réussies.
+**d88a6bb** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37985420118) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37985422245) réussies.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 558 tests / 183 fichiers |
-| PostgreSQL | 1 557 réussis ; une exclusion native SQLite |
-| Navigateur | 287 réussis ; 19 exclusions historiques |
+| SQLite, suite unitaire et couverture | 1 591 tests / 185 fichiers |
+| PostgreSQL | 1 590 réussis ; une exclusion native SQLite |
+| Navigateur | 291 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
-Ce candidat qualifie les douze contrôles de rattachement et les douze cas de concurrence des réservations, les 27 projections Client des détails Service, les seize protections Finance des commandes Opérations et les 19 cas de recherche/pagination des commandes et réservations actives sur PostgreSQL réel. Les six E2E Finance et les quatre E2E de pagination passent sur les deux surfaces. Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json) vérifient 954 entrées hors documentation identiques à la fusion de test. Aucun des dix E2E concernés ne fait partie des dix-neuf exclusions historiques. La création effective d'une facture par Comptabilité n'était pas couverte par les tests de disponibilité des commandes.
+Ce candidat qualifie les contrôles de stock, les projections Client Service, les permissions Finance des commandes et leur pagination, puis les quatorze cas de cohérence client/chantier et les dix-neuf cas de facturation et de rôles. Les quatre E2E Comptabilité passent avec les six Finance et les quatre de pagination. Les [rapports de d88a6bb](evidence/20261009-order-billing-roles/ci-d88a6bb.json) vérifient 958 entrées hors documentation identiques à la fusion de test. Aucun des quatorze E2E concernés ne fait partie des dix-neuf exclusions historiques. Le contrôle des anciennes factures liées reste un complément distinct, non qualifié par d88a6bb.
 
-Les [rapports de 0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
+Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json), de [0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
 
 ## Portée du lot Récurrences
 
@@ -49,4 +49,8 @@ Le [lot de listes Commandes / Réservations](evidence/20261009-operations-list-v
 
 La [revue CTO](revue-cto.md) donne un parcours de présentation et expose ces limites. Les résultats automatisés ne certifient ni tout le produit, ni l’accessibilité complète, ni les services externes.
 
-Le correctif `39a3965` des [rattachements de facturation](evidence/20261009-order-billing-references/README.md) et de [Comptabilité](evidence/20261009-order-billing-roles/README.md) passe 33 nouveaux cas SQL, puis la suite locale de 1 591 tests / 185 fichiers, types, deux lints et compilation. Il recontrôle le client et le chantier avant la revendication transactionnelle et limite l'exemption Finance à `updateMany` de `billingStatus`. Quatre E2E Comptabilité sont préparés ; la qualification PostgreSQL et navigateur doit être vérifiée sur le candidat exact dans les checks de la PR. Les [résultats locaux](evidence/20261009-order-billing-roles/local.json) distinguent chargement et exécution.
+Le correctif `39a3965` des [rattachements de facturation](evidence/20261009-order-billing-references/README.md) et de [Comptabilité](evidence/20261009-order-billing-roles/README.md) passe 33 nouveaux cas SQL, puis la suite locale de 1 591 tests / 185 fichiers, types, deux lints et compilation. Il recontrôle le client et le chantier avant la revendication transactionnelle et limite l'exemption Finance à `updateMany` de `billingStatus`. Les deux CI de d88a6bb qualifient ensuite les 33 cas sur PostgreSQL réel et les quatre E2E Comptabilité sur les deux surfaces. Les [résultats locaux](evidence/20261009-order-billing-roles/local.json) distinguent chargement et exécution.
+
+Le complément `02a6e10` des [anciennes factures liées](evidence/20261009-order-linked-invoices/README.md) refuse les incohérences avant retour d'un acompte existant et calcul du solde, puis avant revendication transactionnelle. Les quatorze cas dédiés passent, ainsi que 1 605 tests / 186 fichiers, types, deux lints et compilation. La qualification CI de ce complément reste requise. Les [quatre tests d'avoirs](qualification-avoirs-concurrents-20261009.md) qualifient séparément une garde existante, sans changement métier.
+
+Le commit de tests `bfa6125` passe la suite commune de 1 609 tests / 187 fichiers, types et deux lints ; aucun code de production n'a changé depuis le build de `02a6e10`. La qualification des quatre avoirs sur PostgreSQL reste requise. Un diagnostic distinct reproduit un [solde périmé après modification d'acompte](contrat-facturation-commandes-solde-perime.md) ; son refus visible est proposé séparément. Ces résultats ne clôturent pas toute la chaîne financière.
