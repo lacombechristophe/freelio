@@ -15,3 +15,5 @@ npm run test:unit -- tests/unit/service-detail-client-metrics.integration.test.t
 ```
 
 Pour reproduire l'avant correction, récupérer ce fichier de test depuis `f88fa41` et l'exécuter sur `e25c8d1`. Session et cache Next sont simulés ; les lectures SQL, le DAL et les réponses des actions sont réels. Les fixtures sont cohérentes et aucun fournisseur n'est appelé. Le périmètre est la projection de ces quatre caches Client, pas l'ensemble des relations imbriquées ni toutes les données financières d'Opérations.
+
+Les [deux CI de 0b6b8b3](../20261009-operations-order-finance/ci-0b6b8b3.json) passent les 27 projections sur PostgreSQL réel, puis la suite complète et le navigateur. Ce correctif reste limité aux caches Client des trois détails.

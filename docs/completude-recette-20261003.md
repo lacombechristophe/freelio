@@ -4,18 +4,18 @@
 
 ## Référence documentée en CI
 
-**88ce8dd** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37964507103) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37964515152) réussies.
+**0b6b8b3** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37971308847) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37971318218) réussies.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 484 tests / 179 fichiers |
-| PostgreSQL | 1 483 réussis ; une exclusion native SQLite |
-| Navigateur | 277 réussis ; 19 exclusions historiques |
+| SQLite, suite unitaire et couverture | 1 539 tests / 182 fichiers |
+| PostgreSQL | 1 538 réussis ; une exclusion native SQLite |
+| Navigateur | 283 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
-Ce candidat qualifie les douze cas de réservation concurrente sur PostgreSQL réel ; il conserve les actions de facturation : 34 cas SQL, neuf de relances et quatre de paiements concurrents. Les [rapports](evidence/20261009-stock-reservations/ci-88ce8dd.json) vérifient l’identité des 943 entrées Git hors documentation avec la fusion de test PR. Documents et Récurrences conservent leurs 33 et 26 cas SQL, 13 cas worker, six et huit E2E. Les exclusions navigateur limitent certains anciens parcours mobiles ; les nouveaux tests de ces deux lots ne sont pas exclus. Les [preuves de facturation antérieures](evidence/20261009-invoice-actions/ci-de24513.json) restent conservées.
+Ce candidat qualifie les douze contrôles de rattachement et les douze cas de concurrence des réservations, les 27 projections Client des détails Service et les seize protections Finance des commandes Opérations sur PostgreSQL réel. Les six E2E Finance passent sur les deux surfaces. Les [rapports](evidence/20261009-operations-order-finance/ci-0b6b8b3.json) vérifient les 948 entrées Git hors documentation avec la fusion de test PR. Les dix-neuf exclusions historiques du navigateur restent explicites ; aucun des six nouveaux E2E Finance ne fait partie des exclusions. Les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservées.
 
 ## Portée du lot Récurrences
 
@@ -37,10 +37,12 @@ Le correctif des [actions de facturation](evidence/20261009-invoice-actions/READ
 - Vérifier les traces et sorties des scénarios, les sélecteurs encore plafonnés et les chaînes métier restantes du [plan fonctionnel](plan-completude-fonctionnelle-20261002.md), puis installation, récupération et démonstrations de L9.
 - Qualifier comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations sont hors recette fictive et budget de 0 €.
 
-Le correctif des [rattachements de réservation](evidence/20261009-stock-reservation-scope/README.md), `e25c8d1`, passe localement 1 496 tests SQLite / 180 fichiers, types, les deux lints et build. Ses douze cas de relations passent avec les douze cas de concurrence. Sa CI propre reste requise ; les CI antérieures ne qualifient pas ce code.
+Le correctif des [rattachements de réservation](evidence/20261009-stock-reservation-scope/README.md), `e25c8d1`, passe localement 1 496 tests SQLite / 180 fichiers, types, les deux lints et build. Ses douze cas de relations passent avec les douze cas de concurrence. Les deux CI de 0b6b8b3 qualifient ces douze cas sur PostgreSQL ; les CI antérieures ne qualifient pas ce code.
 
-Le correctif serveur des [projections Client dans les détails Service](evidence/20261009-service-detail-metrics/README.md), `f88fa41`, conserve la présentation et applique la règle commune aux tickets, équipements et interventions. Ses 27 cas passent localement, puis la suite complète de 1 523 tests / 181 fichiers, types, lints et build. Les deux correctifs attendent leur propre qualification CI.
+Le correctif serveur des [projections Client dans les détails Service](evidence/20261009-service-detail-metrics/README.md), `f88fa41`, conserve la présentation et applique la règle commune aux tickets, équipements et interventions. Ses 27 cas passent localement, puis la suite complète de 1 523 tests / 181 fichiers, types, lints et build. Les deux CI de 0b6b8b3 qualifient les 27 projections sur PostgreSQL.
 
-Le [lot approuvé des commandes Opérations](evidence/20261009-operations-order-finance/README.md), `b32c563`, exclut les références et compteurs de factures sans Finance, protège les commandes de facturation et conserve les prix opérationnels. Seize cas SQL passent ; la qualification locale commune passe 1 539 tests / 182 fichiers, types, les deux lints et compilation. Les six E2E sont chargés mais restent à exécuter. La CI commune à ces trois correctifs reste requise.
+Le [lot approuvé des commandes Opérations](evidence/20261009-operations-order-finance/README.md), `b32c563`, exclut les références et compteurs de factures sans Finance, protège les commandes de facturation et conserve les prix opérationnels. Seize cas SQL passent ; la qualification locale commune passe 1 539 tests / 182 fichiers, types, les deux lints et compilation. Les deux CI de 0b6b8b3 qualifient les seize cas PostgreSQL et les six E2E.
+
+Le [lot de listes Commandes / Réservations](evidence/20261009-operations-list-volume/README.md), `67f90e8`, remplace les deux cartes plafonnées par des lecteurs paginés et autorisés avant total/recherche. Les commandes de stock sont réservées à Opérations en écriture, hors démo publique. Dix-neuf cas SQL et 1 558 tests / 183 fichiers passent localement, avec types, lints et compilation. Les quatre nouveaux parcours navigateur et les six Finance conservés sont chargés ; la qualification compilée se vérifie sur le candidat exact dans les [checks de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks). Les tableaux du bootstrap et autres sélecteurs restent distincts.
 
 La [revue CTO](revue-cto.md) donne un parcours de présentation et expose ces limites. Les résultats automatisés ne certifient ni tout le produit, ni l’accessibilité complète, ni les services externes.

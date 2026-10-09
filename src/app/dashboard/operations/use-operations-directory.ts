@@ -27,4 +27,3 @@ export function useOperationsDirectory<T extends { total: number; page: number }
     data: result?.data, visible: fresh && result && !error ? result.data : null, pending: pending || (!fresh && !error), error,
     page: fresh && result ? result.data.page : page, setPage: (next: number) => { setQuery(current => ({ ...current, page: next, agencyId })); setError(false) }, retry: () => { setError(false); setRetry(current => current + 1) } }
 }
-

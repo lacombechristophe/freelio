@@ -1,0 +1,191 @@
+{
+  "schema": "freelio.operations-order-directory-local.v1",
+  "codeCommit": "67f90e80a5ee93a3cb22c81311ed13234af4079a",
+  "database": "isolated fictitious SQLite",
+  "files": [
+    {
+      "file": "src/actions/operations-orders/index.ts",
+      "recipeSha256": "9cecd95f05b01c0660769112272cacf31d84dde0821ebc514fa4fd6a8728ea57"
+    },
+    {
+      "file": "src/app/dashboard/operations/orders-directory.tsx",
+      "recipeSha256": "5f799484b7b8198ccc42b213af716f1bcdb9063b5243374fbcdc03573648b646"
+    },
+    {
+      "file": "src/app/dashboard/operations/use-operations-directory.ts",
+      "recipeSha256": "642e3dbfbb74896a8e92626295fa6ac195c103d42e0913fac3a2c2894e5e57b3"
+    },
+    {
+      "file": "src/app/dashboard/operations/assets-directory.tsx",
+      "recipeSha256": "f4d1742d91cac723da7da1b89d8e8942b0e98bebe78b5967a35e01968578e8dd"
+    },
+    {
+      "file": "src/app/dashboard/operations/operations-center.tsx",
+      "recipeSha256": "4f4d7dfef5cfc96796a7f2b9faf352167cae9fd185ae08bef2805c29e0d3ec72"
+    },
+    {
+      "file": "scripts/seed-ui-redesign.mjs",
+      "recipeSha256": "9f4b86563020d73c00a5260c703f620e819ecad1650b31b52ad974b872cd31e1"
+    },
+    {
+      "file": "scripts/seed-operations-order-directory.mjs",
+      "recipeSha256": "599ff6985a3c0ddddf0bc3bcb5d1f02edfcea3869e7e034d030fda5d04f68a28"
+    },
+    {
+      "file": "tests/unit/operations-order-directory.integration.test.ts",
+      "recipeSha256": "a5b0eb3f9e00c20f1cf26dd5cdda5373fa8652d317446649d89c221ba126f278"
+    },
+    {
+      "file": "tests/e2e/operations-order-directory.spec.ts",
+      "recipeSha256": "d4c403c2a6008531e2ba6cfe5dcb651eecc26c85b1b9639b8e87ca6ddf5450e3"
+    }
+  ],
+  "unit": {
+    "passed": 1558,
+    "failed": 0,
+    "files": 183,
+    "pending": 0
+  },
+  "focused": {
+    "passed": 19,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "orders: pages through all 151 agency rows without overlaps",
+        "status": "passed"
+      },
+      {
+        "name": "orders: searches the oldest row before pagination",
+        "status": "passed"
+      },
+      {
+        "name": "orders: returns an empty first page for no matches",
+        "status": "passed"
+      },
+      {
+        "name": "orders: separates company and selected agency",
+        "status": "passed"
+      },
+      {
+        "name": "orders: rejects an unassigned agency",
+        "status": "passed"
+      },
+      {
+        "name": "orders: reevaluates revoked access",
+        "status": "passed"
+      },
+      {
+        "name": "orders: validates the page and query bounds",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: pages through all 151 agency rows without overlaps",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: searches the oldest row before pagination",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: returns an empty first page for no matches",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: separates company and selected agency",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: rejects an unassigned agency",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: reevaluates revoked access",
+        "status": "passed"
+      },
+      {
+        "name": "reservations: validates the page and query bounds",
+        "status": "passed"
+      },
+      {
+        "name": "clamps the last reservation page after a release",
+        "status": "passed"
+      },
+      {
+        "name": "preserves Finance projection when the role changes",
+        "status": "passed"
+      },
+      {
+        "name": "allows Viewer reads and refuses stock mutations",
+        "status": "passed"
+      },
+      {
+        "name": "offers stock commands to Operations without offering billing",
+        "status": "passed"
+      },
+      {
+        "name": "keeps both lists readable without writes in the public demo",
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 8.648
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 23.33
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.178
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 196.633
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 57.346
+    }
+  ],
+  "browser": {
+    "listedNew": 4,
+    "listedPreservedFinance": 6,
+    "executedLocally": false
+  },
+  "attempts": [
+    {
+      "stage": "final repeat before batched fixtures",
+      "unitExitCode": 1,
+      "passed": 16,
+      "failedAssertions": 0,
+      "skippedDirectoryAssertions": 19,
+      "failedDirectorySuite": true,
+      "cause": "Not present in the JSON report; no root cause asserted"
+    },
+    {
+      "stage": "isolated directory rerun before batched fixtures",
+      "passed": 19,
+      "failed": 0
+    },
+    {
+      "stage": "final batched fixtures",
+      "passed": 1558,
+      "failed": 0,
+      "limitsChanged": false
+    }
+  ],
+  "limits": [
+    "Session and Next cache simulated; SQL, readers and permission guards real.",
+    "Fixtures created in SQL, not a qualification of reservation creation.",
+    "Four browser cases listed only; compiled execution belongs to exact-candidate CI.",
+    "The initial dashboard arrays, other selectors, completed reservation histories and hosted load remain distinct."
+  ]
+}
