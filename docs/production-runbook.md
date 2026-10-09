@@ -1,6 +1,6 @@
 # Runbook de production — Freelio CRM/ERP
 
-Date de référence initiale : 24 août 2026. Mise à jour de cadrage : 1er octobre 2026.
+Date de référence initiale : 24 août 2026. Mise à jour de cadrage : 9 octobre 2026.
 Propriétaire opérationnel à nommer : responsable de production de l’entreprise cliente
 Périmètre : application Next.js, PostgreSQL, R2, Resend, Redis/BullMQ et Upstash.
 
@@ -85,9 +85,9 @@ Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur p
 
 ### Profil de démonstration publique
 
-Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif, un rôle PostgreSQL lecteur et des accès R2 limités aux objets fictifs. Le profil a été testé localement sous serveur compilé ; il ne crée pas automatiquement une infrastructure ni un pare-feu hébergé.
+Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif, un rôle PostgreSQL lecteur et des accès R2 limités aux objets fictifs. La [qualification hébergée du 3 octobre](livraison-demo-vercel-20261003.md) identifie le code, le déploiement et les parcours contrôlés. Vérifier le déploiement actif avant présentation ; les compléments de la PR #8 restent une référence distincte tant qu'ils ne sont pas livrés et qualifiés sur l'hébergeur.
 
-Le budget choisi est de 0 € pour l’instant : la livraison reste locale, sans ouverture commerciale. La [proposition d’hébergement](hebergement-demo-proposition.md) est préparatoire et n’autorise aucun abonnement.
+Le budget choisi est de 0 € pour l’instant, sans ouverture commerciale. La livraison documentée utilise le plan Vercel Hobby et les services PostgreSQL, R2 et Upstash déjà présents, sans nouvel abonnement payant. Son rapport ne garantit ni les quotas/factures de ces services, ni un SLA ou une gratuité permanente. La [proposition d’hébergement](hebergement-demo-proposition.md) décrit une autre option préparatoire et n’autorise aucun abonnement.
 
 ### CORS du bucket R2 privé
 
