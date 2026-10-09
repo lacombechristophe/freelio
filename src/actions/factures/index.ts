@@ -54,7 +54,7 @@ export async function getInvoices(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
     const pageSize = boundedPageSize(limit, 50, 100)
     return await prisma.invoice.findMany({
-      where: { companyId },
+      where: { companyId, client: { companyId } },
       take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
@@ -189,7 +189,7 @@ export async function getUnbilledTimeEntries() {
       where: {
         isBillable: true,
         invoiceId: null,
-        project: { companyId },
+        project: { companyId, client: { companyId } },
       },
       include: {
         project: {
@@ -224,7 +224,7 @@ export async function getUnbilledTimeEntries() {
         },
       })),
     }
-  })
+  }, "finance.read")
 }
 
 export async function createInvoice(data: InvoiceInput) {
@@ -290,7 +290,7 @@ export async function createInvoice(data: InvoiceInput) {
 
     revalidatePath("/dashboard/factures")
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesInput) {
@@ -312,7 +312,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
         id: { in: uniqueEntryIds },
         isBillable: true,
         invoiceId: null,
-        project: { companyId },
+        project: { companyId, client: { companyId } },
       },
       include: {
         project: {
@@ -408,13 +408,13 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     revalidatePath(`/dashboard/factures/${invoice.id}`)
     revalidatePath("/dashboard/temps")
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function updateInvoice(id: string, data: InvoiceInput) {
   return await withAuth(async ({ companyId, agencyIds }) => {
     const validated = InvoiceSchema.parse(data)
-    const existing = await prisma.invoice.findFirst({ where: { id, companyId } })
+    const existing = await prisma.invoice.findFirst({ where: { id, companyId, client: { companyId } } })
     if (!existing) throw new Error("Facture introuvable")
     if (existing.status !== "DRAFT") {
       throw new Error("Une facture émise ne peut pas être modifiée.")
@@ -474,13 +474,13 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${id}`)
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED") {
   return await withAuth(async ({ userId, companyId }) => {
     const existing = await prisma.invoice.findFirst({
-      where: { id: invoiceId, companyId },
+      where: { id: invoiceId, companyId, client: { companyId } },
       include: {
         company: true,
         client: true,
@@ -547,7 +547,7 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
 
 export async function deleteInvoice(id: string) {
   return await withAuth(async ({ companyId, userId }) => {
-    const existing = await prisma.invoice.findFirst({ where: { id, companyId } })
+    const existing = await prisma.invoice.findFirst({ where: { id, companyId, client: { companyId } } })
     if (!existing) throw new Error("Facture introuvable")
     if (existing.status !== "DRAFT") {
       throw new Error("Seules les factures en brouillon peuvent être supprimées.")
@@ -568,14 +568,14 @@ export async function deleteInvoice(id: string) {
     })
     revalidatePath("/dashboard/factures")
     return { ok: true }
-  })
+  }, "finance.write")
 }
 
 export async function recordPayment(data: PaymentInput) {
   return await withAuth(async ({ userId, companyId }) => {
     const validated = PaymentSchema.parse(data)
     const invoice = await prisma.invoice.findFirst({
-      where: { id: validated.invoiceId, companyId },
+      where: { id: validated.invoiceId, companyId, client: { companyId } },
     })
     if (!invoice) throw new Error("Facture introuvable")
     if (!["SENT", "OVERDUE"].includes(invoice.status)) {
@@ -639,16 +639,15 @@ export async function recordPayment(data: PaymentInput) {
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${validated.invoiceId}`)
     return result.payment
-  })
+  }, "finance.write")
 }
 
 export async function createCreditNote(data: CreditNoteInput) {
   return withAuth(async ({ companyId, userId }) => {
     const validated = CreditNoteSchema.parse(data)
     const original = await prisma.invoice.findFirst({
-      where: { id: validated.invoiceId, companyId },
+      where: { id: validated.invoiceId, companyId, client: { companyId } },
       include: {
-        creditInvoices: { select: { totalTtcCents: true } },
         company: { select: { siret: true } },
         client: { select: { siret: true, type: true } },
       },
@@ -658,7 +657,11 @@ export async function createCreditNote(data: CreditNoteInput) {
       throw new Error("Un avoir ne peut être créé que depuis une facture émise.")
     }
 
-    const alreadyCredited = original.creditInvoices.reduce((sum, credit) => sum + Math.abs(credit.totalTtcCents), 0)
+    const creditInvoices = await prisma.invoice.findMany({
+      where: { originalInvoiceId: original.id, companyId, clientId: original.clientId, client: { companyId } },
+      select: { totalTtcCents: true },
+    })
+    const alreadyCredited = creditInvoices.reduce((sum, credit) => sum + Math.abs(credit.totalTtcCents), 0)
     const available = original.totalTtcCents - alreadyCredited
     if (validated.amountCents > available) {
       throw new Error("Le montant de l'avoir dépasse le montant encore disponible.")
@@ -748,14 +751,14 @@ export async function createCreditNote(data: CreditNoteInput) {
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${original.id}`)
     return credit
-  })
+  }, "finance.write")
 }
 
 export async function prepareInvoiceReminder(data: ReminderInput) {
   return withAuth(async ({ companyId }) => {
     const validated = ReminderSchema.parse(data)
     const invoice = await prisma.invoice.findFirst({
-      where: { id: validated.invoiceId, companyId },
+      where: { id: validated.invoiceId, companyId, client: { companyId } },
       include: {
         client: { include: { contacts: { orderBy: { isPrimary: "desc" } } } },
         company: { select: { name: true } },
@@ -783,7 +786,7 @@ export async function prepareInvoiceReminder(data: ReminderInput) {
       ...reminder,
       to: invoice.client.contacts.find((contact) => contact.email)?.email ?? "",
     }
-  })
+  }, "finance.write")
 }
 
 const SendReminderSchema = z.object({

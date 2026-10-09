@@ -31,7 +31,7 @@ export async function sendInvoiceReminderRecord(input: {
 }) {
   const execution = await withProcessorLease(`invoice-reminder:${input.reminderId}`, async control => {
     const reminder = await prisma.invoiceReminder.findFirst({
-      where: { id: input.reminderId, companyId: input.companyId, invoice: { companyId: input.companyId } },
+      where: { id: input.reminderId, companyId: input.companyId, invoice: { companyId: input.companyId, client: { companyId: input.companyId } } },
       include: senderInclude,
     })
     if (!reminder) throw new Error("Relance introuvable")
@@ -59,7 +59,7 @@ export async function sendInvoiceReminderRecord(input: {
       : { invoiceId: reminder.invoiceId, remainingCents: reminder.remainingCents! }
     const assertInvoiceUnpaid = async () => {
       await control.assertOwned()
-      const invoice = await prisma.invoice.findFirst({ where: { id: reminder.invoiceId, companyId: input.companyId }, select: { status: true, totalTtcCents: true, paidAmountCents: true } })
+      const invoice = await prisma.invoice.findFirst({ where: { id: reminder.invoiceId, companyId: input.companyId, client: { companyId: input.companyId } }, select: { status: true, totalTtcCents: true, paidAmountCents: true } })
       if (!invoice || !["SENT", "OVERDUE"].includes(invoice.status) || invoice.paidAmountCents >= invoice.totalTtcCents) throw new Error("Cette facture n’est plus éligible à une relance : vérifiez son statut et son solde")
       if (invoice.totalTtcCents - invoice.paidAmountCents !== invoiceSnapshot.remainingCents) throw new Error("Le solde a changé depuis la préparation ; vérifiez la relance et son résultat avant de créer un nouveau message")
     }
@@ -111,6 +111,7 @@ export async function processDueInvoiceReminders(input: { companyId?: string; li
     const invoices = await prisma.invoice.findMany({
       where: {
         companyId: config.companyId,
+        client: { companyId: config.companyId },
         status: { in: ["SENT", "OVERDUE"] },
         dueDate: { lte: invoiceReminderDueAt(now, -earliestThreshold) },
       },

@@ -132,4 +132,29 @@ describe.sequential("invoice reminder transport identity and acceptance recovery
     await expect(sendInvoiceReminderRecord(f.input)).rejects.toThrow("sans solde figé")
     expect(sendEmailThroughChannel).not.toHaveBeenCalled()
   })
+
+  it("rejects a reminder with a foreign client before preparing a delivery", async () => {
+    const f = await fixture()
+    const foreign = await prisma.company.create({ data: { name: "Fictional foreign reminder company" } }); companies.push(foreign.id)
+    await prisma.client.update({ where: { id: f.invoice.clientId }, data: { companyId: foreign.id } })
+    await expect(sendInvoiceReminderRecord(f.input)).rejects.toThrow("Relance introuvable")
+    expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+    expect(await prisma.emailDelivery.count({ where: { companyId: f.companyId } })).toBe(0)
+    expect(await prisma.invoiceReminder.findUniqueOrThrow({ where: { id: f.reminder.id } })).toMatchObject({ status: "PREPARED" })
+  })
+
+  it("rechecks client company immediately before dispatch", async () => {
+    const f = await fixture()
+    const foreign = await prisma.company.create({ data: { name: "Fictional changed reminder company" } }); companies.push(foreign.id)
+    let dispatched = false
+    vi.mocked(sendEmailThroughChannel).mockImplementationOnce(async command => {
+      await prisma.client.update({ where: { id: f.invoice.clientId }, data: { companyId: foreign.id } })
+      await command.beforeDispatch?.()
+      dispatched = true
+      throw new Error("Should never dispatch")
+    })
+    await expect(sendInvoiceReminderRecord(f.input)).rejects.toThrow("éligible")
+    expect(dispatched).toBe(false)
+    expect(await prisma.emailMessage.count({ where: { companyId: f.companyId } })).toBe(0)
+  })
 })
