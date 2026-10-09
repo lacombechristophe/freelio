@@ -50,8 +50,8 @@ try {
   report.checks.push("Configuration de production vide refusée avant écoute")
   docker(["network", "create", "--internal", prefix]); networkCreated = true
   for (const [kind, source, options] of [
-    ["postgres", "postgres:18.6-bookworm", ["--env-file", postgresFile]],
-    ["redis", "redis:7.4-bookworm", []],
+    ["postgres", "public.ecr.aws/docker/library/postgres:18.6-bookworm", ["--env-file", postgresFile]],
+    ["redis", "public.ecr.aws/docker/library/redis:7.4-bookworm", []],
   ]) {
     const name = `${prefix}-${kind}`
     docker(["run", "--detach", "--name", name, "--network", prefix, ...options, source])
