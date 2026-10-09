@@ -52,6 +52,9 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
     if (!isHttpsUrl(environment[name])) issues.push(`${name}_HTTPS`)
   }
 
+  const withoutStorage = readonly && environment.FILE_STORAGE_DRIVER?.trim().toLowerCase() === "disabled" && environment.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() === "disabled"
+  if (withoutStorage) return issues
+
   if (environment.FILE_STORAGE_DRIVER?.trim().toLowerCase() !== "r2") issues.push("FILE_STORAGE_DRIVER_R2")
   if (environment.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() !== "r2") issues.push("MIGRATION_STORAGE_DRIVER_R2")
   for (const name of ["R2_ACCOUNT_ID", "R2_BUCKET_NAME"]) {

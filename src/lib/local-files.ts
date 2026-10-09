@@ -57,7 +57,14 @@ function r2Config(): R2Config | null {
   return { accountId, accessKeyId, secretAccessKey, bucket }
 }
 
+function assertStorageEnabled() {
+  if (process.env.FILE_STORAGE_DRIVER?.trim().toLowerCase() === "disabled") {
+    throw new Error("Le stockage persistant est désactivé sur cette démonstration")
+  }
+}
+
 function storageDriver() {
+  assertStorageEnabled()
   const configured = process.env.FILE_STORAGE_DRIVER?.trim().toLowerCase()
   if (configured && configured !== "local" && configured !== "r2") throw new Error("FILE_STORAGE_DRIVER doit valoir local ou r2")
   if (configured === "r2" && !r2Config()) throw new Error("Configuration R2 incomplète pour les documents")
@@ -182,7 +189,7 @@ export async function storeLocalFile(input: {
 
 export function directFileUploadAvailable() {
   const configured = process.env.FILE_STORAGE_DRIVER?.trim().toLowerCase()
-  if (configured === "local") return false
+  if (configured === "local" || configured === "disabled") return false
   return Boolean(r2Config())
 }
 
@@ -299,6 +306,7 @@ export async function abortDirectFileUpload(input: {
   resourceId: string
   storageKey: string
 }) {
+  assertStorageEnabled()
   if (!input.storageKey.startsWith(R2_PREFIX)) throw new Error("Clé de transfert invalide")
   const objectKey = input.storageKey.slice(R2_PREFIX.length)
   const expectedPrefix = `_pending/${safeSegment(input.companyId)}/${input.kind}/${safeSegment(input.resourceId)}/`
@@ -309,6 +317,7 @@ export async function abortDirectFileUpload(input: {
 }
 
 export async function readLocalFile(relativePath: string, maxBytes = Infinity) {
+  assertStorageEnabled()
   if (relativePath.startsWith(R2_PREFIX)) {
     const config = r2Config()
     if (!config) throw new Error("Configuration R2 indisponible pour lire ce document")
@@ -322,6 +331,7 @@ export async function readLocalFile(relativePath: string, maxBytes = Infinity) {
 }
 
 export async function removeLocalFile(relativePath: string) {
+  assertStorageEnabled()
   if (relativePath.startsWith(R2_PREFIX)) {
     const config = r2Config()
     if (!config) throw new Error("Configuration R2 indisponible pour supprimer ce document")
@@ -332,6 +342,7 @@ export async function removeLocalFile(relativePath: string) {
 }
 
 export async function listR2CompanyObjects(companyId: string) {
+  assertStorageEnabled()
   const config = r2Config()
   if (!config) return []
   const prefix = `${safeSegment(companyId)}/`
@@ -353,9 +364,11 @@ export async function listR2CompanyObjects(companyId: string) {
 }
 
 export function localFilesRoot() {
+  assertStorageEnabled()
   return filesRoot
 }
 
 export function resolveLocalFile(relativePath: string) {
+  assertStorageEnabled()
   return resolveInsideFilesRoot(relativePath)
 }

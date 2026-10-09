@@ -10,7 +10,9 @@ Les [paramètres de branche](environment.json) sont appliqués à Preview / `cod
 
 ## Condition de reprise
 
-Le propriétaire indique le 10 octobre que les comptes R2 et Upstash ne sont pas encore créés. Leurs paramètres locaux sont des exemples ; les valeurs distantes marquées sensibles ne sont pas relisibles. Aucune valeur fictive n’est ajoutée pour faire passer la sonde. Les six paramètres manquants sont énumérés dans le rapport d’environnement. Créer/configurer les services choisis, reconstruire ce profil, puis vérifier sonde, restrictions, connexion, listes et PDF avant présentation.
+Lors du contrôle initial, les comptes R2 et Upstash ne sont pas encore créés. Le rapport d’environnement conserve les six paramètres alors manquants. Le propriétaire crée ensuite Upstash et refuse R2 pour respecter son budget de 0 €. Les deux paramètres Upstash sont désormais présents sur cette seule branche de preview ; leur présence ne vaut pas encore test fournisseur. Aucune valeur fictive n’est ajoutée pour faire passer la sonde.
+
+Le [profil sans stockage](../../qualification-demo-sans-stockage-20261010.md) permet une démo publique en lecture seule avec les deux drivers à `disabled`. Il refuse tout accès persistant et tout transfert signé, sans repli sur le disque temporaire de Vercel. Le seed ne contient ni pièce jointe ni archive émise. Les PDF de brouillons restent calculés à la demande. La production modifiable conserve son exigence R2. Reconstruire ce profil, puis vérifier sonde, restrictions, connexion, listes et PDF avant présentation.
 
 La présence de paramètres ou un HTTP 200 historique ne prouve ni l’existence ni la disponibilité des services correspondants. La [qualification historique](../../livraison-demo-vercel-20261003.md) reste attachée à son ancien code et à ses limites explicites sur R2/Upstash.
 

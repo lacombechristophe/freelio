@@ -1,0 +1,76 @@
+{
+  "schema": "freelio.storage-free-qualification.v1",
+  "observedAt": "2026-10-09T23:22:00.0419235Z",
+  "baseCommit": "d49cf8b9d32c00dfb28e121700d688f85aab11da",
+  "regression": {
+    "beforeFailed": 18,
+    "beforePassed": 16,
+    "targetedAfterPassed": 40,
+    "targetedAfterFailed": 0
+  },
+  "localChecks": [
+    {
+      "name": "generate",
+      "exitCode": 0,
+      "seconds": 2.2
+    },
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 14.152
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 56.547
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.472
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 258.88
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 83.906
+    }
+  ],
+  "unit": {
+    "passed": 1641,
+    "files": 189,
+    "failed": 0
+  },
+  "environment": {
+    "schema": "freelio.preview-storage-profile.v1",
+    "observedAt": "2026-10-09T23:21:45.401Z",
+    "branch": "codex/functional-completeness-20261003",
+    "applied": true,
+    "changes": [
+      {
+        "key": "FILE_STORAGE_DRIVER",
+        "from": "r2",
+        "to": "disabled"
+      },
+      {
+        "key": "MIGRATION_STORAGE_DRIVER",
+        "from": "r2",
+        "to": "disabled"
+      }
+    ],
+    "upstashMetadataPresent": true,
+    "upstashProviderQualified": false,
+    "productionChanged": false,
+    "r2SubscriptionCreated": false
+  },
+  "limits": [
+    "No hosted qualification yet",
+    "No object storage or archive retrieval",
+    "No production change",
+    "No local server or Docker launch"
+  ]
+}
