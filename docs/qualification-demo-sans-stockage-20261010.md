@@ -79,3 +79,9 @@ Le déploiement `dpl_B3UMgp55cJn6BDJ9nPSD2RPpKKuW` est construit depuis `9086a5d
 Les [deux CI de 9086a5d](evidence/20261010-preview-readiness/ci-9086a5d.json) passent aussi : 1 657 tests SQLite, 1 656 PostgreSQL avec une exclusion native SQLite, 299 E2E avec 19 exclusions historiques et neuf contrôles Linux. Les huit E2E de calendrier passent dans chacun des deux runs.
 
 Cette qualification hébergée porte sur la preview protégée et le compte fictif Owner. Le [correctif des droits d'Organisation](contrat-organisation-domaines-droits.md), approuvé ensuite, est qualifié séparément pour les autres rôles. Aucune fusion sur main ni modification de production n'est effectuée.
+
+## Rejeu de 021bfac et suites ciblées
+
+Le [rejeu hébergé de 021bfac](evidence/20261010-preview-readiness/hosted-021bfac.json) passe les deux parcours de 49 pages/onglets, sans exclusion, retry ni erreur JavaScript. L'alias correspond à `dpl_RzkV4y9Cso4zfwzJbxW4FMg5CUmb` avant et après exécution ; les empreintes du harnais correspondent au commit.
+
+Les [deux CI de ce même candidat](evidence/20261010-preview-readiness/ci-021bfac.json) passent PostgreSQL, Linux et les six E2E Organisation. Elles restent en échec sur le rendez-vous du portail : le créneau fixe du 10 octobre à 10 h est devenu passé, et l'API répond HTTP 400 avec sa validation temporelle. Les dates de ce test sont remplacées par des créneaux futurs calculés ; l'assertion HTTP 201 s'ajoute à la confirmation et aux vérifications existantes. Le nouveau rejeu reste nécessaire. Cette correction de fixture ne change aucun parcours produit.
