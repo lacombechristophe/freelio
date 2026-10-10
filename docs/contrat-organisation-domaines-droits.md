@@ -6,7 +6,7 @@ Le lecteur `getOrganisationDashboardData` est authentifié, mais lit devis et fa
 
 L'authentification et le cache Next sont simulés. Les tests ne créent aucun compte fournisseur et n'utilisent aucune donnée réelle. Le résultat attendu est une liste vide pour le domaine interdit, pas une liste masquée seulement dans le navigateur.
 
-## Correction proposée
+## Correction approuvée
 
 - Évaluer `finance.read` et `sales.read` avant les requêtes métier correspondantes ; ne pas exécuter ces requêtes sans le droit.
 - Retourner des permissions explicites et des listes vides pour les domaines interdits. N'en dériver aucun montant, retard, compteur ou point de vigilance.
@@ -14,8 +14,12 @@ L'authentification et le cache Next sont simulés. Les tests ne créent aucun co
 - Pour les documents autorisés, conserver les scopes société/agence et exclure les clients d'une autre société. Aucun accès élargi par rapport au DAL.
 - Conserver tâches, objectifs, temps et budgets opérationnels. Aucun changement de couleur, bouton ou disposition.
 
-Le correctif visible attend l'accord du propriétaire. La correction du calendrier approuvée et sa qualification restent un lot distinct.
+Le propriétaire approuve ce lot le 10 octobre 2026. Les permissions sont évaluées dans l'action, avant les requêtes ; les cartes utilisent ces permissions explicites. La correction du calendrier et sa qualification restent un lot distinct.
 
-## Vérification attendue
+## Vérification
 
-Rejouer les six refus, puis Owner/Admin, Comptabilité, Viewer et les changements de rôle dans la même session. Vérifier l'absence d'appel aux lecteurs interdits, les clients incohérents et les agences non attribuées. Dans le navigateur compilé, conserver les cartes et les tâches accessibles, sans référence ou montant du domaine interdit. Les tests de calendrier doivent rester verts.
+`tests/unit/organisation-domain-scope.integration.test.ts` couvre les six refus, Owner/Admin, Comptabilité, Viewer, Sales/Operations et le changement de rôle dans la même session. Les appels interdits sont surveillés ; clients étrangers, autres sociétés, agences non attribuées et révocation d'agence utilisent de vraies lignes SQL. Un cas conserve explicitement tâches, objectifs, temps et budgets opérationnels. Seuls l'authentification et le cache Next sont simulés.
+
+`tests/e2e/organisation-permissions.spec.ts` couvre Service, Sales et Comptabilité sur ordinateur et mobile : mentions dans les cartes, absence de références interdites dans le HTML serveur, vigilance calculée sur les seules données accessibles et conservation des tâches/objectifs. Le seed associé utilise une société fictive par surface, uniquement dans la recette isolée. Les résultats locaux et CI sont consignés séparément ; le chargement des E2E ne vaut pas leur exécution.
+
+La [recette locale](evidence/20261010-preview-readiness/organisation-domain-local.json) passe quinze cas SQL dédiés, les seize calendriers conservés, puis la suite de 1 672 tests / 192 fichiers, types, deux lints et build. La date de la ligne de temps fictive est ensuite alignée sur le jour civil de Paris pour éviter une dépendance à l'heure du dimanche soir ; les 31 cas ciblés et le lint du fichier sont rejoués avec succès. Aucun code applicatif ne change après le build. Le nouveau seed passe aussi sur une base SQLite neuve. Les six E2E Organisation sont chargés, pas exécutés localement.

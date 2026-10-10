@@ -60,6 +60,8 @@ type TaskCategory = "DEV" | "ADMIN" | "SALES" | "SUPPORT" | "LEARNING" | "MEETIN
 type OrganisationData = {
   generatedAt: string
   timeZone: string
+  canReadFinance: boolean
+  canReadSales: boolean
   periods: {
     todayStart: string
     tomorrowStart: string
@@ -392,7 +394,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
           icon={AlertTriangle}
           label="À surveiller"
           value={`${urgentCount} point(s)`}
-          detail={`${overdueInvoices.length} facture(s) en retard`}
+          detail={data.canReadFinance ? `${overdueInvoices.length} facture(s) en retard` : "Accès Finance requis"}
           tone={urgentCount > 0 ? "danger" : "neutral"}
         />
       </div>
@@ -564,7 +566,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
             <WatchSection
               icon={Receipt}
               title="Factures à suivre"
-              empty="Aucune facture urgente."
+              empty={data.canReadFinance ? "Aucune facture urgente." : "Accès Finance requis"}
               items={data.watchlist.invoices.slice(0, 5).map((invoice) => ({
                 id: invoice.id,
                 href: `/dashboard/factures/${invoice.id}`,
@@ -576,7 +578,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
             <WatchSection
               icon={Kanban}
               title="Devis ouverts"
-              empty="Aucun devis à relancer."
+              empty={data.canReadSales ? "Aucun devis à relancer." : "Accès commercial requis"}
               items={data.watchlist.quotes.slice(0, 4).map((quote) => ({
                 id: quote.id,
                 href: `/dashboard/devis/${quote.id}`,

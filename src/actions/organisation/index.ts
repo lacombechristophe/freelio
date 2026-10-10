@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import { advanceTaskRecurrence } from "@/lib/workflow-rules"
 import { completeSequenceTaskFromOrganisationTask } from "@/lib/automations/sequences"
 import { deleteOrganisationTaskFromCalendar, pushOrganisationTaskToCalendar } from "@/lib/communications/calendar-sync"
@@ -123,7 +124,9 @@ function revalidateOrganisation(paths: string[] = []) {
 }
 
 export async function getOrganisationDashboardData() {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, role }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const canReadSales = hasPermission(role, "sales.read")
     const now = new Date()
     const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
     const { todayStart, tomorrowStart, weekStart, weekEnd, monthStart, monthEnd, yearStart, yearEnd } = calendarPeriods(now, company.serviceTimezone)
@@ -188,18 +191,20 @@ export async function getOrganisationDashboardData() {
         orderBy: { date: "desc" },
         take: 5_000,
       }),
-      prisma.invoice.findMany({
+      canReadFinance ? prisma.invoice.findMany({
         where: {
           companyId,
+          client: { companyId },
           status: { in: ["DRAFT", "SENT", "OVERDUE"] },
         },
         include: { client: { select: { id: true, name: true } } },
         orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
         take: 12,
-      }),
-      prisma.quote.findMany({
+      }) : Promise.resolve([]),
+      canReadSales ? prisma.quote.findMany({
         where: {
           companyId,
+          client: { companyId },
           status: { in: ["DRAFT", "SENT"] },
         },
         include: {
@@ -212,7 +217,7 @@ export async function getOrganisationDashboardData() {
         },
         orderBy: [{ validUntil: "asc" }, { createdAt: "desc" }],
         take: 12,
-      }),
+      }) : Promise.resolve([]),
       prisma.projectMilestone.findMany({
         where: {
           project: { companyId },
@@ -235,6 +240,8 @@ export async function getOrganisationDashboardData() {
     return {
       generatedAt: now.toISOString(),
       timeZone: company.serviceTimezone,
+      canReadFinance,
+      canReadSales,
       periods: {
         todayStart: todayStart.toISOString(),
         tomorrowStart: tomorrowStart.toISOString(),
