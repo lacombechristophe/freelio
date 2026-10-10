@@ -71,3 +71,11 @@ npx playwright test --config playwright.hosted.config.ts
 ```
 
 Les deux parcours chargent 49 pages/onglets avec un navigateur en UTC+14 et un autre en UTC−8, contrôlent sondes, connexion, restrictions de mutation, PDF en mémoire, navigation mobile et déconnexion. Les requêtes externes du navigateur sont bloquées. Les erreurs JavaScript font échouer la recette. Le rapport joint contient uniquement les routes et erreurs, sans identifiants ni en-têtes ; traces et captures sont désactivées. Les identifiants fictifs et l'accès de protection restent fournis séparément. Cette recette est une vérification de lecture et de rendu, pas une qualification des envois ou de tous les parcours métier.
+
+## Rejeu de 9086a5d
+
+Le déploiement `dpl_B3UMgp55cJn6BDJ9nPSD2RPpKKuW` est construit depuis `9086a5d7a31747fae91e8757c83c9ceaae87ad83`. L'alias de branche est vérifié contre cet identifiant avant et après exécution ; les empreintes des deux fichiers de test exécutés correspondent au commit. Le [test hébergé versionné](evidence/20261010-preview-readiness/hosted-9086a5d.json) réussit ses deux parcours sans exclusion ni retry : 49 pages/onglets chacun, zéro erreur JavaScript, sondes HTTP 200, connexion réelle du compte fictif, restrictions HTTP 403, PDF de brouillons, navigation mobile et déconnexion. Les rapports antérieurs en échec restent conservés.
+
+Les [deux CI de 9086a5d](evidence/20261010-preview-readiness/ci-9086a5d.json) passent aussi : 1 657 tests SQLite, 1 656 PostgreSQL avec une exclusion native SQLite, 299 E2E avec 19 exclusions historiques et neuf contrôles Linux. Les huit E2E de calendrier passent dans chacun des deux runs.
+
+Cette qualification hébergée porte sur la preview protégée et le compte fictif Owner. Le [correctif des droits d'Organisation](contrat-organisation-domaines-droits.md), approuvé ensuite, est qualifié séparément pour les autres rôles. Aucune fusion sur main ni modification de production n'est effectuée.
