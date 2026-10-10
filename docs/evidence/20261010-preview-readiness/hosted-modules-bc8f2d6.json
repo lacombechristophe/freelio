@@ -1,0 +1,297 @@
+{
+  "schema": "freelio.hosted-calendar.v1",
+  "startedAt": "2026-10-10T02:10:02.018Z",
+  "commit": "bc8f2d6bf6efb84803d03eaff03224138cb3867d",
+  "deployment": {
+    "id": "dpl_AwaeGFF2sZGN27btVZyEdmrSvwFL",
+    "url": "https://freelio-pq9zh75fi-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "state": "READY",
+    "createdAt": 1791598014778
+  },
+  "baseURL": "https://freelio-git-codex-function-c9a645-hyhyhyhyhytest-8931s-projects.vercel.app",
+  "viewport": "desktop-1440",
+  "timezone": "Pacific/Kiritimati",
+  "checks": [
+    {
+      "route": "/api/health/live",
+      "http": 200,
+      "status": "ok"
+    },
+    {
+      "route": "/api/health/ready",
+      "http": 200,
+      "status": "ready",
+      "components": {
+        "database": "ok",
+        "configuration": "ok"
+      }
+    },
+    "Hidden, mutation and unknown entry points return 403 before authentication",
+    "Public entry and disabled registration, reset and email login",
+    "Password login with configured Upstash and read-only notice",
+    "Clients, quotes, invoices and expenses: reads succeed, mutations disabled",
+    {
+      "document": "quote",
+      "http": 200,
+      "signature": "%PDF-",
+      "bytes": 278326
+    },
+    {
+      "document": "draft invoice",
+      "http": 200,
+      "signature": "%PDF-",
+      "bytes": 240098
+    },
+    "Server read actions still filter data",
+    {
+      "route": "/dashboard/crm",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/sales",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/revenue",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/marketing/overview",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/contacts",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/leads",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/pipeline",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/projets",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/contrats",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/communications",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/communications?tab=compose",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/communications?tab=drafts",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/communications?tab=recovery",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/communications?tab=integrations",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/marketing",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/campagnes",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/automatisations",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/catalogue",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/operations",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/operations?tab=orders",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/operations?tab=assets",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/operations?tab=planning",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/operations?tab=maintenance",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/operations/fournisseurs",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/comptabilite",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/comptabilite/banque",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/factures/recurrentes",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/factures/temps-non-facture",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/organisation",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/temps",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/help-desk",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/customer-success",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/analytics",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/diagnostics",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/macros",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/connaissance",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/service/satisfaction",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/reports",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/notifications",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/equipe",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/settings",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/settings/properties",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/settings/agencies",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    {
+      "route": "/dashboard/help",
+      "http": 200,
+      "kind": "read-only module smoke"
+    },
+    "Authenticated uploads and billing refused",
+    "Logout"
+  ],
+  "pageErrors": [
+    {
+      "path": "/dashboard/projets",
+      "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    },
+    {
+      "path": "/dashboard/operations",
+      "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    },
+    {
+      "path": "/dashboard/operations",
+      "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    },
+    {
+      "path": "/dashboard/organisation",
+      "message": "Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    }
+  ],
+  "externalRequestsBlocked": 53,
+  "blockedHosts": [
+    "vercel.live"
+  ],
+  "finishedAt": "2026-10-10T02:11:52.427Z"
+}

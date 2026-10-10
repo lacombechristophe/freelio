@@ -7,6 +7,10 @@ export async function seedDocumentCalendarDates(prisma, passwordHash) {
     await prisma.membership.create({ data: { companyId, userId: user.id, role: "OWNER", status: "ACTIVE" } })
     await prisma.saasSubscription.create({ data: { companyId, plan: "RESEAU", status: "ACTIVE", seatQuantity: 10 } })
     const client = await prisma.client.create({ data: { companyId, name: "Fictional calendar client" } })
+    const project = await prisma.project.create({ data: { companyId, clientId: client.id, name: "CALENDAR-PROJECT", startDate: new Date("1999-12-31T23:30:00Z"), endDate: new Date("2000-01-01T00:30:00Z") } })
+    const site = await prisma.customerSite.create({ data: { companyId, clientId: client.id, label: "Fictional calendar site", address1: "Fictional address" } })
+    await prisma.fieldIntervention.create({ data: { companyId, siteId: site.id, projectId: project.id, title: "CALENDAR-INTERVENTION", scheduledStart: new Date("2000-01-01T00:30:00Z"), scheduledEnd: new Date("2000-01-01T01:30:00Z") } })
+    await prisma.organisationTask.create({ data: { companyId, clientId: client.id, title: "CALENDAR-APPOINTMENT", scheduledDate: new Date("2000-01-01T00:30:00Z") } })
     for (const [marker, isoDate] of [["LATE", "1999-12-31T23:30:00.000Z"], ["EARLY", "2000-01-01T00:30:00.000Z"]]) {
       const date = new Date(isoDate)
       await prisma.quote.create({ data: { companyId, clientId: client.id, number: `CALENDAR-QUOTE-${marker}`, object: "Fictional calendar quote", date, versions: { create: { version: 1, totalHtCents: 1000, totalTvaCents: 0, totalTtcCents: 1000 } } } })

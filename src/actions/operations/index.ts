@@ -1,6 +1,7 @@
 "use server"
 
 import { createHash } from "node:crypto"
+import { calendarPeriods } from "@/lib/calendar-days"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -513,6 +514,8 @@ async function findInterventionSlotConflict({
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const canReadFinance = hasPermission(role, "finance.read")
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const now = new Date()
     const [
       agencies,
       clients,
@@ -679,6 +682,9 @@ export async function getOperationsDashboard() {
       }),
     ])
     return {
+      generatedAt: now.toISOString(),
+      timeZone: company.serviceTimezone,
+      tomorrowStart: calendarPeriods(now, company.serviceTimezone).tomorrowStart.toISOString(),
       agencies,
       clients,
       sites,

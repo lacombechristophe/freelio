@@ -8,6 +8,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { advanceTaskRecurrence } from "@/lib/workflow-rules"
 import { completeSequenceTaskFromOrganisationTask } from "@/lib/automations/sequences"
 import { deleteOrganisationTaskFromCalendar, pushOrganisationTaskToCalendar } from "@/lib/communications/calendar-sync"
+import { calendarDayKey, calendarPeriods } from "@/lib/calendar-days"
 import { localDateTimeInZone } from "@/lib/integrations/calendar-event"
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as const
@@ -69,48 +70,6 @@ function cleanId(value: string | null | undefined) {
   return value && value.trim() !== "" ? value : null
 }
 
-function startOfDay(date = new Date()) {
-  const result = new Date(date)
-  result.setHours(0, 0, 0, 0)
-  return result
-}
-
-function endOfDay(date = new Date()) {
-  const result = startOfDay(date)
-  result.setDate(result.getDate() + 1)
-  return result
-}
-
-function startOfWeek(date = new Date()) {
-  const result = startOfDay(date)
-  const day = result.getDay()
-  const diff = result.getDate() - day + (day === 0 ? -6 : 1)
-  result.setDate(diff)
-  return result
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
-}
-
-function startOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1)
-}
-
-function endOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 1)
-}
-
-function startOfYear(date = new Date()) {
-  return new Date(date.getFullYear(), 0, 1)
-}
-
-function endOfYear(date = new Date()) {
-  return new Date(date.getFullYear() + 1, 0, 1)
-}
-
 async function recomputeProjectConsumed(projectId: string) {
   const sum = await prisma.timeEntry.aggregate({
     where: { projectId, isBillable: true },
@@ -166,20 +125,16 @@ function revalidateOrganisation(paths: string[] = []) {
 export async function getOrganisationDashboardData() {
   return await withAuth(async ({ companyId }) => {
     const now = new Date()
-    const todayStart = startOfDay(now)
-    const tomorrowStart = endOfDay(now)
-    const weekStart = startOfWeek(now)
-    const weekEnd = addDays(weekStart, 7)
-    const monthStart = startOfMonth(now)
-    const monthEnd = endOfMonth(now)
-    const yearStart = startOfYear(now)
-    const yearEnd = endOfYear(now)
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const { todayStart, tomorrowStart, weekStart, weekEnd, monthStart, monthEnd, yearStart, yearEnd } = calendarPeriods(now, company.serviceTimezone)
+
+    const dateOnly = (date: Date) => new Date(`${calendarDayKey(date, company.serviceTimezone)}T00:00:00.000Z`)
 
     const [goals, tasks, projects, clients, weekTimeEntries, invoices, quotes, milestones, calendarChannels] = await Promise.all([
       prisma.organisationGoal.findMany({
         where: {
           companyId,
-          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { periodStart: { gte: yearStart, lt: yearEnd } }],
+          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { periodStart: { gte: dateOnly(yearStart), lt: dateOnly(yearEnd) } }],
         },
         include: {
           tasks: {
@@ -192,7 +147,7 @@ export async function getOrganisationDashboardData() {
       prisma.organisationTask.findMany({
         where: {
           companyId,
-          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { dueDate: { gte: monthStart, lt: monthEnd } }, { scheduledDate: { gte: weekStart, lt: weekEnd } }],
+          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { dueDate: { gte: dateOnly(monthStart), lt: dateOnly(monthEnd) } }, { scheduledDate: { gte: weekStart, lt: weekEnd } }],
         },
         include: {
           client: { select: { id: true, name: true } },
@@ -225,7 +180,7 @@ export async function getOrganisationDashboardData() {
       prisma.timeEntry.findMany({
         where: {
           project: { companyId },
-          date: { gte: weekStart, lt: weekEnd },
+          date: { gte: dateOnly(weekStart), lt: dateOnly(weekEnd) },
         },
         include: {
           project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
@@ -262,7 +217,7 @@ export async function getOrganisationDashboardData() {
         where: {
           project: { companyId },
           status: { not: "DONE" },
-          dueDate: { gte: todayStart, lt: monthEnd },
+          dueDate: { gte: dateOnly(todayStart), lt: dateOnly(monthEnd) },
         },
         include: {
           project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
@@ -279,6 +234,7 @@ export async function getOrganisationDashboardData() {
 
     return {
       generatedAt: now.toISOString(),
+      timeZone: company.serviceTimezone,
       periods: {
         todayStart: todayStart.toISOString(),
         tomorrowStart: tomorrowStart.toISOString(),

@@ -1,0 +1,119 @@
+{
+  "schema": "freelio.service-calendar-local.v1",
+  "qualification": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 9.47
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 22.203
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.169
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 197.152
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 63.636
+    }
+  ],
+  "unit": {
+    "passed": 1655,
+    "failed": 0,
+    "files": 191,
+    "focused": [
+      {
+        "file": "calendar-days.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "calendar days and company service periods keeps a date-only field separate from an appointment in the service zone",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods uses real midnight boundaries through the DST transition 2026-03-29T12:00:00Z",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods uses real midnight boundaries through the DST transition 2026-10-25T12:00:00Z",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods uses the company's day, month and year near UTC midnight",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods starts the week on Monday, including a Sunday in a western zone",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods advances calendar dates independently of DST: 2024-02-28",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods advances calendar dates independently of DST: 2024-02-29",
+            "status": "passed"
+          },
+          {
+            "name": "calendar days and company service periods advances calendar dates independently of DST: 2026-12-31",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "service-calendar.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "service calendar boundaries on real SQL uses Europe/Paris for periods and civil time entries on a Pacific/Kiritimati host",
+            "status": "passed"
+          },
+          {
+            "name": "service calendar boundaries on real SQL uses America/Los_Angeles for periods and civil time entries on a Pacific/Kiritimati host",
+            "status": "passed"
+          },
+          {
+            "name": "service calendar boundaries on real SQL uses Europe/Paris for periods and civil time entries on a America/Los_Angeles host",
+            "status": "passed"
+          },
+          {
+            "name": "service calendar boundaries on real SQL uses America/Los_Angeles for periods and civil time entries on a America/Los_Angeles host",
+            "status": "passed"
+          },
+          {
+            "name": "service calendar boundaries on real SQL returns a stable observation time and next midnight for Operations in Europe/Paris",
+            "status": "passed"
+          },
+          {
+            "name": "service calendar boundaries on real SQL returns a stable observation time and next midnight for Operations in America/Los_Angeles",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "browser": {
+    "loaded": 8,
+    "executedLocally": false
+  },
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1226,
+    "historyBlobsChecked": 3444,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "limits": [
+    "Fictitious SQLite, real actions and memberships; authentication and cache are mocked. No local server, container or business provider launched. Browser execution requires CI and the new hosted candidate."
+  ]
+}

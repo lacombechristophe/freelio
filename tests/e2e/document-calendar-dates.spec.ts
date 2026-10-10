@@ -43,5 +43,33 @@ for (const timezoneId of ["Pacific/Kiritimati", "America/Los_Angeles"]) {
       }
       expect(errors).toEqual([])
     })
+
+    test("keeps projects and the service calendar stable across hydration", async ({ page }, info) => {
+      await page.context().clearCookies()
+      await page.goto("/auth/login")
+      await page.getByLabel("Adresse e-mail professionnelle").fill(`document-dates-${info.project.name}@example.test`)
+      await page.getByLabel("Mot de passe", { exact: true }).fill(process.env.E2E_USER_PASSWORD || "RecetteSolide2026")
+      await page.getByRole("button", { name: "Se connecter", exact: true }).click()
+      await page.waitForURL(url => url.pathname === "/dashboard")
+      const errors: string[] = []
+      page.on("pageerror", error => errors.push(error.message))
+      for (const [route, marker, expected] of [
+        ["/dashboard/projets", "CALENDAR-PROJECT", "31 déc. 1999"],
+        ["/dashboard/operations?tab=planning", "CALENDAR-INTERVENTION", "1 janv. 2000, 01:30"],
+        ["/dashboard/organisation", "CALENDAR-APPOINTMENT", "sam. 01 janv. · 01:30"],
+      ]) {
+        const response = await page.request.get(route)
+        expect(response.status()).toBe(200)
+        const html = await response.text()
+        await page.goto(route)
+        // Streamed server fragments can arrive outside the initial main element.
+        const serverText = await page.evaluate(html => new DOMParser().parseFromString(html, "text/html").body.textContent, html)
+        expect(serverText).toContain(marker)
+        expect(serverText).toContain(expected)
+        await expect(page.locator("#dashboard-main")).toContainText(marker)
+        await expect(page.locator("#dashboard-main")).toContainText(expected)
+      }
+      expect(errors).toEqual([])
+    })
   })
 }

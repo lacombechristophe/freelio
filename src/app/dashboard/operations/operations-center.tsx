@@ -99,8 +99,8 @@ function formatMoney(centsValue: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(centsValue / 100)
 }
 
-function formatDate(value: Date | string | null) {
-  return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—"
+function formatDate(value: Date | string | null, timeZone: string) {
+  return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value)) : "—"
 }
 
 function filterOperationsByAgency(data: OperationsData, agencyId: string): OperationsData {
@@ -148,7 +148,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const initialData = data
 
   const openTickets = data.tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length
-  const comingInterventions = data.interventions.filter((item) => new Date(item.scheduledStart) >= new Date() && !["COMPLETED", "CANCELED"].includes(item.status)).length
+  const comingInterventions = data.interventions.filter((item) => new Date(item.scheduledStart) >= new Date(data.generatedAt) && !["COMPLETED", "CANCELED"].includes(item.status)).length
   const lowStock = data.products.filter((product) => {
     if (agencyId !== "ALL" && product.inventoryItems.length === 0) return false
     const quantity = product.inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -373,7 +373,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={item.status === "COMPLETED" ? "secondary" : "outline"}>{INTERVENTION_STATUS[item.status] ?? item.status}</Badge>
-                          <span className="text-xs font-medium tabular-nums">{formatDate(item.scheduledStart)}</span>
+                          <span className="text-xs font-medium tabular-nums">{formatDate(item.scheduledStart, initialData.timeZone)}</span>
                           {item.files.length ? <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><FileImage className="size-3.5" />{item.files.length} pièce{item.files.length > 1 ? "s" : ""}</span> : null}
                         </div>
                         <Link href={`/dashboard/service/interventions/${item.id}`} className="mt-2 block text-sm font-semibold hover:text-primary hover:underline">{item.title}</Link>
@@ -428,11 +428,11 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
             <PurchaseWorkflow data={initialData} />
             <div className="grid gap-5 xl:grid-cols-2">
               <section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Stock par produit</h2></div>{initialData.products.length ? <div className="divide-y">{initialData.products.map((product) => { const quantity = product.inventoryItems.reduce((sum, item) => sum + item.quantity, 0); const reserved = product.inventoryItems.reduce((sum, item) => sum + item.reservedQuantity, 0); return <div key={product.id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="text-sm font-medium">{product.label}</p><p className="font-mono text-[11px] text-muted-foreground">{product.sku}{product.supplier ? ` · ${product.supplier.name}` : ""}</p></div><div className="text-right"><p className="text-sm font-semibold tabular-nums">{quantity - reserved} disponible{quantity - reserved > 1 ? "s" : ""}</p><p className="text-xs text-muted-foreground">{reserved} réservé{reserved > 1 ? "s" : ""}</p></div></div>})}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Catalogue produit vide.</p>}</section>
-              <section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Réceptions récentes</h2></div>{initialData.goodsReceipts.length ? <div className="divide-y">{initialData.goodsReceipts.map((receipt) => <div key={receipt.id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="font-mono text-xs font-semibold">{receipt.number}</p><p className="mt-1 text-xs text-muted-foreground">{receipt.purchaseOrder.supplier.name} · {receipt.warehouse.name} · {receipt.lines.reduce((sum, line) => sum + line.acceptedQuantity, 0)} acceptée{receipt.lines.some((line) => line.rejectedQuantity) ? ` · ${receipt.lines.reduce((sum, line) => sum + line.rejectedQuantity, 0)} rejetée` : ""}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(receipt.receivedAt)}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune réception.</p>}</section>
+              <section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Réceptions récentes</h2></div>{initialData.goodsReceipts.length ? <div className="divide-y">{initialData.goodsReceipts.map((receipt) => <div key={receipt.id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="font-mono text-xs font-semibold">{receipt.number}</p><p className="mt-1 text-xs text-muted-foreground">{receipt.purchaseOrder.supplier.name} · {receipt.warehouse.name} · {receipt.lines.reduce((sum, line) => sum + line.acceptedQuantity, 0)} acceptée{receipt.lines.some((line) => line.rejectedQuantity) ? ` · ${receipt.lines.reduce((sum, line) => sum + line.rejectedQuantity, 0)} rejetée` : ""}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(receipt.receivedAt, initialData.timeZone)}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune réception.</p>}</section>
             </div>
             <section className="overflow-hidden rounded-xl border bg-card">
               <div className="flex flex-col gap-2 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold">Transferts récents</h2><p className="mt-1 text-xs text-muted-foreground">Chaque transfert regroupe une sortie et une entrée indissociables.</p></div><Badge variant="outline"><ArrowRightLeft />{initialData.stockTransfers.length}</Badge></div>
-              {initialData.stockTransfers.length ? <div className="divide-y">{initialData.stockTransfers.map((transfer) => <div key={transfer.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{transfer.product.label}</p><Badge variant="secondary">{transfer.quantity} unité{transfer.quantity > 1 ? "s" : ""}</Badge></div><p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"><span>{transfer.fromWarehouse.name}</span><ArrowRightLeft className="size-3.5" /><span>{transfer.toWarehouse.name}</span>{transfer.reference ? <span>· {transfer.reference}</span> : null}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(transfer.happenedAt)}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun transfert dans ce périmètre.</p>}
+              {initialData.stockTransfers.length ? <div className="divide-y">{initialData.stockTransfers.map((transfer) => <div key={transfer.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{transfer.product.label}</p><Badge variant="secondary">{transfer.quantity} unité{transfer.quantity > 1 ? "s" : ""}</Badge></div><p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"><span>{transfer.fromWarehouse.name}</span><ArrowRightLeft className="size-3.5" /><span>{transfer.toWarehouse.name}</span>{transfer.reference ? <span>· {transfer.reference}</span> : null}</p></div><p className="text-xs tabular-nums text-muted-foreground">{formatDate(transfer.happenedAt, initialData.timeZone)}</p></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun transfert dans ce périmètre.</p>}
             </section>
           </div>
         </TabsContent>
@@ -447,11 +447,9 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
 }
 
 function OperationsOverview({ data, onCreate }: { data: OperationsData; onCreate: (kind: CreateKind) => void }) {
-  const today = new Date()
-  const dayEnd = new Date(today)
-  dayEnd.setHours(23, 59, 59, 999)
+  const dayEnd = new Date(data.tomorrowStart)
   const upcomingInterventions = data.interventions
-    .filter((item) => !["COMPLETED", "CANCELED"].includes(item.status) && new Date(item.scheduledStart) <= dayEnd)
+    .filter((item) => !["COMPLETED", "CANCELED"].includes(item.status) && new Date(item.scheduledStart) < dayEnd)
     .slice(0, 6)
   const priorityTickets = data.tickets
     .filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status))
@@ -484,7 +482,7 @@ function OperationsOverview({ data, onCreate }: { data: OperationsData; onCreate
     <div className="grid gap-3 xl:grid-cols-2">
       <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
         <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">Interventions du jour</h2><p className="mt-0.5 text-xs text-muted-foreground">Créneaux arrivés ou planifiés aujourd’hui.</p></div><Badge variant="secondary">{upcomingInterventions.length}</Badge></header>
-        {upcomingInterventions.length ? <div className="divide-y">{upcomingInterventions.map((item) => <Link key={item.id} href={`/dashboard/service/interventions/${item.id}`} className="grid gap-2 px-4.5 py-3 transition-colors hover:bg-muted/35 sm:grid-cols-[64px_minmax(0,1fr)_130px] sm:items-center"><span className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.scheduledStart))}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">{item.site.client.name} · {item.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.site.label}</span></span><span className="truncate text-xs text-muted-foreground sm:text-right">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"}</span></Link>)}</div> : <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center"><p className="text-sm text-muted-foreground">Aucune intervention à traiter aujourd’hui.</p><Button type="button" size="sm" variant="outline" onClick={() => onCreate("INTERVENTION")}><CalendarDays />Planifier une intervention</Button></div>}
+        {upcomingInterventions.length ? <div className="divide-y">{upcomingInterventions.map((item) => <Link key={item.id} href={`/dashboard/service/interventions/${item.id}`} className="grid gap-2 px-4.5 py-3 transition-colors hover:bg-muted/35 sm:grid-cols-[64px_minmax(0,1fr)_130px] sm:items-center"><span className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: data.timeZone }).format(new Date(item.scheduledStart))}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">{item.site.client.name} · {item.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.site.label}</span></span><span className="truncate text-xs text-muted-foreground sm:text-right">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"}</span></Link>)}</div> : <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center"><p className="text-sm text-muted-foreground">Aucune intervention à traiter aujourd’hui.</p><Button type="button" size="sm" variant="outline" onClick={() => onCreate("INTERVENTION")}><CalendarDays />Planifier une intervention</Button></div>}
       </section>
 
       <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
