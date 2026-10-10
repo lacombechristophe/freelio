@@ -88,7 +88,7 @@ Cette matrice interdit d'assimiler « modèle Prisma présent » à « remplacem
 | Relances | **Disponible sous configuration** | préparation modifiable, envoi réel par la messagerie active, historique facture et Communications, trois paliers configurables, exclusion des factures réglées, verrou concurrent, temporisation des échecs et clé d’idempotence par facture/palier | worker ou ordonnanceur supervisé et boîte active indispensables ; délivrabilité à contrôler chez le fournisseur |
 | Récurrence | **Disponible** | modèles, échéances, génération autonome idempotente par worker ou cron et occurrence auditée | ordonnanceur et alertes d’échec à mettre en service sur l’infrastructure réelle |
 | Banque | **Partiel** | import CSV, dédoublonnage et rapprochement facture/dépense | aucune connexion bancaire temps réel |
-| Dépenses | **Disponible** | saisie manuelle et justificatif conservé | vérifier les montants et la TVA saisis |
+| Dépenses | **Partiel** | saisie manuelle, justificatif conservé et relations société/agence protégées | la page charge 50 lignes : recherche et cartes tronquées au-delà ; extension de l'historique proposée, en attente d'accord sur les commandes visibles ; vérifier les montants et la TVA saisis |
 | Export comptable | **Partiel** | synthèse/export des écritures applicatives | format exact de l'expert-comptable à valider ; pas de comptabilité générale |
 | TVA/mentions légales | **Partiel** | paramètres et règles documentaires | veille juridique et validation professionnelle indispensables |
 | Consentements RGPD | **Partiel** | preuve de capture, retrait interne ou lien public signé et idempotent | durées, registre complet et traitement des autres demandes de droits à formaliser |
