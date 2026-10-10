@@ -23,7 +23,7 @@ Le propriétaire approuve ce lot le 10 octobre 2026. Le même prédicat sociét�
 
 La garde des écritures existantes ne constitue pas une contrainte relationnelle universelle en base. La création conserve sa validation préalable ; ce lot ne qualifie ni toutes les relations d'intervention, ni une charge concurrente hébergée, ni le stockage réel des justificatifs.
 
-La [recette locale](evidence/20261010-preview-readiness/expense-relations-local.json) passe les 28 cas dédiés puis 1 700 tests / 193 fichiers, types, deux lints et build. Le seed passe sur SQLite neuve ; les six E2E se chargent. Les preuves PostgreSQL et navigateur du nouveau candidat restent distinctes de ces résultats locaux.
+La [recette locale](evidence/20261010-preview-readiness/expense-relations-local.json) passe les 28 cas dédiés puis 1 700 tests / 193 fichiers, types, deux lints et build. Le seed passe sur SQLite neuve ; les six E2E se chargent. Les [deux CI de d82ed46](evidence/20261010-preview-readiness/ci-d82ed46.json) passent ensuite les 28 cas PostgreSQL et les six E2E dédiés, ainsi que la suite complète de 311 E2E et ses 19 exclusions historiques. Aucun nouveau test Dépenses ne fait partie de ces exclusions.
 
 Reproduction sur une base de recette isolée préparée :
 

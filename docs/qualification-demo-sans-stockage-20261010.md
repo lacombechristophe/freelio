@@ -85,3 +85,9 @@ Cette qualification hébergée porte sur la preview protégée et le compte fict
 Le [rejeu hébergé de 021bfac](evidence/20261010-preview-readiness/hosted-021bfac.json) passe les deux parcours de 49 pages/onglets, sans exclusion, retry ni erreur JavaScript. L'alias correspond à `dpl_RzkV4y9Cso4zfwzJbxW4FMg5CUmb` avant et après exécution ; les empreintes du harnais correspondent au commit.
 
 Les [deux CI de ce même candidat](evidence/20261010-preview-readiness/ci-021bfac.json) passent PostgreSQL, Linux et les six E2E Organisation. Elles restent en échec sur le rendez-vous du portail : le créneau fixe du 10 octobre à 10 h est devenu passé, et l'API répond HTTP 400 avec sa validation temporelle. Les dates de ce test sont remplacées par des créneaux futurs calculés ; l'assertion HTTP 201 s'ajoute à la confirmation et aux vérifications existantes. Le nouveau rejeu reste nécessaire. Cette correction de fixture ne change aucun parcours produit.
+
+## Rejeu de d82ed46
+
+Le [parcours hébergé versionné](evidence/20261010-preview-readiness/hosted-d82ed46.json) réussit deux surfaces, 49 pages/onglets chacune, sans erreur JavaScript, retry ni exclusion. Les empreintes du harnais et l'alias sont vérifiés contre le commit et `dpl_4w3ScwymWmuT8xXiEvKuXEtXkWAX`. Connexion, sondes, PDF, refus de mutation et déconnexion passent.
+
+Les [deux CI](evidence/20261010-preview-readiness/ci-d82ed46.json) passent 1 700 tests SQLite, 1 699 PostgreSQL avec une exclusion native SQLite, 311 E2E avec 19 exclusions historiques, neuf contrôles Linux et les deux audits sans vulnérabilité. Elles incluent les six E2E Organisation, les six Dépenses et le rendez-vous portail. La qualification reste celle d'une démo fictive en lecture seule ; elle ne qualifie ni les fournisseurs métier réels, ni une charge ou restauration hébergée.

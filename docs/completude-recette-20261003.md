@@ -4,14 +4,14 @@
 
 ## Référence documentée en CI
 
-**9086a5d** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38018536813) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38018539270) réussies. Les [rapports attachés au commit](evidence/20261010-preview-readiness/ci-9086a5d.json) comparent aussi le code hors documentation à la fusion de test. Cette référence inclut le profil de démo sans stockage et les corrections de calendrier. Elle précède le correctif des droits d'Organisation.
+**d82ed46** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38048411194) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38048414077) réussies. Les [rapports attachés au commit](evidence/20261010-preview-readiness/ci-d82ed46.json) comparent le code hors documentation à la fusion de test. Cette référence inclut les protections Organisation et Dépenses, le calendrier et la fixture future du portail. Les commits suivants de documentation se comparent à cette source qualifiée.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 657 tests / 191 fichiers |
-| PostgreSQL | 1 656 réussis ; une exclusion native SQLite |
-| Navigateur | 299 réussis ; 19 exclusions historiques |
+| SQLite, suite unitaire et couverture | 1 700 tests / 193 fichiers |
+| PostgreSQL | 1 699 réussis ; une exclusion native SQLite |
+| Navigateur | 311 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
@@ -19,11 +19,11 @@ Les [rapports de 369f413](evidence/20261009-order-billing-stale-balance/ci-369f4
 
 La preview initiale répondait HTTP 503 de préparation. La [préparation du 10 octobre](evidence/20261010-preview-readiness/README.md) crée une base fictive dédiée à 60 migrations et vérifie huit contrôles du rôle lecteur. Le propriétaire renseigne Upstash et renonce à R2 pour respecter son budget de 0 €. Les sondes répondent désormais HTTP 200 ; connexion, lectures, refus d’écriture et PDF passent sur ordinateur et mobile. Après les échecs documentés de `bc8f2d6` et `960b8b6`, le [rejeu hébergé de 9086a5d](evidence/20261010-preview-readiness/hosted-9086a5d.json) réussit 49 pages/onglets sur chaque surface, sans erreur JavaScript. La [qualification sans stockage](qualification-demo-sans-stockage-20261010.md) donne la reproduction et les limites ; la CI du nouveau candidat reste distincte de la référence verte ci-dessus. Aucune fusion sur main n'est annoncée.
 
-Un diagnostic SQL distinct reproduit six divulgations Finance/Commercial dans Organisation. Le [correctif approuvé](contrat-organisation-domaines-droits.md) protège maintenant les requêtes et les cartes. Sa [recette locale](evidence/20261010-preview-readiness/organisation-domain-local.json) passe quinze nouveaux cas SQL, puis 1 672 tests / 192 fichiers, types, lints et build. L'exécution des six E2E Organisation relève des contrôles GitHub du candidat, distincts de la référence 9086a5d. La preview du compte fictif Owner ne suffit pas à qualifier les autres rôles.
+Un diagnostic SQL distinct reproduit six divulgations Finance/Commercial dans Organisation. Le [correctif approuvé](contrat-organisation-domaines-droits.md) protège maintenant les requêtes et les cartes. Sa [recette locale](evidence/20261010-preview-readiness/organisation-domain-local.json) passe quinze nouveaux cas SQL, puis 1 672 tests / 192 fichiers, types, lints et build. Les quinze cas PostgreSQL et les six E2E Organisation passent ensuite dans les deux CI de d82ed46. La preview du compte fictif Owner ne suffit pas à qualifier les autres rôles.
 
-Les [deux CI de 021bfac](evidence/20261010-preview-readiness/ci-021bfac.json) passent les quinze cas Organisation sur PostgreSQL et les six E2E, mais échouent sur le rendez-vous du portail : 304 E2E réussis, un échec et 19 exclusions. Le test proposait le 10 octobre à 10 h, devenu passé ; la trace confirme le refus HTTP 400 prévu par l'API. Le test utilise désormais des dates à sept et neuf jours, vérifie HTTP 201 et conserve la confirmation, le suivi et la révocation. Ce changement de fixture ne vaut pas un rejeu réussi. Le [parcours hébergé de 021bfac](evidence/20261010-preview-readiness/hosted-021bfac.json) passe séparément ses deux surfaces et 49 pages/onglets chacune, sans erreur JavaScript.
+Les [deux CI de 021bfac](evidence/20261010-preview-readiness/ci-021bfac.json) passent les quinze cas Organisation sur PostgreSQL et les six E2E, mais échouent sur le rendez-vous du portail : 304 E2E réussis, un échec et 19 exclusions. Le test proposait le 10 octobre à 10 h, devenu passé ; la trace confirme le refus HTTP 400 prévu par l'API. Il calcule désormais des dates à sept et neuf jours. Le rejeu de d82ed46 confirme HTTP 201, la confirmation, le suivi et la révocation. Le [parcours hébergé de 021bfac](evidence/20261010-preview-readiness/hosted-021bfac.json) passe séparément ses deux surfaces et 49 pages/onglets chacune, sans erreur JavaScript.
 
-Le [lot Dépenses approuvé](contrat-depenses-relations-droits.md) exclut les clients et chantiers étrangers des lectures et refuse les trois mutations, y compris une relation devenue étrangère entre lecture et écriture. Sa [recette locale](evidence/20261010-preview-readiness/expense-relations-local.json) passe 28 cas dédiés, puis 1 700 tests / 193 fichiers, types, lints et build. Les six E2E se chargent ; leur exécution et celle des cas PostgreSQL relèvent de la CI du prochain candidat.
+Le [lot Dépenses approuvé](contrat-depenses-relations-droits.md) exclut les clients et chantiers étrangers des lectures et refuse les trois mutations, y compris une relation devenue étrangère entre lecture et écriture. Sa [recette locale](evidence/20261010-preview-readiness/expense-relations-local.json) passe 28 cas dédiés, puis 1 700 tests / 193 fichiers, types, lints et build. Les deux CI de d82ed46 passent les 28 cas Dépenses sur PostgreSQL et les six E2E, ainsi que les quinze cas Organisation et ses six E2E. Le [rejeu hébergé de ce candidat](evidence/20261010-preview-readiness/hosted-d82ed46.json) passe 49 pages/onglets sur chaque surface, sans erreur JavaScript, retry ni exclusion. Ce parcours Owner ne remplace pas les tests de rôles.
 
 Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json), de [0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
 
