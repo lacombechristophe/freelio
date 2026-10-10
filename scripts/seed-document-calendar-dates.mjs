@@ -10,6 +10,7 @@ export async function seedDocumentCalendarDates(prisma, passwordHash) {
     const project = await prisma.project.create({ data: { companyId, clientId: client.id, name: "CALENDAR-PROJECT", startDate: new Date("1999-12-31T23:30:00Z"), endDate: new Date("2000-01-01T00:30:00Z") } })
     const site = await prisma.customerSite.create({ data: { companyId, clientId: client.id, label: "Fictional calendar site", address1: "Fictional address" } })
     await prisma.fieldIntervention.create({ data: { companyId, siteId: site.id, projectId: project.id, title: "CALENDAR-INTERVENTION", scheduledStart: new Date("2000-01-01T00:30:00Z"), scheduledEnd: new Date("2000-01-01T01:30:00Z") } })
+    await prisma.fieldIntervention.create({ data: { companyId, siteId: site.id, projectId: project.id, title: "CALENDAR-FUTURE-ROUTE", scheduledStart: new Date("2099-12-31T23:30:00Z"), scheduledEnd: new Date("2100-01-01T00:30:00Z") } })
     await prisma.organisationTask.create({ data: { companyId, clientId: client.id, title: "CALENDAR-APPOINTMENT", scheduledDate: new Date("2000-01-01T00:30:00Z") } })
     for (const [marker, isoDate] of [["LATE", "1999-12-31T23:30:00.000Z"], ["EARLY", "2000-01-01T00:30:00.000Z"]]) {
       const date = new Date(isoDate)

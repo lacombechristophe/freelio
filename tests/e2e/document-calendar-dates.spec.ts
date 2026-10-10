@@ -68,6 +68,11 @@ for (const timezoneId of ["Pacific/Kiritimati", "America/Los_Angeles"]) {
         expect(serverText).toContain(expected)
         await expect(page.locator("#dashboard-main")).toContainText(marker)
         await expect(page.locator("#dashboard-main")).toContainText(expected)
+        if (route.includes("tab=planning")) {
+          expect(serverText).toContain("vendredi 1 janvier")
+          await expect(page.locator("#dashboard-main")).toContainText("vendredi 1 janvier")
+          await expect(page.locator("#dashboard-main")).toContainText("CALENDAR-FUTURE-ROUTE")
+        }
       }
       expect(errors).toEqual([])
     })

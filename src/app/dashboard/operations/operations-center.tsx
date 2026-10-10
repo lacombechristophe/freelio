@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { calendarDayKey, calendarPeriods } from "@/lib/calendar-days"
 import { planningEnd, planningSlotsOverlap, routeDistanceKm } from "@/lib/operations/planning"
 import { PurchaseWorkflow } from "./purchase-workflow"
 import { AssetsDirectory } from "./assets-directory"
@@ -361,8 +362,8 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
         <TabsContent value="sav"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Tickets SAV</h2></div>{initialData.tickets.length ? <div className="divide-y">{initialData.tickets.map((ticket) => <div key={ticket.id} className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{ticket.number}</code><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge><Badge variant={ticket.status === "CLOSED" ? "secondary" : "outline"}>{TICKET_STATUS[ticket.status] ?? ticket.status}</Badge></div><Link href={`/dashboard/service/tickets/${ticket.id}`} className="mt-2 block text-sm font-semibold hover:text-primary hover:underline">{ticket.title}</Link><p className="mt-1 text-xs text-muted-foreground">{ticket.client.name}{ticket.site ? ` · ${ticket.site.label}` : ""}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""} · {ticket._count.interventions} intervention{ticket._count.interventions > 1 ? "s" : ""}</p></div><div className="flex gap-2"><Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/dashboard/service/tickets/${ticket.id}`} />}>Traiter le dossier</Button></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun ticket SAV.</p>}</section></TabsContent>
         <TabsContent value="planning">
           <div className="space-y-4">
-            <CapacityOverview members={initialData.members} interventions={initialData.interventions} />
-            <RouteOverview interventions={initialData.interventions} />
+            <CapacityOverview data={initialData} />
+            <RouteOverview data={initialData} />
             <section className="overflow-hidden rounded-xl border bg-card">
             <div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Planning terrain</h2></div>
             {initialData.interventions.length ? (
@@ -584,15 +585,15 @@ function PlanningDialogForm({
   )
 }
 
-function RouteOverview({ interventions }: { interventions: OperationsData["interventions"] }) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+function RouteOverview({ data }: { data: OperationsData }) {
+  const { interventions } = data
+  const { todayStart: today } = calendarPeriods(new Date(data.generatedAt), data.timeZone)
   const upcoming = interventions
     .filter((item) => item.status !== "CANCELED" && new Date(item.scheduledStart) >= today)
     .sort((left, right) => new Date(left.scheduledStart).getTime() - new Date(right.scheduledStart).getTime())
   const byDay = new Map<string, typeof upcoming>()
   for (const intervention of upcoming) {
-    const key = new Intl.DateTimeFormat("fr-CA").format(new Date(intervention.scheduledStart))
+    const key = calendarDayKey(intervention.scheduledStart, data.timeZone)
     const day = byDay.get(key) ?? []
     day.push(intervention)
     byDay.set(key, day)
@@ -623,8 +624,8 @@ function RouteOverview({ interventions }: { interventions: OperationsData["inter
           const conflicts = items.filter((item, index) => item.assignedMembershipId && items.some((other, otherIndex) => otherIndex !== index && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)))
           return (
             <article key={dayKey} className="overflow-hidden rounded-xl border">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/25 px-4 py-3"><div><p className="text-sm font-semibold capitalize">{new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date(`${dayKey}T12:00:00`))}</p><p className="mt-0.5 text-xs text-muted-foreground">{items.length} intervention{items.length > 1 ? "s" : ""}{totalLegs ? ` · ${distanceKm.toFixed(1)} km estimés (${measuredLegs}/${totalLegs} tronçons)` : ""}</p></div>{conflicts.length ? <Badge variant="destructive">{conflicts.length} créneau{conflicts.length > 1 ? "x" : ""} en conflit</Badge> : <Badge variant="secondary">Planning cohérent</Badge>}</div>
-              <div className="divide-y">{items.map((item) => { const conflict = item.assignedMembershipId && items.some((other) => other.id !== item.id && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)); return <div key={item.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 px-4 py-3"><p className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.scheduledStart))}</p><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-xs font-medium">{item.title}</p>{conflict ? <Badge variant="destructive" className="h-5">Conflit</Badge> : null}</div><p className="mt-1 truncate text-[11px] text-muted-foreground">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"} · {item.site.label}</p></div></div>})}</div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/25 px-4 py-3"><div><p className="text-sm font-semibold capitalize">{new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${dayKey}T12:00:00Z`))}</p><p className="mt-0.5 text-xs text-muted-foreground">{items.length} intervention{items.length > 1 ? "s" : ""}{totalLegs ? ` · ${distanceKm.toFixed(1)} km estimés (${measuredLegs}/${totalLegs} tronçons)` : ""}</p></div>{conflicts.length ? <Badge variant="destructive">{conflicts.length} créneau{conflicts.length > 1 ? "x" : ""} en conflit</Badge> : <Badge variant="secondary">Planning cohérent</Badge>}</div>
+              <div className="divide-y">{items.map((item) => { const conflict = item.assignedMembershipId && items.some((other) => other.id !== item.id && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)); return <div key={item.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 px-4 py-3"><p className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: data.timeZone }).format(new Date(item.scheduledStart))}</p><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-xs font-medium">{item.title}</p>{conflict ? <Badge variant="destructive" className="h-5">Conflit</Badge> : null}</div><p className="mt-1 truncate text-[11px] text-muted-foreground">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"} · {item.site.label}</p></div></div>})}</div>
             </article>
           )
         })}
@@ -633,14 +634,9 @@ function RouteOverview({ interventions }: { interventions: OperationsData["inter
   )
 }
 
-function CapacityOverview({ members, interventions }: { members: OperationsData["members"]; interventions: OperationsData["interventions"] }) {
-  const now = new Date()
-  const weekStart = new Date(now)
-  const day = weekStart.getDay()
-  weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1))
-  weekStart.setHours(0, 0, 0, 0)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekEnd.getDate() + 7)
+function CapacityOverview({ data }: { data: OperationsData }) {
+  const { members, interventions } = data
+  const { weekStart, weekEnd } = calendarPeriods(new Date(data.generatedAt), data.timeZone)
   const weekly = interventions.filter((item) => {
     const start = new Date(item.scheduledStart)
     return start >= weekStart && start < weekEnd && item.status !== "CANCELED"

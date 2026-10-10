@@ -28,6 +28,18 @@ describe("calendar days and company service periods", () => {
     expect(periods.yearEnd.toISOString()).toBe("2027-12-31T23:00:00.000Z")
   })
 
+  it.each([
+    ["2026-09-06T12:00:00Z", "America/Santiago", "2026-09-06T04:00:00.000Z", "2026-09-07T03:00:00.000Z", 23],
+    ["2026-11-01T12:00:00Z", "America/Havana", "2026-11-01T04:00:00.000Z", "2026-11-02T05:00:00.000Z", 25],
+  ])("uses the first instant when midnight is skipped or repeated: %s", (now, zone, start, end, hours) => {
+    const periods = calendarPeriods(new Date(now), zone)
+    expect(periods.todayStart.toISOString()).toBe(start)
+    expect(periods.tomorrowStart.toISOString()).toBe(end)
+    expect(calendarDayKey(periods.todayStart, zone)).toBe(calendarDayKey(now, zone))
+    expect(calendarDayKey(new Date(periods.todayStart.getTime() - 1), zone)).not.toBe(calendarDayKey(now, zone))
+    expect((periods.tomorrowStart.getTime() - periods.todayStart.getTime()) / 3_600_000).toBe(hours)
+  })
+
   it("starts the week on Monday, including a Sunday in a western zone", () => {
     const periods = calendarPeriods(new Date("2026-10-12T00:30:00Z"), "America/Los_Angeles")
     expect(periods.weekStart.toISOString()).toBe("2026-10-05T07:00:00.000Z")
