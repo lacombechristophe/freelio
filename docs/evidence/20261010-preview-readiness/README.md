@@ -27,3 +27,5 @@ Le [rejeu hébergé de 92a07a3](hosted-92a07a3.json) vérifie ensuite les sondes
 Après autorisation, `bc8f2d6` fixe le fuseau UTC des trois listes. Le [rejeu de ce candidat](hosted-bc8f2d6.json) réussit sur ordinateur en UTC+14 et mobile en UTC−8, sans erreur React. La CI complète de [6156c83](ci-6156c83.json) qualifie le profil sans stockage précédent ; la CI de la correction des dates reste distincte.
 
 Ces résultats ne qualifient pas R2, la charge distribuée Upstash, une restauration distante ou un déploiement futur.
+
+La revue élargie de `960b8b6` conserve [une erreur React dans Planning](hosted-modules-960b8b6.json). Le [complément local](service-calendar-complement-local.json) corrige les tournées, la capacité hebdomadaire et les minuits sautés/répétés ; 1 657 tests, types, lints et build passent. Sa qualification navigateur doit être attachée au nouveau candidat. Un [diagnostic Organisation distinct](organisation-domain-before.json) reproduit six divulgations de documents sans droits de domaine ; sa correction visible attend l'accord du propriétaire.

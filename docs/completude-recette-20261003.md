@@ -4,20 +4,22 @@
 
 ## Référence documentée en CI
 
-**369f413** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/37994677438) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37994680099) réussies. Le job Linux de branche a réussi après une relance ciblée ; son premier échec de quota ECR reste enregistré.
+**6156c83** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38004872732) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38004876061) réussies. Les [rapports attachés au commit](evidence/20261010-preview-readiness/ci-6156c83.json) comparent aussi le code hors documentation à la fusion de test. Cette référence inclut le profil de démo sans stockage ; elle précède les corrections de calendrier.
 
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 615 tests / 188 fichiers |
-| PostgreSQL | 1 614 réussis ; une exclusion native SQLite |
+| SQLite, suite unitaire et couverture | 1 641 tests / 189 fichiers |
+| PostgreSQL | 1 640 réussis ; une exclusion native SQLite |
 | Navigateur | 291 réussis ; 19 exclusions historiques |
 | Image Linux | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité |
 
 Les [rapports de 369f413](evidence/20261009-order-billing-stale-balance/ci-369f413.json) vérifient 961 entrées hors documentation identiques à la fusion de test. Ils qualifient les quatorze cas des anciennes factures liées, les quatre cas d'avoirs concurrents et les six cas de calcul périmé, en conservant les contrôles antérieurs. Les quatre E2E Comptabilité, six Finance et quatre de pagination passent dans les deux runs ; aucun n'appartient aux dix-neuf exclusions. Les [rapports de d88a6bb](evidence/20261009-order-billing-roles/ci-d88a6bb.json) restent la référence antérieure.
 
-La preview initiale répondait HTTP 503 de préparation. La [préparation du 10 octobre](evidence/20261010-preview-readiness/README.md) crée une base fictive dédiée à 60 migrations et vérifie huit contrôles du rôle lecteur. Le propriétaire renseigne Upstash et renonce à R2 pour respecter son budget de 0 €. Le [profil sans stockage persistant](qualification-demo-sans-stockage-20261010.md), réservé à la démo publique en lecture seule, est construit et poussé dans `92a07a3` : 1 641 tests locaux, types, deux lints et build réussis. Les sondes hébergées répondent désormais HTTP 200 ; connexion, lectures, refus d’écriture et PDF passent sur ordinateur et mobile. **La recette navigateur reste en échec** avec trois erreurs React d’hydratation par parcours, liées aux dates selon le fuseau. Le correctif visible attend confirmation. La nouvelle CI reste distincte de la référence documentée ci-dessus ; aucune livraison de ce candidat sur main n’est annoncée.
+La preview initiale répondait HTTP 503 de préparation. La [préparation du 10 octobre](evidence/20261010-preview-readiness/README.md) crée une base fictive dédiée à 60 migrations et vérifie huit contrôles du rôle lecteur. Le propriétaire renseigne Upstash et renonce à R2 pour respecter son budget de 0 €. Les sondes répondent désormais HTTP 200 ; connexion, lectures, refus d’écriture et PDF passent sur ordinateur et mobile. Le parcours documentaire de `bc8f2d6` ne relève plus d'erreur React, mais sa revue élargie en trouve quatre. Après le lot calendrier approuvé, le rejeu de `960b8b6` en trouve encore une dans Planning. Le complément et son test hébergé versionné sont décrits dans la [qualification sans stockage](qualification-demo-sans-stockage-20261010.md) ; leur recette reste distincte de la CI verte ci-dessus. Aucune fusion sur main n'est annoncée.
+
+Un diagnostic SQL distinct reproduit six divulgations Finance/Commercial dans Organisation. Son [contrat de correction](contrat-organisation-domaines-droits.md) attend l'approbation des mentions visibles. Ce défaut interdit de déclarer tous les parcours et rôles prêts, même si la preview du compte fictif Owner est consultable.
 
 Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json), de [0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
 

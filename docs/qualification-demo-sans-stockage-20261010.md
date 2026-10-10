@@ -55,3 +55,19 @@ Le propriétaire approuve ensuite l'harmonisation de ces trois écrans. Les date
 Opérations reçoit une heure d'observation serveur et la prochaine limite de journée. Ses compteurs et sa sélection initiale ne sont plus recalculés avec l'horloge ou la fin de journée implicite du navigateur. Ce lot ne modifie aucun horaire en base, ni la conversion des formulaires `datetime-local` existants ; il porte sur les lecteurs et le rendu initial approuvés.
 
 Huit cas purs couvrent les frontières civiles, le lundi et les passages d'heure ; six cas SQL exécutent les vrais lecteurs avec deux fuseaux de société et deux fuseaux de serveur. Le seed dédié ajoute chantier, site, intervention et tâche fictifs. Quatre E2E supplémentaires comparent HTML serveur et navigateur pour Chantiers, Planning et Organisation. Les [résultats locaux](evidence/20261010-preview-readiness/service-calendar-local.json) passent 1 655 tests / 191 fichiers, types, deux lints et build. Les huit E2E se chargent ; leur exécution CI et le nouveau rejeu hébergé restent à consigner.
+
+Le [rejeu élargi de 960b8b6](evidence/20261010-preview-readiness/hosted-modules-960b8b6.json) échoue encore sur ordinateur et mobile : une erreur React 418 dans Planning. Les tournées et la capacité hebdomadaire utilisaient encore des limites implicites. Le complément emploie le même fuseau et l'heure d'observation serveur ; une intervention future à cheval sur minuit couvre aussi le regroupement des tournées dans les huit E2E. Types, deux lints, 39 tests ciblés et build passent après ce complément. Ce résultat local ne remplace pas sa recette navigateur.
+
+Un contrôle supplémentaire reproduit une limite de journée incorrecte à Santiago le 6 septembre 2026 : minuit n'existe pas lors du changement d'heure et l'ancien convertisseur retenait le jour précédent. Le calcul cherche désormais le premier instant du jour civil dans le fuseau choisi, y compris lorsqu'un minuit est sauté ou répété. Deux régressions vérifient Santiago et La Havane, le dernier instant du jour précédent et les journées de 23/25 heures. Le convertisseur des formulaires de rendez-vous reste distinct.
+
+La [qualification locale du complément](evidence/20261010-preview-readiness/service-calendar-complement-local.json) passe 1 657 tests / 191 fichiers, types, deux lints et build. Les huit E2E de calendrier et les deux parcours hébergés se chargent ; ce chargement ne vaut pas exécution navigateur. Le scan des sources et de l'historique Git ne relève aucun secret selon ses règles.
+
+## Reproduire le parcours hébergé
+
+Le fichier `playwright.hosted.config.ts` est indépendant de la configuration E2E locale : il ne lance ni serveur ni seed. Fournir dans l'environnement une URL HTTPS explicite (`PLAYWRIGHT_BASE_URL`) et les identifiants du compte fictif (`HOSTED_DEMO_EMAIL`, `HOSTED_DEMO_PASSWORD`). Si la preview est protégée, utiliser uniquement un accès d'automatisation Vercel déjà autorisé dans `VERCEL_AUTOMATION_BYPASS`. Ne pas versionner ces valeurs.
+
+```sh
+npx playwright test --config playwright.hosted.config.ts
+```
+
+Les deux parcours chargent 49 pages/onglets avec un navigateur en UTC+14 et un autre en UTC−8, contrôlent sondes, connexion, restrictions de mutation, PDF en mémoire, navigation mobile et déconnexion. Les requêtes externes du navigateur sont bloquées. Les erreurs JavaScript font échouer la recette. Le rapport joint contient uniquement les routes et erreurs, sans identifiants ni en-têtes ; traces et captures sont désactivées. Les identifiants fictifs et l'accès de protection restent fournis séparément. Cette recette est une vérification de lecture et de rendu, pas une qualification des envois ou de tous les parcours métier.
