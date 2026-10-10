@@ -50,7 +50,7 @@ function formatEuro(cents: number) {
 }
 
 function formatDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
 }
 
 function getErrorMessage(error: unknown, fallback = "Erreur.") {

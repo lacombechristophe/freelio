@@ -30,6 +30,16 @@ Les sondes live/ready répondent HTTP 200, la connexion par mot de passe réussi
 
 **La recette navigateur reste en échec** : trois erreurs React 418 sont relevées sur chaque parcours. Les requêtes externes sont bloquées ; seul `vercel.live` est demandé. Le rejeu avec l’en-tête officiel `x-vercel-skip-toolbar: 1` conserve les erreurs. Aucune assertion n’est supprimée et aucune ressource externe n’est autorisée pour les masquer.
 
-Le [diagnostic de fuseau](evidence/20261010-preview-readiness/date-timezone.json) lit uniquement une date fictive : `2026-10-09T22:40:48.512Z`. Le formatage UTC produit « 9 oct. 2026 », le navigateur Europe/Paris « 10 oct. 2026 ». Les lecteurs utilisent actuellement le fuseau implicite. La correction visible proposée est d’afficher le jour calendaire enregistré dans les listes Devis/Factures/Dépenses, indépendamment du navigateur ; elle attend la confirmation du propriétaire. Aucun changement d’affichage n’est appliqué dans le lot sans stockage.
+Le [diagnostic de fuseau](evidence/20261010-preview-readiness/date-timezone.json) lit uniquement une date fictive : `2026-10-09T22:40:48.512Z`. Le formatage UTC produit « 9 oct. 2026 », le navigateur Europe/Paris « 10 oct. 2026 ». Les lecteurs de ce candidat utilisent le fuseau implicite. Le propriétaire autorise ensuite la correction proposée par « continue termine tout ». Le suivi ci-dessous distingue cette correction du lot sans stockage initial.
 
 Ces contrôles ne qualifient ni la charge distribuée Upstash, ni un incident fournisseur, ni une récupération d’archives. La [préparation de preview](evidence/20261010-preview-readiness/README.md) conserve les contrôles SQL et les sondes antérieures. La CI du nouveau commit reste une vérification distincte.
+
+## Correction du jour calendaire
+
+Les trois formatages des listes Devis, Factures et Dépenses utilisent explicitement UTC. Les dates enregistrées, les documents et la présentation restent conservés. Les horaires des rendez-vous et des envois ne sont pas concernés.
+
+Le test `tests/e2e/document-calendar-dates.spec.ts` compare les cellules du HTML serveur et celles du navigateur en UTC+14 et UTC−8, sur ordinateur et mobile. Deux sociétés fictives dédiées contiennent des documents à 23 h 30 UTC le 31 décembre 1999 et à 0 h 30 UTC le 1er janvier 2000. La recherche de chaque document vérifie aussi l'hydratation et les actions de lecture ; aucune erreur de page n'est tolérée.
+
+Le contrôle du seed sur SQLite neuve et les types, deux lints, 40 tests ciblés et build passent localement. Les quatre E2E se chargent ; leur exécution reste à vérifier en CI, puis la preview doit être rejouée sans erreur React. Les [résultats locaux](evidence/20261010-preview-readiness/calendar-local.json) ne prétendent pas qualifier le navigateur.
+
+La référence antérieure `6156c83` réussit les deux CI : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38004872732), [PR](https://github.com/lacombechristophe/freelio/actions/runs/38004876061). Les [preuves](evidence/20261010-preview-readiness/ci-6156c83.json) distinguent SQLite (1 641), PostgreSQL (1 640 et une exclusion), navigateur (291 et 19 exclusions), neuf contrôles Linux et audits sans vulnérabilité. Cette CI précède la correction des dates et ne supprime pas le défaut constaté en preview.
