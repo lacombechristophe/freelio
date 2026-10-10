@@ -47,11 +47,16 @@ async function main() {
     create: { email, name: "Utilisateur QA", emailVerified: new Date(), companyId: company.id, passwordHash },
   })
   const membership = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
+  // A declared fictional mailbox makes sender selection explicit. It carries
+  // no provider credentials, so this fixture can never authorize a real send.
+  await prisma.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, visibility: "SHARED", provider: "RESEND", emailAddress: "mailbox@e2e.example.test", displayName: "Boîte fictive QA", status: "ACTIVE", mailEnabled: true, calendarEnabled: false, config: { mode: "FIXTURE" } } })
   const agency = await prisma.agency.create({ data: { companyId: company.id, code: "PRINCIPALE", name: "Agence QA", kind: "MIXED", active: true, isDefault: true } })
   await prisma.agencyMembership.create({ data: { agencyId: agency.id, membershipId: membership.id, isPrimary: true } })
   const client = await prisma.client.create({ data: { companyId: company.id, name: "Client QA Piscine", type: "INDIVIDUAL", address: "2 rue du Bassin, 44000 Nantes" } })
   const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", isPrimary: true } })
   const lead = await prisma.leadCapture.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, firstName: "Camille", lastName: "Piscine", email: "camille@example.com", city: "Nantes", projectType: "Couverture QA", source: "E2E_SEED", privacyAccepted: true, marketingOptIn: true, fingerprint: "e2e-seeded-lead" } })
+  // Explicit fictional evidence, separate from the historical boolean.
+  await prisma.marketingConsent.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, leadCaptureId: lead.id, recipientEmail: lead.email, channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "ISOLATED_FICTIONAL_E2E", noticeUrl: "https://example.test/privacy", proofHash: "a".repeat(64) } })
   const marketingSegment = await prisma.marketingSegment.create({ data: { companyId: company.id, name: "Prospects consentis QA", description: "Audience de recette autorisée", kind: "STATIC", filters: { marketingOptIn: true } } })
   await prisma.marketingSegmentMember.create({ data: { segmentId: marketingSegment.id, leadCaptureId: lead.id } })
   const site = await prisma.customerSite.create({ data: { companyId: company.id, clientId: client.id, agencyId: agency.id, label: "Bassin QA", kind: "INSTALLATION", address1: "2 rue du Bassin", postalCode: "44000", city: "Nantes", latitude: 47.2184, longitude: -1.5536 } })

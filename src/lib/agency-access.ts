@@ -19,3 +19,7 @@ export function assertAgencyAccess(access: AgencyAccess, agencyId: string | null
 export function accessibleAgencyWhere(access: AgencyAccess) {
   return access === null ? {} : { id: { in: access } }
 }
+
+export function inventoryReadWhere(companyId: string, access: AgencyAccess) {
+  return { companyId, warehouse: { companyId, ...(access === null ? {} : { agencyId: { in: access } }) } }
+}

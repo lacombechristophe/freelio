@@ -1,0 +1,13 @@
+# Requêtes différées et contexte d’autorisation, 8 octobre 2026
+
+Un callback de `withAuth` pouvait retourner directement une promesse Prisma différée. Son exécution commençait après la sortie de `requestContext.run`, et le DAL ne recevait alors plus rôle, société ni permission d’action. Le [même test SQL](evidence/20261008-auth-context/README.md) reproduit sept échecs avec l’ancien wrapper puis sept réussites après correction.
+
+Le wrapper attend maintenant le résultat du callback à l’intérieur du contexte. Aucun rôle ni droit n’est ajouté. Les contrôles incluent cinq refus d’écriture, une lecture limitée à sa société et une écriture Owner refusée vers une autre société. Les erreurs attendues sont précises ; une exception arbitraire ne suffit pas. Session simulée, vrais membership, contraintes et DAL ; deux sociétés fictives nettoyées après chaque recette.
+
+Le lot Suivi client ajoute séparément une exception DAL pour une mise à jour simple de ses six champs non financiers avec `service.write`. Elle n’autorise ni édition générale, montant, relation imbriquée, écriture groupée ou mutation depuis `service.read`. Cette exception ne remplace pas la validation de société et du responsable dans l’action.
+
+La recette ciblée passe en SQLite, puis la suite commune réussit 1 020 tests / 163 fichiers en 232,07 secondes, types, ESLint et Oxlint. Les CI vertes de 653cddc précèdent ce changement et ne lui sont pas attribuées. Aucun envoi, fournisseur réel ni donnée de l’instance existante n’est utilisé ; cette régression ne clôture pas toutes les entrées ou tous les modèles du CRM.
+
+Le build de 75 pages et les deux validations de schéma réussissent ensuite. Sur 81aa846, les [deux CI](evidence/20261008-customer-success-permissions/ci-81aa846.json) passent également les sept cas sur PostgreSQL réel : suite de 1 019 réussites et une exclusion native SQLite. Leurs neuf contrôles Linux réussissent, mais deux sélecteurs Owner du test Suivi client font échouer le navigateur (173 réussites, 19 exclusions historiques). Ce défaut de test est corrigé sans assouplissement ; la CI complète du candidat suivant reste nécessaire. La suite locale après le complément des règles recommandées passe 1 023 tests / 163 fichiers.
+
+Les [deux CI de 949adca](evidence/20261008-customer-success-permissions/ci-949adca.json) réussissent ensuite complètement. Les sept cas d’autorisation passent sur SQLite et PostgreSQL ; suite de 1 023 SQLite, 1 022 PostgreSQL plus une exclusion native, 175 E2E / 19 exclusions historiques, neuf contrôles Linux, types/lint/build/couverture et audits à zéro. Aucun contrôle n’est retiré. Cette qualification conserve les limites par modèle et par entrée décrites ci-dessus.

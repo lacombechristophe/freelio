@@ -1,6 +1,9 @@
 "use server"
 
 import { z } from "zod"
+import { Prisma } from "@prisma/client"
+import { hasPermission } from "@/lib/permissions"
+import { recurringScope, recurringSearch, recurringPageSize } from "@/lib/finance/recurring-scope"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
@@ -13,6 +16,7 @@ import { buildInvoiceReminderContent } from "@/lib/finance/invoice-reminders"
 import { sendInvoiceReminderRecord } from "@/lib/finance/invoice-reminder-sender"
 import { boundedPageSize } from "@/lib/pagination"
 import { prepareIssuedInvoice, discardIssuedInvoice } from "@/lib/finance/issued-invoice"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 type InvoiceInput = z.input<typeof InvoiceSchema>
 type PaymentInput = z.input<typeof PaymentSchema>
@@ -50,7 +54,7 @@ export async function getInvoices(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
     const pageSize = boundedPageSize(limit, 50, 100)
     return await prisma.invoice.findMany({
-      where: { companyId },
+      where: { companyId, client: { companyId } },
       take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
@@ -63,9 +67,9 @@ export async function getInvoices(cursor?: string, limit = 50) {
 }
 
 export async function getInvoiceById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.invoice.findFirst({
-      where: { id, companyId },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: { select: {
@@ -73,15 +77,24 @@ export async function getInvoiceById(id: string) {
           siret: true, tvaNumber: true, apeCode: true, rcsNumber: true, iban: true,
           isTvaApplicable: true, latePenaltyRate: true, brandColor: true, pdfTemplate: true,
         } },
-        project: true,
-        lines: { orderBy: { order: "asc" } },
-        payments: { orderBy: { date: "desc" } },
-        creditNotes: true,
-        creditInvoices: { orderBy: { date: "desc" } },
-        originalInvoice: { select: { id: true, number: true } },
-        reminders: { orderBy: { createdAt: "desc" } },
+        lines: { orderBy: { order: "asc" } }, payments: { orderBy: { date: "desc" } },
+        creditNotes: true, reminders: { orderBy: { createdAt: "desc" } },
       },
     })
+    if (!invoice) return null
+    const projectScope = { companyId, clientId: invoice.clientId, client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const invoiceScope = { companyId, clientId: invoice.clientId, client: { companyId }, OR: [{ projectId: null }, { project: projectScope }] }
+    const [project, originalInvoice, creditInvoices] = await Promise.all([
+      invoice.projectId ? prisma.project.findFirst({ where: { id: invoice.projectId, ...projectScope }, select: { id: true, name: true } }) : null,
+      invoice.originalInvoiceId ? prisma.invoice.findFirst({ where: { id: invoice.originalInvoiceId, ...invoiceScope }, select: { id: true, number: true } }) : null,
+      prisma.invoice.findMany({ where: { originalInvoiceId: invoice.id, ...invoiceScope }, select: { id: true, number: true, totalTtcCents: true }, orderBy: { date: "desc" } }),
+    ])
+    return {
+      ...invoice, projectId: project?.id ?? null, originalInvoiceId: originalInvoice?.id ?? null,
+      project, originalInvoice, creditInvoices,
+      unavailableRelations: { project: Boolean(invoice.projectId && !project), originalInvoice: Boolean(invoice.originalInvoiceId && !originalInvoice) },
+      client: clientWithAccessibleMetrics(invoice.client, { role, agencyIds }),
+    }
   }, "finance.read")
 }
 
@@ -176,7 +189,7 @@ export async function getUnbilledTimeEntries() {
       where: {
         isBillable: true,
         invoiceId: null,
-        project: { companyId },
+        project: { companyId, client: { companyId } },
       },
       include: {
         project: {
@@ -211,7 +224,7 @@ export async function getUnbilledTimeEntries() {
         },
       })),
     }
-  })
+  }, "finance.read")
 }
 
 export async function createInvoice(data: InvoiceInput) {
@@ -277,7 +290,7 @@ export async function createInvoice(data: InvoiceInput) {
 
     revalidatePath("/dashboard/factures")
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesInput) {
@@ -299,7 +312,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
         id: { in: uniqueEntryIds },
         isBillable: true,
         invoiceId: null,
-        project: { companyId },
+        project: { companyId, client: { companyId } },
       },
       include: {
         project: {
@@ -395,13 +408,13 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     revalidatePath(`/dashboard/factures/${invoice.id}`)
     revalidatePath("/dashboard/temps")
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function updateInvoice(id: string, data: InvoiceInput) {
   return await withAuth(async ({ companyId, agencyIds }) => {
     const validated = InvoiceSchema.parse(data)
-    const existing = await prisma.invoice.findFirst({ where: { id, companyId } })
+    const existing = await prisma.invoice.findFirst({ where: { id, companyId, client: { companyId } } })
     if (!existing) throw new Error("Facture introuvable")
     if (existing.status !== "DRAFT") {
       throw new Error("Une facture émise ne peut pas être modifiée.")
@@ -461,13 +474,13 @@ export async function updateInvoice(id: string, data: InvoiceInput) {
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${id}`)
     return invoice
-  })
+  }, "finance.write")
 }
 
 export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED") {
   return await withAuth(async ({ userId, companyId }) => {
     const existing = await prisma.invoice.findFirst({
-      where: { id: invoiceId, companyId },
+      where: { id: invoiceId, companyId, client: { companyId } },
       include: {
         company: true,
         client: true,
@@ -534,7 +547,7 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
 
 export async function deleteInvoice(id: string) {
   return await withAuth(async ({ companyId, userId }) => {
-    const existing = await prisma.invoice.findFirst({ where: { id, companyId } })
+    const existing = await prisma.invoice.findFirst({ where: { id, companyId, client: { companyId } } })
     if (!existing) throw new Error("Facture introuvable")
     if (existing.status !== "DRAFT") {
       throw new Error("Seules les factures en brouillon peuvent être supprimées.")
@@ -555,14 +568,14 @@ export async function deleteInvoice(id: string) {
     })
     revalidatePath("/dashboard/factures")
     return { ok: true }
-  })
+  }, "finance.write")
 }
 
 export async function recordPayment(data: PaymentInput) {
   return await withAuth(async ({ userId, companyId }) => {
     const validated = PaymentSchema.parse(data)
     const invoice = await prisma.invoice.findFirst({
-      where: { id: validated.invoiceId, companyId },
+      where: { id: validated.invoiceId, companyId, client: { companyId } },
     })
     if (!invoice) throw new Error("Facture introuvable")
     if (!["SENT", "OVERDUE"].includes(invoice.status)) {
@@ -626,16 +639,15 @@ export async function recordPayment(data: PaymentInput) {
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${validated.invoiceId}`)
     return result.payment
-  })
+  }, "finance.write")
 }
 
 export async function createCreditNote(data: CreditNoteInput) {
   return withAuth(async ({ companyId, userId }) => {
     const validated = CreditNoteSchema.parse(data)
     const original = await prisma.invoice.findFirst({
-      where: { id: validated.invoiceId, companyId },
+      where: { id: validated.invoiceId, companyId, client: { companyId } },
       include: {
-        creditInvoices: { select: { totalTtcCents: true } },
         company: { select: { siret: true } },
         client: { select: { siret: true, type: true } },
       },
@@ -645,7 +657,11 @@ export async function createCreditNote(data: CreditNoteInput) {
       throw new Error("Un avoir ne peut être créé que depuis une facture émise.")
     }
 
-    const alreadyCredited = original.creditInvoices.reduce((sum, credit) => sum + Math.abs(credit.totalTtcCents), 0)
+    const creditInvoices = await prisma.invoice.findMany({
+      where: { originalInvoiceId: original.id, companyId, clientId: original.clientId, client: { companyId } },
+      select: { totalTtcCents: true },
+    })
+    const alreadyCredited = creditInvoices.reduce((sum, credit) => sum + Math.abs(credit.totalTtcCents), 0)
     const available = original.totalTtcCents - alreadyCredited
     if (validated.amountCents > available) {
       throw new Error("Le montant de l'avoir dépasse le montant encore disponible.")
@@ -735,14 +751,14 @@ export async function createCreditNote(data: CreditNoteInput) {
     revalidatePath("/dashboard/factures")
     revalidatePath(`/dashboard/factures/${original.id}`)
     return credit
-  })
+  }, "finance.write")
 }
 
 export async function prepareInvoiceReminder(data: ReminderInput) {
   return withAuth(async ({ companyId }) => {
     const validated = ReminderSchema.parse(data)
     const invoice = await prisma.invoice.findFirst({
-      where: { id: validated.invoiceId, companyId },
+      where: { id: validated.invoiceId, companyId, client: { companyId } },
       include: {
         client: { include: { contacts: { orderBy: { isPrimary: "desc" } } } },
         company: { select: { name: true } },
@@ -764,13 +780,13 @@ export async function prepareInvoiceReminder(data: ReminderInput) {
     const subject = validated.subject || content.subject
     const message = validated.message || content.message
     const reminder = await prisma.invoiceReminder.create({
-      data: { companyId, invoiceId: invoice.id, subject, message },
+      data: { companyId, invoiceId: invoice.id, subject, message, remainingCents: invoice.totalTtcCents - invoice.paidAmountCents },
     })
     return {
       ...reminder,
       to: invoice.client.contacts.find((contact) => contact.email)?.email ?? "",
     }
-  })
+  }, "finance.write")
 }
 
 const SendReminderSchema = z.object({
@@ -803,63 +819,93 @@ export async function sendInvoiceReminder(input: unknown) {
   }, "finance.write")
 }
 
-export async function getRecurringInvoices() {
-  return withAuth(async ({ companyId }) =>
-    prisma.recurringInvoice.findMany({
-      where: { companyId },
-      include: { client: { select: { id: true, name: true } }, occurrences: true },
-      orderBy: [{ isActive: "desc" }, { nextGenDate: "asc" }],
-    }),
-  )
+const recurringQuerySchema = z.object({ search: z.string().trim().max(200).default(""), page: z.number().int().min(1).max(1_000_000).default(1) })
+
+export async function getRecurringInvoices(input: unknown = {}) {
+  return withAuth(async context => {
+    const query = recurringQuerySchema.parse(input)
+    return prisma.$transaction(async tx => {
+      const scope = recurringScope(context)
+      const search = recurringSearch(query.search)
+      const counts = await tx.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`SELECT COUNT(*) AS total ${scope} ${search}`)
+      const total = Number(counts[0]?.total ?? 0)
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / recurringPageSize)))
+      const ids = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT r."id" ${scope} ${search} ORDER BY r."isActive" DESC, r."nextGenDate" ASC, r."id" ASC LIMIT ${recurringPageSize} OFFSET ${(page - 1) * recurringPageSize}`)
+      const items = await tx.recurringInvoice.findMany({
+        where: { companyId: context.companyId, id: { in: ids.map(row => row.id) } },
+        select: { id: true, label: true, frequency: true, nextGenDate: true, lastGenDate: true, isActive: true, client: { select: { id: true, name: true } }, _count: { select: { occurrences: true } } },
+        orderBy: [{ isActive: "desc" }, { nextGenDate: "asc" }, { id: "asc" }],
+      })
+      return { items, total, page, canWrite: hasPermission(context.role, "finance.write"), requiresProject: context.agencyIds !== null }
+    }, { isolationLevel: "Serializable" })
+  }, "finance.read")
+}
+
+const recurringChoiceSchema = recurringQuerySchema.extend({
+  kind: z.enum(["CLIENT", "PROJECT"]), clientId: z.string().max(100).optional(), selectedId: z.string().max(100).optional(),
+})
+
+export async function getRecurringInvoiceChoices(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const query = recurringChoiceSchema.parse(input)
+    if (query.kind === "PROJECT" && !query.clientId) return { items: [], total: 0, page: 1, selected: null }
+    const contains = { contains: query.search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+    return prisma.$transaction(async tx => {
+      const base = query.kind === "CLIENT" ? { companyId } : { companyId, clientId: query.clientId, client: { companyId } }
+      const where = { ...base, ...(query.search ? { name: contains } : {}) }
+      const total = query.kind === "CLIENT" ? await tx.client.count({ where }) : await tx.project.count({ where })
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / recurringPageSize)))
+      const args = { where, select: { id: true, name: true }, orderBy: [{ name: "asc" as const }, { id: "asc" as const }], skip: (page - 1) * recurringPageSize, take: recurringPageSize }
+      const items = query.kind === "CLIENT" ? await tx.client.findMany(args) : await tx.project.findMany(args)
+      const selectedArgs = { where: { ...base, id: query.selectedId }, select: { id: true, name: true } }
+      const selected = query.selectedId ? query.kind === "CLIENT" ? await tx.client.findFirst(selectedArgs) : await tx.project.findFirst(selectedArgs) : null
+      return { items, total, page, selected }
+    }, { isolationLevel: "Serializable" })
+  }, "finance.read")
 }
 
 export async function createRecurringInvoice(data: RecurringInvoiceInput) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const validated = RecurringInvoiceSchema.parse(data)
-    const client = await prisma.client.findFirst({ where: { id: validated.clientId, companyId } })
+    if (agencyIds !== null && !validated.projectId) throw new Error("Un chantier est requis pour votre périmètre d’agence")
+    const client = await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })
     if (!client) throw new Error("Client introuvable")
-    if (validated.projectId) {
-      const project = await prisma.project.findFirst({
-        where: { id: validated.projectId, companyId, clientId: validated.clientId },
-      })
-      if (!project) throw new Error("Projet incompatible avec ce client")
-    }
+    if (validated.projectId && !await prisma.project.findFirst({ where: { id: validated.projectId, companyId, clientId: validated.clientId, client: { companyId } }, select: { id: true } })) throw new Error("Projet incompatible avec ce client")
     const recurring = await prisma.recurringInvoice.create({
       data: {
-        companyId,
-        clientId: validated.clientId,
-        label: validated.label,
-        frequency: validated.frequency,
-        nextGenDate: new Date(validated.nextGenDate),
-        template: {
-          object: validated.object,
-          projectId: validated.projectId || null,
-          dueDays: validated.dueDays,
-          lines: validated.lines,
-        },
+        companyId, clientId: validated.clientId, projectId: validated.projectId || null,
+        label: validated.label, frequency: validated.frequency, nextGenDate: new Date(validated.nextGenDate),
+        template: { object: validated.object, projectId: validated.projectId || null, dueDays: validated.dueDays, lines: validated.lines },
       },
     })
     revalidatePath("/dashboard/factures/recurrentes")
     return recurring
-  })
+  }, "finance.write")
 }
 
 export async function toggleRecurringInvoice(id: string, isActive: boolean) {
-  return withAuth(async ({ companyId }) => {
-    const existing = await prisma.recurringInvoice.findFirst({ where: { id, companyId } })
-    if (!existing) throw new Error("Récurrence introuvable")
-    const updated = await prisma.recurringInvoice.update({ where: { id }, data: { isActive } })
+  return withAuth(async context => {
+    const parsedId = z.string().cuid().parse(id)
+    const active = z.boolean().parse(isActive)
+    const updated = await prisma.$transaction(async tx => {
+      const accessible = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT r."id" ${recurringScope(context)} AND r."id" = ${parsedId}`)
+      if (!accessible.length) throw new Error("Récurrence introuvable")
+      return tx.recurringInvoice.update({ where: { id: parsedId, companyId: context.companyId }, data: { isActive: active } })
+    }, { isolationLevel: "Serializable" })
     revalidatePath("/dashboard/factures/recurrentes")
     return updated
-  })
+  }, "finance.write")
 }
 
 export async function deleteRecurringInvoice(id: string) {
-  return withAuth(async ({ companyId }) => {
-    const existing = await prisma.recurringInvoice.findFirst({ where: { id, companyId } })
-    if (!existing) throw new Error("Récurrence introuvable")
-    await prisma.recurringInvoice.delete({ where: { id } })
+  return withAuth(async context => {
+    const parsedId = z.string().cuid().parse(id)
+    await prisma.$transaction(async tx => {
+      const accessible = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT r."id" ${recurringScope(context)} AND r."id" = ${parsedId}`)
+      if (!accessible.length) throw new Error("Récurrence introuvable")
+      await tx.recurringInvoice.delete({ where: { id: parsedId, companyId: context.companyId } })
+    }, { isolationLevel: "Serializable" })
     revalidatePath("/dashboard/factures/recurrentes")
     return { ok: true }
-  })
+  }, "finance.write")
 }

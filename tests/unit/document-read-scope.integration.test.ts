@@ -1,0 +1,175 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { createContractFromQuote, getQuoteById } from "@/actions/devis"
+import { convertQuoteToCustomerOrder } from "@/actions/operations"
+import { getInvoiceById } from "@/actions/factures"
+import { getContractById } from "@/actions/contrats"
+
+describe.sequential("document relation scope on real SQL", () => {
+  let membershipId: string, foreignCompanyId: string, localClientId: string, foreignClientId: string
+  let localProjectId: string, foreignProjectId: string, quoteId: string, foreignProjectQuoteId: string, foreignOrderQuoteId: string, foreignContractQuoteId: string
+  let localOrderId: string, foreignPurchaseId: string, localInvoiceId: string, foreignInvoiceId: string, foreignCreditId: string, foreignProjectInvoiceId: string
+  let localContractId: string, foreignParentId: string, foreignAmendmentId: string
+  let agencyId: string, otherAgencyId: string, otherClientId: string, otherProjectId: string, localMaintenanceId: string, coherentContractId: string, localCreditId: string
+  const invoiceFields = { object: "Fictional relation invoice", dueDate: new Date("2030-01-01"), totalHtCents: 10000, totalTvaCents: 0, totalTtcCents: 10000 }
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional document relation company" } })).id
+    foreignCompanyId = (await prisma.company.create({ data: { name: "Fictional foreign document relation company" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `document-relations-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    agencyId = (await prisma.agency.create({ data: { companyId: session.companyId, code: "LOCAL", name: "Fictional relation agency" } })).id
+    otherAgencyId = (await prisma.agency.create({ data: { companyId: session.companyId, code: "OTHER", name: "Fictional other relation agency" } })).id
+    await prisma.agencyMembership.create({ data: { agencyId, membershipId } })
+    localClientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional local document client" } })).id
+    foreignClientId = (await prisma.client.create({ data: { companyId: foreignCompanyId, name: "Fictional foreign document client" } })).id
+    localProjectId = (await prisma.project.create({ data: { companyId: session.companyId, clientId: localClientId, agencyId, name: "Fictional local document project" } })).id
+    foreignProjectId = (await prisma.project.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, name: "Fictional foreign document project" } })).id
+    const quote = async (number: string, projectId = localProjectId) => (await prisma.quote.create({ data: { companyId: session.companyId, clientId: localClientId, projectId, number, object: "Fictional relation quote" } })).id
+    quoteId = await quote("LOCAL")
+    foreignProjectQuoteId = await quote("FOREIGN-PROJECT", foreignProjectId)
+    foreignOrderQuoteId = await quote("FOREIGN-ORDER")
+    foreignContractQuoteId = await quote("FOREIGN-CONTRACT")
+    localOrderId = (await prisma.customerOrder.create({ data: { companyId: session.companyId, clientId: localClientId, projectId: localProjectId, quoteId, number: "LOCAL", billingStatus: "INVOICED" } })).id
+    await prisma.customerOrder.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, projectId: foreignProjectId, quoteId: foreignOrderQuoteId, number: "FOREIGN" } })
+    const supplier = await prisma.supplier.create({ data: { companyId: foreignCompanyId, name: "Fictional foreign supplier" } })
+    const localSupplier = await prisma.supplier.create({ data: { companyId: session.companyId, name: "Fictional local supplier" } })
+    foreignPurchaseId = (await prisma.purchaseOrder.create({ data: { companyId: foreignCompanyId, supplierId: supplier.id, projectId: localProjectId, number: "FOREIGN" } })).id
+    await prisma.purchaseOrder.create({ data: { companyId: session.companyId, supplierId: localSupplier.id, projectId: localProjectId, number: "LOCAL" } })
+    foreignInvoiceId = (await prisma.invoice.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, projectId: foreignProjectId, customerOrderId: localOrderId, number: "FOREIGN", ...invoiceFields } })).id
+    localInvoiceId = (await prisma.invoice.create({ data: { companyId: session.companyId, clientId: localClientId, projectId: localProjectId, customerOrderId: localOrderId, originalInvoiceId: foreignInvoiceId, number: "LOCAL", ...invoiceFields } })).id
+    foreignCreditId = (await prisma.invoice.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, originalInvoiceId: localInvoiceId, number: "FOREIGN-CREDIT", type: "CREDIT_NOTE", ...invoiceFields } })).id
+    foreignProjectInvoiceId = (await prisma.invoice.create({ data: { companyId: session.companyId, clientId: localClientId, projectId: foreignProjectId, number: "FOREIGN-PROJECT", ...invoiceFields } })).id
+    const foreignSite = await prisma.customerSite.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, label: "Fictional foreign site", address1: "Fictional address" } })
+    const maintenance = await prisma.maintenanceContract.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, siteId: foreignSite.id, number: "FOREIGN", label: "Fictional foreign maintenance", startDate: new Date("2030-01-01") } })
+    foreignParentId = (await prisma.contract.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, number: "FOREIGN-PARENT", title: "Fictional foreign parent", content: "Fictional content" } })).id
+    localContractId = (await prisma.contract.create({ data: { companyId: session.companyId, clientId: localClientId, parentContractId: foreignParentId, maintenanceContractId: maintenance.id, number: "LOCAL", title: "Fictional local contract", content: "Fictional content" } })).id
+    foreignAmendmentId = (await prisma.contract.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, parentContractId: localContractId, number: "FOREIGN-AMENDMENT", title: "Fictional foreign amendment", content: "Fictional content" } })).id
+    await prisma.contract.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, sourceQuoteId: foreignContractQuoteId, number: "FOREIGN-GENERATED", title: "Fictional foreign generated contract", content: "Fictional content" } })
+    otherClientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional different document client" } })).id
+    otherProjectId = (await prisma.project.create({ data: { companyId: session.companyId, clientId: otherClientId, agencyId: otherAgencyId, name: "Fictional other document project" } })).id
+    const site = await prisma.customerSite.create({ data: { companyId: session.companyId, clientId: localClientId, agencyId: otherAgencyId, label: "Fictional local document site", address1: "Fictional address" } })
+    localMaintenanceId = (await prisma.maintenanceContract.create({ data: { companyId: session.companyId, clientId: localClientId, siteId: site.id, number: "LOCAL", label: "Fictional local maintenance", startDate: new Date("2030-01-01") } })).id
+    coherentContractId = (await prisma.contract.create({ data: { companyId: session.companyId, clientId: localClientId, parentContractId: localContractId, maintenanceContractId: localMaintenanceId, sourceQuoteId: quoteId, number: "COHERENT", title: "Fictional coherent contract", content: "Fictional content" } })).id
+    localCreditId = (await prisma.invoice.create({ data: { companyId: session.companyId, clientId: localClientId, projectId: localProjectId, originalInvoiceId: localInvoiceId, number: "LOCAL-CREDIT", type: "CREDIT_NOTE", ...invoiceFields } })).id
+  })
+  afterEach(async () => { if (membershipId) await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } }) })
+  afterAll(async () => {
+    const ids = [session.companyId, foreignCompanyId].filter(Boolean), where = { companyId: { in: ids } }
+    if (ids.length) {
+      await prisma.contract.updateMany({ where, data: { parentContractId: null, maintenanceContractId: null } })
+      await prisma.contract.deleteMany({ where })
+      await prisma.maintenanceContract.deleteMany({ where })
+      await prisma.invoice.deleteMany({ where })
+      await prisma.customerOrder.deleteMany({ where })
+      await prisma.purchaseOrder.deleteMany({ where })
+      await prisma.quote.deleteMany({ where })
+      await prisma.project.deleteMany({ where })
+      await prisma.customerSite.deleteMany({ where })
+      await prisma.supplier.deleteMany({ where })
+      await prisma.client.deleteMany({ where })
+      await prisma.company.deleteMany({ where: { id: { in: ids } } })
+    }
+    if (session.userId) await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it("omits a foreign project from a local quote", async () => { expect((await getQuoteById(foreignProjectQuoteId))?.project).toBeNull() })
+  it("omits a foreign customer order from a local quote", async () => { expect((await getQuoteById(foreignOrderQuoteId))?.customerOrder).toBeNull() })
+  it("omits a foreign generated contract from a local quote", async () => { expect((await getQuoteById(foreignContractQuoteId))?.generatedContract).toBeNull() })
+  it("excludes foreign purchases attached to the local quote project", async () => { expect((await getQuoteById(quoteId))?.project?.purchaseOrders.map(order => order.id)).not.toContain(foreignPurchaseId) })
+  it("excludes foreign invoices attached to the local customer order", async () => { expect((await getQuoteById(quoteId))?.customerOrder?.invoices.map(invoice => invoice.id)).not.toContain(foreignInvoiceId) })
+  it("does not expose order invoices to Sales without Finance", async () => { await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } }); expect((await getQuoteById(quoteId))?.customerOrder?.invoices).toEqual([]) })
+  it("does not expose order billing status to Sales without Finance", async () => { await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } }); expect((await getQuoteById(quoteId))?.customerOrder?.billingStatus).toBeNull() })
+  it("omits a foreign project from a local invoice", async () => { expect((await getInvoiceById(foreignProjectInvoiceId))?.project).toBeNull() })
+  it("omits a foreign original invoice from a local credit", async () => { expect((await getInvoiceById(localInvoiceId))?.originalInvoice).toBeNull() })
+  it("excludes a foreign credit linked to the local invoice", async () => { expect((await getInvoiceById(localInvoiceId))?.creditInvoices.map(invoice => invoice.id)).not.toContain(foreignCreditId) })
+  it("omits a foreign parent from a local contract", async () => { expect((await getContractById(localContractId))?.parentContract).toBeNull() })
+  it("excludes foreign amendments attached to the local contract", async () => { expect((await getContractById(localContractId))?.amendments.map(contract => contract.id)).not.toContain(foreignAmendmentId) })
+  it("omits foreign maintenance from a local contract", async () => { expect((await getContractById(localContractId))?.maintenanceContract).toBeNull() })
+  it("retains the coherent quote project for Owner", async () => { expect((await getQuoteById(quoteId))?.project?.id).toBe(localProjectId) })
+  it("retains the coherent invoice and its amounts for Owner", async () => { expect(await getInvoiceById(localInvoiceId)).toMatchObject({ id: localInvoiceId, totalTtcCents: 10000, client: { id: localClientId } }) })
+  it("retains local contract content and coordinates", async () => { expect(await getContractById(localContractId)).toMatchObject({ id: localContractId, content: "Fictional content", client: { id: localClientId } }) })
+  it("refuses the foreign parent as a primary contract", async () => { expect(await getContractById(foreignParentId)).toBeNull() })
+  it("marks hidden quote references without returning their identifiers", async () => {
+    const result = await getQuoteById(foreignProjectQuoteId)
+    expect(result).toMatchObject({ projectId: null, project: null, unavailableRelations: { project: true } })
+    expect(JSON.stringify(result)).not.toContain(foreignProjectId)
+    expect((await getQuoteById(foreignOrderQuoteId))?.unavailableRelations.customerOrder).toBe(true)
+    expect((await getQuoteById(foreignContractQuoteId))?.unavailableRelations.generatedContract).toBe(true)
+  })
+  it("distinguishes an absent reference from a hidden one", async () => {
+    expect((await getQuoteById(foreignProjectQuoteId))?.unavailableRelations).toEqual({ project: true, customerOrder: false, generatedContract: false })
+    expect((await getInvoiceById(localCreditId))?.unavailableRelations).toEqual({ project: false, originalInvoice: false })
+  })
+  it("removes inaccessible invoice and contract foreign keys", async () => {
+    const invoice = await getInvoiceById(localInvoiceId)
+    expect(invoice).toMatchObject({ originalInvoiceId: null, unavailableRelations: { originalInvoice: true } })
+    expect(JSON.stringify(invoice)).not.toContain(foreignInvoiceId)
+    const contract = await getContractById(localContractId)
+    expect(contract).toMatchObject({ parentContractId: null, maintenanceContractId: null, unavailableRelations: { parentContract: true, maintenanceContract: true } })
+    expect(JSON.stringify(contract)).not.toContain(foreignParentId)
+  })
+  it.each(["OWNER", "ADMIN", "ACCOUNTING", "VIEWER"])("retains coherent billing relations for %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    const quote = await getQuoteById(quoteId)
+    expect(quote).toMatchObject({ canReadFinance: true, customerOrder: { id: localOrderId, billingStatus: "INVOICED" } })
+    expect(quote?.customerOrder?.invoices.map(invoice => invoice.id)).toEqual([localInvoiceId])
+    expect((await getInvoiceById(localInvoiceId))?.creditInvoices.map(invoice => invoice.id)).toEqual([localCreditId])
+  })
+  it.each(["SALES", "OPERATIONS"])("does not query billing relations for %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    const read = vi.spyOn(prisma.customerOrder, "findFirst")
+    try {
+      expect((await getQuoteById(quoteId))?.canReadFinance).toBe(false)
+      expect(read).toHaveBeenCalledWith(expect.objectContaining({ select: expect.objectContaining({ billingStatus: false, invoices: false }) }))
+    } finally { read.mockRestore() }
+  })
+  it("retains company-wide commercial contracts while filtering an inaccessible maintenance site", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } })
+    expect(await getContractById(coherentContractId)).toMatchObject({ parentContract: { id: localContractId }, maintenanceContract: null, maintenanceContractId: null, unavailableRelations: { maintenanceContract: true } })
+    expect((await getContractById(localContractId))?.amendments.map(contract => contract.id)).toEqual([coherentContractId])
+  })
+  it("rechecks agency membership when access to maintenance is revoked", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } })
+    await prisma.agencyMembership.create({ data: { agencyId: otherAgencyId, membershipId } })
+    try {
+      expect((await getContractById(coherentContractId))?.maintenanceContract?.id).toBe(localMaintenanceId)
+      await prisma.agencyMembership.delete({ where: { agencyId_membershipId: { agencyId: otherAgencyId, membershipId } } })
+      expect((await getContractById(coherentContractId))?.maintenanceContract).toBeNull()
+    } finally { await prisma.agencyMembership.deleteMany({ where: { agencyId: otherAgencyId, membershipId } }) }
+  })
+  it("rejects a same-company project belonging to another client", async () => {
+    await prisma.quote.update({ where: { id: foreignProjectQuoteId }, data: { projectId: otherProjectId } })
+    try {
+      expect((await getQuoteById(foreignProjectQuoteId))?.project).toBeNull()
+      await expect(convertQuoteToCustomerOrder({ quoteId: foreignProjectQuoteId })).rejects.toThrow("Référence liée indisponible")
+    } finally { await prisma.quote.update({ where: { id: foreignProjectQuoteId }, data: { projectId: foreignProjectId } }) }
+  })
+  it("rejects a same-company contract belonging to another client", async () => {
+    await prisma.contract.update({ where: { id: coherentContractId }, data: { clientId: otherClientId } })
+    try {
+      expect((await getQuoteById(quoteId))?.generatedContract).toBeNull()
+      expect((await getContractById(localContractId))?.amendments).toEqual([])
+      await expect(createContractFromQuote(quoteId)).rejects.toThrow("Référence liée indisponible")
+    } finally { await prisma.contract.update({ where: { id: coherentContractId }, data: { clientId: localClientId } }) }
+  })
+  it("refuses direct creation through an inaccessible order or generated contract", async () => {
+    const before = await prisma.customerOrder.count({ where: { companyId: session.companyId } })
+    await expect(convertQuoteToCustomerOrder({ quoteId: foreignOrderQuoteId })).rejects.toThrow("Référence liée indisponible")
+    await expect(createContractFromQuote(foreignContractQuoteId)).rejects.toThrow("Référence liée indisponible")
+    expect(await prisma.customerOrder.count({ where: { companyId: session.companyId } })).toBe(before)
+  })
+  it("retains the existing coherent order and contract without creating replacements", async () => {
+    expect(await convertQuoteToCustomerOrder({ quoteId })).toMatchObject({ id: localOrderId, existing: true })
+    expect(await createContractFromQuote(quoteId)).toMatchObject({ id: coherentContractId })
+  })
+  it("denies all document readers after membership suspension", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { status: "SUSPENDED" } })
+    await expect(getQuoteById(quoteId)).rejects.toThrow()
+    await expect(getInvoiceById(localInvoiceId)).rejects.toThrow()
+    await expect(getContractById(localContractId)).rejects.toThrow()
+  })
+})

@@ -6,9 +6,13 @@ import { logAction } from "@/lib/audit"
 import { revalidatePath } from "next/cache"
 import { ClientActivitySchema, ClientNextActionSchema, ClientSchema, ContactSchema } from "@/lib/validations"
 import { boundedPageSize } from "@/lib/pagination"
+import { hasPermission } from "@/lib/permissions"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 export async function getClients(cursor?: string, limit: number = 20) {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const invoiceScope = { companyId, ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: { companyId, agencyId: { in: agencyIds } } }) }
     const pageSize = boundedPageSize(limit, 20, 100)
     const [clients, propertyDefinitions] = await Promise.all([
       prisma.client.findMany({
@@ -34,16 +38,16 @@ export async function getClients(cursor?: string, limit: number = 20) {
     if (ids.length === 0) return { clients: [], propertyDefinitions }
 
     const [paidAgg, unpaidAgg, propertyValues] = await Promise.all([
-      prisma.invoice.groupBy({
+      canReadFinance ? prisma.invoice.groupBy({
         by: ["clientId"],
-        where: { companyId, clientId: { in: ids }, status: "PAID" },
+        where: { ...invoiceScope, clientId: { in: ids }, status: "PAID" },
         _sum: { totalHtCents: true },
-      }),
-      prisma.invoice.groupBy({
+      }) : [],
+      canReadFinance ? prisma.invoice.groupBy({
         by: ["clientId"],
-        where: { companyId, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } },
+        where: { ...invoiceScope, clientId: { in: ids }, status: { in: ["SENT", "OVERDUE"] } },
         _sum: { totalTtcCents: true, paidAmountCents: true },
-      }),
+      }) : [],
       prisma.crmPropertyValue.findMany({
         where: { companyId, recordId: { in: ids }, definition: { objectType: "CLIENT", archivedAt: null } },
         select: { recordId: true, definitionId: true, value: true },
@@ -65,30 +69,41 @@ export async function getClients(cursor?: string, limit: number = 20) {
       propertyDefinitions,
       clients: clients.map((c) => ({
         ...c,
-        totalRevenueCents: paidMap.get(c.id) ?? 0,
-        totalUnpaidCents: unpaidMap.get(c.id) ?? 0,
+        relationScore: canReadFinance && agencyIds === null ? c.relationScore : null,
+        renewalAmountCents: canReadFinance ? c.renewalAmountCents : null,
+        totalRevenueCents: canReadFinance ? paidMap.get(c.id) ?? 0 : null,
+        totalUnpaidCents: canReadFinance ? unpaidMap.get(c.id) ?? 0 : null,
         propertyValues: propertyValuesByClient.get(c.id) ?? {},
       })),
     }
-  })
+  }, "crm.read")
 }
 
 export async function getClientById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    const client = await prisma.client.findFirst({
+  return await withAuth(async ({ companyId, agencyIds, role }) => prisma.$transaction(async tx => {
+    if (typeof id !== "string" || !id.trim() || id.length > 200) return null
+    const canReadSales = hasPermission(role, "sales.read")
+    const canReadFinance = hasPermission(role, "finance.read")
+    const projectScope = { companyId, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const documentScope = {
+      companyId,
+      ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: projectScope }),
+    }
+    const client = await tx.client.findFirst({
       where: { id, companyId },
       include: {
         contacts: true,
         activities: { orderBy: { happenedAt: "desc" }, take: 50 },
         files: { orderBy: { createdAt: "desc" }, take: 100 },
-        projects: { orderBy: { createdAt: "desc" }, take: 100 },
+        projects: { where: projectScope, orderBy: { createdAt: "desc" }, take: 100 },
         quotes: {
+          where: { ...documentScope, ...(canReadSales ? {} : { id: { in: [] } }) },
           orderBy: { createdAt: "desc" },
           take: 10,
           include: { versions: { orderBy: { version: "desc" }, take: 1 } },
         },
-        invoices: { orderBy: { createdAt: "desc" }, take: 10 },
-        contracts: { orderBy: { createdAt: "desc" }, take: 10 },
+        invoices: { where: { ...documentScope, ...(canReadFinance ? {} : { id: { in: [] } }) }, orderBy: { createdAt: "desc" }, take: 10 },
+        contracts: { where: { companyId, ...(canReadSales ? {} : { id: { in: [] } }) }, orderBy: { createdAt: "desc" }, take: 10 },
         portalAccesses: {
           orderBy: { createdAt: "desc" },
           take: 25,
@@ -108,21 +123,21 @@ export async function getClientById(id: string) {
     })
     if (!client) return null
 
-    const [paidAgg, unpaidAgg] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { companyId, clientId: id, status: "PAID" },
+    const [paidAgg, unpaidAgg] = canReadFinance ? await Promise.all([
+      tx.invoice.aggregate({
+        where: { ...documentScope, clientId: id, status: "PAID" },
         _sum: { totalHtCents: true },
       }),
-      prisma.invoice.aggregate({
-        where: { companyId, clientId: id, status: { in: ["SENT", "OVERDUE"] } },
+      tx.invoice.aggregate({
+        where: { ...documentScope, clientId: id, status: { in: ["SENT", "OVERDUE"] } },
         _sum: { totalTtcCents: true, paidAmountCents: true },
       }),
-    ])
-    const totalRevenueCents = paidAgg._sum.totalHtCents ?? 0
-    const totalUnpaidCents = (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0)
+    ]) : [null, null]
+    const totalRevenueCents = paidAgg ? paidAgg._sum.totalHtCents ?? 0 : null
+    const totalUnpaidCents = unpaidAgg ? (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0) : null
 
-    return { ...client, totalRevenueCents, totalUnpaidCents }
-  })
+    return { ...client, relationScore: canReadFinance && agencyIds === null ? client.relationScore : null, renewalAmountCents: canReadFinance ? client.renewalAmountCents : null, totalRevenueCents, totalUnpaidCents, access: { sales: canReadSales, finance: canReadFinance, salesWrite: hasPermission(role, "sales.write") } }
+  }, { isolationLevel: "Serializable" }), "crm.read")
 }
 
 export async function getClientsMinimal() {
@@ -137,7 +152,7 @@ export async function getClientsMinimal() {
 }
 
 export async function createClient(data: unknown) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, role, agencyIds }) => {
     const validated = ClientSchema.parse(data)
     const client = await prisma.client.create({
       data: { ...validated, companyId },
@@ -152,12 +167,12 @@ export async function createClient(data: unknown) {
     })
 
     revalidatePath("/dashboard/clients")
-    return client
+    return clientWithAccessibleMetrics(client, { role, agencyIds })
   })
 }
 
 export async function updateClient(id: string, data: unknown) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async ({ companyId, userId, role, agencyIds }) => {
     const validated = ClientSchema.parse(data)
     // Scope to companyId by checking first
     const existing = await prisma.client.findFirst({ where: { id, companyId } })
@@ -178,7 +193,7 @@ export async function updateClient(id: string, data: unknown) {
 
     revalidatePath("/dashboard/clients")
     revalidatePath(`/dashboard/clients/${id}`)
-    return client
+    return clientWithAccessibleMetrics(client, { role, agencyIds })
   })
 }
 
@@ -280,7 +295,7 @@ export async function deleteClientActivity(id: string) {
 }
 
 export async function setClientNextAction(clientId: string, data: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const validated = ClientNextActionSchema.parse(data)
     const existing = await prisma.client.findFirst({ where: { id: clientId, companyId } })
     if (!existing) throw new Error("Client introuvable")
@@ -293,6 +308,6 @@ export async function setClientNextAction(clientId: string, data: unknown) {
     })
     revalidatePath("/dashboard/clients")
     revalidatePath(`/dashboard/clients/${clientId}`)
-    return client
+    return clientWithAccessibleMetrics(client, { role, agencyIds })
   })
 }

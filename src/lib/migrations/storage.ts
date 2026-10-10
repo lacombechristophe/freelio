@@ -25,7 +25,14 @@ function r2Config(): R2Config | null {
   return { accountId, accessKeyId, secretAccessKey, bucket }
 }
 
+function assertStorageEnabled() {
+  if (process.env.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() === "disabled") {
+    throw new Error("Le stockage persistant est désactivé sur cette démonstration")
+  }
+}
+
 function storageDriver() {
+  assertStorageEnabled()
   const configured = process.env.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase()
   if (configured && configured !== "local" && configured !== "r2") throw new Error("MIGRATION_STORAGE_DRIVER doit valoir local ou r2")
   if (configured === "r2" && !r2Config()) throw new Error("Configuration R2 incomplète pour les archives de migration")
@@ -36,6 +43,7 @@ function storageDriver() {
 }
 
 export function migrationDirectUploadAvailable() {
+  if (process.env.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() === "disabled") return false
   return storageDriver() === "r2"
 }
 
@@ -173,6 +181,7 @@ export async function confirmMigrationArtifactUpload(input: {
 }
 
 export async function readMigrationArtifact(storageKey: string, maxBytes = Infinity) {
+  assertStorageEnabled()
   if (storageKey.startsWith(R2_PREFIX)) {
     const config = r2Config()
     if (!config) throw new Error("Configuration R2 indisponible pour lire cette archive")

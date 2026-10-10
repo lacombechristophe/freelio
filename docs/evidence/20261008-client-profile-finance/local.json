@@ -1,0 +1,75 @@
+{
+  "schema": "freelio.client-profile-local.v1",
+  "reference": "bf8b6ee463cf2721dfc08a3fab24ddfaf975c92b",
+  "node": "v24.15.0",
+  "engine": "SQLite",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 915,
+    "sha256": "6ccc78fee9a4aee09aa81b822cf4dd0f96281aa4828db564b9d8bd1caa24e5ab"
+  },
+  "fullSuite": {
+    "passed": 1121,
+    "files": 167,
+    "seconds": 186.4
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 212,
+      "files": 44,
+      "execution": false
+    }
+  },
+  "logs": [
+    {
+      "check": "types",
+      "file": "Freelio-client-profile-final-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "lint-eslint",
+      "file": "Freelio-client-profile-final-lint-eslint.log",
+      "sha256": "1a73194bbfea1346a7897812c24cb4121c59472388ba90fdcda7c5cbe4199257"
+    },
+    {
+      "check": "lint-next",
+      "file": "Freelio-client-profile-final-lint-next.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "unit",
+      "file": "Freelio-client-profile-final-unit.log",
+      "sha256": "8b2de41c4aad695aef0c2c8892552906cca4c96959f86efafcbf2c78fdb1ff31"
+    },
+    {
+      "check": "schema",
+      "file": "Freelio-client-profile-schema.log",
+      "sha256": "6f692227c2e918b3496e0ef27b415415b02deb2074f2d639bfd6fb5ba8df2e28"
+    },
+    {
+      "check": "postgres",
+      "file": "Freelio-client-profile-postgres.log",
+      "sha256": "8eeef3570aaf550387c6e2e76df0d40e4827a3e8be1e0d7183b3ed770638c393"
+    },
+    {
+      "check": "e2e-list",
+      "file": "Freelio-client-profile-e2e-list.log",
+      "sha256": "4ff298db95ca6a3367319f4e32e568e22dcdd912f6110711b8152f7ed62df3ba"
+    },
+    {
+      "check": "build",
+      "file": "Freelio-client-profile-build.log",
+      "sha256": "7b0c09c60986f35343be9d2313abce042577049d967f238a9bc43514a8f15535"
+    }
+  ],
+  "limits": [
+    "No PostgreSQL SQL execution for this new guard yet.",
+    "No browser launched locally.",
+    "Shared global health scores remain a separate uncorrected regression."
+  ]
+}

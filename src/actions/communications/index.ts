@@ -5,70 +5,271 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
-import { sanitizeSequenceEmailHtml } from "@/lib/automations/email"
+import { prepareManualEmailContent, emailPlainText } from "@/lib/communications/email-content"
+import { emailPurposeSchema, assertPurposeRecipients, EmailPurposeError } from "@/lib/communications/email-purpose"
+import { prepareManualMarketingContent } from "@/lib/communications/marketing-consent"
+import { getEmailSignature, saveEmailSignature, EmailSignatureConflict } from "@/lib/communications/signatures"
 import { withAuth } from "@/lib/auth-wrapper"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
-import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
+import { sendManualEmail } from "@/lib/communications/manual-send"
 import { syncOAuthCommunicationChannel } from "@/lib/communications/communication-sync"
-import { jsonValue, recordOutgoingEmail } from "@/lib/communications/threads"
+import { jsonValue } from "@/lib/communications/threads"
 import { encrypt } from "@/lib/crypto"
 import prisma from "@/lib/prisma"
+import { channelConfig } from "@/lib/communications/sync-state"
+import { readInboxPage, readPreviousThreadMessages, type InboxQuery } from "@/lib/communications/inbox-reader"
+import { readRecipientPage } from "@/lib/communications/recipient-reader"
+import { deleteEmailDraft, EmailDraftConflict, getEmailDraft, listEmailDrafts, saveEmailDraft, sendEmailDraft } from "@/lib/communications/drafts"
+import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
+import { readReplyAllRecipients, ReplyAllUnavailable } from "@/lib/communications/reply-all"
+import { readForwardMessage, ForwardUnavailable } from "@/lib/communications/forward"
+import { scheduleEmailDraft, cancelScheduledEmail, EmailScheduleError } from "@/lib/communications/scheduled-emails"
+import type { EmailAttachment } from "@/lib/communications/attachment-types"
+import { listCrmEmailDocuments, attachCrmEmailDocument, EmailCrmDocumentError } from "@/lib/communications/crm-documents"
+import { EmailAttachmentError } from "@/lib/communications/draft-attachments"
+import { listManualEmailRecovery, recoverManualEmail, EmailRecoveryError } from "@/lib/communications/manual-recovery"
+import { isPublicReadOnlyDemo, DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
+
+export async function getCommunicationRecovery(input: unknown = {}) {
+  return withAuth(async ({ companyId, userId }) => {
+    try { return { success: true as const, page: await listManualEmailRecovery(companyId, userId, input) } }
+    catch (error) {
+      if (error instanceof EmailRecoveryError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+async function recoveryAction(input: unknown, operation: "CHECK" | "REPAIR" | "CLOSE") {
+  if (isPublicReadOnlyDemo()) return { success: false as const, error: DEMO_READ_ONLY_MESSAGE }
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = await recoverManualEmail(companyId, userId, input, operation)
+      revalidatePath("/dashboard/communications")
+      return result
+    } catch (error) {
+      if (error instanceof EmailRecoveryError || error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function checkCommunicationResult(input: unknown) { return recoveryAction(input, "CHECK") }
+export async function repairCommunicationHistory(input: unknown) { return recoveryAction(input, "REPAIR") }
+export async function closeCommunicationWithoutRetry(input: unknown) { return recoveryAction(input, "CLOSE") }
+
+export async function getCommunicationCrmDocuments(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try { return { success: true as const, page: await listCrmEmailDocuments(companyId, userId, input) } }
+    catch (error) {
+      if (error instanceof EmailCrmDocumentError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+export async function attachCommunicationCrmDocument(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await attachCrmEmailDocument(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailCrmDocumentError || error instanceof EmailDraftConflict || error instanceof EmailAttachmentError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function getCommunicationDrafts(input: unknown = {}) {
+  return withAuth(({ companyId, userId }) => listEmailDrafts(companyId, userId, input), "automation.read")
+}
+
+export async function scheduleCommunicationDraft(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await scheduleEmailDraft(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailScheduleError || error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function cancelCommunicationDraftSchedule(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const draft = await cancelScheduledEmail(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailScheduleError || error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function getCommunicationReplyAll(threadId: string) {
+  return withAuth(async ({ companyId }) => {
+    try { return { success: true as const, reply: await readReplyAllRecipients(companyId, threadId) } }
+    catch (error) {
+      if (error instanceof ReplyAllUnavailable) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+export async function getCommunicationForward(messageId: string) {
+  return withAuth(async ({ companyId }) => {
+    try { return { success: true as const, forward: await readForwardMessage(companyId, messageId) } }
+    catch (error) {
+      if (error instanceof ForwardUnavailable) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+export async function saveCommunicationSignature(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const signature = await saveEmailSignature(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, signature }
+    } catch (error) {
+      if (error instanceof EmailSignatureConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function previewCommunicationEmail(input: unknown) {
+  return withAuth(async ({ companyId }) => {
+    const data = z.object({ bodyHtml: z.string().max(100_000), purpose: emailPurposeSchema.nullable().default(null), contactId: z.string().optional(), cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]) }).parse(input)
+    try {
+      assertPurposeRecipients(data.purpose, data.cc, data.bcc)
+      const content = prepareManualEmailContent(data.bodyHtml)
+      if (data.purpose !== "MARKETING") return { ...content, purpose: data.purpose, error: null }
+      const contact = data.contactId ? await prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId } }, select: { email: true } }) : null
+      if (!contact?.email) throw new EmailPurposeError("Choisissez un destinataire avant l’aperçu de prospection")
+      const marketing = await prepareManualMarketingContent(companyId, data.contactId!, contact.email, content.html)
+      return { html: marketing.renderedHtml, text: emailPlainText(marketing.renderedHtml), purpose: data.purpose, error: null }
+    } catch (error) {
+      if (error instanceof EmailPurposeError) return { html: "", text: "", purpose: data.purpose, error: error.message }
+      throw error
+    }
+  }, "automation.read")
+}
+
+export async function getCommunicationDraft(id: string) {
+  return withAuth(({ companyId, userId }) => getEmailDraft(companyId, userId, id), "automation.read")
+}
+
+export async function saveCommunicationDraft(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const expected = z.object({ expectedCompanyId: z.string().min(1).max(200).optional(), expectedAuthorId: z.string().min(1).max(200).optional() }).parse(input)
+      if ((expected.expectedCompanyId && expected.expectedCompanyId !== companyId) || (expected.expectedAuthorId && expected.expectedAuthorId !== userId)) {
+        throw new EmailDraftConflict("Le compte ou l’espace actif a changé. Votre texte est conservé ; rouvrez Communications avant de sauvegarder")
+      }
+      const draft = await saveEmailDraft(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, draft }
+    } catch (error) {
+      if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+
+export async function deleteCommunicationDraft(input: unknown) {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = await deleteEmailDraft(companyId, userId, input)
+      revalidatePath("/dashboard/communications")
+      return result
+    } catch (error) {
+      if (error instanceof EmailDraftConflict) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
 
 const cuid = z.string().cuid()
 
 export async function getCommunicationDashboard() {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
-    const [company, channels, threads, events, contacts] = await Promise.all([
-      prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
-      prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
-      prisma.emailThread.findMany({
-        where: { companyId, status: { not: "ARCHIVED" } },
-        include: {
-          client: { select: { id: true, name: true } },
-          contact: { select: { id: true, firstName: true, lastName: true, email: true } },
-          leadCapture: { select: { id: true, firstName: true, lastName: true, email: true } },
-          messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 100 },
-        },
-        orderBy: { lastMessageAt: "desc" },
-        take: 100,
-      }),
+    const [company, channels, inbox, events, recipients, unread, signature] = await Promise.all([
+      prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { id: true, name: true, email: true } }),
+      prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, visibility: true, mailEnabled: true, calendarEnabled: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
+      readInboxPage(companyId),
       prisma.emailEvent.groupBy({ where: { companyId, occurredAt: { gte: since } }, by: ["type"], _count: { _all: true } }),
-      prisma.contact.findMany({ where: { client: { companyId }, email: { not: null } }, include: { client: { select: { id: true, name: true } } }, orderBy: [{ firstName: "asc" }, { lastName: "asc" }], take: 500 }),
+      readRecipientPage(companyId),
+      prisma.emailThread.aggregate({ where: { companyId, status: { not: "ARCHIVED" } }, _sum: { unreadCount: true } }),
+      getEmailSignature(companyId, userId),
     ])
     const sent = await prisma.emailMessage.count({ where: { companyId, direction: "OUTBOUND", createdAt: { gte: since } } })
     const received = await prisma.emailMessage.count({ where: { companyId, direction: "INBOUND", createdAt: { gte: since } } })
     return {
       company,
+      signature,
+      signatureOwnerId: userId,
       channels: channels.map(({ credentialsEncrypted, config, ...channel }) => ({
         ...channel,
         hasCredentials: Boolean(credentialsEncrypted),
         connectionMode: config && typeof config === "object" && !Array.isArray(config) && "mode" in config && typeof config.mode === "string" ? config.mode : null,
+        config: { mode: channelConfig(config).mode ?? null },
+        emailSyncStatus: channelConfig(config).emailSyncStatus ?? null,
+        calendarSyncStatus: channelConfig(config).calendarSyncStatus ?? null,
       })),
-      threads,
-      contacts,
-      stats: { sent, received, events: Object.fromEntries(events.map((event) => [event.type, event._count._all])) },
+      threads: inbox.threads,
+      inbox,
+      recipients,
+      stats: { sent, received, unread: unread._sum.unreadCount ?? 0, events: Object.fromEntries(events.map((event) => [event.type, event._count._all])) },
     }
   }, "automation.read")
 }
 
+export async function getCommunicationInboxPage(input: InboxQuery) {
+  return withAuth(({ companyId }) => readInboxPage(companyId, input), "automation.read")
+}
+
+export async function getPreviousCommunicationMessages(input: unknown) {
+  return withAuth(({ companyId }) => readPreviousThreadMessages(companyId, input), "automation.read")
+}
+
+export async function getCommunicationRecipients(input: unknown = {}) {
+  return withAuth(({ companyId }) => readRecipientPage(companyId, input), "automation.read")
+}
+
 const sendSchema = z.object({
+  requestKey: z.string().uuid().optional(),
   contactId: cuid,
   channelId: z.union([cuid, z.literal("")]).optional(),
   threadId: z.union([cuid, z.literal("")]).optional(),
   serviceTicketId: z.union([cuid, z.literal("")]).optional(),
   subject: z.string().trim().min(2).max(180),
   bodyHtml: z.string().trim().min(10).max(100_000),
+  purpose: emailPurposeSchema.nullable().default(null),
+  cc: copyRecipientsSchema.default([]), bcc: copyRecipientsSchema.default([]),
+  draftId: cuid.optional(), draftVersion: z.number().int().positive().optional(),
+  attachmentIds: z.array(z.string().uuid()).max(5).default([]),
 })
 
 export async function sendCrmEmail(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = sendSchema.parse(input)
+    try { assertPurposeRecipients(data.purpose, data.cc, data.bcc) }
+    catch (error) { if (error instanceof EmailPurposeError) return { success: false as const, error: error.message }; throw error }
+    if (data.attachmentIds.length && !data.draftId) throw new Error("Enregistrez les pièces jointes dans un brouillon avant l’envoi")
     const [company, contact] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { name: true, email: true } }),
       prisma.contact.findFirst({ where: { id: data.contactId, client: { companyId }, email: { not: null } }, select: { id: true, email: true, clientId: true } }),
     ])
     if (!contact?.email) throw new Error("Contact ou adresse e-mail introuvable")
+    validateRecipients(contact.email, data.cc, data.bcc)
     const ticket = data.serviceTicketId ? await prisma.serviceTicket.findFirst({ where: { id: data.serviceTicketId, companyId, clientId: contact.clientId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }) : null
     if (data.serviceTicketId && !ticket) throw new Error("Ticket introuvable ou sans rapport avec ce contact")
     if (data.threadId) {
@@ -76,11 +277,17 @@ export async function sendCrmEmail(input: unknown) {
       if (!thread) throw new Error("Conversation introuvable")
     }
     const subject = data.subject.replace(/[\r\n]+/g, " ").trim()
-    const content = sanitizeSequenceEmailHtml(data.bodyHtml)
-    const html = `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`
-    const idempotencyKey = randomUUID()
-    const sent = await sendEmailThroughChannel({ companyId, channelId: data.channelId || null, companyName: company.name, to: contact.email, replyTo: company.email, subject, html, idempotencyKey })
-    const message = await recordOutgoingEmail({ companyId, threadId: data.threadId || null, clientId: contact.clientId, contactId: contact.id, provider: sent.provider, providerId: sent.providerId, from: sent.from, to: [contact.email], subject, bodyHtml: html })
+    const { html } = prepareManualEmailContent(data.bodyHtml)
+    const send = (requestKey: string, attachments: EmailAttachment[] = []) => sendManualEmail({ companyId, userId, requestKey, purpose: data.purpose || undefined, channelId: data.channelId || null, companyName: company.name, replyTo: company.email, to: contact.email!, contactId: contact.id, clientId: contact.clientId, threadId: data.threadId || null, serviceTicketId: ticket?.id || null, subject, html, cc: data.cc, bcc: data.bcc, attachments })
+    const message = await (async () => {
+      try {
+        return data.draftId ? await sendEmailDraft(companyId, userId, { ...data, id: data.draftId, version: data.draftVersion }, send) : await send(data.requestKey || randomUUID())
+      } catch (error) {
+        if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError) return { success: false as const, error: error.message }
+        throw error
+      }
+    })()
+    if ("success" in message) return message
     if (ticket) await prisma.$transaction([
       prisma.emailThread.update({ where: { id: message.threadId }, data: { serviceTicketId: ticket.id } }),
       prisma.serviceTicket.updateMany({ where: { id: ticket.id, firstRespondedAt: null }, data: { firstRespondedAt: new Date() } }),
@@ -95,6 +302,9 @@ export async function sendCrmEmail(input: unknown) {
 
 const channelSchema = z.object({
   provider: z.enum(["RESEND", "GOOGLE", "MICROSOFT"]),
+  visibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
+  capabilities: z.enum(["MAIL", "CALENDAR", "BOTH"]).default("BOTH"),
+  sharingAcknowledged: z.boolean().default(false),
   emailAddress: z.string().trim().toLowerCase().email().max(254),
   displayName: z.string().trim().max(120).optional().default(""),
   apiKey: z.string().trim().max(500).optional().default(""),
@@ -104,7 +314,10 @@ const channelSchema = z.object({
 export async function configureCommunicationChannel(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = channelSchema.parse(input)
-    const existing = await prisma.communicationChannel.findUnique({ where: { companyId_provider_emailAddress: { companyId, provider: data.provider, emailAddress: data.emailAddress } }, select: { id: true, status: true, credentialsEncrypted: true, config: true } })
+    if (data.visibility === "SHARED" && !data.sharingAcknowledged) throw new Error("Confirmez explicitement le partage de cette messagerie")
+    if (data.provider === "RESEND" && data.capabilities === "CALENDAR") throw new Error("Resend ne fournit pas de calendrier")
+    const existing = await prisma.communicationChannel.findUnique({ where: { companyId_provider_emailAddress: { companyId, provider: data.provider, emailAddress: data.emailAddress } }, select: { id: true, ownerUserId: true, status: true, credentialsEncrypted: true, config: true } })
+    const access = { visibility: data.visibility, ownerUserId: existing?.ownerUserId || userId, mailEnabled: data.capabilities !== "CALENDAR", calendarEnabled: data.provider !== "RESEND" && data.capabilities !== "MAIL" }
     const suppliedResendCredentials = data.provider === "RESEND" && Boolean(data.apiKey && data.webhookSecret)
     if (data.provider === "RESEND" && Boolean(data.apiKey) !== Boolean(data.webhookSecret)) {
       throw new Error("La clé API et le secret webhook doivent être renseignés ensemble")
@@ -123,8 +336,8 @@ export async function configureCommunicationChannel(input: unknown) {
       : existing?.config == null ? undefined : jsonValue(existing.config)
     const channel = await prisma.communicationChannel.upsert({
       where: { companyId_provider_emailAddress: { companyId, provider: data.provider, emailAddress: data.emailAddress } },
-      update: { displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
-      create: { companyId, provider: data.provider, emailAddress: data.emailAddress, displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
+      update: { ...access, displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
+      create: { ...access, companyId, provider: data.provider, emailAddress: data.emailAddress, displayName: data.displayName || null, status, credentialsEncrypted, config, lastError: status === "ACTIVE" ? null : data.provider === "RESEND" ? "Clé API et secret webhook requis" : "Autorisation OAuth requise" },
     })
     await logAction({ userId, action: "UPDATE_COMMUNICATION_CHANNEL", resource: "COMMUNICATION_CHANNEL", resourceId: channel.id, payload: { provider: channel.provider, emailAddress: channel.emailAddress, status: channel.status } })
     revalidatePath("/dashboard/communications")
@@ -137,7 +350,7 @@ export async function disconnectCommunicationChannel(channelId: string) {
     const id = cuid.parse(channelId)
     const channel = await prisma.communicationChannel.findFirst({ where: { id, companyId }, select: { id: true, provider: true, emailAddress: true } })
     if (!channel) throw new Error("Connexion introuvable")
-    await prisma.communicationChannel.update({ where: { id }, data: { status: "PENDING", credentialsEncrypted: null, config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Connexion révoquée" } })
+    await prisma.communicationChannel.update({ where: { id }, data: { status: "PENDING", credentialsEncrypted: null, oauthNonceHash: null, oauthAttemptId: null, oauthExpiresAt: null, oauthStartedByUserId: null, config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Déconnectée de Freelio ; l’accès fournisseur reste à révoquer" } })
     await logAction({ userId, action: "UPDATE_COMMUNICATION_CHANNEL", resource: "COMMUNICATION_CHANNEL", resourceId: id, payload: { operation: "DISCONNECT", provider: channel.provider, emailAddress: channel.emailAddress } })
     revalidatePath("/dashboard/communications")
     return { success: true as const }

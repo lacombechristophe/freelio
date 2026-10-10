@@ -5,44 +5,24 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { BankImportSchema } from "@/lib/validations"
 import { bankTransactionFingerprint } from "@/lib/workflow-rules"
+import { readBankHistory, readBankTargets } from "@/lib/banking-readers"
+import { parseBankDate } from "@/lib/bank-date"
+import { withBankReconciliation } from "@/lib/bank-reconciliation"
+import { isUniqueConstraintConflict } from "@/lib/document-numbering"
 
-export async function getBankingDashboard() {
-  return withAuth(async ({ companyId }) => {
-    const [transactions, invoices, expenses] = await Promise.all([
-      prisma.bankTransaction.findMany({
-        where: { companyId },
-        orderBy: [{ date: "desc" }, { importedAt: "desc" }],
-        take: 250,
-        include: {
-          matchedPayment: { include: { invoice: { select: { id: true, number: true } } } },
-          matchedExpense: { select: { id: true, label: true } },
-        },
-      }),
-      prisma.invoice.findMany({
-        where: { companyId, status: { in: ["SENT", "OVERDUE"] } },
-        orderBy: { dueDate: "asc" },
-        select: {
-          id: true, number: true, totalTtcCents: true, paidAmountCents: true,
-          client: { select: { name: true } },
-        },
-      }),
-      prisma.expense.findMany({
-        where: { companyId, bankTransaction: null },
-        orderBy: { date: "desc" },
-        take: 100,
-        select: { id: true, label: true, amountCents: true, date: true },
-      }),
-    ])
-    return { transactions, invoices, expenses }
-  })
+export async function getBankingDashboard(input: unknown = {}) {
+  return withAuth(({ companyId }) => readBankHistory(companyId, input), "finance.read")
+}
+
+export async function getBankingTargets(input: unknown) {
+  return withAuth(({ companyId }) => readBankTargets(companyId, input), "finance.read")
 }
 
 export async function importBankTransactions(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const { rows } = BankImportSchema.parse(input)
     const prepared = rows.map((row) => {
-      const date = new Date(`${row.date}T12:00:00`)
-      if (Number.isNaN(date.getTime())) throw new Error(`Date invalide : ${row.date}`)
+      const date = parseBankDate(row.date)
       return {
         companyId,
         date,
@@ -57,22 +37,37 @@ export async function importBankTransactions(input: unknown) {
         }),
       }
     })
-    const existing = await prisma.bankTransaction.findMany({
-      where: { companyId, fingerprint: { in: prepared.map((row) => row.fingerprint) } },
-      select: { fingerprint: true },
+    const fingerprints = new Set<string>()
+    const distinct = prepared.filter(row => {
+      if (fingerprints.has(row.fingerprint)) return false
+      fingerprints.add(row.fingerprint)
+      return true
     })
-    const known = new Set(existing.map((row) => row.fingerprint))
-    const unique = prepared.filter((row, index, array) => (
-      !known.has(row.fingerprint) && array.findIndex((candidate) => candidate.fingerprint === row.fingerprint) === index
-    ))
-    if (unique.length) await prisma.bankTransaction.createMany({ data: unique })
+    let imported = 0
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const existing = await prisma.bankTransaction.findMany({
+        where: { companyId, fingerprint: { in: [...fingerprints] } },
+        select: { fingerprint: true },
+      })
+      const known = new Set(existing.map(row => row.fingerprint))
+      const missing = distinct.filter(row => !known.has(row.fingerprint))
+      if (!missing.length) break
+      try {
+        imported = (await prisma.bankTransaction.createMany({ data: missing })).count
+        break
+      } catch (error) {
+        // createMany is atomic. Another import can win after the read; reread
+        // committed fingerprints before retrying this file's remaining rows.
+        if (attempt === 2 || !isUniqueConstraintConflict(error, "fingerprint")) throw error
+      }
+    }
     revalidatePath("/dashboard/comptabilite/banque")
-    return { imported: unique.length, ignored: prepared.length - unique.length }
-  })
+    return { imported, ignored: prepared.length - imported }
+  }, "finance.write")
 }
 
 export async function matchTransactionToInvoice(transactionId: string, invoiceId: string) {
-  return withAuth(async ({ companyId, userId }) => prisma.$transaction(async (tx) => {
+  const result = await withBankReconciliation(async (tx, { companyId, userId }) => {
     const transaction = await tx.bankTransaction.findFirst({ where: { id: transactionId, companyId } })
     const invoice = await tx.invoice.findFirst({ where: { id: invoiceId, companyId } })
     if (!transaction || !invoice) throw new Error("Transaction ou facture introuvable")
@@ -100,14 +95,15 @@ export async function matchTransactionToInvoice(transactionId: string, invoiceId
     await tx.auditLog.create({
       data: { userId, action: "MATCH_BANK_PAYMENT", resource: "INVOICE", resourceId: invoiceId, payload: { transactionId } },
     })
-    revalidatePath("/dashboard/comptabilite/banque")
-    revalidatePath(`/dashboard/factures/${invoiceId}`)
     return { ok: true }
-  }))
+  })
+  revalidatePath("/dashboard/comptabilite/banque")
+  revalidatePath(`/dashboard/factures/${invoiceId}`)
+  return result
 }
 
 export async function matchTransactionToExpense(transactionId: string, expenseId: string) {
-  return withAuth(async ({ companyId }) => prisma.$transaction(async (tx) => {
+  const result = await withBankReconciliation(async (tx, { companyId }) => {
     const transaction = await tx.bankTransaction.findFirst({ where: { id: transactionId, companyId } })
     const expense = await tx.expense.findFirst({ where: { id: expenseId, companyId } })
     if (!transaction || !expense) throw new Error("Transaction ou dépense introuvable")
@@ -117,13 +113,14 @@ export async function matchTransactionToExpense(transactionId: string, expenseId
       throw new Error("Le montant de la dépense ne correspond pas exactement à la transaction")
     }
     await tx.bankTransaction.update({ where: { id: transactionId }, data: { matchedExpenseId: expenseId } })
-    revalidatePath("/dashboard/comptabilite/banque")
     return { ok: true }
-  }))
+  })
+  revalidatePath("/dashboard/comptabilite/banque")
+  return result
 }
 
 export async function createExpenseFromTransaction(transactionId: string) {
-  return withAuth(async ({ companyId, userId }) => prisma.$transaction(async (tx) => {
+  const result = await withBankReconciliation(async (tx, { companyId, userId }) => {
     const transaction = await tx.bankTransaction.findFirst({ where: { id: transactionId, companyId } })
     if (!transaction) throw new Error("Transaction introuvable")
     if (transaction.amountCents >= 0) throw new Error("Cette transaction n'est pas une dépense")
@@ -143,8 +140,9 @@ export async function createExpenseFromTransaction(transactionId: string) {
     await tx.auditLog.create({
       data: { userId, action: "CREATE_EXPENSE_FROM_BANK", resource: "EXPENSE", resourceId: expense.id, payload: { transactionId } },
     })
-    revalidatePath("/dashboard/comptabilite/banque")
-    revalidatePath("/dashboard/depenses")
     return expense
-  }))
+  })
+  revalidatePath("/dashboard/comptabilite/banque")
+  revalidatePath("/dashboard/depenses")
+  return result
 }

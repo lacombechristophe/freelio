@@ -1,0 +1,49 @@
+{
+  "schema": "freelio.order-linked-invoice-local.v1",
+  "date": "2026-10-09",
+  "codeCommit": "02a6e10bc1091d08ee7d76787a107a624441ff0d",
+  "environment": "Isolated Windows recipe, fictitious SQLite; no existing environment files or provider calls",
+  "steps": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 17.556
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 40.919
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.27
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 232.459
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 71.54
+    }
+  ],
+  "unit": {
+    "focused": {
+      "file": "order-linked-invoice.integration.test.ts",
+      "passed": 14
+    },
+    "failed": 0,
+    "reportSha256": "e8167c86e83dc3cd924ced5420b10d10ff31aeb3cd74e59378c376a55bd62f20",
+    "passed": 1605,
+    "files": 186
+  },
+  "limits": [
+    "Session and Next cache mocked; actual actions, DAL and SQL transactions",
+    "Intermediate mutation injected, not concurrent independent connections",
+    "No emitted document, PDF, payment or external supplier qualification",
+    "Own PostgreSQL and compiled browser CI required"
+  ]
+}

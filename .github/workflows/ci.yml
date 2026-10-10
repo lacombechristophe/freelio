@@ -43,7 +43,10 @@ jobs:
           retention-days: 14
   quality-and-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Chromium system-package installation took 429 seconds on 2026-10-07.
+    # Leave room for the complete security audit and evidence uploads; retain
+    # every test timeout and the failing audit gate.
+    timeout-minutes: 35
     env:
       DATABASE_URL: file:./e2e-ci.db
       AUTH_SECRET: ci-auth-secret-longer-than-thirty-two-characters
@@ -79,8 +82,8 @@ jobs:
       - name: Installer les dépendances
         run: npm ci --no-audit --fund=false
 
-      - name: Auditer les dépendances
-        run: npm audit --audit-level=moderate
+      - name: Auditer les dépendances de production
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Préparer la base E2E isolée
         run: |
@@ -102,8 +105,14 @@ jobs:
       - name: Exécuter les parcours critiques
         run: npm run test:e2e
 
+      # Keep the complete security gate while retaining functional evidence
+      # when a development-only advisory has no upstream patch yet.
+      - name: Auditer toutes les dépendances
+        if: always()
+        run: npm audit --audit-level=moderate
+
       - name: Publier les traces en cas d’échec
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
@@ -120,6 +129,14 @@ jobs:
           path: |
             test-results/full-ui-audit/
             test-results/task-usability/
+            test-results/supplier-history/
+            test-results/catalogue-volume/
+            test-results/operations-assets/
+            test-results/shared-health-permissions/
+            test-results/workspace-permissions/
+            test-results/opportunity-permissions/
+            test-results/project-reader-permissions/
+            test-results/contact-history-permissions/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -147,7 +164,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:18.6
+        image: public.ecr.aws/docker/library/postgres:18.6
         env:
           POSTGRES_USER: crm
           POSTGRES_PASSWORD: crm

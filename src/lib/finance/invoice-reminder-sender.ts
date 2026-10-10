@@ -1,9 +1,8 @@
 import "server-only"
+import { z } from "zod"
 
-import { subMinutes } from "date-fns"
-
-import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
-import { recordOutgoingEmail } from "@/lib/communications/threads"
+import { sendManualEmail } from "@/lib/communications/manual-send"
+import { withProcessorLease } from "@/lib/processing/lease"
 import {
   buildInvoiceReminderContent,
   invoiceReminderDueAt,
@@ -30,70 +29,64 @@ export async function sendInvoiceReminderRecord(input: {
   subject?: string
   message?: string
 }) {
-  const reminder = await prisma.invoiceReminder.findFirst({
-    where: { id: input.reminderId, companyId: input.companyId, invoice: { companyId: input.companyId } },
-    include: senderInclude,
-  })
-  if (!reminder) throw new Error("Relance introuvable")
-  if (reminder.status === "SENT") return { reminder, alreadySent: true as const }
-
-  const contact = reminder.invoice.client.contacts.find((item) => item.email)
-  if (!contact?.email) throw new Error("Aucune adresse e-mail n’est renseignée pour ce client")
-
-  const lock = await prisma.invoiceReminder.updateMany({
-    where: {
-      id: reminder.id,
-      companyId: input.companyId,
-      OR: [
-        { status: { in: ["PREPARED", "FAILED"] } },
-        { status: "SENDING", updatedAt: { lt: subMinutes(new Date(), 15) } },
-      ],
-    },
-    data: { status: "SENDING", error: null },
-  })
-  if (lock.count !== 1) throw new Error("Cette relance est déjà en cours d’envoi")
-
-  const subject = input.subject?.trim() || reminder.subject
-  const message = input.message?.trim() || reminder.message
-  try {
-    const sent = await sendEmailThroughChannel({
-      companyId: input.companyId,
-      channelId: input.channelId || null,
-      companyName: reminder.invoice.company.name,
-      to: contact.email,
-      replyTo: reminder.invoice.company.email,
-      subject,
-      html: plainTextToEmailHtml(message),
-      idempotencyKey: `invoice-reminder:${reminder.id}`,
+  const execution = await withProcessorLease(`invoice-reminder:${input.reminderId}`, async control => {
+    const reminder = await prisma.invoiceReminder.findFirst({
+      where: { id: input.reminderId, companyId: input.companyId, invoice: { companyId: input.companyId, client: { companyId: input.companyId } } },
+      include: senderInclude,
     })
-    const updated = await prisma.invoiceReminder.update({
-      where: { id: reminder.id },
-      data: { status: "SENT", channel: sent.provider, subject, message, sentAt: new Date(), error: null },
-    })
-    let emailMessage = null
-    try {
-      emailMessage = await recordOutgoingEmail({
-        companyId: input.companyId,
-        clientId: reminder.invoice.clientId,
-        contactId: contact.id,
-        provider: sent.provider,
-        providerId: sent.providerId,
-        from: sent.from,
-        to: [contact.email],
-        subject,
-        bodyHtml: plainTextToEmailHtml(message),
-        bodyText: message,
-      })
-    } catch (error) {
-      const historyError = error instanceof Error ? error.message : "historique indisponible"
-      await prisma.invoiceReminder.update({ where: { id: reminder.id }, data: { error: `Message envoyé, mais journalisation incomplète : ${historyError}` } }).catch(() => undefined)
+    if (!reminder) throw new Error("Relance introuvable")
+    if (reminder.status === "SENT") return { reminder, alreadySent: true as const }
+
+    const requestKey = `invoice-reminder:${reminder.id}`
+    const delivery = await prisma.emailDelivery.findUnique({ where: { companyId_requestKey: { companyId: input.companyId, requestKey } } })
+    const accepted = delivery && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(delivery.status)
+    // Older attempts never persisted a transport identity. Their outcome must
+    // be reconciled instead of recreating a fresh OAuth draft or Resend command.
+    if (!delivery && ["FAILED", "SENDING"].includes(reminder.status)) throw new Error("Ancienne relance sans commande figée : vérifiez son résultat fournisseur avant de créer une nouvelle relance")
+    if (!accepted && !["PREPARED", "FAILED", "SENDING"].includes(reminder.status)) throw new Error("Cette relance ne peut pas être envoyée")
+
+    const contact = reminder.invoice.client.contacts.find((item) => item.email)
+    if (!contact?.email) throw new Error("Aucune adresse e-mail n’est renseignée pour ce client")
+
+    const subject = input.subject?.trim() || reminder.subject
+    const message = input.message?.trim() || reminder.message
+    if (delivery && (subject !== reminder.subject || message !== reminder.message)) throw new Error("Le contenu de cette relance est déjà figé ; vérifiez son résultat avant de créer une nouvelle relance")
+    const storedPayload = delivery?.payload
+    const storedSnapshot = storedPayload && typeof storedPayload === "object" && !Array.isArray(storedPayload) ? storedPayload.invoiceSnapshot : undefined
+    if (!delivery && !reminder.remainingCents) throw new Error("Ancienne relance sans solde figé : préparez une nouvelle relance après vérification de la facture")
+    const invoiceSnapshot = delivery
+      ? z.object({ invoiceId: z.literal(reminder.invoiceId), remainingCents: z.number().int().positive() }).parse(storedSnapshot)
+      : { invoiceId: reminder.invoiceId, remainingCents: reminder.remainingCents! }
+    const assertInvoiceUnpaid = async () => {
+      await control.assertOwned()
+      const invoice = await prisma.invoice.findFirst({ where: { id: reminder.invoiceId, companyId: input.companyId, client: { companyId: input.companyId } }, select: { status: true, totalTtcCents: true, paidAmountCents: true } })
+      if (!invoice || !["SENT", "OVERDUE"].includes(invoice.status) || invoice.paidAmountCents >= invoice.totalTtcCents) throw new Error("Cette facture n’est plus éligible à une relance : vérifiez son statut et son solde")
+      if (invoice.totalTtcCents - invoice.paidAmountCents !== invoiceSnapshot.remainingCents) throw new Error("Le solde a changé depuis la préparation ; vérifiez la relance et son résultat avant de créer un nouveau message")
     }
-    return { reminder: updated, emailMessage, alreadySent: false as const }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Envoi impossible"
-    await prisma.invoiceReminder.update({ where: { id: reminder.id }, data: { status: "FAILED", error: message } })
-    throw error
-  }
+    if (!accepted) await assertInvoiceUnpaid()
+    await prisma.invoiceReminder.updateMany({ where: { id: reminder.id, companyId: input.companyId }, data: { status: "SENDING", subject, message, error: null } })
+    try {
+      const emailMessage = await sendManualEmail({
+        companyId: input.companyId, userId: "SYSTEM_INVOICE_REMINDER", requestKey, purpose: "SERVICE",
+        channelId: input.channelId || null, companyName: reminder.invoice.company.name,
+        to: contact.email, replyTo: reminder.invoice.company.email,
+        contactId: contact.id, clientId: reminder.invoice.clientId, threadId: null, serviceTicketId: null,
+        subject, html: plainTextToEmailHtml(message), beforeDispatch: assertInvoiceUnpaid, invoiceSnapshot,
+      })
+      const updated = await prisma.invoiceReminder.update({
+        where: { id: reminder.id },
+        data: { status: "SENT", channel: emailMessage.provider, subject, message, sentAt: emailMessage.sentAt || new Date(), error: null },
+      })
+      return { reminder: updated, emailMessage, alreadySent: false as const }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Envoi impossible"
+      const prepared = await prisma.emailDelivery.count({ where: { companyId: input.companyId, requestKey } })
+      await prisma.invoiceReminder.update({ where: { id: reminder.id }, data: { status: prepared ? "FAILED" : "PREPARED", error: message } })
+      throw error
+    }
+  })
+  if (!execution.acquired) throw new Error("Cette relance est déjà en cours d’envoi")
+  return execution.value
 }
 
 export async function processDueInvoiceReminders(input: { companyId?: string; limit?: number } = {}) {
@@ -118,6 +111,7 @@ export async function processDueInvoiceReminders(input: { companyId?: string; li
     const invoices = await prisma.invoice.findMany({
       where: {
         companyId: config.companyId,
+        client: { companyId: config.companyId },
         status: { in: ["SENT", "OVERDUE"] },
         dueDate: { lte: invoiceReminderDueAt(now, -earliestThreshold) },
       },
@@ -153,7 +147,7 @@ export async function processDueInvoiceReminders(input: { companyId?: string; li
       const reminder = await prisma.invoiceReminder.upsert({
         where: { invoiceId_sourceKey: { invoiceId: invoice.id, sourceKey } },
         update: {},
-        create: { companyId: config.companyId, invoiceId: invoice.id, sourceKey, ...content },
+        create: { companyId: config.companyId, invoiceId: invoice.id, sourceKey, ...content, remainingCents: invoice.totalTtcCents - invoice.paidAmountCents },
       })
       if (!existing) summary.prepared += 1
       remainingCapacity -= 1

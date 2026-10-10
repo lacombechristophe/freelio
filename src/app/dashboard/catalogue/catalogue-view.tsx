@@ -7,7 +7,8 @@ import { Boxes, Layers3, MoreHorizontal, Package, Pencil, Plus, Search, Settings
 import { toast } from "sonner"
 
 import { deleteService } from "@/actions/catalogue"
-import { setCatalogProductActive } from "@/actions/products"
+import { getProductCatalogue, setCatalogProductActive } from "@/actions/products"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { EmptyState } from "@/components/shared/empty-state"
 import { PageHeader } from "@/components/shared/page-header"
 import { useConfirm } from "@/components/shared/confirm-provider"
@@ -59,9 +60,26 @@ export function CatalogueView({ services, categories, productData }: {
   const [productCreateOpen, setProductCreateOpen] = React.useState(false)
   const [productEditTarget, setProductEditTarget] = React.useState<Product | null>(null)
   const [search, setSearch] = React.useState("")
-
-  const productChoices = productData.products.map((product) => ({ id: product.id, sku: product.sku, label: product.label, parentProductId: product.parentProductId }))
-  const filteredProducts = productData.products.filter((product) => [product.sku, product.label, product.family, product.manufacturer, product.variantLabel].filter(Boolean).join(" ").toLowerCase().includes(search.trim().toLowerCase()))
+  const [page, setPage] = React.useState(1)
+  const [retry, setRetry] = React.useState(0)
+  const [pending, startTransition] = React.useTransition()
+  const [error, setError] = React.useState(false)
+  const key = JSON.stringify([search, page, retry, productData])
+  const [result, setResult] = React.useState({ key, data: productData })
+  React.useEffect(() => {
+    let current = true
+    const timer = setTimeout(() => startTransition(async () => {
+      try {
+        const data = await getProductCatalogue({ search, page })
+        if (current) { setResult({ key, data }); setError(false) }
+      } catch { if (current) setError(true) }
+    }), 200)
+    return () => { current = false; clearTimeout(timer) }
+  }, [search, page, key])
+  const fresh = result.key === key
+  const busy = pending || (!fresh && !error)
+  const data = fresh ? result.data : productData
+  const filteredProducts = fresh && !error ? data.products : []
 
   async function handleDeleteService(id: string, label: string) {
     if (!(await confirmDialog({ title: `Supprimer "${label}" ?`, confirmLabel: "Supprimer", destructive: true }))) return
@@ -96,20 +114,20 @@ export function CatalogueView({ services, categories, productData }: {
 
       <ServiceFormDialog open={serviceCreateOpen} onOpenChange={setServiceCreateOpen} categories={categories} />
       {serviceEditTarget ? <ServiceFormDialog open onOpenChange={(open) => { if (!open) setServiceEditTarget(null) }} categories={categories} service={serviceEditTarget} /> : null}
-      <ProductFormDialog open={productCreateOpen} onOpenChange={setProductCreateOpen} products={productChoices} suppliers={productData.suppliers} />
-      {productEditTarget ? <ProductFormDialog open onOpenChange={(open) => { if (!open) setProductEditTarget(null) }} product={productEditTarget as CatalogProductFormValue} products={productChoices} suppliers={productData.suppliers} /> : null}
+      <ProductFormDialog open={productCreateOpen} onOpenChange={setProductCreateOpen} />
+      {productEditTarget ? <ProductFormDialog open onOpenChange={(open) => { if (!open) setProductEditTarget(null) }} product={productEditTarget as CatalogProductFormValue} /> : null}
 
       <Tabs defaultValue="products" className="space-y-4">
         <TabsList><TabsTrigger value="products"><Boxes />Produits & configurations</TabsTrigger><TabsTrigger value="services"><Wrench />Prestations</TabsTrigger></TabsList>
 
         <TabsContent value="products" className="space-y-4">
           <div className="workspace-panel flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Rechercher un produit" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Référence, gamme, fabricant, variante…" className="pl-9" /></div>
-            <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground"><span><strong className="text-foreground">{productData.products.filter((product) => product.active).length}</strong> références actives</span><span><strong className="text-foreground">{productData.products.filter((product) => product.parentProductId).length}</strong> variantes</span><span><strong className="text-foreground">{productData.products.reduce((sum, product) => sum + product.counts.optionGroups, 0)}</strong> groupes d’options</span></div>
+            <div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Rechercher un produit" value={search} maxLength={200} onChange={(event) => { setSearch(event.target.value); setPage(1); setError(false) }} placeholder="Référence, gamme, fabricant, variante…" className="pl-9" /></div>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground"><span><strong className="text-foreground">{data.metrics.active}</strong> références actives</span><span><strong className="text-foreground">{data.metrics.variants}</strong> variantes</span><span><strong className="text-foreground">{data.metrics.optionGroups}</strong> groupes d’options</span></div>
           </div>
-
-          {!filteredProducts.length ? (
-            <div className="workspace-panel"><EmptyState icon={Package} title={productData.products.length ? "Aucun produit ne correspond" : "Aucun produit configuré"} description={productData.products.length ? "Modifiez la recherche pour retrouver une référence." : "Créez une gamme, puis ajoutez ses variantes, options, composants et tarifs."} action={productData.canManage && !productData.products.length ? <Button demoMutation onClick={() => setProductCreateOpen(true)}><Plus />Créer le premier produit</Button> : undefined} /></div>
+          <DirectoryPagination total={data.total} page={fresh ? data.page : page} pending={busy} error={error} onPage={next => { setPage(next); setError(false) }} onRetry={() => { setError(false); setRetry(value => value + 1) }} />
+          {busy || error ? null : !filteredProducts.length ? (
+            <div className="workspace-panel"><EmptyState icon={Package} title={search.trim() ? "Aucun produit ne correspond" : "Aucun produit configuré"} description={search.trim() ? "Modifiez la recherche pour retrouver une référence." : "Créez une gamme, puis ajoutez ses variantes, options, composants et tarifs."} action={productData.canManage && !search.trim() ? <Button demoMutation onClick={() => setProductCreateOpen(true)}><Plus />Créer le premier produit</Button> : undefined} /></div>
           ) : <>
             <div className="space-y-3 md:hidden">
               {filteredProducts.map((product) => <article key={product.id} className={`rounded-xl border bg-card p-4 ${!product.active ? "opacity-55" : ""}`}>

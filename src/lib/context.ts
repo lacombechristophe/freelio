@@ -11,7 +11,12 @@ export type RequestContext = {
   actionPermission?: Permission
 }
 
-export const requestContext = new AsyncLocalStorage<RequestContext>()
+const globalForContext = globalThis as typeof globalThis & {
+  freelioRequestContext?: AsyncLocalStorage<RequestContext>
+}
+
+// Prisma is cached across modules; its authorization store must be shared too.
+export const requestContext = globalForContext.freelioRequestContext ??= new AsyncLocalStorage<RequestContext>()
 
 export function getContext() {
   return requestContext.getStore()

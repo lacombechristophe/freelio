@@ -1,0 +1,53 @@
+{
+  "schema": "freelio.client-directory-regression.v1",
+  "sourceCommit": "3be747db3eae72f04ae359fcabf9bb2d8c2a9bc6",
+  "status": "reproduced-awaiting-visible-approval",
+  "engine": "SQLite",
+  "nodeVersion": "v24.15.0",
+  "isolated": true,
+  "sessionMocked": true,
+  "sqlAndDalReal": true,
+  "testSha256": "0f3ab51d5fbd9f9f05f1570f7b68f459c1bc25c6cbf0169d36737f9a961ab0c1",
+  "reportSha256": "dc50777f2137857d97d97d721a2aedb66be17b7d67ef11caee514b451c636011",
+  "readerSha256": {
+    "src/actions/clients/index.ts": "9b8046e523d56665474c0a753b4222cb4f5a8c6c5e9ee2d5cd03b1770b948dd1",
+    "src/actions/directories.ts": "f8ed0791e7af36eccd4c65da073cd020d6f3cb825cc1249eda211bf85731e03e"
+  },
+  "total": 8,
+  "passed": 2,
+  "failed": 6,
+  "cases": [
+    {
+      "name": "keeps authorized OWNER financial values",
+      "status": "passed"
+    },
+    {
+      "name": "keeps authorized ACCOUNTING financial values",
+      "status": "passed"
+    },
+    {
+      "name": "does not return financial values to 'TECHNICIAN' through 'legacy'",
+      "status": "failed"
+    },
+    {
+      "name": "does not return financial values to 'TECHNICIAN' through 'directory'",
+      "status": "failed"
+    },
+    {
+      "name": "does not return financial values to 'SERVICE' through 'legacy'",
+      "status": "failed"
+    },
+    {
+      "name": "does not return financial values to 'SERVICE' through 'directory'",
+      "status": "failed"
+    },
+    {
+      "name": "does not return financial values to 'SALES' through 'legacy'",
+      "status": "failed"
+    },
+    {
+      "name": "does not return financial values to 'SALES' through 'directory'",
+      "status": "failed"
+    }
+  ]
+}

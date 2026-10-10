@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { Archive, CheckCircle2, FileText, Mail, Monitor, Plus, Search, Smartphone, Sparkles, TriangleAlert } from "lucide-react"
 
-import { archiveEmailTemplate, createEmailTemplate, updateEmailTemplate } from "@/actions/automations"
+import { archiveEmailTemplate, createEmailTemplate, updateEmailTemplate, getAutomationTemplates } from "@/actions/automations"
+import { useStudioPage, StudioPagination } from "./studio-pagination"
 import type { AutomationData, AutomationRunner, AutomationTemplate } from "@/app/dashboard/automatisations/automation-model"
 import { controlClass, plainTextFromHtml, safeEmailPreviewDocument, textAreaClass } from "@/app/dashboard/automatisations/automation-model"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -23,11 +24,9 @@ export function TemplateStudio({ data, pending, run }: { data: AutomationData; p
   const [creating, setCreating] = useState(data.templates.length === 0)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("ALL")
-  const filtered = useMemo(() => data.templates.filter((template) => {
-    const text = `${template.name} ${template.subject}`.toLocaleLowerCase("fr")
-    return text.includes(query.trim().toLocaleLowerCase("fr")) && (category === "ALL" || template.category === category)
-  }), [category, data.templates, query])
-  const selected = data.templates.find((template) => template.id === selectedId) ?? filtered[0] ?? data.templates[0]
+  const library = useStudioPage(data.templates, data.studioTotals.templates, selectedId, { search: query, category }, data.templates, getAutomationTemplates, setSelectedId)
+  const filtered = library.result.rows
+  const selected = filtered.find(row => row.id === selectedId) ?? (library.result.selected?.id === selectedId ? library.result.selected : undefined) ?? filtered[0]
 
   async function archive(template: AutomationTemplate) {
     const accepted = await confirm({ title: "Archiver ce modèle ?", description: "Les étapes existantes conservent leur copie du contenu. Le modèle ne sera plus proposé pour de nouvelles étapes.", confirmLabel: "Archiver", destructive: true })
@@ -36,8 +35,9 @@ export function TemplateStudio({ data, pending, run }: { data: AutomationData; p
 
   return <div className="grid min-h-[720px] overflow-hidden rounded-xl border bg-card xl:grid-cols-[320px_minmax(0,1fr)]">
     <aside className="border-b xl:border-b-0 xl:border-r">
-      <div className="space-y-3 border-b p-3"><Button demoMutation className="w-full" onClick={() => { setCreating(true); setSelectedId("") }}><Plus />Nouveau modèle</Button><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Rechercher…" aria-label="Rechercher un modèle" /></div><select value={category} onChange={(event) => setCategory(event.target.value)} className={controlClass} aria-label="Filtrer les modèles"><option value="ALL">Toutes les catégories</option>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+      <div className="space-y-3 border-b p-3"><Button demoMutation className="w-full" onClick={() => { setCreating(true); setSelectedId("") }}><Plus />Nouveau modèle</Button><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => { setQuery(event.target.value); library.setPage(1) }} className="pl-9" placeholder="Rechercher…" aria-label="Rechercher un modèle" /></div><select value={category} onChange={(event) => { setCategory(event.target.value); library.setPage(1) }} className={controlClass} aria-label="Filtrer les modèles"><option value="ALL">Toutes les catégories</option>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
       <div className="max-h-[600px] overflow-y-auto p-2">{filtered.length ? filtered.map((template) => <button type="button" key={template.id} onClick={() => { setCreating(false); setSelectedId(template.id) }} className={`mb-1 w-full rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${!creating && selected?.id === template.id ? "bg-primary/[0.07]" : "hover:bg-muted/60"}`}><span className="flex items-center justify-between gap-2"><span className="truncate text-sm font-medium">{template.name}</span><Badge variant="outline">{categoryLabels[template.category] ?? template.category}</Badge></span><span className="mt-1.5 block truncate text-xs text-muted-foreground">{template.subject}</span></button>) : <p className="px-4 py-10 text-center text-sm text-muted-foreground">Aucun modèle ne correspond aux filtres.</p>}</div>
+      {library.error ? <p role="alert" className="px-3 text-sm">{library.error}</p> : null}<StudioPagination {...library.result} label="modèles" loading={library.loading} onPage={library.setPage} />
     </aside>
     {creating || selected ? <TemplateEditor key={creating ? "new" : selected!.id} template={creating ? undefined : selected} pending={pending} run={run} onArchive={selected && !creating ? () => archive(selected) : undefined} onDone={() => setCreating(false)} /> : <EmptyState icon={FileText} title="Aucun modèle" description="Créez un contenu réutilisable et contrôlez son rendu avant l’envoi." action={<Button demoMutation onClick={() => setCreating(true)}><Plus />Créer un modèle</Button>} />}
   </div>

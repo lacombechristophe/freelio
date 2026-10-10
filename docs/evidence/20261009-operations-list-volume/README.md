@@ -1,0 +1,13 @@
+# Commandes et réservations au-delà de 150 lignes
+
+Le [lot approuvé](../../contrat-commandes-reservations-listes-completes.md) remplace les listes visibles plafonnées par deux lecteurs paginés. La [baseline](baseline.json) sur `0b6b8b3` reproduit quatre échecs et deux témoins positifs avec 151 lignes par carte ; le [probe](probe.test-source.txt) décrit exactement cette ancienne lecture sans pagination.
+
+Dans une copie isolée de ce candidat, copier le probe sous `tests/unit/operations-list-volume-probe.integration.test.ts` puis lancer `npm run test:unit -- tests/unit/operations-list-volume-probe.integration.test.ts`. Une base neuve fictive est requise. Ce diagnostic ne demande pas de charger toutes les lignes au démarrage.
+
+La suite maintenue `operations-order-directory.integration.test.ts` possède 19 cas : sept pages sans doublons, recherche de la ligne ancienne, recherche vide, scopes société/agence, révocation, validation, page réajustée après retrait et permissions Finance/stock. Session et cache Next sont simulés ; SQL, lecteurs et gardes sont réels. Les fixtures de lecture sont insérées directement et ne prouvent pas le parcours de création des réservations.
+
+Les quatre E2E `operations-order-directory.spec.ts` couvrent Owner et Viewer sur ordinateur et mobile avec des sociétés dédiées. Ils vérifient l'indépendance des recherches et pages, les commandes de stock et une libération fictive en dernière page. Les deux [CI de 3f1ca72](ci-3f1ca72.json) les exécutent avec succès, ainsi que les six E2E Finance conservés : 287 parcours réussis et 19 exclusions historiques dans chaque run. Les 19 cas dédiés passent aussi sur PostgreSQL réel (1 557 réussis et une exclusion native SQLite) ; SQLite passe 1 558 tests / 183 fichiers. Les neuf contrôles Linux et les audits sont verts. Les 954 entrées Git hors documentation sont identiques à celles de la fusion de test de la PR.
+
+Le bootstrap et les sélecteurs existants conservent leurs limites distinctes ; ce lot complète les deux cartes approuvées. Les historiques terminés, les autres listes et la concurrence forte restent séparés. Aucun fournisseur externe ni donnée réelle n'est utilisé.
+
+La [recette locale de 67f90e8](local.json) passe 1 558 tests / 183 fichiers, les 19 cas dédiés, types, les deux lints et compilation. Les dix tests navigateur (quatre nouveaux et six Finance conservés) sont chargés, sans exécution locale. Une répétition a échoué avant les 19 assertions dédiées, sans cause dans le JSON ; le rerun isolé réussit, puis la recette finale avec insertion en lots réussit. Aucun volume, assertion ni timeout n’a été réduit.

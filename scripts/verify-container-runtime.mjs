@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { pullRuntimeImage } from "./runtime-images.mjs"
 
 // Creates only uniquely named containers and a private network. Never loads .env.
 const image = process.argv[2]
@@ -26,7 +27,7 @@ fs.writeFileSync(environmentFile, Object.entries({
   AUTH_URL: "https://example.test", PUBLIC_APP_URL: "https://example.test", NEXT_TELEMETRY_DISABLED: "1",
   PUBLIC_PRIVACY_NOTICE_URL: "https://example.test/privacy", UPSTASH_REDIS_REST_URL: "https://limiter.example.test", UPSTASH_REDIS_REST_TOKEN: secret,
 }).map(([key, value]) => `${key}=${value}\n`).join(""), { mode: 0o600 })
-const report = { schema: "freelio.container-recipe.v1", startedAt: new Date().toISOString(), image, checks: [] }
+const report = { schema: "freelio.container-recipe.v1", startedAt: new Date().toISOString(), image, runtimeImages: [], checks: [] }
 const containers = []
 let networkCreated = false
 function docker(args, allowFailure = false) {
@@ -49,12 +50,21 @@ try {
   assert.match(invalid.stderr || "", /Configuration de production incomplète/)
   report.checks.push("Configuration de production vide refusée avant écoute")
   docker(["network", "create", "--internal", prefix]); networkCreated = true
-  for (const [kind, source, options] of [
-    ["postgres", "postgres:18.6-bookworm", ["--env-file", postgresFile]],
-    ["redis", "redis:7.4-bookworm", []],
+  for (const [kind, options] of [
+    ["postgres", ["--env-file", postgresFile]],
+    ["redis", []],
   ]) {
+    const acquisition = { kind, attempts: [] }
+    report.runtimeImages.push(acquisition)
+    const prepared = await pullRuntimeImage(kind, {
+      pull: reference => {
+        if (!docker(["image", "inspect", reference, "--format", "{{.Id}}"], true)) docker(["pull", reference])
+      },
+      record: attempt => acquisition.attempts.push(attempt),
+    })
+    Object.assign(acquisition, prepared, { imageId: docker(["image", "inspect", prepared.reference, "--format", "{{.Id}}"]) })
     const name = `${prefix}-${kind}`
-    docker(["run", "--detach", "--name", name, "--network", prefix, ...options, source])
+    docker(["run", "--pull", "never", "--detach", "--name", name, "--network", prefix, ...options, prepared.reference])
     containers.push(name)
   }
   let ready = false
@@ -64,7 +74,7 @@ try {
   }
   assert.ok(ready, "PostgreSQL doit démarrer")
   runRuntime(["node", "node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "prisma/postgresql/schema.prisma"])
-  report.checks.push("43 migrations sur PostgreSQL Linux neuf")
+  report.checks.push("Toutes les migrations du dépôt sur PostgreSQL Linux neuf")
   runRuntime(["node", "--import", "tsx", "scripts/seed-demo.mjs"], ["--env", "NODE_ENV=test"])
   report.checks.push("Données fictives créées par Prisma Linux")
   const web = `${prefix}-web`
@@ -97,6 +107,9 @@ try {
   const exitCode = docker(["inspect", worker, "--format", "{{.State.ExitCode}}"])
   assert.equal(exitCode, "0", "Arrêt gracieux du worker requis")
   report.checks.push("Worker arrêté proprement sur SIGTERM")
+  const contractArchive = runRuntime(["node", "--conditions=react-server", "--import", "tsx", "scripts/verify-runtime-contract-archive.mjs"])
+  report.contractArchive = JSON.parse(contractArchive.split("\n").findLast(line => line.startsWith("{")))
+  report.checks.push("Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux")
   const pdf = docker(["run", "--rm", "--network", "none", image, "node", "--conditions=react-server", "--import", "tsx", "scripts/verify-runtime-pdf.mjs"])
   report.pdf = JSON.parse(pdf.split("\n").findLast(line => line.startsWith("{")))
   report.checks.push("PDF Chromium hors réseau sous utilisateur runtime")

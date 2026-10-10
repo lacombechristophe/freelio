@@ -1,0 +1,83 @@
+{
+  "schema": "freelio.baseline-replay.v1",
+  "reference": "0687a6fe4d6672ad7aa1c1360bbae5473072d874",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "passed": 4,
+  "failed": 13,
+  "reportSha256": "9f5b0d276f6dc5046e8a886bfbd041a97ef0f6f4e1a9077031e85ae9b87389a2",
+  "cases": [
+    {
+      "name": "omits a foreign project from a local quote",
+      "status": "failed"
+    },
+    {
+      "name": "omits a foreign customer order from a local quote",
+      "status": "failed"
+    },
+    {
+      "name": "omits a foreign generated contract from a local quote",
+      "status": "failed"
+    },
+    {
+      "name": "excludes foreign purchases attached to the local quote project",
+      "status": "failed"
+    },
+    {
+      "name": "excludes foreign invoices attached to the local customer order",
+      "status": "failed"
+    },
+    {
+      "name": "does not expose order invoices to Sales without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "does not expose order billing status to Sales without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "omits a foreign project from a local invoice",
+      "status": "failed"
+    },
+    {
+      "name": "omits a foreign original invoice from a local credit",
+      "status": "failed"
+    },
+    {
+      "name": "excludes a foreign credit linked to the local invoice",
+      "status": "failed"
+    },
+    {
+      "name": "omits a foreign parent from a local contract",
+      "status": "failed"
+    },
+    {
+      "name": "excludes foreign amendments attached to the local contract",
+      "status": "failed"
+    },
+    {
+      "name": "omits foreign maintenance from a local contract",
+      "status": "failed"
+    },
+    {
+      "name": "retains the coherent quote project for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "retains the coherent invoice and its amounts for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "retains local contract content and coordinates",
+      "status": "passed"
+    },
+    {
+      "name": "refuses the foreign parent as a primary contract",
+      "status": "passed"
+    }
+  ],
+  "conditions": [
+    "Fictitious isolated database; real actions and Prisma queries; mocked session/cache.",
+    "Historical relations inserted directly by the fixture; no proof that current mutations can create them."
+  ]
+}

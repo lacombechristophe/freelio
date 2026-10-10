@@ -3,6 +3,7 @@ import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
 import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "./demo-policy"
+import { mailboxScope, scopeMailboxIncludes } from "./communications/mailbox-access"
 
 const MUTATION_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"])
 
@@ -10,6 +11,7 @@ const TENANT_READ_OPERATIONS = new Set(["aggregate", "count", "findFirst", "find
 
 const TENANT_CREATE_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn"])
 const TENANT_UPDATE_OPERATIONS = new Set(["update", "updateMany", "updateManyAndReturn"])
+const SERVICE_PROFILE_FIELDS = new Set(["successOwnerMembershipId", "renewalAt", "nextActionAt", "nextActionLabel", "successPlan", "expansionNotes"])
 
 function appendWhereScope(args: { where?: Record<string, unknown> }, scope: Record<string, unknown>) {
   const existingAnd = args.where?.AND
@@ -23,6 +25,11 @@ const DIRECT_AGENCY_MODELS = new Set(["CustomerSite", "Project", "Warehouse"])
 
 function agencyWhere(model: string, agencyIds: string[]) {
   const direct = { agencyId: { in: agencyIds } }
+  const recurring = { AND: [
+    { OR: [{ projectId: null }, { project: direct }] },
+    { OR: [{ maintenanceContractId: null }, { maintenanceContract: { site: direct } }] },
+    { OR: [{ projectId: { not: null } }, { maintenanceContractId: { not: null } }] },
+  ] }
   const scopes: Record<string, Record<string, unknown>> = {
     Agency: { id: { in: agencyIds } },
     CustomerSite: direct,
@@ -34,6 +41,8 @@ function agencyWhere(model: string, agencyIds: string[]) {
     PurchaseOrder: { project: direct },
     Quote: { project: direct },
     Invoice: { project: direct },
+    RecurringInvoice: recurring,
+    RecurringInvoiceOccurrence: { recurring },
     Expense: { OR: [{ project: direct }, { intervention: { site: direct } }] },
     GoodsReceipt: { warehouse: direct },
     StockReservation: { warehouse: direct },
@@ -120,12 +129,21 @@ const prismaClientSingleton = () => {
           const mutableArgs = args as any
 
           const requiredPermission = requiredMutationPermission(model)
+          const profileFields = Object.keys(mutableArgs.data ?? {})
+          // Service can edit its follow-up fields, never the general client or money.
+          const serviceProfileUpdate = model === "Client" && operation === "update" && context?.actionPermission === "service.write" &&
+            hasPermission(context.role, "service.write") && profileFields.length > 0 && profileFields.every(field => SERVICE_PROFILE_FIELDS.has(field))
+          // Finance claims billing only; it cannot edit the operational order.
+          const orderBillingUpdate = model === "CustomerOrder" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "billingStatus"
 
           if (
             context &&
             requiredPermission &&
             MUTATION_OPERATIONS.has(operation) &&
             !hasPermission(context.role, requiredPermission) &&
+            !serviceProfileUpdate &&
+            !orderBillingUpdate &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)
@@ -166,6 +184,30 @@ const prismaClientSingleton = () => {
             enforceAgencyWrite(model, operation, mutableArgs, context.agencyIds)
           }
 
+          if (context) {
+            if (["EmailDraft", "EmailSignature"].includes(model) && MUTATION_OPERATIONS.has(operation)) {
+              for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                const author = data.authorUserId ?? data.author?.connect?.id
+                if (author !== undefined && author !== context.userId) throw new Error("DRAFT_ACCESS_DENIED")
+                if (TENANT_CREATE_OPERATIONS.has(operation) || data === mutableArgs.create) data.authorUserId = context.userId
+              }
+            }
+            const scope = mailboxScope(model, context)
+            if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) appendWhereScope(mutableArgs, scope)
+            scopeMailboxIncludes(model, mutableArgs, context)
+            if (!["OWNER", "ADMIN"].includes(context.role) && MUTATION_OPERATIONS.has(operation)) {
+              const link = model === "EmailMessage" ? "threadId" : model === "OrganisationTask" ? "calendarChannelId" : ["EmailThread", "EmailDelivery", "AutomationEventOutbox"].includes(model) ? "channelId" : null
+              if (link) {
+                for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                  const linkedId = data[link] ?? data[link === "threadId" ? "thread" : link === "calendarChannelId" ? "calendarChannel" : "channel"]?.connect?.id
+                  if (typeof linkedId !== "string") continue
+                  const allowed = link === "threadId" ? await getPrisma().emailThread.count({ where: { id: linkedId } }) : await getPrisma().communicationChannel.count({ where: { id: linkedId } })
+                  if (allowed !== 1) throw new Error("MAILBOX_ACCESS_DENIED")
+                }
+              }
+            }
+          }
+
           return query(mutableArgs)
         },
       },
@@ -174,6 +216,7 @@ const prismaClientSingleton = () => {
 }
 
 type PrismaClientExtended = ReturnType<typeof prismaClientSingleton>
+export type TransactionClient = Parameters<Parameters<PrismaClientExtended["$transaction"]>[0]>[0]
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientExtended | undefined

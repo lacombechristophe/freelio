@@ -1,6 +1,6 @@
 # Runbook de production — Freelio CRM/ERP
 
-Date de référence initiale : 24 août 2026. Mise à jour de cadrage : 1er octobre 2026.
+Date de référence initiale : 24 août 2026. Mise à jour de cadrage : 9 octobre 2026.
 Propriétaire opérationnel à nommer : responsable de production de l’entreprise cliente
 Périmètre : application Next.js, PostgreSQL, R2, Resend, Redis/BullMQ et Upstash.
 
@@ -47,7 +47,7 @@ Contraintes :
 - exécution Node.js complète, pas un runtime Edge ;
 - environnement capable d'exécuter Puppeteer/Chromium pour les PDF ;
 - processus worker séparé si le flux BullMQ de génération de documents est utilisé ;
-- PostgreSQL et R2 obligatoires en production ;
+- PostgreSQL obligatoire en production ; R2 obligatoire pour le profil modifiable ;
 - TLS de bout en bout et bucket non public.
 
 Le dépôt fournit un Dockerfile et un Compose de développement. La recette Linux du 1er octobre a exécuté les migrations PostgreSQL 18.6, Prisma, le serveur et ses sondes, un worker Redis/BullMQ et Chromium ; le suivi CTO conserve sa portée et l’identité d’image. Le runtime de l’hébergeur reste à qualifier. `GET /api/health/live` indique la vie du processus ; `GET /api/health/ready` vérifie la base et la configuration critique. Cette sonde ne vérifie pas la disponibilité de R2/Upstash. `npm start` refuse une configuration incomplète avant d’écouter ; le conteneur lance directement Node pour transmettre les signaux.
@@ -72,7 +72,7 @@ Utiliser [.env.example](../.env.example) comme inventaire, pas comme fichier de 
 
 ### Requis selon la topologie
 
-- `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires dès que plusieurs instances servent du trafic ou que la capture publique est ouverte ;
+- `UPSTASH_REDIS_REST_URL` et `UPSTASH_REDIS_REST_TOKEN` : obligatoires pour le runtime de production actuel, y compris la démo publique ;
 - `REDIS_URL` (`redis://` ou `rediss://`) ou `REDIS_HOST`/`REDIS_PORT` et identifiants explicites : pour BullMQ. En production, aucune connexion implicite à localhost ; certificat TLS vérifié pour `rediss://`. Les retries du worker sont distincts de ceux du producteur ;
 - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` et `EMAIL_FROM` : pour l’e-mail plateforme et le lien magique ; facultatifs si les entreprises utilisent exclusivement BYOK/OAuth et la connexion par mot de passe.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ATELIER` et `STRIPE_PRICE_RESEAU` : obligatoires avant d’ouvrir les offres payantes.
@@ -85,9 +85,9 @@ Ne jamais afficher les valeurs lors d'un diagnostic. Vérifier uniquement leur p
 
 ### Profil de démonstration publique
 
-Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif, un rôle PostgreSQL lecteur et des accès R2 limités aux objets fictifs. Le profil a été testé localement sous serveur compilé ; il ne crée pas automatiquement une infrastructure ni un pare-feu hébergé.
+Construire et démarrer avec `DEMO_ACCESS_MODE=readonly`, `NEXT_PUBLIC_DEMO_MODE=true` et `NEXT_PUBLIC_DEMO_READ_ONLY=true`. Ce profil refuse les clés d’e-mail, paiement et OAuth métier, ainsi que le worker. Il exige les secrets de connexion/chiffrement et les services de consultation/limitation ; les clés de traitements désactivés ne sont pas requises. Utiliser un compte fictif et un rôle PostgreSQL lecteur. Pour présenter des archives, limiter les accès R2 aux objets fictifs. Pour une démo sans pièces jointes ni archives émises, régler les deux drivers sur `disabled` : aucun accès persistant, aucune URL signée ni repli local ; les PDF de brouillons restent calculés à la demande. Le [contrat sans stockage](qualification-demo-sans-stockage-20261010.md) précise les contrôles et limites. La [qualification hébergée du 3 octobre](livraison-demo-vercel-20261003.md) reste historique ; vérifier le déploiement actif avant présentation.
 
-Le budget choisi est de 0 € pour l’instant : la livraison reste locale, sans ouverture commerciale. La [proposition d’hébergement](hebergement-demo-proposition.md) est préparatoire et n’autorise aucun abonnement.
+Le budget choisi est de 0 € pour l’instant, sans ouverture commerciale. Le 10 octobre, le propriétaire crée Upstash et renonce à activer R2. La nouvelle preview conserve le service PostgreSQL existant et Vercel Hobby, avec stockage désactivé. Les anciens rapports ne prouvent pas la disponibilité des fournisseurs ; la [préparation courante](evidence/20261010-preview-readiness/README.md) identifie les vérifications. Aucun rapport ne garantit un SLA ou une gratuité permanente. La [proposition d’hébergement](hebergement-demo-proposition.md) décrit une autre option préparatoire et n’autorise aucun abonnement.
 
 ### CORS du bucket R2 privé
 
@@ -168,9 +168,11 @@ Ne pas lancer `prisma db push` sur la production. Pour une ancienne base issue d
 3. Vérifier que le worker s'arrête proprement sur `SIGTERM`.
 4. Conserver l'ancienne version disponible jusqu'à la fin du smoke test.
 
-Le worker examine les séquences e-mail chaque minute, les échéances métier et les boîtes OAuth toutes les cinq minutes. `vercel.json` définit une sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`. Le workflow GitHub Actions `.github/workflows/production-processors.yml` reste désactivé tant que `vars.ENABLE_PRODUCTION_PROCESSORS` n’est pas `true` ; il nécessite `vars.PROCESSOR_APP_URL` et `secrets.PROCESSOR_CRON_SECRET`, correspondant à `AUTOMATION_CRON_SECRET` côté serveur. Il appelle en `POST` les automations, échéances, synchronisations et sauvegardes toutes les cinq minutes. Le profil de démo public refuse ces processeurs et le worker.
+Le worker examine chaque minute jusqu’à 50 événements durables d’automatisation, puis jusqu’à 100 inscriptions de séquence ; les deux familles sont traitées séquentiellement et une erreur de l’outbox n’empêche pas la tentative des séquences. Les événements restants attendent le passage suivant. Les échéances métier et les boîtes OAuth sont examinées toutes les cinq minutes. `vercel.json` définit une sauvegarde quotidienne `GET /api/backup/process` avec `CRON_SECRET`. Le workflow GitHub Actions `.github/workflows/production-processors.yml` reste désactivé tant que `vars.ENABLE_PRODUCTION_PROCESSORS` n’est pas `true` ; il nécessite `vars.PROCESSOR_APP_URL` et `secrets.PROCESSOR_CRON_SECRET`, correspondant à `AUTOMATION_CRON_SECRET` côté serveur. Il appelle en `POST` les automations, échéances, synchronisations et sauvegardes toutes les cinq minutes. Le profil de démo public refuse ces processeurs et le worker.
 
-Les routes conservent leur contrôle Bearer. Les baux PostgreSQL évitent une concurrence pendant leur durée de validité ; le bail générique de quinze minutes n’est pas renouvelé et ne garantit pas cette exclusion pour une tâche plus longue. Après déploiement, lancer une exécution manuelle, contrôler son succès et vérifier que le dernier passage réussi est récent. Ne pas activer les envois ou relances automatiques avant d’avoir observé ce passage et les alertes. La disponibilité et les limites des ordonnanceurs hébergés restent à qualifier.
+Les routes conservent leur contrôle Bearer. Les baux génériques de quinze minutes sont renouvelés ; le processeur contrôle leur propriétaire avant les effets protégés et ne libère pas le bail d’un remplaçant. Cela ne dispense pas de vérifier la reprise après arrêt brutal sur l’infrastructure finale. Après déploiement, lancer une exécution manuelle, contrôler son succès et vérifier que le dernier passage réussi est récent. Ne pas activer les envois ou relances automatiques avant d’avoir observé ce passage et les alertes. La disponibilité et les limites des ordonnanceurs hébergés restent à qualifier.
+
+Les brouillons e-mail programmés rejoignent ces échéances métier : au plus 50 sont examinés par passage, jamais avant leur date UTC. Un worker ou cron actif est nécessaire ; le passage toutes les cinq minutes n’offre pas de garantie de ponctualité. Le fuseau choisi est conservé, les heures locales inexistantes ou répétées sont refusées. L’auteur doit rester membre actif et conserver ses droits et l’accès à sa boîte. L’annulation dans ses Brouillons n’est possible qu’avant le début du traitement. Les retries sont bornés à cinq tentatives et conservent la commande figée et sa clé ; après début ou résultat ambigu, vérifier le résultat distant avant toute reprise humaine. La recette SQL de reprise et la sauvegarde native fictive sont consignées dans `completude-recette-20261003.md` ; elles ne qualifient pas un arrêt brutal ou une restauration R2 hébergée.
 
 Une archive logique téléchargée depuis R2 se contrôle et se déchiffre hors production avec `npm run backup:decrypt -- <archive.json.gz.enc> [sortie.json]`. La commande refuse d’écraser une sortie existante et vérifie le manifeste SHA-256 avant d’écrire le JSON. Elle doit utiliser la même `ENCRYPTION_KEY` que l’environnement ayant produit l’archive. La route de restauration web est désactivée par défaut en production ; `ENABLE_IN_APP_RESTORE=true` ne doit être utilisé que dans un environnement isolé, sans envoi d’e-mails ni trafic public, et reste limité à 4 Mo. Les archives plus grandes suivent exclusivement la recette de restauration ci-dessous.
 
@@ -260,7 +262,7 @@ Le code journalise côté serveur, mais n'intègre pas à lui seul une plateform
 - échecs Resend et taux de livraison des liens magiques ;
 - volume de leads accepté et chute anormale de capture ;
 - lots de migration en `FAILED`, `PARTIAL` ou `VERIFICATION_FAILED` ;
-- échéances récurrentes en retard, relances au statut `FAILED` ou `SENDING` anormalement ancien, erreurs du planificateur et absence de passage du worker/cron ;
+- échéances récurrentes en retard, relances au statut `FAILED` ou `SENDING` anormalement ancien, brouillons programmés échus en `QUEUED`/`PROCESSING`/`RETRY` ou bloqués en `FAILED`, erreurs du planificateur et absence de passage du worker/cron ;
 - espace et coûts anormaux ;
 - erreurs CSP et tentatives répétées sur les liens publics.
 
@@ -299,6 +301,12 @@ Niveaux conseillés :
 - conserver les fichiers en attente dans une zone chiffrée approuvée ;
 - après retour, vérifier taille et SHA-256 avant rattachement.
 
+### Document CRM refusé dans un brouillon e-mail
+
+Vérifier le client du destinataire, les droits CRM/Finance, la présence de l’original et son empreinte. Pour une facture émise, restaurer son archive vérifiée si nécessaire ; ne pas générer un PDF depuis les coordonnées actuelles pour remplacer l’original. La copie est limitée à 5 Mo par pièce et aux quotas du brouillon. Une copie déjà enregistrée reste privée et indépendante de l’original : sa suppression ne retire pas cette pièce. Après un conflit de version, conserver la saisie et rouvrir la révision récente avant de réessayer. La recette fictive figure dans `completude-recette-20261003.md` ; elle ne qualifie ni antivirus ni restauration R2 réelle.
+
+Pour « Devis — copie actuelle », contrôler les droits Sales et l’auteur actif, puis actualiser la sélection si les lignes, coordonnées, réglages ou images ont changé. Le PDF est généré depuis ces entrées actuelles ; il ne remplace pas l’archive d’un devis envoyé/accepté. Un bail global autorise une seule génération de copie à la fois : après un refus d’occupation, réessayer après la fin de la génération précédente. Un signal de 45 secondes ferme Chromium et arrête les étapes annulables ; il ne garantit pas l’annulation native des requêtes SQL/DNS. Les limites sont 500 lignes, 1 Mo d’entrées, 4 Mo de HTML et les quotas de pièces existants, sans troncature. Une pièce enregistrée conserve sa provenance privée et son SHA PDF ; un retry identique la réutilise sans nouvelle génération. Ne pas régénérer une copie pour prétendre restituer un original historique. Voir `contrat-copies-devis-crm.md` pour la portée et `completude-recette-20261003.md` pour le SHA qualifié.
+
 ### Redis/worker indisponible
 
 - arrêter d'ajouter des travaux si la file n'est pas joignable ;
@@ -306,7 +314,16 @@ Niveaux conseillés :
 - redémarrer un seul worker, observer les doublons et les jobs échoués ;
 - le même processus exécute le worker documentaire et le processeur des séquences e-mail ; après reprise, contrôler les échéances en attente et les envois idempotents ;
 - la route `POST /api/automations/process` protégée par `AUTOMATION_CRON_SECRET` permet un déclenchement de secours par un ordonnanceur approuvé.
-- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites, factures récurrentes et relances ; son rejeu doit rester idempotent et ne doit jamais envoyer plusieurs paliers de rattrapage à la même facture dans un passage.
+- la route `POST /api/scheduling/process` protégée par `SCHEDULER_CRON_SECRET` ou son repli documenté permet de rattraper les visites, factures récurrentes, relances et brouillons e-mail programmés ; son rejeu conserve les clés d’envoi et ne doit jamais envoyer plusieurs paliers de rattrapage à la même facture dans un passage. Ne pas effacer une commande ou renouveler sa clé pour contourner un résultat distant ambigu ; vérifier d’abord chez le fournisseur.
+
+### Archive PDF de contrat indisponible
+
+- contrôler `archiveStatus`, `archiveAttempts`, `archiveNextAttemptAt` et l’activité du processeur métier existant ; le worker le vérifie toutes les cinq minutes, le cron protégé `/api/scheduling/process` permet le rattrapage ;
+- PENDING/FAILED avec capture signée : conserver la signature et la capture chiffrée ; cinq tentatives maximum, aucune nouvelle signature et aucune reconstruction depuis les coordonnées actuelles ;
+- après épuisement, diagnostiquer polices/Chromium/stockage/clé et tester une restauration isolée avant une reprise opérateur contrôlée. Il n’existe pas de bouton de remise à zéro : ne pas modifier directement les compteurs en production pour cacher un échec ;
+- READY : contrôler la présence des octets privés et leur SHA. Une archive altérée/absente doit être récupérée depuis une sauvegarde intègre ; ne pas la remplacer silencieusement par un document différent ;
+- ancien SIGNED sans capture : « Archive historique indisponible » est attendu. Récupérer l’original par un processus documentaire distinct ; aucune régénération n’est une preuve historique ;
+- restaurer les captures avec leur clé d’origine et les PDF inclus dans l’export. Les liens bearer de signature exclus du backup logique se renouvellent après restauration. Le test natif SQLite porte sur des données fictives et ne qualifie pas R2 hébergé.
 
 ### Capture de leads interrompue
 

@@ -6,7 +6,9 @@ import { z } from "zod"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { hasPermission } from "@/lib/permissions"
+import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
+import { lockActiveSupplier } from "@/lib/operations/suppliers"
 
 const id = z.string().cuid()
 const optionalId = z.union([id, z.literal(""), z.null()]).optional().transform((value) => value || null)
@@ -61,9 +63,9 @@ function revalidateProduct(productId?: string) {
   if (productId) revalidatePath(`/dashboard/catalogue/produits/${productId}`)
 }
 
-async function assertSupplierAndParent(companyId: string, supplierId: string | null, parentProductId: string | null, productId?: string) {
+async function assertSupplierAndParent(companyId: string, supplierId: string | null, parentProductId: string | null, productId?: string, retainedSupplierId?: string | null) {
   const [supplier, parent] = await Promise.all([
-    supplierId ? prisma.supplier.findFirst({ where: { id: supplierId, companyId, active: true }, select: { id: true } }) : null,
+    supplierId ? prisma.supplier.findFirst({ where: { id: supplierId, companyId, ...(supplierId === retainedSupplierId ? {} : { active: true }) }, select: { id: true } }) : null,
     parentProductId ? prisma.product.findFirst({ where: { id: parentProductId, companyId, active: true, parentProductId: null }, select: { id: true } }) : null,
   ])
   if (supplierId && !supplier) throw new Error("Fournisseur introuvable")
@@ -88,54 +90,90 @@ function availableQuantity(items: Array<{ quantity: number; reservedQuantity: nu
   return items.reduce((sum, item) => sum + item.quantity - item.reservedQuantity, 0)
 }
 
-export async function getProductCatalogue() {
-  return withAuth(async ({ companyId, role }) => {
-    const [products, suppliers] = await Promise.all([
-      prisma.product.findMany({
-        where: { companyId },
-        include: {
-          supplier: { select: { id: true, name: true } },
-          parentProduct: { select: { id: true, label: true } },
-          inventoryItems: { select: { quantity: true, reservedQuantity: true } },
-          _count: { select: { variants: true, optionGroups: true, assemblyComponents: true } },
-        },
-        orderBy: [{ active: "desc" }, { family: "asc" }, { label: "asc" }],
-      }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    ])
-    return {
-      canManage: hasPermission(role, "operations.write"),
-      suppliers,
-      products: products.map((product) => ({
-        id: product.id,
-        sku: product.sku,
-        label: product.label,
-        description: product.description,
-        kind: product.kind,
-        manufacturer: product.manufacturer,
-        family: product.family,
-        unit: product.unit,
-        purchasePriceCents: product.purchasePriceCents,
-        salePriceCents: product.salePriceCents,
-        tvaRate: product.tvaRate,
-        stockTracked: product.stockTracked,
-        active: product.active,
-        supplierId: product.supplierId,
-        supplier: product.supplier,
-        parentProductId: product.parentProductId,
-        parentProduct: product.parentProduct,
-        variantLabel: product.variantLabel,
-        availableQuantity: availableQuantity(product.inventoryItems),
-        counts: product._count,
-      })),
-    }
+const catalogueQuerySchema = z.object({
+  search: z.string().trim().max(200).default(""),
+  page: z.number().int().min(1).max(1_000_000).default(1),
+})
+
+function productSearch(search: string) {
+  const contains = { contains: search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+  return search ? { OR: [{ sku: contains }, { label: contains }, { family: contains }, { manufacturer: contains }, { variantLabel: contains }] } : {}
+}
+
+export async function getProductCatalogue(input: unknown = {}) {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const query = catalogueQuerySchema.parse(input)
+    return prisma.$transaction(async tx => {
+      const where = { companyId, ...productSearch(query.search) }
+      const total = await tx.product.count({ where })
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
+      const [active, variants, optionGroups, products] = await Promise.all([
+        tx.product.count({ where: { companyId, active: true } }),
+        tx.product.count({ where: { companyId, parentProductId: { not: null } } }),
+        tx.productOptionGroup.count({ where: { companyId, product: { companyId } } }),
+        tx.product.findMany({
+          where,
+          include: {
+            supplier: { select: { id: true, name: true } },
+            parentProduct: { select: { id: true, label: true } },
+            inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { quantity: true, reservedQuantity: true } },
+            _count: { select: { variants: true, optionGroups: true, assemblyComponents: true } },
+          },
+          orderBy: [{ active: "desc" }, { family: "asc" }, { label: "asc" }, { id: "asc" }],
+          skip: (page - 1) * 25, take: 25,
+        }),
+      ])
+      return {
+        canManage: hasPermission(role, "operations.write"),
+        total, page, search: query.search,
+        metrics: { active, variants, optionGroups },
+        products: products.map((product) => ({
+          id: product.id,
+          sku: product.sku,
+          label: product.label,
+          description: product.description,
+          kind: product.kind,
+          manufacturer: product.manufacturer,
+          family: product.family,
+          unit: product.unit,
+          purchasePriceCents: product.purchasePriceCents,
+          salePriceCents: product.salePriceCents,
+          tvaRate: product.tvaRate,
+          stockTracked: product.stockTracked,
+          active: product.active,
+          supplierId: product.supplierId,
+          supplier: product.supplier,
+          parentProductId: product.parentProductId,
+          parentProduct: product.parentProduct,
+          variantLabel: product.variantLabel,
+          availableQuantity: availableQuantity(product.inventoryItems),
+          counts: product._count,
+        })),
+      }
+    }, { isolationLevel: "Serializable" })
+  }, "sales.read")
+}
+
+export async function getProductParentChoices(input: unknown = {}) {
+  return withAuth(async ({ companyId }) => {
+    const query = catalogueQuerySchema.extend({ selectedId: id.optional(), productId: id.optional() }).parse(input)
+    const scope = { companyId, active: true, parentProductId: null, ...(query.productId ? { id: { not: query.productId } } : {}) }
+    const where = { ...scope, ...productSearch(query.search) }
+    return prisma.$transaction(async tx => {
+      const total = await tx.product.count({ where })
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
+      const select = { id: true, sku: true, label: true } as const
+      const items = await tx.product.findMany({ where, select, skip: (page - 1) * 25, take: 25, orderBy: [{ label: "asc" }, { id: "asc" }] })
+      const selected = query.selectedId && query.selectedId !== query.productId ? await tx.product.findFirst({ where: { ...scope, id: query.selectedId }, select }) : null
+      return { items, selected, total, page }
+    }, { isolationLevel: "Serializable" })
   }, "sales.read")
 }
 
 export async function getProductDetail(productId: string) {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.parse(productId)
-    const [product, references, suppliers] = await Promise.all([
+    const [product, references] = await Promise.all([
       prisma.product.findFirst({
         where: { id: parsedId, companyId },
         include: {
@@ -145,17 +183,15 @@ export async function getProductDetail(productId: string) {
           optionGroups: { include: { values: { orderBy: [{ active: "desc" }, { order: "asc" }, { label: "asc" }] } }, orderBy: [{ order: "asc" }, { name: "asc" }] },
           assemblyComponents: { include: { componentProduct: { select: { id: true, sku: true, label: true, unit: true, purchasePriceCents: true } } }, orderBy: { componentProduct: { label: "asc" } } },
           priceHistory: { include: { supplier: { select: { name: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
-          inventoryItems: { include: { warehouse: { select: { name: true } } }, orderBy: { warehouse: { name: "asc" } } },
+          inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), include: { warehouse: { select: { name: true } } }, orderBy: { warehouse: { name: "asc" } } },
         },
       }),
       prisma.product.findMany({ where: { companyId, active: true }, select: { id: true, sku: true, label: true, parentProductId: true }, orderBy: { label: "asc" } }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     ])
     if (!product) return null
     return {
       canManage: hasPermission(role, "operations.write"),
       references: references.filter((reference) => reference.id !== product.id),
-      suppliers,
       product: {
         ...product,
         createdAt: product.createdAt.toISOString(),
@@ -218,6 +254,7 @@ export async function createCatalogProduct(input: unknown) {
     await assertSupplierAndParent(companyId, data.supplierId, data.parentProductId)
     if (await prisma.product.findFirst({ where: { companyId, sku: data.sku }, select: { id: true } })) throw new Error("Cette référence existe déjà")
     const product = await prisma.$transaction(async (tx) => {
+      if (data.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
       const created = await tx.product.create({ data: { companyId, ...data } })
       const now = new Date()
       await tx.productPrice.createMany({ data: [
@@ -236,12 +273,14 @@ export async function updateCatalogProduct(productId: string, input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const parsedId = id.parse(productId)
     const data = productSchema.parse(input)
-    const existing = await prisma.product.findFirst({ where: { id: parsedId, companyId }, select: { id: true, sku: true, supplierId: true, purchasePriceCents: true, salePriceCents: true } })
+    const existing = await prisma.product.findFirst({ where: { id: parsedId, companyId }, select: { id: true, sku: true, supplierId: true, purchasePriceCents: true, salePriceCents: true, updatedAt: true } })
     if (!existing) throw new Error("Produit introuvable")
-    await assertSupplierAndParent(companyId, data.supplierId, data.parentProductId, existing.id)
+    await assertSupplierAndParent(companyId, data.supplierId, data.parentProductId, existing.id, existing.supplierId)
     if (await prisma.product.findFirst({ where: { companyId, sku: data.sku, id: { not: existing.id } }, select: { id: true } })) throw new Error("Cette référence existe déjà")
     await prisma.$transaction(async (tx) => {
-      await tx.product.update({ where: { id: existing.id }, data })
+      if (data.supplierId && data.supplierId !== existing.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
+      const changed = await tx.product.updateMany({ where: { id: existing.id, companyId, updatedAt: existing.updatedAt }, data })
+      if (changed.count !== 1) throw new Error("Le produit a changé. Rechargez sa fiche.")
       const now = new Date()
       for (const price of [
         { kind: "PURCHASE", previous: existing.purchasePriceCents, amount: data.purchasePriceCents, supplierId: data.supplierId },

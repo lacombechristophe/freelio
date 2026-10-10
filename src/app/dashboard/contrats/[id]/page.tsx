@@ -49,7 +49,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   try {
     compiledContent = await compileContractContent(id)
   } catch (error) {
-    console.error("Variable compilation failed, using raw contract content:", error)
+    if (contract.status === "SIGNED") compiledContent = contract.signedDocument ? "Archive du contrat indisponible" : "Archive historique indisponible"
+    else console.error("Variable compilation failed, using raw contract content:", error)
   }
   const safeContractHtml = sanitizeContractHtml(compiledContent)
   const quality = assessContractQuality({
@@ -128,7 +129,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         )}
       </div>
 
-      {(contract.parentContract || contract.maintenanceContract || contract.changes.length > 0 || contract.amendments.length > 0) && (
+      {(contract.parentContract || contract.maintenanceContract || contract.unavailableRelations.parentContract || contract.unavailableRelations.maintenanceContract || contract.changes.length > 0 || contract.amendments.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
@@ -137,6 +138,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
+            {contract.unavailableRelations.parentContract && <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xs font-semibold text-muted-foreground">Contrat source</p><p className="mt-1">Référence liée indisponible</p></div>}
+            {contract.unavailableRelations.maintenanceContract && <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xs font-semibold text-muted-foreground">Renouvellement d’entretien</p><p className="mt-1">Référence liée indisponible</p></div>}
             {contract.parentContract && (
               <div className="rounded-lg border bg-muted/20 p-3">
                 <p className="text-xs font-semibold text-muted-foreground">Contrat source</p>

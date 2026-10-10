@@ -1,0 +1,48 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { createInvoiceFromCustomerOrder } from "@/actions/operations"
+
+describe.sequential("order balance after a linked draft amount changes", () => {
+  let clientId: string, projectId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictitious order amount diagnostic" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `order-amount-${randomUUID()}@example.test` } })).id
+    await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Order amount client" } })).id
+    projectId = (await prisma.project.create({ data: { companyId: session.companyId, clientId, name: "Order amount project" } })).id
+  })
+  afterAll(async () => {
+    vi.restoreAllMocks()
+    await prisma.invoice.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.customerOrder.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.auditLog.deleteMany({ where: { userId: session.userId } })
+    await prisma.project.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it("refuses a stale balance without another invoice or billing mutation", async () => {
+    const order = await prisma.customerOrder.create({ data: { companyId: session.companyId, clientId, projectId, number: randomUUID(), totalHtCents: 10000, totalTvaCents: 2000, totalTtcCents: 12000, billingStatus: "PARTIALLY_INVOICED", depositCents: 3000 } })
+    const linked = await prisma.invoice.create({ data: { companyId: session.companyId, clientId, projectId, customerOrderId: order.id, number: randomUUID(), object: "Fictitious deposit", dueDate: new Date("2030-01-01"), type: "DEPOSIT", status: "DRAFT", totalHtCents: 2500, totalTvaCents: 500, totalTtcCents: 3000 } })
+    const findOrder = prisma.customerOrder.findFirst.bind(prisma.customerOrder)
+    vi.spyOn(prisma.customerOrder, "findFirst").mockImplementationOnce((async (...args: Parameters<typeof findOrder>) => {
+      const initial = await findOrder(...args)
+      await prisma.invoice.update({ where: { id: linked.id }, data: { totalHtCents: 5000, totalTvaCents: 1000, totalTtcCents: 6000 } })
+      return initial
+    }) as typeof prisma.customerOrder.findFirst)
+    let error: string | null = null
+    try { await createInvoiceFromCustomerOrder({ customerOrderId: order.id, mode: "BALANCE" }) }
+    catch (cause) { error = cause instanceof Error ? cause.message : String(cause) }
+    const invoices = await prisma.invoice.findMany({ where: { customerOrderId: order.id } })
+    expect.soft(error).toBe("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
+    expect.soft(invoices.length).toBe(1)
+    expect.soft(invoices.reduce((sum, invoice) => sum + invoice.totalTtcCents, 0)).toBe(6000)
+    expect.soft((await prisma.customerOrder.findUniqueOrThrow({ where: { id: order.id } })).billingStatus).toBe("PARTIALLY_INVOICED")
+    expect.soft(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(0)
+  })
+})

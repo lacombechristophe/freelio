@@ -8,6 +8,8 @@ import prisma from "@/lib/prisma"
 import { getNextRecurringDate } from "@/lib/workflow-rules"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 import { processDueInvoiceReminders } from "@/lib/finance/invoice-reminder-sender"
+import { processDueScheduledEmails } from "@/lib/communications/scheduled-emails"
+import { processDueContractArchives } from "@/lib/contracts/archive"
 
 const storedTemplateSchema = z.object({
   object: z.string().min(3),
@@ -17,8 +19,7 @@ const storedTemplateSchema = z.object({
 })
 
 async function auditUser(companyId: string, preferred?: string) {
-  if (preferred) return preferred
-  const membership = await prisma.membership.findFirst({ where: { companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "ACCOUNTING", "OPERATIONS"] } }, orderBy: { createdAt: "asc" }, select: { userId: true } })
+  const membership = await prisma.membership.findFirst({ where: { companyId, ...(preferred ? { userId: preferred } : {}), status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "ACCOUNTING", "OPERATIONS"] } }, orderBy: { createdAt: "asc" }, select: { userId: true } })
   return membership?.userId ?? null
 }
 
@@ -36,6 +37,10 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
     if (!parsed.success) {
       await prisma.recurringInvoice.update({ where: { id: recurring.id }, data: { isActive: false } })
       summary.disabled += 1
+      continue
+    }
+    if ((parsed.data.projectId || null) !== recurring.projectId) {
+      summary.failed += 1
       continue
     }
     const scheduledFor = recurring.nextGenDate
@@ -57,8 +62,17 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
       totalTtcCents: calculation.totalTtcCents,
     }
     try {
-      await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
-        if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return
+      const created = await withDocumentNumberRetry(async () => prisma.$transaction(async (tx) => {
+        if (await tx.recurringInvoiceOccurrence.findUnique({ where: { recurringId_scheduledFor: { recurringId: recurring.id, scheduledFor } } })) return false
+        const client = await tx.client.findFirst({ where: { id: recurring.clientId, companyId: recurring.companyId }, select: { id: true } })
+        if (!client) throw new Error("Client de récurrence incompatible avec la société")
+        if (recurring.projectId) {
+          const project = await tx.project.findFirst({ where: { id: recurring.projectId, companyId: recurring.companyId, clientId: recurring.clientId }, select: { id: true } })
+          if (!project) throw new Error("Chantier de récurrence incompatible avec le client ou la société")
+        }
+        if (recurring.maintenanceContractId && !await tx.maintenanceContract.findFirst({
+          where: { id: recurring.maintenanceContractId, companyId: recurring.companyId, clientId: recurring.clientId, site: { companyId: recurring.companyId, clientId: recurring.clientId } }, select: { id: true },
+        })) throw new Error("Entretien de récurrence incompatible avec le client ou la société")
         const prefix = buildYearlyDocumentPrefix(recurring.company.invoicePrefix, "FACT-")
         const last = await readCompanyDocumentNumbers(() => tx.invoice.findMany({ where: { companyId: recurring.companyId, number: { startsWith: prefix } }, select: { number: true } }))
         const number = nextDocumentNumber(last, prefix)
@@ -66,7 +80,7 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
           data: {
             companyId: recurring.companyId,
             clientId: recurring.clientId,
-            projectId: parsed.data.projectId || null,
+            projectId: recurring.projectId,
             number,
             object: parsed.data.object,
             status: "DRAFT",
@@ -80,8 +94,10 @@ export async function processDueRecurringInvoices(input: { companyId?: string; u
         const advanced = await tx.recurringInvoice.updateMany({ where: { id: recurring.id, nextGenDate: scheduledFor, isActive: true }, data: { lastGenDate: now, nextGenDate: getNextRecurringDate(scheduledFor, recurring.frequency) } })
         if (advanced.count !== 1) throw new Error("Échéance récurrente déjà traitée")
         await tx.auditLog.create({ data: { userId, action: "GENERATE_RECURRING_INVOICE", resource: "INVOICE", resourceId: invoice.id, payload: { recurringId: recurring.id, scheduledFor: scheduledFor.toISOString(), number } } })
+        return true
       }), { label: "la facture récurrente" })
-      summary.generated += 1
+      if (created) summary.generated += 1
+      else summary.skipped += 1
     } catch (error) {
       console.error("Recurring invoice scheduling failed", { recurringId: recurring.id, error: error instanceof Error ? error.message : "unknown" })
       summary.failed += 1
@@ -157,13 +173,20 @@ export async function processScheduledBusinessJobs() {
     where: { status: "SENT", dueDate: { lt: new Date() } },
     data: { status: "OVERDUE" },
   })
-  const [recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents] = await Promise.all([
+  const deleteProcessedBillingEvents = () => prisma.billingWebhookEvent.deleteMany({
+    where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
+  })
+  // SQLite has one writer. Overlapping interactive transactions can hold each
+  // other's locks until both expire, even under the outer processor lease.
+  const [recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents] = process.env.DATABASE_URL?.startsWith("file:")
+    ? [await processDueRecurringInvoices(), await processDueMaintenanceVisits(), await processDueInvoiceReminders(), await processDueScheduledEmails(), await processDueContractArchives(), await deleteProcessedBillingEvents()] as const
+    : await Promise.all([
     processDueRecurringInvoices(),
     processDueMaintenanceVisits(),
     processDueInvoiceReminders(),
-    prisma.billingWebhookEvent.deleteMany({
-      where: { status: "PROCESSED", processedAt: { lt: subDays(new Date(), 90) } },
-    }),
+    processDueScheduledEmails(),
+    processDueContractArchives(),
+    deleteProcessedBillingEvents(),
   ])
-  return { overdueInvoices: overdueInvoices.count, recurringInvoices, maintenanceVisits, invoiceReminders, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
+  return { overdueInvoices: overdueInvoices.count, recurringInvoices, maintenanceVisits, invoiceReminders, scheduledEmails, contractArchives, deletedBillingWebhookEvents: deletedBillingWebhookEvents.count }
 }

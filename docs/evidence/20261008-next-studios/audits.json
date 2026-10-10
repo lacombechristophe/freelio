@@ -1,0 +1,115 @@
+{
+  "schema": "freelio.dependency-audit-summary.v1",
+  "generatedAt": "2026-10-07T23:49:53.231Z",
+  "lockfileSha256": "62f9faaf34e1a078981dcb8bd020d68b65c566b4f8d9c43d39eaefe151b3df39",
+  "next": "16.3.8",
+  "packageCount": 863,
+  "manualReviewCount": 40,
+  "unknownLicenses": 0,
+  "results": [
+    {
+      "name": "lock-production",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    {
+      "name": "lock-complete",
+      "exitCode": 1,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 5,
+        "critical": 0,
+        "total": 5
+      },
+      "packages": [
+        {
+          "name": "@next/eslint-plugin-next",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "braces",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "eslint-config-next",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "fast-glob",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "micromatch",
+          "severity": "high",
+          "developmentOnly": true
+        }
+      ]
+    },
+    {
+      "name": "installed-production",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    {
+      "name": "installed-complete",
+      "exitCode": 1,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 5,
+        "critical": 0,
+        "total": 5
+      },
+      "packages": [
+        {
+          "name": "@next/eslint-plugin-next",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "braces",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "eslint-config-next",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "fast-glob",
+          "severity": "high",
+          "developmentOnly": true
+        },
+        {
+          "name": "micromatch",
+          "severity": "high",
+          "developmentOnly": true
+        }
+      ]
+    }
+  ]
+}

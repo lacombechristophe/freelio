@@ -21,7 +21,7 @@ Chaque parcours doit être relié à des tests, à une version et à ses limites
 | Accès | Auth.js, mots de passe, MFA, memberships et droits par domaine |
 | Documents | Puppeteer/Chromium, pdf-lib et XML Factur-X ; aucune certification globale |
 | Travaux de fond | BullMQ/Redis TCP ; Upstash REST pour la limitation distribuée |
-| Fichiers | Local en développement ; R2 privé pour le runtime de production actuel |
+| Fichiers | Local en développement ; R2 privé en production modifiable ; stockage désactivé possible en démo publique |
 | Vérification | Vitest, intégrations SQL, Playwright et GitHub Actions |
 
 L’architecture est un monolithe modulaire avec un processus worker séparé. Les règles financières ne dépendent pas du rendu des écrans. Les clients sont partagés au niveau entreprise ; les dossiers opérationnels peuvent être bornés aux agences. Voir les [frontières métier](docs/architecture-domain-boundaries.md).
@@ -69,10 +69,9 @@ npm run test:e2e
 
 Les tests d’intégration et fixtures écrivent et suppriment des données : utiliser exclusivement une base isolée. `npm run verify` prépare la base configurée avant les contrôles ; il n’est pas destiné à un environnement partagé. Les E2E nécessitent leur propre jeu de données ; leur réussite ne se déduit pas d’un build.
 
-- Recette du 30 septembre 2026 : 427 tests dans 100 fichiers, build/typage/lint réussis ; 14 pages et 13 contrôles navigateur ciblés ; sauvegarde/restauration SQLite. Voir le [compte rendu](docs/technical-hardening-20260930.md).
-- La CI définit des jobs SQLite et PostgreSQL. Un workflow existant ne prouve pas son exécution distante : contrôler le résultat du commit exact avant publication.
-- Les validations PostgreSQL, Linux/Docker et exploitation sont consignées dans le [suivi CTO](docs/execution-cto-20261001.md).
-- La livraison locale `review-local-20261002-final` conserve les [rapports](docs/evidence/20261002/README.md) : 457 tests SQLite, 456 tests PostgreSQL, 19 parcours desktop, les contrôles de démo en lecture seule, les seuils de couverture ciblée et une charge locale de 30 minutes sans erreur. Leurs dates, conditions et limites sont explicites ; aucun résultat CI distant n’est revendiqué.
+Les [résultats courants](docs/completude-recette-20261003.md) identifient le commit, les deux CI, les contrôles exécutés et les exclusions. La [carte des preuves](docs/carte-des-preuves.md) relie chaque risque à ses tests. Le candidat de la PR #8 dispose d'une preview de branche ; il reste distinct de main et de la production. La [recette hébergée sans stockage](docs/qualification-demo-sans-stockage-20261010.md) précise son périmètre et ses défauts ouverts.
+
+Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 
 ## Image et exploitation
 
@@ -83,11 +82,11 @@ node scripts/verify-container-runtime.mjs freelio:local-review
 
 Le Dockerfile prépare le client PostgreSQL et le build sans migrer une base réelle. Il inclut Chromium, utilise un utilisateur non root et tini. Secrets et données locales sont exclus du contexte de build. Les variables NEXT_PUBLIC sont définies au build ; les secrets serveur se fournissent au runtime.
 
-La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker et un PDF Chromium hors réseau. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
+La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker, une archive de contrat depuis une signature synthétique avec rejeu stable, et un PDF Chromium hors réseau. Son résultat doit être contrôlé sur le commit exact ; la présence du script ne prouve pas son succès. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
 
 La génération PDF actuelle désactive la sandbox Chrome : non-root et conteneur ne suffisent pas à attester une isolation complète. Vérifier les restrictions du rendu, les ressources, le réseau et les processus dans le runtime cible.
 
-Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production actuel exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. Voir le [runbook](docs/production-runbook.md).
+Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production modifiable exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. La [démo publique sans stockage](docs/qualification-demo-sans-stockage-20261010.md) conserve PostgreSQL et Upstash, refuse tous les accès persistants aux fichiers et calcule les PDF de brouillons à la demande. Voir le [runbook](docs/production-runbook.md).
 
 ## Documentation et collaboration
 
@@ -107,4 +106,4 @@ Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dé
 
 Les rapports d’audit et de déploiement sont historiques et datés. Les changements se présentent par lots cohérents, avec leur validation et leur périmètre. Aucun ancien lien de déploiement n’est présenté ici comme une démo courante vérifiée.
 
-Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. Décider la licence de distribution du code propre avant partage public et inventorier les licences des dépendances/assets.
+Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. À la demande du propriétaire, le dépôt public reste sans licence de redistribution du code propre. Les licences des dépendances et assets sont distinctes ; leur [inventaire](docs/dependances-et-licences.md) précise les notices à examiner.

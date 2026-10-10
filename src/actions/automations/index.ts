@@ -3,20 +3,57 @@
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
+import { activeCommunicationChannel } from "@/lib/communications/email-provider"
 import { isDeepStrictEqual } from "node:util"
 
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema, automationTriggerSchema } from "@/lib/automations/engine"
 import { POOL_AUTOMATION_SEQUENCES, POOL_AUTOMATION_WORKFLOWS, POOL_EMAIL_TEMPLATES } from "@/lib/automations/presets"
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 import { nextSequenceExecution, sequenceTimezoneIsValid } from "@/lib/automations/schedule"
 import { customerHealthStatus } from "@/lib/operations/customer-health"
 import { automationProcessRateLimit } from "@/lib/rate-limit"
 import { logAction } from "@/lib/audit"
-import { activeEmailSuppression, clearEmailSuppression } from "@/lib/communications/suppressions"
+import { withProcessorLease } from "@/lib/processing/lease"
+import { sequenceRetryNeedsReview, SEQUENCE_RETRY_REVIEW_MESSAGE } from "@/lib/automations/sequence-retry-safety"
+import { automationRunJournal, automationRunDetails } from "@/lib/automations/journal"
+import { readDeliveryJournal, readDeliveryDetails, readJournalSequences } from "@/lib/automations/delivery-journal"
+import { recoverSequenceEmail, sequenceRecoveryState, SequenceRecoveryError } from "@/lib/automations/sequence-recovery"
+import { readTemplateStudio, readSequenceStudio, readWorkflowStudio, readSequenceEnrollments, readEmailSuppressions, sequenceMailboxWhere, readEnrollmentTasks } from "@/lib/automations/studio-readers"
+import { clearEmailSuppression } from "@/lib/communications/suppressions"
 
 const idSchema = z.string().cuid()
+export async function getAutomationRunJournal(input: unknown = {}) { return withAuth(({ companyId }) => automationRunJournal(companyId, input), "automation.read") }
+export async function getAutomationRunDetails(input: unknown) { return withAuth(({ companyId }) => automationRunDetails(companyId, input), "automation.read") }
+export async function getAutomationDeliveryJournal(input: unknown = {}) { return withAuth(({ companyId }) => readDeliveryJournal(companyId, input), "automation.read") }
+export async function getAutomationDeliveryDetails(input: unknown) { return withAuth(async ({ companyId, userId }) => {
+  const row = await readDeliveryDetails(companyId, input)
+  return row ? { ...row, recovery: row.sequence ? await sequenceRecoveryState(companyId, userId, row.id) : null } : null
+}, "automation.read") }
+export async function getAutomationJournalSequences(input: unknown = {}) { return withAuth(({ companyId }) => readJournalSequences(companyId, input), "automation.read") }
+export async function getAutomationTemplates(input: unknown = {}) { return withAuth(({ companyId }) => readTemplateStudio(companyId, input), "automation.read") }
+export async function getAutomationSequences(input: unknown = {}) { return withAuth(({ companyId }) => readSequenceStudio(companyId, input), "automation.read") }
+export async function getAutomationWorkflows(input: unknown = {}) { return withAuth(({ companyId }) => readWorkflowStudio(companyId, input), "automation.read") }
+export async function getAutomationEnrollments(input: unknown) { return withAuth(({ companyId }) => readSequenceEnrollments(companyId, input), "automation.read") }
+export async function getAutomationSuppressions(input: unknown = {}) { return withAuth(({ companyId }) => readEmailSuppressions(companyId, input), "automation.read") }
+async function sequenceRecoveryAction(input: unknown, operation: "CHECK" | "REPAIR" | "CLOSE") {
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const result = await recoverSequenceEmail(companyId, userId, input, operation)
+      revalidatePath("/dashboard/automatisations")
+      revalidatePath("/dashboard/communications")
+      return result
+    } catch (error) {
+      if (error instanceof SequenceRecoveryError) return { success: false as const, error: error.message }
+      throw error
+    }
+  }, "automation.write")
+}
+export async function checkSequenceEmailResult(input: unknown) { return sequenceRecoveryAction(input, "CHECK") }
+export async function repairSequenceEmailHistory(input: unknown) { return sequenceRecoveryAction(input, "REPAIR") }
+export async function closeSequenceEmailWithoutRetry(input: unknown) { return sequenceRecoveryAction(input, "CLOSE") }
 const templateSchema = z.object({
   name: z.string().trim().min(2).max(120),
   category: z.string().trim().min(2).max(50),
@@ -52,6 +89,7 @@ const sequenceSettingsSchema = z
     sendWindowStart: z.coerce.number().int().min(0).max(22),
     sendWindowEnd: z.coerce.number().int().min(1).max(23),
     timezone: z.string().trim().min(1).max(100).refine(sequenceTimezoneIsValid, "Fuseau horaire invalide"),
+    senderChannelId: z.union([idSchema, z.literal("platform"), z.literal("")]).optional(),
   })
   .superRefine((value, context) => {
     if (value.sendWindowStart >= value.sendWindowEnd) context.addIssue({ code: "custom", path: ["sendWindowEnd"], message: "La fin de fenêtre doit être postérieure au début" })
@@ -97,12 +135,15 @@ function assertWorkflowCompatibility(trigger: z.infer<typeof automationTriggerSc
 }
 
 export async function getAutomationDashboard() {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadGlobalHealth = hasPermission(role, "finance.read") && agencyIds === null
+    const sequenceScope = await sequenceMailboxWhere(companyId)
+    const senderChannels = await prisma.communicationChannel.findMany({ where: { companyId, status: "ACTIVE" }, select: { id: true, emailAddress: true, provider: true }, orderBy: { emailAddress: "asc" } })
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
     const [templates, sequences, workflows, deliveries, leads, clients, deliveryStats, runStats, emailChannel, stepDeliveryStats, suppressions, processor] = await Promise.all([
       prisma.emailTemplate.findMany({ where: { companyId, status: "ACTIVE" }, orderBy: { updatedAt: "desc" }, take: 100 }),
       prisma.emailSequence.findMany({
-        where: { companyId, status: { not: "ARCHIVED" } },
+        where: { AND: [sequenceScope, { status: { not: "ARCHIVED" } }] },
         include: {
           steps: { orderBy: { position: "asc" } },
           enrollments: {
@@ -112,7 +153,7 @@ export async function getAutomationDashboard() {
               leadCapture: { select: { firstName: true, lastName: true, email: true } },
               taskExecutions: {
                 orderBy: { createdAt: "desc" },
-                include: { step: { select: { taskTitle: true, type: true } }, organisationTask: { select: { id: true, status: true, title: true } } },
+                select: { completedAt: true, organisationTaskId: true, step: { select: { taskTitle: true, type: true } } },
               },
             },
           },
@@ -127,7 +168,7 @@ export async function getAutomationDashboard() {
         orderBy: { updatedAt: "desc" },
         take: 200,
       }),
-      prisma.emailDelivery.findMany({ where: { companyId }, include: { sequence: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 50 }),
+      readDeliveryJournal(companyId),
       prisma.leadCapture.findMany({
         where: { companyId, marketingOptIn: true, email: { not: null }, status: { notIn: ["SPAM", "ARCHIVED"] } },
         select: { id: true, clientId: true, firstName: true, lastName: true, email: true, projectType: true, city: true, source: true, status: true, marketingOptIn: true },
@@ -136,7 +177,7 @@ export async function getAutomationDashboard() {
       }),
       prisma.client.findMany({
         where: { companyId },
-        select: { id: true, name: true, relationScore: true, healthSnapshots: { select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
+        select: { id: true, name: true, relationScore: canReadGlobalHealth, healthSnapshots: { where: { companyId, ...(canReadGlobalHealth ? {} : { id: { in: [] } }) }, select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
         orderBy: { name: "asc" },
         take: 300,
       }),
@@ -148,6 +189,7 @@ export async function getAutomationDashboard() {
       prisma.processorLease.findUnique({ where: { name: "email-sequences" } }),
     ])
     const deliveryStatsByStep = new Map<string, Record<string, number>>()
+    const enrollmentTasks = await readEnrollmentTasks(prisma, sequences.flatMap(sequence => sequence.enrollments))
     for (const item of stepDeliveryStats) {
       if (!item.stepId) continue
       const stats = deliveryStatsByStep.get(item.stepId) ?? {}
@@ -155,6 +197,13 @@ export async function getAutomationDashboard() {
       deliveryStatsByStep.set(item.stepId, stats)
     }
     return {
+      studioTotals: {
+        templates: await prisma.emailTemplate.count({ where: { companyId, status: "ACTIVE" } }),
+        sequences: await prisma.emailSequence.count({ where: { AND: [sequenceScope, { status: { not: "ARCHIVED" } }] } }),
+        workflows: await prisma.automationWorkflow.count({ where: { companyId, status: { not: "ARCHIVED" } } }),
+        suppressions: await prisma.emailSuppression.count({ where: { companyId, active: true } }),
+      },
+      senderChannels,
       templates: templates.map((template) => ({
         id: template.id,
         name: template.name,
@@ -173,6 +222,7 @@ export async function getAutomationDashboard() {
         sendWindowStart: sequence.sendWindowStart,
         sendWindowEnd: sequence.sendWindowEnd,
         timezone: sequence.timezone,
+        senderChannelId: sequence.senderChannelId,
         updatedAt: sequence.updatedAt.toISOString(),
         _count: sequence._count,
         steps: sequence.steps.map((step) => ({
@@ -198,11 +248,10 @@ export async function getAutomationDashboard() {
           enrolledAt: enrollment.enrolledAt.toISOString(),
           completedAt: enrollment.completedAt?.toISOString() ?? null,
           leadCapture: enrollment.leadCapture,
-          taskExecutions: enrollment.taskExecutions.map((execution) => ({
-            completedAt: execution.completedAt?.toISOString() ?? null,
-            step: execution.step,
-            organisationTask: execution.organisationTask,
-          })),
+          taskExecutions: enrollment.taskExecutions.flatMap((execution) => {
+            const organisationTask = enrollmentTasks.get(execution.organisationTaskId)
+            return organisationTask ? [{ completedAt: execution.completedAt?.toISOString() ?? null, step: execution.step, organisationTask }] : []
+          }),
         })),
       })),
       workflows: workflows.map((workflow) => ({
@@ -234,22 +283,8 @@ export async function getAutomationDashboard() {
           createdAt: version.createdAt.toISOString(),
         })),
       })),
-      deliveries: deliveries.map((delivery) => ({
-        id: delivery.id,
-        recipientEmail: delivery.recipientEmail,
-        subject: delivery.subject,
-        status: delivery.status,
-        error: delivery.error,
-        attempts: delivery.attempts,
-        maxAttempts: delivery.maxAttempts,
-        nextAttemptAt: delivery.nextAttemptAt?.toISOString() ?? null,
-        deadLetteredAt: delivery.deadLetteredAt?.toISOString() ?? null,
-        provider: delivery.provider,
-        scheduledAt: delivery.scheduledAt.toISOString(),
-        sentAt: delivery.sentAt?.toISOString() ?? null,
-        createdAt: delivery.createdAt.toISOString(),
-        sequence: delivery.sequence,
-      })),
+      deliveries: deliveries.rows,
+      deliveryJournal: deliveries,
       leads: leads.filter((lead) => !suppressions.some((suppression) => suppression.email === lead.email?.trim().toLowerCase())),
       suppressions: suppressions.map((suppression) => ({
         id: suppression.id,
@@ -261,10 +296,11 @@ export async function getAutomationDashboard() {
       clients: clients.map((client) => ({
         id: client.id,
         name: client.name,
-        score: client.relationScore,
-        status: customerHealthStatus(client.relationScore),
-        previousScore: client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null,
+        score: canReadGlobalHealth ? client.relationScore : null,
+        status: canReadGlobalHealth ? customerHealthStatus(client.relationScore) : null,
+        previousScore: canReadGlobalHealth ? client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null : null,
       })),
+      access: { globalHealth: canReadGlobalHealth },
       stats: {
         deliveries: Object.fromEntries(deliveryStats.map((item) => [item.status, item._count._all])),
         runs: Object.fromEntries(runStats.map((item) => [item.status, item._count._all])),
@@ -464,6 +500,7 @@ export async function duplicateEmailSequence(sequenceId: string) {
         sendWindowStart: source.sendWindowStart,
         sendWindowEnd: source.sendWindowEnd,
         timezone: source.timezone,
+        senderChannelId: source.senderChannelId,
         steps: {
           create: source.steps.map((step) => ({
             position: step.position,
@@ -589,12 +626,16 @@ export async function updateEmailSequenceStatus(sequenceId: string, status: stri
 export async function updateEmailSequenceSettings(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = sequenceSettingsSchema.parse(input)
-    const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, select: { id: true } })
+    const sequence = await prisma.emailSequence.findFirst({ where: { id: data.sequenceId, companyId }, select: { id: true, senderChannelId: true, _count: { select: { enrollments: true } } } })
     if (!sequence) throw new Error("Séquence introuvable")
-    await prisma.emailSequence.update({
-      where: { id: sequence.id },
-      data: { businessDaysOnly: data.businessDaysOnly, sendWindowStart: data.sendWindowStart, sendWindowEnd: data.sendWindowEnd, timezone: data.timezone },
+    const senderChannelId = data.senderChannelId === undefined ? sequence.senderChannelId : data.senderChannelId || null
+    if (sequence._count.enrollments && senderChannelId !== sequence.senderChannelId) throw new Error("L’expéditeur d’une séquence déjà utilisée est figé. Dupliquez-la pour changer de boîte.")
+    if (senderChannelId && senderChannelId !== sequence.senderChannelId) await activeCommunicationChannel(companyId, senderChannelId)
+    const updated = await prisma.emailSequence.updateMany({
+      where: { id: sequence.id, companyId, senderChannelId: sequence.senderChannelId, ...(senderChannelId !== sequence.senderChannelId ? { enrollments: { none: {} } } : {}) },
+      data: { businessDaysOnly: data.businessDaysOnly, sendWindowStart: data.sendWindowStart, sendWindowEnd: data.sendWindowEnd, timezone: data.timezone, senderChannelId },
     })
+    if (updated.count !== 1) throw new Error("La séquence a changé ; actualisez ses réglages")
     await logAction({
       userId,
       action: "UPDATE_EMAIL_SEQUENCE_SETTINGS",
@@ -810,7 +851,7 @@ export async function updateAutomationWorkflowStatus(workflowId: string, status:
 }
 
 export async function simulateAutomationWorkflow(workflowId: string, subjectId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const workflow = await prisma.automationWorkflow.findFirst({
       where: { id: idSchema.parse(workflowId), companyId },
       select: { id: true, name: true, trigger: true, conditions: true, actions: true },
@@ -818,9 +859,10 @@ export async function simulateAutomationWorkflow(workflowId: string, subjectId: 
     if (!workflow) throw new Error("Scénario introuvable")
     const parsedSubjectId = idSchema.parse(subjectId)
     if (workflow.trigger === "CUSTOMER_HEALTH_CHANGED") {
+      if (!hasPermission(role, "finance.read") || agencyIds !== null) throw new Error("Historique global indisponible : simulation de santé réservée à un accès Finance sur toute la société.")
       const client = await prisma.client.findFirst({
         where: { id: parsedSubjectId, companyId },
-        select: { id: true, name: true, relationScore: true, healthSnapshots: { select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
+        select: { id: true, name: true, relationScore: true, healthSnapshots: { where: { companyId }, select: { score: true }, orderBy: { computedAt: "desc" }, take: 2 } },
       })
       if (!client) throw new Error("Client introuvable")
       const previousHealthScore = client.healthSnapshots[1]?.score ?? client.healthSnapshots[0]?.score ?? null
@@ -863,25 +905,38 @@ export async function processSequenceEmailsNow() {
   }, "automation.write")
 }
 
+class SequenceRetryConflict extends Error {}
+
 export async function retryEmailDelivery(deliveryId: string) {
   return withAuth(async ({ companyId, userId }) => {
-    const id = idSchema.parse(deliveryId)
-    const delivery = await prisma.emailDelivery.findFirst({
-      where: { id, companyId, status: { in: ["FAILED", "DEAD_LETTER"] } },
-      select: { id: true, enrollmentId: true, recipientEmail: true, status: true },
-    })
-    if (!delivery) throw new Error("Envoi en échec introuvable")
-    if (!delivery.enrollmentId) throw new Error("Seuls les envois rattachés à une séquence peuvent être relancés depuis ce journal")
-    if (await activeEmailSuppression(companyId, delivery.recipientEmail)) throw new Error("Cette adresse est bloquée. Le blocage doit d’abord être levé explicitement.")
-    const now = new Date()
-    const enrollmentId = delivery.enrollmentId
-    await prisma.$transaction([
-      prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", attempts: 0, nextAttemptAt: now, lastAttemptAt: null, deadLetteredAt: null, error: null } }),
-      prisma.emailSequenceEnrollment.update({ where: { id: enrollmentId }, data: { status: "ACTIVE", stopReason: null, completedAt: null, nextSendAt: now } }),
-    ])
-    await logAction({ userId, action: "RETRY_EMAIL_DELIVERY", resource: "EMAIL_DELIVERY", resourceId: delivery.id, payload: { previousStatus: delivery.status } })
-    revalidatePath("/dashboard/automatisations")
-    return { success: true as const }
+    const parsed = idSchema.safeParse(deliveryId)
+    if (!parsed.success) return { success: false as const, error: "Envoi en échec introuvable" }
+    try {
+      const result = await withProcessorLease("email-sequences", control => prisma.$transaction(async tx => {
+        await control.assertOwned(tx)
+        const delivery = await tx.emailDelivery.findFirst({ where: { id: parsed.data, companyId, status: { in: ["FAILED", "DEAD_LETTER"] } } })
+        if (!delivery) return { success: false as const, error: "Envoi en échec introuvable" }
+        if (!delivery.enrollmentId || !delivery.sequenceId || !delivery.stepId) return { success: false as const, error: "Seuls les envois rattachés à une séquence peuvent être relancés depuis ce journal" }
+        const now = new Date()
+        if (sequenceRetryNeedsReview(delivery, now)) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+        if (await tx.emailSuppression.count({ where: { companyId, email: delivery.recipientEmail.trim().toLowerCase(), active: true } })) return { success: false as const, error: "Cette adresse est bloquée. Le blocage doit d’abord être levé explicitement." }
+        const enrollment = await tx.emailSequenceEnrollment.findFirst({ where: { id: delivery.enrollmentId, sequenceId: delivery.sequenceId, sequence: { companyId }, status: { in: ["ACTIVE", "PAUSED"] } }, include: { sequence: { select: { steps: { where: { id: delivery.stepId }, select: { position: true } } } } } })
+        if (!enrollment || enrollment.sequence.steps[0]?.position !== enrollment.nextStepPosition) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+        const saved = await tx.emailDelivery.updateMany({ where: { id: delivery.id, companyId, status: delivery.status, updatedAt: delivery.updatedAt, recoveryVersion: delivery.recoveryVersion, closedAt: null, providerId: delivery.providerId, sentAt: delivery.sentAt },
+          data: { status: "FAILED", attempts: 0, recoveryVersion: { increment: 1 }, nextAttemptAt: now, deadLetteredAt: null, error: null } })
+        const resumed = await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, sequence: { companyId }, status: enrollment.status, updatedAt: enrollment.updatedAt, nextStepPosition: enrollment.nextStepPosition },
+          data: { status: "ACTIVE", stopReason: null, completedAt: null, nextSendAt: now } })
+        if (saved.count !== 1 || resumed.count !== 1) throw new SequenceRetryConflict()
+        await tx.auditLog.create({ data: { userId, action: "RETRY_EMAIL_DELIVERY", resource: "EMAIL_DELIVERY", resourceId: delivery.id, payload: { companyId, previousStatus: delivery.status, previousAttempts: delivery.attempts, firstAttemptAt: delivery.firstAttemptAt?.toISOString() || null } } })
+        return { success: true as const }
+      }))
+      if (!result.acquired) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+      if (result.value.success) revalidatePath("/dashboard/automatisations")
+      return result.value
+    } catch (error) {
+      if (error instanceof SequenceRetryConflict) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+      throw error
+    }
   }, "automation.write")
 }
 

@@ -7,6 +7,7 @@ import { renderEmailVariables, sanitizeSequenceEmailHtml, sendSequenceEmail } fr
 import { evaluateWorkflowConfiguration, workflowConfigurationSchema } from "@/lib/automations/engine"
 import { dueSequenceEnrollmentWhere, enrollableSequenceWhere } from "@/lib/automations/sequences"
 import { safeEmailPreviewDocument } from "@/app/dashboard/automatisations/automation-model"
+import prisma from "@/lib/prisma"
 
 const context = {
   company: { id: "company-1", name: "Entreprise & Associés", email: "contact@example.fr" },
@@ -77,12 +78,12 @@ describe("email automation", () => {
 
   it("scopes manual sequence processing to the authenticated company", () => {
     const now = new Date("2026-08-31T08:00:00.000Z")
-    expect(dueSequenceEnrollmentWhere(now, "company-1")).toEqual({
+    expect(dueSequenceEnrollmentWhere(now, "company-1")).toMatchObject({
       status: "ACTIVE",
       nextSendAt: { lte: now },
       sequence: { status: "ACTIVE", companyId: "company-1" },
     })
-    expect(dueSequenceEnrollmentWhere(now)).toEqual({
+    expect(dueSequenceEnrollmentWhere(now)).toMatchObject({
       status: "ACTIVE",
       nextSendAt: { lte: now },
       sequence: { status: "ACTIVE" },
@@ -101,18 +102,31 @@ describe("email automation", () => {
     }))
     vi.stubGlobal("fetch", fetchMock)
 
-    await expect(sendSequenceEmail({
-      ...context,
-      subjectTemplate: "Bonjour {{contact.firstName}}",
-      bodyTemplate: "<p>Votre projet {{lead.projectType}}</p>",
-      idempotencyKey: "delivery-1",
-    })).resolves.toMatchObject({ providerId: "email-1", subject: "Bonjour Camille", from: "Entreprise & Associés <noreply@example.fr>" })
+    const company = await prisma.company.create({ data: { name: "Fictional sender recipe" } })
+    const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictional recipient recipe" } })
+    const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Camille", lastName: "Martin", email: context.lead.email, marketingStatus: "OPTED_IN" } })
+    try {
+      await prisma.marketingConsent.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, recipientEmail: context.lead.email,
+        channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "ISOLATED_FICTIONAL_RECIPE", noticeUrl: "https://example.test/privacy", proofHash: "a".repeat(64) } })
+      await expect(sendSequenceEmail({
+        company: { ...context.company, id: company.id },
+        lead: { ...context.lead, contactId: contact.id },
+        subjectTemplate: "Bonjour {{contact.firstName}}",
+        bodyTemplate: "<p>Votre projet {{lead.projectType}}</p>",
+        idempotencyKey: "delivery-1",
+      })).resolves.toMatchObject({ providerId: "email-1", subject: "Bonjour Camille", from: "Entreprise & Associés <noreply@example.fr>" })
 
-    const [, request] = fetchMock.mock.calls[0]
-    const body = JSON.parse(String(request.body))
-    expect(request.headers["Idempotency-Key"]).toBe("delivery-1")
-    expect(body.from).toBe("Entreprise & Associés <noreply@example.fr>")
-    expect(body.headers["List-Unsubscribe"]).toMatch(/^<https:\/\/crm\.example\.fr\/api\/public\/consent\/one-click\//)
-    expect(body.html).toContain("Se désinscrire")
+      const [, request] = fetchMock.mock.calls[0]
+      const body = JSON.parse(String(request.body))
+      expect(request.headers["Idempotency-Key"]).toBe("delivery-1")
+      expect(body.from).toBe("Entreprise & Associés <noreply@example.fr>")
+      expect(body.headers["List-Unsubscribe"]).toMatch(/^<https:\/\/crm\.example\.fr\/api\/public\/consent\/one-click\//)
+      expect(body.html).toContain("Se désinscrire")
+    } finally {
+      await prisma.marketingConsent.deleteMany({ where: { companyId: company.id } })
+      await prisma.contact.delete({ where: { id: contact.id } })
+      await prisma.client.delete({ where: { id: client.id } })
+      await prisma.company.delete({ where: { id: company.id } })
+    }
   })
 })

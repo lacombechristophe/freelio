@@ -94,4 +94,33 @@ describe("productionConfigurationIssues", () => {
     expect(productionConfigurationIssues(environment)).toEqual([])
     expect(productionConfigurationIssues({ ...environment, RESEND_API_KEY: "synthetic-business-key" })).toContain("RESEND_API_KEY")
   })
+
+  const demoWithoutStorage = {
+    ...validProductionEnvironment,
+    DEMO_ACCESS_MODE: "readonly", NEXT_PUBLIC_DEMO_MODE: "true", NEXT_PUBLIC_DEMO_READ_ONLY: "true",
+    RESEND_API_KEY: undefined, STRIPE_SECRET_KEY: undefined,
+    FILE_STORAGE_DRIVER: "disabled", MIGRATION_STORAGE_DRIVER: "disabled",
+    R2_ACCOUNT_ID: undefined, R2_BUCKET_NAME: undefined, R2_ACCESS_KEY_ID: undefined, R2_SECRET_ACCESS_KEY: undefined,
+  }
+
+  it("accepts an explicitly storage-free public read-only demo without R2 credentials", () => {
+    expect(productionConfigurationIssues(demoWithoutStorage)).toEqual([])
+  })
+
+  it.each([
+    ["DEMO_ACCESS_MODE", "editable"],
+    ["NEXT_PUBLIC_DEMO_MODE", "false"],
+    ["NEXT_PUBLIC_DEMO_READ_ONLY", "false"],
+    ["FILE_STORAGE_DRIVER", "local"],
+    ["MIGRATION_STORAGE_DRIVER", "r2"],
+    ["UPSTASH_REDIS_REST_TOKEN", ""],
+    ["UPSTASH_REDIS_REST_URL", ""],
+  ])("rejects a storage-free profile with inconsistent or missing %s", (key, value) => {
+    expect(productionConfigurationIssues({ ...demoWithoutStorage, [key]: value }).length).toBeGreaterThan(0)
+  })
+
+  it("keeps durable storage mandatory for writable production even when R2 credentials exist", () => {
+    expect(productionConfigurationIssues({ ...validProductionEnvironment, FILE_STORAGE_DRIVER: "disabled", MIGRATION_STORAGE_DRIVER: "disabled" }))
+      .toEqual(expect.arrayContaining(["FILE_STORAGE_DRIVER_R2", "MIGRATION_STORAGE_DRIVER_R2"]))
+  })
 })

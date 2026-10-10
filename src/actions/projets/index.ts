@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache"
 import { ProjectAcceptanceSchema, ProjectMilestoneSchema, ProjectSchema, ProjectTemplateSchema, ProjectTechnicalProfileSchema } from "@/lib/validations"
 import { removeLocalFile } from "@/lib/local-files"
 import { boundedPageSize } from "@/lib/pagination"
+import { hasPermission } from "@/lib/permissions"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 function atNoon(value: string | undefined) {
   return value ? new Date(`${value}T12:00:00`) : null
@@ -19,17 +21,18 @@ function addCalendarDays(value: Date, days: number) {
 }
 
 export async function getProjects(cursor?: string, limit: number = 20) {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
     const pageSize = boundedPageSize(limit, 20, 100)
-    return await prisma.project.findMany({
-      where: { companyId },
+    const projects = await prisma.project.findMany({
+      where: { companyId, client: { companyId } },
       take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: { client: true, agency: { select: { id: true, name: true, code: true } }, projectTemplate: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     })
-  })
+    return projects.map(project => ({ ...project, client: clientWithAccessibleMetrics(project.client, { role, agencyIds }) }))
+  }, "operations.read")
 }
 
 export async function getProjectTemplates() {
@@ -43,10 +46,13 @@ export async function getProjectTemplates() {
 }
 
 export async function getProjectById(id: string) {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadSales = hasPermission(role, "sales.read")
+    const canReadFinance = hasPermission(role, "finance.read")
+    const documentScope = { companyId, client: { companyId } }
     const [project, planningMembers] = await Promise.all([
       prisma.project.findFirst({
-        where: { id, companyId },
+        where: { id, companyId, client: { companyId } },
         include: {
           client: true,
           projectTemplate: { select: { id: true, name: true } },
@@ -56,17 +62,17 @@ export async function getProjectById(id: string) {
           },
           files: true,
           timeEntries: { orderBy: { date: "desc" }, take: 20 },
-          quotes: { orderBy: { createdAt: "desc" }, take: 10 },
-          invoices: { orderBy: { createdAt: "desc" }, take: 10 },
-          expenses: { orderBy: { date: "desc" } },
+          quotes: { where: { ...documentScope, ...(canReadSales ? {} : { id: { in: [] } }) }, orderBy: { createdAt: "desc" }, take: 10 },
+          invoices: { where: { ...documentScope, ...(canReadFinance ? {} : { id: { in: [] } }) }, orderBy: { createdAt: "desc" }, take: 10 },
+          expenses: { where: { companyId, ...(canReadFinance ? {} : { id: { in: [] } }) }, orderBy: { date: "desc" } },
           technicalProfile: true,
           acceptanceItems: { orderBy: { createdAt: "asc" } },
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
     ])
-    return project ? { ...project, planningMembers } : null
-  })
+    return project ? { ...project, client: clientWithAccessibleMetrics(project.client, { role, agencyIds }), planningMembers, access: { sales: canReadSales, finance: canReadFinance } } : null
+  }, "operations.read")
 }
 
 export async function createProjectTemplate(input: unknown) {

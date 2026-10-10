@@ -1,0 +1,50 @@
+{
+  "schema": "freelio.preview-reader.v1",
+  "observedAt": "2026-10-09T22:50:07.472Z",
+  "checks": [
+    {
+      "name": "Client read",
+      "success": true
+    },
+    {
+      "name": "Business insert denied",
+      "success": true
+    },
+    {
+      "name": "Business update denied",
+      "success": true
+    },
+    {
+      "name": "Business delete denied",
+      "success": true
+    },
+    {
+      "name": "Schema creation denied",
+      "success": true
+    },
+    {
+      "name": "Audit update denied",
+      "success": true
+    },
+    {
+      "name": "Audit delete denied",
+      "success": true
+    },
+    {
+      "name": "Role flags and append-only audit grant",
+      "success": true
+    }
+  ],
+  "privileges": {
+    "superuser": false,
+    "createDatabase": false,
+    "createRole": false,
+    "bypassRls": false,
+    "auditInsert": true
+  },
+  "businessWritesPersisted": 0,
+  "limits": [
+    "Each SQL probe runs inside a transaction that is rolled back or aborted. No provider or business action executed.",
+    "Audit INSERT is checked as a privilege; no audit event is inserted by this check."
+  ]
+}

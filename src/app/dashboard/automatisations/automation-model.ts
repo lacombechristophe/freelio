@@ -38,6 +38,7 @@ export const STATUS_LABELS: Record<string, string> = {
   CANCELED: "Annulé",
   SKIPPED: "Ignorée",
   RUNNING: "En cours",
+  WAITING: "En attente",
   PUBLISHED: "Publiée",
   SUPERSEDED: "Remplacée",
 }
@@ -55,6 +56,7 @@ export const TRIGGER_LABELS: Record<string, string> = {
 }
 
 export const ACTION_LABELS: Record<string, string> = {
+  WAIT: "Attendre",
   ENROLL_SEQUENCE: "Inscrire dans une séquence",
   CREATE_TASK: "Créer une tâche",
   NOTIFY_TEAM: "Notifier l’équipe",

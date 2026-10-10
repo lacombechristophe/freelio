@@ -12,6 +12,7 @@ import {
   validatePipelineStages,
 } from "@/lib/pipeline-rules"
 import prisma from "@/lib/prisma"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 const id = z.string().cuid()
 const optionalId = z.union([id, z.literal(""), z.null()]).optional().transform((value) => value || null)
@@ -288,23 +289,29 @@ export async function deletePipeline(pipelineId: string) {
 }
 
 export async function getOpportunityDetail(opportunityId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(opportunityId)
     if (!parsedId.success) return null
+    const projectScope = { companyId, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const documentScope = {
+      companyId,
+      ...(agencyIds === null ? { OR: [{ projectId: null }, { project: { companyId } }] } : { project: projectScope }),
+    }
     const [opportunity, members] = await Promise.all([
       prisma.opportunity.findFirst({
-        where: { id: parsedId.data, pipeline: { companyId } },
+        where: { id: parsedId.data, pipeline: { companyId }, client: { companyId } },
         include: {
           pipeline: { select: { stages: true } },
           client: {
             include: {
               contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] },
               quotes: {
+                where: documentScope,
                 include: { versions: { orderBy: { version: "desc" }, take: 1 } },
                 orderBy: { updatedAt: "desc" },
                 take: 10,
               },
-              projects: { orderBy: { updatedAt: "desc" }, take: 10 },
+              projects: { where: projectScope, orderBy: { updatedAt: "desc" }, take: 10 },
               activities: { orderBy: { happenedAt: "desc" }, take: 10 },
             },
           },
@@ -329,7 +336,7 @@ export async function getOpportunityDetail(opportunityId: string) {
       activities: opportunity.activities.map((activity) => ({ ...activity, createdAt: activity.createdAt.toISOString() })),
       leadCaptures: opportunity.leadCaptures.map((lead) => ({ ...lead, createdAt: lead.createdAt.toISOString(), updatedAt: lead.updatedAt.toISOString() })),
       client: {
-        ...opportunity.client,
+        ...clientWithAccessibleMetrics(opportunity.client, { role, agencyIds }),
         nextActionAt: opportunity.client.nextActionAt?.toISOString() ?? null,
         createdAt: opportunity.client.createdAt.toISOString(),
         updatedAt: opportunity.client.updatedAt.toISOString(),

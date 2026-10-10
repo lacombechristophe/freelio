@@ -1,0 +1,765 @@
+{
+  "schema": "freelio.workspace-access-local.v1",
+  "reference": "723856737c1d5ae2258cf820facb0579bf7c915b",
+  "node": "v24.15.0",
+  "engine": "SQLite",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 920,
+    "sha256": "db6b9578c017e08e50152f7ddc6a566ecd1ad2e4777334b2005401c5061cd8b7"
+  },
+  "fullSuite": {
+    "passed": 1217,
+    "files": 169,
+    "seconds": 166.29
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 244,
+      "files": 46,
+      "execution": false
+    }
+  },
+  "targeted": {
+    "passed": 164,
+    "failed": 0,
+    "reportSha256": "8507af1f2064445d57ed7359212e7c41217e5c77c54cf187f0df6722c00a8a6c",
+    "suites": [
+      {
+        "file": "client-directory-permissions.integration.test.ts",
+        "status": "passed",
+        "testSha256": "fe9e65daaaf5b0a4ba187d7f6469c8e01f30b197cb8dacbe7ac48c632d8a66db",
+        "cases": [
+          {
+            "name": "client directory respects Finance reading permissions keeps authorized OWNER financial values",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps authorized ACCOUNTING financial values",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'TECHNICIAN' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'TECHNICIAN' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SERVICE' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SERVICE' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SALES' through 'legacy'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return financial values to 'SALES' through 'directory'",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'not_equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'contains' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'greater_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'less_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'revenue' through a hidden 'is_not_empty' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'not_equals' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'contains' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'greater_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'less_than' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not expose 'unpaid' through a hidden 'is_not_empty' comparison",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions reports revenue as unavailable for every client without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions reports unpaid as unavailable for every client without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps hidden financial sorting asc stable by ID",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps hidden financial sorting desc stable by ID",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not even read invoice aggregates without Finance",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions rereads inactive agency access before returning amounts",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions rereads unassigned agency access before returning amounts",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions does not return foreign clients through a searched directory",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions refuses suspended membership in both readers",
+            "status": "passed"
+          },
+          {
+            "name": "client directory respects Finance reading permissions keeps nonfinancial directory reads available in the public demo without writing",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "client-profile-finance.integration.test.ts",
+        "status": "passed",
+        "testSha256": "82730e13e01781b6cbfcb816169bebaa5ba59f02ede5f2b633e7aae3ad4e36c3",
+        "cases": [
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'list' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not disclose the unused renewal field through 'detail' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'OWNER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'OWNER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'ADMIN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'ADMIN'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'list' for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses preserves the authorized renewal field through 'detail' for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses does not return or read a foreign-company financial profile",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses keeps the minimal reader free of financial fields",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses rereads a revoked role with the same session",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses refuses both financial profile readers after suspension",
+            "status": "passed"
+          },
+          {
+            "name": "financial client profile fields in real SQL responses keeps public-demo consultation without the inaccessible renewal field",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "client-read-scope.integration.test.ts",
+        "status": "passed",
+        "testSha256": "b89a22814019dd5ac2692c864f7402060518fb2fdcd61e39fc82a67845303b47",
+        "cases": [
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps company-wide OWNER reads without disclosing foreign nested documents",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps company-wide ADMIN reads without disclosing foreign nested documents",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes keeps Accounting reads within its currently assigned agency",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not return Finance or Sales documents to TECHNICIAN through a CRM read",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not return Finance or Sales documents to SERVICE through a CRM read",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes preserves Sales documents and writing rights without returning financial amounts or invoices",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes preserves Viewer document reads without giving Sales writing rights",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes rereads inactive agency access rather than retaining old document visibility",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes rereads unassigned agency access rather than retaining old document visibility",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes reads permitted client data in public demo mode without writing",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID undefined",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID null",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID ",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID  ",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes does not read a first client from malformed ID xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes refuses a foreign client even when its ID is supplied directly",
+            "status": "passed"
+          },
+          {
+            "name": "client detail preserves document permissions and nested tenant scopes refuses a suspended membership before reading client detail",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "shared-health-permissions.integration.test.ts",
+        "status": "passed",
+        "testSha256": "b9cb3eeb5f78a97fdb5ad4799ef8edfefcb4c7201f4f664e6320ecea4ed924b7",
+        "cases": [
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'list' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'detail' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'directory' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'CRM' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'SERVICE' to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'list' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'detail' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'directory' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'CRM' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'SERVICE' to 'OPERATIONS'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'list' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'detail' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'directory' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'CRM' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'SERVICE' to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'list' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'detail' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'directory' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'CRM' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'SERVICE' to 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'list' to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'detail' to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'directory' to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'CRM' to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'SERVICE' to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'list' to 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'detail' to 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'directory' to 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'CRM' to 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health through 'SERVICE' to 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health in automation subject choices to SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health in automation subject choices to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not expose global health in automation subject choices to OPERATIONS",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves Owner list and detail scores",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves Owner directory and workspace health",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves Owner automation subject score",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not filter the directory using an inaccessible score for SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not filter the directory using an inaccessible score for OPERATIONS",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not filter the directory using an inaccessible score for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not filter the directory using an inaccessible score for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not filter the directory using an inaccessible score for ACCOUNTING",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not filter the directory using an inaccessible score for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not order the directory by hidden score for SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not order the directory by hidden score for OPERATIONS",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not order the directory by hidden score for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not order the directory by hidden score for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not order the directory by hidden score for ACCOUNTING",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not order the directory by hidden score for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not disclose previous score or derived status to SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not disclose previous score or derived status to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not disclose previous score or derived status to OPERATIONS",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves authorized health simulation without effects for OWNER",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves authorized health simulation without effects for ADMIN",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL refuses direct health simulation for SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL refuses direct health simulation for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL refuses direct health simulation for OPERATIONS",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves automation-read denial for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves automation-read denial for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves Sales lead simulation without effects",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL does not select global scores or cohorts in the restricted CRM overview",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL rereads a downgraded role with the same session",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL preserves restricted public-demo reads without global health",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL refuses foreign clients and workflows even with global health access",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL excludes a foreign-company historical snapshot linked to a local client",
+            "status": "passed"
+          },
+          {
+            "name": "shared global health permissions on real SQL refuses consultation after membership suspension",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "workspace-access.integration.test.ts",
+        "status": "passed",
+        "testSha256": "38be17cc53d94da6161eb4ed4c47a32c55331b58f02a0e5a599eb41b41ffb607",
+        "cases": [
+          {
+            "name": "workspace domain access on real SQL does not serialize unused financial amounts in 'CRM' for 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not serialize unused financial amounts in 'SERVICE' for 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not serialize unused financial amounts in 'CRM' for 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not serialize unused financial amounts in 'SERVICE' for 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not serialize unused financial amounts in 'CRM' for 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not serialize unused financial amounts in 'SERVICE' for 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses the Finance workspace reader to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses the Finance workspace reader to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses the Finance workspace reader to SALES",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses the Sales workspace reader to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses the Sales workspace reader to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL limits Service overview counts and details to assigned agencies",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL limits a Viewer financial overview to its assigned agency",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves Owner company-wide financial totals",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves Owner company-wide Service tickets",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not count another agency projects in recent CRM clients",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves Owner recent CRM client project count",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses a 'MARKETING' workspace without its domain permission to 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses a 'MARKETING' workspace without its domain permission to 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses a 'MARKETING' workspace without its domain permission to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses a 'SERVICE' workspace without its domain permission to 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses a 'SERVICE' workspace without its domain permission to 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL refuses workspace consultation after suspension",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves the authorized 'SALES' domain for 'SALES'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves the authorized 'MARKETING' domain for 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves the authorized 'REVENUE' domain for 'ACCOUNTING'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL preserves the authorized 'SERVICE' domain for 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL omits all forbidden domain fields from the combined reader",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL does not query forbidden financial, sales or automation tables",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL rechecks a role downgrade without changing the session",
+            "status": "passed"
+          },
+          {
+            "name": "workspace domain access on real SQL rejects an unknown scope instead of falling back to the combined reader",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "logs": [
+    {
+      "check": "final-types",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-lint-eslint",
+      "sha256": "1a73194bbfea1346a7897812c24cb4121c59472388ba90fdcda7c5cbe4199257"
+    },
+    {
+      "check": "final-lint-next",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-unit",
+      "sha256": "a032e707957db41fc3c00345b0b662ffc3d76598ac0cf50b70c14946f75b7119"
+    },
+    {
+      "check": "schema",
+      "sha256": "5d5680ada9ad73b59a969dea9bcc9e47fd51e41b4f5c93341a02c0df5fee1d15"
+    },
+    {
+      "check": "postgres",
+      "sha256": "8eeef3570aaf550387c6e2e76df0d40e4827a3e8be1e0d7183b3ed770638c393"
+    },
+    {
+      "check": "e2e-list",
+      "sha256": "0ae468206950b861ce8213119c885e53684e5caa4028f51955c12b6072f067f7"
+    },
+    {
+      "check": "build",
+      "sha256": "a867231d57efd015867b6578a9ca00f2bc445500f2eb7ec269cf5bdfef1a1602"
+    }
+  ],
+  "limits": [
+    "Fictitious isolated SQLite recipe; session/cache mocks, actual actions, authorization and SQL.",
+    "The original 23-case baseline is preserved separately; the active suite extends it to 31 cases.",
+    "No local browser execution, PostgreSQL connection, real provider or hosted commercial qualification."
+  ]
+}

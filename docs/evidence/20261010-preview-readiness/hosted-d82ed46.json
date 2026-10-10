@@ -1,0 +1,178 @@
+{
+  "schema": "freelio.versioned-hosted-demo.v1",
+  "observedAt": "2026-10-10T11:33:47.045Z",
+  "commit": "d82ed46981383153b0b0750032dc64d6047fdd8a",
+  "deployment": {
+    "id": "dpl_4w3ScwymWmuT8xXiEvKuXEtXkWAX",
+    "url": "https://freelio-55aeb67r7-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "state": "READY",
+    "createdAt": 1791631585727
+  },
+  "command": "playwright test --config playwright.hosted.config.ts",
+  "exitCode": 0,
+  "stats": {
+    "startTime": "2026-10-10T11:29:54.966Z",
+    "duration": 232058.434,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 129388,
+          "summary": [
+            {
+              "project": "desktop",
+              "visited": [
+                "/dashboard/clients",
+                "/dashboard/devis",
+                "/dashboard/factures",
+                "/dashboard/depenses",
+                "/dashboard/crm",
+                "/dashboard/sales",
+                "/dashboard/revenue",
+                "/dashboard/marketing/overview",
+                "/dashboard/service",
+                "/dashboard/contacts",
+                "/dashboard/leads",
+                "/dashboard/pipeline",
+                "/dashboard/projets",
+                "/dashboard/contrats",
+                "/dashboard/communications",
+                "/dashboard/communications?tab=compose",
+                "/dashboard/communications?tab=drafts",
+                "/dashboard/communications?tab=recovery",
+                "/dashboard/communications?tab=integrations",
+                "/dashboard/marketing",
+                "/dashboard/campagnes",
+                "/dashboard/automatisations",
+                "/dashboard/catalogue",
+                "/dashboard/operations",
+                "/dashboard/operations?tab=orders",
+                "/dashboard/operations?tab=assets",
+                "/dashboard/operations?tab=planning",
+                "/dashboard/operations?tab=maintenance",
+                "/dashboard/operations/fournisseurs",
+                "/dashboard/comptabilite",
+                "/dashboard/comptabilite/banque",
+                "/dashboard/factures/recurrentes",
+                "/dashboard/factures/temps-non-facture",
+                "/dashboard/organisation",
+                "/dashboard/temps",
+                "/dashboard/service/help-desk",
+                "/dashboard/service/customer-success",
+                "/dashboard/service/analytics",
+                "/dashboard/service/diagnostics",
+                "/dashboard/service/macros",
+                "/dashboard/service/connaissance",
+                "/dashboard/service/satisfaction",
+                "/dashboard/reports",
+                "/dashboard/notifications",
+                "/dashboard/equipe",
+                "/dashboard/settings",
+                "/dashboard/settings/properties",
+                "/dashboard/settings/agencies",
+                "/dashboard/help"
+              ],
+              "pageErrors": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 101204,
+          "summary": [
+            {
+              "project": "mobile",
+              "visited": [
+                "/dashboard/clients",
+                "/dashboard/devis",
+                "/dashboard/factures",
+                "/dashboard/depenses",
+                "/dashboard/crm",
+                "/dashboard/sales",
+                "/dashboard/revenue",
+                "/dashboard/marketing/overview",
+                "/dashboard/service",
+                "/dashboard/contacts",
+                "/dashboard/leads",
+                "/dashboard/pipeline",
+                "/dashboard/projets",
+                "/dashboard/contrats",
+                "/dashboard/communications",
+                "/dashboard/communications?tab=compose",
+                "/dashboard/communications?tab=drafts",
+                "/dashboard/communications?tab=recovery",
+                "/dashboard/communications?tab=integrations",
+                "/dashboard/marketing",
+                "/dashboard/campagnes",
+                "/dashboard/automatisations",
+                "/dashboard/catalogue",
+                "/dashboard/operations",
+                "/dashboard/operations?tab=orders",
+                "/dashboard/operations?tab=assets",
+                "/dashboard/operations?tab=planning",
+                "/dashboard/operations?tab=maintenance",
+                "/dashboard/operations/fournisseurs",
+                "/dashboard/comptabilite",
+                "/dashboard/comptabilite/banque",
+                "/dashboard/factures/recurrentes",
+                "/dashboard/factures/temps-non-facture",
+                "/dashboard/organisation",
+                "/dashboard/temps",
+                "/dashboard/service/help-desk",
+                "/dashboard/service/customer-success",
+                "/dashboard/service/analytics",
+                "/dashboard/service/diagnostics",
+                "/dashboard/service/macros",
+                "/dashboard/service/connaissance",
+                "/dashboard/service/satisfaction",
+                "/dashboard/reports",
+                "/dashboard/notifications",
+                "/dashboard/equipe",
+                "/dashboard/settings",
+                "/dashboard/settings/properties",
+                "/dashboard/settings/agencies",
+                "/dashboard/help"
+              ],
+              "pageErrors": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Fictitious read-only demonstration; no local server, seed, subscription or business provider call. No persistent storage. Module reads do not prove complete functional coverage."
+  ],
+  "harnessIdentity": [
+    {
+      "file": "playwright.hosted.config.ts",
+      "gitBlob": "b750febd5668cd2f61f1b2f9c6cd34779c2857db",
+      "sha256WithLf": "0c438a37729db2b5f0da783186e0cffae0f1744a123fdaf1a59339e4abc71016",
+      "matchesCandidate": true
+    },
+    {
+      "file": "tests/hosted/readonly-demo.spec.ts",
+      "gitBlob": "86bca539851e9c1adca353d0f270de0277acfa19",
+      "sha256WithLf": "a70dca86048aa93f4ef2704c3bc3fb96d1bac7d898f0c0ffa613b647f63e6849",
+      "matchesCandidate": true
+    }
+  ],
+  "aliasVerifiedAfter": {
+    "observedAt": "2026-10-10T11:33:56.726Z",
+    "deploymentId": "dpl_4w3ScwymWmuT8xXiEvKuXEtXkWAX"
+  }
+}

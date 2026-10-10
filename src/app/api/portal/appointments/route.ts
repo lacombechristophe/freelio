@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma"
 import { notifyPortalTeam } from "@/lib/portal/notifications"
 import { getCurrentPortalAccess, isSameOriginPortalRequest } from "@/lib/portal/session"
 import { portalRateLimit } from "@/lib/rate-limit"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
 import { PayloadTooLargeError, readJsonBody } from "@/lib/http-body"
 
 const appointmentSchema = z
@@ -32,7 +32,8 @@ export async function POST(request: Request) {
 
   try {
     const data = appointmentSchema.parse(await readJsonBody(request, 16 * 1024))
-    const requestRecord = await prisma.clientPortalAppointmentRequest.create({
+    const { requestRecord, eventId } = await prisma.$transaction(async (tx) => {
+    const requestRecord = await tx.clientPortalAppointmentRequest.create({
       data: {
         companyId: access.companyId,
         clientId: access.clientId,
@@ -44,15 +45,18 @@ export async function POST(request: Request) {
       },
       select: { id: true, createdAt: true },
     })
-    await notifyPortalTeam(access.companyId, "Nouvelle demande de rendez-vous", `${access.client.name} propose un créneau depuis son espace client.`)
-    await runAutomationEvent({
+    const eventId = await enqueueAutomationEvent(tx, {
       companyId: access.companyId,
       event: "PORTAL_APPOINTMENT_REQUESTED",
       subjectModel: "ClientPortalAppointmentRequest",
       subjectId: requestRecord.id,
       eventKey: `${requestRecord.id}:created`,
       clientId: access.clientId,
-    }).catch((error) => console.error("Portal appointment automation failed", error))
+    })
+    return { requestRecord, eventId }
+    })
+    await dispatchAutomationEvent(eventId).catch((error) => console.error("Portal appointment automation deferred", error))
+    await notifyPortalTeam(access.companyId, "Nouvelle demande de rendez-vous", `${access.client.name} propose un créneau depuis son espace client.`)
     return Response.json(requestRecord, { status: 201 })
   } catch (error) {
     if (error instanceof PayloadTooLargeError) return Response.json({ error: "Demande trop volumineuse" }, { status: 413 })

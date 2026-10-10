@@ -1,0 +1,178 @@
+{
+  "schema": "freelio.opportunity-client-read-local.v1",
+  "reference": "c88a0c6d28b3fcbd0b69485408d0582ef001d1c8",
+  "node": "v24.15.0",
+  "engine": "SQLite",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 924,
+    "sha256": "fd0d360ecee6fb7d7c2166caa81892ed6273800e079573b28b0d58093f3ed3e6"
+  },
+  "fullSuite": {
+    "passed": 1270,
+    "files": 172,
+    "seconds": 198.55
+  },
+  "activeRegression": {
+    "file": "tests/unit/opportunity-read-scope.integration.test.ts",
+    "cases": 23,
+    "status": "passed in full suite",
+    "sha256": "83fa2509d824e9ffed15f919fc5881603683e972b15ae25307ee047bc881eb40"
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 252,
+      "files": 47,
+      "execution": false
+    }
+  },
+  "initialTargeted": {
+    "passed": 75,
+    "failed": 0,
+    "reportSha256": "13a0249b8e08200455c3b3189a264b1ab11672090e2937954a8f9b691c96ac5f",
+    "note": "75 cases, including 22 opportunity cases, before adding the recent-list limit regression; all 23 are included in the full suite."
+  },
+  "logs": [
+    {
+      "check": "final-types",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-lint-eslint",
+      "sha256": "1a73194bbfea1346a7897812c24cb4121c59472388ba90fdcda7c5cbe4199257"
+    },
+    {
+      "check": "final-lint-next",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-unit",
+      "sha256": "dfdba5341c8ad9da8e00f7d5417dbcec04b00324f019f05e6c46d2aae23f7bc9"
+    },
+    {
+      "check": "schema",
+      "sha256": "7ef0a2d6211406b87a6ff5c4015b5e252ddb312e640f7a9e51f2142482f0f5e0"
+    },
+    {
+      "check": "postgres",
+      "sha256": "8eeef3570aaf550387c6e2e76df0d40e4827a3e8be1e0d7183b3ed770638c393"
+    },
+    {
+      "check": "e2e-list",
+      "sha256": "3bff2d336a363ff43a856716eabbe272a28f8031f204572aeb03d5297182af7d"
+    },
+    {
+      "check": "build",
+      "sha256": "c9fcad847a5af2a2ed51855fe301a21b9c759af5869c53e6c1e0ccfef271d35f"
+    }
+  ],
+  "limits": [
+    "Fictitious isolated SQLite; session and Next cache mocked.",
+    "No local browser execution or provider calls.",
+    "PostgreSQL schema validation does not connect to a database."
+  ],
+  "finalTargeted": {
+    "passed": 23,
+    "failed": 0,
+    "reportSha256": "598a971779bc8beb9822a398360cef612b3c185c5b69f0c148a2bf1144dc5efc",
+    "cases": [
+      {
+        "name": "opportunity nested client read scope on real SQL omits inaccessible totalRevenueCents from the Sales detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL omits inaccessible totalUnpaidCents from the Sales detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL omits inaccessible renewalAmountCents from the Sales detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL omits inaccessible relationScore from the Sales detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL omits global totalRevenueCents from the agency-limited Viewer detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL omits global totalUnpaidCents from the agency-limited Viewer detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL omits global relationScore from the agency-limited Viewer detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL limits nested projects to assigned agencies",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL limits nested quotes to company and assigned agencies",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL does not include a foreign quote even for Owner",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL refuses an opportunity whose client belongs to another company",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL preserves the Owner company-wide client values and projects",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL refuses a foreign pipeline",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL refuses consultation after membership suspension",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL preserves Admin values and only coherent company references",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL keeps the financial renewal field for Accounting without global caches",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL refuses the detail without Sales read permission to TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL refuses the detail without Sales read permission to SERVICE",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL rereads the scope after a role downgrade",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL returns no operational references after agency revocation",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL permits a scoped read in the public readonly demo",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL rejects an invalid opportunity id without loading a detail",
+        "status": "passed"
+      },
+      {
+        "name": "opportunity nested client read scope on real SQL filters references before applying the recent-list limit",
+        "status": "passed"
+      }
+    ]
+  }
+}

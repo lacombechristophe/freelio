@@ -1,0 +1,27 @@
+{
+  "reference": "d8747ab8c7273d8f84de0851d26fbb5761d42da3",
+  "correction": "Clear the inherited authenticated cookie before selecting each role.",
+  "checks": [
+    {
+      "label": "types",
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "eslint-spec",
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "e2e-discovery",
+      "exitCode": 0,
+      "logSha256": "284a6b56aae21e7b259ccc321e0cc65401c47f6e74231dae31f7d88786a87223"
+    }
+  ],
+  "e2eDiscovery": {
+    "cases": 244,
+    "files": 46,
+    "execution": false
+  },
+  "unchangedApplicationSinceLocalReference": true
+}

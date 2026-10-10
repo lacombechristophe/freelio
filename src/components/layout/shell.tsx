@@ -64,7 +64,7 @@ export async function Shell({ children, brand }: ShellProps) {
               <CalendarDays className="size-[17px]" />
             </Link>
             <NotificationBell
-              notifications={(notifications ?? []) as any}
+              notifications={(notifications ?? []).map(notification => ({ ...notification, ageLabel: notification.compactAgeLabel }))}
               unreadCount={unreadCount ?? 0}
             />
             <Link href="/dashboard/help" aria-label="Ouvrir l’aide" title="Aide" className="hidden size-9 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted md:grid">

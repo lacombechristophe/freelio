@@ -1,0 +1,73 @@
+{
+  "schema": "freelio.registry-availability.v1",
+  "observedDate": "2026-10-09",
+  "method": "Anonymous token and OCI manifest HTTP reads; no engine, image build or container execution.",
+  "manifests": [
+    {
+      "digest": "sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+      "image": "public.ecr.aws/docker/library/node:24-bookworm-slim",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "status": 200,
+      "linuxAmd64": [
+        "sha256:51b1100cc2a83d370c6a60952e3f2989c8a43159d0e38586e090f3b3326efefd"
+      ]
+    },
+    {
+      "digest": "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+      "image": "public.ecr.aws/docker/library/postgres:18.6",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "status": 200,
+      "linuxAmd64": [
+        "sha256:885953109528ad3dfc90362b1a6f50a78620b5315be19f187753d267e484dc5b"
+      ]
+    },
+    {
+      "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "image": "public.ecr.aws/docker/library/postgres:18.6-bookworm",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "status": 200,
+      "linuxAmd64": [
+        "sha256:9551dd5bf356409a21b31248f49b33bba9bb1877365f3a7e933aecd9af3cf52d"
+      ]
+    },
+    {
+      "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "image": "public.ecr.aws/docker/library/redis:7.4-bookworm",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "status": 200,
+      "linuxAmd64": [
+        "sha256:cd745595f143052dd6a743bc5651d3ce4b03979fe5c99c7fcfab73461f6f217b"
+      ]
+    }
+  ],
+  "failedCandidate": "6c8cffb9a5a2de78d2bf143e6594a1dfdaca4f42",
+  "failures": [
+    {
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37991223995",
+      "postgresJob": 114025595978,
+      "linuxJob": 114025595933
+    },
+    {
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/37991230632",
+      "postgresJob": 114025616546,
+      "linuxJob": 114025616523
+    }
+  ],
+  "cause": "Anonymous Docker Hub pull quota: PostgreSQL service initialization and Node base image HEAD requests fail before SQL/runtime qualification.",
+  "privateLogDigests": [
+    {
+      "name": "Freelio-6c8cffb-pg-failed.log",
+      "sha256": "d020eb4838fb714d52bd6c28823a09c71717004f7efbd6b8e805a7fdc13f540c"
+    },
+    {
+      "name": "Freelio-6c8cffb-linux-failed.log",
+      "sha256": "744a09468b233b48b413772dcab14621976810d9b1e643997490eddee7fd6689"
+    }
+  ],
+  "limits": [
+    "HTTP 200 only proves dated manifest availability, not build or execution.",
+    "ECR Public also has anonymous quotas. No unlimited availability claim.",
+    "Observed tag digests are evidence, not Dockerfile digest pins. Versions are unchanged.",
+    "The failed runs stay failed; the replacement candidate requires its own CI."
+  ]
+}

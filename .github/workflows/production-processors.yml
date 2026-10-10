@@ -37,7 +37,11 @@ jobs:
               --header "Authorization: Bearer ${PROCESSOR_SECRET}" \
               "${APP_URL}${1}"
           }
-          call_processor "/api/automations/process"
-          call_processor "/api/scheduling/process"
-          call_processor "/api/communications/sync/process"
-          call_processor "/api/backup/process"
+          failed=0
+          for endpoint in /api/automations/process /api/scheduling/process /api/communications/sync/process /api/backup/process; do
+            if ! call_processor "$endpoint"; then
+              echo "::error::Échec du processeur $endpoint"
+              failed=1
+            fi
+          done
+          exit "$failed"

@@ -1,10 +1,12 @@
 "use server"
 
 import { createHash } from "node:crypto"
+import { calendarPeriods } from "@/lib/calendar-days"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
+import { messageReadSelect } from "@/lib/communications/inbox-reader"
 import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
@@ -16,7 +18,12 @@ import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { hasPermission } from "@/lib/permissions"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
+import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
+import { inventoryReadWhere } from "@/lib/agency-access"
 import prisma from "@/lib/prisma"
+import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
+import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -64,28 +71,6 @@ const siteSchema = z.object({
   accessNotes: optionalText,
   latitude: optionalCoordinate.refine((value) => value == null || (value >= -90 && value <= 90), "Latitude invalide"),
   longitude: optionalCoordinate.refine((value) => value == null || (value >= -180 && value <= 180), "Longitude invalide"),
-})
-
-const supplierSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  code: z
-    .string()
-    .trim()
-    .max(40)
-    .optional()
-    .transform((value) => value || null),
-  contactName: optionalText,
-  email: z
-    .union([z.string().trim().email(), z.literal("")])
-    .optional()
-    .transform((value) => value || null),
-  phone: z
-    .string()
-    .trim()
-    .max(40)
-    .optional()
-    .transform((value) => value || null),
-  deliveryDays: z.coerce.number().int().min(0).max(365).optional().nullable(),
 })
 
 const productSchema = z.object({
@@ -527,12 +512,14 @@ async function findInterventionSlotConflict({
 }
 
 export async function getOperationsDashboard() {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const now = new Date()
     const [
       agencies,
       clients,
       sites,
-      suppliers,
       products,
       warehouses,
       purchaseOrders,
@@ -560,10 +547,9 @@ export async function getOperationsDashboard() {
         orderBy: { updatedAt: "desc" },
         take: 100,
       }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
       prisma.product.findMany({
         where: { companyId, active: true },
-        include: { supplier: { select: { name: true } }, inventoryItems: { select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
+        include: { supplier: { select: { name: true } }, inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
         orderBy: { label: "asc" },
         take: 500,
       }),
@@ -651,8 +637,8 @@ export async function getOperationsDashboard() {
           client: { select: { name: true } },
           project: { select: { name: true, agencyId: true } },
           lines: true,
-          invoices: { select: { id: true, type: true, status: true } },
-          _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } },
+          invoices: canReadFinance ? { where: { companyId, client: { companyId } }, select: { id: true, type: true, status: true } } : false,
+          _count: { select: { deliveryNotes: true, stockReservations: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 150,
@@ -696,10 +682,12 @@ export async function getOperationsDashboard() {
       }),
     ])
     return {
+      generatedAt: now.toISOString(),
+      timeZone: company.serviceTimezone,
+      tomorrowStart: calendarPeriods(now, company.serviceTimezone).tomorrowStart.toISOString(),
       agencies,
       clients,
       sites,
-      suppliers,
       products,
       warehouses,
       purchaseOrders,
@@ -709,18 +697,24 @@ export async function getOperationsDashboard() {
       contracts,
       projects,
       members,
-      customerOrders,
+      customerOrders: customerOrders.map(order => ({
+        ...order,
+        billingStatus: canReadFinance ? order.billingStatus : null,
+        invoices: canReadFinance ? order.invoices : [],
+        _count: { ...order._count, invoices: canReadFinance ? order.invoices.length : null },
+      })),
       goodsReceipts,
       reservations,
       deliveryNotes,
       stockTransfers,
       canApprovePurchases: hasPermission(role, "purchases.approve"),
+      canBillOrders: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
     }
   }, "operations.read")
 }
 
 export async function getServiceTicketDetail(ticketId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
     const [ticket, members, company, serviceMacros, diagnosticGuides] = await Promise.all([
@@ -753,7 +747,7 @@ export async function getServiceTicketDetail(ticketId: string) {
                 orderBy: { scheduledStart: "desc" },
               },
               emailThreads: {
-                include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } },
+                include: { messages: { select: messageReadSelect, orderBy: { createdAt: "asc" }, take: 200 } },
                 orderBy: { lastMessageAt: "asc" },
               },
               notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
@@ -770,7 +764,7 @@ export async function getServiceTicketDetail(ticketId: string) {
             orderBy: { scheduledStart: "desc" },
           },
           emailThreads: {
-            include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } },
+            include: { messages: { select: messageReadSelect, orderBy: { createdAt: "asc" }, take: 200 } },
             orderBy: { lastMessageAt: "asc" },
           },
           notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
@@ -916,6 +910,7 @@ export async function getServiceTicketDetail(ticketId: string) {
     }))
     return {
       ...ticket,
+      client: clientWithAccessibleMetrics(ticket.client, { role, agencyIds }),
       mergedInto,
       mergedTickets: mergedTicketSummaries,
       interventions,
@@ -933,10 +928,10 @@ export async function getServiceTicketDetail(ticketId: string) {
 }
 
 export async function getFieldInterventionDetail(interventionId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(interventionId)
     if (!parsedId.success) return null
-    return prisma.fieldIntervention.findFirst({
+    const intervention = await prisma.fieldIntervention.findFirst({
       where: { id: parsedId.data, companyId },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
@@ -950,14 +945,15 @@ export async function getFieldInterventionDetail(interventionId: string) {
         reservations: { orderBy: { createdAt: "desc" } },
       },
     })
+    return intervention ? { ...intervention, site: { ...intervention.site, client: clientWithAccessibleMetrics(intervention.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
 export async function getEquipmentDetail(equipmentId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(equipmentId)
     if (!parsedId.success) return null
-    return prisma.equipment.findFirst({
+    const equipment = await prisma.equipment.findFirst({
       where: { id: parsedId.data, companyId },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
@@ -969,22 +965,25 @@ export async function getEquipmentDetail(equipmentId: string) {
         maintenanceContracts: { include: { contract: true }, orderBy: { contract: { createdAt: "desc" } } },
       },
     })
+    return equipment ? { ...equipment, site: { ...equipment.site, client: clientWithAccessibleMetrics(equipment.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
 export async function getSupplierDetail(supplierId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(supplierId)
     if (!parsedId.success) return null
-    return prisma.supplier.findFirst({
-      where: { id: parsedId.data, companyId },
-      include: {
-        products: { include: { inventoryItems: true }, orderBy: { label: "asc" }, take: 300 },
-        productPrices: { include: { product: { select: { id: true, sku: true, label: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
-        purchaseOrders: { include: { project: { select: { id: true, name: true } }, lines: true, issues: true }, orderBy: { orderDate: "desc" }, take: 100 },
-        supplierReturns: { include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
-      },
-    })
+    return prisma.$transaction(async tx => {
+      const supplier = await tx.supplier.findFirst({ where: { id: parsedId.data, companyId } })
+      if (!supplier) return null
+      const scope = { companyId, agencyIds, supplierId: supplier.id }
+      const query = supplierHistoryQuery.parse({})
+      const metrics = await readSupplierMetrics(tx, scope)
+      const products = await readSupplierProducts(tx, scope, query)
+      const purchaseOrders = await readSupplierOrders(tx, scope, query)
+      const supplierReturns = await readSupplierReturns(tx, scope, query)
+      return { ...supplier, metrics, products, purchaseOrders, supplierReturns, canManage: hasPermission(role, "operations.write") }
+    }, { isolationLevel: "Serializable" })
   }, "operations.read")
 }
 
@@ -1098,9 +1097,14 @@ export async function createCustomerSite(input: unknown) {
 }
 
 export async function createSupplier(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const data = supplierSchema.parse(input)
-    const supplier = await prisma.supplier.create({ data: { companyId, ...data } })
+    let supplier
+    try { supplier = await prisma.supplier.create({ data: { companyId, ...data } }) } catch (error) {
+      if (isUniqueConstraintConflict(error, "name") || isUniqueConstraintConflict(error, "code")) throw new Error("Ce nom ou ce code fournisseur existe déjà.")
+      throw error
+    }
+    await logAction({ userId, action: "CREATE_SUPPLIER", resource: "SUPPLIER", resourceId: supplier.id, payload: { fields: Object.keys(data) } })
     revalidateOperations()
     return { success: true as const, id: supplier.id }
   }, "operations.write")
@@ -1109,8 +1113,10 @@ export async function createSupplier(input: unknown) {
 export async function createProduct(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = productSchema.parse(input)
-    if (data.supplierId && !(await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } }))) throw new Error("Fournisseur introuvable")
-    const product = await prisma.product.create({ data: { companyId, ...data } })
+    const product = await prisma.$transaction(async tx => {
+      if (data.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
+      return tx.product.create({ data: { companyId, ...data } })
+    })
     revalidateOperations()
     return { success: true as const, id: product.id }
   }, "operations.write")
@@ -1491,7 +1497,6 @@ export async function createPurchaseOrder(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = purchaseOrderSchema.parse(input)
     const lines = data.lines?.length ? data.lines : [{ productId: data.productId, label: data.label!, quantity: data.quantity!, unitPriceCents: data.unitPriceCents! }]
-    if (!(await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } }))) throw new Error("Fournisseur introuvable")
     if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new Error("Chantier introuvable")
     const productIds = [...new Set(lines.flatMap((line) => (line.productId ? [line.productId] : [])))]
     if (productIds.length && (await prisma.product.count({ where: { id: { in: productIds }, companyId, active: true } })) !== productIds.length)
@@ -1500,18 +1505,21 @@ export async function createPurchaseOrder(input: unknown) {
     const totalHtCents = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceCents, 0)
     const order = await withDocumentNumberRetry(
       async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.purchaseOrder.create({
-          data: {
-            companyId,
-            supplierId: data.supplierId,
-            projectId: data.projectId,
-            expectedAt: data.expectedAt,
-            notes: data.notes,
-            number: nextDocumentNumber(last, prefix),
-            totalHtCents,
-            lines: { create: lines.map((line, order) => ({ ...line, order })) },
-          },
+        const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        return prisma.$transaction(async tx => {
+          await lockActiveSupplier(tx, companyId, data.supplierId)
+          return tx.purchaseOrder.create({
+            data: {
+              companyId,
+              supplierId: data.supplierId,
+              projectId: data.projectId,
+              expectedAt: data.expectedAt,
+              notes: data.notes,
+              number: nextDocumentNumber(last, prefix),
+              totalHtCents,
+              lines: { create: lines.map((line, order) => ({ ...line, order })) },
+            },
+          })
         })
       },
       { label: "la commande fournisseur" },
@@ -1662,7 +1670,15 @@ export async function convertQuoteToCustomerOrder(input: unknown) {
       },
     })
     if (!quote) throw new Error("Devis introuvable")
-    if (quote.customerOrder) return { success: true as const, id: quote.customerOrder.id, number: quote.customerOrder.number, existing: true as const }
+    if (quote.projectId && !await prisma.project.findFirst({ where: { id: quote.projectId, companyId, clientId: quote.clientId, client: { companyId } }, select: { id: true } })) throw new Error("Référence liée indisponible")
+    if (quote.customerOrder) {
+      const existing = await prisma.customerOrder.findFirst({
+        where: { id: quote.customerOrder.id, companyId, clientId: quote.clientId, client: { companyId }, project: { companyId, clientId: quote.clientId } },
+        select: { id: true, number: true },
+      })
+      if (!existing) throw new Error("Référence liée indisponible")
+      return { success: true as const, id: existing.id, number: existing.number, existing: true as const }
+    }
     if (quote.status !== "ACCEPTED") throw new Error("Enregistrez l’accord du client avant de lancer la commande")
     const version = quote.versions[0]
     if (!version) throw new Error("Le devis ne contient aucune version")
@@ -1752,14 +1768,30 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = customerOrderInvoiceSchema.parse(input)
     const order = await prisma.customerOrder.findFirst({
-      where: { id: data.customerOrderId, companyId },
-      include: { invoices: { select: { id: true, number: true, type: true, status: true, totalTtcCents: true } } },
+      where: { id: data.customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
+      include: { project: { select: { clientId: true } }, invoices: { select: { id: true, companyId: true, clientId: true, projectId: true, number: true, type: true, status: true, totalTtcCents: true } } },
     })
-    if (!order) throw new Error("Commande client introuvable")
+    if (!order || (order.project && order.project.clientId !== order.clientId)) throw new Error("Commande client introuvable")
+    if (order.invoices.some(invoice => invoice.companyId !== companyId || invoice.clientId !== order.clientId || invoice.projectId !== order.projectId)) throw new Error("Commande client introuvable")
+    const orderScope = {
+      id: order.id, companyId, clientId: order.clientId, projectId: order.projectId,
+      client: { companyId },
+      OR: [{ projectId: null }, { project: { companyId, clientId: order.clientId, client: { companyId } } }],
+      invoices: { every: { companyId, clientId: order.clientId, projectId: order.projectId } },
+    }
+    const invoiceRead = { id: true, type: true, status: true, totalTtcCents: true } as const
+    const invoiceState = (invoices: Array<{ id: string; type: string; status: string; totalTtcCents: number }>) =>
+      JSON.stringify([...invoices].sort((a, b) => a.id.localeCompare(b.id)).map(invoice => [invoice.id, invoice.type, invoice.status, invoice.totalTtcCents]))
+    const expectedInvoiceState = invoiceState(order.invoices)
     if (order.status === "CANCELLED") throw new Error("Une commande annulée ne peut pas être facturée")
     if (data.mode === "DEPOSIT") {
       const existingDeposit = order.invoices.find((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED")
-      if (existingDeposit) return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      if (existingDeposit) {
+        const current = await prisma.customerOrder.findFirst({ where: orderScope, select: { invoices: { select: invoiceRead } } })
+        if (!current) throw new Error("Commande client introuvable")
+        if (invoiceState(current.invoices) !== expectedInvoiceState) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
+        return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      }
       if (order.depositCents <= 0) throw new Error("Aucun acompte n’est défini sur cette commande")
     }
     const remaining = remainingOrderAmount(order.totalTtcCents, order.invoices)
@@ -1778,9 +1810,12 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
+          const current = await tx.customerOrder.findFirst({ where: orderScope, select: { invoices: { select: invoiceRead } } })
+          if (!current) throw new Error("Commande client introuvable")
+          if (invoiceState(current.invoices) !== expectedInvoiceState) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
           const nextRemaining = remaining - amountTtcCents
           const claimed = await tx.customerOrder.updateMany({
-            where: { id: order.id, companyId, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
+            where: { ...orderScope, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
             data: { billingStatus: nextRemaining <= 0 ? "INVOICED" : "PARTIALLY_INVOICED" },
           })
           if (claimed.count !== 1) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
@@ -2143,14 +2178,24 @@ export async function creditSupplierReturn(supplierReturnId: string, creditRefer
   }, "operations.write")
 }
 
+async function stockReservationReferences(companyId: string, projectId?: string | null, customerOrderId?: string | null) {
+  const [project, order] = await Promise.all([
+    projectId ? prisma.project.findFirst({ where: { id: projectId, companyId, client: { companyId } }, select: { id: true } }) : null,
+    customerOrderId ? prisma.customerOrder.findFirst({
+      where: { id: customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
+      select: { id: true, clientId: true, project: { select: { clientId: true } } },
+    }) : null,
+  ])
+  return { project, customerOrder: order && (!order.project || order.project.clientId === order.clientId) ? order : null }
+}
+
 export async function reserveStock(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = reservationSchema.parse(input)
-    const [warehouse, product, project, customerOrder] = await Promise.all([
+    const [warehouse, product, { project, customerOrder }] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
       prisma.product.findFirst({ where: { id: data.productId, companyId, active: true }, select: { id: true } }),
-      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }) : null,
-      data.customerOrderId ? prisma.customerOrder.findFirst({ where: { id: data.customerOrderId, companyId }, select: { id: true } }) : null,
+      stockReservationReferences(companyId, data.projectId, data.customerOrderId),
     ])
     if (!warehouse || !product) throw new Error("Dépôt ou produit introuvable")
     if (data.projectId && !project) throw new Error("Chantier introuvable")
@@ -2193,6 +2238,8 @@ export async function releaseStockReservation(reservationId: string) {
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
+    const references = await stockReservationReferences(companyId, reservation.projectId, reservation.customerOrderId)
+    if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
@@ -2232,6 +2279,8 @@ export async function consumeStockReservation(reservationId: string) {
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
+    const references = await stockReservationReferences(companyId, reservation.projectId, reservation.customerOrderId)
+    if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },

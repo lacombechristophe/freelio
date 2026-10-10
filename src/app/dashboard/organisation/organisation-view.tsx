@@ -48,6 +48,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useConfirm } from "@/components/shared/confirm-provider"
+import { calendarDayKey } from "@/lib/calendar-days"
 import { formatCentsToEuro } from "@/lib/billing"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/shared/page-header"
@@ -58,6 +59,9 @@ type TaskCategory = "DEV" | "ADMIN" | "SALES" | "SUPPORT" | "LEARNING" | "MEETIN
 
 type OrganisationData = {
   generatedAt: string
+  timeZone: string
+  canReadFinance: boolean
+  canReadSales: boolean
   periods: {
     todayStart: string
     tomorrowStart: string
@@ -192,38 +196,31 @@ const priorityLabels: Record<number, string> = {
   3: "Basse",
 }
 
-function dateKey(value: string | Date | null | undefined) {
+function dateKey(value: string | Date | null | undefined, timeZone = "UTC") {
   if (!value) return ""
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) return ""
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-")
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "" : calendarDayKey(date, timeZone)
 }
 
-function inputDate(value: string | null | undefined) {
-  return value ? dateKey(value) : ""
-}
-
-function displayDate(value: string | null | undefined, fallback = "Sans date") {
+function displayDate(value: string | null | undefined, timeZone = "UTC", fallback = "Sans date") {
   if (!value) return fallback
   return new Date(value).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
+    timeZone,
   })
 }
 
-function displayLongDate(value: string | null | undefined) {
+function displayLongDate(value: string | null | undefined, timeZone = "UTC") {
   if (!value) return "Non planifié"
   const date = new Date(value)
   const label = date.toLocaleDateString("fr-FR", {
     weekday: "short",
     day: "2-digit",
     month: "short",
+    timeZone,
   })
-  return `${label} · ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+  return `${label} · ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone })}`
 }
 
 function formatDuration(seconds: number) {
@@ -274,12 +271,12 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
   const [goalDialogOpen, setGoalDialogOpen] = React.useState(false)
   const [pendingKey, setPendingKey] = React.useState<string | null>(null)
 
-  const todayKey = dateKey(data.periods.todayStart)
-  const weekStart = React.useMemo(() => new Date(data.periods.weekStart), [data.periods.weekStart])
+  const todayKey = dateKey(data.periods.todayStart, data.timeZone)
+  const weekStart = React.useMemo(() => new Date(`${dateKey(data.periods.weekStart, data.timeZone)}T00:00:00.000Z`), [data.periods.weekStart, data.timeZone])
   const weekDays = React.useMemo(() => {
     return Array.from({ length: 7 }, (_, index) => {
       const day = new Date(weekStart)
-      day.setDate(weekStart.getDate() + index)
+      day.setUTCDate(weekStart.getUTCDate() + index)
       return day
     })
   }, [weekStart])
@@ -289,7 +286,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
     .sort(compareByPriority)
 
   const todayTasks = openTasks.filter((task) => {
-    const scheduled = dateKey(task.scheduledDate)
+    const scheduled = dateKey(task.scheduledDate, data.timeZone)
     const due = dateKey(task.dueDate)
     return scheduled === todayKey || due === todayKey || (!scheduled && !due)
   })
@@ -357,7 +354,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
         title="Organisation"
         description="Transformez les priorités, objectifs et échéances de votre activité en un plan de travail réaliste."
         actions={<>
-          <a href="/api/organisation/calendar.ics">
+          <a download href="/api/organisation/calendar.ics">
             <Button variant="outline" className="gap-2"><Download className="h-4 w-4" /> Calendrier ICS</Button>
           </a>
           <Button variant="outline" className="gap-2" onClick={() => setGoalDialogOpen(true)}>
@@ -397,7 +394,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
           icon={AlertTriangle}
           label="À surveiller"
           value={`${urgentCount} point(s)`}
-          detail={`${overdueInvoices.length} facture(s) en retard`}
+          detail={data.canReadFinance ? `${overdueInvoices.length} facture(s) en retard` : "Accès Finance requis"}
           tone={urgentCount > 0 ? "danger" : "neutral"}
         />
       </div>
@@ -415,7 +412,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                   Ce bloc doit rester court : trois priorités maximum à exécuter.
                 </p>
               </div>
-              <Badge variant="outline">{displayLongDate(data.periods.todayStart)}</Badge>
+              <Badge variant="outline">{displayLongDate(data.periods.todayStart, data.timeZone)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-5 pt-4">
@@ -432,6 +429,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                     <TaskRow
                       key={task.id}
                       task={task}
+                      timeZone={data.timeZone}
                       compact
                       pendingKey={pendingKey}
                       onStatus={(status) => runAction(`task-${task.id}-${status}`, () => updateOrganisationTaskStatus(task.id, status), "Statut mis à jour.")}
@@ -479,14 +477,14 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                   Charge prévue, tâches planifiées et temps réellement imputé.
                 </p>
               </div>
-              <Badge variant="outline">{displayDate(data.periods.weekStart)} - {displayDate(data.periods.weekEnd)}</Badge>
+              <Badge variant="outline">{displayDate(data.periods.weekStart, data.timeZone)} - {displayDate(data.periods.weekEnd, data.timeZone)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="grid gap-3 md:grid-cols-7">
               {weekDays.map((day) => {
                 const key = dateKey(day)
-                const dayTasks = openTasks.filter((task) => dateKey(task.scheduledDate ?? task.dueDate) === key)
+                const dayTasks = openTasks.filter((task) => (task.scheduledDate ? dateKey(task.scheduledDate, data.timeZone) : dateKey(task.dueDate)) === key)
                 const daySeconds = data.weekTimeEntries
                   .filter((entry) => dateKey(entry.date) === key)
                   .reduce((sum, entry) => sum + entry.durationSec, 0)
@@ -503,9 +501,9 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-xs font-semibold tracking-normal text-muted-foreground">
-                          {day.toLocaleDateString("fr-FR", { weekday: "short" })}
+                          {day.toLocaleDateString("fr-FR", { weekday: "short", timeZone: "UTC" })}
                         </p>
-                        <p className="text-xl font-black leading-none">{day.getDate()}</p>
+                        <p className="text-xl font-black leading-none">{day.getUTCDate()}</p>
                       </div>
                       <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
                         {formatDuration(daySeconds)}
@@ -519,7 +517,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                           <div key={task.id} className="rounded-md border border-border/80 bg-card/70 px-2 py-1.5">
                             <p className="line-clamp-2 text-xs font-medium leading-snug">{task.title}</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {task.scheduledDate ? new Date(task.scheduledDate).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "Échéance"} · {formatMinutes(task.estimateMin)}
+                              {task.scheduledDate ? new Date(task.scheduledDate).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: data.timeZone }) : "Échéance"} · {formatMinutes(task.estimateMin)}
                             </p>
                           </div>
                         ))
@@ -568,7 +566,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
             <WatchSection
               icon={Receipt}
               title="Factures à suivre"
-              empty="Aucune facture urgente."
+              empty={data.canReadFinance ? "Aucune facture urgente." : "Accès Finance requis"}
               items={data.watchlist.invoices.slice(0, 5).map((invoice) => ({
                 id: invoice.id,
                 href: `/dashboard/factures/${invoice.id}`,
@@ -580,7 +578,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
             <WatchSection
               icon={Kanban}
               title="Devis ouverts"
-              empty="Aucun devis à relancer."
+              empty={data.canReadSales ? "Aucun devis à relancer." : "Accès commercial requis"}
               items={data.watchlist.quotes.slice(0, 4).map((quote) => ({
                 id: quote.id,
                 href: `/dashboard/devis/${quote.id}`,
@@ -625,6 +623,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                 <TaskRow
                   key={task.id}
                   task={task}
+                  timeZone={data.timeZone}
                   pendingKey={pendingKey}
                   onStatus={(status) => runAction(`task-${task.id}-${status}`, () => updateOrganisationTaskStatus(task.id, status), "Statut mis à jour.")}
                   onTime={() => runAction(`task-time-${task.id}`, () => createTimeEntryFromOrganisationTask(task.id, task.estimateMin ?? 60), "Temps imputé et tâche terminée.")}
@@ -643,7 +642,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
         clients={data.clients}
         goals={activeGoals}
         calendarChannels={data.calendarChannels}
-        defaultDate={inputDate(data.periods.todayStart)}
+        defaultDate={dateKey(data.periods.todayStart, data.timeZone)}
         onCreate={async (payload) => {
           const result = await runAction("create-task", () => createOrganisationTask(payload), "Tâche créée.")
           if (!result) return
@@ -655,7 +654,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
       <GoalDialog
         open={goalDialogOpen}
         onOpenChange={setGoalDialogOpen}
-        defaultDate={inputDate(data.periods.todayStart)}
+        defaultDate={dateKey(data.periods.todayStart, data.timeZone)}
         onCreate={async (payload) => {
           const result = await runAction("create-goal", () => createOrganisationGoal(payload), "Objectif créé.")
           if (result) setGoalDialogOpen(false)
@@ -712,6 +711,7 @@ function EmptyLine({ text }: { text: string }) {
 
 function TaskRow({
   task,
+  timeZone,
   compact = false,
   pendingKey,
   onStatus,
@@ -719,6 +719,7 @@ function TaskRow({
   onDelete,
 }: {
   task: OrganisationData["tasks"][number]
+  timeZone: string
   compact?: boolean
   pendingKey: string | null
   onStatus: (status: TaskStatus) => void
@@ -754,7 +755,7 @@ function TaskRow({
             <span>{categoryLabels[category]}</span>
             <span>{priorityLabels[task.priority] ?? "Normale"}</span>
             <span>{formatMinutes(task.estimateMin)}</span>
-            <span>{displayLongDate(task.scheduledDate ?? task.dueDate)}</span>
+            <span>{displayLongDate(task.scheduledDate ?? task.dueDate, task.scheduledDate ? timeZone : "UTC")}</span>
           </div>
           {!compact && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">

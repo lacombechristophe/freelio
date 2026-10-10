@@ -76,6 +76,8 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   EmailSequenceEnrollment: "automation.write",
   EmailSequenceTask: "automation.write",
   EmailDelivery: "automation.write",
+  EmailDraft: "automation.write",
+  EmailSignature: "automation.write",
   EmailThread: "automation.write",
   EmailMessage: "automation.write",
   EmailEvent: "automation.write",
@@ -86,9 +88,13 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   MarketingSegmentMember: "automation.write",
   MarketingCampaign: "automation.write",
   MarketingCampaignAsset: "automation.write",
+  CampaignAudience: "automation.write",
+  CampaignAudienceMember: "automation.write",
   AutomationWorkflow: "automation.write",
   AutomationWorkflowVersion: "automation.write",
   AutomationRun: "automation.write",
+  AutomationEventOutbox: "automation.write",
+  AutomationRunAction: "automation.write",
   CrmPropertyDefinition: "company.manage",
   CrmPropertyValue: "crm.write",
   CrmPropertyHistory: "crm.write",
@@ -188,12 +194,16 @@ export function requiredMutationPermission(model: string): Permission | undefine
 }
 
 const ACTION_PERMISSION_MODEL_ALIASES: Partial<Record<Permission, ReadonlySet<string>>> = {
+  // Accounting actions can journal their invoice reminders without granting
+  // access to editing campaigns or automation configuration.
+  "finance.write": new Set(["EmailDelivery", "EmailThread", "EmailMessage"]),
   // Field technicians can attach and reconcile expenses for their own
   // interventions without receiving company-wide finance permissions.
-  "operations.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "Expense", "ExpenseFile"]),
+  "operations.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "Expense", "ExpenseFile", "AutomationRun", "AutomationEventOutbox"]),
   "purchases.approve": new Set(["PurchaseOrder"]),
-  "service.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "EmailTemplate"]),
-  "sales.write": new Set(["CrmPropertyValue", "CrmPropertyHistory"]),
+  "service.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "EmailTemplate", "AutomationRun", "AutomationEventOutbox"]),
+  "sales.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "AutomationRun", "AutomationEventOutbox"]),
+  "crm.write": new Set(["AutomationRun", "AutomationEventOutbox"]),
 }
 
 export function canActionPermissionMutateModel(permission: Permission | undefined, model: string): boolean {

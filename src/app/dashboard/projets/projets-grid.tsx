@@ -57,7 +57,7 @@ function formatEuro(cents: number) {
 
 function formatDate(value?: Date | string | null) {
   if (!value) return null
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value))
 }
 
 function errorMessage(error: unknown) {

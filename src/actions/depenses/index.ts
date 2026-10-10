@@ -1,5 +1,6 @@
 "use server"
 
+import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
@@ -8,10 +9,29 @@ import { ExpenseSchema } from "@/lib/validations"
 import { removeLocalFile } from "@/lib/local-files"
 import { boundedPageSize } from "@/lib/pagination"
 
+function expenseWhere(companyId: string): Prisma.ExpenseWhereInput {
+  return {
+    companyId,
+    AND: [
+      { OR: [{ clientId: null }, { client: { companyId } }] },
+      { OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
+    ],
+  }
+}
+
+async function writeExpense<T>(query: PromiseLike<T>): Promise<T> {
+  try { return await query }
+  catch (error) {
+    // Conditional writes also refuse a relation changed after the initial read.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") throw new Error("Dépense introuvable")
+    throw error
+  }
+}
+
 async function validateExpenseRelations(companyId: string, clientId: string | null, projectId: string | null) {
   const [client, project] = await Promise.all([
     clientId ? prisma.client.findFirst({ where: { id: clientId, companyId }, select: { id: true } }) : null,
-    projectId ? prisma.project.findFirst({ where: { id: projectId, companyId }, select: { id: true, clientId: true } }) : null,
+    projectId ? prisma.project.findFirst({ where: { id: projectId, companyId, client: { companyId } }, select: { id: true, clientId: true } }) : null,
   ])
 
   if (clientId && !client) throw new Error("Client introuvable")
@@ -23,7 +43,7 @@ export async function getExpenses(cursor?: string, limit = 50) {
   return await withAuth(async ({ companyId }) => {
     const pageSize = boundedPageSize(limit, 50, 100)
     return await prisma.expense.findMany({
-      where: { companyId },
+      where: expenseWhere(companyId),
       take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
@@ -73,15 +93,15 @@ export async function createExpense(data: unknown) {
 export async function updateExpense(id: string, data: unknown) {
   return await withAuth(async ({ companyId, userId, agencyIds }) => {
     const validated = ExpenseSchema.parse(data)
-    const existing = await prisma.expense.findFirst({ where: { id, companyId } })
+    const existing = await prisma.expense.findFirst({ where: { ...expenseWhere(companyId), id } })
     if (!existing) throw new Error("Dépense introuvable")
     const clientId = validated.clientId || null
     const projectId = validated.projectId || null
     if (agencyIds !== null && !projectId) throw new Error("Sélectionnez un chantier rattaché à votre agence")
     await validateExpenseRelations(companyId, clientId, projectId)
 
-    const expense = await prisma.expense.update({
-      where: { id },
+    const expense = await writeExpense(prisma.expense.update({
+      where: { ...expenseWhere(companyId), id },
       data: {
         label: validated.label,
         provider: validated.provider || null,
@@ -92,7 +112,7 @@ export async function updateExpense(id: string, data: unknown) {
         clientId,
         projectId,
       },
-    })
+    }))
     await logAction({
       userId,
       action: "UPDATE_EXPENSE",
@@ -107,12 +127,12 @@ export async function updateExpense(id: string, data: unknown) {
 export async function deleteExpense(id: string) {
   return await withAuth(async ({ companyId, userId }) => {
     const existing = await prisma.expense.findFirst({
-      where: { id, companyId },
+      where: { ...expenseWhere(companyId), id },
       include: { files: { select: { url: true } } },
     })
     if (!existing) throw new Error("Dépense introuvable")
 
-    await prisma.expense.delete({ where: { id } })
+    await writeExpense(prisma.expense.delete({ where: { ...expenseWhere(companyId), id } }))
     await Promise.all(existing.files.map((file) => removeLocalFile(file.url)))
     await logAction({
       userId,
@@ -128,9 +148,9 @@ export async function deleteExpense(id: string) {
 
 export async function markExpenseJustified(id: string) {
   return await withAuth(async ({ companyId }) => {
-    const existing = await prisma.expense.findFirst({ where: { id, companyId } })
+    const existing = await prisma.expense.findFirst({ where: { ...expenseWhere(companyId), id } })
     if (!existing) throw new Error("Dépense introuvable")
-    await prisma.expense.update({ where: { id }, data: { status: "JUSTIFIED" } })
+    await writeExpense(prisma.expense.update({ where: { ...expenseWhere(companyId), id }, data: { status: "JUSTIFIED" } }))
     revalidatePath("/dashboard/depenses")
     return { ok: true }
   }, "finance.write")

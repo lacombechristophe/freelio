@@ -1,0 +1,11 @@
+{
+  "schema": "freelio.date-timezone-diagnostic.v1",
+  "observedAt": "2026-10-09T23:29:18.653Z",
+  "fictitiousQuoteDate": "2026-10-09T22:40:48.512Z",
+  "serverUTC": "9 oct. 2026",
+  "browser": {
+    "timeZone": "Europe/Paris",
+    "formatted": "10 oct. 2026",
+    "utc": "9 oct. 2026"
+  }
+}

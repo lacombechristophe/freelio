@@ -1,0 +1,126 @@
+{
+  "schema": "freelio.service-detail-metrics-baseline.v1",
+  "source": "e25c8d155df20faefebfbe4f3f3feccf671d079e",
+  "test": {
+    "file": "tests/unit/service-detail-client-metrics.integration.test.ts",
+    "sha256": "4533bfe09874bd87fa1feec78fdcfe3f7c53ab1af3b86e98cdda74173c59b13d"
+  },
+  "passed": 6,
+  "failed": 21,
+  "cases": [
+    {
+      "name": "excludes 'totalRevenueCents' from 'equipment' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'totalUnpaidCents' from 'equipment' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'renewalAmountCents' from 'equipment' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'relationScore' from 'equipment' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'totalRevenueCents' from 'intervention' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'totalUnpaidCents' from 'intervention' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'renewalAmountCents' from 'intervention' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'relationScore' from 'intervention' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'totalRevenueCents' from 'ticket' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'totalUnpaidCents' from 'ticket' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'renewalAmountCents' from 'ticket' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "excludes 'relationScore' from 'ticket' without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "preserves global values for 'OWNER' in 'equipment'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'ADMIN' in 'equipment'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'OWNER' in 'intervention'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'ADMIN' in 'intervention'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'OWNER' in 'ticket'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves global values for 'ADMIN' in 'ticket'",
+      "status": "passed"
+    },
+    {
+      "name": "preserves authorized renewal but hides global caches for Viewer in equipment",
+      "status": "failed"
+    },
+    {
+      "name": "preserves authorized renewal but hides global caches for Viewer in intervention",
+      "status": "failed"
+    },
+    {
+      "name": "preserves authorized renewal but hides global caches for Viewer in ticket",
+      "status": "failed"
+    },
+    {
+      "name": "reevaluates the role in the same session for equipment",
+      "status": "failed"
+    },
+    {
+      "name": "reevaluates the role in the same session for intervention",
+      "status": "failed"
+    },
+    {
+      "name": "reevaluates the role in the same session for ticket",
+      "status": "failed"
+    },
+    {
+      "name": "preserves client identity and contacts for Service in equipment",
+      "status": "failed"
+    },
+    {
+      "name": "preserves client identity and contacts for Service in intervention",
+      "status": "failed"
+    },
+    {
+      "name": "preserves client identity and contacts for Service in ticket",
+      "status": "failed"
+    }
+  ],
+  "limits": [
+    "Coherent fictitious client, site, equipment, ticket and intervention; real SQL and reader actions.",
+    "Session and Next cache simulated. No provider called.",
+    "Failures concern response projections; these three pages do not render the four cached client metrics.",
+    "This suite does not qualify every nested relation or all financial data in Operations."
+  ]
+}

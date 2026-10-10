@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { Prisma } from "@prisma/client"
 
 import { publicLeadSchema, normalizePhone, type PublicLeadInput } from "@/lib/leads/schema"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 import { refreshSingleLeadIntelligence } from "@/lib/marketing/intelligence"
 import { DEFAULT_PIPELINE_STAGES } from "@/lib/pipeline-rules"
 import prisma from "@/lib/prisma"
@@ -59,6 +59,7 @@ function consentProofHash(input: {
   leadCaptureId: string
   channel: string
   purpose: string
+  recipientEmail: string | null
   status: string
   legalBasis: string
   noticeUrl: string
@@ -234,11 +235,12 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
         contactId: contact.id,
         leadCaptureId: lead.id,
         ...event,
+        recipientEmail: event.channel === "EMAIL" ? email || null : null,
         source: input.source.toUpperCase(),
         noticeUrl,
         noticeLabel: "Politique de confidentialité",
         capturedAt,
-        proofHash: consentProofHash({ companyId: company.id, leadCaptureId: lead.id, ...event, noticeUrl, capturedAt, evidence }),
+        proofHash: consentProofHash({ companyId: company.id, leadCaptureId: lead.id, ...event, recipientEmail: event.channel === "EMAIL" ? email || null : null, noticeUrl, capturedAt, evidence }),
         metadata: {
           landingPage: input.landingPage,
           utmSource: input.utmSource,
@@ -266,18 +268,12 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
       })
     }
 
-    return { reference: lead.id, clientId, opportunityId: opportunity.id }
+    const eventId = await enqueueAutomationEvent(tx, { companyId: company.id, event: "LEAD_CREATED", eventKey: `${lead.id}:created`, subjectModel: "LeadCapture", subjectId: lead.id, leadId: lead.id })
+    return { reference: lead.id, clientId, opportunityId: opportunity.id, eventId }
   })
 
-  await runAutomationEvent({
-    companyId: company.id,
-    event: "LEAD_CREATED",
-    eventKey: `${result.reference}:created`,
-    subjectModel: "LeadCapture",
-    subjectId: result.reference,
-    leadId: result.reference,
-  }).catch((error) => console.error("Lead automation failed", error))
+  await dispatchAutomationEvent(result.eventId).catch((error) => console.error("Lead automation deferred", error))
   await refreshSingleLeadIntelligence(company.id, result.reference).catch((error) => console.error("Lead scoring refresh failed", error))
 
-  return { accepted: true as const, duplicate: false as const, ...result }
+  return { accepted: true as const, duplicate: false as const, reference: result.reference, clientId: result.clientId, opportunityId: result.opportunityId }
 }

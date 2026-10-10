@@ -1,0 +1,510 @@
+{
+  "schema": "freelio.shared-client-readers-local.v1",
+  "reference": "d7bb1e2431046dfe6dc4dfe3c82d98a2843b3672",
+  "node": "v24.15.0",
+  "engine": "SQLite",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 927,
+    "sha256": "da3831e85e98bd155adca8e7f6839e4115770e051f5e4ca6bafc4d9e1dc06335"
+  },
+  "fullSuite": {
+    "passed": 1328,
+    "files": 173,
+    "seconds": 183.53
+  },
+  "targeted": {
+    "passed": 103,
+    "failed": 0,
+    "reportSha256": "638c2f240d36ed4e70f4753540844a87f5171827ed0ab6e79daf6d66e5175af2",
+    "files": [
+      {
+        "file": "client-mutation-response.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'create' response for 'SALES' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'update' response for 'SALES' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'next' response for 'SALES' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'create' response for 'OWNER' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'update' response for 'OWNER' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'next' response for 'OWNER' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'create' response for 'ADMIN' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'update' response for 'ADMIN' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL restricts the 'next' response for 'ADMIN' while preserving stored fields",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses create in the readonly demo without changing clients",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses update in the readonly demo without changing clients",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses next in the readonly demo without changing clients",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses create without CRM write permission",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses update without CRM write permission",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses next without CRM write permission",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses a foreign client during update",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses a foreign client during next",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses create after membership suspension",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses update after membership suspension",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL refuses next after membership suspension",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL rereads permissions after a role downgrade with the same session",
+            "status": "passed"
+          },
+          {
+            "name": "client mutation response permissions on real SQL does not accept financial caches or a health score in the profile form",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "opportunity-read-scope.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "opportunity nested client read scope on real SQL omits inaccessible totalRevenueCents from the Sales detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL omits inaccessible totalUnpaidCents from the Sales detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL omits inaccessible renewalAmountCents from the Sales detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL omits inaccessible relationScore from the Sales detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL omits global totalRevenueCents from the agency-limited Viewer detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL omits global totalUnpaidCents from the agency-limited Viewer detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL omits global relationScore from the agency-limited Viewer detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL limits nested projects to assigned agencies",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL limits nested quotes to company and assigned agencies",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL does not include a foreign quote even for Owner",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL refuses an opportunity whose client belongs to another company",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL preserves the Owner company-wide client values and projects",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL refuses a foreign pipeline",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL refuses consultation after membership suspension",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL preserves Admin values and only coherent company references",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL keeps the financial renewal field for Accounting without global caches",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL refuses the detail without Sales read permission to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL refuses the detail without Sales read permission to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL rereads the scope after a role downgrade",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL returns no operational references after agency revocation",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL permits a scoped read in the public readonly demo",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL rejects an invalid opportunity id without loading a detail",
+            "status": "passed"
+          },
+          {
+            "name": "opportunity nested client read scope on real SQL filters references before applying the recent-list limit",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "shared-client-readers.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalRevenueCents' from 'projects'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalUnpaidCents' from 'projects'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'renewalAmountCents' from 'projects'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'relationScore' from 'projects'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalRevenueCents' from 'project'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalUnpaidCents' from 'project'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'renewalAmountCents' from 'project'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'relationScore' from 'project'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalRevenueCents' from 'time'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalUnpaidCents' from 'time'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'renewalAmountCents' from 'time'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'relationScore' from 'time'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalRevenueCents' from 'quote'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalUnpaidCents' from 'quote'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'renewalAmountCents' from 'quote'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'relationScore' from 'quote'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalRevenueCents' from 'contract'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalUnpaidCents' from 'contract'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'renewalAmountCents' from 'contract'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'relationScore' from 'contract'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalRevenueCents' from 'invoice'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'totalUnpaidCents' from 'invoice'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL omits inaccessible 'relationScore' from 'invoice'",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project quotes without Sales to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project quotes without Sales to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project invoices without Finance to SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project invoices without Finance to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project invoices without Finance to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project expenses without Finance to SALES",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project expenses without Finance to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL does not return project expenses without Finance to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL refuses an inconsistent foreign client in project",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL refuses an inconsistent foreign client in quote",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL refuses an inconsistent foreign client in invoice",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL refuses an inconsistent foreign client in contract",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL excludes projects linked to a foreign client from the project list",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL excludes time entries whose project is linked to a foreign client",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Owner client values in projects",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Owner client values in project",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Owner client values in time",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Owner client values in quote",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Owner client values in contract",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Owner client values in invoice",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Admin client values in projects",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Admin client values in project",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Admin client values in time",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Admin client values in quote",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Admin client values in contract",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves Admin client values in invoice",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves authorized Finance with agency-scoped caches for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL preserves authorized Finance with agency-scoped caches for ACCOUNTING",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL keeps Sales quotes and operational budget while excluding Finance",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL keeps technician budgets and time without exposing commercial documents",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL keeps coherent Owner documents and excludes inconsistent nested clients",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL reevaluates permissions after a role change in the same session",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL reevaluates agency revocation in project and time readers",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL refuses a project of another company",
+            "status": "passed"
+          },
+          {
+            "name": "shared client reader permissions on real SQL refuses project consultation after suspension",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "warnings": 0,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 266,
+      "files": 48,
+      "execution": false
+    }
+  },
+  "logs": [
+    {
+      "check": "replay-types",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "replay-lint-eslint",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "replay-lint-next",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "replay-targeted",
+      "sha256": "ceb4e7c21e1ce335817951b6138fe831a2a7860652cba461f000288e04e92876"
+    },
+    {
+      "check": "final-unit",
+      "sha256": "e0e18580a5d5a85bc22e37b510b9560b3afad107324a0934864e30796b333642"
+    },
+    {
+      "check": "schema",
+      "sha256": "cae7f2fcf2e0bc1612adce3e284324abce526702d430c08f3fb0c83555713121"
+    },
+    {
+      "check": "postgres",
+      "sha256": "8eeef3570aaf550387c6e2e76df0d40e4827a3e8be1e0d7183b3ed770638c393"
+    },
+    {
+      "check": "e2e-list",
+      "sha256": "7979417aceccc4a87df6c71c2e1ea55f2201c009538110e6ceaaba8c2c1b38b7"
+    },
+    {
+      "check": "build",
+      "sha256": "15ce9409a4354cb25913334156c72490d7265416417e66b3eb16a365a90880cd"
+    }
+  ],
+  "limits": [
+    "Fictitious isolated SQLite; session and Next cache mocked.",
+    "No local browser execution or real provider calls.",
+    "PostgreSQL schema validation does not connect to a database.",
+    "Removal of an unused icon import followed by clean types/lints; no behavior change."
+  ]
+}

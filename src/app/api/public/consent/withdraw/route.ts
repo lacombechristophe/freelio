@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto"
 import { z } from "zod"
 
-import { verifyConsentWithdrawalToken } from "@/lib/leads/consent-token"
+import { verifyConsentWithdrawalToken, verifyManualMarketingWithdrawalToken } from "@/lib/leads/consent-token"
+import { withdrawManualMarketingConsent } from "@/lib/communications/marketing-consent"
+import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import prisma from "@/lib/prisma"
 import { consentRateLimit } from "@/lib/rate-limit"
 import { PayloadTooLargeError, readJsonBody } from "@/lib/http-body"
@@ -29,6 +31,7 @@ function responseHeaders() {
 export async function POST(request: Request) {
   const headers = responseHeaders()
   try {
+    if (isPublicReadOnlyDemo()) return Response.json({ error: "La démonstration publique est en lecture seule." }, { status: 403, headers })
     const { token } = requestSchema.parse(await readJsonBody(request, 8 * 1024))
     const tokenHash = digest(token)
     const ipHash = digest(clientAddress(request))
@@ -40,12 +43,17 @@ export async function POST(request: Request) {
       return Response.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429, headers })
     }
 
+    const manualPayload = await verifyManualMarketingWithdrawalToken(token)
+    if (manualPayload) {
+      const withdrawn = await withdrawManualMarketingConsent(manualPayload, { tokenHash, ipHash, userAgentHash: digest(request.headers.get("user-agent") || "unknown") })
+      return Response.json({ success: true, alreadyWithdrawn: !withdrawn }, { headers })
+    }
     const payload = await verifyConsentWithdrawalToken(token)
     if (!payload) return Response.json({ error: "Lien invalide." }, { status: 400, headers })
 
     const lead = await prisma.leadCapture.findFirst({
       where: { id: payload.leadId, companyId: payload.companyId },
-      select: { id: true, companyId: true, clientId: true, contactId: true, marketingOptIn: true },
+      select: { id: true, companyId: true, clientId: true, contactId: true, email: true, marketingOptIn: true },
     })
 
     // Do not disclose whether a former lead still exists. A valid signed link can
@@ -58,6 +66,7 @@ export async function POST(request: Request) {
       JSON.stringify({
         companyId: lead.companyId,
         leadId: lead.id,
+        recipientEmail: lead.email?.trim().toLowerCase() || null,
         status: "WITHDRAWN",
         capturedAt: capturedAt.toISOString(),
         tokenHash,
@@ -92,6 +101,7 @@ export async function POST(request: Request) {
           clientId: lead.clientId,
           contactId: lead.contactId,
           leadCaptureId: lead.id,
+          recipientEmail: lead.email?.trim().toLowerCase() || null,
           channel: "EMAIL",
           purpose: "MARKETING",
           status: "WITHDRAWN",

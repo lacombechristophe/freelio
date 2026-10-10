@@ -1,0 +1,301 @@
+{
+  "schema": "freelio.contact-history-ci.v1",
+  "candidate": "13a89e7942c71518a39fc12ce4bba804ff2bfe8b",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 930,
+    "sha256": "7b45ffcc548ae245ffe5d44ada52ae983157ede5acd57369f259133fb33a2b25"
+  },
+  "sourceComparison": {
+    "merge": "8faaf18d42e63cd4c57277aca4c0fff0d6940513",
+    "candidateEntries": 930,
+    "mergeEntries": 930,
+    "differencesOutsideDocs": 0
+  },
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/37855573710",
+      "conclusion": "cancelled",
+      "testedCommit": "13a89e7942c71518a39fc12ce4bba804ff2bfe8b",
+      "parents": [
+        "e7b6b5761461cce8f0bf0587cfbaa8d2e3c7ae75"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113578796863,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 113578797036,
+          "conclusion": "cancelled"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113578797092,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  174 passed (174)",
+        "Tests  1364 passed (1364)",
+        "Test Files  174 passed (174)",
+        "Tests  1364 passed (1364)"
+      ],
+      "postgres": {
+        "artifactId": 11583618605,
+        "reportSha256": "645154d1a069551c2d59d2afaed325a9be4c71bf0d9957496949cc6992ed94b8",
+        "passed": 1363,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "contact-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 36
+          },
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 23
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "status": "passed",
+            "cases": 58
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11584450654,
+        "reportSha256": "d84441279e29b52693d3a05280af517591b74724f48b1c08cee41d5630f8fb5c",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          }
+        ],
+        "exclusions": [
+          "-  125 [desktop] › tests/e2e/task-usability.spec.ts:148:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  189 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  190 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  192 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  193 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  194 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  195 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  196 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  197 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  198 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  199 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  200 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  201 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  202 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  203 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  204 [mobile] › tests/e2e/critical-flows.spec.ts:1601:5 › creates and signs in a production account with a password",
+          "-  228 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  265 [mobile] › tests/e2e/task-usability.spec.ts:133:5 › un favori invisible n’intercepte pas un clic sur la navigation"
+        ],
+        "partialReporter": {
+          "passed": 251,
+          "failed": 1,
+          "skipped": 18,
+          "complete": false
+        },
+        "failure": {
+          "test": "catalogue-volume.spec.ts:24",
+          "surface": "desktop",
+          "hook": "beforeEach",
+          "timeoutMs": 240000,
+          "stack": "catalogue-volume.spec.ts:20 — await refresh.finished()",
+          "httpStatus": 200,
+          "responseReceiveMs": -1,
+          "renderedStatus": "603 résultats",
+          "renderedPage": "Page 1 sur 25",
+          "traceSha256": "02791135650f0350f5126c58b7194eaa256798e4a01dc6b7dbdfd48bffec47ed"
+        },
+        "cancellation": {
+          "jobLimitMinutes": 35,
+          "lastPendingTest": "task-usability: preuves des onglets secondaires et de la création produit (mobile)",
+          "lastEmittedTab": "settings — Compte",
+          "diagnosis": "The shared Catalogue helper also awaits refresh.finished(); no mobile trace was retained, so this cause remains an inference."
+        },
+        "artifacts": {
+          "playwright": 11585420954,
+          "ui": 11585326274,
+          "sqlite": 11585495833
+        }
+      }
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/37855579432",
+      "conclusion": "success",
+      "testedCommit": "8faaf18d42e63cd4c57277aca4c0fff0d6940513",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "13a89e7942c71518a39fc12ce4bba804ff2bfe8b"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 113578814786,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113578815051,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113578815777,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  174 passed (174)",
+        "Tests  1364 passed (1364)",
+        "Test Files  174 passed (174)",
+        "Tests  1364 passed (1364)"
+      ],
+      "postgres": {
+        "artifactId": 11583782503,
+        "reportSha256": "45b8fb9f7ef770f8fcaf30e24119a4a6172c65d7e5195d340309daee80c9b92d",
+        "passed": 1363,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "contact-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 36
+          },
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 23
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "status": "passed",
+            "cases": 58
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11584136909,
+        "reportSha256": "14376ff15de39897e038e07a215f7b042e71be3f1238a74430b63d2adc01984c",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "263 passed (16.6m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          }
+        ],
+        "exclusions": [
+          "-  125 [desktop] › tests/e2e/task-usability.spec.ts:148:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  189 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  190 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  192 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  193 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  194 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  195 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  196 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  197 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  198 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  199 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  200 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  201 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  202 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  203 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  204 [mobile] › tests/e2e/critical-flows.spec.ts:1601:5 › creates and signs in a production account with a password",
+          "-  228 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  265 [mobile] › tests/e2e/task-usability.spec.ts:133:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  275 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "artifacts": {
+          "ui": 11584239939,
+          "sqlite": 11585215493
+        }
+      }
+    }
+  ],
+  "limits": [
+    "PR browser run completed: 263 passed and 19 historical exclusions. Branch browser run is incomplete and cancelled; its partial counts are not final totals.",
+    "Contact, Project and Opportunity browser cases passed on both desktop and mobile in each run. A Catalogue test timeout still prevents a fully green branch.",
+    "The next test change keeps the response check and rendered-state assertions but removes the wait for the end of the RSC stream. Its browser execution requires a new CI.",
+    "Provider HTTP, hosted load and commercial production readiness are not established by these fake fixtures."
+  ]
+}

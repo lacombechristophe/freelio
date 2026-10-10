@@ -51,7 +51,7 @@ describe("Commercial reads use current membership permissions", () => {
       return []
     })
     await expect(getInvoices()).resolves.toEqual([])
-    expect(mocks.invoiceList).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId: "company-a" } }))
+    expect(mocks.invoiceList).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId: "company-a", client: { companyId: "company-a" } } }))
     expect(mocks.invoiceUpdate).not.toHaveBeenCalled()
     expect(mocks.recurring).not.toHaveBeenCalled()
   })

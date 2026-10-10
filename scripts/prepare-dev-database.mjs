@@ -57,6 +57,7 @@ if (isSqlite) {
   } else {
     runPrisma(["db", "push", "--schema", "prisma/schema.prisma"])
   }
+  runPrisma(["db", "execute", "--file", "prisma/sqlite/backfill-recurring-projects.sql", "--schema", "prisma/schema.prisma"])
   process.exit(0)
 }
 

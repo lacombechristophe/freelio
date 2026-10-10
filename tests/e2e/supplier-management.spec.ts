@@ -1,0 +1,63 @@
+import { expect, test } from "@playwright/test"
+
+test("reads the full supplier directory and edits, deactivates and reactivates an old supplier", async ({ page }, info) => {
+  const prefix = `UIQA Supplier ${info.project.name}`
+  await page.goto("/dashboard/operations")
+  await page.getByRole("link", { name: "Fournisseurs", exact: true }).click()
+  await expect(page).toHaveURL(/\/operations\/fournisseurs$/)
+  await page.getByRole("textbox", { name: "Rechercher un fournisseur", exact: true }).fill(prefix)
+  await expect(page.getByText("201 résultats", { exact: true })).toBeVisible()
+  for (let index = 0; index < 8; index++) {
+    await page.getByRole("button", { name: "Page suivante", exact: true }).click()
+    await expect(page.getByText(`Page ${index + 2} sur 9`, { exact: true })).toBeVisible()
+  }
+  await page.getByRole("link").filter({ hasText: `${prefix} 200` }).click()
+  await page.getByRole("button", { name: "Modifier", exact: true }).click()
+  const edit = page.getByRole("dialog", { name: "Modifier le fournisseur", exact: true })
+  await edit.getByLabel("Téléphone", { exact: true }).fill("0123456789")
+  await edit.getByLabel("Adresse", { exact: true }).fill("Adresse fictive de recette")
+  await edit.getByLabel("Conditions de paiement", { exact: true }).fill("30 jours fictifs")
+  await edit.getByLabel("Délai de livraison (jours)", { exact: true }).fill("7")
+  await edit.getByRole("button", { name: "Enregistrer", exact: true }).click()
+  await expect(edit).not.toBeVisible()
+  await expect(page.getByText("Adresse fictive de recette", { exact: true })).toBeVisible()
+  await page.getByRole("button", { name: "Désactiver", exact: true }).click()
+  await page.getByRole("dialog").getByRole("button", { name: "Désactiver le fournisseur", exact: true }).click()
+  await expect(page.getByRole("button", { name: "Réactiver", exact: true })).toBeVisible()
+  const supplierUrl = page.url()
+  await page.goto("/dashboard/operations/fournisseurs")
+  await page.getByRole("textbox", { name: "Rechercher un fournisseur", exact: true }).fill(prefix)
+  await page.getByRole("combobox", { name: "Activité des fournisseurs", exact: true }).selectOption("INACTIVE")
+  await expect(page.getByText("1 résultat", { exact: true })).toBeVisible()
+  await page.goto(supplierUrl)
+  await page.getByRole("button", { name: "Réactiver", exact: true }).click()
+  await expect(page.getByRole("button", { name: "Désactiver", exact: true })).toBeVisible()
+})
+
+test("keeps an off-page supplier choice while searching a purchase or product form", async ({ page }, info) => {
+  const prefix = `UIQA Supplier ${info.project.name}`
+  await page.goto("/dashboard/operations?tab=stock")
+  await page.getByRole("button", { name: "Nouvelle commande", exact: true }).click()
+  const purchase = page.getByRole("dialog", { name: "Nouvelle commande fournisseur", exact: true })
+  await purchase.getByRole("textbox", { name: "Rechercher un fournisseur", exact: true }).fill(prefix)
+  await expect(purchase.getByText("201 résultats", { exact: true })).toBeVisible()
+  for (let index = 0; index < 8; index++) {
+    await purchase.getByRole("button", { name: "Page suivante", exact: true }).click()
+    await expect(purchase.getByText(`Page ${index + 2} sur 9`, { exact: true })).toBeVisible()
+  }
+  await purchase.getByRole("combobox", { name: "Fournisseur de la commande", exact: true }).selectOption({ label: `${prefix} 200` })
+  await purchase.getByRole("textbox", { name: "Rechercher un fournisseur", exact: true }).fill("UIQA-no-supplier")
+  await expect(purchase.getByText("0 résultats", { exact: true })).toBeVisible()
+  await expect(purchase.getByRole("combobox", { name: "Fournisseur de la commande", exact: true }).locator("option:checked")).toHaveText(`${prefix} 200`)
+  await purchase.getByRole("button", { name: "Annuler", exact: true }).click()
+  await page.goto("/dashboard/catalogue")
+  await page.getByRole("button", { name: "Nouveau produit", exact: true }).click()
+  const product = page.getByRole("dialog")
+  await product.getByRole("textbox", { name: "Rechercher un fournisseur", exact: true }).fill(`${prefix} 200`)
+  await expect(product.getByText("1 résultat", { exact: true })).toBeVisible()
+  await product.getByRole("combobox", { name: "Fournisseur du produit", exact: true }).click()
+  await page.getByRole("option", { name: `${prefix} 200`, exact: true }).click()
+  await product.getByRole("textbox", { name: "Rechercher un fournisseur", exact: true }).fill("UIQA-no-supplier")
+  await expect(product.getByText("0 résultats", { exact: true })).toBeVisible()
+  await expect(product.getByRole("combobox", { name: "Fournisseur du produit", exact: true })).toContainText(`${prefix} 200`)
+})

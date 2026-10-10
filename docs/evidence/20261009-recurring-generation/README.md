@@ -1,0 +1,21 @@
+# Références de la génération récurrente
+
+La [baseline](baseline.json) sur `83ac918` conserve sept cas : quatre échecs et trois réussites, sans erreur de hook. Le worker réel crée un brouillon avec un client étranger, un chantier étranger ou appartenant à un autre client, puis accepte un auteur d’audit explicite hors société. Ce dernier cas appelle directement la fonction interne ; aucun point d’entrée HTTP exploitable n’est établi.
+
+Les fixtures insèrent directement les références incohérentes. Elles ne prouvent pas leur création par les actions actuelles. Les contrôles positifs vérifient la génération cohérente, l’absence de doublon à échéance identique et le support d’un modèle sans chantier. Aucun PDF émis, fournisseur ou envoi n’intervient.
+
+Dans une copie isolée de cette référence avec les dépendances du lockfile, Prisma SQLite et une base neuve, copier le [reproducer](reproducer.test.ts.txt) en `tests/unit/recurring-generation.probe.test.ts`, puis exécuter :
+
+```sh
+npm run test:unit -- tests/unit/recurring-generation.probe.test.ts
+```
+
+La correction vérifie client, société et chantier dans la transaction avant création du brouillon. L’auteur préféré suit le même périmètre société, statut actif et liste de rôles que l’auteur choisi automatiquement ; un auteur invalide ne provoque pas de repli. Le helper partagé conserve cette règle pour les visites d’entretien. Un refus ne modifie ni l’échéance ni l’activation et n’écrit aucune facture ou occurrence partielle.
+
+Le correctif est dans `470966a`. Ses [preuves locales](local.json) passent les douze cas actifs de `tests/unit/recurring-generation.integration.test.ts`, avec les trois contrôles existants d’ordonnancement SQLite/PostgreSQL simulé : quinze réussites, zéro échec. La suite complète passe 1 376 tests dans 175 fichiers, types et deux lints sans avertissement, puis le build de 75 pages. L’empreinte conserve les 931 entrées Git hors documentation du code testé. La qualification finale de `bc12199` ci-dessous couvre ce correctif et le complément de compteur.
+
+Ces preuves historiques ne qualifient pas le [nouveau lecteur des récurrences](../../qualification-factures-recurrentes-20261009.md). Le lot approuvé de 565986e protège ce lecteur, ajoute le chantier relationnel et vérifie les références du site d’entretien avant génération ; ses 26 cas de périmètre et les treize cas worker passent localement. Les deux CI de 0f45087 passent ensuite les treize cas worker et les 26 cas de périmètre sur PostgreSQL, ainsi que les huit E2E Récurrences. Voir leurs [preuves propres](../20261009-recurring-read/ci-0f45087.json). Claims simultanés multi-processus et reprise après interruption réelle restent distincts. Le test du worker ne certifie pas toute la chaîne de facturation.
+
+Un [second diagnostic](race-baseline.json) sur `470966a` conserve douze réussites et un échec. Après la première lecture sans occurrence, un second appel au vrai worker termine l’échéance avant la transaction du premier. Cette transaction n’écrit rien, mais l’ancien résumé annonce une génération au lieu d’un traitement déjà effectué. Le contrôle place un seul appel SQL à cette frontière ; il ne lance pas deux processus simultanés et ne démontre pas de facture en double.
+
+Pour le reproduire sur cette référence, copier le [probe de treize cas](race-reproducer.test.ts.txt) en `tests/unit/recurring-generation.integration.test.ts`, puis lancer cette suite isolée. Le correctif utilise le résultat de la transaction pour distinguer création et occurrence déjà enregistrée. Les [preuves finales locales](local-final.json) passent treize cas worker et les trois contrôles d’ordonnancement, puis 1 377 tests dans 175 fichiers, types/lints et build de 75 pages. Les [deux CI de bc12199](ci-bc12199.json) passent ensuite les treize cas du worker sur PostgreSQL réel, 1 376 tests PostgreSQL avec une exclusion native SQLite, 1 377 SQLite dans chacune des deux suites, 263 E2E avec 19 exclusions historiques, neuf contrôles Linux et audits à zéro. Types, lints, build et couverture passent. Les 931 entrées Git hors documentation sont identiques entre le candidat et sa fusion de test ; elles correspondent au code de la recette locale finale. Aucun test navigateur propre au worker n’est revendiqué : les E2E couvrent les parcours existants.

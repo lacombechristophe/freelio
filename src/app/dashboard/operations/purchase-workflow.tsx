@@ -30,7 +30,7 @@ function date(value: Date | string | null) {
   return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value)) : "—"
 }
 
-export function PurchaseWorkflow({ data }: { data: Pick<OperationsData, "purchaseOrders" | "suppliers" | "projects" | "products" | "warehouses" | "canApprovePurchases"> }) {
+export function PurchaseWorkflow({ data }: { data: Pick<OperationsData, "purchaseOrders" | "projects" | "products" | "warehouses" | "canApprovePurchases"> }) {
   const router = useRouter()
   const [pending, startTransition] = React.useTransition()
   const [createOpen, setCreateOpen] = React.useState(false)
@@ -54,7 +54,7 @@ export function PurchaseWorkflow({ data }: { data: Pick<OperationsData, "purchas
   }
 
   return <section className="overflow-hidden rounded-xl border bg-card"><div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold">Commandes fournisseur</h2><p className="mt-1 text-xs text-muted-foreground">Approbation, accusé, reliquats, anomalies et retours.</p></div><Button demoMutation size="sm" onClick={() => setCreateOpen(true)}><Plus />Nouvelle commande</Button></div>
-    <PurchaseOrderDialog open={createOpen} onOpenChange={setCreateOpen} suppliers={data.suppliers} projects={data.projects} products={data.products.map((product) => ({ id: product.id, sku: product.sku, label: product.label, purchasePriceCents: product.purchasePriceCents }))} />
+    <PurchaseOrderDialog open={createOpen} onOpenChange={setCreateOpen} projects={data.projects} products={data.products.map((product) => ({ id: product.id, sku: product.sku, label: product.label, purchasePriceCents: product.purchasePriceCents }))} />
     {data.purchaseOrders.length ? <div className="divide-y">{data.purchaseOrders.map((order) => {
       const expectedAt = order.confirmedExpectedAt || order.expectedAt
       const overdue = expectedAt && new Date(expectedAt) < new Date() && !["RECEIVED", "CANCELED"].includes(order.status)

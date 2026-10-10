@@ -1,0 +1,43 @@
+{
+  "schema": "freelio.customer-success-permission-regression.v1",
+  "candidate": "653cddc6c03fd8f3cf73c6fc12e07696181fb545",
+  "engine": "SQLite",
+  "status": "reproduced-before-fix-awaiting-visible-approval",
+  "total": 5,
+  "passed": 1,
+  "failed": 4,
+  "hashes": {
+    "reproducerSha256": "5d272cb801fc4a12987a29bdd67c8510886e96985e172d4ea0e12565f9a93b2b",
+    "metricsSha256": "58fe2acda71018193efda2c567a4e12df68044459e862d536db653aad431ab68",
+    "reportSha256": "4f3d0fb935e832a70e36bbee40cdb8302560087208c96444d9e86d4145325a83",
+    "readerSha256": "92a36438294b2231ede72599fdff5ecfa3f3ea22e40edff5be6dce520e8cd281"
+  },
+  "cases": [
+    {
+      "name": "customer-success financial permission probe preserves authorized Owner values",
+      "status": "passed"
+    },
+    {
+      "name": "customer-success financial permission probe does not disclose 'renewal' amount to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "customer-success financial permission probe does not disclose 'overdue' amount to 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "name": "customer-success financial permission probe does not disclose 'renewal' amount to 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "name": "customer-success financial permission probe does not disclose 'overdue' amount to 'SERVICE'",
+      "status": "failed"
+    }
+  ],
+  "limits": [
+    "Session et cache simulés ; SQL, DAL, membership et agence réels.",
+    "Valeurs fictives uniquement ; fixtures supprimées après lecture.",
+    "Ce reproducer ne compte dans aucune suite verte.",
+    "Aucune correction ni qualification PostgreSQL ou navigateur annoncée."
+  ]
+}

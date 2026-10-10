@@ -1,0 +1,28 @@
+import { randomUUID } from 'node:crypto'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+const session=vi.hoisted(()=>({userId:'',companyId:''}));vi.mock('server-only',()=>({}));vi.mock('@/auth',()=>({auth:async()=>({user:{id:session.userId},companyId:session.companyId})}));vi.mock('next/cache',()=>({revalidatePath:vi.fn()}));
+import prisma from '@/lib/prisma'
+import { getOperationsDashboard } from '@/actions/operations'
+describe.sequential('operations orders finance projections on real SQL',()=>{
+ let membershipId:string,orderId:string,invoiceId:string;
+ beforeAll(async()=>{
+ session.companyId=(await prisma.company.create({data:{name:'Fictional order finance probe'}})).id;
+ session.userId=(await prisma.user.create({data:{email:`order-probe-${randomUUID()}@example.test`}})).id;
+ membershipId=(await prisma.membership.create({data:{companyId:session.companyId,userId:session.userId,role:'OWNER',status:'ACTIVE'}})).id;
+ const agency=await prisma.agency.create({data:{companyId:session.companyId,code:'LOCAL',name:'Fictional agency'}});await prisma.agencyMembership.create({data:{agencyId:agency.id,membershipId}});
+ const client=await prisma.client.create({data:{companyId:session.companyId,name:'Fictional order client'}});
+ const project=await prisma.project.create({data:{companyId:session.companyId,clientId:client.id,agencyId:agency.id,name:'Fictional project'}});
+ orderId=(await prisma.customerOrder.create({data:{companyId:session.companyId,clientId:client.id,projectId:project.id,number:'PROBE',billingStatus:'INVOICED'}})).id;
+ invoiceId=(await prisma.invoice.create({data:{companyId:session.companyId,clientId:client.id,projectId:project.id,customerOrderId:orderId,number:'PROBE',object:'Fictional invoice',dueDate:new Date('2030-01-01'),status:'ISSUED',totalHtCents:1000,totalTvaCents:200,totalTtcCents:1200}})).id;
+ });
+ afterEach(async()=>{await prisma.membership.update({where:{id:membershipId},data:{role:'OWNER'}})});
+ afterAll(async()=>{const where={companyId:session.companyId};await prisma.invoice.deleteMany({where});await prisma.customerOrder.deleteMany({where});await prisma.project.deleteMany({where});await prisma.client.deleteMany({where});await prisma.company.delete({where:{id:session.companyId}});await prisma.user.delete({where:{id:session.userId}})});
+ it.each(['TECHNICIAN','OPERATIONS','SERVICE'].flatMap(role=>['invoices','count','status'].map(field=>({role,field}))))('excludes $field for $role',async({role,field})=>{
+ await prisma.membership.update({where:{id:membershipId},data:{role}});
+ const order=(await getOperationsDashboard()).customerOrders.find(x=>x.id===orderId);expect(order).toBeDefined();
+ if(field==='invoices')expect(order?.invoices).toEqual([]);
+ if(field==='count')expect(order?._count.invoices).toBeNull();
+ if(field==='status')expect(order?.billingStatus).toBeNull();
+ });
+ it('preserves Owner finance references',async()=>{const order=(await getOperationsDashboard()).customerOrders.find(x=>x.id===orderId);expect(order?.invoices.map(x=>x.id)).toEqual([invoiceId]);expect(order?._count.invoices).toBe(1);expect(order?.billingStatus).toBe('INVOICED')});
+})

@@ -1,0 +1,610 @@
+{
+  "schema": "freelio.qualified-ci.v1",
+  "candidate": "d82ed46981383153b0b0750032dc64d6047fdd8a",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 975,
+    "sha256": "14a47f840ae89ff3a3983cefd2f7bc16908bd7956f7191ee928dc644a6b3e372"
+  },
+  "sourceComparison": {
+    "merge": "f6b5a5df79068d88d3865160cdf60896cfd065d1",
+    "parents": [
+      "0e9109483cb596dd760bb755c50a831952bdf8ab",
+      "d82ed46981383153b0b0750032dc64d6047fdd8a"
+    ],
+    "candidateEntries": 975,
+    "mergeEntries": 975,
+    "differencesOutsideDocs": 0
+  },
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38048411194",
+      "conclusion": "success",
+      "testedCommit": "d82ed46981383153b0b0750032dc64d6047fdd8a",
+      "parents": [
+        "7124abb1e641ad57f776d6308d063801dcb23889"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114202483774,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114202483879,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 114202483881,
+          "conclusion": "success"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114202483774,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114202483879,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 114202483881,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  193 passed (193)",
+        "Tests  1700 passed (1700)",
+        "Test Files  193 passed (193)",
+        "Tests  1700 passed (1700)"
+      ],
+      "postgres": {
+        "artifactId": 11668726897,
+        "reportSha256": "632c7cd59c196ec69c6ae51cfe301f4edcb9ae7a0957722ed642ff27c5884d0c",
+        "passed": 1699,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "calendar-days.test.ts",
+            "status": "passed",
+            "cases": 10
+          },
+          {
+            "file": "credit-note-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "expense-relations.integration.test.ts",
+            "status": "passed",
+            "cases": 28
+          },
+          {
+            "file": "invoice-payment-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "order-billing-stale-balance.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          },
+          {
+            "file": "organisation-domain-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 15
+          },
+          {
+            "file": "service-calendar.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11667948870,
+        "reportSha256": "7f15790cdd56b859990163576f3f77bc6d30762d30f6b6882106e92002f96a3f",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "311 passed (22.7m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          },
+          {
+            "file": "catalogue-volume",
+            "passed": 6
+          },
+          {
+            "file": "document-relations",
+            "passed": 6
+          },
+          {
+            "file": "recurring-invoices",
+            "passed": 8
+          },
+          {
+            "file": "operations-order-finance",
+            "passed": 6
+          },
+          {
+            "file": "operations-order-directory",
+            "passed": 4
+          },
+          {
+            "file": "order-billing-accounting",
+            "passed": 4
+          },
+          {
+            "file": "document-calendar-dates",
+            "passed": 8
+          },
+          {
+            "file": "organisation-permissions",
+            "passed": 6
+          },
+          {
+            "file": "expense-relations",
+            "passed": 6
+          }
+        ],
+        "calendarCases": [
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.4
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.3
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.3
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.9
+          }
+        ],
+        "exclusions": [
+          "-  149 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  213 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  214 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  216 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  217 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  218 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  219 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  220 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  221 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  222 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  223 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  224 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  225 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  226 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  227 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  228 [mobile] › tests/e2e/critical-flows.spec.ts:1604:5 › creates and signs in a production account with a password",
+          "-  276 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  313 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  323 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "portalAppointment": {
+          "file": "critical-flows.spec.ts",
+          "name": "shares a revocable client portal with messages and appointments",
+          "passed": 1,
+          "statusAndConfirmationAssertionsRetained": true
+        },
+        "taskCasesPassed": 28
+      },
+      "artifacts": [
+        {
+          "id": 11668726897,
+          "name": "verification-postgres-d82ed46981383153b0b0750032dc64d6047fdd8a",
+          "bytes": 73167
+        },
+        {
+          "id": 11668598907,
+          "name": "verification-sqlite-d82ed46981383153b0b0750032dc64d6047fdd8a",
+          "bytes": 1003
+        },
+        {
+          "id": 11668164372,
+          "name": "ui-audit-reports",
+          "bytes": 161629465
+        },
+        {
+          "id": 11667948870,
+          "name": "container-runtime-d82ed46981383153b0b0750032dc64d6047fdd8a",
+          "bytes": 1604
+        }
+      ]
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38048414077",
+      "conclusion": "success",
+      "testedCommit": "f6b5a5df79068d88d3865160cdf60896cfd065d1",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "d82ed46981383153b0b0750032dc64d6047fdd8a"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114202491987,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114202492078,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114202492161,
+          "conclusion": "success"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114202491987,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114202492078,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114202492161,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  193 passed (193)",
+        "Tests  1700 passed (1700)",
+        "Test Files  193 passed (193)",
+        "Tests  1700 passed (1700)"
+      ],
+      "postgres": {
+        "artifactId": 11668068811,
+        "reportSha256": "a1a3632746427fdbd4304f98530ed1e0700448ccc74a04e2c60ac88bf5421579",
+        "passed": 1699,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "calendar-days.test.ts",
+            "status": "passed",
+            "cases": 10
+          },
+          {
+            "file": "credit-note-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "expense-relations.integration.test.ts",
+            "status": "passed",
+            "cases": 28
+          },
+          {
+            "file": "invoice-payment-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "order-billing-stale-balance.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          },
+          {
+            "file": "organisation-domain-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 15
+          },
+          {
+            "file": "service-calendar.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11668676825,
+        "reportSha256": "86000a30026abe6a69d5a81f30a3a6af954bb76bd14a8cd945da2f2a8f5a8d41",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "311 passed (23.1m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          },
+          {
+            "file": "catalogue-volume",
+            "passed": 6
+          },
+          {
+            "file": "document-relations",
+            "passed": 6
+          },
+          {
+            "file": "recurring-invoices",
+            "passed": 8
+          },
+          {
+            "file": "operations-order-finance",
+            "passed": 6
+          },
+          {
+            "file": "operations-order-directory",
+            "passed": 4
+          },
+          {
+            "file": "order-billing-accounting",
+            "passed": 4
+          },
+          {
+            "file": "document-calendar-dates",
+            "passed": 8
+          },
+          {
+            "file": "organisation-permissions",
+            "passed": 6
+          },
+          {
+            "file": "expense-relations",
+            "passed": 6
+          }
+        ],
+        "calendarCases": [
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.3
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2.2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.3
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 3.2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 2
+          }
+        ],
+        "exclusions": [
+          "-  149 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  213 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  214 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  216 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  217 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  218 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  219 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  220 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  221 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  222 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  223 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  224 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  225 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  226 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  227 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  228 [mobile] › tests/e2e/critical-flows.spec.ts:1604:5 › creates and signs in a production account with a password",
+          "-  276 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  313 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  323 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "portalAppointment": {
+          "file": "critical-flows.spec.ts",
+          "name": "shares a revocable client portal with messages and appointments",
+          "passed": 1,
+          "statusAndConfirmationAssertionsRetained": true
+        },
+        "taskCasesPassed": 28
+      },
+      "artifacts": [
+        {
+          "id": 11669431550,
+          "name": "verification-sqlite-f6b5a5df79068d88d3865160cdf60896cfd065d1",
+          "bytes": 1004
+        },
+        {
+          "id": 11669351633,
+          "name": "ui-audit-reports",
+          "bytes": 161367210
+        },
+        {
+          "id": 11668676825,
+          "name": "container-runtime-f6b5a5df79068d88d3865160cdf60896cfd065d1",
+          "bytes": 1610
+        },
+        {
+          "id": 11668068811,
+          "name": "verification-postgres-f6b5a5df79068d88d3865160cdf60896cfd065d1",
+          "bytes": 73103
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Fictitious fixtures, real SQLite/PostgreSQL and compiled browser application. No real provider, commercial certification or hosted load qualification.",
+    "The nineteen historical browser exclusions and native SQLite-only PostgreSQL exclusion remain explicit.",
+    "This evidence qualifies its candidate and tested merge only; later worker or document changes require their own source reference."
+  ],
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1247,
+    "historyBlobsChecked": 3504,
+    "placeholdersExcluded": 1,
+    "findings": [],
+    "qualifiedCommit": "d82ed46981383153b0b0750032dc64d6047fdd8a",
+    "limit": "Rule-based scan of source and Git history; not a universal guarantee of absence of secrets."
+  }
+}

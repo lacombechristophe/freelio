@@ -1,0 +1,126 @@
+{
+  "schema": "freelio.candidate-runtime-evidence.v1",
+  "commit": "f5573b0d0696b832389a1c1ec0b2f9a18a94e23c",
+  "pushRun": "https://github.com/lacombechristophe/freelio/actions/runs/37704659344",
+  "postgres": {
+    "studios": 9,
+    "sequenceRecovery": 18,
+    "success": true,
+    "passed": 808,
+    "total": 809,
+    "excluded": 1
+  },
+  "linux": {
+    "schema": "freelio.container-recipe.v1",
+    "startedAt": "2026-10-07T23:54:57.086Z",
+    "image": "freelio:ci",
+    "checks": [
+      "Configuration de production vide refusée avant écoute",
+      "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+      "Données fictives créées par Prisma Linux",
+      "Serveur Linux et sondes live/ready avec SQL réel",
+      "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+      "Worker BullMQ connecté à Redis, PDF de devis terminé",
+      "Worker arrêté proprement sur SIGTERM",
+      "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+      "PDF Chromium hors réseau sous utilisateur runtime"
+    ],
+    "imageId": "sha256:0ad1b63a382465682685ad6b74fac28a4476e9b796273a431bf71db424ffd4f4",
+    "database": {
+      "schema": "freelio.runtime-database.v1",
+      "postgres": "PostgreSQL 18.6 (Debian 18.6-1.pgdg12+2)",
+      "appliedMigrations": 59,
+      "quoteJob": "completed",
+      "pdfHash": "aa609e075625b9c4eb9ec1a95d84507099b942e96addcde57b3bb4b0b7b93a7d",
+      "uid": 1000
+    },
+    "contractArchive": {
+      "schema": "freelio.runtime-contract-archive.v1",
+      "archive": "READY",
+      "attempts": 1,
+      "pdfHash": "2fce73461f1c1c5a759c48a14f40c490594181b7817461d0149e045672dd182c",
+      "bytes": 246482,
+      "pages": 1,
+      "replay": "unchanged",
+      "signatureFixture": "synthetic",
+      "uid": 1000
+    },
+    "pdf": {
+      "schema": "freelio.runtime-pdf.v1",
+      "node": "v24.21.0",
+      "bytes": 14074,
+      "pages": 1
+    },
+    "success": true,
+    "exclusions": [
+      "Disponibilité réelle R2/Upstash",
+      "TLS, reverse proxy et réseau hébergé",
+      "Reprise après interruption d’un job actif",
+      "Validation SaaS commerciale"
+    ],
+    "finishedAt": "2026-10-07T23:55:16.709Z"
+  },
+  "prRun": "https://github.com/lacombechristophe/freelio/actions/runs/37704662879",
+  "prCheckout": "e2fee95d00dc0093213240361311b72f3f6726e7",
+  "identicalTree": "b9b6a4690fe1a3652f027772c8779e85e9cad8b1",
+  "sqlite": {
+    "files": 150,
+    "passed": 809
+  },
+  "browser": {
+    "localExecutionClaimed": false,
+    "passedPerRun": 139,
+    "excludedPerRun": 19,
+    "newStudioAndRecovery": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "uiAudit": {
+    "findings": 0,
+    "routesPerFormat": 64,
+    "formats": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "targetedCoverage": {
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 375,
+        "skipped": 0,
+        "pct": 86
+      },
+      "statements": {
+        "total": 546,
+        "covered": 451,
+        "skipped": 0,
+        "pct": 82.6
+      },
+      "functions": {
+        "total": 115,
+        "covered": 97,
+        "skipped": 0,
+        "pct": 84.34
+      },
+      "branches": {
+        "total": 722,
+        "covered": 420,
+        "skipped": 0,
+        "pct": 58.17
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "scope": "Specified in vitest.config.mts; not whole application",
+    "modules": 6
+  },
+  "failedChecks": [
+    "Complete dependency audit: five high development-only packages"
+  ]
+}

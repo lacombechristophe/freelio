@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import {
   Archive,
   ArrowDown,
@@ -36,7 +36,10 @@ import {
   updateEmailSequence,
   updateEmailSequenceSettings,
   updateEmailSequenceStatus,
+  getAutomationSequences,
+  getAutomationEnrollments,
 } from "@/actions/automations"
+import { useStudioPage, StudioPagination } from "./studio-pagination"
 import type { AutomationData, AutomationRunner, AutomationSequence } from "@/app/dashboard/automatisations/automation-model"
 import { controlClass, formatAutomationDate, plainTextFromHtml, STATUS_LABELS, STEP_LABELS, textAreaClass } from "@/app/dashboard/automatisations/automation-model"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -63,15 +66,9 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
   const [stepOpen, setStepOpen] = useState(false)
   const [stepType, setStepType] = useState("EMAIL")
 
-  const filtered = useMemo(
-    () =>
-      data.sequences.filter((sequence) => {
-        const matchesQuery = `${sequence.name} ${sequence.description || ""}`.toLocaleLowerCase("fr").includes(query.trim().toLocaleLowerCase("fr"))
-        return matchesQuery && (status === "ALL" || sequence.status === status)
-      }),
-    [data.sequences, query, status],
-  )
-  const selected = data.sequences.find((sequence) => sequence.id === selectedId) ?? filtered[0] ?? data.sequences[0]
+  const library = useStudioPage(data.sequences, data.studioTotals.sequences, selectedId, { search: query, status }, data.sequences, getAutomationSequences, setSelectedId)
+  const filtered = library.result.rows
+  const selected = filtered.find(row => row.id === selectedId) ?? (library.result.selected?.id === selectedId ? library.result.selected : undefined) ?? filtered[0]
 
   async function archiveSequence(sequence: AutomationSequence) {
     const accepted = await confirm({
@@ -88,9 +85,9 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher une séquence…" className="pl-9" aria-label="Rechercher une séquence" />
+          <Input value={query} onChange={(event) => { setQuery(event.target.value); library.setPage(1) }} placeholder="Rechercher une séquence…" className="pl-9" aria-label="Rechercher une séquence" />
         </div>
-        <select value={status} onChange={(event) => setStatus(event.target.value)} className={`${controlClass} sm:w-44`} aria-label="Filtrer par état">
+        <select value={status} onChange={(event) => { setStatus(event.target.value); library.setPage(1) }} className={`${controlClass} sm:w-44`} aria-label="Filtrer par état">
           <option value="ALL">Tous les états</option>
           <option value="DRAFT">Brouillons</option>
           <option value="ACTIVE">Actives</option>
@@ -102,13 +99,13 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
         </Button>
       </div>
 
-      {data.sequences.length ? (
+      {data.studioTotals.sequences ? (
         <div className="grid min-h-[680px] overflow-hidden rounded-xl border bg-card xl:grid-cols-[310px_minmax(0,1fr)]">
           <aside className="border-b xl:border-b-0 xl:border-r" aria-label="Liste des séquences">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
                 <p className="text-sm font-semibold">Bibliothèque</p>
-                <p className="text-xs text-muted-foreground">{filtered.length} résultat(s)</p>
+                <p className="text-xs text-muted-foreground">{library.result.total} résultat(s)</p>
               </div>
               <Send className="size-4 text-muted-foreground" />
             </div>
@@ -121,6 +118,7 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
                 <p className="px-3 py-10 text-center text-sm text-muted-foreground">Aucune séquence ne correspond aux filtres.</p>
               )}
             </div>
+            {library.error ? <p role="alert" className="px-3 text-sm">{library.error}</p> : null}<StudioPagination {...library.result} label="séquences" loading={library.loading} onPage={library.setPage} />
           </aside>
           {selected ? (
             <SequenceDetail
@@ -193,8 +191,9 @@ export function SequenceStudio({ data, pending, run }: { data: AutomationData; p
   )
 }
 
-function SequenceListItem({ sequence, active, onSelect }: { sequence: AutomationSequence; active: boolean; onSelect: () => void }) {
-  const activeEnrollments = sequence.enrollments.filter((item) => item.status === "ACTIVE").length
+type StudioSequence = AutomationSequence & { activeEnrollmentCount?: number }
+function SequenceListItem({ sequence, active, onSelect }: { sequence: StudioSequence; active: boolean; onSelect: () => void }) {
+  const activeEnrollments = sequence.activeEnrollmentCount ?? sequence.enrollments.filter((item) => item.status === "ACTIVE").length
   const errors = sequence.steps.reduce((total, step) => total + countDeliveryStatuses(step.deliveryStats, ["FAILED", "BOUNCED", "COMPLAINED", "SUPPRESSED"]), 0)
   return (
     <button
@@ -225,7 +224,7 @@ function SequenceDetail({
   onAddStep,
   onArchive,
 }: {
-  sequence: AutomationSequence
+  sequence: StudioSequence
   data: AutomationData
   pending: boolean
   run: AutomationRunner
@@ -234,7 +233,7 @@ function SequenceDetail({
   onArchive: () => void
 }) {
   const mutableSteps = sequence.status !== "ACTIVE" && sequence._count.enrollments === 0
-  const activeEnrollments = sequence.enrollments.filter((item) => item.status === "ACTIVE").length
+  const activeEnrollments = sequence.activeEnrollmentCount ?? sequence.enrollments.filter((item) => item.status === "ACTIVE").length
   const delivered = sequence.steps.reduce((total, step) => total + countDeliveryStatuses(step.deliveryStats, ["DELIVERED", "OPENED", "CLICKED"]), 0)
   const opened = sequence.steps.reduce((total, step) => total + countDeliveryStatuses(step.deliveryStats, ["OPENED", "CLICKED"]), 0)
 
@@ -307,6 +306,7 @@ function SequenceDetail({
               </span>
             </summary>
             <form
+              key={sequence.id}
               className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-4"
               onSubmit={(event) => {
                 event.preventDefault()
@@ -319,6 +319,7 @@ function SequenceDetail({
                       sendWindowStart: Number(form.get("sendWindowStart")),
                       sendWindowEnd: Number(form.get("sendWindowEnd")),
                       timezone: form.get("timezone"),
+                      senderChannelId: sequence._count.enrollments ? undefined : String(form.get("senderChannelId") || ""),
                     }),
                   "Cadence enregistrée.",
                 )
@@ -354,6 +355,13 @@ function SequenceDetail({
                 </select>
               </Field>
               <div className="sm:col-span-2 lg:col-span-4">
+                <Field label="Boîte expéditrice">
+                  <select name="senderChannelId" defaultValue={sequence.senderChannelId || ""} disabled={sequence._count.enrollments > 0 || pending} className={controlClass}>
+                    <option value="">À choisir avant l’envoi</option>
+                    {sequence.senderChannelId && !data.senderChannels.some((channel) => channel.id === sequence.senderChannelId) ? <option value={sequence.senderChannelId}>{sequence.senderChannelId === "platform" ? "Messagerie de la plateforme" : "Boîte déconnectée — envoi bloqué"}</option> : null}
+                    {data.senderChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.emailAddress} · {channel.provider}</option>)}
+                  </select>
+                </Field>
                 <Button demoMutation type="submit" size="sm" variant="outline" disabled={pending}>
                   Enregistrer la cadence
                 </Button>
@@ -427,15 +435,7 @@ function SequenceDetail({
               <h3 className="text-sm font-semibold">Inscriptions récentes</h3>
               <Badge variant="secondary">{sequence._count.enrollments}</Badge>
             </div>
-            {sequence.enrollments.length ? (
-              <div className="divide-y">
-                {sequence.enrollments.map((enrollment) => (
-                  <EnrollmentRow key={enrollment.id} enrollment={enrollment} pending={pending} run={run} />
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-lg bg-muted/35 px-3 py-4 text-xs leading-5 text-muted-foreground">Aucun prospect inscrit pour le moment.</p>
-            )}
+            <EnrollmentJournal key={sequence.id} sequence={sequence} pending={pending} run={run} />
           </div>
         </aside>
       </div>
@@ -533,6 +533,18 @@ function SequenceStepRow({
       </div>
     </li>
   )
+}
+
+function EnrollmentJournal({ sequence, pending, run }: { sequence: StudioSequence; pending: boolean; run: AutomationRunner }) {
+  const [search, setSearch] = useState("")
+  const load = useCallback((query: { page: number; search: string }) => getAutomationEnrollments({ ...query, sequenceId: sequence.id }), [sequence.id])
+  const journal = useStudioPage(sequence.enrollments, sequence._count.enrollments, "", { search }, sequence.enrollments, load)
+  return <div className="space-y-2" aria-label="Inscriptions de la séquence">
+    <Input aria-label="Rechercher une inscription" placeholder="Rechercher…" maxLength={200} value={search} onChange={event => { setSearch(event.target.value); journal.setPage(1) }} />
+    {journal.error ? <p role="alert" className="text-sm">{journal.error}</p> : null}
+    {journal.result.rows.length ? <div className="divide-y">{journal.result.rows.map(enrollment => <EnrollmentRow key={enrollment.id} enrollment={enrollment} pending={pending} run={run} />)}</div> : <p className="rounded-lg bg-muted/35 px-3 py-4 text-xs leading-5 text-muted-foreground">Aucun prospect inscrit pour le moment.</p>}
+    <StudioPagination {...journal.result} label="inscriptions" loading={journal.loading} onPage={journal.setPage} />
+  </div>
 }
 
 function EnrollmentRow({ enrollment, pending, run }: { enrollment: AutomationSequence["enrollments"][number]; pending: boolean; run: AutomationRunner }) {

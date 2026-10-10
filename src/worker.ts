@@ -7,7 +7,7 @@
  * Requires REDIS_URL or explicit REDIS_HOST in production.
  */
 import { docGenWorker } from "@/lib/bullmq/worker"
-import { processDueSequenceEmails } from "@/lib/automations/sequences"
+import { processAutomationBatch } from "@/lib/automations/process"
 import { processScheduledBusinessJobs } from "@/lib/scheduling/business"
 import { syncDueOAuthCommunicationChannels } from "@/lib/communications/communication-sync"
 import { withProcessorLease } from "@/lib/processing/lease"
@@ -25,8 +25,17 @@ console.log("[Worker] Redis connection configured; credentials are never printed
 
 const processAutomations = async () => {
   try {
-    const result = await processDueSequenceEmails(100)
-    if (result.examined) console.log(`[Worker] Sequences: ${result.sent} email(s), ${result.tasksCreated} task(s), ${result.tasksWaiting} waiting, ${result.failed} failed, ${result.stopped} stopped.`)
+    const [scenarios, sequences, activations] = await processAutomationBatch()
+    if (activations.status === "fulfilled") {
+      if (activations.value.examined) console.log(`[Worker] Campaign activations: ${activations.value.processed} processed, ${activations.value.enrolled} enrolled, ${activations.value.failed} failed.`)
+    } else console.error("[Worker] Campaign activation processing failed", activations.reason)
+    if (scenarios.status === "fulfilled") {
+      if (scenarios.value.examined) console.log(`[Worker] Scenarios: ${scenarios.value.examined} event(s), ${scenarios.value.completed} workflow(s) completed.`)
+    } else console.error("[Worker] Scenario processing failed", scenarios.reason)
+    if (sequences.status === "fulfilled") {
+      const result = sequences.value
+      if (result.examined) console.log(`[Worker] Sequences: ${result.sent} email(s), ${result.tasksCreated} task(s), ${result.tasksWaiting} waiting, ${result.failed} failed, ${result.stopped} stopped.`)
+    } else console.error("[Worker] Sequence processing failed", sequences.reason)
   } catch (error) {
     console.error(`[Worker] Sequence processing failed: ${error instanceof Error ? error.message : "unknown error"}`)
   }
@@ -40,8 +49,8 @@ const processScheduling = async () => {
     const lease = await withProcessorLease("business-scheduling", processScheduledBusinessJobs)
     if (!lease.acquired) return
     const result = lease.value
-    const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled + result.invoiceReminders.sent + result.invoiceReminders.failed
-    if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s).`)
+    const activity = result.recurringInvoices.generated + result.maintenanceVisits.scheduled + result.invoiceReminders.sent + result.invoiceReminders.failed + result.scheduledEmails.sent + result.scheduledEmails.failed + result.contractArchives.generated + result.contractArchives.failed
+    if (activity) console.log(`[Worker] Scheduling: ${result.recurringInvoices.generated} invoice(s), ${result.maintenanceVisits.scheduled} maintenance visit(s), ${result.invoiceReminders.sent} reminder(s), ${result.invoiceReminders.failed} reminder failure(s), ${result.scheduledEmails.sent} scheduled email(s), ${result.scheduledEmails.failed} scheduled email failure(s), ${result.contractArchives.generated} contract archive(s), ${result.contractArchives.failed} contract archive failure(s).`)
   } catch (error) {
     console.error(`[Worker] Business scheduling failed: ${error instanceof Error ? error.message : "unknown error"}`)
   }

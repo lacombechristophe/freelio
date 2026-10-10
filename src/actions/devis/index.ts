@@ -3,7 +3,8 @@
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { hasPermission } from "@/lib/permissions"
+import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
@@ -13,6 +14,7 @@ import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstrai
 import { boundedPageSize } from "@/lib/pagination"
 import { CONTRACT_TEMPLATE_PRESETS } from "@/lib/contracts/templates"
 import { assertQuoteStatusTransition, quoteStatusDates, type QuoteStatus } from "@/lib/quotes/workflow"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
@@ -61,34 +63,52 @@ export async function getQuotes(cursor?: string, limit = 50) {
 }
 
 export async function getQuoteById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.quote.findFirst({
-      where: { id, companyId },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const quote = await prisma.quote.findFirst({
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: true,
-        project: {
-          include: {
-            purchaseOrders: { select: { id: true, number: true, status: true } },
-          },
-        },
-        customerOrder: {
-          include: {
-            invoices: { select: { id: true, number: true, status: true, type: true } },
-          },
-        },
-        generatedContract: { select: { id: true, number: true, status: true } },
+        customerOrder: { select: { id: true } },
+        generatedContract: { select: { id: true } },
         versions: {
           orderBy: { version: "desc" },
-          include: {
-            sections: {
-              orderBy: { order: "asc" },
-              include: { lines: { orderBy: { order: "asc" } } },
-            },
-          },
+          include: { sections: { orderBy: { order: "asc" }, include: { lines: { orderBy: { order: "asc" } } } } },
         },
       },
     })
+    if (!quote) return null
+    const canReadFinance = hasPermission(role, "finance.read")
+    const projectScope = { companyId, clientId: quote.clientId, client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const [project, customerOrder, generatedContract] = await Promise.all([
+      quote.projectId ? prisma.project.findFirst({
+        where: { id: quote.projectId, ...projectScope },
+        select: { id: true, name: true, purchaseOrders: {
+          where: { companyId, supplier: { companyId }, project: projectScope },
+          select: { id: true, number: true, status: true },
+        } },
+      }) : null,
+      quote.customerOrder ? prisma.customerOrder.findFirst({
+        where: { id: quote.customerOrder.id, companyId, clientId: quote.clientId, client: { companyId }, project: projectScope },
+        select: { id: true, number: true, status: true, billingStatus: canReadFinance,
+          invoices: canReadFinance ? {
+            where: { companyId, clientId: quote.clientId, client: { companyId }, OR: [{ projectId: null }, { project: projectScope }] },
+            select: { id: true, number: true, status: true, type: true },
+          } : false,
+        },
+      }) : null,
+      quote.generatedContract ? prisma.contract.findFirst({
+        where: { id: quote.generatedContract.id, companyId, clientId: quote.clientId, client: { companyId } },
+        select: { id: true, number: true, status: true },
+      }) : null,
+    ])
+    return {
+      ...quote, projectId: project?.id ?? null, project, generatedContract,
+      customerOrder: customerOrder ? { ...customerOrder, billingStatus: canReadFinance ? customerOrder.billingStatus : null, invoices: canReadFinance ? customerOrder.invoices : [] } : null,
+      canReadFinance,
+      unavailableRelations: { project: Boolean(quote.projectId && !project), customerOrder: Boolean(quote.customerOrder && !customerOrder), generatedContract: Boolean(quote.generatedContract && !generatedContract) },
+      client: clientWithAccessibleMetrics(quote.client, { role, agencyIds }),
+    }
   }, "sales.read")
 }
 
@@ -405,11 +425,14 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
     const transition = assertQuoteStatusTransition(existing.status, requestedStatus)
     if (!transition.changed) return existing
 
-    const claimed = await prisma.quote.updateMany({
+    const eventId = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.quote.updateMany({
       where: { id: parsedQuoteId, companyId, status: transition.current, updatedAt: existing.updatedAt },
       data: { status: transition.next, ...quoteStatusDates(transition.next) },
     })
     if (claimed.count !== 1) throw new Error("Le devis a changé. Rechargez-le avant de modifier son statut.")
+    return enqueueAutomationEvent(tx, { companyId, event: "QUOTE_STATUS_CHANGED", eventKey: `${parsedQuoteId}:status:${transition.next}:${crypto.randomUUID()}`, subjectModel: "Quote", subjectId: parsedQuoteId, leadId: existing.client.leadCaptures[0]?.id, clientId: existing.clientId })
+    })
     const quote = await prisma.quote.findUniqueOrThrow({ where: { id: parsedQuoteId } })
     await logAction({
       userId,
@@ -418,15 +441,7 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
       resourceId: parsedQuoteId,
       payload: { previousStatus: transition.current, status: transition.next },
     })
-    await runAutomationEvent({
-      companyId,
-      event: "QUOTE_STATUS_CHANGED",
-      eventKey: `${quote.id}:status:${transition.next}`,
-      subjectModel: "Quote",
-      subjectId: quote.id,
-      leadId: existing.client.leadCaptures[0]?.id,
-      clientId: existing.clientId,
-    }).catch((error) => console.error("Quote automation failed", error))
+    await dispatchAutomationEvent(eventId).catch((error) => console.error("Quote automation deferred", error))
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${parsedQuoteId}`)
     return quote
@@ -456,9 +471,9 @@ export async function createContractFromQuote(quoteId: string) {
   return await withAuth(async ({ companyId, userId }) => {
     const parsedQuoteId = quoteIdSchema.parse(quoteId)
     const quote = await prisma.quote.findFirst({
-      where: { id: parsedQuoteId, companyId },
+      where: { id: parsedQuoteId, companyId, client: { companyId } },
       include: {
-        generatedContract: true,
+        generatedContract: { select: { id: true } },
         versions: {
           orderBy: { version: "desc" },
           take: 1,
@@ -472,7 +487,11 @@ export async function createContractFromQuote(quoteId: string) {
       },
     })
     if (!quote) throw new Error("Devis introuvable")
-    if (quote.generatedContract) return quote.generatedContract
+    if (quote.generatedContract) {
+      const existing = await prisma.contract.findFirst({ where: { id: quote.generatedContract.id, companyId, clientId: quote.clientId, client: { companyId } } })
+      if (!existing) throw new Error("Référence liée indisponible")
+      return existing
+    }
     if (quote.status !== "ACCEPTED") throw new Error("Le devis doit être accepté avant de préparer le contrat")
 
     const latest = quote.versions[0]

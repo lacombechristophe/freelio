@@ -1,0 +1,37 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getCustomerSuccessWorkspace } from "@/actions/customer-success"
+describe.sequential("customer-success financial permission probe", () => {
+  let membershipId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional customer-success permission probe" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `success-permissions-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    const agency = await prisma.agency.create({ data: { companyId: session.companyId, code: "PROBE", name: "Fictional permitted agency" } })
+    await prisma.agencyMembership.create({ data: { agencyId: agency.id, membershipId } })
+    const client = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional success customer", renewalAmountCents: 12345 } })
+    const project = await prisma.project.create({ data: { companyId: session.companyId, clientId: client.id, agencyId: agency.id, name: "Fictional success project" } })
+    await prisma.invoice.create({ data: { companyId: session.companyId, clientId: client.id, projectId: project.id, number: "FICTIONAL-SUCCESS-PROBE", object: "Fictional invoice", status: "SENT", dueDate: new Date("2020-01-01"), totalHtCents: 321, totalTvaCents: 0, totalTtcCents: 321 } })
+  })
+  afterAll(async () => {
+    const where = { companyId: session.companyId }
+    await prisma.invoice.deleteMany({ where }); await prisma.project.deleteMany({ where }); await prisma.client.deleteMany({ where })
+    await prisma.company.delete({ where: { id: session.companyId } }); await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it("preserves authorized Owner values", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER" } })
+    const client = (await getCustomerSuccessWorkspace()).portfolio[0]
+    expect(client.renewalAmountCents).toBe(12345)
+    expect(client.metrics.OVERDUE_BALANCE_CENTS).toBe(321)
+  })
+  it.each(["TECHNICIAN", "SERVICE"].flatMap(role => ["renewal", "overdue"].map(field => ({ role, field }))))("does not disclose $field amount to $role", async ({ role, field }) => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    const client = (await getCustomerSuccessWorkspace()).portfolio[0]
+    expect(field === "renewal" ? client.renewalAmountCents : client.metrics.OVERDUE_BALANCE_CENTS).toBeNull()
+  })
+})

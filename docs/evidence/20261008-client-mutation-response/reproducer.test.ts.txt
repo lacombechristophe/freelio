@@ -1,0 +1,43 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { createClient, updateClient, setClientNextAction } from "@/actions/clients"
+
+describe.sequential("client mutation response permissions on real SQL", () => {
+  let membershipId: string, clientId: string
+  const form = { name: "Fictional edited client", type: "ENTERPRISE", address: "Fictional address" }
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional client mutation recipe" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `client-mutation-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional protected client", relationScore: 37, totalRevenueCents: 45678, totalUnpaidCents: 9876, renewalAmountCents: 12345 } })).id
+  })
+  afterEach(async () => {
+    vi.unstubAllEnvs()
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } })
+  })
+  afterAll(async () => {
+    await prisma.auditLog.deleteMany({ where: { userId: session.userId } })
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  async function mutate(action: string) {
+    if (action === "create") return createClient(form)
+    if (action === "update") return updateClient(clientId, form)
+    return setClientNextAction(clientId, { label: "Fictional next action", date: "2026-12-01" })
+  }
+  it.each(["SALES", "OWNER"].flatMap(role => ["create", "update", "next"].map(action => ({ role, action }))))("restricts the $action response for $role while preserving stored fields", async ({ role, action }) => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    const result = await mutate(action)
+    const stored = await prisma.client.findUniqueOrThrow({ where: { id: result!.id } })
+    for (const field of ["totalRevenueCents", "totalUnpaidCents", "renewalAmountCents", "relationScore"] as const) expect(result![field]).toBe(role === "SALES" ? null : stored[field])
+    if (action !== "create") expect(stored).toMatchObject({ relationScore: 37, totalRevenueCents: 45678, totalUnpaidCents: 9876, renewalAmountCents: 12345 })
+    expect(result!.name).toBe(form.name)
+  })
+})

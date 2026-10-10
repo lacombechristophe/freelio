@@ -1,0 +1,39 @@
+{
+  "reference": "d8747ab8c7273d8f84de0851d26fbb5761d42da3",
+  "engine": "SQLite",
+  "exitCode": 1,
+  "passed": 1,
+  "failed": 4,
+  "hookFailure": false,
+  "contextGitBlobSha256": "607e5204bd110309517ac44af1a98460042052b1cbf41e01b324f90dcd250fb0",
+  "reportSha256": "e7e44e827bf1bc454c68ab99dc24c65fa773f152a0600bc6aaa6e2613e2fcdf7",
+  "reproducerSha256": "ab0d71250a754de32d122372498212fd3276221c496917f759141cfb3b12c453",
+  "cases": [
+    {
+      "name": "cached Prisma authorization across module reloads scopes invoices before loading another context module",
+      "status": "passed"
+    },
+    {
+      "name": "cached Prisma authorization across module reloads reuses the context store across module loads",
+      "status": "failed"
+    },
+    {
+      "name": "cached Prisma authorization across module reloads keeps agency scoping with the cached Prisma client after a reload",
+      "status": "failed"
+    },
+    {
+      "name": "cached Prisma authorization across module reloads keeps tenant scoping after a reload",
+      "status": "failed"
+    },
+    {
+      "name": "cached Prisma authorization across module reloads refuses forbidden writes after a reload",
+      "status": "failed"
+    }
+  ],
+  "fixtureIncident": {
+    "initialFixtureOmittedRequiredInvoiceDueDate": true,
+    "replayedWithCorrectedCleanup": true,
+    "isolatedFictitiousUsersRemoved": 1,
+    "isolatedFictitiousCompaniesRemoved": 1
+  }
+}

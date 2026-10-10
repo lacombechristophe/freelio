@@ -1,0 +1,25 @@
+{
+  "schema": "freelio.local-discovery.v1",
+  "candidate": "949adca2d9bb5b3e0b7ca11bc6a60ff02cf35439",
+  "command": "playwright test --list",
+  "tests": 194,
+  "files": 41,
+  "reportSha256": "af36bd676a9d23b4cd43ed769c7c47dc19441ea04e1a3d1eb09a104eaaafd854",
+  "inventories": [
+    "src",
+    "tests/unit",
+    "tests/e2e"
+  ],
+  "inventoryDifferences": 0,
+  "archivedLocalProbe": "tests/e2e/customer-success-pagination.spec.ts",
+  "priorDiscovery": {
+    "tests": 196,
+    "files": 42,
+    "probeCases": 2
+  },
+  "limits": [
+    "Discovery only, no local browser execution.",
+    "Old untracked probe archived outside testDir as text; repository tests and exclusions unchanged.",
+    "Historical discovery logs retain their original values; CI execution is the browser qualification."
+  ]
+}

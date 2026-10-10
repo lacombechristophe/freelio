@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { WithdrawalCard } from "@/app/consent/withdraw/[token]/withdrawal-card"
 import { AppBrand } from "@/components/shared/app-brand"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { verifyConsentWithdrawalToken } from "@/lib/leads/consent-token"
+import { verifyConsentWithdrawalToken, verifyManualMarketingWithdrawalToken } from "@/lib/leads/consent-token"
 import prisma from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function ConsentWithdrawalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const payload = await verifyConsentWithdrawalToken(token)
+  const payload = await verifyManualMarketingWithdrawalToken(token) || await verifyConsentWithdrawalToken(token)
   const company = payload ? await prisma.company.findUnique({
     where: { id: payload.companyId },
     select: { name: true, logo: true, brandColor: true },

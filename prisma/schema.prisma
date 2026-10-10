@@ -41,6 +41,9 @@ model User {
   notifications Notification[]
   apiKeys       ApiKey[]
   auditLogs     AuditLog[]
+  ownedMailboxes CommunicationChannel[] @relation("MailboxOwner")
+  emailDrafts   EmailDraft[]
+  emailSignatures EmailSignature[]
   aiUsageCount  Int            @default(0)
 
   createdAt DateTime @default(now())
@@ -219,14 +222,18 @@ model Company {
   emailSequenceTasks         EmailSequenceTask[]
   emailThreads               EmailThread[]
   emailMessages              EmailMessage[]
+  emailDrafts                EmailDraft[]
+  emailSignatures            EmailSignature[]
   emailEvents                EmailEvent[]
   communicationChannels      CommunicationChannel[]
   leadScoringRules           LeadScoringRule[]
   marketingSegments          MarketingSegment[]
   marketingCampaigns         MarketingCampaign[]
+  campaignAudiences          CampaignAudience[]
   automationWorkflows        AutomationWorkflow[]
   automationWorkflowVersions AutomationWorkflowVersion[]
   automationRuns             AutomationRun[]
+  automationEvents           AutomationEventOutbox[]
   knowledgeArticles          KnowledgeArticle[]
   satisfactionSurveys        SatisfactionSurvey[]
   satisfactionRequests       SatisfactionRequest[]
@@ -731,6 +738,7 @@ model MarketingConsent {
 
   channel     String
   purpose     String
+  recipientEmail String? // Frozen normalized address; historical proofs remain null.
   status      String
   legalBasis  String
   source      String
@@ -743,6 +751,7 @@ model MarketingConsent {
 
   @@index([companyId, capturedAt])
   @@index([companyId, channel, status])
+  @@index([companyId, recipientEmail, channel, purpose, capturedAt], map: "MarketingConsent_recipient_purpose_capturedAt_idx")
   @@index([clientId])
   @@index([contactId])
   @@index([leadCaptureId])
@@ -802,9 +811,12 @@ model MarketingCampaign {
   budgetCents Int       @default(0)
   utmCampaign String?
   notes       String?
+  version          Int       @default(1)
+  audienceLockedAt DateTime?
 
   assets    MarketingCampaignAsset[]
   sequences EmailSequence[]
+  audiences CampaignAudience[]
   createdAt DateTime                 @default(now())
   updatedAt DateTime                 @updatedAt
 
@@ -827,6 +839,7 @@ model MarketingCampaignAsset {
   url       String?
   dueAt     DateTime?
   metadata  Json?
+  version   Int       @default(1)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -844,6 +857,64 @@ model MarketingSegmentMember {
 
   @@unique([segmentId, leadCaptureId])
   @@index([leadCaptureId])
+}
+
+// Immutable audience evidence; enrollment progress shares its batch transaction.
+model CampaignAudience {
+  id                String   @id @default(cuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaignId        String
+  campaign          MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sequenceId        String
+  segmentId         String
+  authorUserId      String
+  campaignVersion   Int
+  campaignHash      String
+  sequenceHash      String
+  configuration     Json
+  segmentUpdatedAt  DateTime
+  status            String   @default("READY")
+  version           Int      @default(1)
+  total             Int      @default(0)
+  eligible          Int      @default(0)
+  excluded          Int      @default(0)
+  processed         Int      @default(0)
+  enrolled          Int      @default(0)
+  existing          Int      @default(0)
+  rejected          Int      @default(0)
+  afterMemberId     String?
+  errorCode         String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  closedAt          DateTime?
+  closedByUserId    String?
+  closureReason     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  members           CampaignAudienceMember[]
+
+  @@index([companyId, campaignId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model CampaignAudienceMember {
+  id                String @id @default(cuid())
+  audienceId        String
+  audience          CampaignAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+  leadCaptureId     String // Frozen identity survives deletion of the source.
+  contactId         String?
+  recipientEmail    String?
+  name              String
+  authorization     Json?
+  decision          String
+  reason            String?
+  result            String @default("PENDING")
+  resultReason      String?
+  processedAt       DateTime?
+
+  @@unique([audienceId, leadCaptureId])
+  @@index([audienceId, id])
 }
 
 // ══════════════════════════════════════════════════════════
@@ -874,6 +945,8 @@ model EmailSequence {
   company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   campaignId String?
   campaign   MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  // Preserve a disconnected/deleted mailbox identity; never silently fall back.
+  senderChannelId String?
 
   name             String
   description      String?
@@ -934,6 +1007,7 @@ model EmailSequenceEnrollment {
   nextSendAt       DateTime?
   lastSentAt       DateTime?
   stopReason       String?
+  marketingAuthorization Json? // Address-bound proof for new marketing occurrences.
   enrolledAt       DateTime  @default(now())
   completedAt      DateTime?
   updatedAt        DateTime  @updatedAt
@@ -963,6 +1037,17 @@ model EmailDelivery {
   contact       Contact?                 @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   recipientEmail String
+  purpose        String? // SERVICE / MARKETING; never backfill historical sends.
+  requestKey     String?
+  manualAuthorUserId String? // Validated frozen manual author; unknown legacy stays inaccessible.
+  recoveryVersion Int @default(1)
+  recoveryCheckedAt DateTime?
+  recoveryOutcome String? // ACCEPTED / UNKNOWN / DRAFT / UNAVAILABLE; never proof of non-send.
+  recoveryProof Json?
+  closedAt DateTime?
+  closedByUserId String?
+  closureReason String?
+  payload        Json?
   subject        String
   status         String        @default("SCHEDULED") // SCHEDULED, SENDING, SENT, DELIVERED, OPENED, CLICKED, DELAYED, BOUNCED, FAILED, COMPLAINED, SUPPRESSED, CANCELED
   providerId     String?
@@ -978,6 +1063,7 @@ model EmailDelivery {
   maxAttempts    Int           @default(5)
   nextAttemptAt  DateTime?
   lastAttemptAt  DateTime?
+  firstAttemptAt DateTime?
   lastEventAt    DateTime?
   deadLetteredAt DateTime?
   createdAt      DateTime      @default(now())
@@ -985,6 +1071,8 @@ model EmailDelivery {
   message        EmailMessage?
 
   @@unique([enrollmentId, stepId])
+  @@unique([companyId, requestKey])
+  @@index([companyId, manualAuthorUserId, closedAt, createdAt], map: "EmailDelivery_manual_recovery_page_idx")
   @@index([companyId, createdAt])
   @@index([status, scheduledAt])
   @@index([status, nextAttemptAt])
@@ -1038,12 +1126,24 @@ model CommunicationChannel {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   provider             String
+  ownerUserId          String?
+  owner                User? @relation("MailboxOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  visibility           String @default("PRIVATE")
+  mailEnabled          Boolean @default(true)
+  calendarEnabled      Boolean @default(true)
+  oauthNonceHash       String?
+  oauthAttemptId       String?
+  oauthExpiresAt       DateTime?
+  oauthStartedByUserId String?
   emailAddress         String
   displayName          String?
   status               String    @default("PENDING")
   credentialsEncrypted String?
   config               Json?
   emailDeliveries      EmailDelivery[]
+  emailThreads         EmailThread[]
+  calendarTasks        OrganisationTask[]
+  automationEvents     AutomationEventOutbox[]
   lastSyncAt           DateTime?
   lastError            String?
   createdAt            DateTime  @default(now())
@@ -1058,6 +1158,8 @@ model EmailThread {
   id              String         @id @default(cuid())
   companyId       String
   company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelId       String?
+  channel         CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: Restrict)
   clientId        String?
   client          Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   contactId       String?
@@ -1083,6 +1185,56 @@ model EmailThread {
   @@index([serviceTicketId])
 }
 
+model EmailSignature {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorUserId String
+  author       User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  text         String   @default("")
+  version      Int      @default(1)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([companyId, authorUserId])
+}
+
+model EmailDraft {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorUserId String
+  author       User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  createKey    String
+  requestKey   String
+  version      Int      @default(1)
+  channelId    String?
+  contactId    String?
+  threadId     String?
+  subject      String   @default("")
+  bodyHtml     String   @default("")
+  purpose      String? // SERVICE / MARKETING; historical drafts remain unclassified.
+  cc           Json
+  bcc          Json
+  attachments  Json     @default("[]")
+  scheduledAt           DateTime?
+  scheduledTimezone     String?
+  scheduledPayload      Json?
+  scheduleStatus        String? // QUEUED, PROCESSING, RETRY, FAILED, SENT
+  scheduleAttempts      Int       @default(0)
+  scheduleNextAttemptAt DateTime?
+  scheduleStartedAt     DateTime?
+  scheduleError         String?
+  sentAt       DateTime?
+  archivedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([companyId, authorUserId, createKey])
+  @@unique([companyId, requestKey])
+  @@index([companyId, authorUserId, sentAt, updatedAt])
+  @@index([scheduleStatus, scheduleNextAttemptAt])
+}
+
 model EmailMessage {
   id         String         @id @default(cuid())
   companyId  String
@@ -1093,6 +1245,7 @@ model EmailMessage {
   delivery   EmailDelivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
 
   direction         String
+  purpose           String? // Only classified by the recorded outgoing command.
   provider          String
   providerId        String?
   internetMessageId String?
@@ -1113,7 +1266,7 @@ model EmailMessage {
   updatedAt         DateTime     @updatedAt
   events            EmailEvent[]
 
-  @@unique([provider, providerId])
+  @@unique([companyId, provider, providerId])
   @@index([companyId, createdAt])
   @@index([threadId, createdAt])
   @@index([internetMessageId])
@@ -1126,13 +1279,14 @@ model EmailEvent {
   messageId         String?
   message           EmailMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
   provider          String
-  providerEventId   String        @unique
+  providerEventId   String
   providerMessageId String?
   type              String
   payload           Json?
   occurredAt        DateTime
   createdAt         DateTime      @default(now())
 
+  @@unique([companyId, providerEventId])
   @@index([companyId, occurredAt])
   @@index([providerMessageId])
   @@index([messageId, occurredAt])
@@ -1196,10 +1350,56 @@ model AutomationRun {
   error        String?
   startedAt    DateTime  @default(now())
   completedAt  DateTime?
+  workflowVersion Int?
+  configuration Json?
+  input         Json?
+  nextActionPosition Int @default(0)
+  wakeAt        DateTime?
+  failures      Int @default(0)
+  attempts      Int @default(0)
+  ownerId       String?
+  leaseUntil    DateTime?
+  checkpoints   AutomationRunAction[]
 
   @@unique([workflowId, eventKey])
   @@index([companyId, startedAt])
   @@index([workflowId, status])
+}
+
+model AutomationEventOutbox {
+  id           String @id @default(cuid())
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelId    String?
+  channel      CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: Restrict)
+  eventKey     String
+  event        String
+  subjectModel String
+  subjectId    String
+  status       String @default("PENDING")
+  attempts     Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  error        String?
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+
+  @@unique([companyId, eventKey])
+  @@index([status, nextAttemptAt])
+}
+
+model AutomationRunAction {
+  id        String @id @default(cuid())
+  runId     String
+  run       AutomationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  position  Int
+  output    Json
+  status    String @default("COMPLETED")
+  startedAt DateTime?
+  scheduledAt DateTime?
+  errorCode String?
+  completedAt DateTime? @default(now())
+
+  @@unique([runId, position])
 }
 
 model ClientFile {
@@ -1248,6 +1448,7 @@ model Project {
   timeEntries       TimeEntry[]
   quotes            Quote[]
   invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
   organisationTasks OrganisationTask[]
   expenses          Expense[]
   technicalProfile  ProjectTechnicalProfile?
@@ -1532,6 +1733,7 @@ model OrganisationTask {
   // provider cursors stay encrypted on CommunicationChannel; tasks only keep
   // the non-secret remote identifier and the last synchronization outcome.
   calendarChannelId    String?
+  calendarChannel      CommunicationChannel? @relation(fields: [calendarChannelId], references: [id], onDelete: Restrict)
   calendarProvider     String?
   calendarExternalId   String?
   calendarEtag         String?
@@ -2787,6 +2989,7 @@ model InvoiceReminder {
   channel   String    @default("EMAIL_DRAFT")
   status    String    @default("PREPARED") // PREPARED, SENDING, SENT, FAILED, SKIPPED
   sourceKey String?
+  remainingCents Int? // Balance captured when the reminder text is prepared; null for legacy rows.
   subject   String
   message   String
   error     String?
@@ -2815,6 +3018,8 @@ model RecurringInvoice {
   company               Company              @relation(fields: [companyId], references: [id])
   clientId              String
   client                Client               @relation(fields: [clientId], references: [id])
+  projectId             String?
+  project               Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
   maintenanceContractId String?              @unique
   maintenanceContract   MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: SetNull)
 
@@ -2826,6 +3031,8 @@ model RecurringInvoice {
 
   template    Json // Invoice template for generation
   occurrences RecurringInvoiceOccurrence[]
+
+  @@index([companyId, projectId])
 }
 
 model RecurringInvoiceOccurrence {
@@ -2880,6 +3087,14 @@ model Contract {
   amendmentReason String?
   effectiveAt     DateTime?
 
+  signedDocument       String? // Encrypted, immutable rendered snapshot after signature
+  pdfUrl               String?
+  pdfHash              String?
+  archiveStatus        String? // PENDING, READY, FAILED; null for historical contracts
+  archiveAttempts      Int       @default(0)
+  archiveNextAttemptAt DateTime?
+  archiveError         String?
+
   signatures    ContractSignature[]
   signingTokens ContractSigningToken[]
   changes       ContractAmendmentChange[]
@@ -2893,6 +3108,7 @@ model Contract {
   @@index([companyId, kind, status])
   @@index([parentContractId])
   @@index([maintenanceContractId])
+  @@index([archiveStatus, archiveNextAttemptAt])
 }
 
 model ContractAmendmentChange {
@@ -2941,6 +3157,9 @@ model ContractSigningToken {
 
   tokenHash   String    @unique
   signerEmail String?
+  documentSnapshot String? // Encrypted content and identities presented by this link
+  documentHash     String?
+  contractRevision DateTime?
   expiresAt   DateTime
   usedAt      DateTime?
   createdAt   DateTime  @default(now())

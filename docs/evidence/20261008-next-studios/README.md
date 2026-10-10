@@ -1,0 +1,17 @@
+# Dépendances du candidat Next 16.3.8 et studios
+
+Contrôle du 8 octobre 2026 et CI de qualification de la PR #8. Source applicative **151007b**, comprenant le correctif Next **e9c2519** et la restriction des commandes de reprise en démo publique **39bc392**, avec documentation dans **f5573b0**. Les résultats locaux portent sur la copie physique isolée, sans données ni secrets existants. Les résultats navigateur ci-dessous proviennent de GitHub, sans qualification de fournisseur réel.
+
+Lockfile SHA-256 : `62f9faaf34e1a078981dcb8bd020d68b65c566b4f8d9c43d39eaefe151b3df39`.
+
+- [Inventaire](dependencies.json), généré par `node scripts/inventory-dependencies.mjs` : 863 entrées, 40 métadonnées à examiner, aucune licence inconnue. Les textes de licence, assets et composants système restent à examiner séparément.
+- [Audits résumés](audits.json) : lockfile et installation effective de recette, production zéro ; audit complet cinq paquets hauts de développement. La sortie brute n’est pas publiée.
+- [PostgreSQL et Linux](runtime.json) : commit f5573b0, 808 tests PostgreSQL réussis et une exclusion native SQLite ; neuf contrôles Linux, 59 migrations, archive prête et rejeu inchangé. Le rapport identifie l’image testée et les exclusions d’exploitation. Les fixtures de signature sont synthétiques ; ce résultat ne prouve pas un compte fournisseur ou une certification.
+
+Les [CI push](https://github.com/lacombechristophe/freelio/actions/runs/37704659344) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/37704662879) sont achevées. Types/lint/build, 809 tests SQLite, couverture ciblée et audit production passent. Chaque run réussit 139 E2E et conserve 19 exclusions historiques ; les nouveaux studios et la reprise passent sur ordinateur/mobile. L’audit UI PR examine 64 routes par format, sans finding P0–P3. Le seul contrôle échoué est l’audit complet : cinq paquets hauts de développement. Le checkout PR et l’arbre identique au candidat sont consignés dans runtime.json.
+
+La couverture concerne six modules déterministes : 86 % des lignes, 82,6 % des statements, 84,34 % des fonctions et 58,17 % des branches. Ces pourcentages ne sont pas la couverture de tout Freelio. Les archives de traces et cookies de recette ne sont pas recopiées dans le dépôt.
+
+Reproduction : `npm audit --omit=dev --package-lock-only --json`, `npm audit --package-lock-only --json`, puis les mêmes contrôles sans `package-lock-only` dans une installation physique issue de `npm ci`. Npm interroge des avis évolutifs ; un résultat ultérieur peut différer sans changement du lockfile.
+
+La [qualification Next](../../qualification-next-20261008.md) donne les six avis et le choix du correctif minimal. L’[index de qualification](../../completude-recette-20261003.md) et le [contrat des listes](../../contrat-listes-automatisations-completes.md) donnent la portée fonctionnelle, les tests SQL et la CI attendue. Les contrôles restent bloquants ; aucune alerte n’est masquée.

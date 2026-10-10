@@ -1,0 +1,152 @@
+{
+  "schema": "freelio.contact-history-baseline.v1",
+  "reference": "8ef8e79bfa8cf963a7f3aab61865d3c39657fb54",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "passed": 4,
+  "failed": 17,
+  "hookErrors": "",
+  "probeSha256": "51a36a36835d61549f69f9b396ae691e809d035a2b45e9bb3286fbb1fa316acf",
+  "rawReportSha256": "8608a5c0a8ac733ac73d91df3f858fc0fd89206d478fd0692f593ea1fb5330e9",
+  "cases": [
+    {
+      "name": "contact nested communication read scope on real SQL does not expose mail without Automations to TECHNICIAN",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ { …(15) }, { …(15) }, { …(15) } ] to deeply equal []"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose mail without Automations to ACCOUNTING",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ { …(15) }, { …(15) }, { …(15) } ] to deeply equal []"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose mail without Automations to VIEWER",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ { …(15) }, { …(15) }, { …(15) } ] to deeply equal []"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose enrollments without Automations to TECHNICIAN",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ { …(15) }, { …(15) } ] to deeply equal []"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose enrollments without Automations to ACCOUNTING",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ { …(15) }, { …(15) } ] to deeply equal []"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose enrollments without Automations to VIEWER",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ { …(15) }, { …(15) } ] to deeply equal []"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose directory engagement counts without Automations to TECHNICIAN",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected { emailDeliveries: 2, …(1) } to match object { emailDeliveries: null, …(1) }"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose directory engagement counts without Automations to ACCOUNTING",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected { emailDeliveries: 2, …(1) } to match object { emailDeliveries: null, …(1) }"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL does not expose directory engagement counts without Automations to VIEWER",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected { emailDeliveries: 2, …(1) } to match object { emailDeliveries: null, …(1) }"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL excludes a foreign thread linked to the local contact",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv03abzt0015550gl22fh8yk', …(3) ] to not include 'cmv03abzt0015550gl22fh8yk'"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL excludes a foreign message from the local thread",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv03abyq000q550gwcmaxnxy', …(2) ] to not include 'cmv03abzy0017550gp547pxso'"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL excludes a foreign sequence enrollment linked to the local contact",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv03ac0c001d550gf7rjw744', …(1) ] to not include 'cmv03ac0c001d550gf7rjw744'"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL excludes a foreign delivery linked to a local enrollment",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv03abza000y550gkpy464ei', …(1) ] to not include 'cmv03ac0h001f550gaq0lismt'"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL excludes foreign consent proof linked to the local contact",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv03ac0m001h550g714cbe39' ] to not include 'cmv03ac0m001h550g714cbe39'"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL excludes a foreign lead linked to the local contact",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected [ 'cmv03ac030019550g0wshisls', …(1) ] to not include 'cmv03ac030019550g0wshisls'"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL counts only the local sequence enrollment in the directory",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 2 to be 1 // Object.is equality"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL counts only the local delivery in the directory",
+      "status": "failed",
+      "failureSummary": [
+        "AssertionError: expected 2 to be 1 // Object.is equality"
+      ]
+    },
+    {
+      "name": "contact nested communication read scope on real SQL preserves coherent Owner threads",
+      "status": "passed",
+      "failureSummary": []
+    },
+    {
+      "name": "contact nested communication read scope on real SQL retains the colleague private mailbox restriction for Sales",
+      "status": "passed",
+      "failureSummary": []
+    },
+    {
+      "name": "contact nested communication read scope on real SQL refuses a foreign contact",
+      "status": "passed",
+      "failureSummary": []
+    },
+    {
+      "name": "contact nested communication read scope on real SQL refuses a suspended membership",
+      "status": "passed",
+      "failureSummary": []
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getRecurringInvoices } from "@/actions/factures"
+
+describe.sequential("recurring invoice read scope on real SQL", () => {
+  let foreignCompanyId: string, membershipId: string, localId: string, otherAgencyId: string, inconsistentId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional recurring scope" } })).id
+    foreignCompanyId = (await prisma.company.create({ data: { name: "Fictional foreign recurring scope" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `recurring-read-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    const localAgency = await prisma.agency.create({ data: { companyId: session.companyId, name: "Fictional local agency", code: "LOCAL" } })
+    const otherAgency = await prisma.agency.create({ data: { companyId: session.companyId, name: "Fictional other agency", code: "OTHER" } })
+    await prisma.agencyMembership.create({ data: { membershipId, agencyId: localAgency.id } })
+    const client = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional local recurring client" } })
+    const foreignClient = await prisma.client.create({ data: { companyId: foreignCompanyId, name: "Fictional foreign recurring client" } })
+    const localProject = await prisma.project.create({ data: { companyId: session.companyId, clientId: client.id, agencyId: localAgency.id, name: "Fictional local recurring project" } })
+    const otherProject = await prisma.project.create({ data: { companyId: session.companyId, clientId: client.id, agencyId: otherAgency.id, name: "Fictional other recurring project" } })
+    async function plan(label: string, clientId: string, projectId: string) {
+      return (await prisma.recurringInvoice.create({ data: { companyId: session.companyId, clientId, label, frequency: "MONTHLY", nextGenDate: new Date("2030-01-01"), template: { object: "Fictional recurring service", projectId, dueDays: 30, lines: [{ label: "Fictional line", quantity: 1, unitPriceCents: 10000, tvaRate: 0 }] } } })).id
+    }
+    localId = await plan("Fictional local recurrence", client.id, localProject.id)
+    otherAgencyId = await plan("Fictional other agency recurrence", client.id, otherProject.id)
+    inconsistentId = await plan("Fictional inconsistent recurrence", foreignClient.id, localProject.id)
+  })
+  afterEach(async () => { if (membershipId) await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } }) })
+  afterAll(async () => {
+    const ids = [session.companyId, foreignCompanyId].filter(Boolean), where = { companyId: { in: ids } }
+    if (ids.length) {
+      await prisma.recurringInvoice.deleteMany({ where })
+      await prisma.project.deleteMany({ where })
+      await prisma.client.deleteMany({ where })
+      await prisma.company.deleteMany({ where: { id: { in: ids } } })
+    }
+    if (session.userId) await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it.each(["SALES", "OPERATIONS", "TECHNICIAN", "SERVICE"])("refuses recurrence templates without Finance for %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    await expect(getRecurringInvoices()).rejects.toThrow("droits")
+  })
+  it("excludes another agency recurrence from Accounting", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "ACCOUNTING" } })
+    expect((await getRecurringInvoices()).map(plan => plan.id)).not.toContain(otherAgencyId)
+  })
+  it("excludes a recurrence whose client belongs to another company", async () => {
+    expect((await getRecurringInvoices()).map(plan => plan.id)).not.toContain(inconsistentId)
+  })
+  it("preserves coherent recurrence templates for Owner", async () => {
+    expect((await getRecurringInvoices()).map(plan => plan.id)).toEqual(expect.arrayContaining([localId, otherAgencyId]))
+  })
+  it("preserves a coherent local recurrence for Accounting", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "ACCOUNTING" } })
+    expect((await getRecurringInvoices()).map(plan => plan.id)).toContain(localId)
+  })
+})

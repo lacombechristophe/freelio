@@ -6,6 +6,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { buildServiceAnalytics } from "@/lib/operations/service-analytics"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import prisma from "@/lib/prisma"
+import { hasPermission } from "@/lib/permissions"
 
 const filtersSchema = z.object({
   days: z.coerce.number().int().refine((value) => [30, 90, 180, 365].includes(value)).default(90),
@@ -20,12 +21,18 @@ function guideName(snapshot: unknown) {
 }
 
 export async function getServiceAnalytics(input: unknown = {}) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const filters = filtersSchema.parse(input)
     const now = new Date()
     const startAt = new Date(now.getTime() - filters.days * 86_400_000)
-    const ticketScope = {
+    const globalHistory = hasPermission(role, "finance.read") && agencyIds === null
+    const relatedTicketScope = {
       companyId,
+      client: { companyId },
+      ...(agencyIds === null ? { AND: { OR: [{ siteId: null }, { site: { companyId, client: { companyId } } }] } } : { site: { companyId, client: { companyId }, agencyId: { in: agencyIds } } }),
+    }
+    const ticketScope = {
+      ...relatedTicketScope,
       status: { not: "MERGED" },
       mergedIntoTicketId: null,
       ...(filters.assignedMembershipId ? { assignedMembershipId: filters.assignedMembershipId } : {}),
@@ -46,18 +53,15 @@ export async function getServiceAnalytics(input: unknown = {}) {
         where: {
           companyId,
           completedAt: { gte: startAt },
-          ticket: {
-            status: { not: "MERGED" },
-            mergedIntoTicketId: null,
-            ...(filters.assignedMembershipId ? { assignedMembershipId: filters.assignedMembershipId } : {}),
-            ...(filters.priority ? { priority: filters.priority } : {}),
-          },
+          ticket: ticketScope,
         },
         select: { ticketId: true, guideSnapshot: true, completedAt: true },
         orderBy: { completedAt: "asc" },
       }),
-      prisma.satisfactionRequest.findMany({ where: { companyId, respondedAt: { gte: startAt }, score: { not: null } }, select: { score: true, survey: { select: { scaleMin: true, scaleMax: true } } }, orderBy: { respondedAt: "asc" } }),
-      prisma.client.findMany({ where: { companyId }, select: { relationScore: true } }),
+      prisma.satisfactionRequest.findMany({ where: { companyId, client: { companyId }, survey: { companyId },
+        ...(agencyIds === null ? { OR: [{ serviceTicketId: null }, { serviceTicket: relatedTicketScope }] } : { serviceTicket: relatedTicketScope }),
+        respondedAt: { gte: startAt }, score: { not: null } }, select: { score: true, survey: { select: { scaleMin: true, scaleMax: true } } }, orderBy: { respondedAt: "asc" } }),
+      globalHistory ? prisma.client.findMany({ where: { companyId }, select: { relationScore: true } }) : Promise.resolve([]),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
     ])
     const policy = serviceSlaPolicy(company)
@@ -85,6 +89,8 @@ export async function getServiceAnalytics(input: unknown = {}) {
     })
     return {
       ...analytics,
+      healthDistribution: globalHistory ? analytics.healthDistribution : [],
+      access: { globalHistory },
       filters,
       startAt,
       endAt: now,
