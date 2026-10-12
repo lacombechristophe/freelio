@@ -46,7 +46,7 @@ function getErrorMessage(error: unknown, fallback = "Erreur.") {
   return error instanceof Error ? error.message : fallback
 }
 
-export function DepensesView({ initial, projects }: { initial: Directory; projects: Array<{ id: string; name: string; clientId: string }> }) {
+export function DepensesView({ initial }: { initial: Directory }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [search, setSearch] = React.useState("")
@@ -119,13 +119,12 @@ export function DepensesView({ initial, projects }: { initial: Directory; projec
         </>}
       />
 
-      <ExpenseFormDialog open={createOpen} onOpenChange={setCreateOpen} projects={projects} />
+      <ExpenseFormDialog open={createOpen} onOpenChange={setCreateOpen} />
       {editTarget && (
         <ExpenseFormDialog
           expense={editTarget}
           open={!!editTarget}
           onOpenChange={(o) => !o && setEditTarget(null)}
-          projects={projects}
         />
       )}
 

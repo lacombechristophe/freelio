@@ -14,6 +14,7 @@ import { seedDocumentCalendarDates } from "./seed-document-calendar-dates.mjs"
 import { seedOrganisationPermissions } from "./seed-organisation-permissions.mjs"
 import { seedExpenseRelations } from "./seed-expense-relations.mjs"
 import { seedExpenseDirectory } from "./seed-expense-directory.mjs"
+import { seedExpenseProjectChoices } from "./seed-expense-project-choices.mjs"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -36,6 +37,7 @@ try {
   await seedOrganisationPermissions(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedExpenseRelations(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedExpenseDirectory(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedExpenseProjectChoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   for (const surface of ["desktop", "mobile"]) {
     await prisma.supplier.createMany({ data: Array.from({ length: 201 }, (_, index) => ({
       companyId, name: `UIQA Supplier ${surface} ${String(index).padStart(3, "0")}`, code: `UIQA-SUP-${surface}-${index}`, contactName: "Fictional supplier contact",

@@ -65,6 +65,27 @@ const directoryQuery = z.object({
   page: z.number().int().min(1).max(100000).default(1),
 }).strict()
 
+const projectChoiceQuery = directoryQuery.extend({ selectedId: z.string().trim().min(1).max(100).optional() })
+
+export async function getExpenseProjectChoices(input: unknown = {}) {
+  return withAuth(async ({ companyId }) => {
+    const query = projectChoiceQuery.parse(input)
+    const scope = { companyId, client: { companyId } }
+    const contains = { contains: query.search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+    const where = { ...scope, ...(query.search ? { name: contains } : {}) }
+    const select = { id: true, name: true, clientId: true } as const
+    return prisma.$transaction(async tx => {
+      const total = await tx.project.count({ where })
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE)))
+      const [items, selected] = await Promise.all([
+        tx.project.findMany({ where, select, skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE, orderBy: [{ name: "asc" }, { id: "asc" }] }),
+        query.selectedId ? tx.project.findFirst({ where: { ...scope, id: query.selectedId }, select }) : null,
+      ])
+      return { items, total, page, selected }
+    }, { isolationLevel: "Serializable" })
+  }, "finance.read")
+}
+
 export async function getExpenseDirectory(input: unknown = {}) {
   return withAuth(async ({ companyId }) => {
     const query = directoryQuery.parse(input)

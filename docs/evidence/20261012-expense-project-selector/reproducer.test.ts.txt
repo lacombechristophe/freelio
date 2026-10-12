@@ -1,0 +1,50 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getProjects } from "@/actions/projets"
+import { updateExpense } from "@/actions/depenses"
+describe.sequential("Existing expense project selector diagnostic", () => {
+  let clientId: string, projectId: string, expenseId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional expense selector diagnostic" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `expense-selector-${randomUUID()}@example.test` } })).id
+    await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional selector customer" } })).id
+    projectId = (await prisma.project.create({ data: { companyId: session.companyId, clientId, name: "Older selector project", createdAt: new Date("2000-01-01") } })).id
+    await prisma.project.createMany({ data: Array.from({ length: 100 }, (_, i) => ({ companyId: session.companyId, clientId, name: `Recent selector project ${i}`, createdAt: new Date("2001-01-01") })) })
+    expenseId = (await prisma.expense.create({ data: { companyId: session.companyId, clientId, projectId, label: "Existing linked expense", amountCents: 1234, date: new Date("2030-01-01"), category: "TEST" } })).id
+  })
+  afterAll(async () => {
+    await prisma.expense.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.auditLog.deleteMany({ where: { userId: session.userId } })
+    await prisma.project.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it("reproduces the 100-row selector ceiling despite a request for 200", async () => {
+    expect(await prisma.project.count({ where: { companyId: session.companyId } })).toBe(101)
+    const projects = await getProjects(undefined, 200)
+    expect(projects).toHaveLength(100)
+    expect(projects.some(project => project.id === projectId)).toBe(false)
+  })
+  it("reproduces loss of the client link when the current form saves an older linked project", async () => {
+    const projects = await getProjects(undefined, 200)
+    const updated = await updateExpense(expenseId, { label: "Only the expense label changed", amountCents: 1234, date: "2030-01-01", category: "TEST", projectId, clientId: projects.find(project => project.id === projectId)?.clientId ?? "" })
+    expect(updated.projectId).toBe(projectId)
+    expect(updated.clientId).toBeNull()
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: projectId } })).clientId).toBe(clientId)
+  })
+  it("reproduces loss of a direct client link when editing an expense without a project", async () => {
+    const existing = await prisma.expense.create({ data: { companyId: session.companyId, clientId, label: "Direct client expense", amountCents: 1234, date: new Date("2030-01-01"), category: "TEST" } })
+    const projects = await getProjects(undefined, 200)
+    const updated = await updateExpense(existing.id, { label: "Only the direct expense label changed", amountCents: 1234, date: "2030-01-01", category: "TEST", projectId: "", clientId: projects.find(project => project.id === "")?.clientId ?? "" })
+    expect(updated.projectId).toBeNull()
+    expect(updated.clientId).toBeNull()
+    expect(existing.clientId).toBe(clientId)
+  })
+})

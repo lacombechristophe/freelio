@@ -1,0 +1,55 @@
+{
+  "schema": "freelio.expense-project-selector-before.v1",
+  "observedAt": "2026-10-12T18:28:25.372Z",
+  "candidate": "780a24fc11af740aa3c654240723e265ae4f6bb0",
+  "sql": "Isolated SQLite with real actions, DAL and Owner membership; authentication and Next cache mocked",
+  "diagnostic": {
+    "passed": 2,
+    "failed": 0,
+    "sourceSha256": "1c2ab3e79e49a8fd49bab7587db5e432dc176ac1ee1cb81bb49a978afd95ff74",
+    "cases": [
+      {
+        "name": "Existing expense project selector diagnostic reproduces the 100-row selector ceiling despite a request for 200",
+        "status": "passed"
+      },
+      {
+        "name": "Existing expense project selector diagnostic reproduces loss of the client link when the current form saves an older linked project",
+        "status": "passed"
+      }
+    ]
+  },
+  "facts": {
+    "projects": 101,
+    "requestedLimit": 200,
+    "returnedProjects": 100,
+    "olderProjectAbsent": true,
+    "unchangedProjectAfterLabelEdit": true,
+    "clientLinkAfterLabelEdit": null
+  },
+  "limits": [
+    "The second case reproduces the exact form payload projection and calls the real update action; it is not a browser execution.",
+    "No real provider, file or hosted database. These passing cases reproduce defects, not a fix."
+  ],
+  "expandedDiagnostic": {
+    "observedAt": "2026-10-12T18:47:54.688Z",
+    "passed": 3,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "Existing expense project selector diagnostic reproduces the 100-row selector ceiling despite a request for 200",
+        "status": "passed"
+      },
+      {
+        "name": "Existing expense project selector diagnostic reproduces loss of the client link when the current form saves an older linked project",
+        "status": "passed"
+      },
+      {
+        "name": "Existing expense project selector diagnostic reproduces loss of a direct client link when editing an expense without a project",
+        "status": "passed"
+      }
+    ],
+    "sourceSha256": "f3f8d77ca99d45561c6c07bd3459c303ceb133f8b2873c45b1580ba448c02a06",
+    "directClientLinkAfterLabelEdit": null,
+    "updateActionMatchesBaseline": true
+  }
+}

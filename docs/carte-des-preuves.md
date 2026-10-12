@@ -33,6 +33,8 @@ Les fichiers ci-dessous donnent des points d’entrée pour une revue technique.
 
 Les noms de tests unitaires sont relatifs à `tests/unit/`. Un résultat local ne se transpose pas automatiquement à un fournisseur, à un volume supérieur ou à une infrastructure distante. Chaque affirmation de démonstration doit citer une recette datée et une version du code.
 
+Le [choix du chantier Dépenses](contrat-depenses-choix-chantier.md) ajoute 23 cas SQL et six parcours navigateur définis : 101 chantiers, sélection indépendante de la recherche/page, client conservé, rôles et révocation d'agence. Les [preuves locales](evidence/20261012-expense-project-selector/README.md) distinguent le diagnostic, le chargement des E2E et leur exécution CI sur le candidat publié.
+
 ## Compléments du candidat Scénarios
 
 | Risque / invariant | Preuves à examiner | Portée restante |
