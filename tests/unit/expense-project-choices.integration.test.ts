@@ -38,7 +38,8 @@ describe.sequential("Expense project choices on real SQL", () => {
     await prisma.user.delete({ where: { id: session.userId } })
   })
   it("reaches all 101 projects in bounded pages with a minimal projection", async () => {
-    const pages = await Promise.all([1, 2, 3, 4, 5].map(page => getExpenseProjectChoices({ page })))
+    const pages = []
+    for (const page of [1, 2, 3, 4, 5]) pages.push(await getExpenseProjectChoices({ page }))
     expect(pages.map(p => p.items.length)).toEqual([25, 25, 25, 25, 1])
     expect(new Set(pages.flatMap(p => p.items.map(item => item.id))).size).toBe(101)
     expect(pages[4].items).toEqual([{ id: olderId, name: "ZZ Ancien chantier", clientId }])
