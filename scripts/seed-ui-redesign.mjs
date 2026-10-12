@@ -23,6 +23,7 @@ import { seedTimeBillingAccounting } from "./seed-time-billing-accounting.mjs"
 import { seedTimeInvoiceRounding } from "./seed-time-invoice-rounding.mjs"
 import { seedTimeInvoiceSnapshot } from "./seed-time-invoice-snapshot.mjs"
 import { seedTimeInvoiceRelease } from "./seed-time-invoice-release.mjs"
+import { seedDocumentPreviewScope } from "./seed-document-preview-scope.mjs"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -54,6 +55,7 @@ try {
   await seedTimeInvoiceRounding(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeInvoiceSnapshot(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeInvoiceRelease(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedDocumentPreviewScope(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   for (const surface of ["desktop", "mobile"]) {
     await prisma.supplier.createMany({ data: Array.from({ length: 201 }, (_, index) => ({
       companyId, name: `UIQA Supplier ${surface} ${String(index).padStart(3, "0")}`, code: `UIQA-SUP-${surface}-${index}`, contactName: "Fictional supplier contact",

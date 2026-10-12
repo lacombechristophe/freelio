@@ -1,0 +1,151 @@
+{
+  "schema": "freelio.document-preview-scope.local.v1",
+  "passed": 2009,
+  "failed": 0,
+  "files": 206,
+  "focused": [
+    {
+      "title": "refuses a foreign client in the invoice preview for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "refuses a foreign client in the invoice preview for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "title": "refuses a foreign client in the quote preview for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "refuses a foreign client in the quote preview for SALES",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the coherent invoice preview as a positive control",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the coherent quote preview as a positive control",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for ADMIN",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for SALES",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for OPERATIONS",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for SERVICE",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the invoice read policy for VIEWER",
+      "status": "passed"
+    },
+    {
+      "title": "denies a revoked agency in the invoice preview",
+      "status": "passed"
+    },
+    {
+      "title": "denies a suspended membership in the invoice preview",
+      "status": "passed"
+    },
+    {
+      "title": "refuses a foreign client before the invoice binary generator",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for ADMIN",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for SALES",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for OPERATIONS",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for SERVICE",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the quote read policy for VIEWER",
+      "status": "passed"
+    },
+    {
+      "title": "denies a revoked agency in the quote preview",
+      "status": "passed"
+    },
+    {
+      "title": "denies a suspended membership in the quote preview",
+      "status": "passed"
+    },
+    {
+      "title": "refuses a foreign client before the quote binary generator",
+      "status": "passed"
+    },
+    {
+      "title": "refuses a foreign client before accessing an issued invoice archive",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 10.65
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 24.766
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.171
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 224.333
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 62.586
+    }
+  ]
+}
