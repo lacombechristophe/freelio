@@ -20,17 +20,22 @@ async function persistedTask(id: string) {
   return database.organisationTask.findUniqueOrThrow({ where: { id }, include: { timeEntry: true, project: { select: { consumedCents: true } } } })
 }
 
-test("Imputing a task twice explains the refusal and keeps one persisted time", async ({ page }, info) => {
+test("An imputed task leaves the open list and a reopened task cannot be imputed again", async ({ page }, info) => {
   const row = page.getByText("FICTIONAL-TASK-ONCE", { exact: true }).first().locator("..").locator("..").locator("..")
   await row.getByTitle("Imputer en temps passé", { exact: true }).click()
   await expect(page.getByText("Temps imputé et tâche terminée.", { exact: true })).toBeVisible()
-  await expect(row.getByText("Terminé", { exact: true })).toBeVisible()
+  await expect(page.getByText("FICTIONAL-TASK-ONCE", { exact: true })).toHaveCount(0)
   const id = `ctasktimeonce${info.project.name}`, initial = await persistedTask(id)
   expect(initial).toMatchObject({ status: "DONE", timeImputedAt: expect.any(Date), timeEntry: { durationSec: 3600, sourceOrganisationTaskId: id }, project: { consumedCents: 6250 } })
+  // Simulate an external reopening only in the disposable, guarded database.
+  await database.organisationTask.update({ where: { id }, data: { status: "TODO" } })
+  const reopened = await persistedTask(id)
+  await page.reload()
   await row.getByTitle("Imputer en temps passé", { exact: true }).click()
   await expect(page.getByText("Cette tâche a déjà été imputée", { exact: true })).toBeVisible()
+  await expect(row.getByText("À faire", { exact: true })).toBeVisible()
   await page.reload()
-  expect(await persistedTask(id)).toEqual(initial)
+  expect(await persistedTask(id)).toEqual(reopened)
 })
 
 for (const [kind, message] of [["DURATION", "Saisie invalide : vérifiez la durée, la date et la description."], ["RELATION", "Tâche introuvable ou chantier inaccessible"]]) {

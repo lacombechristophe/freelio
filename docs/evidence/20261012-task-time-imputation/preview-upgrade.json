@@ -1,0 +1,29 @@
+{
+  "schema": "freelio.task-time-preview-migration.v1",
+  "candidate": "2f338f434a596a74cb3eb7420b71b78a15b8ef7e",
+  "postgresRun": "38308934782",
+  "observedAt": "2026-10-12T21:15:19.615Z",
+  "dedicatedPreviewOnly": true,
+  "appliedMigration": "20261012010000_task_time_imputation",
+  "appliedMigrations": 61,
+  "businessRowsUnchanged": true,
+  "business": {
+    "tasks": 0,
+    "times": 0,
+    "taskDigest": "d751713988987e9331980363e24189ce",
+    "timeDigest": "d751713988987e9331980363e24189ce"
+  },
+  "historicalClaims": 0,
+  "historicalAssociations": 0,
+  "readerPrivileges": {
+    "schemaCreate": false,
+    "writeTables": [
+      "AuditLog"
+    ]
+  },
+  "limits": [
+    "Only the pre-existing fictitious preview database was migrated. Main and production were not migrated.",
+    "PostgreSQL and Linux CI jobs passed before execution. This does not qualify the still-pending compiled browser job.",
+    "No historical time association inferred and no provider business action executed."
+  ]
+}
