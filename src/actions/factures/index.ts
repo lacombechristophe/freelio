@@ -13,6 +13,7 @@ import { CreditNoteSchema, InvoiceSchema, PaymentSchema, RecurringInvoiceSchema,
 import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { buildTimeInvoiceLines } from "@/lib/finance/time-invoice-lines"
 import { buildInvoiceReminderContent } from "@/lib/finance/invoice-reminders"
 import { sendInvoiceReminderRecord } from "@/lib/finance/invoice-reminder-sender"
 import { boundedPageSize } from "@/lib/pagination"
@@ -115,60 +116,6 @@ async function generateCreditNoteNumber(companyId: string) {
     select: { number: true },
   }))
   return nextDocumentNumber(last, prefix)
-}
-
-function formatInvoiceDate(date: Date) {
-  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
-}
-
-function roundHours(durationSec: number) {
-  return Math.round((durationSec / 3600) * 100) / 100
-}
-
-function buildProjectTimeLines(entries: TimeEntryForInvoice[], hourlyRateCents: number, tvaRate: number, lineMode: "GROUP_BY_PROJECT" | "DETAIL") {
-  if (lineMode === "DETAIL") {
-    return entries
-      .slice()
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map((entry, index) => ({
-        label: `${entry.project.name} - ${formatInvoiceDate(entry.date)}`,
-        description: entry.description || "Temps de d\u00e9veloppement",
-        quantity: roundHours(entry.durationSec),
-        unitPriceCents: hourlyRateCents,
-        tvaRate,
-        order: index,
-      }))
-  }
-
-  const grouped = new Map<string, TimeEntryForInvoice[]>()
-  for (const entry of entries) {
-    const group = grouped.get(entry.projectId) ?? []
-    group.push(entry)
-    grouped.set(entry.projectId, group)
-  }
-
-  return Array.from(grouped.values()).map((projectEntries, index) => {
-    const first = projectEntries[0]
-    const sorted = projectEntries.slice().sort((a, b) => a.date.getTime() - b.date.getTime())
-    const durationSec = projectEntries.reduce((sum, entry) => sum + entry.durationSec, 0)
-    const from = sorted[0]?.date
-    const to = sorted[sorted.length - 1]?.date
-    const period =
-      from && to
-        ? from.toDateString() === to.toDateString()
-          ? formatInvoiceDate(from)
-          : `${formatInvoiceDate(from)} - ${formatInvoiceDate(to)}`
-        : "P\u00e9riode non renseign\u00e9e"
-
-    return {
-      label: `Temps pass\u00e9 - ${first.project.name}`,
-      description: `${projectEntries.length} entr\u00e9e(s) de temps, p\u00e9riode ${period}.`,
-      quantity: roundHours(durationSec),
-      unitPriceCents: hourlyRateCents,
-      tvaRate,
-      order: index,
-    }
-  })
 }
 
 function assertSingleClient(entries: TimeEntryForInvoice[]) {
@@ -336,7 +283,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     const clientId = assertSingleClient(entries)
     const projectId = getSingleProjectId(entries)
     const tvaRate = company.isTvaApplicable ? 20 : 0
-    const lines = buildProjectTimeLines(entries, validated.hourlyRateCents, tvaRate, validated.lineMode)
+    const lines = buildTimeInvoiceLines(entries, validated.hourlyRateCents, tvaRate, validated.lineMode)
     const totals = calculateCommercialDocument(lines)
     const clientName = entries[0].project.client.name
     const object = validated.object || `Temps pass\u00e9 - ${clientName}`

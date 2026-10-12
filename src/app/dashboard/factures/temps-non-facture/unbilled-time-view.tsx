@@ -21,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatCentsToEuro } from "@/lib/billing"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { buildTimeInvoiceLines } from "@/lib/finance/time-invoice-lines"
 import { cn } from "@/lib/utils"
 
 type UnbilledTimeData = {
@@ -132,11 +134,17 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
   )
 
   const selectedDurationSec = selectedEntries.reduce((sum, entry) => sum + entry.durationSec, 0)
-  const selectedAmountCents = computeAmount(selectedDurationSec, hourlyRateCents)
+  let selectedAmountCents: number | null = 0
+  try {
+    if (hourlyRateCents > 0) selectedAmountCents = calculateCommercialDocument(buildTimeInvoiceLines(selectedEntries, hourlyRateCents, 0, lineMode)).totalHtCents
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error
+    selectedAmountCents = null
+  }
   const selectedClientIds = new Set(selectedEntries.map((entry) => entry.project.client.id))
   const selectedProjectIds = new Set(selectedEntries.map((entry) => entry.project.id))
   const hasMultipleClients = selectedClientIds.size > 1
-  const canGenerate = selectedEntries.length > 0 && !hasMultipleClients && hourlyRateCents > 0 && !!dueDate && !pending
+  const canGenerate = selectedEntries.length > 0 && !hasMultipleClients && hourlyRateCents > 0 && selectedAmountCents !== null && !!dueDate && !pending
 
   function toggleEntry(id: string) {
     setSelectedIds((current) => {
@@ -220,7 +228,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
           />
           <MetricCard
             label="Sélection"
-            value={formatCentsToEuro(selectedAmountCents)}
+            value={selectedAmountCents === null ? "Montant indisponible" : formatCentsToEuro(selectedAmountCents)}
             detail={`${selectedEntries.length} entrée(s), ${formatDuration(selectedDurationSec)}`}
             icon={FileText}
           />
@@ -343,7 +351,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
               </div>
               <div className="rounded-lg border bg-background/60 p-3">
                 <p className="text-xs font-semibold tracking-normal text-muted-foreground">Total HT</p>
-                <p className="mt-1 text-xl font-black">{formatCentsToEuro(selectedAmountCents)}</p>
+                <p className="mt-1 text-xl font-black">{selectedAmountCents === null ? "Montant indisponible" : formatCentsToEuro(selectedAmountCents)}</p>
               </div>
             </div>
 
@@ -393,6 +401,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
             <div className="space-y-2 rounded-lg border bg-background/60 p-3 text-xs text-muted-foreground">
               <p>{selectedEntries.length} entrée(s) sélectionnée(s)</p>
               <p>{selectedClientIds.size} client(s), {selectedProjectIds.size} projet(s)</p>
+              <p>Les montants sont arrondis au centime par ligne ; le regroupement peut modifier le total.</p>
               {hasMultipleClients && (
                 <p className="flex items-start gap-2 text-danger">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
