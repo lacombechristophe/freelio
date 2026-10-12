@@ -90,11 +90,15 @@ jobs:
           npm run db:bootstrap:sqlite
           node scripts/seed-e2e.mjs
 
-      - name: Vérifier types, lint, tests et build
-        run: npm run verify
-
-      - name: Mesurer la couverture métier critique
-        run: npm run test:coverage
+      # Coverage executes the complete SQL suite; running test:unit as well
+      # duplicated it and left too little time for Chromium and evidence uploads.
+      - name: Vérifier types, lint, tests, couverture et build
+        run: |
+          npm run db:prepare:dev
+          npm run typecheck
+          npm run lint
+          npm run test:coverage
+          npm run build
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
