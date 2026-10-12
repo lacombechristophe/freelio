@@ -1,0 +1,102 @@
+{
+  "schema": "freelio.time-entry-integrity-local.v1",
+  "observedAt": "2026-10-12T19:26:38.306Z",
+  "sourceBase": "6e255a4bb5b930791b9e0902fe0df1fc8b11802e",
+  "steps": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 13.44
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 28.84
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.169
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 243.19
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 83.776
+    }
+  ],
+  "sqlite": {
+    "passed": 1802,
+    "failed": 0,
+    "files": 197
+  },
+  "focused": {
+    "passed": 46,
+    "failed": 0
+  },
+  "browser": {
+    "defined": 8,
+    "executed": false
+  },
+  "seed": {
+    "schema": "freelio.time-integrity-seed-check.v1",
+    "observedAt": "2026-10-12T19:20:16.099Z",
+    "success": true,
+    "disposableSQLite": true,
+    "counts": {
+      "companies": 4,
+      "users": 2,
+      "entries": 2,
+      "projects": 4,
+      "clients": 4
+    }
+  },
+  "fingerprints": [
+    {
+      "file": "src/actions/temps/index.ts",
+      "sha256": "b15f76f10e6abd0370b481f773765ed1cd22580def76cd0ed31bccac0f807c58"
+    },
+    {
+      "file": "src/app/dashboard/temps/temps-view.tsx",
+      "sha256": "6f42dede53c98044e6bc8480dbaae067ba98061ec7e7742910e286303f537299"
+    },
+    {
+      "file": "tests/unit/time-entry-integrity.integration.test.ts",
+      "sha256": "ed5225dec977872620f5a197a11a8ea4f671ea79a63f206d1d12e46003840fb1"
+    },
+    {
+      "file": "tests/e2e/time-entry-integrity.spec.ts",
+      "sha256": "dcc069305ad55c5aea69e82fc8c130699a0e745b273939f18c010f49cad2f358"
+    },
+    {
+      "file": "scripts/seed-time-entry-integrity.mjs",
+      "sha256": "d3ac5920009e628298f72cb8ca3f17d4361f1865bbef4c2fc03c2898f1588e07"
+    },
+    {
+      "file": "scripts/seed-ui-redesign.mjs",
+      "sha256": "ea323375799fa9d0a7c5a41bd170dd61ed6c0598e32ffd00d599a2c394944985"
+    }
+  ],
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1278,
+    "historyBlobsChecked": 3551,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "limits": [
+    "Real isolated SQLite and memberships; auth/cache mocked.",
+    "PostgreSQL concurrency and compiled browser workflows pending CI.",
+    "No local HTTP server, Docker, provider business request or storage service.",
+    "CSV/history and Organisation time creation are separate lots."
+  ],
+  "firstAttempt": {
+    "stage": "oxlint",
+    "exitCode": 1,
+    "reason": "Next no-assign-module-variable rejected the test variable module; renamed without disabling the rule."
+  }
+}

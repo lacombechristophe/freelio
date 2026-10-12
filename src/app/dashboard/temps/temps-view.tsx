@@ -148,7 +148,8 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
       destructive: true,
     }))) return
     try {
-      await deleteTimeEntry(id)
+      const result = await deleteTimeEntry(id)
+      if (!result.ok) { toast.error(result.error); return }
       toast.success("Entrée supprimée.")
       router.refresh()
     } catch (err) {
@@ -167,11 +168,12 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
     }
     setSaving(true)
     try {
-      await createTimeEntry({ 
+      const result = await createTimeEntry({
         projectId, 
         durationSec: elapsed,
         description: "Enregistrement Chronomètre global"
       })
+      if (!result.ok) { toast.error(result.error); return }
       toast.success("Temps enregistré !")
       resetTimer()
       router.refresh()
@@ -234,13 +236,14 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
     }
     setSaving(true)
     try {
-      await createTimeEntry({
+      const result = await createTimeEntry({
         projectId: manualProjId,
         durationSec: secs,
         description: manualDesc,
         date: manualEntryDay || new Date(),
         isBillable: manualBillable
       })
+      if (!result.ok) { toast.error(result.error); return }
       toast.success("Entrée de temps ajoutée !")
       setManualEntryDay(null)
       setManualHours("1")
@@ -658,7 +661,8 @@ function EditTimeEntryDialog({
         toast.error("Durée invalide.")
         return
       }
-      await updateTimeEntry(entry.id, { durationSec, description })
+      const result = await updateTimeEntry(entry.id, { durationSec, description })
+      if (!result.ok) { toast.error(result.error); return }
       toast.success("Entrée mise à jour.")
       onSaved()
     } catch (err) {

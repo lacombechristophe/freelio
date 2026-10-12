@@ -1,7 +1,10 @@
 "use server"
 
-import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-wrapper"
+import { Prisma } from "@prisma/client"
+import { z } from "zod"
+import prisma, { type TransactionClient } from "@/lib/prisma"
+import { AuthorizationError, withAuth, type AuthContext } from "@/lib/auth-wrapper"
+import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 import { revalidatePath } from "next/cache"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
@@ -9,17 +12,50 @@ import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 // Matches the common "jour @ 500€" rate — can later be made per-project.
 const HOURLY_RATE_CENTS = 6250 // 62.50€/h (i.e. 500€/jour de 8h)
 
-async function recomputeProjectConsumed(projectId: string) {
-  const sum = await prisma.timeEntry.aggregate({
+async function recomputeProjectConsumed(tx: TransactionClient, projectId: string) {
+  const sum = await tx.timeEntry.aggregate({
     where: { projectId, isBillable: true },
     _sum: { durationSec: true },
   })
   const seconds = sum._sum.durationSec ?? 0
   const consumedCents = Math.round((seconds / 3600) * HOURLY_RATE_CENTS)
-  await prisma.project.update({
+  await tx.project.update({
     where: { id: projectId },
     data: { consumedCents },
   })
+}
+
+const entryId = z.string().trim().min(1).max(100)
+const entryFields = z.object({
+  durationSec: z.number().int().min(1).max(2147483647),
+  description: z.string().max(2000).optional(),
+  date: z.date().optional(),
+  isBillable: z.boolean().optional(),
+}).strict()
+const createInput = entryFields.extend({ projectId: entryId })
+const updateInput = entryFields.partial()
+const BILLED_TIME_MESSAGE = "Ce temps est déjà rattaché à une facture. Il ne peut être modifié ni supprimé."
+class TimeEntryError extends Error {}
+
+async function mutateTime<T>(action: (tx: TransactionClient, context: AuthContext) => Promise<{ value: T; projectId: string }>): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const result = await withAuth(context => prisma.$transaction(tx => action(tx, context), { isolationLevel: "Serializable" }), "operations.write")
+      if (!result) return { ok: false, error: "Espace de travail introuvable" }
+      revalidatePath("/dashboard/temps")
+      revalidatePath("/dashboard/projets")
+      revalidatePath(`/dashboard/projets/${result.projectId}`)
+      return { ok: true, value: result.value }
+    } catch (error) {
+      // Only a rolled-back serialization failure can be replayed. Recheck
+      // membership and stored relationships on each attempt.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034" && attempt < 3) continue
+      if (error instanceof TimeEntryError || error instanceof AuthorizationError) return { ok: false, error: error.message }
+      if (error instanceof z.ZodError) return { ok: false, error: "Saisie invalide : vérifiez la durée, la date et la description." }
+      if (error instanceof Error && error.message === DEMO_READ_ONLY_MESSAGE) return { ok: false, error: DEMO_READ_ONLY_MESSAGE }
+      throw error
+    }
+  }
 }
 
 export async function getTimeEntries() {
@@ -34,14 +70,16 @@ export async function getTimeEntries() {
   }, "operations.read")
 }
 
-export async function createTimeEntry(data: { projectId: string; durationSec: number; description?: string; date?: Date; isBillable?: boolean }) {
-  return await withAuth(async ({ companyId }) => {
-    const project = await prisma.project.findFirst({
-      where: { id: data.projectId, companyId },
+export async function createTimeEntry(input: unknown) {
+  return mutateTime(async (tx, { companyId }) => {
+    const data = createInput.parse(input)
+    const project = await tx.project.findFirst({
+      where: { id: data.projectId, companyId, client: { companyId } },
+      select: { id: true },
     })
-    if (!project) throw new Error("Projet introuvable")
+    if (!project) throw new TimeEntryError("Projet introuvable")
 
-    const entry = await prisma.timeEntry.create({
+    const entry = await tx.timeEntry.create({
       data: {
         projectId: data.projectId,
         durationSec: data.durationSec,
@@ -50,49 +88,43 @@ export async function createTimeEntry(data: { projectId: string; durationSec: nu
         isBillable: data.isBillable ?? true,
       },
     })
-    await recomputeProjectConsumed(data.projectId)
-    revalidatePath("/dashboard/temps")
-    revalidatePath("/dashboard/projets")
-    revalidatePath(`/dashboard/projets/${data.projectId}`)
-    return entry
+    await recomputeProjectConsumed(tx, data.projectId)
+    return { value: entry, projectId: data.projectId }
   })
 }
 
-export async function updateTimeEntry(id: string, data: { durationSec?: number; description?: string; date?: Date; isBillable?: boolean }) {
-  return await withAuth(async ({ companyId }) => {
-    const existing = await prisma.timeEntry.findFirst({
-      where: { id, project: { companyId } },
+export async function updateTimeEntry(id: string, input: unknown) {
+  return mutateTime(async (tx, { companyId }) => {
+    const data = updateInput.parse(input)
+    const where = { id: entryId.parse(id), project: { companyId, client: { companyId } } }
+    const existing = await tx.timeEntry.findFirst({
+      where,
     })
-    if (!existing) throw new Error("Entrée introuvable")
+    if (!existing) throw new TimeEntryError("Entrée introuvable")
+    if (existing.invoiceId !== null) throw new TimeEntryError(BILLED_TIME_MESSAGE)
 
-    const entry = await prisma.timeEntry.update({
-      where: { id },
-      data: {
-        durationSec: data.durationSec,
-        description: data.description,
-        date: data.date,
-        isBillable: data.isBillable,
-      },
+    const changed = await tx.timeEntry.updateMany({
+      where: { ...where, invoiceId: null },
+      data,
     })
-    await recomputeProjectConsumed(existing.projectId)
-    revalidatePath("/dashboard/temps")
-    revalidatePath("/dashboard/projets")
-    revalidatePath(`/dashboard/projets/${existing.projectId}`)
-    return entry
+    if (changed.count !== 1) throw new TimeEntryError("Entrée introuvable ou déjà rattachée à une facture")
+    const entry = await tx.timeEntry.findFirstOrThrow({ where })
+    await recomputeProjectConsumed(tx, existing.projectId)
+    return { value: entry, projectId: existing.projectId }
   })
 }
 
 export async function deleteTimeEntry(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    const existing = await prisma.timeEntry.findFirst({
-      where: { id, project: { companyId } },
+  return mutateTime(async (tx, { companyId }) => {
+    const where = { id: entryId.parse(id), project: { companyId, client: { companyId } } }
+    const existing = await tx.timeEntry.findFirst({
+      where,
     })
-    if (!existing) throw new Error("Entrée introuvable")
-    await prisma.timeEntry.delete({ where: { id } })
-    await recomputeProjectConsumed(existing.projectId)
-    revalidatePath("/dashboard/temps")
-    revalidatePath("/dashboard/projets")
-    revalidatePath(`/dashboard/projets/${existing.projectId}`)
-    return { ok: true }
+    if (!existing) throw new TimeEntryError("Entrée introuvable")
+    if (existing.invoiceId !== null) throw new TimeEntryError(BILLED_TIME_MESSAGE)
+    const deleted = await tx.timeEntry.deleteMany({ where: { ...where, invoiceId: null } })
+    if (deleted.count !== 1) throw new TimeEntryError("Entrée introuvable ou déjà rattachée à une facture")
+    await recomputeProjectConsumed(tx, existing.projectId)
+    return { value: null, projectId: existing.projectId }
   })
 }
