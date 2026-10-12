@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions"
 import { recurringScope, recurringSearch, recurringPageSize } from "@/lib/finance/recurring-scope"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
+import { requestContext } from "@/lib/context"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { CreditNoteSchema, InvoiceSchema, PaymentSchema, RecurringInvoiceSchema, ReminderSchema } from "@/lib/validations"
@@ -294,7 +295,8 @@ export async function createInvoice(data: InvoiceInput) {
 }
 
 export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesInput) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return await withAuth(async (context) => {
+    const { companyId, userId } = context
     const validated = InvoiceFromTimeEntriesSchema.parse(data)
     const uniqueEntryIds = Array.from(new Set(validated.timeEntryIds))
 
@@ -312,7 +314,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
         id: { in: uniqueEntryIds },
         isBillable: true,
         invoiceId: null,
-        project: { companyId, client: { companyId } },
+        project: { companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
       },
       include: {
         project: {
@@ -370,13 +372,17 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
             },
           })
 
-          const updated = await tx.timeEntry.updateMany({
+          const accessible = await tx.invoice.findFirst({ where: { id: created.id, companyId, clientId, client: { companyId } }, select: { id: true } })
+          if (!accessible) throw new Error("Facture introuvable")
+
+          const updated = await requestContext.run({ ...context, actionPermission: "finance.write", timeInvoiceClaimId: created.id }, async () => await tx.timeEntry.updateMany({
             where: {
-              id: { in: uniqueEntryIds },
+              OR: entries.map(entry => ({ id: entry.id, projectId: entry.project.id })),
               invoiceId: null,
+              project: { companyId, clientId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
             },
             data: { invoiceId: created.id },
-          })
+          }))
 
           if (updated.count !== uniqueEntryIds.length) {
             throw new Error("Les temps ont chang\u00e9 pendant la cr\u00e9ation de la facture. R\u00e9essayez.")

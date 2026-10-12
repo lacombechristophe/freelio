@@ -136,6 +136,10 @@ const prismaClientSingleton = () => {
           // Finance claims billing only; it cannot edit the operational order.
           const orderBillingUpdate = model === "CustomerOrder" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
             hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "billingStatus"
+          // This capability is scoped to the draft just created by the Finance action.
+          const timeInvoiceClaim = model === "TimeEntry" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "invoiceId" &&
+            typeof mutableArgs.data.invoiceId === "string" && mutableArgs.data.invoiceId === context.timeInvoiceClaimId && mutableArgs.where?.invoiceId === null
 
           if (
             context &&
@@ -144,6 +148,7 @@ const prismaClientSingleton = () => {
             !hasPermission(context.role, requiredPermission) &&
             !serviceProfileUpdate &&
             !orderBillingUpdate &&
+            !timeInvoiceClaim &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)

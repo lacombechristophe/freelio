@@ -9,6 +9,7 @@ export type RequestContext = {
   role: CompanyRole
   agencyIds: AgencyAccess
   actionPermission?: Permission
+  timeInvoiceClaimId?: string
 }
 
 const globalForContext = globalThis as typeof globalThis & {

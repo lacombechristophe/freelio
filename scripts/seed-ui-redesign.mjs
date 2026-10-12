@@ -19,6 +19,7 @@ import { seedTimeEntryIntegrity } from "./seed-time-entry-integrity.mjs"
 import { seedTimeDirectory } from "./seed-time-directory.mjs"
 import { seedProjectDirectory } from "./seed-project-directory.mjs"
 import { seedOrganisationTimeImputation } from "./seed-organisation-time-imputation.mjs"
+import { seedTimeBillingAccounting } from "./seed-time-billing-accounting.mjs"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -46,6 +47,7 @@ try {
   await seedTimeDirectory(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedProjectDirectory(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedOrganisationTimeImputation(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedTimeBillingAccounting(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   for (const surface of ["desktop", "mobile"]) {
     await prisma.supplier.createMany({ data: Array.from({ length: 201 }, (_, index) => ({
       companyId, name: `UIQA Supplier ${surface} ${String(index).padStart(3, "0")}`, code: `UIQA-SUP-${surface}-${index}`, contactName: "Fictional supplier contact",
