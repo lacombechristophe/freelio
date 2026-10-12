@@ -1,4 +1,16 @@
 import { expect, test } from "@playwright/test"
+import { PrismaClient } from "@prisma/client"
+
+const database = new PrismaClient()
+test.afterAll(async () => { await database.$disconnect() })
+async function persistedExpense(label: string, surface: string) {
+  if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL) throw new Error("La preuve SQL navigateur exige la recette SQLite isolée")
+  const user = await database.user.findUniqueOrThrow({ where: { email: `expense-project-${surface}@example.test` }, select: { companyId: true } })
+  expect(user.companyId).not.toBeNull()
+  const rows = await database.expense.findMany({ where: { companyId: user.companyId!, label }, select: { clientId: true, projectId: true, amountCents: true } })
+  expect(rows).toHaveLength(1)
+  return rows[0]
+}
 
 let clientErrors: string[] = []
 test.beforeEach(async ({ page }, info) => {
@@ -32,13 +44,11 @@ test("Older project remains selected outside search and creates an expense with 
   await expect(dialog.getByText("0 résultats", { exact: true })).toBeVisible()
   await expect(dialog.getByRole("combobox", { name: "Projet lié", exact: true })).toContainText("ZZ ANCIEN CHANTIER")
   await expect(dialog.getByLabel("Libellé", { exact: false })).toHaveValue(label)
-  const saved = page.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]) && Boolean(response.request().postData()?.includes(label)))
   await dialog.getByRole("button", { name: "Créer", exact: true }).click()
-  const payload = await (await saved).text()
-  expect(payload).toContain(`"clientId":"cexpensepickerclient${info.project.name}"`)
-  expect(payload).toContain(`"projectId":"cexpensepickerolder${info.project.name}"`)
   await expect(dialog).toHaveCount(0)
-  await expect(page.getByRole("row").filter({ hasText: label })).toContainText("ZZ ANCIEN CHANTIER")
+  expect(await persistedExpense(label, info.project.name)).toEqual({ clientId: `cexpensepickerclient${info.project.name}`, projectId: `cexpensepickerolder${info.project.name}`, amountCents: 1234 })
+  await page.reload()
+  await expect(page.getByRole("row").filter({ hasText: label })).toContainText("12,34")
 })
 
 test("Editing an older linked expense preserves fields and blocks saving through a failed lookup", async ({ page }, info) => {
@@ -64,13 +74,11 @@ test("Editing an older linked expense preserves fields and blocks saving through
   await expect(dialog.getByRole("combobox", { name: "Projet lié", exact: true })).toContainText("ZZ ANCIEN CHANTIER")
   await dialog.getByRole("button", { name: "Réessayer", exact: true }).click()
   await expect(dialog.getByText("1 résultat", { exact: true })).toBeVisible()
-  const saved = page.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]) && Boolean(response.request().postData()?.includes(label)))
   await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click()
-  const payload = await (await saved).text()
-  expect(payload).toContain(`"clientId":"cexpensepickerclient${info.project.name}"`)
-  expect(payload).toContain(`"projectId":"cexpensepickerolder${info.project.name}"`)
   await expect(dialog).toHaveCount(0)
-  await expect(page.getByRole("row").filter({ hasText: label })).toContainText("ZZ ANCIEN CHANTIER")
+  expect(await persistedExpense(label, info.project.name)).toEqual({ clientId: `cexpensepickerclient${info.project.name}`, projectId: `cexpensepickerolder${info.project.name}`, amountCents: 1234 })
+  await page.reload()
+  await expect(page.getByRole("row").filter({ hasText: label })).toContainText("12,34")
 })
 
 test("Editing an expense with a direct client link preserves it without assigning a project", async ({ page }, info) => {
@@ -81,11 +89,9 @@ test("Editing an expense with a direct client link preserves it without assignin
   await expect(dialog.getByRole("combobox", { name: "Projet lié", exact: true })).toContainText("Aucun projet")
   const label = `Edited direct client expense ${info.project.name}`
   await dialog.getByLabel("Libellé", { exact: false }).fill(label)
-  const saved = page.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]) && Boolean(response.request().postData()?.includes(label)))
   await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click()
-  const payload = await (await saved).text()
-  expect(payload).toContain(`"clientId":"cexpensepickerclient${info.project.name}"`)
-  expect(payload).toContain('"projectId":null')
   await expect(dialog).toHaveCount(0)
+  expect(await persistedExpense(label, info.project.name)).toEqual({ clientId: `cexpensepickerclient${info.project.name}`, projectId: null, amountCents: 5678 })
+  await page.reload()
   await expect(page.getByRole("row").filter({ hasText: label })).toContainText("56,78")
 })
