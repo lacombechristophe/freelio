@@ -44,6 +44,7 @@ test("A billed time deletion is explained and preserves the entry after reload",
 test("A rejected manual duration retains its description, project and duration", async ({ page }) => {
   await page.getByRole("button").filter({ hasText: "0.0h" }).first().click()
   const dialog = page.getByRole("dialog")
+  await expect(dialog.locator("#manualProj")).toHaveValue(/ctimeintegrityproject/)
   await dialog.getByLabel("Heures", { exact: true }).fill("999999")
   await dialog.getByLabel("Description", { exact: true }).fill("Unsaved fictional manual time")
   await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click()

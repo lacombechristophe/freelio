@@ -1,0 +1,105 @@
+import { readFile } from "node:fs/promises"
+import { PrismaClient } from "@prisma/client"
+import { expect, test } from "@playwright/test"
+
+const database = new PrismaClient()
+test.afterAll(async () => { await database.$disconnect() })
+
+test.use({ timezoneId: "America/Los_Angeles" })
+let clientErrors: string[] = []
+test.beforeEach(async ({ page }, info) => {
+  clientErrors = []; page.on("pageerror", error => clientErrors.push(error.message))
+  await page.context().clearCookies(); await page.goto("/auth/login")
+  await page.getByLabel("Adresse e-mail professionnelle").fill(`time-directory-${info.project.name}@example.test`)
+  await page.getByLabel("Mot de passe", { exact: true }).fill(process.env.E2E_USER_PASSWORD || "RecetteSolide2026")
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click()
+  await page.waitForURL(url => url.pathname === "/dashboard", { timeout: 60_000 })
+  expect((await page.goto("/dashboard/temps"))?.status()).toBe(200)
+})
+test.afterEach(() => { expect(clientErrors).toEqual([]) })
+
+test("The oldest time is searchable beyond 500 entries and the CSV exports the full search", async ({ page }) => {
+  await expect(page.getByText("501 résultats", { exact: true })).toBeVisible()
+  await expect(page.getByRole("row")).toHaveCount(26)
+  const pagination = page.getByText("501 résultats", { exact: true }).locator("..")
+  await pagination.getByRole("button", { name: "Page suivante", exact: true }).click()
+  await expect(pagination.getByText("Page 2 sur 21", { exact: true })).toBeVisible()
+  await expect(page.getByRole("row")).toHaveCount(26)
+  await pagination.getByRole("button", { name: "Page précédente", exact: true }).click()
+  await expect(pagination.getByText("Page 1 sur 21", { exact: true })).toBeVisible()
+  const download = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Exporter", exact: true }).click()
+  const file = await (await download).path(); expect(file).not.toBeNull()
+  const csv = await readFile(file!, "utf8")
+  expect(csv.split("\r\n")).toHaveLength(502)
+  expect(csv).toContain('"ANCIENNE-INTERVENTION-UNIQUE"')
+  expect(csv).toContain('"2026-03-30"') // Paris day, independent of this browser's Pacific zone.
+  await page.getByRole("textbox", { name: "Rechercher les temps", exact: true }).fill("ANCIENNE-INTERVENTION")
+  await expect(page.getByText("1 résultat", { exact: true })).toBeVisible()
+  await expect(page.getByRole("row").filter({ hasText: "ANCIENNE-INTERVENTION-UNIQUE" })).toBeVisible()
+  const filtered = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Exporter", exact: true }).click()
+  const filteredFile = await (await filtered).path()
+  const filteredCsv = await readFile(filteredFile!, "utf8")
+  expect(filteredCsv.split("\r\n")).toHaveLength(2)
+  expect(filteredCsv).not.toContain("RECENT-FICTIONAL-TIME")
+})
+
+test("Independent project searches retain manual fields and a selected older project", async ({ page }, info) => {
+  const timer = page.locator("div[data-slot=card]").filter({ hasText: "Chronomètre Global" })
+  await expect(timer.getByText("101 résultats", { exact: true })).toBeVisible()
+  for (let i = 2; i <= 5; i++) {
+    await timer.getByRole("button", { name: "Page suivante", exact: true }).click()
+    await expect(timer.getByText(`Page ${i} sur 5`, { exact: true })).toBeVisible()
+  }
+  await timer.getByRole("combobox", { name: "Projet du chronomètre", exact: true }).click()
+  await page.getByRole("option", { name: /ZZ ANCIEN CHANTIER/ }).click()
+  await timer.getByRole("textbox", { name: "Rechercher un chantier", exact: true }).fill("no project")
+  await expect(timer.getByText("0 résultats", { exact: true })).toBeVisible()
+  await expect(timer.getByRole("combobox", { name: "Projet du chronomètre", exact: true })).toContainText("ZZ ANCIEN CHANTIER")
+  await page.getByRole("button").filter({ hasText: "0.0h" }).first().click()
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByText("101 résultats", { exact: true })).toBeVisible()
+  await dialog.getByLabel("Description", { exact: true }).fill("Unsaved fictional manual time")
+  await dialog.getByLabel("Heures", { exact: true }).fill("2")
+  await dialog.getByRole("textbox", { name: "Rechercher un chantier", exact: true }).fill("ANCIEN CHANTIER")
+  await expect(dialog.getByText("1 résultat", { exact: true })).toBeVisible()
+  await dialog.getByLabel("Projet", { exact: true }).selectOption(`ctimedirectoryolder${info.project.name}`)
+  await dialog.getByRole("textbox", { name: "Rechercher un chantier", exact: true }).fill("no match")
+  await expect(dialog.getByText("0 résultats", { exact: true })).toBeVisible()
+  await expect(dialog.getByLabel("Projet", { exact: true })).toHaveValue(`ctimedirectoryolder${info.project.name}`)
+  await expect(dialog.getByLabel("Heures", { exact: true })).toHaveValue("2")
+  await expect(dialog.getByLabel("Description", { exact: true })).toHaveValue("Unsaved fictional manual time")
+  await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL) throw new Error("La preuve SQL navigateur exige la recette SQLite isolée")
+  const user = await database.user.findUniqueOrThrow({ where: { email: `time-directory-${info.project.name}@example.test` }, select: { companyId: true } })
+  const persisted = await database.timeEntry.findMany({ where: { project: { companyId: user.companyId! }, description: "Unsaved fictional manual time" }, select: { projectId: true, durationSec: true } })
+  expect(persisted).toEqual([{ projectId: `ctimedirectoryolder${info.project.name}`, durationSec: 7200 }])
+})
+
+test("A selector outage retains manual fields, search and timer state", async ({ page }, info) => {
+  const projectId = `ctimedirectoryolder${info.project.name}`
+  await page.evaluate(projectId => sessionStorage.setItem("crm-timer-storage", JSON.stringify({ state: { elapsed: 120, isRunning: false, projectId }, version: 0 })), projectId)
+  await page.reload()
+  await page.getByRole("button").filter({ hasText: "0.0h" }).first().click()
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByText("101 résultats", { exact: true })).toBeVisible()
+  await dialog.getByLabel("Description", { exact: true }).fill("Unsaved fictional edit")
+  await dialog.getByLabel("Heures", { exact: true }).fill("3")
+  let failOnce = true
+  await page.route("**/dashboard/temps", async route => {
+    if (failOnce && route.request().method() === "POST" && route.request().headers()["next-action"]) { failOnce = false; await route.fulfill({ status: 503, contentType: "text/plain", body: "Fictional directory outage" }) }
+    else await route.continue()
+  })
+  await dialog.getByRole("textbox", { name: "Rechercher un chantier", exact: true }).fill("Recent time project 001")
+  await expect(dialog.getByRole("alert")).toContainText("Impossible d’actualiser la liste.")
+  await expect(dialog.getByLabel("Description", { exact: true })).toHaveValue("Unsaved fictional edit")
+  await expect(dialog.getByLabel("Heures", { exact: true })).toHaveValue("3")
+  await expect(dialog.getByRole("textbox", { name: "Rechercher un chantier", exact: true })).toHaveValue("Recent time project 001")
+  await dialog.getByRole("button", { name: "Réessayer", exact: true }).click()
+  await expect(dialog.getByText("1 résultat", { exact: true })).toBeVisible()
+  await dialog.getByRole("button", { name: "Annuler", exact: true }).click()
+  await expect(page.getByText("00:02:00", { exact: true })).toBeVisible()
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("crm-timer-storage") ?? "{}").state)).toEqual({ elapsed: 120, isRunning: false, projectId })
+})

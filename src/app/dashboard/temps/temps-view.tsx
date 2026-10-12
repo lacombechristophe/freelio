@@ -18,9 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
+import { TimeProjectSelector } from "./time-project-selector"
+import { exportTimeEntries, getTimeDirectory } from "@/actions/temps/directory"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
+import { calendarDayKey } from "@/lib/calendar-days"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -46,11 +47,7 @@ type TimeEntry = {
   project: { id: string; name: string; client: { id: string; name: string } }
 }
 
-type Project = {
-  id: string
-  name: string
-  client: { id: string; name: string }
-}
+type Directory = Awaited<ReturnType<typeof getTimeDirectory>>
 
 function formatDuration(sec: number) {
   const h = Math.floor(sec / 3600)
@@ -65,20 +62,15 @@ function formatTimer(sec: number) {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
 }
 
-function formatDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })
-}
-
-function escapeCsvCell(value: string | number | boolean | null | undefined) {
-  const text = String(value ?? "")
-  return `"${text.replace(/"/g, '""')}"`
+function formatDate(d: Date | string, timeZone: string) {
+  return new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone })
 }
 
 function getErrorMessage(error: unknown, fallback = "Erreur.") {
   return error instanceof Error ? error.message : fallback
 }
 
-export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[]; projects: Project[] }) {
+export function TempsView({ initial }: { initial: Directory }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [saving, setSaving] = React.useState(false)
@@ -86,6 +78,30 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
   
   // Weekly grid navigation state
   const [currentWeekOffset, setCurrentWeekOffset] = React.useState(0)
+  const [search, setSearch] = React.useState("")
+  const [page, setPage] = React.useState(initial.page)
+  const [retry, setRetry] = React.useState(0)
+  const [exporting, setExporting] = React.useState(false)
+  const [pending, startTransition] = React.useTransition()
+  const key = JSON.stringify([search, page, currentWeekOffset, retry])
+  const [result, setResult] = React.useState({ data: initial, initial, key, error: false })
+  const fresh = result.key === key && result.initial === initial
+  React.useEffect(() => {
+    if (fresh) return
+    let ignore = false
+    const timer = setTimeout(() => startTransition(async () => {
+      try {
+        const data = await getTimeDirectory({ search, page, weekOffset: currentWeekOffset })
+        if (!data) throw new Error("Liste indisponible")
+        if (!ignore) { setPage(data.page); setResult({ data, initial, key: JSON.stringify([search, data.page, currentWeekOffset, retry]), error: false }) }
+      } catch { if (!ignore) setResult(previous => ({ ...previous, initial, key, error: true })) }
+    }), 200)
+    return () => { ignore = true; clearTimeout(timer) }
+  }, [fresh, initial, key, search, page, currentWeekOffset, retry])
+  const busy = pending || !fresh
+  const visible = fresh && !result.error ? result.data : null
+  const timeEntries = visible?.items ?? []
+  const timeZone = result.data.timeZone
   
   // Create manual entry dialog state
   const [manualEntryDay, setManualEntryDay] = React.useState<Date | null>(null)
@@ -115,31 +131,6 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
     }, 1000)
     return () => clearInterval(interval)
   }, [isRunning, tick])
-
-  // Today stats
-  const totalToday = timeEntries
-    .filter((e) => new Date(e.date).toDateString() === new Date().toDateString())
-    .reduce((sum, e) => sum + e.durationSec, 0)
-
-  // Week stats (current relative week)
-  const totalWeek = timeEntries
-    .filter((e) => {
-      const d = new Date(e.date)
-      const now = new Date()
-      // Adjust by offset weeks
-      const targetDate = new Date(now.setDate(now.getDate() + (currentWeekOffset * 7)))
-      const day = targetDate.getDay()
-      // French Monday standard
-      const diff = targetDate.getDate() - day + (day === 0 ? -6 : 1)
-      const weekStart = new Date(targetDate.setDate(diff))
-      weekStart.setHours(0, 0, 0, 0)
-      
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekEnd.getDate() + 7)
-      
-      return d >= weekStart && d < weekEnd
-    })
-    .reduce((sum, e) => sum + e.durationSec, 0)
 
   async function handleDelete(id: string) {
     if (!(await confirmDialog({
@@ -184,43 +175,20 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
     }
   }
 
-  function handleExportEntries() {
-    if (timeEntries.length === 0) {
-      toast.info("Aucune entrée de temps à exporter.")
-      return
-    }
-
-    const header = [
-      "Date",
-      "Client",
-      "Projet",
-      "Description",
-      "Durée",
-      "Durée (secondes)",
-      "Facturable",
-    ]
-    const rows = timeEntries.map((entry) => [
-      new Date(entry.date).toISOString().slice(0, 10),
-      entry.project.client.name,
-      entry.project.name,
-      entry.description ?? "",
-      formatDuration(entry.durationSec),
-      entry.durationSec,
-      entry.isBillable ? "Oui" : "Non",
-    ])
-    const csv = [header, ...rows]
-      .map((row) => row.map(escapeCsvCell).join(";"))
-      .join("\r\n")
-    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `temps-${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-    toast.success("Export des temps téléchargé.")
+  async function handleExportEntries() {
+    if (!visible?.total) { toast.info("Aucune entrée de temps à exporter."); return }
+    setExporting(true)
+    try {
+      const exported = await exportTimeEntries({ search })
+      if (!exported) throw new Error("Export indisponible")
+      const url = URL.createObjectURL(new Blob([exported.csv], { type: "text/csv;charset=utf-8" }))
+      const link = document.createElement("a")
+      link.href = url
+      link.download = "temps-" + result.data.today + ".csv"
+      document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
+      toast.success("Export des temps téléchargé.")
+    } catch { toast.error("Impossible d’exporter les temps.") }
+    finally { setExporting(false) }
   }
 
   async function handleCreateManual(e: React.FormEvent) {
@@ -257,24 +225,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
     }
   }
 
-  // Get start of the targeted week
-  const getWeekDates = () => {
-    const dates = []
-    const now = new Date()
-    const targetDate = new Date(now.setDate(now.getDate() + (currentWeekOffset * 7)))
-    const day = targetDate.getDay()
-    const diff = targetDate.getDate() - day + (day === 0 ? -6 : 1) // Monday starting standard
-    const startOfWeek = new Date(targetDate.setDate(diff))
-    
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startOfWeek)
-      d.setDate(startOfWeek.getDate() + i)
-      dates.push(d)
-    }
-    return dates
-  }
-
-  const weekDates = getWeekDates()
+  const weekDates = result.data.week.map(day => day.start)
 
   return (
     <div className="space-y-6">
@@ -282,7 +233,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
         eyebrow="Production"
         title="Suivi des temps"
         description="Imputez les heures par mission, contrôlez la charge et identifiez le temps prêt à facturer."
-        actions={<><PageHeaderStat label="Aujourd’hui" value={formatDuration(totalToday)} /><PageHeaderStat label="Cette semaine" value={formatDuration(totalWeek)} /></>}
+        actions={<><PageHeaderStat label="Aujourd’hui" value={visible ? formatDuration(visible.todaySec) : "—"} /><PageHeaderStat label="Cette semaine" value={visible ? formatDuration(visible.weekSec) : "—"} /></>}
       />
 
       <Card className="border-primary/20 bg-card">
@@ -306,18 +257,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Select value={projectId} onValueChange={(v) => setProject(v ?? "")}>
-              <SelectTrigger className="flex-1 bg-background border-border">
-                <SelectValue placeholder="Affecter à un projet…" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} — <span className="text-xs text-muted-foreground">{p.client.name}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <TimeProjectSelector value={projectId} onChange={setProject} />
 
             <div className="flex items-center gap-2">
               <Button
@@ -403,24 +343,20 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
             {weekDates.map((date) => {
-              const isToday = date.toDateString() === new Date().toDateString()
-              
-              // Filter entries for this specific day
-              const dayEntries = timeEntries.filter(
-                (e) => new Date(e.date).toDateString() === date.toDateString()
-              )
-              const totalSec = dayEntries.reduce((sum, e) => sum + e.durationSec, 0)
+              const day = calendarDayKey(date, timeZone)
+              const isToday = day === result.data.today
+              const totalSec = visible?.week.find(item => item.day === day)?.durationSec ?? 0
               const hours = totalSec / 3600
-              
+
               // Calculate percent of a standard 8-hour day
               const percent = Math.min((hours / 8) * 100, 100)
 
               return (
                 <button
                   key={date.toISOString()}
+                  disabled={busy || result.error}
                   onClick={() => {
                     setManualEntryDay(date)
-                    if (projects.length > 0) setManualProjId(projects[0].id)
                   }}
                   className={cn(
                     "flex flex-col items-stretch p-3 rounded-lg border text-left transition-colors duration-200 group relative overflow-hidden bg-background hover:bg-accent/40",
@@ -428,10 +364,10 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
                   )}
                 >
                   <span className="text-xs text-muted-foreground font-semibold tracking-normal">
-                    {date.toLocaleDateString("fr-FR", { weekday: "short" })}
+                    {date.toLocaleDateString("fr-FR", { weekday: "short", timeZone })}
                   </span>
                   <span className="text-lg font-black tracking-tight text-foreground my-0.5">
-                    {date.getDate()}
+                    {Number(day.slice(-2))}
                   </span>
                   <span className="text-xs font-mono font-semibold text-primary mt-1">
                     {hours > 0 ? `${hours.toFixed(1)}h` : "0.0h"}
@@ -458,6 +394,8 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
         </CardContent>
       </Card>
 
+      <Input aria-label="Rechercher les temps" placeholder="Rechercher les temps…" value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} />
+
       {/* Detailed Entries List */}
       <div className="border rounded-lg bg-card overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
@@ -465,7 +403,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
             <Clock className="h-4 w-4" />
             Historique des entrées
           </h2>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleExportEntries}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleExportEntries} disabled={busy || result.error || exporting}>
             <Download className="h-4 w-4" />
             Exporter
           </Button>
@@ -491,7 +429,7 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
               timeEntries.map((entry) => (
                 <TableRow key={entry.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="text-sm text-muted-foreground capitalize">
-                    {formatDate(entry.date)}
+                    {formatDate(entry.date, timeZone)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
@@ -537,31 +475,20 @@ export function TempsView({ timeEntries, projects }: { timeEntries: TimeEntry[];
       </div>
 
       {/* Manual log entry Dialog */}
+      <DirectoryPagination total={result.data.total} page={page} pending={busy} error={fresh && result.error} onPage={setPage} onRetry={() => setRetry(value => value + 1)} />
+
       {manualEntryDay && (
         <Dialog open onOpenChange={(o) => !o && setManualEntryDay(null)}>
           <DialogContent className="bg-popover border text-popover-foreground">
             <DialogHeader>
               <DialogTitle className="text-base font-bold">
-                Imputer du temps le {manualEntryDay.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                Imputer du temps le {manualEntryDay.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone })}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateManual} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="manualProj" className="text-xs font-semibold">Projet</Label>
-                <select
-                  id="manualProj"
-                  value={manualProjId}
-                  onChange={(e) => setManualProjId(e.target.value)}
-                  className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                  required
-                >
-                  <option value="">Sélectionner un projet…</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.client.name})
-                    </option>
-                  ))}
-                </select>
+                <TimeProjectSelector value={manualProjId} onChange={setManualProjId} nativeId="manualProj" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

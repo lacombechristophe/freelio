@@ -1,0 +1,121 @@
+{
+  "schema": "freelio.time-directory-local.v1",
+  "observedAt": "2026-10-12T19:47:37.145Z",
+  "sourceBase": "945956063fd174a73ca0bf8aba5f6b706abc8b08",
+  "steps": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 9.949
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 29.956
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.198
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 242.35
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 84.976
+    }
+  ],
+  "sqlite": {
+    "passed": 1828,
+    "failed": 0,
+    "files": 198
+  },
+  "focused": {
+    "passed": 72,
+    "failed": 0
+  },
+  "browser": {
+    "defined": 6,
+    "retained": 8,
+    "executed": false,
+    "finalTypesAndHarnessLintPassed": true
+  },
+  "seed": {
+    "schema": "freelio.time-directory-seed-check.v1",
+    "observedAt": "2026-10-12T19:36:47.054Z",
+    "success": true,
+    "disposableSQLite": true,
+    "counts": {
+      "companies": 2,
+      "users": 2,
+      "entries": 1002,
+      "projects": 202,
+      "clients": 2
+    }
+  },
+  "fingerprints": [
+    {
+      "file": "src/actions/temps/directory.ts",
+      "sha256": "3bc193dc7623acde20454a2a41b8b8de0edf21ffb62b3d1ab7f847842135c785"
+    },
+    {
+      "file": "src/app/dashboard/temps/page.tsx",
+      "sha256": "6c0e348d39ad674f809efd56a9b71c17727c68e8e5f321911ba62b969c254c67"
+    },
+    {
+      "file": "src/app/dashboard/temps/temps-view.tsx",
+      "sha256": "176af6909217a69d1ecd9b8a7537df6c4fb41e02a0060712d7b837ec84ead9c3"
+    },
+    {
+      "file": "src/app/dashboard/temps/time-project-selector.tsx",
+      "sha256": "38bd185b0acf23e9ddfeb10b8030e31b19dd0617e77a474bec968a99a09a7865"
+    },
+    {
+      "file": "src/lib/calendar-days.ts",
+      "sha256": "9b329c60335a42da4a6d04bf9b5742bfdfb91480cba29fb0017a0a06020da7a0"
+    },
+    {
+      "file": "tests/unit/time-directory.integration.test.ts",
+      "sha256": "435eff1e22217e8d08b49565d6ca2b6b5a3de0ea0b5cb03382562829e5acf226"
+    },
+    {
+      "file": "tests/e2e/time-directory.spec.ts",
+      "sha256": "a0ce3958f94f96503164c59925cf86d7d083a1e3bfb75bc52ca0075ed9d580b7"
+    },
+    {
+      "file": "tests/e2e/time-entry-integrity.spec.ts",
+      "sha256": "efbbae406fc605ea44068b28f876bd90271e02ce89e7cd245d0a8686ed463e34"
+    },
+    {
+      "file": "scripts/seed-time-directory.mjs",
+      "sha256": "2c4820fa719f2acbf4a79fe978f325c45b082d78f1c7463b2a6641e913d1f98a"
+    },
+    {
+      "file": "scripts/seed-ui-redesign.mjs",
+      "sha256": "9edbf3bf9ab43ff44fb99d81bf4c9c5dcd03166ce55812393ca6a1b9e7e11303"
+    }
+  ],
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1285,
+    "historyBlobsChecked": 3563,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "limits": [
+    "Real isolated SQLite and memberships; auth/cache mocked.",
+    "PostgreSQL concurrency and compiled browser workflows pending CI.",
+    "No local HTTP server, Docker, provider business request or storage service.",
+    "Organisation time creation and concurrent invoicing are separate lots."
+  ],
+  "firstAttempt": {
+    "stage": "focused SQL",
+    "failed": 1,
+    "passed": 71,
+    "reason": "vi.spyOn could not observe the lazy transaction proxy; a forwarding observer now verifies that suspended membership opens no SQL transaction."
+  }
+}

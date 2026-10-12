@@ -18,6 +18,20 @@ export function shiftCalendarDay(key: string, days: number) {
   return date.toISOString().slice(0, 10)
 }
 
+export function calendarDayStart(key: string, timeZone: string) {
+  const formatter = dayFormatter(timeZone)
+  const midnight = Date.parse(`${key}T00:00:00.000Z`)
+  let lower = midnight - 36 * 3_600_000
+  let upper = midnight + 36 * 3_600_000
+  // Find the first instant of the civil day, even when midnight is skipped or repeated.
+  while (lower < upper) {
+    const middle = Math.floor((lower + upper) / 2)
+    if (dayKey(new Date(middle), formatter) < key) lower = middle + 1
+    else upper = middle
+  }
+  return new Date(lower)
+}
+
 export function calendarPeriods(now: Date, timeZone: string) {
   const formatter = dayFormatter(timeZone)
   const today = dayKey(now, formatter)
@@ -27,16 +41,7 @@ export function calendarPeriods(now: Date, timeZone: string) {
   const nextMonth = new Date(`${month}T00:00:00.000Z`)
   nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1)
   const start = (key: string) => {
-    const midnight = Date.parse(`${key}T00:00:00.000Z`)
-    let lower = midnight - 36 * 3_600_000
-    let upper = midnight + 36 * 3_600_000
-    // Find the first instant of the civil day, even when midnight is skipped or repeated.
-    while (lower < upper) {
-      const middle = Math.floor((lower + upper) / 2)
-      if (dayKey(new Date(middle), formatter) < key) lower = middle + 1
-      else upper = middle
-    }
-    return new Date(lower)
+    return calendarDayStart(key, timeZone)
   }
   return {
     todayStart: start(today),
