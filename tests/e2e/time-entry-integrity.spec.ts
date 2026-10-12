@@ -26,10 +26,9 @@ test("A billed time edit is explained and retains the form and original row", as
   await expect(page.getByText(billedMessage, { exact: true })).toBeVisible()
   await expect(dialog.getByLabel("Heures", { exact: true })).toHaveValue("2")
   await expect(dialog.getByLabel("Description", { exact: true })).toHaveValue("Unsaved fictional edit")
-  await expect(row).toContainText("FICTIONAL-BILLED-TIME")
   await dialog.getByRole("button", { name: "Annuler", exact: true }).click()
   await page.reload()
-  await expect(page.getByRole("row").filter({ hasText: "FICTIONAL-BILLED-TIME" })).toBeVisible()
+  await expect(page.getByRole("row").filter({ hasText: "FICTIONAL-BILLED-TIME" })).toContainText("0h 01m")
 })
 
 test("A billed time deletion is explained and preserves the entry after reload", async ({ page }) => {
