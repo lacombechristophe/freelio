@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-10-10T12:27:12.942Z",
+  "source": "61d7331 (product source identical to d82ed46)",
+  "exitCode": 0,
+  "passed": 2,
+  "failed": 0,
+  "actualRows": 51,
+  "initialRows": 50,
+  "initialAmountCents": 5000,
+  "accessibleAmountCents": 14900,
+  "cursorCanReachOmittedRow": true,
+  "limits": [
+    "Fictitious isolated SQLite and real memberships/DAL/action; authentication and Next cache mocked.",
+    "This reproduces missing page navigation and partial counters, not a broken cursor API or an unbounded-read requirement."
+  ]
+}

@@ -6,6 +6,10 @@
 
 **d82ed46** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38048411194) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38048414077) réussies. Les [rapports attachés au commit](evidence/20261010-preview-readiness/ci-d82ed46.json) comparent le code hors documentation à la fusion de test. Cette référence inclut les protections Organisation et Dépenses, le calendrier et la fixture future du portail. Les commits suivants de documentation se comparent à cette source qualifiée.
 
+**c054bff** qualifie ensuite l'acquisition des images Linux : les deux CI passent 1 707 tests SQLite, 1 706 PostgreSQL et une exclusion native SQLite, 311 E2E et 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité. Le [rapport](evidence/20261010-expense-directory/ci-c054bff.json) conserve les références et identités exécutées. Les deux échecs de quota Redis sur le commit documentaire 61d7331 restent [conservés séparément](evidence/20261010-ci-runtime-images/quota-failures.json).
+
+Le [complément Dépenses approuvé](contrat-depenses-listes-completes.md) ajoute recherche sur tout l'historique, pages de 25 et cartes complètes dans le mois civil de la société. Sa [recette](evidence/20261010-expense-directory/README.md) distingue diagnostic et contrôles locaux. Les résultats PostgreSQL, navigateur et hébergés du nouveau code sont attachés au SHA du candidat dans la [PR #8](https://github.com/lacombechristophe/freelio/pull/8) ; ils ne se déduisent pas de la qualification de c054bff.
+
 | Contrôle, dans chacune des deux CI | Résultat |
 | --- | --- |
 | Types, deux lints, build et couverture ciblée | Réussis |

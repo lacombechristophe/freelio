@@ -8,6 +8,9 @@ import { logAction } from "@/lib/audit"
 import { ExpenseSchema } from "@/lib/validations"
 import { removeLocalFile } from "@/lib/local-files"
 import { boundedPageSize } from "@/lib/pagination"
+import { z } from "zod"
+import { calendarDayKey } from "@/lib/calendar-days"
+import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query"
 
 function expenseWhere(companyId: string): Prisma.ExpenseWhereInput {
   return {
@@ -54,6 +57,49 @@ export async function getExpenses(cursor?: string, limit = 50) {
       },
       orderBy: { date: "desc" },
     })
+  }, "finance.read")
+}
+
+const directoryQuery = z.object({
+  search: z.string().trim().max(200).default(""),
+  page: z.number().int().min(1).max(100000).default(1),
+}).strict()
+
+export async function getExpenseDirectory(input: unknown = {}) {
+  return withAuth(async ({ companyId }) => {
+    const query = directoryQuery.parse(input)
+    const now = new Date()
+    return prisma.$transaction(async tx => {
+      const company = await tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+      const month = calendarDayKey(now, company.serviceTimezone).slice(0, 7)
+      // Expense dates are civil dates stored at UTC midnight, not appointment instants.
+      const monthStart = new Date(`${month}-01T00:00:00.000Z`)
+      const monthEnd = new Date(monthStart)
+      monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1)
+      const scope = expenseWhere(companyId)
+      const contains = { contains: query.search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+      const where: Prisma.ExpenseWhereInput = query.search
+        ? { AND: [scope, { OR: [{ label: contains }, { provider: contains }] }] }
+        : scope
+      const [portfolioTotal, monthly, toJustify, filteredTotal] = await Promise.all([
+        tx.expense.count({ where: scope }),
+        tx.expense.aggregate({ where: { AND: [scope, { date: { gte: monthStart, lt: monthEnd } }] }, _sum: { amountCents: true } }),
+        tx.expense.count({ where: { AND: [scope, { status: "TO_JUSTIFY" }] } }),
+        query.search ? tx.expense.count({ where }) : null,
+      ])
+      const total = filteredTotal ?? portfolioTotal
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE)))
+      const items = await tx.expense.findMany({
+        where, skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE,
+        orderBy: [{ date: "desc" }, { id: "desc" }],
+        select: {
+          id: true, label: true, provider: true, amountCents: true, tvaCents: true, date: true,
+          category: true, status: true, clientId: true, projectId: true,
+          files: { select: { id: true, url: true } }, project: { select: { id: true, name: true } },
+        },
+      })
+      return { items, total, page, summary: { total: portfolioTotal, month, thisMonthTotalCents: monthly._sum.amountCents ?? 0, toJustify } }
+    }, { isolationLevel: "Serializable" })
   }, "finance.read")
 }
 
