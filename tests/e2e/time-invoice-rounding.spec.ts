@@ -29,7 +29,7 @@ for (const [kind, mode, cents, quantity] of [["GROUP", "GROUP_BY_PROJECT", 333, 
     await expect(page.locator("aside").getByText("Total HT", { exact: true }).locator("..")).toContainText(cents === 333 ? "3,33" : "3,34")
     await expect(page.getByText("Les montants sont arrondis au centime par ligne ; le regroupement peut modifier le total.", { exact: true })).toBeVisible()
     await page.getByRole("button", { name: "Créer la facture brouillon", exact: true }).click()
-    await page.waitForURL(url => /^\/dashboard\/factures\/[^/]+$/.test(url.pathname), { timeout: 60_000 })
+    await page.waitForURL(url => /^\/dashboard\/factures\/c[a-z0-9]+$/.test(url.pathname), { timeout: 60_000 })
     const invoiceId = new URL(page.url()).pathname.split("/").at(-1)!
     expect(await database.invoice.findUniqueOrThrow({ where: { id: invoiceId } })).toMatchObject({ status: "DRAFT", totalHtCents: cents, totalTtcCents: cents })
     expect(await database.timeEntry.findMany({ where: { id: { in: ids } }, orderBy: { id: "asc" } })).toEqual(initial.map(entry => ({ ...entry, invoiceId })))

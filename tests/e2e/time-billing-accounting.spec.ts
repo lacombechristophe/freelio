@@ -20,7 +20,7 @@ test("Accounting creates a draft from an accessible time without changing the ti
   await page.getByLabel("Taux horaire HT (€)", { exact: true }).fill("100")
   await page.getByLabel("Échéance", { exact: true }).fill("2030-02-01")
   await page.getByRole("button", { name: "Créer la facture brouillon", exact: true }).click()
-  await page.waitForURL(url => /^\/dashboard\/factures\/[^/]+$/.test(url.pathname), { timeout: 60_000 })
+  await page.waitForURL(url => /^\/dashboard\/factures\/c[a-z0-9]+$/.test(url.pathname), { timeout: 60_000 })
   const invoiceId = new URL(page.url()).pathname.split("/").at(-1)!
   await page.reload()
   const invoice = await database.invoice.findUniqueOrThrow({ where: { id: invoiceId }, include: { lines: true, client: true } })

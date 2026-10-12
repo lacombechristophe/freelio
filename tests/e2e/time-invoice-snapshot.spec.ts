@@ -37,7 +37,7 @@ test("A compiled claim refusal rolls back and preserves the form before a succes
     expect(await database.invoice.count({ where: { object } })).toBe(0)
   } finally { await database.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${trigger}"`) }
   await page.getByRole("button", { name: "Créer la facture brouillon", exact: true }).click()
-  await page.waitForURL(url => /^\/dashboard\/factures\/[^/]+$/.test(url.pathname), { timeout: 60_000 })
+  await page.waitForURL(url => /^\/dashboard\/factures\/c[a-z0-9]+$/.test(url.pathname), { timeout: 60_000 })
   const invoiceId = new URL(page.url()).pathname.split("/").at(-1)!
   expect(await database.invoice.findUniqueOrThrow({ where: { id: invoiceId } })).toMatchObject({ status: "DRAFT", object, totalHtCents: 10000 })
   expect(await database.timeEntry.findUniqueOrThrow({ where: { id } })).toEqual({ ...initial, invoiceId })
