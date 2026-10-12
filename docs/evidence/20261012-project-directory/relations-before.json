@@ -1,0 +1,106 @@
+{
+  "failed": 2,
+  "limits": [
+    "Real isolated SQL with auth/cache mocked.",
+    "Agency/template failures concern the first draft of the new reader, not a released baseline.",
+    "The published 20-project ceiling is reproduced separately in the time/project baseline."
+  ],
+  "releasedBaseline": false,
+  "cases": [
+    {
+      "name": "Complete project directory on real SQL reaches all 101 projects with a stable minimal projection",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL keeps equal-date pages stable without duplicates",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL searches all four fields and combines status with search",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL filters all archived projects and clamps an obsolete or empty page",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for OWNER",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for ADMIN",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for SALES",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for OPERATIONS",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for SERVICE",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL scopes rows, search and totals for VIEWER",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL applies agency revocation to both the total and the rows",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL refuses a suspended membership before validating the business query",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL rejects invalid or injected query {\"page\":0}",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL rejects invalid or injected query {\"page\":1.5}",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL rejects invalid or injected query {\"page\":100001}",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL rejects invalid or injected query {\"status\":\"FOREIGN\"}",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL rejects invalid or injected query {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL rejects invalid or injected query {\"companyId\":\"injected\"}",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL keeps this reader available in the public read-only demo",
+      "status": "passed"
+    },
+    {
+      "name": "Complete project directory on real SQL excludes a project referring to another company's agency, even for Owner",
+      "status": "failed"
+    },
+    {
+      "name": "Complete project directory on real SQL excludes a project referring to another company's template",
+      "status": "failed"
+    }
+  ],
+  "passed": 21,
+  "source": "First uncommitted directory reader added on bcb7577",
+  "schema": "freelio.project-directory-relations-before.v1"
+}

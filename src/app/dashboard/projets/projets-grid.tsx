@@ -7,6 +7,8 @@ import { Briefcase, CalendarDays, MoreHorizontal, Plus, Search, Workflow } from 
 import { toast } from "sonner"
 
 import { archiveProject, deleteProject } from "@/actions/projets"
+import { getProjectDirectory } from "@/actions/projets/directory"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { EmptyState } from "@/components/shared/empty-state"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +44,7 @@ type Project = {
   worksiteType?: string | null
   client: { id: string; name: string }
 }
+type Directory = Awaited<ReturnType<typeof getProjectDirectory>>
 
 const filters = ["ALL", "ACTIVE", "COMPLETED", "ARCHIVED"] as const
 
@@ -65,12 +68,12 @@ function errorMessage(error: unknown) {
 }
 
 export function ProjetsGrid({
-  projects,
+  initial,
   clients,
   templates,
   agencies,
 }: {
-  projects: Project[]
+  initial: Directory
   clients: Array<{ id: string; name: string }>
   templates: ProjectTemplateOption[]
   agencies: Array<{ id: string; name: string; code: string; isDefault: boolean }>
@@ -83,17 +86,27 @@ export function ProjetsGrid({
   const [templatesOpen, setTemplatesOpen] = React.useState(false)
   const [editTarget, setEditTarget] = React.useState<Project | null>(null)
 
-  const filtered = React.useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("fr")
-    return projects.filter((project) => {
-      const matchesStatus = filter === "ALL" || project.status === filter
-      const searchable = [project.name, project.client.name, project.agency?.name, project.worksiteType]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase("fr")
-      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery))
-    })
-  }, [filter, projects, query])
+  const [page, setPage] = React.useState(initial.page)
+  const [retry, setRetry] = React.useState(0)
+  const [pending, startTransition] = React.useTransition()
+  const key = JSON.stringify([query, filter, page, retry])
+  const [result, setResult] = React.useState({ data: initial, initial, key, error: false })
+  const fresh = result.key === key && result.initial === initial
+  React.useEffect(() => {
+    if (fresh) return
+    let ignore = false
+    const timer = setTimeout(() => startTransition(async () => {
+      try {
+        const data = await getProjectDirectory({ search: query, status: filter, page })
+        if (!data) throw new Error("Liste indisponible")
+        if (!ignore) { setPage(data.page); setResult({ data, initial, key: JSON.stringify([query, filter, data.page, retry]), error: false }) }
+      } catch { if (!ignore) setResult(previous => ({ ...previous, initial, key, error: true })) }
+    }), 200)
+    return () => { ignore = true; clearTimeout(timer) }
+  }, [fresh, initial, key, query, filter, page, retry])
+  const busy = pending || !fresh
+  const visible = fresh && !result.error ? result.data : null
+  const filtered = visible?.items ?? []
 
   async function handleArchive(id: string) {
     try {
@@ -150,7 +163,7 @@ export function ProjetsGrid({
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => { setQuery(event.target.value); setPage(1) }}
             placeholder="Rechercher un chantier, un client, une agence…"
             aria-label="Rechercher un chantier"
             className="pl-9"
@@ -163,13 +176,13 @@ export function ProjetsGrid({
               variant={filter === status ? "secondary" : "ghost"}
               size="sm"
               aria-pressed={filter === status}
-              onClick={() => setFilter(status)}
+              onClick={() => { setFilter(status); setPage(1) }}
             >
               {status === "ALL" ? "Tous" : statusConfig[status]?.label ?? status}
             </Button>
           ))}
         </div>
-        <span className="hidden text-xs text-muted-foreground xl:inline" aria-live="polite">{filtered.length} résultat{filtered.length > 1 ? "s" : ""}</span>
+        <span className="hidden text-xs text-muted-foreground xl:inline" aria-live="polite">{visible ? `${visible.total} résultat${visible.total > 1 ? "s" : ""}` : "—"}</span>
         <Button variant="outline" onClick={() => setTemplatesOpen(true)}><Workflow />Modèles</Button>
         <Button demoMutation onClick={() => setCreateOpen(true)}><Plus />Nouveau chantier</Button>
       </div>
@@ -187,12 +200,12 @@ export function ProjetsGrid({
         />
       )}
 
-      {filtered.length === 0 ? (
+      {!visible ? null : filtered.length === 0 ? (
         <div className="workspace-panel">
           <EmptyState
             icon={Briefcase}
-            title={projects.length === 0 ? "Aucun chantier actif" : "Aucun chantier dans cette vue"}
-            description={projects.length === 0 ? "Créez un premier chantier pour relier un client, un site, un budget et les documents opérationnels." : "Modifiez la recherche ou le filtre pour retrouver un chantier."}
+            title={visible.portfolioTotal === 0 ? "Aucun chantier actif" : "Aucun chantier dans cette vue"}
+            description={visible.portfolioTotal === 0 ? "Créez un premier chantier pour relier un client, un site, un budget et les documents opérationnels." : "Modifiez la recherche ou le filtre pour retrouver un chantier."}
             action={<Button demoMutation onClick={() => setCreateOpen(true)}><Plus />Créer un chantier</Button>}
           />
         </div>
@@ -268,6 +281,7 @@ export function ProjetsGrid({
           </div>
         </>
       )}
+      <DirectoryPagination total={result.data.total} page={page} pending={busy} error={fresh && result.error} onPage={setPage} onRetry={() => setRetry(value => value + 1)} />
     </div>
   )
 }
