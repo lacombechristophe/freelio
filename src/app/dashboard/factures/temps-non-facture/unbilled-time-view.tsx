@@ -170,15 +170,19 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
     if (!canGenerate) return
     setPending(true)
     try {
-      const invoice = await createInvoiceFromTimeEntries({
+      const result = await createInvoiceFromTimeEntries({
         timeEntryIds: Array.from(selectedIds),
         hourlyRateCents,
         dueDate,
         object: object.trim() || undefined,
         lineMode,
       })
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
       toast.success("Facture brouillon créée depuis les temps.")
-      router.push(`/dashboard/factures/${invoice.id}`)
+      router.push(`/dashboard/factures/${result.value.id}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur lors de la création de la facture.")
     } finally {

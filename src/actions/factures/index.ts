@@ -37,6 +37,8 @@ const InvoiceFromTimeEntriesSchema = z.object({
 })
 
 type InvoiceFromTimeEntriesInput = z.input<typeof InvoiceFromTimeEntriesSchema>
+const STALE_TIME_INVOICE_MESSAGE = "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez."
+class StaleTimeInvoiceError extends Error {}
 
 type TimeEntryForInvoice = {
   id: string
@@ -246,6 +248,15 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     const { companyId, userId } = context
     const validated = InvoiceFromTimeEntriesSchema.parse(data)
     const uniqueEntryIds = Array.from(new Set(validated.timeEntryIds))
+    const entryScope = {
+      id: { in: uniqueEntryIds },
+      isBillable: true,
+      invoiceId: null,
+      project: { companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
+    } satisfies Prisma.TimeEntryWhereInput
+    const entryRelations = {
+      project: { select: { id: true, name: true, clientId: true, client: { select: { id: true, name: true } } } },
+    } satisfies Prisma.TimeEntryInclude
 
     const company = await prisma.company.findUnique({
       where: { id: companyId },
@@ -257,22 +268,8 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     if (!company) throw new Error("Entreprise introuvable")
 
     const entries = await prisma.timeEntry.findMany({
-      where: {
-        id: { in: uniqueEntryIds },
-        isBillable: true,
-        invoiceId: null,
-        project: { companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
-      },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            clientId: true,
-            client: { select: { id: true, name: true } },
-          },
-        },
-      },
+      where: entryScope,
+      include: entryRelations,
       orderBy: [{ date: "asc" }, { createdAt: "asc" }],
     })
 
@@ -293,6 +290,18 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
         const number = await generateInvoiceNumber(companyId, company.invoicePrefix)
 
         return await prisma.$transaction(async (tx) => {
+          const currentCompany = await tx.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true, invoicePrefix: true } })
+          const currentEntries = await tx.timeEntry.findMany({ where: entryScope, include: entryRelations })
+          if (!currentCompany || currentCompany.isTvaApplicable !== company.isTvaApplicable || currentCompany.invoicePrefix !== company.invoicePrefix || currentEntries.length !== entries.length) throw new StaleTimeInvoiceError()
+          const currentById = new Map(currentEntries.map(entry => [entry.id, entry]))
+          for (const prepared of entries) {
+            const current = currentById.get(prepared.id)
+            if (!current || current.projectId !== prepared.projectId || current.durationSec !== prepared.durationSec ||
+              current.date.getTime() !== prepared.date.getTime() || current.description !== prepared.description ||
+              current.isBillable !== prepared.isBillable || current.invoiceId !== prepared.invoiceId ||
+              current.project.name !== prepared.project.name || current.project.clientId !== prepared.project.clientId ||
+              current.project.client.name !== prepared.project.client.name) throw new StaleTimeInvoiceError()
+          }
           const created = await tx.invoice.create({
             data: {
               companyId,
@@ -332,7 +341,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
           }))
 
           if (updated.count !== uniqueEntryIds.length) {
-            throw new Error("Les temps ont chang\u00e9 pendant la cr\u00e9ation de la facture. R\u00e9essayez.")
+            throw new StaleTimeInvoiceError()
           }
 
           await tx.auditLog.create({
@@ -351,7 +360,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
           })
 
           return created
-        })
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
       },
       { label: "la facture issue des temps" },
     )
@@ -360,8 +369,11 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     revalidatePath("/dashboard/factures/temps-non-facture")
     revalidatePath(`/dashboard/factures/${invoice.id}`)
     revalidatePath("/dashboard/temps")
-    return invoice
-  }, "finance.write")
+    return { ok: true as const, value: { id: invoice.id } }
+  }, "finance.write").catch(error => {
+    if (error instanceof StaleTimeInvoiceError || (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034")) return { ok: false as const, error: STALE_TIME_INVOICE_MESSAGE }
+    throw error
+  })
 }
 
 export async function updateInvoice(id: string, data: InvoiceInput) {

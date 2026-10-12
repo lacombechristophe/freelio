@@ -30,12 +30,17 @@ describe.sequential("Time invoices preserve exact seconds and preview totals in 
   })
   const row = (durationSec: number) => prisma.timeEntry.create({ data: { projectId, durationSec, date: new Date("2030-01-01"), description: "Fictional exact time" } })
   const input = (ids: string[], lineMode: "GROUP_BY_PROJECT" | "DETAIL" = "GROUP_BY_PROJECT") => ({ timeEntryIds: ids, hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode })
+  async function bill(data: Parameters<typeof createInvoiceFromTimeEntries>[0]) {
+    const result = await createInvoiceFromTimeEntries(data)
+    if (!result.ok) throw new Error(result.error)
+    return prisma.invoice.findUniqueOrThrow({ where: { id: result.value.id } })
+  }
   it.each([false, true])("matches both preview modes with VAT enabled = %s", async tax => {
     await prisma.company.update({ where: { id: session.companyId }, data: { isTvaApplicable: tax } })
     for (const mode of ["GROUP_BY_PROJECT", "DETAIL"] as const) {
       const rows = [await row(60), await row(60)]
       const preview = calculateCommercialDocument(buildTimeInvoiceLines(rows.map(entry => ({ ...entry, date: entry.date.toISOString(), project: { id: projectId, name: "Fictional exact time project" } })), 10000, tax ? 20 : 0, mode))
-      const invoice = await createInvoiceFromTimeEntries(input(rows.map(entry => entry.id), mode))
+      const invoice = await bill(input(rows.map(entry => entry.id), mode))
       expect(invoice).toMatchObject({ status: "DRAFT", totalHtCents: mode === "DETAIL" ? 334 : 333, totalTvaCents: tax ? mode === "DETAIL" ? 66 : 67 : 0, totalTtcCents: preview.totalTtcCents })
       const lines = await prisma.invoiceLine.findMany({ where: { invoiceId: invoice.id }, orderBy: { order: "asc" } })
       expect(lines).toHaveLength(mode === "DETAIL" ? 2 : 1)
@@ -46,7 +51,7 @@ describe.sequential("Time invoices preserve exact seconds and preview totals in 
     }
   })
   it("keeps a one-second time positive without first rounding its hours to zero", async () => {
-    const entry = await row(1), invoice = await createInvoiceFromTimeEntries(input([entry.id], "DETAIL"))
+    const entry = await row(1), invoice = await bill(input([entry.id], "DETAIL"))
     expect(invoice.totalHtCents).toBe(3)
     expect(await prisma.invoiceLine.findFirstOrThrow({ where: { invoiceId: invoice.id } })).toMatchObject({ quantity: 1 / 3600 })
   })
