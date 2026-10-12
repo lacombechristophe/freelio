@@ -1,70 +1,41 @@
 # Qualification du candidat Freelio
 
-État du 10 octobre 2026. Branche `codex/functional-completeness-20261003`, [PR #8](https://github.com/lacombechristophe/freelio/pull/8) en brouillon. Main et le déploiement sont des références distinctes. Les résultats restent attachés au commit testé.
+État du 12 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Main, preview de branche et production sont des références distinctes.
 
-## Référence documentée en CI
+## Candidat de référence
 
-**d82ed46** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38048411194) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38048414077) réussies. Les [rapports attachés au commit](evidence/20261010-preview-readiness/ci-d82ed46.json) comparent le code hors documentation à la fusion de test. Cette référence inclut les protections Organisation et Dépenses, le calendrier et la fixture future du portail. Les commits suivants de documentation se comparent à cette source qualifiée.
+`dfead511e2404f15e29446d35e6f5b426d2a6204` inclut les sélecteurs Dépenses, les écritures et lecteurs Temps, puis la liste Chantiers complète. Ses CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38304130313) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38304136907) passent PostgreSQL et Linux, mais échouent sur deux assertions navigateur ambiguës. La branche termine en échec ; la PR imprime les résultats puis est interrompue au plafond de 35 minutes. Ce candidat n'est pas qualifié par une CI verte. Les [résultats détaillés](evidence/20261012-project-directory/ci-dfead51.json) restent conservés.
 
-**c054bff** qualifie ensuite l'acquisition des images Linux : les deux CI passent 1 707 tests SQLite, 1 706 PostgreSQL et une exclusion native SQLite, 311 E2E et 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité. Le [rapport](evidence/20261010-expense-directory/ci-c054bff.json) conserve les références et identités exécutées. Les deux échecs de quota Redis sur le commit documentaire 61d7331 restent [conservés séparément](evidence/20261010-ci-runtime-images/quota-failures.json).
-
-Le [complément Dépenses approuvé](contrat-depenses-listes-completes.md) ajoute recherche sur tout l'historique, pages de 25 et cartes complètes dans le mois civil de la société. Sa [recette](evidence/20261010-expense-directory/README.md) distingue diagnostic et contrôles locaux. Les résultats PostgreSQL, navigateur et hébergés du nouveau code sont attachés au SHA du candidat dans la [PR #8](https://github.com/lacombechristophe/freelio/pull/8) ; ils ne se déduisent pas de la qualification de c054bff.
-
-| Contrôle, dans chacune des deux CI | Résultat |
+| Contrôle | Résultat disponible |
 | --- | --- |
-| Types, deux lints, build et couverture ciblée | Réussis |
-| SQLite, suite unitaire et couverture | 1 700 tests / 193 fichiers |
-| PostgreSQL | 1 699 réussis ; une exclusion native SQLite |
-| Navigateur | 311 réussis ; 19 exclusions historiques |
-| Image Linux | Neuf contrôles réussis |
-| Audits production et complet | Zéro vulnérabilité |
+| Local : types, ESLint, Oxlint, build | Réussis |
+| Local SQLite | 1 851 tests / 199 fichiers |
+| CI PostgreSQL et image Linux | 1 850 tests PostgreSQL réussis, une exclusion native SQLite ; neuf contrôles Linux réussis |
+| CI E2E | 339 réussis, deux échecs et 19 exclusions dans chaque run ; la PR est ensuite interrompue |
+| CI audits production et complet | Deux résultats sans vulnérabilité dans chaque run ; le run PR reste annulé |
+| Preview du même commit | 49 pages/onglets sur ordinateur et 49 sur mobile ; zéro erreur JavaScript, aucun retry ni exclusion |
 
-Les [rapports de 369f413](evidence/20261009-order-billing-stale-balance/ci-369f413.json) vérifient 961 entrées hors documentation identiques à la fusion de test. Ils qualifient les quatorze cas des anciennes factures liées, les quatre cas d'avoirs concurrents et les six cas de calcul périmé, en conservant les contrôles antérieurs. Les quatre E2E Comptabilité, six Finance et quatre de pagination passent dans les deux runs ; aucun n'appartient aux dix-neuf exclusions. Les [rapports de d88a6bb](evidence/20261009-order-billing-roles/ci-d88a6bb.json) restent la référence antérieure.
+La preview `dpl_2vyKqAC91fYcqDRsXhJbem79fR6w` est contrôlée avant/après ; les empreintes du harnais correspondent au commit. Elle utilise un compte fictif Owner en lecture seule, PostgreSQL et Upstash, sans stockage persistant. Elle qualifie lecture, rendu et restrictions, pas les envois métier réels.
 
-La preview initiale répondait HTTP 503 de préparation. La [préparation du 10 octobre](evidence/20261010-preview-readiness/README.md) crée une base fictive dédiée à 60 migrations et vérifie huit contrôles du rôle lecteur. Le propriétaire renseigne Upstash et renonce à R2 pour respecter son budget de 0 €. Les sondes répondent désormais HTTP 200 ; connexion, lectures, refus d’écriture et PDF passent sur ordinateur et mobile. Après les échecs documentés de `bc8f2d6` et `960b8b6`, le [rejeu hébergé de 9086a5d](evidence/20261010-preview-readiness/hosted-9086a5d.json) réussit 49 pages/onglets sur chaque surface, sans erreur JavaScript. La [qualification sans stockage](qualification-demo-sans-stockage-20261010.md) donne la reproduction et les limites ; la CI du nouveau candidat reste distincte de la référence verte ci-dessus. Aucune fusion sur main n'est annoncée.
+Preuves ciblées : [Dépenses](evidence/20261012-expense-project-selector/README.md), [écritures Temps](evidence/20261012-time-entry-integrity/README.md), [historique et export Temps](evidence/20261012-time-directory/README.md), [Chantiers](evidence/20261012-project-directory/README.md). Les deux échecs d'édition navigateur du candidat `bcb7577` restent documentés ; son PostgreSQL et son image réussis ne rendaient pas ses CI vertes.
 
-Un diagnostic SQL distinct reproduit six divulgations Finance/Commercial dans Organisation. Le [correctif approuvé](contrat-organisation-domaines-droits.md) protège maintenant les requêtes et les cartes. Sa [recette locale](evidence/20261010-preview-readiness/organisation-domain-local.json) passe quinze nouveaux cas SQL, puis 1 672 tests / 192 fichiers, types, lints et build. Les quinze cas PostgreSQL et les six E2E Organisation passent ensuite dans les deux CI de d82ed46. La preview du compte fictif Owner ne suffit pas à qualifier les autres rôles.
+## Nouveaux correctifs à qualifier
 
-Les [deux CI de 021bfac](evidence/20261010-preview-readiness/ci-021bfac.json) passent les quinze cas Organisation sur PostgreSQL et les six E2E, mais échouent sur le rendez-vous du portail : 304 E2E réussis, un échec et 19 exclusions. Le test proposait le 10 octobre à 10 h, devenu passé ; la trace confirme le refus HTTP 400 prévu par l'API. Il calcule désormais des dates à sept et neuf jours. Le rejeu de d82ed46 confirme HTTP 201, la confirmation, le suivi et la révocation. Le [parcours hébergé de 021bfac](evidence/20261010-preview-readiness/hosted-021bfac.json) passe séparément ses deux surfaces et 49 pages/onglets chacune, sans erreur JavaScript.
+`951d90b` rend l'imputation d'une tâche atomique, bornée aux droits Opérations et aux références accessibles. Une association unique et une date d'imputation empêchent les répétitions. Les anciens temps ne sont pas rapprochés par titre/date. Le [dossier de preuves](evidence/20261012-task-time-imputation/README.md) conserve diagnostic, tests et migration SQLite.
 
-Le [lot Dépenses approuvé](contrat-depenses-relations-droits.md) exclut les clients et chantiers étrangers des lectures et refuse les trois mutations, y compris une relation devenue étrangère entre lecture et écriture. Sa [recette locale](evidence/20261010-preview-readiness/expense-relations-local.json) passe 28 cas dédiés, puis 1 700 tests / 193 fichiers, types, lints et build. Les deux CI de d82ed46 passent les 28 cas Dépenses sur PostgreSQL et les six E2E, ainsi que les quinze cas Organisation et ses six E2E. Le [rejeu hébergé de ce candidat](evidence/20261010-preview-readiness/hosted-d82ed46.json) passe 49 pages/onglets sur chaque surface, sans erreur JavaScript, retry ni exclusion. Ce parcours Owner ne remplace pas les tests de rôles.
+Localement : 1 885 tests SQLite / 200 fichiers, types, deux lints et build réussis ; 34 cas ciblés d'imputation, six E2E définis. Ces E2E sont chargés, pas exécutés localement. La migration et la contention PostgreSQL, le navigateur compilé et la preview doivent encore qualifier ce nouveau code sur son commit. Le test Chantiers cible maintenant l'alerte de la liste ; la CI exécute toute la suite SQL une seule fois avec couverture, au lieu de deux exécutions complètes. Aucun test, seuil de couverture, audit ou timeout n'est supprimé ou assoupli. La [preuve du changement CI](evidence/20261012-ci-duration/README.md) distingue la couverture locale de la durée à vérifier sur GitHub. Le [refus de facturation des temps périmés](contrat-facturation-temps-perimes.md) reste proposé et non implémenté.
 
-Les [rapports de 3f1ca72](evidence/20261009-operations-list-volume/ci-3f1ca72.json), de [0b6b8b3](evidence/20261009-operations-order-finance/ci-0b6b8b3.json), les [preuves de stock antérieures](evidence/20261009-stock-reservations/ci-88ce8dd.json) et de [facturation](evidence/20261009-invoice-actions/ci-de24513.json) restent conservés avec leur propre périmètre et commit.
+## Portée des preuves
 
-## Portée du lot Récurrences
+Les suites SQL simulent l'authentification et le cache Next selon leurs fichiers ; elles utilisent les vraies actions, transactions et contraintes. Les suites fournisseurs décrivent leurs simulations HTTP. Les E2E compilés, les sondes hébergées et les tests SQL n'ont pas le même périmètre.
 
-**565986e** implémente le [lot Récurrences approuvé](qualification-factures-recurrentes-20261009.md) : droits Finance, chantier relationnel, périmètre d’entretien et recherche/pagination complète. Sa [recette locale](evidence/20261009-recurring-read/local.json) passe 26 cas de périmètre, 13 cas worker et 33 cas Documents, puis 1 436 tests SQLite / 177 fichiers, types, lints et build de 75 pages. Le candidat 0f45087 qualifie ensuite ce code sur PostgreSQL et dans le navigateur compilé, avec les huit nouveaux E2E.
+Les 19 exclusions historiques du navigateur correspondent à des mutations exécutées une fois sur bureau, une matrice de largeurs et des contrôles propres à une surface. Elles ne prouvent pas les mutations omises sur mobile. Aucun test des nouveaux lots Temps/Chantiers n'est retiré pour obtenir une CI verte. La [carte des preuves](carte-des-preuves.md) relie les risques aux suites.
 
-## Reproduire et examiner
+## À terminer avant une affirmation plus large
 
-Le [guide de contribution](../CONTRIBUTING.md), les scripts npm et le [workflow CI](../.github/workflows/ci.yml) donnent les commandes versionnées. Utiliser une copie isolée, les dépendances du lockfile, une base neuve et des clés fictives. Ne pas recopier les `.env`, données ou identifiants existants.
+- Qualifier le correctif Organisation sur les deux CI et sa preview ; vérifier la migration additive uniquement dans la base fictive dédiée.
+- Corriger la facturation des temps modifiés pendant la préparation, après l'accord sur son refus visible.
+- Examiner les sélecteurs et chaînes métier restants du [plan](plan-completude-fonctionnelle-20261002.md), sans confondre liste récente volontairement bornée et portefeuille complet.
+- Qualifier stockage persistant, comptes fournisseurs, délivrabilité, charge et reprise après arrêt brutal avant usage commercial. Le budget actuel reste de 0 €.
 
-La [carte des preuves](carte-des-preuves.md) relie chaque invariant à ses tests et ses limites. Le [journal de recette](journal-recettes-completude-20261003.md) et les dossiers `evidence` conservent les diagnostics, échecs et qualifications antérieures. Une réussite ultérieure ne transforme pas un ancien run rouge en run vert. Un `playwright test --list` prouve seulement le chargement des tests ; les exécutions navigateur récentes proviennent de GitHub.
-
-Les tests SQL utilisent les vraies actions et transactions selon leur périmètre ; les tests fournisseur utilisent HTTP simulé. Vérifier les mocks avant d’interpréter un résultat. Le [rapport de 10 000 exécutions](evidence/20261008-workflow-journal/README.md) décrit une mesure locale, pas une charge hébergée. Le contrôle de publication inspecte sources et historique sans garantir universellement l’absence de secret.
-
-## Travaux encore nécessaires
-
-Le correctif des [actions de facturation](evidence/20261009-invoice-actions/README.md), `e13d3d7`, passe localement 1 472 tests SQLite / 178 fichiers, types, lints et build. Les deux CI de de24513 qualifient ce correctif. Il couvre droits Finance explicites, société du client, calcul des avoirs cohérents et relecture des relances ; il ne ferme pas toute la chaîne financière. La [recette des réservations concurrentes](qualification-reservations-stock-20261009.md) est qualifiée par les deux CI de 88ce8dd, sans modification métier.
-
-- Compléter la qualification des autres écritures financières : remboursements, avoirs, réservations et contention forte. Les [paiements concurrents](qualification-paiements-concurrents-20261008.md) et les [rapprochements](qualification-rapprochements-bancaires-20261008.md) ont leurs propres preuves.
-- Vérifier les traces et sorties des scénarios, les sélecteurs encore plafonnés et les chaînes métier restantes du [plan fonctionnel](plan-completude-fonctionnelle-20261002.md), puis installation, récupération et démonstrations de L9.
-- Qualifier comptes fournisseur, délivrabilité, stockage distant et charge avant usage commercial. Ces opérations sont hors recette fictive et budget de 0 €.
-
-Le correctif des [rattachements de réservation](evidence/20261009-stock-reservation-scope/README.md), `e25c8d1`, passe localement 1 496 tests SQLite / 180 fichiers, types, les deux lints et build. Ses douze cas de relations passent avec les douze cas de concurrence. Les deux CI de 0b6b8b3 qualifient ces douze cas sur PostgreSQL ; les CI antérieures ne qualifient pas ce code.
-
-Le correctif serveur des [projections Client dans les détails Service](evidence/20261009-service-detail-metrics/README.md), `f88fa41`, conserve la présentation et applique la règle commune aux tickets, équipements et interventions. Ses 27 cas passent localement, puis la suite complète de 1 523 tests / 181 fichiers, types, lints et build. Les deux CI de 0b6b8b3 qualifient les 27 projections sur PostgreSQL.
-
-Le [lot approuvé des commandes Opérations](evidence/20261009-operations-order-finance/README.md), `b32c563`, exclut les références et compteurs de factures sans Finance, protège les commandes de facturation et conserve les prix opérationnels. Seize cas SQL passent ; la qualification locale commune passe 1 539 tests / 182 fichiers, types, les deux lints et compilation. Les deux CI de 0b6b8b3 qualifient les seize cas PostgreSQL et les six E2E.
-
-Le [lot de listes Commandes / Réservations](evidence/20261009-operations-list-volume/README.md), `67f90e8`, remplace les deux cartes plafonnées par des lecteurs paginés et autorisés avant total/recherche. Les commandes de stock sont réservées à Opérations en écriture, hors démo publique. Les deux CI de 3f1ca72 qualifient les dix-neuf cas PostgreSQL, les quatre nouveaux parcours navigateur et les six Finance conservés. Les tableaux du bootstrap et autres sélecteurs restent distincts.
-
-La [revue CTO](revue-cto.md) donne un parcours de présentation et expose ces limites. Les résultats automatisés ne certifient ni tout le produit, ni l’accessibilité complète, ni les services externes.
-
-Le correctif `39a3965` des [rattachements de facturation](evidence/20261009-order-billing-references/README.md) et de [Comptabilité](evidence/20261009-order-billing-roles/README.md) passe 33 nouveaux cas SQL, puis la suite locale de 1 591 tests / 185 fichiers, types, deux lints et compilation. Il recontrôle le client et le chantier avant la revendication transactionnelle et limite l'exemption Finance à `updateMany` de `billingStatus`. Les deux CI de d88a6bb qualifient ensuite les 33 cas sur PostgreSQL réel et les quatre E2E Comptabilité sur les deux surfaces. Les [résultats locaux](evidence/20261009-order-billing-roles/local.json) distinguent chargement et exécution.
-
-Le complément `02a6e10` des [anciennes factures liées](evidence/20261009-order-linked-invoices/README.md) refuse les incohérences avant retour d'un acompte existant et calcul du solde, puis avant revendication transactionnelle. Les quatorze cas dédiés passent, ainsi que 1 605 tests / 186 fichiers, types, deux lints et compilation. Les quatorze cas passent aussi sur PostgreSQL dans les deux CI de 369f413. Les [quatre tests d'avoirs](qualification-avoirs-concurrents-20261009.md) qualifient séparément une garde existante, sans changement métier.
-
-Le commit de tests `bfa6125` passe la suite commune de 1 609 tests / 187 fichiers, types et deux lints ; aucun code de production n'a changé depuis le build de `02a6e10`. Les quatre avoirs passent sur PostgreSQL dans les deux CI de 369f413, avec la barrière de lectures réelles. Un diagnostic distinct reproduit un [solde périmé après modification d'acompte](contrat-facturation-commandes-solde-perime.md). Le refus approuvé est implémenté dans `061173c` : six cas dédiés, puis [1 615 tests / 188 fichiers](evidence/20261009-order-billing-stale-balance/local.json), types, deux lints et build réussis. Ces résultats ne clôturent pas toute la chaîne financière.
-
-Les jobs PostgreSQL et Linux des deux CI de `6c8cffb` échouent avant qualification pour dépassement du quota anonyme Docker Hub. Le [diagnostic du registre](evidence/20261009-ci-registry/README.md) conserve ces échecs. Le commit `7eda750` utilise les mêmes versions d'images officielles sur ECR Public ; les deux CI de 369f413 qualifient ensuite PostgreSQL et les neuf contrôles Linux. Le premier essai Linux de branche échoue sur un quota ECR, puis réussit sans changement de code après relance ciblée.
+L'[historique de qualification](historique-qualification-candidat-20261010.md) conserve les références antérieures et leurs échecs. Les [preuves du socle](execution-cto-20261001.md) et la [recette hébergée sans stockage](qualification-demo-sans-stockage-20261010.md) restent datées. Aucun compteur de tests, rendu de démo ou ancien déploiement ne certifie tout le logiciel.
