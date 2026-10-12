@@ -1,0 +1,13 @@
+# Imputation des tâches Organisation
+
+Le [diagnostic antérieur](before.json) reproduit quatre défauts d'imputation : chantier lié à un client étranger, temps créé dans une autre société avant un refus de budget, écritures partielles lors d'une panne et double imputation. Il inclut un témoin cohérent et un défaut distinct de facturation des temps. Ses six cas réussis constatent ces comportements ; ils ne prouvent pas une correction. Le [reproducteur](reproducer.test.ts.txt) emploie des données fictives et ne contacte aucun fournisseur.
+
+Le [lot approuvé](../../contrat-imputation-taches-temps.md) vérifie les droits et relations, puis crée le temps, termine la tâche et recalcule le budget dans une transaction sérialisable. Il partage uniquement cette transaction et ce calcul avec les mutations Temps existantes. Une association unique empêche deux temps pour la même tâche. La date d'imputation sur la tâche conserve le refus après suppression du temps ; supprimer la tâche conserve le temps en détachant la référence.
+
+Les 34 cas de `organisation-time-imputation.integration.test.ts` vérifient huit rôles, durées et limites, références étrangères ou incohérentes, agences/révocation, trois pannes avec rollback, démo en lecture seule, historique non deviné, suppressions et contrainte unique. Une barrière de deux lectures réelles exige un entrelacement sur PostgreSQL ; SQLite vérifie deux demandes successives et ne constitue pas une preuve de concurrence. Les 46 + 26 cas Temps restent exécutés avec le calcul partagé.
+
+La [mise à niveau SQLite](sqlite-upgrade.json) part du schéma antérieur, avec une tâche et un temps fictifs, puis applique la différence additive. Toutes leurs valeurs sont conservées ; les champs nouveaux restent NULL. La contrainte unique et la conservation du temps après suppression de sa tâche sont vérifiées. Deux comptes navigateur et six tâches fictives sont créés séparément. PostgreSQL doit encore qualifier la migration réelle et la contention sur la CI du lot.
+
+Six E2E sont définis sur ordinateur/mobile : imputation puis refus de répétition, durée historique nulle et rattachement client incohérent. L'action vient du navigateur compilé ; la base isolée contrôle la persistance, sans route de diagnostic ajoutée au produit. Le chargement `--list` ne vaut pas exécution.
+
+L'authentification et le cache Next sont simulés dans les suites SQL ; les écritures et contraintes sont réelles. Le proxy de panne ne remplace pas les données. Les données incohérentes préparées directement ne prouvent pas leur création par les formulaires actuels. Calendrier, récurrences et avancement des séquences restent distincts ; aucun historique d'imputation n'est déduit. La contention multi-processus et un arrêt brutal restent à qualifier.

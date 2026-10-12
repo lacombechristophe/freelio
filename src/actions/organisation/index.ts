@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import prisma from "@/lib/prisma"
+import { mutateTime, recomputeProjectConsumed, TimeEntryError } from "@/lib/time-entry-mutations"
 import { withAuth } from "@/lib/auth-wrapper"
 import { hasPermission } from "@/lib/permissions"
 import { advanceTaskRecurrence } from "@/lib/workflow-rules"
@@ -54,8 +55,6 @@ const taskSchema = z.object({
 type TaskInput = z.input<typeof taskSchema>
 type GoalInput = z.input<typeof goalSchema>
 
-const HOURLY_RATE_CENTS = 6250
-
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null
 }
@@ -69,19 +68,6 @@ function parseDate(value: string | null | undefined, timeZone?: string) {
 
 function cleanId(value: string | null | undefined) {
   return value && value.trim() !== "" ? value : null
-}
-
-async function recomputeProjectConsumed(projectId: string) {
-  const sum = await prisma.timeEntry.aggregate({
-    where: { projectId, isBillable: true },
-    _sum: { durationSec: true },
-  })
-  const seconds = sum._sum.durationSec ?? 0
-  const consumedCents = Math.round((seconds / 3600) * HOURLY_RATE_CENTS)
-  await prisma.project.update({
-    where: { id: projectId },
-    data: { consumedCents },
-  })
 }
 
 async function resolveTaskRelations(companyId: string, data: z.output<typeof taskSchema>) {
@@ -512,33 +498,40 @@ export async function deleteOrganisationTask(id: string) {
   })
 }
 
-export async function createTimeEntryFromOrganisationTask(id: string, durationMin?: number) {
-  return await withAuth(async ({ companyId }) => {
-    const task = await prisma.organisationTask.findFirst({
-      where: { id, companyId },
-      include: { project: { select: { id: true, companyId: true } } },
-    })
-    if (!task) throw new Error("Tache introuvable")
-    if (!task.projectId || !task.project) {
-      throw new Error("Associez cette tache a un projet avant d'imputer du temps.")
-    }
+const taskTimeMinutes = z.number().int().min(1).max(1440)
+const TASK_TIME_UNAVAILABLE = "Tâche introuvable ou chantier inaccessible"
+const TASK_TIME_DUPLICATE = "Cette tâche a déjà été imputée"
 
-    const minutes = Math.max(1, Math.min(durationMin ?? task.estimateMin ?? 60, 24 * 60))
-    await prisma.timeEntry.create({
-      data: {
-        projectId: task.projectId,
-        durationSec: minutes * 60,
-        description: task.title,
-        date: task.scheduledDate ?? task.dueDate ?? new Date(),
-        isBillable: task.isBillable,
-      },
+export async function createTimeEntryFromOrganisationTask(id: string, durationMin?: number) {
+  const result = await mutateTime(async (tx, { companyId }) => {
+    const task = await tx.organisationTask.findFirst({
+      where: { id: z.string().trim().min(1).max(100).parse(id), companyId },
+      select: { id: true, projectId: true, clientId: true, title: true, estimateMin: true, scheduledDate: true, dueDate: true, isBillable: true, timeImputedAt: true, timeEntry: { select: { id: true } } },
     })
-    await prisma.organisationTask.update({
-      where: { id },
-      data: { status: "DONE" },
+    if (!task?.projectId) throw new TimeEntryError(TASK_TIME_UNAVAILABLE)
+    const project = await tx.project.findFirst({
+      where: { id: task.projectId, companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
+      select: { id: true, clientId: true },
     })
-    await recomputeProjectConsumed(task.projectId)
-    revalidateOrganisation(["/dashboard/temps", "/dashboard/projets", `/dashboard/projets/${task.projectId}`])
-    return { ok: true }
+    if (!project || (task.clientId !== null && task.clientId !== project.clientId)) throw new TimeEntryError(TASK_TIME_UNAVAILABLE)
+    if (task.timeImputedAt || task.timeEntry) throw new TimeEntryError(TASK_TIME_DUPLICATE)
+    const minutes = taskTimeMinutes.parse(durationMin ?? task.estimateMin ?? 60)
+    const claimed = await tx.organisationTask.updateMany({
+      where: { id: task.id, companyId, timeImputedAt: null },
+      data: { status: "DONE", timeImputedAt: new Date() },
+    })
+    if (claimed.count !== 1) throw new TimeEntryError(TASK_TIME_DUPLICATE)
+    const entry = await tx.timeEntry.create({ data: {
+      sourceOrganisationTaskId: task.id,
+      projectId: project.id,
+      durationSec: minutes * 60,
+      description: task.title,
+      date: task.scheduledDate ?? task.dueDate ?? new Date(),
+      isBillable: task.isBillable,
+    } })
+    await recomputeProjectConsumed(tx, project.id)
+    return { value: entry.id, projectId: project.id }
   })
+  if (result.ok) revalidateOrganisation()
+  return result
 }

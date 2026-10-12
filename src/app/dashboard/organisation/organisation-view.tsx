@@ -328,6 +328,12 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
     }
   }
 
+  async function imputeTaskTime(id: string, minutes: number) {
+    const result = await createTimeEntryFromOrganisationTask(id, minutes)
+    if (!result.ok) throw new Error(result.error)
+    return result
+  }
+
   async function handleDeleteTask(id: string) {
     if (!(await confirm({
       title: "Supprimer cette tâche ?",
@@ -433,7 +439,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                       compact
                       pendingKey={pendingKey}
                       onStatus={(status) => runAction(`task-${task.id}-${status}`, () => updateOrganisationTaskStatus(task.id, status), "Statut mis à jour.")}
-                      onTime={() => runAction(`task-time-${task.id}`, () => createTimeEntryFromOrganisationTask(task.id, task.estimateMin ?? 60), "Temps imputé et tâche terminée.")}
+                      onTime={() => runAction(`task-time-${task.id}`, () => imputeTaskTime(task.id, task.estimateMin ?? 60), "Temps imputé et tâche terminée.")}
                       onDelete={() => handleDeleteTask(task.id)}
                     />
                   ))}
@@ -626,7 +632,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                   timeZone={data.timeZone}
                   pendingKey={pendingKey}
                   onStatus={(status) => runAction(`task-${task.id}-${status}`, () => updateOrganisationTaskStatus(task.id, status), "Statut mis à jour.")}
-                  onTime={() => runAction(`task-time-${task.id}`, () => createTimeEntryFromOrganisationTask(task.id, task.estimateMin ?? 60), "Temps imputé et tâche terminée.")}
+                  onTime={() => runAction(`task-time-${task.id}`, () => imputeTaskTime(task.id, task.estimateMin ?? 60), "Temps imputé et tâche terminée.")}
                   onDelete={() => handleDeleteTask(task.id)}
                 />
               ))}
