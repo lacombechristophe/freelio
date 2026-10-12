@@ -140,6 +140,13 @@ const prismaClientSingleton = () => {
           const timeInvoiceClaim = model === "TimeEntry" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
             hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "invoiceId" &&
             typeof mutableArgs.data.invoiceId === "string" && mutableArgs.data.invoiceId === context.timeInvoiceClaimId && mutableArgs.where?.invoiceId === null
+          const timeInvoiceRelease = model === "TimeEntry" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "invoiceId" && mutableArgs.data.invoiceId === null &&
+            typeof context.timeInvoiceReleaseId === "string" && mutableArgs.where?.invoiceId === context.timeInvoiceReleaseId
+          // Legacy invoiceId has no FK. Count only this accessible draft's links
+          // to refuse a partial release; no foreign row or identifier is returned.
+          const timeInvoiceReleaseCount = model === "TimeEntry" && operation === "count" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && typeof context.timeInvoiceReleaseId === "string" && mutableArgs.where?.invoiceId === context.timeInvoiceReleaseId
 
           if (
             context &&
@@ -149,6 +156,7 @@ const prismaClientSingleton = () => {
             !serviceProfileUpdate &&
             !orderBillingUpdate &&
             !timeInvoiceClaim &&
+            !timeInvoiceRelease &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)
@@ -158,7 +166,7 @@ const prismaClientSingleton = () => {
           const relationCompanyScope = context?.companyId ? companyRelationScope(model, context.companyId, context.userId) : null
           const tenantScope = directCompanyScope ?? relationCompanyScope
 
-          if (context?.companyId && tenantScope) {
+          if (context?.companyId && tenantScope && !timeInvoiceReleaseCount) {
             if (TENANT_READ_OPERATIONS.has(operation)) {
               appendWhereScope(mutableArgs, tenantScope)
             } else if (directCompanyScope && TENANT_CREATE_OPERATIONS.has(operation)) {
@@ -181,7 +189,7 @@ const prismaClientSingleton = () => {
             }
           }
 
-          if (context?.agencyIds !== null && context?.agencyIds !== undefined) {
+          if (context?.agencyIds !== null && context?.agencyIds !== undefined && !timeInvoiceReleaseCount) {
             const scope = agencyWhere(model, context.agencyIds)
             if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) {
               appendWhereScope(mutableArgs, scope)

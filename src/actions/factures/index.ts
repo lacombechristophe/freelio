@@ -510,28 +510,31 @@ export async function updateInvoiceStatus(invoiceId: string, status: "DRAFT" | "
   }, "finance.write")
 }
 
-export async function deleteInvoice(id: string) {
-  return await withAuth(async ({ companyId, userId }) => {
-    const existing = await prisma.invoice.findFirst({ where: { id, companyId, client: { companyId } } })
-    if (!existing) throw new Error("Facture introuvable")
-    if (existing.status !== "DRAFT") {
-      throw new Error("Seules les factures en brouillon peuvent être supprimées.")
-    }
-    await prisma.$transaction([
-      prisma.timeEntry.updateMany({
-        where: { invoiceId: id },
-        data: { invoiceId: null },
-      }),
-      prisma.invoice.delete({ where: { id } }),
-    ])
-    await logAction({
-      userId,
-      action: "DELETE_INVOICE",
-      resource: "INVOICE",
-      resourceId: id,
-      payload: { number: existing.number },
-    })
+export async function deleteInvoice(inputId: string) {
+  return await withAuth(async (context) => {
+    const { companyId, userId } = context
+    const id = z.string().trim().min(1).max(100).parse(inputId)
+    await prisma.$transaction(async tx => {
+      const invoice = await tx.invoice.findFirst({ where: { id, companyId, client: { companyId } } })
+      if (!invoice) throw new Error("Facture introuvable")
+      if (invoice.status !== "DRAFT" || invoice.lockedAt) throw new Error("Seules les factures en brouillon peuvent être supprimées.")
+      const projectScope = { companyId, clientId: invoice.clientId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] }
+      if (invoice.projectId && !await tx.project.findFirst({ where: { id: invoice.projectId, ...projectScope }, select: { id: true } })) throw new Error("Facture introuvable")
+      await requestContext.run({ ...context, actionPermission: "finance.write", timeInvoiceReleaseId: id }, async () => {
+        const linked = await tx.timeEntry.count({ where: { invoiceId: id } })
+        const released = await tx.timeEntry.updateMany({
+          where: { invoiceId: id, ...(invoice.projectId ? { projectId: invoice.projectId } : {}), project: projectScope },
+          data: { invoiceId: null },
+        })
+        if (released.count !== linked) throw new Error("Facture introuvable")
+      })
+      const deleted = await tx.invoice.deleteMany({ where: { id, companyId, status: "DRAFT", lockedAt: null, updatedAt: invoice.updatedAt } })
+      if (deleted.count !== 1) throw new Error("Facture introuvable")
+      await tx.auditLog.create({ data: { userId, action: "DELETE_INVOICE", resource: "INVOICE", resourceId: id, payload: { number: invoice.number } } })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
     revalidatePath("/dashboard/factures")
+    revalidatePath("/dashboard/factures/temps-non-facture")
+    revalidatePath("/dashboard/temps")
     return { ok: true }
   }, "finance.write")
 }

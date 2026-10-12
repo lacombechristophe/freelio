@@ -1686,6 +1686,7 @@ model TimeEntry {
   createdAt DateTime @default(now())
 
   @@index([projectId])
+  @@index([invoiceId])
 }
 
 model OrganisationGoal {
