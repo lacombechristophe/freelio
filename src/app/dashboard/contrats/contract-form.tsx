@@ -165,7 +165,7 @@ export function ContractForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (pending || !clientChoices.ready) return
+    if (pending || (clientId && !clientChoices.ready)) return
     if (!clientId) return toast.error("Sélectionnez un client.")
     if (!isMeaningfulContent(content)) return toast.error("Le contenu du contrat ne peut pas être vide.")
     setPending(true)
@@ -203,7 +203,7 @@ export function ContractForm({
         </Link>
         <div className="min-w-0"><p className="truncate text-sm font-semibold">{contract ? "Modifier le contrat" : "Préparer le contrat"}</p><p className="text-xs text-muted-foreground">{selectedTemplateId ? "Modèle métier appliqué" : "Brouillon juridique à compléter"}</p></div>
         <div className="ml-auto">
-          <Button type="submit" disabled={pending || !clientChoices.ready} className="gap-2">
+          <Button type="submit" disabled={pending || Boolean(clientId && !clientChoices.ready)} className="gap-2">
             <Save className="h-4 w-4" />
             {pending ? "Enregistrement…" : "Enregistrer"}
           </Button>

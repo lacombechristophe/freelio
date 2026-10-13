@@ -116,8 +116,10 @@ for (const form of forms) {
 
     async function openNew() {
       await page.goto(`/dashboard/${form.route}${form.kind === "opportunity" ? "" : `/new${form.kind === "quote" ? `?clientId=${lastId}` : ""}`}`)
+      await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
       if (form.kind === "opportunity") await page.getByRole("button", { name: "Nouvelle opportunité", exact: true }).click()
       container = scope(page, form)
+      await expect(container.getByText("1 001 résultats", { exact: true })).toBeVisible()
       if (form.kind !== "quote") {
         await container.getByRole("textbox", { name: "Rechercher un client", exact: true }).fill("dernier client")
         await expect(container.getByText("1 résultat", { exact: true })).toBeVisible()

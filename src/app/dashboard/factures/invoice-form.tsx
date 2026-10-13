@@ -69,7 +69,7 @@ export function InvoiceForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (pending || !clientChoices.ready) return
+    if (pending || (clientId && !clientChoices.ready)) return
     setFormError("")
     const submittedLines = lines.map((line) => (isTvaApplicable ? line : { ...line, tvaRate: 0 }))
     if (!clientId) return setFormError("Sélectionnez un client avant d’enregistrer le document.")
@@ -113,7 +113,7 @@ export function InvoiceForm({
           <p className="text-xs text-muted-foreground">{type === "DEPOSIT" ? "Facture d’acompte" : "Facture standard"} · non émise</p>
         </div>
         <div className="ml-auto">
-          <Button type="submit" disabled={pending || !clientChoices.ready} className="gap-2">
+          <Button type="submit" disabled={pending || Boolean(clientId && !clientChoices.ready)} className="gap-2">
             <Save className="h-4 w-4" />{pending ? "Enregistrement…" : "Enregistrer"}
           </Button>
         </div>
@@ -145,7 +145,7 @@ export function InvoiceForm({
             <div className="flex items-center gap-2"><ReceiptText className="size-4 text-primary" /><p className="text-xs font-semibold tracking-normal text-muted-foreground">Synthèse</p></div>
             <div className="mt-4 space-y-3 border-b border-border pb-4 text-sm"><div><p className="text-xs text-muted-foreground">Client</p><p className="mt-0.5 truncate font-medium">{selectedClient?.name ?? "À sélectionner"}</p></div><div><p className="text-xs text-muted-foreground">Objet</p><p className="mt-0.5 line-clamp-2 font-medium">{object.trim() || "À renseigner"}</p></div></div>
             <div className="space-y-2 py-4"><div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">Total HT</span><span className="font-medium tabular-nums">{formatEuro(totals.totalHtCents)}</span></div><div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TVA</span><span className="font-medium tabular-nums">{formatEuro(totals.totalTvaCents)}</span></div><div className="flex items-end justify-between border-t border-border pt-3"><span className="font-semibold">Total TTC</span><span className="text-xl font-semibold tabular-nums">{formatEuro(totals.totalTtcCents)}</span></div></div>
-            <Button type="submit" disabled={pending || !clientChoices.ready} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : invoice ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
+            <Button type="submit" disabled={pending || Boolean(clientId && !clientChoices.ready)} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : invoice ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
           </section>
           <section className="rounded-lg border border-border bg-background p-4"><p className="text-sm font-semibold">Contrôle avant émission</p><div className="mt-3 space-y-2.5">{readiness.map((item) => <div key={item.label} className="flex items-center gap-2 text-xs"><span className={item.ready ? "text-success" : "text-muted-foreground"}>{item.ready ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />}</span><span className={item.ready ? "text-foreground" : "text-muted-foreground"}>{item.label}</span></div>)}</div><p className="mt-4 border-t border-border pt-3 text-[11px] leading-5 text-muted-foreground">Le brouillon reste modifiable. La numérotation définitive et les contrôles Factur-X s’appliquent au moment de l’émission.</p></section>
         </aside>

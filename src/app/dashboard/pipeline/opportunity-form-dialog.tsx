@@ -73,7 +73,7 @@ export function OpportunityFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (pending || !clientChoices.ready) return
+    if (pending || (form.clientId && !clientChoices.ready)) return
     if (!form.clientId) return toast.error("Sélectionnez un client.")
     setPending(true)
     try {
@@ -177,7 +177,7 @@ export function OpportunityFormDialog({
           ) : null}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
-            <Button type="submit" disabled={pending || !clientChoices.ready}>{pending ? "…" : opportunity ? "Enregistrer" : "Créer"}</Button>
+            <Button type="submit" disabled={pending || Boolean(form.clientId && !clientChoices.ready)}>{pending ? "…" : opportunity ? "Enregistrer" : "Créer"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

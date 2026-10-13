@@ -70,7 +70,7 @@ export function QuoteForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (pending || !clientChoices.ready) return
+    if (pending || (clientId && !clientChoices.ready)) return
     setFormError("")
     const submittedLines = lines.map((line) => (isTvaApplicable ? line : { ...line, tvaRate: 0 }))
     if (!clientId) return setFormError("Sélectionnez un client avant d’enregistrer le document.")
@@ -125,7 +125,7 @@ export function QuoteForm({
           <p className="text-xs text-muted-foreground">Brouillon non envoyé</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button type="submit" disabled={pending || !clientChoices.ready} className="gap-2">
+          <Button type="submit" disabled={pending || Boolean(clientId && !clientChoices.ready)} className="gap-2">
             <Save className="h-4 w-4" />
             {pending ? "Enregistrement…" : "Enregistrer"}
           </Button>
@@ -191,7 +191,7 @@ export function QuoteForm({
               <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TVA</span><span className="font-medium tabular-nums">{formatEuro(totals.totalTvaCents)}</span></div>
               <div className="flex items-end justify-between border-t border-border pt-3"><span className="font-semibold">Total TTC</span><span className="text-xl font-semibold tabular-nums">{formatEuro(totals.totalTtcCents)}</span></div>
             </div>
-            <Button type="submit" disabled={pending || !clientChoices.ready} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : quote ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
+            <Button type="submit" disabled={pending || Boolean(clientId && !clientChoices.ready)} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : quote ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
           </section>
 
           <section className="rounded-lg border border-border bg-background p-4">

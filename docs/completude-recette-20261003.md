@@ -2,6 +2,14 @@
 
 État du 13 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Main, preview de branche et production sont des références distinctes.
 
+## Candidat en qualification
+
+Les trois lots Portail, compteur Modèles et choix Client Documents/Affaires sont publiés dans `c5d1191`. Leurs 67 nouveaux cas passent dans les deux rapports PostgreSQL, et l'image Linux réussit. La recette hébergée de ce SHA passe 49 pages/onglets par surface, sans erreur JavaScript ni retry ; elle ne vérifie pas les mutations.
+
+Le navigateur compilé n'est pas qualifié : la branche atteint 378 réussites, 19 exclusions historiques et trois échecs, puis la limite du job. La PR reproduit aussi une recherche saisie avant hydratation et n'achève pas la suite. La [correction documentée](evidence/20261013-document-client-choices/ci-regressions.md) conserve la validation du client manquant et attend l'hydratation avant la saisie, sans retirer d'assertion ni augmenter les délais.
+
+Le [lot Relations des Affaires](evidence/20261013-pipeline-relations/README.md), approuvé ensuite, applique un périmètre commun au Pipeline, aux synthèses et aux actions ordinaires. Les 25 nouveaux cas SQL et 78 contrôles existants passent localement. Le refus attendu est structuré pour conserver sa notification après compilation Next.js. Les deux suites complètes locales atteignent des délais sur des cas préexistants ; leurs rapports et les rejeux isolés restent conservés. La recette complète du nouveau commit reste requise ; les résultats de `19502a6` ne qualifient pas ces changements.
+
 ## Dernier code entièrement qualifié
 
 `19502a6c38784c6510aae8df365a2631bcaeb85b` ajoute le choix Client complet des Chantiers, sa reprise après disparition du client et le bouton de facturation des temps désactivé en démo publique. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38405043599) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38405049561) réussissent tous leurs jobs. Les [rapports](evidence/20261013-candidate/ci-19502a6.json) relient les nouveaux cas au merge réellement testé.
@@ -55,7 +63,7 @@ Les 19 exclusions historiques du navigateur correspondent à des mutations exéc
 
 - Relier toute nouvelle modification fonctionnelle à sa propre CI et sa propre recette ; les preuves ci-dessus qualifient 19502a6, pas une évolution future.
 - Examiner les sélecteurs et chaînes métier restants du [plan](plan-completude-fonctionnelle-20261002.md), sans confondre liste récente volontairement bornée et portefeuille complet.
-- Les trois lots approuvés le 13 octobre attendent leur CI exacte : [relations Portail](evidence/20261013-portal-relations/README.md), [compteur Modèles](evidence/20261013-project-template-count/README.md) et [choix Client Documents/Affaires](evidence/20261013-document-client-choices/README.md). Respectivement 31, 12 et 24 cas SQL locaux passent ; les 12 parcours compilés définis restent à exécuter. Les pages Documents/Pipeline n'appellent plus le lecteur plafonné ; leur état ne se déduit pas des résultats de 19502a6.
+- Les quatre lots approuvés le 13 octobre nécessitent la qualification du candidat corrigé : [relations Portail](evidence/20261013-portal-relations/README.md), [compteur Modèles](evidence/20261013-project-template-count/README.md), [choix Client Documents/Affaires](evidence/20261013-document-client-choices/README.md) et [relations des Affaires](evidence/20261013-pipeline-relations/README.md). Leurs 31, 12, 24 et 25 cas SQL passent localement ; les 14 nouveaux parcours compilés doivent passer ensemble avec les contrôles existants. Les résultats de `19502a6` et les lectures hébergées ne qualifient pas leurs mutations.
 - Qualifier stockage persistant, comptes fournisseurs, délivrabilité, charge et reprise après arrêt brutal avant usage commercial. Le budget actuel reste de 0 €.
 
 L'[historique de qualification](historique-qualification-candidat-20261010.md) conserve les références antérieures et leurs échecs. Les [preuves du socle](execution-cto-20261001.md) et la [recette hébergée sans stockage](qualification-demo-sans-stockage-20261010.md) restent datées. Aucun compteur de tests, rendu de démo ou ancien déploiement ne certifie tout le logiciel.
