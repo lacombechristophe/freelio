@@ -7,3 +7,5 @@ Les traces identifient quatre échecs desktop de facturation des temps. Leur att
 Le scénario de séquence attendait quatre minutes un bouton dans une carte de calendrier. Le même titre était présent dans la liste des tâches, avec le bouton attendu. Le sélecteur exige maintenant le titre et ce bouton dans la même carte ; la vérification de fin de séquence reste inchangée.
 
 Types, lint et chargement des tests passent localement. La correction des sélecteurs exige une nouvelle exécution compilée ; les timeouts, tests, exclusions historiques, couverture et audits ne sont pas modifiés.
+
+Cette exécution aboutit sur a055d65 : les deux CI sont vertes, 361 parcours réussis et 19 exclusions historiques chacune. Les quatre assertions de facturation corrigées et le scénario de configuration d'automatisation passent ; les [résultats du candidat](../20261013-candidate/ci-a055d65.json) conservent les références. La suite navigateur dure 24,8 minutes dans la branche et 20,2 dans la PR ; le plafond global reste à 35 minutes.

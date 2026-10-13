@@ -16,6 +16,10 @@ Le moteur `src/lib/finance/commercial-calculation.ts` est la source unique des t
 
 Les composants d’interface peuvent afficher des simulations, mais le résultat persistant est toujours recalculé côté serveur par ce moteur. Les numéros de facture et de devis restent alloués par les services de numérotation transactionnels.
 
+La facturation des temps construit ses lignes depuis les secondes enregistrées, sans arrondir les heures avant le calcul monétaire. Aperçu et action utilisent `time-invoice-lines.ts` ; chaque ligne est ensuite arrondie au centime par le moteur commercial. Les quantités affichées dans les nouveaux PDF sont arrondies à six décimales au maximum ; elles ne remplacent pas les secondes comme base du calcul. Le serveur recontrôle les temps et les paramètres financiers dans la transaction Serializable avant de créer le brouillon.
+
+Un rôle Finance peut rattacher les temps accessibles au seul brouillon créé par cette action, puis libérer les temps du brouillon qu'il supprime. Le contexte interne borne ces exceptions à `invoiceId` et à l'identifiant du document. Les autres écritures Temps exigent Opérations. À la suppression, un compte privé des liens exacts détecte les associations historiques incohérentes, puis les écritures restent filtrées par société, client, chantier et agence. Une différence de comptes annule suppression, libération et audit ; aucun détail de temps étranger n'est renvoyé. `invoiceId` reste un ancien champ sans FK : son index améliore la lecture, mais ne répare pas cette dette référentielle. Les [preuves et limites](evidence/20261013-time-invoice-release/README.md) décrivent cette autorisation restreinte.
+
 ## 2. Entreprise, agence et dépôt
 
 Les trois niveaux ont des responsabilités différentes :
