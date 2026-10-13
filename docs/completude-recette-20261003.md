@@ -1,16 +1,32 @@
 # Qualification du candidat Freelio
 
-État du 13 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Main, preview de branche et production sont des références distinctes.
+État du 14 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Main, preview de branche et production sont des références distinctes.
 
 ## Candidat en qualification
 
-Les [choix de la commande fournisseur](evidence/20261014-purchase-choices/README.md), approuvés le 14 octobre, ajoutent recherche, pages de 25 et sélection vérifiée au Produit de chaque ligne et au Chantier. Les identités stables des lignes préservent les recherches, quantités, prix et libellés après retrait d'une autre ligne. Les 35 nouveaux cas SQL passent (147 ciblés au total), ainsi que types, ESLint, Oxlint et les deux fixtures exécutées puis supprimées. Deux parcours compilés sont définis ; leur CI exacte reste requise après publication. Le payload Produit borné et les inventaires détaillés inutilisés sont retirés du tableau de bord. L'intégrité globale de création Achat reste un lot distinct.
+Les [choix de la commande fournisseur](evidence/20261014-purchase-choices/README.md), approuvés le 14 octobre, ajoutent recherche, pages de 25 et sélection vérifiée au Produit de chaque ligne et au Chantier. Les identités stables préservent recherches, quantités, prix et libellés après retrait d'une autre ligne. Les 35 nouveaux cas SQL passent, ainsi que les deux fixtures exécutées puis supprimées. Les payloads Produit bornés et inventaires détaillés inutilisés sont retirés du tableau de bord.
 
-Le [tableau et les indicateurs Stock](evidence/20261013-operations-stock-directory/README.md), approuvés le 13 octobre, quittent le payload Produit borné : recherche référence/libellé, pages de 25, compteurs complets et prévisualisation de cinq références avec total explicite. Le lecteur parcourt les produits par lots côté serveur dans un snapshot Serializable. Les valeurs sont calculées en entiers exacts et deviennent indisponibles si elles ne peuvent pas être représentées sans perte ; les centimes sont conservés lors du formatage.
+Le [contrôle de création Achat](evidence/20261014-purchase-creation-integrity/README.md), approuvé séparément, relit chantier/client/agence et produits actifs dans la transaction après préparation du numéro. Les 24 nouveaux cas SQL passent ; 171 contrôles ciblés au total, types, ESLint, Oxlint et les deux fixtures supplémentaires sont réussis. Les prix manuels sont conservés. Deux résultats métier explicites permettent d'afficher les refus approuvés en production sans exposer d'erreurs techniques.
 
-Les 29 nouveaux cas SQL passent localement (112 ciblés au total), dont le rendu réel corrigé de 501 stocks bas. Types, ESLint, Oxlint, syntaxe du seed et deux fixtures réellement exécutées passent. Deux parcours compilés sont définis ; leur passage dans les CI exactes et la lecture hébergée restent requis après publication. Les cartes Sites/Chantiers/SAV/Achats restent séparées. Les choix d'achat fournisseur sont traités dans le lot ci-dessus. Le commit Stock 2b05e5f a PostgreSQL/Linux verts dans ses deux CI ; les jobs de qualité sont encore actifs. Sa lecture hébergée parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion, avec harnais et alias vérifiés.
+Quatre parcours compilés sont définis pour les deux lots, sur ordinateur/mobile. Leur passage dans les CI du commit publié et la lecture hébergée exacte restent requis. Les historiques d'achat, autres cartes et sélecteurs opérationnels restent séparés.
 
 ## Dernier code entièrement qualifié
+
+`2b05e5f6d425542971285f13170fbcb44bb6f1bb` complète le tableau et les indicateurs Stock. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38474885583) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38474891166) passent entièrement à leur première tentative.
+
+| Contrôle | Résultat du candidat 2b05e5f |
+| --- | --- |
+| Types, ESLint, Oxlint et build | Réussis dans les deux CI |
+| SQLite avec couverture | 2 287 tests / 216 fichiers réussis dans chaque CI |
+| PostgreSQL | 2 286 réussis et une exclusion native SQLite ; les 29 nouveaux cas Stock passent sans exclusion |
+| Navigateur compilé | 407 réussis et 19 exclusions historiques dans chaque CI ; les deux nouveaux parcours Stock passent |
+| Image Linux | Neuf contrôles réussis dans les deux CI |
+| Audits de dépendances | Production et complet : zéro vulnérabilité dans chaque CI |
+| Preview de 2b05e5f | 49 pages/onglets par surface, zéro erreur JavaScript, retry ou exclusion |
+
+Les [preuves CI](evidence/20261013-candidate/ci-2b05e5f.json), l'[identité du code](evidence/20261013-candidate/source-2b05e5f.json) et la [recette hébergée](evidence/20261013-candidate/hosted-2b05e5f.json) sont conservées. Les 1 056 entrées Git hors `docs/` correspondent au merge PR testé `4661666399328870f1f4ebf2cf4ad05f36d04b71`. Harnais et alias correspondent au déploiement `dpl_HngJyPKo1Ab7dDNqNVjxdMseBXwH`. La suite navigateur dure 21,9 minutes sur la branche et 23,3 minutes sur la PR. Les mutations sont qualifiées par la recette compilée ; la lecture hébergée ne les prouve pas.
+
+## Référence précédente : Choix Produit Opérations
 
 `bfe5d6bbc82032f24e95a51342ab17990af75333` complète les six choix Produit d'Opérations et corrige le périmètre des locators Client de la commande. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38469876666) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38469883072) passent entièrement à leur première tentative.
 

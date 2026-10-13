@@ -1485,10 +1485,11 @@ export async function renewMaintenanceContract(contractId: string) {
 }
 
 export async function createPurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const data = purchaseOrderSchema.parse(input)
     const lines = data.lines?.length ? data.lines : [{ productId: data.productId, label: data.label!, quantity: data.quantity!, unitPriceCents: data.unitPriceCents! }]
-    if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new Error("Chantier introuvable")
+    const projectScope = { companyId, status: "ACTIVE", client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    if (data.projectId && !(await prisma.project.findFirst({ where: { ...projectScope, id: data.projectId }, select: { id: true } }))) throw new Error("Chantier introuvable")
     const productIds = [...new Set(lines.flatMap((line) => (line.productId ? [line.productId] : [])))]
     if (productIds.length && (await prisma.product.count({ where: { id: { in: productIds }, companyId, active: true } })) !== productIds.length)
       throw new Error("Un produit fournisseur est introuvable")
@@ -1498,6 +1499,9 @@ export async function createPurchaseOrder(input: unknown) {
       async () => {
         const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async tx => {
+          if (data.projectId && !(await tx.project.findFirst({ where: { ...projectScope, id: data.projectId }, select: { id: true } }))) throw new Error("Chantier introuvable")
+          if (productIds.length && (await tx.product.count({ where: { id: { in: productIds }, companyId, active: true } })) !== productIds.length)
+            throw new Error("Un produit fournisseur est introuvable")
           await lockActiveSupplier(tx, companyId, data.supplierId)
           return tx.purchaseOrder.create({
             data: {

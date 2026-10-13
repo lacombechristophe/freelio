@@ -1,0 +1,22 @@
+{
+  "database": "isolated SQLite functional.db",
+  "fixtures": [
+    {
+      "surface": "desktop",
+      "purchasePriceCents": 789,
+      "ownRelationsCoherent": true,
+      "foreignClientIsolated": true,
+      "activeProductProjectSupplier": true,
+      "passwordVerified": true
+    },
+    {
+      "surface": "mobile",
+      "purchasePriceCents": 789,
+      "ownRelationsCoherent": true,
+      "foreignClientIsolated": true,
+      "activeProductProjectSupplier": true,
+      "passwordVerified": true
+    }
+  ],
+  "remainingCompanies": 0
+}

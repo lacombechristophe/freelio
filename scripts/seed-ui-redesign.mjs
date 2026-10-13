@@ -28,6 +28,7 @@ import { seedOperationsClientChoices } from "./seed-operations-client-choices.mj
 import { seedOperationsProductChoices } from "./seed-operations-product-choices.mjs"
 import { seedOperationsStockDirectory } from "./seed-operations-stock-directory.mjs"
 import { seedPurchaseChoices } from "./seed-purchase-choices.mjs"
+import { seedPurchaseCreationIntegrity } from "./seed-purchase-creation-integrity.mjs"
 import { seedOrganisationTimeImputation } from "./seed-organisation-time-imputation.mjs"
 import { seedTimeBillingAccounting } from "./seed-time-billing-accounting.mjs"
 import { seedTimeInvoiceRounding } from "./seed-time-invoice-rounding.mjs"
@@ -70,6 +71,7 @@ try {
   await seedOperationsProductChoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedOperationsStockDirectory(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedPurchaseChoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedPurchaseCreationIntegrity(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedOrganisationTimeImputation(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeBillingAccounting(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeInvoiceRounding(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))

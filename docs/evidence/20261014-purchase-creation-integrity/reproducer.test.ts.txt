@@ -1,0 +1,62 @@
+import {randomUUID} from 'node:crypto'
+import {afterAll,afterEach,beforeAll,describe,expect,it,vi} from 'vitest'
+const session=vi.hoisted(()=>({userId:'',companyId:''}))
+vi.mock('server-only',()=>({}))
+vi.mock('@/auth',()=>({auth:async()=>({user:{id:session.userId},companyId:session.companyId})}))
+vi.mock('next/cache',()=>({revalidatePath:vi.fn()}))
+import prisma from '@/lib/prisma'
+import {createPurchaseOrder} from '@/actions/operations'
+describe.sequential('Purchase creation relation and stale-preparation diagnostic',()=>{
+ let otherCompanyId:string,clientId:string,foreignClientId:string,projectId:string,badProjectId:string,inactiveProjectId:string,productId:string,supplierId:string
+ const input=(target=projectId)=>({supplierId,projectId:target,lines:[{productId,label:'Fictional diagnostic line',quantity:1,unitPriceCents:100}]})
+ beforeAll(async()=>{
+  session.companyId=(await prisma.company.create({data:{name:'Fictional purchase integrity diagnostic'}})).id
+  otherCompanyId=(await prisma.company.create({data:{name:'Foreign fictional purchase integrity diagnostic'}})).id
+  session.userId=(await prisma.user.create({data:{email:`purchase-integrity-${randomUUID()}@example.test`}})).id
+  await prisma.membership.create({data:{companyId:session.companyId,userId:session.userId,role:'OWNER',status:'ACTIVE'}})
+  clientId=(await prisma.client.create({data:{companyId:session.companyId,name:'Fictional purchase integrity client'}})).id
+  foreignClientId=(await prisma.client.create({data:{companyId:otherCompanyId,name:'Foreign fictional purchase integrity client'}})).id
+  supplierId=(await prisma.supplier.create({data:{companyId:session.companyId,name:'Fictional purchase integrity supplier'}})).id
+  productId=(await prisma.product.create({data:{companyId:session.companyId,sku:'FAKE',label:'Fictional purchase integrity product'}})).id
+  projectId=(await prisma.project.create({data:{companyId:session.companyId,clientId,name:'Fictional coherent project'}})).id
+  badProjectId=(await prisma.project.create({data:{companyId:session.companyId,clientId:foreignClientId,name:'Fictional incoherent project'}})).id
+  inactiveProjectId=(await prisma.project.create({data:{companyId:session.companyId,clientId,status:'COMPLETED',name:'Fictional completed project'}})).id
+ })
+ afterEach(async()=>{
+  vi.restoreAllMocks()
+  await prisma.auditLog.deleteMany({where:{userId:session.userId}})
+  await prisma.purchaseOrder.deleteMany({where:{companyId:session.companyId}})
+  await prisma.product.update({where:{id:productId},data:{active:true}})
+  await prisma.project.update({where:{id:projectId},data:{clientId}})
+ })
+ afterAll(async()=>{
+  const where={companyId:{in:[session.companyId,otherCompanyId]}}
+  await prisma.project.deleteMany({where});await prisma.product.deleteMany({where});await prisma.client.deleteMany({where});await prisma.supplier.deleteMany({where});await prisma.company.deleteMany({where:{id:{in:[session.companyId,otherCompanyId]}}});await prisma.user.delete({where:{id:session.userId}})
+ })
+ it('creates a coherent control draft',async()=>{
+  const created=await createPurchaseOrder(input())
+  expect(await prisma.purchaseOrder.findUnique({where:{id:created.id}})).toMatchObject({projectId,totalHtCents:100,status:'DRAFT'})
+ })
+ it('refuses an own project attached to a foreign client before creating a draft',async()=>{
+  await expect(createPurchaseOrder(input(badProjectId))).rejects.toThrow('Chantier introuvable')
+ })
+ it('refuses a completed project absent from the active selector',async()=>{
+  await expect(createPurchaseOrder(input(inactiveProjectId))).rejects.toThrow('Chantier introuvable')
+ })
+ it('rechecks a project whose client changed during number preparation',async()=>{
+  const original=prisma.purchaseOrder.findMany.bind(prisma.purchaseOrder)
+  vi.spyOn(prisma.purchaseOrder,'findMany').mockImplementationOnce(async args=>{
+   await prisma.project.update({where:{id:projectId},data:{clientId:foreignClientId}})
+   return original(args) as any
+  })
+  await expect(createPurchaseOrder(input())).rejects.toThrow('Chantier introuvable')
+ })
+ it('rechecks a product deactivated during number preparation',async()=>{
+  const original=prisma.purchaseOrder.findMany.bind(prisma.purchaseOrder)
+  vi.spyOn(prisma.purchaseOrder,'findMany').mockImplementationOnce(async args=>{
+   await prisma.product.update({where:{id:productId},data:{active:false}})
+   return original(args) as any
+  })
+  await expect(createPurchaseOrder(input())).rejects.toThrow('Un produit fournisseur est introuvable')
+ })
+})

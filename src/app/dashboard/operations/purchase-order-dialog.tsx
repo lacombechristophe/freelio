@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { createPurchaseOrder } from "@/actions/operations"
+import { createPurchaseDraft } from "@/actions/purchase-drafts"
 import { getPurchaseProductChoices, getPurchaseProjectChoices } from "@/actions/purchase-choices"
 import { SupplierPicker } from "@/components/shared/supplier-picker"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
@@ -53,7 +53,8 @@ function PurchaseOrderForm({ revision, onSuccess }: { revision: unknown; onSucce
     if (!supplierId) return toast.error("Sélectionnez un fournisseur.")
     setPending(true)
     try {
-      const result = await createPurchaseOrder({ supplierId, projectId: projectId || undefined, expectedAt: expectedAt || undefined, notes, lines: lines.map(line => ({ productId: line.productId || undefined, label: line.label, quantity: Number(line.quantity), unitPriceCents: Math.round(Number(line.unitPrice || 0) * 100) })) })
+      const result = await createPurchaseDraft({ supplierId, projectId: projectId || undefined, expectedAt: expectedAt || undefined, notes, lines: lines.map(line => ({ productId: line.productId || undefined, label: line.label, quantity: Number(line.quantity), unitPriceCents: Math.round(Number(line.unitPrice || 0) * 100) })) })
+      if (!result.success) throw new Error(result.error)
       toast.success(`Commande ${result.number} créée en brouillon.`)
       onSuccess()
       router.refresh()

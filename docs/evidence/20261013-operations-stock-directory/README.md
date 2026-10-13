@@ -17,3 +17,7 @@ Deux parcours compilés sont définis pour ordinateur/mobile : total 501, prévi
 ## Limites
 
 Les cartes Sites/Chantiers/SAV/Achats et les autres sélecteurs restent séparés. À la publication de 2b05e5f, le choix Produit d'une ligne d'achat fournisseur conserve son ancien plafond ; il n'alimente plus les indicateurs de stock. Le [lot de choix Achat suivant](../20261014-purchase-choices/README.md) le traite séparément. Aucun mouvement réel, fournisseur métier, stockage durable, test de charge ou reprise après arrêt brutal n'est qualifié par ce lot. La transaction de lecture a un plafond de 30 secondes ; ces tests de 501 références ne prouvent pas sa capacité à traiter un catalogue arbitrairement grand.
+
+## Qualification complète de 2b05e5f
+
+Les deux CI passent entièrement : 2 287 SQLite, 2 286 PostgreSQL et une exclusion native SQLite, 407 parcours navigateur et 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité dans chaque run. Les 29 cas Stock et deux parcours ordinateur/mobile passent sans exclusion. La preview exacte parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion. Les [rapports](../20261013-candidate/ci-2b05e5f.json), l'[identité du merge](../20261013-candidate/source-2b05e5f.json) et la [lecture hébergée](../20261013-candidate/hosted-2b05e5f.json) restent distincts.
