@@ -26,7 +26,7 @@
     "db:backfill-memberships": "tsx prisma/backfill-memberships.ts",
     "security:encrypt-sensitive": "tsx scripts/encrypt-sensitive-fields.ts",
     "backup:decrypt": "tsx scripts/decrypt-logical-backup.ts",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "next typegen && node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",
     "test": "vitest",
     "test:unit": "vitest run --no-file-parallelism",
     "test:coverage": "npm run db:generate && vitest run --coverage --no-file-parallelism",

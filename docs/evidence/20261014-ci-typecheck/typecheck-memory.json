@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "87c70a1e058765bf2a5561c80cf9b83650690cc9",
+  "node": "v24.15.0",
+  "database": "no database test involved",
+  "flags": [
+    "--noEmit",
+    "--incremental false",
+    "--extendedDiagnostics"
+  ],
+  "heap2048": {
+    "success": false,
+    "reason": "Reproduced JavaScript heap out of memory"
+  },
+  "heap4096": {
+    "success": true,
+    "memoryUsedK": 2617056,
+    "totalSeconds": 30.54
+  },
+  "scope": "Compiler heap budget only; no runtime/server heap, timeout, assertion, test selection or audit threshold change",
+  "exactNpmScript": {
+    "command": "next typegen && node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",
+    "success": true
+  }
+}

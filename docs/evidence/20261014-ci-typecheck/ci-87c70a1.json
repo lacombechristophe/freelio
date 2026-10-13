@@ -1,0 +1,108 @@
+{
+  "candidate": "87c70a1e058765bf2a5561c80cf9b83650690cc9",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38479217446",
+      "conclusion": "failure",
+      "quality": {
+        "jobId": 115577401395,
+        "failureStage": "TypeScript after next typegen",
+        "failure": "JavaScript heap out of memory",
+        "observedHeapLimitMb": 2048,
+        "sqliteCoverage": {
+          "executed": false,
+          "passed": null
+        },
+        "browser": {
+          "executed": false,
+          "passed": null
+        },
+        "dependencyAuditsZeroVulnerabilities": 2
+      },
+      "postgres": {
+        "executed": true,
+        "passed": 2345,
+        "failed": 0,
+        "skipped": 1,
+        "reportSha256": "ffda05e77522fbbd5f0429010af019a482bc4854f0fcfa11cf01ebf1ec8de8b8",
+        "focused": [
+          {
+            "file": "purchase-choices.integration.test.ts",
+            "passed": 35,
+            "failed": 0
+          },
+          {
+            "file": "purchase-creation-integrity.integration.test.ts",
+            "passed": 24,
+            "failed": 0
+          }
+        ]
+      },
+      "linux": {
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "testedCommit": "87c70a1e058765bf2a5561c80cf9b83650690cc9",
+        "reportSha256": "1199b5eaf18a0b768bd3a6f74772cb0e85a997566e69142ab040ab32ae8dca21"
+      }
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38479223546",
+      "conclusion": "failure",
+      "quality": {
+        "jobId": 115577420975,
+        "failureStage": "TypeScript after next typegen",
+        "failure": "JavaScript heap out of memory",
+        "observedHeapLimitMb": 2048,
+        "sqliteCoverage": {
+          "executed": false,
+          "passed": null
+        },
+        "browser": {
+          "executed": false,
+          "passed": null
+        },
+        "dependencyAuditsZeroVulnerabilities": 2
+      },
+      "postgres": {
+        "executed": false,
+        "passed": null,
+        "reason": "PostgreSQL service image pull failed: toomanyrequests: Data limit exceeded"
+      },
+      "linux": {
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "testedCommit": "3181bc8b92f6e04a7830ff3808c561e463361db4",
+        "reportSha256": "393256dbae49334be46407da682259863905d05e513137246962cdebbfbb3d62"
+      }
+    }
+  ],
+  "hosted": {
+    "state": "BLOCKED",
+    "deploymentId": "dpl_5yUqYS6oK9h9NEbCSJHDjkPFetkc",
+    "reason": "The deployment was blocked because Vercel couldn’t find a Git account for the commit author.",
+    "githubAuthorLogin": null
+  },
+  "qualified": false
+}
