@@ -419,7 +419,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
               )}
             </div>
 
-            <Button className="w-full gap-2" disabled={!canGenerate} onClick={handleCreateInvoice}>
+            <Button demoMutation className="w-full gap-2" disabled={!canGenerate} onClick={handleCreateInvoice}>
               <Receipt className="h-4 w-4" />
               {pending ? "Création…" : "Créer la facture brouillon"}
             </Button>
