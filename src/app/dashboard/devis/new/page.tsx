@@ -1,21 +1,21 @@
-import { getClientsMinimal } from "@/actions/clients"
+import { getClientChoices } from "@/actions/clients/choices"
 import { getBillingSettings } from "@/actions/settings"
 import { getQuoteProductCatalog } from "@/actions/products"
 import { QuoteForm } from "../quote-form"
 import { PageHeader } from "@/components/shared/page-header"
 
 export default async function NewDevisPage({ searchParams }: PageProps<"/dashboard/devis/new">) {
-  const [clients, billingSettings, productCatalog] = await Promise.all([
-    getClientsMinimal(),
+  const query = await searchParams
+  const selectedId = typeof query.clientId === "string" && query.clientId.length <= 100 ? query.clientId || undefined : undefined
+  const [clientChoices, billingSettings, productCatalog] = await Promise.all([
+    getClientChoices({ selectedId }),
     getBillingSettings(),
     getQuoteProductCatalog(),
   ])
-  const query = await searchParams
-  const initialClientId = clients?.some((client) => client.id === query.clientId) ? String(query.clientId) : undefined
   return (
     <div className="workspace-page">
       <PageHeader className="workspace-page-header" eyebrow="Nouveau document" title="Nouveau devis" description="Choisissez un client, détaillez la prestation et vérifiez les montants avant enregistrement." />
-      <QuoteForm initialClientId={initialClientId} clients={clients ?? []} productCatalog={productCatalog} isTvaApplicable={billingSettings?.isTvaApplicable ?? true} />
+      <QuoteForm initialClient={clientChoices?.selected ?? undefined} productCatalog={productCatalog} isTvaApplicable={billingSettings?.isTvaApplicable ?? true} />
     </div>
   )
 }

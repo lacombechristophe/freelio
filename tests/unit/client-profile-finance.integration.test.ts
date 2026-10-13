@@ -6,7 +6,8 @@ vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import prisma from "@/lib/prisma"
-import { getClientById, getClients, getClientsMinimal } from "@/actions/clients"
+import { getClientById, getClients } from "@/actions/clients"
+import { getClientChoices } from "@/actions/clients/choices"
 
 describe.sequential("financial client profile fields in real SQL responses", () => {
   let membershipId: string, clientId: string, foreignCompanyId: string, foreignClientId: string
@@ -43,7 +44,7 @@ describe.sequential("financial client profile fields in real SQL responses", () 
     expect(await getClientById(foreignClientId)).toBeNull()
   })
   it("keeps the minimal reader free of financial fields", async () => {
-    expect(await getClientsMinimal()).toEqual([{ id: clientId, name: "Fictional financial profile" }])
+    expect((await getClientChoices()).items).toEqual([{ id: clientId, name: "Fictional financial profile" }])
   })
   it("rereads a revoked role with the same session", async () => {
     expect((await getClients()).clients[0].renewalAmountCents).toBe(12345)

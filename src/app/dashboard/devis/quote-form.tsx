@@ -9,9 +9,7 @@ import { FormError } from "@/components/shared/form-error"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
+import { ClientChoice, useClientChoices, type ClientOption } from "@/components/shared/client-choice"
 import { computeLineTotals, LineItemsEditor, type Line } from "@/components/shared/line-items-editor"
 import { createQuote, updateQuote } from "@/actions/devis"
 import { ProductConfigurator } from "./product-configurator"
@@ -39,22 +37,21 @@ function formatEuro(cents: number) {
 export function QuoteForm({
   quote,
   initialLines,
-  initialClientId,
-  clients,
+  initialClient,
   productCatalog,
   isTvaApplicable = true,
 }: {
   quote?: Quote
   initialLines?: Line[]
-  initialClientId?: string
-  clients: Array<{ id: string; name: string }>
+  initialClient?: ClientOption
   productCatalog: ProductCatalog
   isTvaApplicable?: boolean
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
   const [formError, setFormError] = React.useState("")
-  const [clientId, setClientId] = React.useState(quote?.clientId ?? initialClientId ?? "")
+  const [clientId, setClientId] = React.useState(quote?.clientId ?? initialClient?.id ?? "")
+  const clientChoices = useClientChoices(clientId, initialClient)
   const [object, setObject] = React.useState(quote?.object ?? "")
   const [validUntil, setValidUntil] = React.useState(
     quote?.validUntil ? new Date(quote.validUntil).toISOString().slice(0, 10) : defaultValidityDate()
@@ -63,9 +60,9 @@ export function QuoteForm({
     initialLines ?? [{ label: "", quantity: 1, unitPriceCents: 0, tvaRate: isTvaApplicable ? 20 : 0 }]
   )
   const totals = React.useMemo(() => computeLineTotals(lines), [lines])
-  const selectedClient = clients.find((client) => client.id === clientId)
+  const selectedClient = clientChoices.selected
   const readiness = [
-    { label: "Client sélectionné", ready: Boolean(clientId) },
+    { label: "Client sélectionné", ready: clientChoices.ready },
     { label: "Objet du devis renseigné", ready: object.trim().length >= 2 },
     { label: "Prestations décrites", ready: lines.length > 0 && lines.every((line) => line.label.trim()) },
     { label: "Chiffrage à contrôler", ready: totals.totalTtcCents > 0 },
@@ -73,7 +70,7 @@ export function QuoteForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (pending) return
+    if (pending || !clientChoices.ready) return
     setFormError("")
     const submittedLines = lines.map((line) => (isTvaApplicable ? line : { ...line, tvaRate: 0 }))
     if (!clientId) return setFormError("Sélectionnez un client avant d’enregistrer le document.")
@@ -128,7 +125,7 @@ export function QuoteForm({
           <p className="text-xs text-muted-foreground">Brouillon non envoyé</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button type="submit" disabled={pending} className="gap-2">
+          <Button type="submit" disabled={pending || !clientChoices.ready} className="gap-2">
             <Save className="h-4 w-4" />
             {pending ? "Enregistrement…" : "Enregistrer"}
           </Button>
@@ -150,10 +147,7 @@ export function QuoteForm({
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="space-y-1.5">
                   <Label>Client *</Label>
-                  <Select value={clientId} onValueChange={(value) => setClientId(value ?? "")}>
-                    <SelectTrigger aria-label="Client du devis"><SelectValue placeholder="Sélectionner un client…" /></SelectTrigger>
-                    <SelectContent>{clients.map((client) => <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <ClientChoice choices={clientChoices} onChange={setClientId} label="Client du devis" placeholder="Sélectionner un client…" disabled={pending} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="validUntil">Valide jusqu’au</Label>
@@ -197,7 +191,7 @@ export function QuoteForm({
               <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">TVA</span><span className="font-medium tabular-nums">{formatEuro(totals.totalTvaCents)}</span></div>
               <div className="flex items-end justify-between border-t border-border pt-3"><span className="font-semibold">Total TTC</span><span className="text-xl font-semibold tabular-nums">{formatEuro(totals.totalTtcCents)}</span></div>
             </div>
-            <Button type="submit" disabled={pending} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : quote ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
+            <Button type="submit" disabled={pending || !clientChoices.ready} className="w-full"><Save className="size-4" />{pending ? "Enregistrement…" : quote ? "Enregistrer les modifications" : "Créer le brouillon"}</Button>
           </section>
 
           <section className="rounded-lg border border-border bg-background p-4">

@@ -140,17 +140,6 @@ export async function getClientById(id: string) {
   }, { isolationLevel: "Serializable" }), "crm.read")
 }
 
-export async function getClientsMinimal() {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.client.findMany({
-      where: { companyId },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-      take: 1_000,
-    })
-  })
-}
-
 export async function createClient(data: unknown) {
   return await withAuth(async ({ companyId, userId, role, agencyIds }) => {
     const validated = ClientSchema.parse(data)

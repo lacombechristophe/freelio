@@ -1,6 +1,6 @@
 # Choix Client dans les documents et les affaires
 
-Proposition du 13 octobre 2026, en attente d'accord visible. Après le lot Chantiers, sept pages utilisent encore le catalogue plafonné de `getClientsMinimal()` : création/édition de devis, factures et contrats, ainsi que la page Pipeline. Le [diagnostic de 1 001 clients](evidence/20261013-project-choices/before.json) et le code du lecteur expliquent ce plafond ; aucun parcours compilé de ces sept pages n'est encore qualifié pour le supprimer.
+Lot approuvé le 13 octobre 2026 par le propriétaire. Après le lot Chantiers, sept pages utilisent encore le catalogue plafonné de `getClientsMinimal()` : création/édition de devis, factures et contrats, ainsi que la page Pipeline. Le [diagnostic de 1 001 clients](evidence/20261013-project-choices/before.json) et le code du lecteur expliquent ce plafond ; aucun parcours compilé de ces sept pages n'est encore qualifié pour le supprimer.
 
 La page de création d'un devis vérifie aussi le `clientId` reçu par URL dans ce catalogue tronqué. Un client valide au-delà du plafond ne peut donc pas être préselectionné depuis sa fiche. Les formulaires d'édition conservent un identifiant initial, mais recherchent son libellé dans ce même catalogue. Ces constats sont issus du code, distincts d'une preuve navigateur.
 

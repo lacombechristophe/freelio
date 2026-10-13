@@ -227,10 +227,8 @@ function usePipelineScroll() {
 
 export function PipelineBoard({
   pipeline,
-  clients,
 }: {
   pipeline: Pipeline
-  clients: Array<{ id: string; name: string }>
 }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -377,7 +375,6 @@ export function PipelineBoard({
         onOpenChange={setCreateOpen}
         pipelineId={pipeline?.id ?? ""}
         stages={stages}
-        clients={clients}
         members={members}
       />
       {editTarget && (
@@ -386,7 +383,6 @@ export function PipelineBoard({
           onOpenChange={(o) => !o && setEditTarget(null)}
           pipelineId={pipeline?.id ?? ""}
           stages={stages}
-          clients={clients}
           members={members}
           opportunity={editTarget}
         />

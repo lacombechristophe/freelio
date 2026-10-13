@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ClientChoice, useClientChoices } from "@/components/shared/client-choice"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
@@ -21,6 +22,7 @@ type Opportunity = {
   valueCents: number
   probability: number
   clientId: string
+  client?: { id: string; name: string }
   ownerMembershipId: string | null
   closeDate: string | null
   lostReason: string | null
@@ -30,7 +32,6 @@ export function OpportunityFormDialog({
   opportunity,
   pipelineId,
   stages,
-  clients,
   members,
   open,
   onOpenChange,
@@ -38,7 +39,6 @@ export function OpportunityFormDialog({
   opportunity?: Opportunity
   pipelineId: string
   stages: Array<{ id: string; title: string }>
-  clients: Array<{ id: string; name: string }>
   members: Array<{ id: string; name: string }>
   open: boolean
   onOpenChange: (o: boolean) => void
@@ -55,6 +55,7 @@ export function OpportunityFormDialog({
     closeDate: opportunity?.closeDate ?? "",
     lostReason: opportunity?.lostReason ?? "",
   })
+  const clientChoices = useClientChoices(form.clientId, opportunity?.client, open)
 
   React.useEffect(() => {
     if (!open) return
@@ -72,6 +73,7 @@ export function OpportunityFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (pending || !clientChoices.ready) return
     if (!form.clientId) return toast.error("Sélectionnez un client.")
     setPending(true)
     try {
@@ -120,12 +122,7 @@ export function OpportunityFormDialog({
           </div>
           <div className="space-y-1.5">
             <Label>Client *</Label>
-            <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v ?? "" })}>
-              <SelectTrigger aria-label="Client"><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <ClientChoice choices={clientChoices} onChange={clientId => setForm({ ...form, clientId })} label="Client" disabled={pending} />
           </div>
           <div className="space-y-1.5">
             <Label>Étape</Label>
@@ -179,7 +176,7 @@ export function OpportunityFormDialog({
           ) : null}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
-            <Button type="submit" disabled={pending}>{pending ? "…" : opportunity ? "Enregistrer" : "Créer"}</Button>
+            <Button type="submit" disabled={pending || !clientChoices.ready}>{pending ? "…" : opportunity ? "Enregistrer" : "Créer"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
