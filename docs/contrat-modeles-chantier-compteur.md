@@ -1,6 +1,6 @@
 # Périmètre du compteur de chantiers d'un modèle
 
-Proposition du 13 octobre 2026, en attente d'accord visible. Le diagnostic SQL rattache quatre chantiers au même modèle : un accessible et cohérent, un dans une autre agence, un appartenant à une autre société et un lié à un client étranger. Le lecteur actuel renvoie quatre usages au rôle Opérations limité à une agence.
+Lot approuvé le 13 octobre 2026 par le propriétaire. Le diagnostic SQL rattache quatre chantiers au même modèle : un accessible et cohérent, un dans une autre agence, un appartenant à une autre société et un lié à un client étranger. Le lecteur actuel renvoie quatre usages au rôle Opérations limité à une agence.
 
 Calculer le compteur uniquement sur les chantiers de la société, liés à un client de cette société et aux agences accessibles. Owner/Admin gardent les chantiers cohérents de leur société. Le filtrage précède la réponse serveur. Les quatre lignes historiques restent conservées ; aucune réparation ou réaffectation n'est déduite du modèle.
 

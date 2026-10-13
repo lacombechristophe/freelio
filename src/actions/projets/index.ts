@@ -36,12 +36,20 @@ export async function getProjects(cursor?: string, limit: number = 20) {
 }
 
 export async function getProjectTemplates() {
-  return withAuth(async ({ companyId }) =>
+  return withAuth(async ({ companyId, agencyIds }) =>
     prisma.projectTemplate.findMany({
       where: { companyId },
-      include: { steps: { include: { dependsOnStep: { select: { id: true, title: true } } }, orderBy: { order: "asc" } }, _count: { select: { projects: true } } },
+      include: {
+        steps: { include: { dependsOnStep: { select: { id: true, title: true } } }, orderBy: { order: "asc" } },
+        _count: { select: { projects: { where: {
+          companyId, client: { companyId },
+          ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }),
+          OR: [{ agencyId: null }, { agency: { companyId } }],
+        } } } },
+      },
       orderBy: [{ active: "desc" }, { name: "asc" }],
     }),
+    "operations.read",
   )
 }
 
