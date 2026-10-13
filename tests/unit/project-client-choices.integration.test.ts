@@ -82,7 +82,9 @@ describe.sequential("Project client choices cover the full company with a minima
     const temporary = await prisma.client.create({ data: { companyId, name: "Fictional removed choice" } })
     expect((await getProjectClientChoices({ selectedId: temporary.id })).selected?.id).toBe(temporary.id)
     await prisma.client.delete({ where: { id: temporary.id } })
-    expect((await getProjectClientChoices({ selectedId: temporary.id })).selected).toBeNull()
+    const alternatives = await getProjectClientChoices({ selectedId: temporary.id, search: "Client 0001" })
+    expect(alternatives.selected).toBeNull()
+    expect(alternatives.items).toHaveLength(1); expect(alternatives.items[0].name).toBe("Client 0001")
   })
   it("rechecks active membership before reading choices", async () => {
     await prisma.membership.update({ where: { id: membershipId }, data: { status: "INACTIVE" } })

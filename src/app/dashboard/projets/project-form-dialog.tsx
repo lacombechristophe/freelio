@@ -66,6 +66,7 @@ export function ProjectFormDialog({
   const [clientRevision, setClientRevision] = React.useState(0)
   const [loadingClients, startClientTransition] = React.useTransition()
   const [choices, setChoices] = React.useState<{ key: string; data: ClientChoices | null; error: boolean } | null>(null)
+  const [selectedClient, setSelectedClient] = React.useState<ClientOption | undefined>(project?.client)
   const [form, setForm] = React.useState({
     clientId: project?.clientId ?? "",
     agencyId: project?.agencyId ?? defaultAgencyId,
@@ -84,6 +85,7 @@ export function ProjectFormDialog({
       setClientSearch("")
       setClientPage(1)
       setClientRevision(value => value + 1)
+      setSelectedClient(project?.client)
     }
     if (open && project) {
       setForm({
@@ -109,10 +111,11 @@ export function ProjectFormDialog({
     const timer = setTimeout(() => startClientTransition(async () => {
       try {
         const data = await getProjectClientChoices({ selectedId: form.clientId || undefined, search: clientSearch, page: clientPage })
-        if (!data || (form.clientId && !data.selected)) throw new Error("Client indisponible")
+        if (!data) throw new Error("Liste indisponible")
         if (current) {
           setClientPage(data.page)
           setChoices({ key: JSON.stringify([form.clientId, clientSearch, data.page, clientRevision]), data, error: false })
+          if (data.selected) setSelectedClient(data.selected)
         }
       } catch {
         if (current) setChoices(previous => ({ key: clientKey, data: previous?.data ?? null, error: true }))
@@ -121,11 +124,11 @@ export function ProjectFormDialog({
     return () => { current = false; clearTimeout(timer) }
   }, [open, freshClients, clientKey, form.clientId, clientSearch, clientPage, clientRevision])
   const clientsBusy = loadingClients || !freshClients
-  const clientsError = freshClients && Boolean(choices?.error)
-  const selectedClient: ClientOption | undefined = choices?.data?.selected?.id === form.clientId ? choices.data.selected : choices?.data?.items.find(item => item.id === form.clientId) ?? (project?.client?.id === form.clientId ? project.client : undefined)
-  const clientOptions = freshClients && !clientsError ? choices?.data?.items ?? [] : []
+  const selectedVerified = freshClients && !choices?.error && choices?.data?.selected?.id === form.clientId
+  const clientsError = freshClients && (Boolean(choices?.error) || Boolean(form.clientId && !selectedVerified))
+  const clientOptions = freshClients && !choices?.error ? choices?.data?.items ?? [] : []
   const clients = selectedClient && !clientOptions.some(item => item.id === selectedClient.id) ? [selectedClient, ...clientOptions] : clientOptions
-  const canSave = !pending && !clientsBusy && !clientsError && Boolean(form.clientId && selectedClient)
+  const canSave = !pending && !clientsBusy && !clientsError && Boolean(form.clientId && selectedVerified)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -170,7 +173,10 @@ export function ProjectFormDialog({
           <div className="space-y-1.5">
             <Label>Client *</Label>
             <Input aria-label="Rechercher un client" placeholder="Rechercher un client…" value={clientSearch} maxLength={200} disabled={pending} onChange={event => { setClientSearch(event.target.value); setClientPage(1) }} />
-            <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v ?? "" })} disabled={pending}>
+            <Select value={form.clientId} onValueChange={(v) => {
+              setSelectedClient(clients.find(client => client.id === v))
+              setForm({ ...form, clientId: v ?? "" })
+            }} disabled={pending}>
               <SelectTrigger aria-label="Client du projet">
                 <SelectValue placeholder="Sélectionner un client…" />
               </SelectTrigger>
