@@ -1,0 +1,23 @@
+{
+  "candidate": "8d7b234857d9568621d65b7464b4730f867cea65",
+  "passed": 1,
+  "failed": 3,
+  "cases": [
+    {
+      "title": "already excludes the other tenant and keeps the coherent client",
+      "status": "passed"
+    },
+    {
+      "title": "counts all 151 coherent new leads rather than only the loaded 150",
+      "status": "failed"
+    },
+    {
+      "title": "keeps the oldest coherent lead discoverable in the current locally searched inbox",
+      "status": "failed"
+    },
+    {
+      "title": "does not send unused commercial data to a Technician with CRM but no Sales access",
+      "status": "failed"
+    }
+  ]
+}

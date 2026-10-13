@@ -1,0 +1,23 @@
+{
+  "surfaces": [
+    {
+      "surface": "desktop",
+      "ownLeads": 151,
+      "pageCount": 7,
+      "oldestOnLastPage": true,
+      "optInCount": 1,
+      "proofCount": 0,
+      "passwordVerified": true
+    },
+    {
+      "surface": "mobile",
+      "ownLeads": 151,
+      "pageCount": 7,
+      "oldestOnLastPage": true,
+      "optInCount": 1,
+      "proofCount": 0,
+      "passwordVerified": true
+    }
+  ],
+  "remainingCompanies": 0
+}

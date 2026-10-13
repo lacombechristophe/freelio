@@ -1,12 +1,14 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowUpRight, CheckCircle2, Clock3, Copy, Mail, MapPin, MoreHorizontal, Phone, Search, ShieldCheck, UserRoundSearch } from "lucide-react"
 import { toast } from "sonner"
 
-import { createLeadMarketingWithdrawalLink, updateLeadStatus, withdrawLeadMarketingConsent } from "@/actions/leads"
+import { createLeadMarketingWithdrawalLink, getLeadDashboard, updateLeadStatus, withdrawLeadMarketingConsent } from "@/actions/leads"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -42,14 +44,33 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
   const [isPending, startTransition] = useTransition()
   const [filter, setFilter] = useState("ACTIVE")
   const [query, setQuery] = useState("")
-  const visibleLeads = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("fr")
-    return initialData.leads.filter((lead) => {
-      const matchesStatus = filter === "ALL" || filter === "ACTIVE" && !["ARCHIVED", "SPAM"].includes(lead.status) || lead.status === filter
-      const searchable = [lead.firstName, lead.lastName, lead.email, lead.phone, lead.city, lead.postalCode, lead.projectType, lead.source].filter(Boolean).join(" ").toLocaleLowerCase("fr")
-      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery))
-    })
-  }, [filter, initialData.leads, query])
+  const [page, setPage] = useState(initialData.page)
+  const [retry, setRetry] = useState(0)
+  const [loading, startLookup] = useTransition()
+  const key = JSON.stringify([query, filter, page, retry])
+  const [result, setResult] = useState({ data: initialData, initialData, key, error: false })
+  const fresh = result.key === key && result.initialData === initialData
+  useEffect(() => {
+    if (fresh) return
+    let ignore = false
+    const timer = setTimeout(() => startLookup(async () => {
+      try {
+        const data = await getLeadDashboard({ search: query, status: filter, page })
+        if (!data) throw new Error("Liste indisponible")
+        if (!ignore) {
+          setPage(data.page)
+          setResult({ data, initialData, key: JSON.stringify([query, filter, data.page, retry]), error: false })
+        }
+      } catch {
+        if (!ignore) setResult(previous => ({ ...previous, initialData, key, error: true }))
+      }
+    }), 200)
+    return () => { ignore = true; clearTimeout(timer) }
+  }, [fresh, initialData, key, query, filter, page, retry])
+  const data = result.data
+  const visibleLeads = data.leads
+  const busy = loading || !fresh
+  const mutationDisabled = isPending || busy || result.error || isReadOnlyDemo
 
   function execute(operation: () => Promise<unknown>, success: string) {
     startTransition(async () => {
@@ -83,8 +104,8 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {lead.client ? <DropdownMenuItem onClick={() => router.push(`/dashboard/clients/${lead.client?.id}`)}><ArrowUpRight />Ouvrir le dossier client</DropdownMenuItem> : null}
-          {lead.status === "NEW" ? <DropdownMenuItem disabled={isPending} onClick={() => execute(() => updateLeadStatus(lead.id, "CONTACTED"), "Prospect marqué comme contacté.")}><CheckCircle2 />Marquer contacté</DropdownMenuItem> : null}
-          {lead.marketingOptIn ? <><DropdownMenuSeparator /><DropdownMenuItem disabled={isPending} onClick={() => copyWithdrawalLink(lead.id)}><Copy />Copier le lien de désinscription</DropdownMenuItem><DropdownMenuItem disabled={isPending} onClick={() => execute(() => withdrawLeadMarketingConsent(lead.id), "Opposition marketing enregistrée avec preuve.")}>Retirer le consentement</DropdownMenuItem></> : null}
+          {lead.status === "NEW" ? <DropdownMenuItem demoMutation disabled={mutationDisabled} onClick={() => execute(() => updateLeadStatus(lead.id, "CONTACTED"), "Prospect marqué comme contacté.")}><CheckCircle2 />Marquer contacté</DropdownMenuItem> : null}
+          {lead.marketingOptIn ? <><DropdownMenuSeparator /><DropdownMenuItem demoMutation disabled={mutationDisabled} onClick={() => copyWithdrawalLink(lead.id)}><Copy />Copier le lien de désinscription</DropdownMenuItem><DropdownMenuItem demoMutation disabled={mutationDisabled} onClick={() => execute(() => withdrawLeadMarketingConsent(lead.id), "Opposition marketing enregistrée avec preuve.")}>Retirer le consentement</DropdownMenuItem></> : null}
         </DropdownMenuContent>
       </DropdownMenu>
     )
@@ -94,23 +115,25 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
     <div className="space-y-5">
       <section aria-label="Indicateurs des prospects" className="workspace-metrics overflow-hidden rounded-xl border bg-card">
         <div className="record-metrics grid grid-cols-2 xl:grid-cols-4">
-          <LeadMetric icon={Clock3} label="À traiter" value={initialData.counts.NEW} detail="Rappel attendu sous 48 h" />
-          <LeadMetric icon={Phone} label="Contactés" value={initialData.counts.CONTACTED} detail="Premier échange effectué" />
-          <LeadMetric icon={CheckCircle2} label="Qualifiés" value={initialData.counts.QUALIFIED} detail="Besoin confirmé" />
-          <LeadMetric icon={ShieldCheck} label="Consentements" value={initialData.leads.filter((lead) => lead.marketingOptIn).length} detail="Opt-in marketing actif" />
+          <LeadMetric icon={Clock3} label="À traiter" value={data.counts.NEW} detail="Rappel attendu sous 48 h" />
+          <LeadMetric icon={Phone} label="Contactés" value={data.counts.CONTACTED} detail="Premier échange effectué" />
+          <LeadMetric icon={CheckCircle2} label="Qualifiés" value={data.counts.QUALIFIED} detail="Besoin confirmé" />
+          <LeadMetric icon={ShieldCheck} label="Consentements" value={data.optInCount} detail="Opt-in marketing actif" />
         </div>
       </section>
 
       <div className="workspace-panel flex flex-col gap-3 p-3 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1 lg:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un prospect, une ville, un projet…" aria-label="Rechercher un prospect" className="pl-9" />
+          <Input value={query} maxLength={200} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Rechercher un prospect, une ville, un projet…" aria-label="Rechercher un prospect" className="pl-9" />
         </div>
         <div className="flex items-center gap-3 lg:ml-auto">
-          <span className="text-xs text-muted-foreground" aria-live="polite">{visibleLeads.length} demande{visibleLeads.length > 1 ? "s" : ""}</span>
-          <Select value={filter} onValueChange={(value) => value && setFilter(value)}><SelectTrigger aria-label="Filtrer les prospects" className="w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ACTIVE">À suivre</SelectItem><SelectItem value="ALL">Tous les statuts</SelectItem>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+          <span className="text-xs text-muted-foreground" aria-live="polite">{data.total} demande{data.total > 1 ? "s" : ""}</span>
+          <Select value={filter} onValueChange={(value) => { if (value) { setFilter(value); setPage(1) } }}><SelectTrigger aria-label="Filtrer les prospects" className="w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ACTIVE">À suivre</SelectItem><SelectItem value="ALL">Tous les statuts</SelectItem>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
         </div>
       </div>
+
+      <DirectoryPagination total={data.total} page={page} pending={busy || isPending} error={result.error} onPage={setPage} onRetry={() => setRetry(value => value + 1)} />
 
       {visibleLeads.length ? <>
         <div className="workspace-panel hidden overflow-x-auto md:block">
@@ -122,7 +145,7 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
               <TableCell><div className="flex items-center gap-2"><Badge variant={lead.score >= 60 ? "default" : "outline"}>{lead.score} pts</Badge><span className="text-xs text-muted-foreground">{lead.source}</span></div></TableCell>
               <TableCell><span className="inline-flex items-center gap-1.5 text-xs"><ShieldCheck className="size-3.5 text-muted-foreground" />{lead.marketingOptIn ? "Marketing accepté" : "Service uniquement"}</span></TableCell>
               <TableCell className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</TableCell>
-              <TableCell><Select value={lead.status} disabled={isPending} onValueChange={(value) => value && execute(() => updateLeadStatus(lead.id, value), "Statut du prospect actualisé.")}><SelectTrigger aria-label={`Statut de ${lead.firstName} ${lead.lastName}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></TableCell>
+              <TableCell><Select value={lead.status} disabled={mutationDisabled} onValueChange={(value) => value && execute(() => updateLeadStatus(lead.id, value), "Statut du prospect actualisé.")}><SelectTrigger aria-label={`Statut de ${lead.firstName} ${lead.lastName}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></TableCell>
               <TableCell>{leadActions(lead)}</TableCell>
             </TableRow>)}</TableBody>
           </Table>
@@ -132,7 +155,7 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{lead.firstName} {lead.lastName}</h2><Badge variant={lead.status === "NEW" ? "default" : lead.status === "SPAM" ? "destructive" : "secondary"}>{STATUS_LABELS[lead.status] ?? lead.status}</Badge></div><p className="mt-1 truncate text-sm text-muted-foreground">{lead.projectType || "Projet à qualifier"}</p></div>{leadActions(lead)}</div>
           <div className="mt-4 space-y-2 text-sm text-muted-foreground">{lead.email ? <a className="flex min-h-9 items-center gap-2" href={`mailto:${lead.email}`}><Mail className="size-4" />{lead.email}</a> : null}{lead.phone ? <a className="flex min-h-9 items-center gap-2" href={`tel:${lead.phone}`}><Phone className="size-4" />{lead.phone}</a> : null}{lead.postalCode || lead.city ? <p className="flex min-h-9 items-center gap-2"><MapPin className="size-4" />{[lead.postalCode, lead.city].filter(Boolean).join(" ")}</p> : null}</div>
           {lead.message ? <p className="mt-3 line-clamp-3 rounded-lg bg-muted/50 p-3 text-sm leading-6">{lead.message}</p> : null}
-          <div className="mt-4 flex items-center justify-between gap-3 border-t pt-4"><Badge variant={lead.score >= 60 ? "default" : "outline"}>{lead.score} points</Badge><Select value={lead.status} disabled={isPending} onValueChange={(value) => value && execute(() => updateLeadStatus(lead.id, value), "Statut du prospect actualisé.")}><SelectTrigger aria-label={`Statut de ${lead.firstName} ${lead.lastName}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+          <div className="mt-4 flex items-center justify-between gap-3 border-t pt-4"><Badge variant={lead.score >= 60 ? "default" : "outline"}>{lead.score} points</Badge><Select value={lead.status} disabled={mutationDisabled} onValueChange={(value) => value && execute(() => updateLeadStatus(lead.id, value), "Statut du prospect actualisé.")}><SelectTrigger aria-label={`Statut de ${lead.firstName} ${lead.lastName}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
           {lead.client ? <Link className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3 w-full" })} href={`/dashboard/clients/${lead.client.id}`}><ArrowUpRight />Dossier client</Link> : null}
         </article>)}</div>
       </> : <div className="workspace-panel border-dashed px-6 py-16 text-center"><UserRoundSearch className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Aucun prospect dans cette vue</p><p className="mt-1 text-xs text-muted-foreground">Modifiez la recherche ou attendez une nouvelle demande du site.</p></div>}

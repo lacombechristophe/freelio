@@ -23,6 +23,7 @@ import { seedPortalRelations } from "./seed-portal-relations.mjs"
 import { seedProjectTemplateCount } from "./seed-project-template-count.mjs"
 import { seedDocumentClientChoices } from "./seed-document-client-choices.mjs"
 import { seedPipelineRelations } from "./seed-pipeline-relations.mjs"
+import { seedLeadInbox } from "./seed-lead-inbox.mjs"
 import { seedOrganisationTimeImputation } from "./seed-organisation-time-imputation.mjs"
 import { seedTimeBillingAccounting } from "./seed-time-billing-accounting.mjs"
 import { seedTimeInvoiceRounding } from "./seed-time-invoice-rounding.mjs"
@@ -60,6 +61,7 @@ try {
   await seedProjectTemplateCount(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedDocumentClientChoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedPipelineRelations(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedLeadInbox(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedOrganisationTimeImputation(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeBillingAccounting(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeInvoiceRounding(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))

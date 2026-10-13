@@ -4,13 +4,27 @@
 
 ## Candidat en qualification
 
-Les trois lots Portail, compteur Modèles et choix Client Documents/Affaires sont publiés dans `c5d1191`. Leurs 67 nouveaux cas passent dans les deux rapports PostgreSQL, et l'image Linux réussit. La recette hébergée de ce SHA passe 49 pages/onglets par surface, sans erreur JavaScript ni retry ; elle ne vérifie pas les mutations.
-
-Le navigateur compilé n'est pas qualifié : la branche atteint 378 réussites, 19 exclusions historiques et trois échecs, puis la limite du job. La PR reproduit aussi une recherche saisie avant hydratation et n'achève pas la suite. La [correction documentée](evidence/20261013-document-client-choices/ci-regressions.md) conserve la validation du client manquant et attend l'hydratation avant la saisie, sans retirer d'assertion ni augmenter les délais.
-
-Le [lot Relations des Affaires](evidence/20261013-pipeline-relations/README.md), approuvé ensuite, applique un périmètre commun au Pipeline, aux synthèses et aux actions ordinaires. Les 25 nouveaux cas SQL et 78 contrôles existants passent localement. Le refus attendu est structuré pour conserver sa notification après compilation Next.js. Les deux suites complètes locales atteignent des délais sur des cas préexistants ; leurs rapports et les rejeux isolés restent conservés. La recette complète du nouveau commit reste requise ; les résultats de `19502a6` ne qualifient pas ces changements.
+Le [lot Prospects entrants](evidence/20261013-lead-inbox/README.md), approuvé le 13 octobre, remplace les 150 dernières demandes par une recherche et pagination serveur sur tout le portefeuille. Les cartes portent sur toute la société ; la recherche et le filtre restent conservés lors d'une erreur ou actualisation. Le lecteur ne transmet plus les données commerciales inutilisées par l'écran. Les 36 contrôles SQL passent localement, avec typage, ESLint, Oxlint et vérification des deux fixtures de 151 demandes. Les deux nouveaux parcours compilés sont définis ; leur CI exacte et la lecture hébergée restent requises après publication.
 
 ## Dernier code entièrement qualifié
+
+`8d7b234857d9568621d65b7464b4730f867cea65` ajoute les relations Portail, le compteur Modèles, le choix Client complet Documents/Affaires et les relations cohérentes des Affaires. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38445126803) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38445134947) passent. La branche a nécessité la relance du seul job Linux après un HTTP 429 du registre ECR ; les tests réussis ne sont pas relancés.
+
+| Contrôle | Résultat du candidat 8d7b234 |
+| --- | --- |
+| Types, ESLint, Oxlint et build | Réussis dans les deux CI |
+| SQLite avec couverture | 2 148 tests / 212 fichiers réussis dans chaque CI |
+| PostgreSQL | 2 147 réussis et une exclusion native SQLite ; les 92 nouveaux cas des quatre lots passent sans exclusion |
+| Navigateur compilé | 383 réussis et 19 exclusions historiques dans chaque CI ; les 14 nouveaux parcours passent |
+| Image Linux | Neuf contrôles réussis dans les deux CI, avec les tentatives conservées |
+| Audits de dépendances | Production et complet : zéro vulnérabilité dans chaque CI |
+| Preview de 8d7b234 | 49 pages/onglets par surface, zéro erreur JavaScript, retry ou exclusion |
+
+Les [preuves CI](evidence/20261013-candidate/ci-8d7b234.json), l'[identité du code](evidence/20261013-candidate/source-8d7b234.json) et la [recette hébergée](evidence/20261013-candidate/hosted-8d7b234.json) sont conservées. Les 1 039 entrées Git hors `docs/` correspondent au merge PR testé `658051b044f5f85f86099af7185b4e63b98a5fa4`. Le harnais et l'alias correspondent au déploiement `dpl_7QmFQGtGwKL34vHZPKjS7vPpCTdv`. La lecture hébergée ne qualifie pas les mutations ; celles-ci sont testées séparément dans la recette compilée.
+
+Les [échecs de c5d1191](evidence/20261013-document-client-choices/ci-regressions.md) restent conservés : validation sans client et saisie avant hydratation. Leur correction garde les assertions et délais. Les suites complètes locales précédentes atteignent des délais sur des cas préexistants, tandis que leurs rejeux isolés passent ; ces limites ne sont pas présentées comme un passage local de couverture. Elles sont conservées dans les [preuves Affaires](evidence/20261013-pipeline-relations/README.md).
+
+## Référence précédente
 
 `19502a6c38784c6510aae8df365a2631bcaeb85b` ajoute le choix Client complet des Chantiers, sa reprise après disparition du client et le bouton de facturation des temps désactivé en démo publique. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38405043599) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38405049561) réussissent tous leurs jobs. Les [rapports](evidence/20261013-candidate/ci-19502a6.json) relient les nouveaux cas au merge réellement testé.
 
@@ -63,7 +77,7 @@ Les 19 exclusions historiques du navigateur correspondent à des mutations exéc
 
 - Relier toute nouvelle modification fonctionnelle à sa propre CI et sa propre recette ; les preuves ci-dessus qualifient 19502a6, pas une évolution future.
 - Examiner les sélecteurs et chaînes métier restants du [plan](plan-completude-fonctionnelle-20261002.md), sans confondre liste récente volontairement bornée et portefeuille complet.
-- Les quatre lots approuvés le 13 octobre nécessitent la qualification du candidat corrigé : [relations Portail](evidence/20261013-portal-relations/README.md), [compteur Modèles](evidence/20261013-project-template-count/README.md), [choix Client Documents/Affaires](evidence/20261013-document-client-choices/README.md) et [relations des Affaires](evidence/20261013-pipeline-relations/README.md). Leurs 31, 12, 24 et 25 cas SQL passent localement ; les 14 nouveaux parcours compilés doivent passer ensemble avec les contrôles existants. Les résultats de `19502a6` et les lectures hébergées ne qualifient pas leurs mutations.
+- Le nouveau lot [Prospects entrants](evidence/20261013-lead-inbox/README.md) doit réussir sa propre CI et sa propre recette hébergée. Les 36 cas SQL locaux et fixtures ne prouvent pas l'exécution des deux parcours compilés. Les résultats de `8d7b234` ne qualifient pas cette nouvelle évolution.
 - Qualifier stockage persistant, comptes fournisseurs, délivrabilité, charge et reprise après arrêt brutal avant usage commercial. Le budget actuel reste de 0 €.
 
 L'[historique de qualification](historique-qualification-candidat-20261010.md) conserve les références antérieures et leurs échecs. Les [preuves du socle](execution-cto-20261001.md) et la [recette hébergée sans stockage](qualification-demo-sans-stockage-20261010.md) restent datées. Aucun compteur de tests, rendu de démo ou ancien déploiement ne certifie tout le logiciel.

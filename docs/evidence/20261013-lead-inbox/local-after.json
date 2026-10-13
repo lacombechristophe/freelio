@@ -1,0 +1,152 @@
+{
+  "baseline": "8d7b234857d9568621d65b7464b4730f867cea65",
+  "database": "isolated fictional SQLite",
+  "passed": 36,
+  "failed": 0,
+  "cases": [
+    {
+      "title": "complete incoming lead inbox on real SQL paginates all 151 coherent leads and reaches the oldest without duplicates",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters ACTIVE across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters ALL across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters NEW across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters CONTACTED across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters QUALIFIED across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters ARCHIVED across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL filters SPAM across the complete portfolio",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through oldest without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through portfolio marker without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through oldest-inbox@example.test without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through 0102030405 without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through paris without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through 75001 without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through couverture without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds the oldest through old_source without changing the global indicators",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL finds a full name across its two fields",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for ADMIN",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for SALES",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for OPERATIONS",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for SERVICE",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps CRM reads scoped and omits unused commercial data for VIEWER",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rejects invalid input before business queries: {\"page\":0}",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rejects invalid input before business queries: {\"page\":1.5}",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rejects invalid input before business queries: {\"page\":100001}",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rejects invalid input before business queries: {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rejects invalid input before business queries: {\"status\":\"INVALID\"}",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rejects invalid input before business queries: {\"companyId\":\"override\"}",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL clamps an obsolete page and returns a valid empty page for an unmatched search",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL uses a stable ID order when identical timestamps cross a page boundary",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL updates global cards and the filtered result after the oldest lead changes status",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL rechecks membership before reading the inbox",
+      "status": "passed"
+    },
+    {
+      "title": "complete incoming lead inbox on real SQL keeps public demo reads while rejecting a status write before mutations",
+      "status": "passed"
+    }
+  ]
+}
