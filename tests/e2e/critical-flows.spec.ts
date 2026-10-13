@@ -1400,7 +1400,7 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await openOperationComposer(page)
   await operationType.click()
   await page.getByRole("option", { name: "Contrat d’entretien" }).click()
-  await page.getByLabel("Client").selectOption({ label: "Client QA Piscine" })
+  await page.locator("select#clientId").selectOption({ label: "Client QA Piscine" })
   await page.locator("select#siteId").selectOption({ label: "Client QA Piscine · Bassin QA" })
   await page.getByLabel("Libellé du contrat").fill("Entretien annuel couverture QA")
   await page.getByLabel("Équipement couvert").selectOption({ label: "Client QA Piscine · Couverture QA installée" })

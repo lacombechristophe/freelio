@@ -1,0 +1,339 @@
+{
+  "passed": 77,
+  "failed": 0,
+  "pending": 0,
+  "suites": [
+    {
+      "file": "document-client-choices.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions reaches all 1001 choices once, with a stable order and only id/name",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions searches beyond the former ceiling and separately verifies a choice outside the query",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions clamps pages and orders equal names by id without duplicates",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for OWNER",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for ADMIN",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for SALES",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for SERVICE",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for VIEWER",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps replacement choices when the selected client was deleted",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions checks membership before reading the directory",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"page\":0}",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"page\":1.5}",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"page\":100001}",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"selectedId\":\"\"}",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"companyId\":\"foreign\"}",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions creates and edits all four resources using the last choice for OWNER",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions creates and edits all four resources using the last choice for ADMIN",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions revalidates a foreign choice in all four create actions without audit",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions does not turn shared choice access into Viewer write access",
+          "status": "passed"
+        },
+        {
+          "fullName": "Document and opportunity client choices cover the company without changing write permissions keeps all choices readable but all four writes forbidden in public demo mode",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "operations-client-choices.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "fullName": "Operations complete client choices on real SQL reaches all 501 clients by stable pages and keeps the last selection outside the page",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for OWNER",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for ADMIN",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for SALES",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for SERVICE",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL preserves company-shared minimal choices for VIEWER",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL omits the unused bounded client payload from the Operations dashboard",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL creates site with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL creates ticket with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL creates maintenance with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL creates order with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL rejects a foreign client for site before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL rejects a foreign client for ticket before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL rejects a foreign client for maintenance before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL rejects a foreign client for order before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps site writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps ticket writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps maintenance writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps order writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps site writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps ticket writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps maintenance writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL keeps order writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL offers a replacement after a selected client disappears",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations complete client choices on real SQL rejects revoked membership before any directory query",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "operations-order-finance.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'invoices' for 'TECHNICIAN' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'count' for 'TECHNICIAN' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'status' for 'TECHNICIAN' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'invoices' for 'OPERATIONS' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'count' for 'OPERATIONS' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'status' for 'OPERATIONS' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'invoices' for 'SERVICE' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'count' for 'SERVICE' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL excludes 'status' for 'SERVICE' without Finance",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL preserves Finance metadata and billing availability for OWNER",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL preserves Finance metadata and billing availability for ADMIN",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL preserves Finance metadata and billing availability for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL preserves Finance reads without billing commands for Viewer",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL reevaluates a role change in the same session",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL does not offer billing in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations order billing permissions on real SQL removes the order after agency access is revoked",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "supplier-read-scope.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads reads a shared supplier without exposing the other agency's stock or orders",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads keeps the same stock boundary in the operations dashboard",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads calculates catalogue availability only from permitted warehouses",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads does not disclose an inaccessible warehouse in the product detail",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads preserves the company-wide supplier view for OWNER",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads preserves the company-wide supplier view for ADMIN",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads rechecks agency revocation with the same session",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads keeps the same agency restriction in public demo",
+          "status": "passed"
+        },
+        {
+          "fullName": "supplier detail retains the current agency boundary on nested reads refuses a foreign supplier and a revoked membership",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

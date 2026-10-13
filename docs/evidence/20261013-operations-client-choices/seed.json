@@ -1,0 +1,70 @@
+{
+  "database": "isolated SQLite functional.db",
+  "fixtures": [
+    {
+      "kind": "site",
+      "surface": "desktop",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "ticket",
+      "surface": "desktop",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "maintenance",
+      "surface": "desktop",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "order",
+      "surface": "desktop",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "site",
+      "surface": "mobile",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "ticket",
+      "surface": "mobile",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "maintenance",
+      "surface": "mobile",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "kind": "order",
+      "surface": "mobile",
+      "clients": 501,
+      "pages": 21,
+      "lastClientAndSiteCoherent": true,
+      "passwordVerified": true
+    }
+  ],
+  "remainingCompanies": 0
+}

@@ -518,7 +518,6 @@ export async function getOperationsDashboard() {
     const now = new Date()
     const [
       agencies,
-      clients,
       sites,
       products,
       warehouses,
@@ -540,7 +539,6 @@ export async function getOperationsDashboard() {
         select: { id: true, code: true, name: true, isDefault: true },
         orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       }),
-      prisma.client.findMany({ where: { companyId }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 500 }),
       prisma.customerSite.findMany({
         where: { companyId },
         include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } },
@@ -686,7 +684,6 @@ export async function getOperationsDashboard() {
       timeZone: company.serviceTimezone,
       tomorrowStart: calendarPeriods(now, company.serviceTimezone).tomorrowStart.toISOString(),
       agencies,
-      clients,
       sites,
       products,
       warehouses,

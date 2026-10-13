@@ -1,0 +1,43 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getOperationsDashboard } from "@/actions/operations"
+describe.sequential("Operations selector boundary diagnostic on isolated SQL", () => {
+  let foreignCompanyId: string, lastClientId: string, lastProductId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional Operations selector diagnostic" } })).id
+    foreignCompanyId = (await prisma.company.create({ data: { name: "Foreign fictional selector diagnostic" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `ops-selector-${randomUUID()}@example.test` } })).id
+    await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+    lastClientId = `c${randomUUID().replaceAll("-", "")}`
+    lastProductId = `c${randomUUID().replaceAll("-", "")}`
+    await prisma.client.createMany({ data: Array.from({ length: 501 }, (_, i) => ({ ...(i === 500 ? {id: lastClientId} : {}), companyId: session.companyId, name: `Fictional client ${String(i).padStart(3,"0")}` })) })
+    await prisma.product.createMany({ data: Array.from({ length: 501 }, (_, i) => ({ ...(i === 500 ? {id: lastProductId} : {}), companyId: session.companyId, sku: `FICTIONAL-${i}`, label: `Fictional product ${String(i).padStart(3,"0")}` })) })
+    await prisma.client.create({ data: {companyId: foreignCompanyId, name: "FOREIGN-SELECTOR-CLIENT"} })
+    await prisma.product.create({ data: {companyId: foreignCompanyId, sku: "FOREIGN", label: "FOREIGN-SELECTOR-PRODUCT"} })
+  })
+  afterAll(async () => {
+    const scope = { companyId: {in: [session.companyId, foreignCompanyId]} }
+    await prisma.product.deleteMany({where: scope})
+    await prisma.client.deleteMany({where: scope})
+    await prisma.company.deleteMany({where: {id: {in: [session.companyId, foreignCompanyId]}}})
+    await prisma.user.deleteMany({where: {id: session.userId}})
+  })
+  it("keeps client and product choices scoped to the current company", async () => {
+    const data = await getOperationsDashboard()
+    expect(data.clients.every(row => row.name !== "FOREIGN-SELECTOR-CLIENT")).toBe(true)
+    expect(data.products.every(row => row.label !== "FOREIGN-SELECTOR-PRODUCT")).toBe(true)
+  })
+  it("offers the 501st coherent client to the existing creation forms", async () => {
+    expect(await prisma.client.count({where: {companyId: session.companyId}})).toBe(501)
+    expect((await getOperationsDashboard()).clients.some(row => row.id === lastClientId)).toBe(true)
+  })
+  it("offers the 501st active product to the existing creation forms", async () => {
+    expect(await prisma.product.count({where: {companyId: session.companyId, active: true}})).toBe(501)
+    expect((await getOperationsDashboard()).products.some(row => row.id === lastProductId)).toBe(true)
+  })
+})

@@ -15,3 +15,7 @@ npx vitest run tests/unit/lead-inbox.integration.test.ts
 ```
 
 Utiliser une base neuve de recette : les tests et fixtures créent et suppriment uniquement leurs données fictives. Aucun envoi ni appel métier fournisseur.
+
+## Qualification publiée
+
+Le candidat ffee948 est qualifié dans les deux CI (branche 38453450025 et PR 38453459048) : 2 184 tests SQLite, 2 183 PostgreSQL et une exclusion native SQLite, 385 parcours compilés et 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité. Les 36 cas de ce lot et ses deux parcours ordinateur/mobile passent sans exclusion. La preview correspondante parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ni exclusion. Les rapports [CI](../20261013-candidate/ci-ffee948.json), [code](../20261013-candidate/source-ffee948.json) et [hébergement](../20261013-candidate/hosted-ffee948.json) identifient les versions exécutées.

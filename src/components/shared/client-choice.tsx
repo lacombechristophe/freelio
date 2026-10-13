@@ -13,6 +13,7 @@ export function useClientChoices(value: string, initialSelected?: ClientOption, 
   const [search, setSearch] = React.useState("")
   const [page, setPage] = React.useState(1)
   const [revision, setRevision] = React.useState(0)
+  const retry = React.useCallback(() => setRevision(current => current + 1), [])
   const [loading, startTransition] = React.useTransition()
   const [lookup, setLookup] = React.useState<{ key: string; data: Choices | null; error: boolean } | null>(null)
   const [selected, setSelected] = React.useState(initialSelected)
@@ -55,7 +56,7 @@ export function useClientChoices(value: string, initialSelected?: ClientOption, 
     total: lookup?.data?.total ?? 0,
     searchFor: (query: string) => { setSearch(query); setPage(1) },
     goToPage: setPage,
-    retry: () => setRevision(current => current + 1),
+    retry,
     remember: (id: string) => setSelected(options.find(item => item.id === id)),
   }
 }
