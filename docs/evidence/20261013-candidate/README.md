@@ -1,4 +1,12 @@
-# Candidat a055d65
+# Candidat 12d3aa7
+
+Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38394310079) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38394315597) sont vertes : 2 030 tests SQLite, 2 029 PostgreSQL et une exclusion native SQLite ; 363 E2E et 19 exclusions historiques dans chaque run ; neuf contrôles Linux et deux audits sans vulnérabilité. Le [rapport](ci-12d3aa7.json) conserve les 21 nouveaux cas de version initiale et les deux parcours compilés de refus, saisie conservée et réussite après rechargement. Le test de fin de tâche d'Organisation passe aussi dans les deux runs.
+
+L'[identité du code](source-12d3aa7.json) confirme 1 021 entrées hors documentation identiques au merge réellement testé. La [recette hébergée](hosted-12d3aa7.json) visite 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion ; harnais et alias sont vérifiés. Le [scan de publication](publication-12d3aa7.json) examine les signatures connues dans les sources et 3 734 objets Git, sans découverte. Ce sont des contrôles de démonstration fictive ; aucun compte fournisseur réel, stockage durable ou usage commercial n'est qualifié.
+
+La qualification du choix Client Chantiers approuvé ensuite reste distincte. Le [compteur de modèle](../../contrat-modeles-chantier-compteur.md) attend encore son accord visible.
+
+## Référence antérieure a055d65
 
 Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38321815498) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38321819239) passent tous leurs jobs. Le [rapport](ci-a055d65.json) conserve SHA, parents, Node, identités des artefacts, neuf contrôles Linux et cas récents :
 
