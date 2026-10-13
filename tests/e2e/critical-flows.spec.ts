@@ -1235,7 +1235,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await page.getByRole("option", { name: "Réservation de stock" }).click()
   await expect(operationType).toContainText("Réservation de stock")
   await page.getByLabel("Dépôt").selectOption({ label: "Dépôt QA" })
-  await page.getByLabel("Produit").selectOption({ label: "QA-COVER · Couverture de test" })
+  await page.locator("select#productId").selectOption({ label: "QA-COVER · Couverture de test" })
   await page.getByLabel("Commande client").selectOption({ index: 1 })
   await page.getByLabel("Quantité").fill("1")
   await page.locator('[data-slot="card"]').filter({ has: page.getByRole("combobox", { name: "Type d’opération", exact: true }) }).getByRole("button", { name: "Enregistrer", exact: true }).click()

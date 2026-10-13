@@ -22,3 +22,7 @@ Ces huit cas ne sont pas encore exécutés à la date de ce rapport local. La CI
 ## Limites conservées
 
 Le choix Produit reste limité à 500 dans le tableau de bord, y compris pour le stock ; ce défaut est reproduit mais n'est pas corrigé par ce lot Client. Les autres choix bornés (sites, équipements, chantiers, commandes et dépôts) et les indicateurs doivent être qualifiés séparément. Il n'y a ni nouvelle preuve de consentement ni qualification d'un fournisseur réel, d'un stockage persistant, de la charge ou de la reprise après arrêt brutal.
+
+## Qualification publiée
+
+Le candidat d36a38d est qualifié dans les deux CI : 2 212 tests SQLite, 2 211 PostgreSQL et une exclusion native SQLite, 393 parcours compilés et 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité. Les 28 cas Client et les huit nouveaux parcours ordinateur/mobile passent sans exclusion. Sa preview parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ni exclusion. Les rapports [CI](../20261013-candidate/ci-d36a38d.json), [code](../20261013-candidate/source-d36a38d.json) et [hébergement](../20261013-candidate/hosted-d36a38d.json) relient les preuves à leurs versions exécutées.

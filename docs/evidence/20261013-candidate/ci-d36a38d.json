@@ -1,0 +1,736 @@
+{
+  "schema": "freelio.task-time-ci.v1",
+  "candidate": "d36a38df8943f4911e09e62d76fe759db85c759e",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 1045,
+    "sha256": "ca685c14d634c22a346d7e38646203288e8d08356e53ff151ea8e15993e5f5dc"
+  },
+  "projection": "Complete totals, focused SQL suite aggregates, corresponding browser cases, all exclusions, audits and Linux provenance. Original PostgreSQL report digests and GitHub runs identify complete reports.",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38458527241",
+      "conclusion": "success",
+      "testedCommit": "d36a38df8943f4911e09e62d76fe759db85c759e",
+      "attempts": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115507364038,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115507364463,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 115507364725,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "parents": [
+        "ed25947aeabc3d987adae3853c6e3d8724275a23"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115507364038,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115507364463,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 115507364725,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11845456555,
+        "reportSha256": "2c04e367ab677dd907dfc65157061bf06b77750e2df52671e1d8e7cd199ce9aa",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "rate-limited"
+              },
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 2,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "postgres": {
+        "artifactId": 11844966889,
+        "reportSha256": "93598562667ad8ed23cf8bad0fa0eaf0fbafa0444b9a0f7b3d65d86f6b31a42e",
+        "passed": 2211,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "document-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "lead-inbox.integration.test.ts",
+            "status": "passed",
+            "passed": 36,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "operations-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "pipeline-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "portal-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 31,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "project-template-count.integration.test.ts",
+            "status": "passed",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.3
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.2
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.4
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.3
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "desktop",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 7.4
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.5
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "desktop",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 3.3
+          },
+          {
+            "file": "portal-relations",
+            "surface": "desktop",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.757
+          },
+          {
+            "file": "project-template-count",
+            "surface": "desktop",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 1.6
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.3
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.2
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.8
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.1
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "mobile",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 6.8
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.5
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "mobile",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 3.1
+          },
+          {
+            "file": "portal-relations",
+            "surface": "mobile",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.758
+          },
+          {
+            "file": "project-template-count",
+            "surface": "mobile",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 1.6
+          }
+        ],
+        "skippedCases": [
+          "-  176 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  254 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  255 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  257 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  258 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  259 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  260 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  261 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  262 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  263 [mobile] › tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  264 [mobile] › tests/e2e/critical-flows.spec.ts:1145:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  265 [mobile] › tests/e2e/critical-flows.spec.ts:1272:5 › field report and maintenance contract flow",
+          "-  266 [mobile] › tests/e2e/critical-flows.spec.ts:1480:5 › creates a structured amendment without altering the signed source contract",
+          "-  267 [mobile] › tests/e2e/critical-flows.spec.ts:1538:5 › scores prospects and exposes the communication center",
+          "-  268 [mobile] › tests/e2e/critical-flows.spec.ts:1555:5 › shares a revocable client portal with messages and appointments",
+          "-  269 [mobile] › tests/e2e/critical-flows.spec.ts:1608:5 › creates and signs in a production account with a password",
+          "-  344 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  381 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  405 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "failures": [],
+        "totals": [
+          "19 skipped",
+          "393 passed (23.6m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  214 passed (214)",
+        "Tests  2212 passed (2212)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38458533156",
+      "conclusion": "success",
+      "testedCommit": "c18a42fc12734db8b09c70c7758e464f5ddd0cf2",
+      "attempts": [
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115507385040,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115507385388,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 115507385403,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "d36a38df8943f4911e09e62d76fe759db85c759e"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115507385040,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115507385388,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 115507385403,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11844004051,
+        "reportSha256": "56d8afb81f84796458f1c6d79e48f89f6c20dccdf612775d1c0a99494080cd7e",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "postgres": {
+        "artifactId": 11845491630,
+        "reportSha256": "e6ae249625add7096efe176fef5fbbbaf5b586bc47c4d244c1d33d0af84a0962",
+        "passed": 2211,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "document-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "lead-inbox.integration.test.ts",
+            "status": "passed",
+            "passed": 36,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "operations-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "pipeline-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "portal-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 31,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "project-template-count.integration.test.ts",
+            "status": "passed",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.9
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.5
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7.3
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "desktop",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 7.9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "desktop",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 4
+          },
+          {
+            "file": "portal-relations",
+            "surface": "desktop",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.9540000000000001
+          },
+          {
+            "file": "project-template-count",
+            "surface": "desktop",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 2.3
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7.4
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7.3
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.7
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "mobile",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 9.1
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.8
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "mobile",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 3.8
+          },
+          {
+            "file": "portal-relations",
+            "surface": "mobile",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.999
+          },
+          {
+            "file": "project-template-count",
+            "surface": "mobile",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 2
+          }
+        ],
+        "skippedCases": [
+          "-  176 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  254 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  255 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  257 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  258 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  259 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  260 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  261 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  262 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  263 [mobile] › tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  264 [mobile] › tests/e2e/critical-flows.spec.ts:1145:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  265 [mobile] › tests/e2e/critical-flows.spec.ts:1272:5 › field report and maintenance contract flow",
+          "-  266 [mobile] › tests/e2e/critical-flows.spec.ts:1480:5 › creates a structured amendment without altering the signed source contract",
+          "-  267 [mobile] › tests/e2e/critical-flows.spec.ts:1538:5 › scores prospects and exposes the communication center",
+          "-  268 [mobile] › tests/e2e/critical-flows.spec.ts:1555:5 › shares a revocable client portal with messages and appointments",
+          "-  269 [mobile] › tests/e2e/critical-flows.spec.ts:1608:5 › creates and signs in a production account with a password",
+          "-  344 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  381 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  405 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "failures": [],
+        "totals": [
+          "19 skipped",
+          "393 passed (27.6m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  214 passed (214)",
+        "Tests  2212 passed (2212)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    }
+  ],
+  "logExtraction": "SQLite, browser and audit summaries are taken only from quality-and-e2e job payloads. PostgreSQL uses its separate JSON artifact.",
+  "limits": [
+    "Fictitious isolated recipe; no real provider or hosted commercial qualification.",
+    "Historical browser exclusions and native SQLite-only PostgreSQL exclusion retained.",
+    "Image availability, provider integrations, load and disaster recovery are not guaranteed by this recipe."
+  ]
+}

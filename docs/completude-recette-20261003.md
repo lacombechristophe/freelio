@@ -4,9 +4,26 @@
 
 ## Candidat en qualification
 
-Le [choix Client des créations Opérations](evidence/20261013-operations-client-choices/README.md), approuvé le 13 octobre, complète Site, Ticket SAV, Contrat d'entretien et Commande client. Il conserve le sélecteur natif, les autres saisies et une sélection vérifiée hors page. Les 28 nouveaux cas SQL passent localement (77 cas ciblés au total), ainsi que types, ESLint, Oxlint et les huit fixtures. Les huit parcours compilés sont définis ; leur CI exacte et la lecture hébergée restent requises après publication. Le choix Produit borné à 500 est reproduit et reste un lot séparé.
+Le [choix Produit des opérations](evidence/20261013-operations-product-choices/README.md), approuvé le 13 octobre, complète les cinq créations Équipement, Mouvement, Transfert, Commande et Réservation, ainsi que Matériel utilisé en intervention. Le lecteur ne retourne que référence, libellé et identifiant. Les selects natifs, les quantités/prix et les autres rattachements sont conservés ; sélection hors page, panne et choix disparu sont gérés. Les 46 nouveaux cas SQL passent localement (74 ciblés au total), ainsi que types, ESLint, Oxlint et vérification des douze fixtures. Les douze parcours compilés sont définis ; leur CI exacte et la lecture hébergée restent requises après publication. Tableau et indicateurs de stock restent un périmètre séparé, encore borné.
 
 ## Dernier code entièrement qualifié
+
+`d36a38df8943f4911e09e62d76fe759db85c759e` complète les quatre choix Client d'Opérations, avec vérification de la sélection et conservation de la saisie. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38458527241) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38458533156) passent entièrement à leur première tentative.
+
+| Contrôle | Résultat du candidat d36a38d |
+| --- | --- |
+| Types, ESLint, Oxlint et build | Réussis dans les deux CI |
+| SQLite avec couverture | 2 212 tests / 214 fichiers réussis dans chaque CI |
+| PostgreSQL | 2 211 réussis et une exclusion native SQLite ; les 28 nouveaux cas Client passent sans exclusion |
+| Navigateur compilé | 393 réussis et 19 exclusions historiques dans chaque CI ; les huit nouveaux parcours Client passent |
+| Image Linux | Neuf contrôles réussis dans les deux CI |
+| Audits de dépendances | Production et complet : zéro vulnérabilité dans chaque CI |
+| Preview de d36a38d | 49 pages/onglets par surface, zéro erreur JavaScript, retry ou exclusion |
+
+Les [preuves CI](evidence/20261013-candidate/ci-d36a38d.json), l'[identité du code](evidence/20261013-candidate/source-d36a38d.json) et la [recette hébergée](evidence/20261013-candidate/hosted-d36a38d.json) sont conservées. Les 1 045 entrées Git hors `docs/` correspondent au merge PR testé `c18a42fc12734db8b09c70c7758e464f5ddd0cf2`. Harnais et alias correspondent au déploiement `dpl_3FaE77dujpx91xCingPgmEPWF9CY`. Les mutations sont qualifiées séparément sur la recette compilée, pas par la consultation hébergée. Le budget global du job est porté de 35 à 45 minutes ; les délais individuels des tests et seuils d'audit restent conservés. La suite navigateur dure 23,6 minutes sur la branche et 27,6 minutes sur la PR ; ce résultat ne prouve aucun test de charge.
+
+## Référence précédente : Prospects entrants
+
 
 `ffee948bb39d2efcd48d879fb67bd027f057e42e` complète la boîte des prospects entrants : recherche et statut sur toute la société, pages de 25, cartes complètes et suppression du payload commercial inutilisé. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38453450025) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38453459048) passent entièrement à leur première tentative.
 
@@ -94,7 +111,7 @@ Les 19 exclusions historiques du navigateur correspondent à des mutations exéc
 
 - Relier toute nouvelle modification fonctionnelle à sa propre CI et sa propre recette ; les preuves ci-dessus qualifient 19502a6, pas une évolution future.
 - Examiner les sélecteurs et chaînes métier restants du [plan](plan-completude-fonctionnelle-20261002.md), sans confondre liste récente volontairement bornée et portefeuille complet.
-- Le nouveau lot [choix Client Opérations](evidence/20261013-operations-client-choices/README.md) doit réussir sa propre CI et sa propre recette hébergée. Ses 28 cas SQL locaux et ses fixtures ne prouvent pas les huit parcours compilés ; les résultats de `ffee948` ne qualifient pas cette nouvelle évolution.
+- Le nouveau lot [choix Produit Opérations](evidence/20261013-operations-product-choices/README.md) doit réussir sa propre CI et sa propre recette hébergée. Ses 46 cas SQL locaux et ses fixtures ne prouvent pas les douze parcours compilés ; les résultats de `d36a38d` ne qualifient pas cette nouvelle évolution.
 - Qualifier stockage persistant, comptes fournisseurs, délivrabilité, charge et reprise après arrêt brutal avant usage commercial. Le budget actuel reste de 0 €.
 
 L'[historique de qualification](historique-qualification-candidat-20261010.md) conserve les références antérieures et leurs échecs. Les [preuves du socle](execution-cto-20261001.md) et la [recette hébergée sans stockage](qualification-demo-sans-stockage-20261010.md) restent datées. Aucun compteur de tests, rendu de démo ou ancien déploiement ne certifie tout le logiciel.
