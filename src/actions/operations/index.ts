@@ -20,7 +20,7 @@ import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTa
 import { hasPermission } from "@/lib/permissions"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
-import { inventoryReadWhere } from "@/lib/agency-access"
+import { readStockDirectory } from "@/lib/operations/stock-directory"
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
@@ -519,6 +519,7 @@ export async function getOperationsDashboard() {
     const [
       agencies,
       sites,
+      stock,
       products,
       warehouses,
       purchaseOrders,
@@ -545,12 +546,8 @@ export async function getOperationsDashboard() {
         orderBy: { updatedAt: "desc" },
         take: 100,
       }),
-      prisma.product.findMany({
-        where: { companyId, active: true },
-        include: { supplier: { select: { name: true } }, inventoryItems: { where: inventoryReadWhere(companyId, agencyIds), select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
-        orderBy: { label: "asc" },
-        take: 500,
-      }),
+      readStockDirectory(companyId, agencyIds, { search: "", page: 1 }),
+      prisma.product.findMany({ where: { companyId, active: true }, select: { id: true, sku: true, label: true, purchasePriceCents: true }, orderBy: { label: "asc" }, take: 500 }),
       prisma.warehouse.findMany({
         where: { companyId, active: true },
         include: { inventoryItems: { include: { product: { select: { label: true, sku: true } } } } },
@@ -685,6 +682,7 @@ export async function getOperationsDashboard() {
       tomorrowStart: calendarPeriods(now, company.serviceTimezone).tomorrowStart.toISOString(),
       agencies,
       sites,
+      stock,
       products,
       warehouses,
       purchaseOrders,

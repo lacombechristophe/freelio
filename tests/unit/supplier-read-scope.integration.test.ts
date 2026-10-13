@@ -58,7 +58,7 @@ describe.sequential("supplier detail retains the current agency boundary on nest
   })
   it("keeps the same stock boundary in the operations dashboard", async () => {
     const dashboard = await getOperationsDashboard()
-    expect(dashboard.products.find(row => row.id === productId)?.inventoryItems.map(row => row.quantity)).toEqual([2])
+    expect(dashboard.stock.items.find(row => row.id === productId)?.available).toBe(2)
   })
   it("calculates catalogue availability only from permitted warehouses", async () => {
     const catalogue = await getProductCatalogue()
@@ -85,7 +85,7 @@ describe.sequential("supplier detail retains the current agency boundary on nest
     expect(supplier?.supplierReturns.items).toEqual([])
     expect((await getProductCatalogue()).products.find(row => row.id === productId)?.availableQuantity).toBe(0)
     expect((await getProductDetail(productId))?.product.inventoryItems).toEqual([])
-    expect((await getOperationsDashboard()).products.find(row => row.id === productId)?.inventoryItems).toEqual([])
+    expect((await getOperationsDashboard()).stock.items.find(row => row.id === productId)?.available).toBe(0)
   })
   it("keeps the same agency restriction in public demo", async () => {
     vi.stubEnv("DEMO_ACCESS_MODE", "readonly")

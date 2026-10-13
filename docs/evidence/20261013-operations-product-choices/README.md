@@ -17,8 +17,12 @@ operations-product-choices.spec.ts définit douze parcours compilés : recherche
 
 ## Périmètre conservé
 
-Le tableau de bord et le tableau de stock utilisent encore leur chargement Produit borné à 500. Les cartes/indicateurs de stock et les autres sélecteurs sont des lots distincts. Le lecteur minimal ne qualifie pas globalement toutes les relations ou tout le cycle de vie Produit. Pas de fournisseur réel, de mouvement hors recette, d'envoi, de stockage persistant, de charge ou de reprise après arrêt brutal qualifié par ces tests.
+À la publication de ca6f6fb, le tableau de bord et le tableau de stock utilisent encore leur chargement Produit borné à 500. Le [lot Stock suivant](../20261013-operations-stock-directory/README.md) traite ce périmètre séparément ; les autres sélecteurs restent distincts. Le lecteur minimal ne qualifie pas globalement toutes les relations ou tout le cycle de vie Produit. Pas de fournisseur réel, de mouvement hors recette, d'envoi, de stockage persistant, de charge ou de reprise après arrêt brutal qualifié par ces tests.
 
 ## Première exécution des parcours compilés
 
 Les douze nouveaux parcours Produit passent dans les deux CI de ca6f6fb. La qualification complète reste rouge : deux parcours Client ne distinguent pas les deux paginations de la commande. Le [rapport de régression](ci-regressions.md) conserve ces échecs et la correction de périmètre des locators, sans assertion ni délai retiré. Ce passage des seuls parcours Produit ne vaut pas qualification globale du candidat.
+
+## Qualification complète après correction des locators Client
+
+bfe5d6b passe les deux CI entièrement : 2 258 SQLite, 2 257 PostgreSQL et une exclusion native SQLite, 405 parcours navigateur et 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité dans chaque run. Les 46 cas Produit et douze parcours ordinateur/mobile passent sans exclusion ; les huit parcours Client sont conservés. La preview exacte parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion. Les [preuves](../20261013-candidate/ci-bfe5d6b.json), l'[identité du merge](../20261013-candidate/source-bfe5d6b.json) et la [lecture hébergée](../20261013-candidate/hosted-bfe5d6b.json) sont distinctes.
