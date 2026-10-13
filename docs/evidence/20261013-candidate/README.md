@@ -1,4 +1,12 @@
-# Candidat 12d3aa7
+# Candidat 19502a6
+
+Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38405043599) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38405049561) sont vertes : 2 056 SQLite, 2 055 PostgreSQL et une exclusion native SQLite ; 369 E2E et 19 exclusions historiques dans chaque run ; neuf contrôles Linux et deux audits sans vulnérabilité. Le [rapport](ci-19502a6.json) conserve les 26 cas SQL de choix Client et ses six E2E ordinateur/mobile, dont remplacement d'un client supprimé sans perte du formulaire.
+
+L'[identité du code](source-19502a6.json) confirme 1 024 entrées hors documentation identiques au merge réellement testé. La [recette hébergée](hosted-19502a6.json) passe 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion ; harnais et alias sont vérifiés. Le [scan de publication](publication-19502a6.json) examine les signatures connues dans les sources et 3 763 objets Git, sans découverte. Ces preuves ne qualifient pas les fournisseurs réels, le stockage durable, la charge ou un usage commercial.
+
+Le compteur de modèle Chantiers et le [choix Client des autres formulaires](../../contrat-choix-clients-documents-affaires.md) restent des propositions nécessitant leur accord visible. Les [preuves Chantiers](../20261013-project-client-choices/README.md) conservent le timeout local du chargement lint, sa relance séparée et la qualification intermédiaire de 68999b9.
+
+## Référence antérieure 12d3aa7
 
 Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38394310079) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38394315597) sont vertes : 2 030 tests SQLite, 2 029 PostgreSQL et une exclusion native SQLite ; 363 E2E et 19 exclusions historiques dans chaque run ; neuf contrôles Linux et deux audits sans vulnérabilité. Le [rapport](ci-12d3aa7.json) conserve les 21 nouveaux cas de version initiale et les deux parcours compilés de refus, saisie conservée et réussite après rechargement. Le test de fin de tâche d'Organisation passe aussi dans les deux runs.
 

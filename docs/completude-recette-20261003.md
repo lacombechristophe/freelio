@@ -4,19 +4,21 @@
 
 ## Dernier code entièrement qualifié
 
-`12d3aa7fb64ff19d70257c89edc4f0230537440f` protège aussi l'aperçu initial des temps avant le clic. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38394310079) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38394315597) réussissent tous leurs jobs. Les [rapports](evidence/20261013-candidate/ci-12d3aa7.json) conservent le merge réellement testé et les nouveaux cas. Le choix Client Chantiers, approuvé ensuite, est un lot distinct en qualification.
+`19502a6c38784c6510aae8df365a2631bcaeb85b` ajoute le choix Client complet des Chantiers, sa reprise après disparition du client et le bouton de facturation des temps désactivé en démo publique. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38405043599) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38405049561) réussissent tous leurs jobs. Les [rapports](evidence/20261013-candidate/ci-19502a6.json) relient les nouveaux cas au merge réellement testé.
 
 | Contrôle | Résultat disponible |
 | --- | --- |
-| Local : types, ESLint, Oxlint, build | Réussis |
-| SQLite avec couverture | 2 030 tests / 207 fichiers réussis |
-| PostgreSQL (deux artefacts contrôlés) | 2 029 réussis et une exclusion native SQLite ; les 21 nouveaux cas d'aperçu initial passent sans exclusion |
+| Local : types, ESLint, Oxlint, build | Réussis ; première suite locale en échec conservée, puis relance séparée sans délai modifié |
+| SQLite avec couverture | 2 056 tests / 208 fichiers réussis dans les deux CI |
+| PostgreSQL (deux artefacts contrôlés) | 2 055 réussis et une exclusion native SQLite ; 26 cas de choix Client et 21 d'aperçu initial passent sans exclusion |
 | Image Linux | Neuf contrôles réussis dans les deux CI |
-| Navigateur compilé | 363 réussis, 19 exclusions historiques dans chaque CI ; 16 parcours Finance/PDF et six parcours d'imputation réussis |
+| Navigateur compilé | 369 réussis, 19 exclusions historiques dans chaque CI ; les six nouveaux parcours Client passent sur ordinateur/mobile |
 | Audits de dépendances | Production et complet : zéro vulnérabilité dans chaque CI |
 | Preview de ce candidat | 49 pages/onglets sur chaque surface, zéro erreur JavaScript, retry ou exclusion |
 
-La [recette hébergée](evidence/20261013-candidate/hosted-12d3aa7.json) contrôle `dpl_BkuN2TTg6q5WVkGMDvuU54H2Hdxd`, avec harnais et alias vérifiés. L'[identité du code](evidence/20261013-candidate/source-12d3aa7.json) compare 1 021 entrées Git hors `docs/` avec le merge PR `e836785bb57778f057805c7c8fed6c93f9168d70`. Cette recette en lecture seule ne prouve pas les mutations ; celles du lot initial sont vérifiées séparément dans les deux navigateurs compilés. La [migration de l'index](evidence/20261013-time-invoice-release/preview-index-upgrade.json) reste datée et additive, sans modification métier ni privilège lecteur supplémentaire. Le contrôle de version de l'aperçu ne nécessite aucune migration.
+La [recette hébergée](evidence/20261013-candidate/hosted-19502a6.json) contrôle `dpl_mDjJeR3f2DdfxV35JBRKMRgrztPp`, avec harnais et alias vérifiés. L'[identité du code](evidence/20261013-candidate/source-19502a6.json) compare 1 024 entrées Git hors `docs/` avec le merge PR `eb06c3562722331b792223b0d747def186f35703`. La consultation hébergée ne prouve pas les mutations ; le navigateur compilé vérifie séparément création, édition, panne et remplacement d'un client supprimé. Les gardes serveur de la démo restent actives. La preview ne contient pas de temps sélectionnable : elle ne prouve pas un clic de facturation publique avec une sélection remplie.
+
+La [qualification de 12d3aa7](evidence/20261013-candidate/ci-12d3aa7.json) conserve l'aperçu initial et les contrôles de facturation ; la [migration d'index](evidence/20261013-time-invoice-release/preview-index-upgrade.json) reste datée et additive, sans modification métier ni privilège lecteur supplémentaire. Les nouveaux choix et marqueurs d'affichage ne nécessitent aucune migration.
 
 ## Échecs précédents conservés
 
@@ -36,6 +38,7 @@ La preview de `1586c1b`, `dpl_5p26BocxT54MANumDFUPCHXB2xLF`, réussit 49 pages/o
 | Comptabilité peut facturer un temps accessible sans droit général Opérations | [Rattachement au nouveau brouillon](evidence/20261013-time-billing-accounting/README.md) : autorisation limitée au seul `invoiceId`, 30 cas SQL. |
 | Facturer les secondes exactes, avec le même arrondi dans l'aperçu et la facture | [Calcul](evidence/20261013-time-invoice-rounding/README.md) : deux minutes à 100 €/h donnent 3,33 € regroupées ou 3,34 € détaillées. Nouvelles quantités documentaires à six décimales ; archives anciennes conservées. |
 | Refuser une préparation devenue périmée | [Snapshot transactionnel](evidence/20261013-time-invoice-snapshot/README.md) : 17 cas SQL, recontrôle Serializable, aucun nouveau brouillon ni rattachement après refus. |
+| Choix Client Chantiers complet et récupérable | [Choix Client](evidence/20261013-project-client-choices/README.md) : 26 cas SQL et six E2E réussis dans les deux CI de 19502a6. Client séparément vérifié, champs conservés et choix disparu remplaçable. |
 | Refuser un aperçu devenu périmé avant le clic | [Version de l'aperçu initial](evidence/20261013-time-billing-ui/README.md) : 21 nouveaux cas SQL réussis localement et dans les deux rapports PostgreSQL ; deux E2E ordinateur/mobile réussis dans chaque CI de 12d3aa7. |
 | Supprimer un brouillon accessible et libérer uniquement ses temps | [Libération](evidence/20261013-time-invoice-release/README.md) : 36 cas SQL, suppression, libération et audit atomiques. Documents émis protégés ; index additif, aucune réparation automatique des associations. |
 | Un client étranger rend le document introuvable aussi par URL PDF | [Aperçus et téléchargements](evidence/20261013-document-preview-scope/README.md) : 29 cas SQL et deux E2E, refus avant rendu ou archive. |
@@ -50,9 +53,10 @@ Les 19 exclusions historiques du navigateur correspondent à des mutations exéc
 
 ## À terminer avant une affirmation plus large
 
-- Relier toute nouvelle modification fonctionnelle à sa propre CI et sa propre recette ; les preuves ci-dessus qualifient 12d3aa7, pas une évolution future.
+- Relier toute nouvelle modification fonctionnelle à sa propre CI et sa propre recette ; les preuves ci-dessus qualifient 19502a6, pas une évolution future.
 - Examiner les sélecteurs et chaînes métier restants du [plan](plan-completude-fonctionnelle-20261002.md), sans confondre liste récente volontairement bornée et portefeuille complet.
-- Deux diagnostics Chantiers restent ouverts : [client absent au-delà de 1 000 choix](contrat-chantier-choix-client.md) et [compteur global de modèle](contrat-modeles-chantier-compteur.md). Le choix Client est approuvé et en qualification ; le compteur reste en attente d'accord. Leur [reproducteur SQL](evidence/20261013-project-choices/reproducer.test.ts.txt) et leurs [observations](evidence/20261013-project-choices/before.json) sont conservés.
+- Deux diagnostics Chantiers restent ouverts : [client absent au-delà de 1 000 choix](contrat-chantier-choix-client.md) et [compteur global de modèle](contrat-modeles-chantier-compteur.md). Le choix Client est qualifié dans 19502a6 ; le compteur reste en attente d'accord. Leur [reproducteur SQL](evidence/20261013-project-choices/reproducer.test.ts.txt) et leurs [observations](evidence/20261013-project-choices/before.json) sont conservés.
+- Les sept pages Devis/Factures/Contrats/Pipeline utilisent encore le choix Client plafonné à 1 000 ; le [lot commun](contrat-choix-clients-documents-affaires.md) est proposé, en attente de confirmation visible.
 - Qualifier stockage persistant, comptes fournisseurs, délivrabilité, charge et reprise après arrêt brutal avant usage commercial. Le budget actuel reste de 0 €.
 
 L'[historique de qualification](historique-qualification-candidat-20261010.md) conserve les références antérieures et leurs échecs. Les [preuves du socle](execution-cto-20261001.md) et la [recette hébergée sans stockage](qualification-demo-sans-stockage-20261010.md) restent datées. Aucun compteur de tests, rendu de démo ou ancien déploiement ne certifie tout le logiciel.
