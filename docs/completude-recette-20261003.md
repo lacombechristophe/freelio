@@ -4,9 +4,11 @@
 
 ## Candidat en qualification
 
+Les [choix de la commande fournisseur](evidence/20261014-purchase-choices/README.md), approuvés le 14 octobre, ajoutent recherche, pages de 25 et sélection vérifiée au Produit de chaque ligne et au Chantier. Les identités stables des lignes préservent les recherches, quantités, prix et libellés après retrait d'une autre ligne. Les 35 nouveaux cas SQL passent (147 ciblés au total), ainsi que types, ESLint, Oxlint et les deux fixtures exécutées puis supprimées. Deux parcours compilés sont définis ; leur CI exacte reste requise après publication. Le payload Produit borné et les inventaires détaillés inutilisés sont retirés du tableau de bord. L'intégrité globale de création Achat reste un lot distinct.
+
 Le [tableau et les indicateurs Stock](evidence/20261013-operations-stock-directory/README.md), approuvés le 13 octobre, quittent le payload Produit borné : recherche référence/libellé, pages de 25, compteurs complets et prévisualisation de cinq références avec total explicite. Le lecteur parcourt les produits par lots côté serveur dans un snapshot Serializable. Les valeurs sont calculées en entiers exacts et deviennent indisponibles si elles ne peuvent pas être représentées sans perte ; les centimes sont conservés lors du formatage.
 
-Les 29 nouveaux cas SQL passent localement (112 ciblés au total), dont le rendu réel corrigé de 501 stocks bas. Types, ESLint, Oxlint, syntaxe du seed et deux fixtures réellement exécutées passent. Deux parcours compilés sont définis ; leur passage dans les CI exactes et la lecture hébergée restent requis après publication. Les cartes Sites/Chantiers/SAV/Achats et les choix d'achat fournisseur restent séparés.
+Les 29 nouveaux cas SQL passent localement (112 ciblés au total), dont le rendu réel corrigé de 501 stocks bas. Types, ESLint, Oxlint, syntaxe du seed et deux fixtures réellement exécutées passent. Deux parcours compilés sont définis ; leur passage dans les CI exactes et la lecture hébergée restent requis après publication. Les cartes Sites/Chantiers/SAV/Achats restent séparées. Les choix d'achat fournisseur sont traités dans le lot ci-dessus. Le commit Stock 2b05e5f a PostgreSQL/Linux verts dans ses deux CI ; les jobs de qualité sont encore actifs. Sa lecture hébergée parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion, avec harnais et alias vérifiés.
 
 ## Dernier code entièrement qualifié
 

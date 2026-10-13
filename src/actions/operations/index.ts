@@ -520,7 +520,6 @@ export async function getOperationsDashboard() {
       agencies,
       sites,
       stock,
-      products,
       warehouses,
       purchaseOrders,
       equipments,
@@ -547,10 +546,8 @@ export async function getOperationsDashboard() {
         take: 100,
       }),
       readStockDirectory(companyId, agencyIds, { search: "", page: 1 }),
-      prisma.product.findMany({ where: { companyId, active: true }, select: { id: true, sku: true, label: true, purchasePriceCents: true }, orderBy: { label: "asc" }, take: 500 }),
       prisma.warehouse.findMany({
         where: { companyId, active: true },
-        include: { inventoryItems: { include: { product: { select: { label: true, sku: true } } } } },
         orderBy: { name: "asc" },
       }),
       prisma.purchaseOrder.findMany({
@@ -683,7 +680,6 @@ export async function getOperationsDashboard() {
       agencies,
       sites,
       stock,
-      products,
       warehouses,
       purchaseOrders,
       equipments,

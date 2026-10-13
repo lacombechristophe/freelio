@@ -1,0 +1,35 @@
+{
+  "sourceCommit": "2b05e5f6d425542971285f13170fbcb44bb6f1bb",
+  "database": "isolated SQLite",
+  "readerAndDependenciesVerified": true,
+  "mocks": [
+    "Auth.js session",
+    "Next cache"
+  ],
+  "real": [
+    "Prisma",
+    "getOperationsDashboard",
+    "company, active status and permission checks"
+  ],
+  "total": 3,
+  "passed": 1,
+  "failed": 2,
+  "eligibleProducts": 501,
+  "eligibleProjects": 301,
+  "returnedProducts": 500,
+  "returnedProjects": 300,
+  "cases": [
+    {
+      "name": "Purchase form choice completeness diagnostic on isolated SQL records 501 eligible products and 301 active projects",
+      "status": "passed"
+    },
+    {
+      "name": "Purchase form choice completeness diagnostic on isolated SQL returns the last product consumed by PurchaseOrderDialog",
+      "status": "failed"
+    },
+    {
+      "name": "Purchase form choice completeness diagnostic on isolated SQL returns the last project consumed by PurchaseOrderDialog",
+      "status": "failed"
+    }
+  ]
+}
