@@ -69,12 +69,10 @@ function errorMessage(error: unknown) {
 
 export function ProjetsGrid({
   initial,
-  clients,
   templates,
   agencies,
 }: {
   initial: Directory
-  clients: Array<{ id: string; name: string }>
   templates: ProjectTemplateOption[]
   agencies: Array<{ id: string; name: string; code: string; isDefault: boolean }>
 }) {
@@ -188,12 +186,11 @@ export function ProjetsGrid({
       </div>
 
       <ProjectTemplateDialog open={templatesOpen} onOpenChange={setTemplatesOpen} templates={templates} />
-      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} clients={clients} templates={templates} agencies={agencies} />
+      <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} templates={templates} agencies={agencies} />
       {editTarget && (
         <ProjectFormDialog
           open={Boolean(editTarget)}
           onOpenChange={(open) => !open && setEditTarget(null)}
-          clients={clients}
           templates={templates}
           agencies={agencies}
           project={editTarget}
