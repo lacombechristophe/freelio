@@ -14,6 +14,7 @@ import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumb
 import { computeCreditBreakdown, getEInvoiceReadiness } from "@/lib/workflow-rules"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 import { buildTimeInvoiceLines } from "@/lib/finance/time-invoice-lines"
+import { timeInvoiceVersion } from "@/lib/finance/time-invoice-version"
 import { buildInvoiceReminderContent } from "@/lib/finance/invoice-reminders"
 import { sendInvoiceReminderRecord } from "@/lib/finance/invoice-reminder-sender"
 import { boundedPageSize } from "@/lib/pagination"
@@ -36,7 +37,10 @@ const InvoiceFromTimeEntriesSchema = z.object({
   lineMode: z.enum(["GROUP_BY_PROJECT", "DETAIL"]).default("GROUP_BY_PROJECT"),
 })
 
-type InvoiceFromTimeEntriesInput = z.input<typeof InvoiceFromTimeEntriesSchema>
+const TimeEntryVersionsSchema = z.array(z.object({ id: z.string().min(1), version: z.string().regex(/^[a-f0-9]{64}$/) }))
+type InvoiceFromTimeEntriesInput = z.input<typeof InvoiceFromTimeEntriesSchema> & {
+  timeEntryVersions: z.input<typeof TimeEntryVersionsSchema>
+}
 const STALE_TIME_INVOICE_MESSAGE = "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez."
 class StaleTimeInvoiceError extends Error {}
 
@@ -134,18 +138,22 @@ function getSingleProjectId(entries: TimeEntryForInvoice[]) {
 }
 
 export async function getUnbilledTimeEntries() {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async (context) => {
+    const { companyId } = context
+    const company = await prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true, invoicePrefix: true } })
+    if (!company) throw new Error("Entreprise introuvable")
     const entries = await prisma.timeEntry.findMany({
       where: {
         isBillable: true,
         invoiceId: null,
-        project: { companyId, client: { companyId } },
+        project: { companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
       },
       include: {
         project: {
           select: {
             id: true,
             name: true,
+            agencyId: true,
             clientId: true,
             client: { select: { id: true, name: true } },
           },
@@ -163,6 +171,7 @@ export async function getUnbilledTimeEntries() {
       estimatedTotalCents,
       entries: entries.map((entry) => ({
         id: entry.id,
+        version: timeInvoiceVersion(entry, company, context),
         date: entry.date.toISOString(),
         durationSec: entry.durationSec,
         description: entry.description,
@@ -255,7 +264,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
       project: { companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
     } satisfies Prisma.TimeEntryWhereInput
     const entryRelations = {
-      project: { select: { id: true, name: true, clientId: true, client: { select: { id: true, name: true } } } },
+      project: { select: { id: true, name: true, agencyId: true, clientId: true, client: { select: { id: true, name: true } } } },
     } satisfies Prisma.TimeEntryInclude
 
     const company = await prisma.company.findUnique({
@@ -274,8 +283,13 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
     })
 
     if (entries.length !== uniqueEntryIds.length) {
-      throw new Error("Certaines entr\u00e9es sont introuvables, non facturables ou d\u00e9j\u00e0 factur\u00e9es.")
+      throw new StaleTimeInvoiceError()
     }
+
+    const versions = TimeEntryVersionsSchema.safeParse(data.timeEntryVersions)
+    if (!versions.success || versions.data.length !== uniqueEntryIds.length) throw new StaleTimeInvoiceError()
+    const displayedVersions = new Map(versions.data.map(entry => [entry.id, entry.version]))
+    if (displayedVersions.size !== uniqueEntryIds.length || entries.some(entry => displayedVersions.get(entry.id) !== timeInvoiceVersion(entry, company, context))) throw new StaleTimeInvoiceError()
 
     const clientId = assertSingleClient(entries)
     const projectId = getSingleProjectId(entries)
@@ -299,7 +313,7 @@ export async function createInvoiceFromTimeEntries(data: InvoiceFromTimeEntriesI
             if (!current || current.projectId !== prepared.projectId || current.durationSec !== prepared.durationSec ||
               current.date.getTime() !== prepared.date.getTime() || current.description !== prepared.description ||
               current.isBillable !== prepared.isBillable || current.invoiceId !== prepared.invoiceId ||
-              current.project.name !== prepared.project.name || current.project.clientId !== prepared.project.clientId ||
+              current.project.name !== prepared.project.name || current.project.agencyId !== prepared.project.agencyId || current.project.clientId !== prepared.project.clientId ||
               current.project.client.name !== prepared.project.client.name) throw new StaleTimeInvoiceError()
           }
           const created = await tx.invoice.create({

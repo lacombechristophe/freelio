@@ -34,7 +34,7 @@ vi.mock("@/lib/prisma", async importOriginal => {
 })
 import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
-import { createInvoiceFromTimeEntries } from "@/actions/factures"
+import { createInvoiceFromTimeEntries, getUnbilledTimeEntries } from "@/actions/factures"
 import { updateTimeEntry } from "@/actions/temps"
 import { revalidatePath } from "next/cache"
 import { getContext } from "@/lib/context"
@@ -64,7 +64,11 @@ describe.sequential("Time invoices refuse a stale prepared snapshot in SQL", () 
     await prisma.company.delete({ where: { id: session.companyId } }); await prisma.user.delete({ where: { id: session.userId } })
   })
   const row = () => prisma.timeEntry.create({ data: { projectId, durationSec: 3600, date: new Date("2030-01-01"), description: "Fictional prepared description" } })
-  const input = (...ids: string[]) => ({ timeEntryIds: ids, hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode: "DETAIL" as const })
+  const input = (...ids: string[]) => ({ timeEntryIds: ids, timeEntryVersions: [] as Array<{ id: string; version: string }>, hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode: "DETAIL" as const })
+  async function displayed(...ids: string[]) {
+    const data = await getUnbilledTimeEntries()
+    return { ...input(...ids), timeEntryVersions: data.entries.filter(entry => ids.includes(entry.id)).map(({ id, version }) => ({ id, version })) }
+  }
   function afterPreflight(change: () => Promise<unknown>) {
     const read = prisma.timeEntry.findMany.bind(prisma.timeEntry)
     vi.spyOn(prisma.timeEntry, "findMany").mockImplementationOnce((async args => { const entries = await read(args); await change(); vi.mocked(revalidatePath).mockClear(); return entries }) as typeof prisma.timeEntry.findMany)
@@ -76,15 +80,15 @@ describe.sequential("Time invoices refuse a stale prepared snapshot in SQL", () 
     expect(revalidatePath).not.toHaveBeenCalled(); expect(getContext()).toBeUndefined()
   }
   it.each(["duration", "date", "description", "billability"])("preserves a legitimate %s edit and refuses the previous calculation", async kind => {
-    const entry = await row()
+    const entry = await row(), data = await displayed(entry.id)
     const patch = kind === "duration" ? { durationSec: 7200 } : kind === "date" ? { date: new Date("2030-01-02") } : kind === "description" ? { description: "Fictional current description" } : { isBillable: false }
     afterPreflight(async () => { expect(await updateTimeEntry(entry.id, patch)).toMatchObject({ ok: true }) })
-    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual(refusal)
+    expect(await createInvoiceFromTimeEntries(data)).toEqual(refusal)
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toEqual({ ...entry, ...patch })
     await noInvoice()
   })
   it.each(["VAT", "prefix", "project", "client", "project name", "client name"])("refuses stale %s data without undoing the external edit", async kind => {
-    const entry = await row()
+    const entry = await row(), data = await displayed(entry.id)
     afterPreflight(async () => {
       if (kind === "VAT" || kind === "prefix") await prisma.company.update({ where: { id: session.companyId }, data: kind === "VAT" ? { isTvaApplicable: true } : { invoicePrefix: "CURRENT-" } })
       else if (kind === "project") await prisma.timeEntry.update({ where: { id: entry.id }, data: { projectId: otherProjectId } })
@@ -92,7 +96,7 @@ describe.sequential("Time invoices refuse a stale prepared snapshot in SQL", () 
       else if (kind === "project name") await prisma.project.update({ where: { id: projectId }, data: { name: "Fictional current project" } })
       else await prisma.client.update({ where: { id: clientId }, data: { name: "Fictional current customer" } })
     })
-    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual(refusal)
+    expect(await createInvoiceFromTimeEntries(data)).toEqual(refusal)
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toEqual({ ...entry, projectId: kind === "project" ? otherProjectId : projectId })
     if (kind === "VAT" || kind === "prefix") expect(await prisma.company.findUniqueOrThrow({ where: { id: session.companyId } })).toMatchObject(kind === "VAT" ? { isTvaApplicable: true } : { invoicePrefix: "CURRENT-" })
     if (kind === "client") expect(await prisma.project.findUniqueOrThrow({ where: { id: projectId } })).toMatchObject({ clientId: otherClientId })
@@ -101,39 +105,39 @@ describe.sequential("Time invoices refuse a stale prepared snapshot in SQL", () 
     await noInvoice()
   })
   it("refuses a selection deleted after preparation", async () => {
-    const entry = await row(); afterPreflight(() => prisma.timeEntry.delete({ where: { id: entry.id } }))
-    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual(refusal); await noInvoice()
+    const entry = await row(), data = await displayed(entry.id); afterPreflight(() => prisma.timeEntry.delete({ where: { id: entry.id } }))
+    expect(await createInvoiceFromTimeEntries(data)).toEqual(refusal); await noInvoice()
   })
   it.each(["invoice", "claim", "audit"])("rolls back every effect after a %s outage", async stage => {
-    const entry = await row(); fault.stage = stage
-    await expect(createInvoiceFromTimeEntries(input(entry.id))).rejects.toThrow(`Fictional ${stage} outage`)
+    const entry = await row(), data = await displayed(entry.id); fault.stage = stage
+    await expect(createInvoiceFromTimeEntries(data)).rejects.toThrow(`Fictional ${stage} outage`)
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toEqual(entry); await noInvoice()
   })
   it("returns the controlled refusal after a rolled-back serialization conflict", async () => {
-    const entry = await row(); fault.stage = "serialization"
-    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual(refusal)
+    const entry = await row(), data = await displayed(entry.id); fault.stage = "serialization"
+    expect(await createInvoiceFromTimeEntries(data)).toEqual(refusal)
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toEqual(entry); await noInvoice()
   })
   it("allows a new preparation to use the current duration", async () => {
-    const entry = await row(); afterPreflight(async () => { expect(await updateTimeEntry(entry.id, { durationSec: 7200 })).toMatchObject({ ok: true }) })
-    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual(refusal)
-    const result = await createInvoiceFromTimeEntries(input(entry.id))
+    const entry = await row(), data = await displayed(entry.id); afterPreflight(async () => { expect(await updateTimeEntry(entry.id, { durationSec: 7200 })).toMatchObject({ ok: true }) })
+    expect(await createInvoiceFromTimeEntries(data)).toEqual(refusal)
+    const result = await createInvoiceFromTimeEntries(await displayed(entry.id))
     expect(result).toMatchObject({ ok: true })
     if (!result.ok) throw new Error(result.error)
     expect(await prisma.invoice.findUniqueOrThrow({ where: { id: result.value.id } })).toMatchObject({ status: "DRAFT", totalHtCents: 20000 })
   })
   it("keeps one winning invoice for two requests, with a real PostgreSQL read barrier", async () => {
-    const entry = await row()
+    const entry = await row(), data = await displayed(entry.id)
     if (process.env.DATABASE_URL?.startsWith("postgres")) {
       let release!: () => void
       fault.gate = { wait: new Promise<void>(resolve => { release = resolve }), release: () => release() }
-      const results = await Promise.all([createInvoiceFromTimeEntries(input(entry.id)), createInvoiceFromTimeEntries(input(entry.id))])
+      const results = await Promise.all([createInvoiceFromTimeEntries(data), createInvoiceFromTimeEntries(data)])
       expect(fault.reads).toBe(2)
       expect(results.filter(result => result.ok)).toHaveLength(1)
       expect(results.filter(result => !result.ok)).toEqual([refusal])
     } else {
-      expect(await createInvoiceFromTimeEntries(input(entry.id))).toMatchObject({ ok: true })
-      await expect(createInvoiceFromTimeEntries(input(entry.id))).rejects.toThrow("Certaines entrées sont introuvables")
+      expect(await createInvoiceFromTimeEntries(data)).toMatchObject({ ok: true })
+      expect(await createInvoiceFromTimeEntries(data)).toEqual(refusal)
     }
     expect(await prisma.invoice.count({ where: { companyId: session.companyId } })).toBe(1)
     expect(await prisma.auditLog.count({ where: { userId: session.userId, action: "CREATE_INVOICE_FROM_TIME" } })).toBe(1)

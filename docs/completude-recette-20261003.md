@@ -2,7 +2,7 @@
 
 État du 13 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Main, preview de branche et production sont des références distinctes.
 
-## Candidat courant
+## Dernier code entièrement qualifié
 
 `a055d65699f636e3676676302f0381678442d081` contient les parcours Temps et Organisation, leur facturation et les contrôles des aperçus documentaires. Les CI [branche](https://github.com/lacombechristophe/freelio/actions/runs/38321815498) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38321819239) réussissent tous leurs jobs. Les [rapports détaillés](evidence/20261013-candidate/ci-a055d65.json) conservent les résultats et le merge réellement testé. Les commits de documentation suivants ne changent pas le code hors `docs/`.
 
@@ -20,6 +20,8 @@ La [recette hébergée](evidence/20261013-candidate/hosted-a055d65.json) contrô
 
 ## Échecs précédents conservés
 
+Les deux CI du commit de documentation `06d0d7c` sont rouges : 360 parcours réussis, 19 exclusions historiques et un sélecteur de tâche ambigu dans chaque run. PostgreSQL et Linux passent. Le [rapport](evidence/20261013-browser-navigation/ci-06d0d7c.json) conserve cet échec malgré le même code applicatif que a055d65. Le correctif du sélecteur et le contrôle approuvé de l'aperçu initial sont en qualification ; les succès a055d65 ne valent pas qualification de ce nouveau lot.
+
 Les deux CI de `1586c1b` sont **annulées au plafond de 35 minutes** : [branche](https://github.com/lacombechristophe/freelio/actions/runs/38317716890), [PR](https://github.com/lacombechristophe/freelio/actions/runs/38317721467). SQLite : 1 944 réussis. PostgreSQL : 1 943 réussis et une exclusion native SQLite. Neuf contrôles Linux et deux audits sans vulnérabilité passent dans chaque run. La suite navigateur reste incomplète, avec quatre échecs desktop de facturation et un timeout d'automatisation.
 
 Les [traces et corrections de sélecteurs](evidence/20261013-browser-navigation/README.md) expliquent ces échecs : l'attente de navigation acceptait la page initiale des temps non facturés ; une carte de calendrier était sélectionnée à la place de la carte contenant l'action de tâche. Toutes les assertions métier restent actives. Aucun timeout, audit ou seuil n'est assoupli.
@@ -34,6 +36,7 @@ La preview de `1586c1b`, `dpl_5p26BocxT54MANumDFUPCHXB2xLF`, réussit 49 pages/o
 | Comptabilité peut facturer un temps accessible sans droit général Opérations | [Rattachement au nouveau brouillon](evidence/20261013-time-billing-accounting/README.md) : autorisation limitée au seul `invoiceId`, 30 cas SQL. |
 | Facturer les secondes exactes, avec le même arrondi dans l'aperçu et la facture | [Calcul](evidence/20261013-time-invoice-rounding/README.md) : deux minutes à 100 €/h donnent 3,33 € regroupées ou 3,34 € détaillées. Nouvelles quantités documentaires à six décimales ; archives anciennes conservées. |
 | Refuser une préparation devenue périmée | [Snapshot transactionnel](evidence/20261013-time-invoice-snapshot/README.md) : 17 cas SQL, recontrôle Serializable, aucun nouveau brouillon ni rattachement après refus. |
+| Refuser un aperçu devenu périmé avant le clic | [Version de l'aperçu initial](evidence/20261013-time-billing-ui/README.md) : lot approuvé, 21 nouveaux cas SQL locaux réussis ; qualification PostgreSQL/Linux/navigateur du nouveau candidat à terminer. |
 | Supprimer un brouillon accessible et libérer uniquement ses temps | [Libération](evidence/20261013-time-invoice-release/README.md) : 36 cas SQL, suppression, libération et audit atomiques. Documents émis protégés ; index additif, aucune réparation automatique des associations. |
 | Un client étranger rend le document introuvable aussi par URL PDF | [Aperçus et téléchargements](evidence/20261013-document-preview-scope/README.md) : 29 cas SQL et deux E2E, refus avant rendu ou archive. |
 

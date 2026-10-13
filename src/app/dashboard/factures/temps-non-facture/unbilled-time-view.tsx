@@ -31,6 +31,7 @@ type UnbilledTimeData = {
   estimatedTotalCents: number
   entries: Array<{
     id: string
+    version: string
     date: string
     durationSec: number
     description: string | null
@@ -172,6 +173,7 @@ export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
     try {
       const result = await createInvoiceFromTimeEntries({
         timeEntryIds: Array.from(selectedIds),
+        timeEntryVersions: selectedEntries.map(entry => ({ id: entry.id, version: entry.version })),
         hourlyRateCents,
         dueDate,
         object: object.trim() || undefined,

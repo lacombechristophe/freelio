@@ -104,7 +104,7 @@ describe.sequential("invoice actions enforce financial rights and client scope o
   })
   it("refuses invoicing times linked to a foreign client without consuming them", async () => {
     const entry = await prisma.timeEntry.create({ data: { projectId: invalidProjectId, durationSec: 3600, isBillable: true } })
-    await expect(createInvoiceFromTimeEntries({ timeEntryIds: [entry.id], hourlyRateCents: 10000, dueDate: "2030-01-01" })).rejects.toThrow("Certaines entr")
+    expect(await createInvoiceFromTimeEntries({ timeEntryIds: [entry.id], timeEntryVersions: [], hourlyRateCents: 10000, dueDate: "2030-01-01" })).toEqual({ ok: false, error: "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez." })
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toMatchObject({ invoiceId: null })
     expect(await prisma.invoice.count({ where: { companyId: session.companyId } })).toBe(0)
   })
@@ -118,7 +118,7 @@ describe.sequential("invoice actions enforce financial rights and client scope o
       delete: () => deleteInvoice(existing.id),
       update: () => updateInvoice(existing.id, invoiceInput()),
       create: () => createInvoice(invoiceInput()),
-      time: () => createInvoiceFromTimeEntries({ timeEntryIds: ["fictional-entry"], hourlyRateCents: 10000, dueDate: "2030-01-01" }),
+      time: () => createInvoiceFromTimeEntries({ timeEntryIds: ["fictional-entry"], timeEntryVersions: [], hourlyRateCents: 10000, dueDate: "2030-01-01" }),
     }
     await expect(actions[action as keyof typeof actions]()).rejects.toThrow("droits nécessaires")
     expect(read).not.toHaveBeenCalled()

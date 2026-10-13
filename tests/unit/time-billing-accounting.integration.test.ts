@@ -30,7 +30,7 @@ vi.mock("@/lib/prisma", async importOriginal => {
   } }) }
 })
 import prisma from "@/lib/prisma"
-import { createInvoiceFromTimeEntries } from "@/actions/factures"
+import { createInvoiceFromTimeEntries, getUnbilledTimeEntries } from "@/actions/factures"
 import { createTimeEntry, deleteTimeEntry, updateTimeEntry } from "@/actions/temps"
 import { getContext, requestContext, type RequestContext } from "@/lib/context"
 import { withAuth } from "@/lib/auth-wrapper"
@@ -70,7 +70,11 @@ describe.sequential("Accounting claims only times for its newly created draft in
     await prisma.company.deleteMany({ where: { id: { in: [session.companyId, foreignCompanyId] } } }); await prisma.user.delete({ where: { id: session.userId } })
   })
   const row = (project = projectId) => prisma.timeEntry.create({ data: { projectId: project, durationSec: 3600, description: "Fictional Accounting time", date: new Date("2030-01-01") } })
-  const input = (...ids: string[]) => ({ timeEntryIds: ids, hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode: "DETAIL" as const })
+  const input = (...ids: string[]) => ({ timeEntryIds: ids, timeEntryVersions: [] as Array<{ id: string; version: string }>, hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode: "DETAIL" as const })
+  async function displayed(...ids: string[]) {
+    const data = await getUnbilledTimeEntries()
+    return { ...input(...ids), timeEntryVersions: data.entries.filter(entry => ids.includes(entry.id)).map(({ id, version }) => ({ id, version })) }
+  }
   async function bill(data: Parameters<typeof createInvoiceFromTimeEntries>[0]) {
     const result = await createInvoiceFromTimeEntries(data)
     if (!result.ok) throw new Error(result.error)
@@ -86,7 +90,7 @@ describe.sequential("Accounting claims only times for its newly created draft in
   }
   it.each(["ACCOUNTING", "OWNER", "ADMIN"])("creates one accessible draft and audit for %s", async role => {
     const entry = await row(); await prisma.membership.update({ where: { id: membershipId }, data: { role } })
-    const invoice = await bill(input(entry.id, entry.id))
+    const invoice = await bill(await displayed(entry.id, entry.id))
     expect(invoice).toMatchObject({ companyId: session.companyId, clientId, projectId, status: "DRAFT", totalHtCents: 10000 })
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toEqual({ ...entry, invoiceId: invoice.id })
     expect(await prisma.auditLog.count({ where: { userId: session.userId, resourceId: invoice.id, action: "CREATE_INVOICE_FROM_TIME" } })).toBe(1)
@@ -99,16 +103,16 @@ describe.sequential("Accounting claims only times for its newly created draft in
   })
   it.each(["foreign project", "foreign client", "unassigned agency", "foreign agency"])("refuses %s without a draft or claim", async kind => {
     const entry = await row(kind === "foreign project" ? foreignProjectId : kind === "foreign client" ? invalidProjectId : kind === "unassigned agency" ? otherProjectId : foreignAgencyProjectId)
-    await expect(createInvoiceFromTimeEntries(input(entry.id))).rejects.toThrow("Certaines entrées sont introuvables")
+    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual({ ok: false, error: "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez." })
     await unchanged(entry)
   })
   it("refuses an agency withdrawal before preparing the draft", async () => {
-    const entry = await row(); await prisma.agencyMembership.deleteMany({ where: { membershipId, agencyId } })
-    try { await expect(createInvoiceFromTimeEntries(input(entry.id))).rejects.toThrow("Certaines entrées sont introuvables"); await unchanged(entry) }
+    const entry = await row(), data = await displayed(entry.id); await prisma.agencyMembership.deleteMany({ where: { membershipId, agencyId } })
+    try { expect(await createInvoiceFromTimeEntries(data)).toEqual({ ok: false, error: "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez." }); await unchanged(entry) }
     finally { await prisma.agencyMembership.create({ data: { membershipId, agencyId } }) }
   })
   it.each(["client", "agency", "project"])("rechecks the %s reference at the claim", async kind => {
-    const entry = await row(), read = prisma.timeEntry.findMany.bind(prisma.timeEntry)
+    const entry = await row(), data = await displayed(entry.id), read = prisma.timeEntry.findMany.bind(prisma.timeEntry)
     vi.spyOn(prisma.timeEntry, "findMany").mockImplementationOnce((async args => {
       const entries = await read(args)
       // An external writer changes only the relation after the real preflight read.
@@ -118,17 +122,17 @@ describe.sequential("Accounting claims only times for its newly created draft in
       })
       return entries
     }) as typeof prisma.timeEntry.findMany)
-    expect(await createInvoiceFromTimeEntries(input(entry.id))).toEqual({ ok: false, error: "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez." })
+    expect(await createInvoiceFromTimeEntries(data)).toEqual({ ok: false, error: "Les temps ont changé pendant la création de la facture. Rechargez la page puis réessayez." })
     await unchanged({ ...entry, projectId: kind === "project" ? secondProjectId : projectId })
   })
   it("rolls back a multi-project draft which Accounting cannot subsequently read", async () => {
     const entry = await row(), other = await row(secondProjectId)
-    await expect(createInvoiceFromTimeEntries(input(entry.id, other.id))).rejects.toThrow("Facture introuvable")
+    await expect(createInvoiceFromTimeEntries(await displayed(entry.id, other.id))).rejects.toThrow("Facture introuvable")
     await unchanged(entry); expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: other.id } })).toEqual(other)
   })
   it.each(["claim", "audit"])("rolls back the draft, lines and times after a %s outage", async stage => {
-    const entry = await row(); fault.stage = stage
-    await expect(createInvoiceFromTimeEntries(input(entry.id))).rejects.toThrow(`Fictional ${stage} outage`)
+    const entry = await row(), data = await displayed(entry.id); fault.stage = stage
+    await expect(createInvoiceFromTimeEntries(data)).rejects.toThrow(`Fictional ${stage} outage`)
     await unchanged(entry); expect(getContext()).toBeUndefined()
   })
   it.each(["missing capability", "different invoice", "extra field", "detach", "already allocated", "read action"])("denies a direct Time update with %s", async kind => {
@@ -140,7 +144,7 @@ describe.sequential("Accounting claims only times for its newly created draft in
   it("restores the Finance context after the narrow claim", async () => {
     const entry = await row()
     await withAuth(async () => {
-      await createInvoiceFromTimeEntries(input(entry.id))
+      await createInvoiceFromTimeEntries(await displayed(entry.id))
       expect(getContext()?.timeInvoiceClaimId).toBeUndefined()
       await expect(prisma.timeEntry.updateMany({ where: { id: entry.id }, data: { durationSec: 7200 } })).rejects.toThrow("FORBIDDEN:operations.write")
     }, "finance.write")

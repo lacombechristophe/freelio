@@ -6,7 +6,7 @@ vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, co
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/finance/issued-invoice", () => ({ prepareIssuedInvoice: vi.fn(), discardIssuedInvoice: vi.fn() }))
 import prisma from "@/lib/prisma"
-import { createInvoiceFromTimeEntries } from "@/actions/factures"
+import { createInvoiceFromTimeEntries, getUnbilledTimeEntries } from "@/actions/factures"
 import { buildTimeInvoiceLines } from "@/lib/finance/time-invoice-lines"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
 
@@ -29,7 +29,7 @@ describe.sequential("Time invoices preserve exact seconds and preview totals in 
     await prisma.company.delete({ where: { id: session.companyId } }); await prisma.user.delete({ where: { id: session.userId } })
   })
   const row = (durationSec: number) => prisma.timeEntry.create({ data: { projectId, durationSec, date: new Date("2030-01-01"), description: "Fictional exact time" } })
-  const input = (ids: string[], lineMode: "GROUP_BY_PROJECT" | "DETAIL" = "GROUP_BY_PROJECT") => ({ timeEntryIds: ids, hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode })
+  const input = async (ids: string[], lineMode: "GROUP_BY_PROJECT" | "DETAIL" = "GROUP_BY_PROJECT") => ({ timeEntryIds: ids, timeEntryVersions: (await getUnbilledTimeEntries()).entries.filter(entry => ids.includes(entry.id)).map(({ id, version }) => ({ id, version })), hourlyRateCents: 10000, dueDate: "2030-02-01", lineMode })
   async function bill(data: Parameters<typeof createInvoiceFromTimeEntries>[0]) {
     const result = await createInvoiceFromTimeEntries(data)
     if (!result.ok) throw new Error(result.error)
@@ -40,7 +40,7 @@ describe.sequential("Time invoices preserve exact seconds and preview totals in 
     for (const mode of ["GROUP_BY_PROJECT", "DETAIL"] as const) {
       const rows = [await row(60), await row(60)]
       const preview = calculateCommercialDocument(buildTimeInvoiceLines(rows.map(entry => ({ ...entry, date: entry.date.toISOString(), project: { id: projectId, name: "Fictional exact time project" } })), 10000, tax ? 20 : 0, mode))
-      const invoice = await bill(input(rows.map(entry => entry.id), mode))
+      const invoice = await bill(await input(rows.map(entry => entry.id), mode))
       expect(invoice).toMatchObject({ status: "DRAFT", totalHtCents: mode === "DETAIL" ? 334 : 333, totalTvaCents: tax ? mode === "DETAIL" ? 66 : 67 : 0, totalTtcCents: preview.totalTtcCents })
       const lines = await prisma.invoiceLine.findMany({ where: { invoiceId: invoice.id }, orderBy: { order: "asc" } })
       expect(lines).toHaveLength(mode === "DETAIL" ? 2 : 1)
@@ -51,18 +51,18 @@ describe.sequential("Time invoices preserve exact seconds and preview totals in 
     }
   })
   it("keeps a one-second time positive without first rounding its hours to zero", async () => {
-    const entry = await row(1), invoice = await bill(input([entry.id], "DETAIL"))
+    const entry = await row(1), invoice = await bill(await input([entry.id], "DETAIL"))
     expect(invoice.totalHtCents).toBe(3)
     expect(await prisma.invoiceLine.findFirstOrThrow({ where: { invoiceId: invoice.id } })).toMatchObject({ quantity: 1 / 3600 })
   })
   it("preserves an existing invoice while creating a new exact-time draft", async () => {
     const history = await prisma.invoice.create({ data: { companyId: session.companyId, clientId, projectId, number: "FICTIONAL-HISTORICAL-ROUNDING", object: "Fictional existing invoice", dueDate: new Date("2030-02-01"), totalHtCents: 300, totalTvaCents: 0, totalTtcCents: 300, lines: { create: { label: "Fictional old rounding", quantity: 0.03, unitPriceCents: 10000, tvaRate: 0 } } }, include: { lines: true } })
-    const entry = await row(60); await createInvoiceFromTimeEntries(input([entry.id]))
+    const entry = await row(60); await createInvoiceFromTimeEntries(await input([entry.id]))
     expect(await prisma.invoice.findUniqueOrThrow({ where: { id: history.id }, include: { lines: true } })).toEqual(history)
   })
   it("refuses an out-of-capacity amount before creating a draft or association", async () => {
     const entry = await row(7200)
-    await expect(createInvoiceFromTimeEntries({ ...input([entry.id]), hourlyRateCents: 2_000_000_000 })).rejects.toThrow(RangeError)
+    await expect(createInvoiceFromTimeEntries({ ...await input([entry.id]), hourlyRateCents: 2_000_000_000 })).rejects.toThrow(RangeError)
     expect(await prisma.invoice.count({ where: { companyId: session.companyId } })).toBe(0)
     expect(await prisma.timeEntry.findUniqueOrThrow({ where: { id: entry.id } })).toEqual(entry)
     expect(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(0)
