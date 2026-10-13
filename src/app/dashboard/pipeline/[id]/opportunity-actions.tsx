@@ -26,13 +26,17 @@ export function OpportunityActions(props: Props) {
   const [pending, startTransition] = useTransition();
 
   function run(
-    operation: () => Promise<unknown>,
+    operation: () => Promise<{ success: true } | { success: false; error: string }>,
     success: string,
     form?: HTMLFormElement,
   ) {
     startTransition(async () => {
       try {
-        await operation();
+        const result = await operation();
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
         form?.reset();
         toast.success(success);
         router.refresh();

@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
 import { hasPermission } from "@/lib/permissions"
 import { z } from "zod"
+import { opportunityCompanyScope } from "@/lib/opportunity-scope"
 
 function dateKey(value: Date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(value)
@@ -72,7 +73,7 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
       prisma.client.count({ where: { companyId } }),
       prisma.contact.count({ where: { client: { companyId } } }),
       prisma.leadCapture.count({ where: { companyId, status: { notIn: ["ARCHIVED", "SPAM"] } } }),
-      canReadSales ? prisma.opportunity.aggregate({ where: { pipeline: { companyId }, status: { notIn: ["WON", "LOST"] } }, _count: { _all: true }, _sum: { valueCents: true } }) : Promise.resolve(null),
+      canReadSales ? prisma.opportunity.aggregate({ where: { ...opportunityCompanyScope(companyId), status: { notIn: ["WON", "LOST"] } }, _count: { _all: true }, _sum: { valueCents: true } }) : Promise.resolve(null),
       prisma.project.count({ where: { companyId, status: "ACTIVE" } }),
       canReadService ? prisma.serviceTicket.count({ where: { companyId, status: { notIn: ["RESOLVED", "CLOSED", "CANCELLED"] } } }) : Promise.resolve(null),
       prisma.fieldIntervention.count({ where: { companyId, status: { in: ["PLANNED", "IN_PROGRESS"] }, scheduledStart: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1_000) } } }),
@@ -103,7 +104,7 @@ export async function getWorkspaceOverview(scope: WorkspaceScope = "ALL") {
         take: 6,
       }) : Promise.resolve([]),
       canReadSales && needs("SALES") ? prisma.opportunity.findMany({
-        where: { pipeline: { companyId }, status: { notIn: ["WON", "LOST"] } },
+        where: { ...opportunityCompanyScope(companyId), status: { notIn: ["WON", "LOST"] } },
         select: { id: true, title: true, status: true, valueCents: true, probability: true, closeDate: true, client: { select: { name: true } } },
         orderBy: [{ closeDate: "asc" }, { updatedAt: "desc" }],
         take: 6,

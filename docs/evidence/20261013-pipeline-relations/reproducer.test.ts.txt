@@ -1,0 +1,57 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getPipeline, getOpportunityDetail, deleteOpportunity } from "@/actions/pipeline"
+let foreignCompanyId: string, foreignUserId: string, pipelineId: string, validId: string, foreignClientDealId: string, foreignOwnerDealId: string
+beforeAll(async () => {
+  session.companyId = (await prisma.company.create({ data: { name: "Fictional pipeline relation diagnostic" } })).id
+  foreignCompanyId = (await prisma.company.create({ data: { name: "Fictional other pipeline tenant" } })).id
+  session.userId = (await prisma.user.create({ data: { email: `pipeline-relation-${randomUUID()}@example.test` } })).id
+  foreignUserId = (await prisma.user.create({ data: { name: "FICTIONAL-FOREIGN-OWNER-MARKER", email: `foreign-pipeline-relation-${randomUUID()}@example.test` } })).id
+  await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+  const foreignOwner = await prisma.membership.create({ data: { companyId: foreignCompanyId, userId: foreignUserId, role: "SALES", status: "ACTIVE" } })
+  const ownClient = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional own pipeline client" } })
+  const foreignClient = await prisma.client.create({ data: { companyId: foreignCompanyId, name: "FICTIONAL-FOREIGN-PIPELINE-CLIENT" } })
+  pipelineId = (await prisma.pipeline.create({ data: { companyId: session.companyId, name: "Fictional diagnostic pipeline", isDefault: true, stages: [{ id: "PROSPECT", title: "Prospect" }] } })).id
+  const base = { pipelineId, clientId: ownClient.id, title: "Fictional pipeline deal", status: "PROSPECT", valueCents: 12345, probability: 30 }
+  validId = (await prisma.opportunity.create({ data: base })).id
+  foreignClientDealId = (await prisma.opportunity.create({ data: { ...base, clientId: foreignClient.id } })).id
+  foreignOwnerDealId = (await prisma.opportunity.create({ data: { ...base, ownerMembershipId: foreignOwner.id } })).id
+})
+afterAll(async () => {
+  await prisma.auditLog.deleteMany({ where: { userId: session.userId } })
+  await prisma.opportunity.deleteMany({ where: { pipelineId } })
+  await prisma.pipeline.delete({ where: { id: pipelineId } })
+  await prisma.client.deleteMany({ where: { companyId: { in: [session.companyId, foreignCompanyId] } } })
+  await prisma.company.deleteMany({ where: { id: { in: [session.companyId, foreignCompanyId] } } })
+  await prisma.user.deleteMany({ where: { id: { in: [session.userId, foreignUserId] } } })
+})
+it("keeps the coherent deal readable", async () => {
+  expect((await getOpportunityDetail(validId))?.id).toBe(validId)
+})
+it("already rejects direct detail of a foreign-client deal", async () => {
+  expect(await getOpportunityDetail(foreignClientDealId)).toBeNull()
+})
+it("does not return a foreign client's deal in the board", async () => {
+  const data = await getPipeline(pipelineId)
+  expect(data?.opportunities.some(row => row.id === foreignClientDealId)).toBe(false)
+})
+it("does not count the foreign-client deal in the pipeline selector", async () => {
+  const data = await getPipeline(pipelineId)
+  expect(data?.pipelines.find(row => row.id === pipelineId)?.opportunityCount).toBe(2)
+})
+it("does not expose another company's owner in board or detail", async () => {
+  const board = await getPipeline(pipelineId), detail = await getOpportunityDetail(foreignOwnerDealId)
+  expect(JSON.stringify({ board, detail }).includes("FICTIONAL-FOREIGN-OWNER-MARKER")).toBe(false)
+})
+it("refuses deletion of a foreign-client deal without deleting or auditing it", async () => {
+  let refused = false
+  try { await deleteOpportunity(foreignClientDealId) } catch { refused = true }
+  const retained = await prisma.opportunity.count({ where: { id: foreignClientDealId } })
+  const audits = await prisma.auditLog.count({ where: { userId: session.userId, action: "DELETE_OPPORTUNITY" } })
+  expect({ refused, retained, audits }).toEqual({ refused: true, retained: 1, audits: 0 })
+})

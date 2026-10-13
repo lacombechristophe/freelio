@@ -276,7 +276,8 @@ export function PipelineBoard({
 
   async function moveToStage(id: string, status: string) {
     try {
-      await updateOpportunity(id, { status })
+      const result = await updateOpportunity(id, { status })
+      if (!result.success) return toast.error(result.error)
       toast.success("Étape mise à jour.")
       router.refresh()
     } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
@@ -289,7 +290,8 @@ export function PipelineBoard({
       destructive: true,
     }))) return
     try {
-      await deleteOpportunity(id)
+      const result = await deleteOpportunity(id)
+      if (!result.success) return toast.error(result.error)
       toast.success("Opportunité supprimée.")
       router.refresh()
     } catch (err: any) { toast.error(err?.message ?? "Erreur.") }

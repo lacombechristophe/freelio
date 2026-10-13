@@ -1,0 +1,21 @@
+{
+  "surfaces": [
+    {
+      "surface": "desktop",
+      "opportunities": 3,
+      "coherent": 1,
+      "foreignClient": 1,
+      "foreignOwner": 1,
+      "passwordVerified": true
+    },
+    {
+      "surface": "mobile",
+      "opportunities": 3,
+      "coherent": 1,
+      "foreignClient": 1,
+      "foreignOwner": 1,
+      "passwordVerified": true
+    }
+  ],
+  "remainingCompanies": 0
+}

@@ -1,0 +1,46 @@
+{
+  "schema": "freelio.pipeline-relations-diagnostic.v1",
+  "candidate": "c5d11912bb2aeb44a4d3fd87bd7a52b1d2b28f3f",
+  "passed": 2,
+  "failed": 4,
+  "cases": [
+    {
+      "title": "keeps the coherent deal readable",
+      "status": "passed"
+    },
+    {
+      "title": "already rejects direct detail of a foreign-client deal",
+      "status": "passed"
+    },
+    {
+      "title": "does not return a foreign client's deal in the board",
+      "status": "failed"
+    },
+    {
+      "title": "does not count the foreign-client deal in the pipeline selector",
+      "status": "failed"
+    },
+    {
+      "title": "does not expose another company's owner in board or detail",
+      "status": "failed"
+    },
+    {
+      "title": "refuses deletion of a foreign-client deal without deleting or auditing it",
+      "status": "failed"
+    }
+  ],
+  "observations": {
+    "foreignOwnerIdentityExposed": true,
+    "deletionAuditCreated": true,
+    "foreignClientDealDeleted": true,
+    "selectorCount": 3,
+    "foreignClientDealListed": true,
+    "countWithoutForeignClient": 2
+  },
+  "limits": [
+    "Real SQL, reader, detail and deletion action; authentication/cache mocked. SQLite only.",
+    "References deliberately inserted by the fixture; ordinary create actions were not used to produce them.",
+    "Direct foreign-client detail already returns null; coherent detail still works.",
+    "No application correction, hosted mutation, provider or subscription."
+  ]
+}

@@ -89,7 +89,8 @@ export function OpportunityFormDialog({
         lostReason: form.status === "LOST" ? form.lostReason : null,
       }
       if (opportunity) {
-        await updateOpportunity(opportunity.id, payload)
+        const result = await updateOpportunity(opportunity.id, payload)
+        if (!result.success) return toast.error(result.error)
         toast.success("Opportunité mise à jour.")
       } else {
         await createOpportunity(payload)
