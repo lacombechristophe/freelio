@@ -1,0 +1,13 @@
+{
+  "schema": "freelio.portal-diagnostic-cleanup.v1",
+  "initialCleanup": "failed because client records were still related to the companies",
+  "manualCleanup": {
+    "remainingFictionalCompanies": 0,
+    "remainingDiagnosticUsers": 0
+  },
+  "correctedDiagnosticCleanup": {
+    "remainingFictionalCompanies": 0,
+    "remainingDiagnosticUsers": 0
+  },
+  "applicationChanged": false
+}

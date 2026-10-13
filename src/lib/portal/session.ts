@@ -35,8 +35,18 @@ export function portalCookieOptions(expires: Date) {
 export async function getPortalAccessFromToken(token: string) {
   if (!portalTokenLooksValid(token)) return null
   const now = new Date()
+  const tokenScope = { tokenHash: hashPortalToken(token), revokedAt: null, expiresAt: { gt: now } }
+  const reference = await prisma.clientPortalAccess.findFirst({
+    where: tokenScope,
+    select: { id: true, companyId: true, clientId: true },
+  })
+  if (!reference) return null
   return prisma.clientPortalAccess.findFirst({
-    where: { tokenHash: hashPortalToken(token), revokedAt: null, expiresAt: { gt: now } },
+    where: {
+      ...tokenScope, ...reference,
+      client: { companyId: reference.companyId },
+      OR: [{ contactId: null }, { contact: { clientId: reference.clientId } }],
+    },
     include: {
       company: { select: { id: true, name: true, logo: true, brandColor: true, email: true, phone: true } },
       client: { select: { id: true, name: true } },

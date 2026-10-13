@@ -41,9 +41,18 @@ export async function createClientPortalAccess(input: unknown) {
 export async function revokeClientPortalAccess(accessId: string) {
   return withAuth(async ({ companyId, userId }) => {
     const parsedId = cuid.parse(accessId)
-    const access = await prisma.clientPortalAccess.findFirst({ where: { id: parsedId, companyId }, select: { id: true, clientId: true, revokedAt: true } })
-    if (!access) throw new Error("Accès portail introuvable")
-    if (!access.revokedAt) await prisma.clientPortalAccess.update({ where: { id: access.id }, data: { revokedAt: new Date() } })
+    const access = await prisma.clientPortalAccess.findFirst({
+      where: { id: parsedId, companyId, client: { companyId } },
+      select: { id: true, clientId: true, revokedAt: true, contactId: true, contact: { select: { clientId: true } } },
+    })
+    if (!access || (access.contactId && access.contact?.clientId !== access.clientId)) throw new Error("Accès portail introuvable")
+    if (!access.revokedAt) {
+      const updated = await prisma.clientPortalAccess.updateMany({
+        where: { id: access.id, companyId, clientId: access.clientId, contactId: access.contactId, client: { companyId }, OR: [{ contactId: null }, { contact: { clientId: access.clientId } }] },
+        data: { revokedAt: new Date() },
+      })
+      if (updated.count !== 1) throw new Error("Accès portail introuvable")
+    }
     await logAction({ userId, action: "REVOKE_CLIENT_PORTAL_ACCESS", resource: "CLIENT_PORTAL_ACCESS", resourceId: access.id, payload: { clientId: access.clientId } })
     revalidatePath(`/dashboard/clients/${access.clientId}`)
     return { success: true as const }
@@ -81,9 +90,13 @@ const appointmentUpdateSchema = z.object({
 export async function updateClientPortalAppointment(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = appointmentUpdateSchema.parse(input)
-    const appointment = await prisma.clientPortalAppointmentRequest.findFirst({ where: { id: data.id, companyId }, select: { id: true, clientId: true } })
+    const appointment = await prisma.clientPortalAppointmentRequest.findFirst({ where: { id: data.id, companyId, client: { companyId } }, select: { id: true, clientId: true } })
     if (!appointment) throw new Error("Demande de rendez-vous introuvable")
-    await prisma.clientPortalAppointmentRequest.update({ where: { id: appointment.id }, data: { status: data.status, response: data.response || null } })
+    const updated = await prisma.clientPortalAppointmentRequest.updateMany({
+      where: { id: appointment.id, companyId, clientId: appointment.clientId, client: { companyId } },
+      data: { status: data.status, response: data.response || null },
+    })
+    if (updated.count !== 1) throw new Error("Demande de rendez-vous introuvable")
     await logAction({ userId, action: "UPDATE_CLIENT_PORTAL_APPOINTMENT", resource: "CLIENT_PORTAL_APPOINTMENT", resourceId: appointment.id, payload: { clientId: appointment.clientId, status: data.status } })
     revalidatePath(`/dashboard/clients/${appointment.clientId}`)
     revalidatePath("/portal")

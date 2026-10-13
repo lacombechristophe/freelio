@@ -19,6 +19,7 @@ import { seedTimeEntryIntegrity } from "./seed-time-entry-integrity.mjs"
 import { seedTimeDirectory } from "./seed-time-directory.mjs"
 import { seedProjectDirectory } from "./seed-project-directory.mjs"
 import { seedProjectClientChoices } from "./seed-project-client-choices.mjs"
+import { seedPortalRelations } from "./seed-portal-relations.mjs"
 import { seedOrganisationTimeImputation } from "./seed-organisation-time-imputation.mjs"
 import { seedTimeBillingAccounting } from "./seed-time-billing-accounting.mjs"
 import { seedTimeInvoiceRounding } from "./seed-time-invoice-rounding.mjs"
@@ -52,6 +53,7 @@ try {
   await seedTimeDirectory(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedProjectDirectory(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedProjectClientChoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedPortalRelations(prisma)
   await seedOrganisationTimeImputation(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeBillingAccounting(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedTimeInvoiceRounding(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
