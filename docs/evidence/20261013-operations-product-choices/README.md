@@ -18,3 +18,7 @@ operations-product-choices.spec.ts définit douze parcours compilés : recherche
 ## Périmètre conservé
 
 Le tableau de bord et le tableau de stock utilisent encore leur chargement Produit borné à 500. Les cartes/indicateurs de stock et les autres sélecteurs sont des lots distincts. Le lecteur minimal ne qualifie pas globalement toutes les relations ou tout le cycle de vie Produit. Pas de fournisseur réel, de mouvement hors recette, d'envoi, de stockage persistant, de charge ou de reprise après arrêt brutal qualifié par ces tests.
+
+## Première exécution des parcours compilés
+
+Les douze nouveaux parcours Produit passent dans les deux CI de ca6f6fb. La qualification complète reste rouge : deux parcours Client ne distinguent pas les deux paginations de la commande. Le [rapport de régression](ci-regressions.md) conserve ces échecs et la correction de périmètre des locators, sans assertion ni délai retiré. Ce passage des seuls parcours Produit ne vaut pas qualification globale du candidat.

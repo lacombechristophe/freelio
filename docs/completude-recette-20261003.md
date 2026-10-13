@@ -115,3 +115,7 @@ Les 19 exclusions historiques du navigateur correspondent à des mutations exéc
 - Qualifier stockage persistant, comptes fournisseurs, délivrabilité, charge et reprise après arrêt brutal avant usage commercial. Le budget actuel reste de 0 €.
 
 L'[historique de qualification](historique-qualification-candidat-20261010.md) conserve les références antérieures et leurs échecs. Les [preuves du socle](execution-cto-20261001.md) et la [recette hébergée sans stockage](qualification-demo-sans-stockage-20261010.md) restent datées. Aucun compteur de tests, rendu de démo ou ancien déploiement ne certifie tout le logiciel.
+
+## Qualification Produit : échec conservé
+
+ca6f6fb ne réussit pas la qualification complète : les deux CI donnent 403 parcours réussis, 19 exclusions et deux erreurs de locator du choix Client sur la commande. Les douze nouveaux parcours Produit, 2 258 SQLite, 2 257 PostgreSQL avec une exclusion native SQLite, neuf contrôles Linux et deux audits sans vulnérabilité passent. Sa preview parcourt 49 pages/onglets par surface sans erreur JavaScript, retry ou exclusion. Les [preuves rouges](evidence/20261013-candidate/ci-ca6f6fb.json) et le [diagnostic de locator](evidence/20261013-operations-product-choices/ci-regressions.md) sont conservés. La correction du test doit encore réussir sa propre qualification complète.
