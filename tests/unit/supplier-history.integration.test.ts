@@ -116,12 +116,14 @@ describe.sequential("complete supplier histories and metrics on real SQL", () =>
     expect(last.items.map(row => row.number)).toEqual(["RETURN-100"])
     expect((await getSupplierReturnHistory(supplierId, { search: "oldest-credit" })).items.map(row => row.number)).toEqual(["RETURN-100"])
   })
-  it("keeps global metrics independent of three searches", async () => {
-    const before = (await getSupplierDetail(supplierId))!.metrics
-    await getSupplierProductHistory(supplierId, { search: "not-found" })
-    await getSupplierOrderHistory(supplierId, { search: "HISTORY-100" })
-    await getSupplierReturnHistory(supplierId, { search: "OLDEST-CREDIT" })
-    expect((await getSupplierDetail(supplierId))!.metrics).toEqual(before)
+  it.each([
+    { history: "products", read: getSupplierProductHistory, search: "not-found" },
+    { history: "orders", read: getSupplierOrderHistory, search: "HISTORY-100" },
+    { history: "returns", read: getSupplierReturnHistory, search: "OLDEST-CREDIT" },
+  ])("keeps global metrics independent of the $history search", async ({ read, search }) => {
+    await read(supplierId, { search })
+    // Check every aggregate against the fixture after each independent search.
+    expect((await getSupplierDetail(supplierId))!.metrics).toEqual({ orderCount: 101, spend: 104950, receivedCount: 100, onTimeCount: 50, openIssues: 51, productCount: 301 })
   })
   it("clamps pages after filtering and returns truthful empty metrics", async () => {
     expect((await getSupplierOrderHistory(supplierId, { search: "HISTORY-100", page: 999 })).page).toBe(1)

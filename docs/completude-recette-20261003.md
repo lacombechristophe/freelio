@@ -8,7 +8,9 @@ Les [choix de la commande fournisseur](evidence/20261014-purchase-choices/README
 
 Le [contrôle de création Achat](evidence/20261014-purchase-creation-integrity/README.md), approuvé séparément, relit chantier/client/agence et produits actifs dans la transaction après préparation du numéro. Les 24 nouveaux cas SQL passent ; 171 contrôles ciblés au total, types, ESLint, Oxlint et les deux fixtures supplémentaires sont réussis. Les prix manuels sont conservés. Deux résultats métier explicites permettent d'afficher les refus approuvés en production sans exposer d'erreurs techniques.
 
-Quatre parcours compilés sont définis pour les deux lots, sur ordinateur/mobile. Leur passage dans les CI du commit publié et la lecture hébergée exacte restent requis. Les historiques d'achat, autres cartes et sélecteurs opérationnels restent séparés.
+Les 59 nouveaux cas Achat passent sur SQLite et PostgreSQL dans les deux CI de 6e01927. Quatre parcours compilés sont définis sur ordinateur/mobile, mais restent non exécutés après l'échec du build. La lecture hébergée exacte de ce commit passe 49 visites par surface ; elle ne remplace pas ces mutations. Les historiques d'achat, autres cartes et sélecteurs opérationnels restent séparés.
+
+Les [contrôles de 6e01927](evidence/20261014-build-memory/README.md) restent rouges : le compilateur CLI de Next n'hérite pas du budget mémoire du parent, un test PostgreSQL enchaîne trop de lectures pour son délai, et le quota bloque la conservation des artefacts. La transmission du budget au compilateur et les [contrôles indépendants des recherches fournisseur](evidence/20261014-supplier-history-recipe/README.md) passent localement, avec typage et build. Leur qualification CI reste requise. Les 269 anciennes archives UI sont sauvegardées et vérifiées ; aucune suppression distante n'est encore autorisée.
 
 ## Dernier code entièrement qualifié
 
