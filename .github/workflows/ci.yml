@@ -123,6 +123,8 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          # Complete screenshots and traces remain available for diagnosis.
+          # Successful runs publish only their compact JSON reports below.
           retention-days: 7
 
       - name: Publier les rapports de recette UI
@@ -131,18 +133,9 @@ jobs:
         with:
           name: ui-audit-reports
           path: |
-            test-results/full-ui-audit/
-            test-results/task-usability/
-            test-results/supplier-history/
-            test-results/catalogue-volume/
-            test-results/operations-assets/
-            test-results/shared-health-permissions/
-            test-results/workspace-permissions/
-            test-results/opportunity-permissions/
-            test-results/project-reader-permissions/
-            test-results/contact-history-permissions/
+            test-results/**/*.json
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
 
       - name: Relier les résultats au commit testé
         if: always()
