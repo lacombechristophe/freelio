@@ -201,12 +201,17 @@ const cuid = z.string().cuid()
 export async function getCommunicationDashboard() {
   return withAuth(async ({ companyId, userId }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
+    const inboxRead = readInboxPage(companyId)
+    // Prisma starts SQLite interactive reads with BEGIN IMMEDIATE.
+    const recipientRead = process.env.DATABASE_URL?.startsWith("file:")
+      ? inboxRead.then(() => readRecipientPage(companyId))
+      : readRecipientPage(companyId)
     const [company, channels, inbox, events, recipients, unread, signature] = await Promise.all([
       prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { id: true, name: true, email: true } }),
       prisma.communicationChannel.findMany({ where: { companyId }, select: { id: true, provider: true, emailAddress: true, displayName: true, status: true, visibility: true, mailEnabled: true, calendarEnabled: true, config: true, credentialsEncrypted: true, lastSyncAt: true, lastError: true }, orderBy: { createdAt: "desc" } }),
-      readInboxPage(companyId),
+      inboxRead,
       prisma.emailEvent.groupBy({ where: { companyId, occurredAt: { gte: since } }, by: ["type"], _count: { _all: true } }),
-      readRecipientPage(companyId),
+      recipientRead,
       prisma.emailThread.aggregate({ where: { companyId, status: { not: "ARCHIVED" } }, _sum: { unreadCount: true } }),
       getEmailSignature(companyId, userId),
     ])
