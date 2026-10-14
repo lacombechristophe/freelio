@@ -11,7 +11,8 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
-  reporter: "list",
+  // Preserve assertion details even when the CI job ends before the suite.
+  reporter: process.env.CI ? "line" : "list",
   use: {
     baseURL,
     storageState: "playwright/.auth/user.json",

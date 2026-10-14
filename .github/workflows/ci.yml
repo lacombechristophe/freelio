@@ -43,10 +43,13 @@ jobs:
           retention-days: 14
   quality-and-e2e:
     runs-on: ubuntu-latest
-    # ffee948 spent 26.7 minutes in Chromium after roughly eight minutes of
-    # preparation. Keep room for the growing suite, audits and evidence uploads.
-    # Individual test deadlines and audit thresholds remain unchanged.
+    # Each surface gets its own runner and fictional database. A single run
+    # reached the 45 minute deadline before completing both surfaces.
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, mobile]
     env:
       DATABASE_URL: file:./e2e-ci.db
       AUTH_SECRET: ci-auth-secret-longer-than-thirty-two-characters
@@ -107,7 +110,7 @@ jobs:
         run: node scripts/seed-ui-redesign.mjs
 
       - name: Exécuter les parcours critiques
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=${{ matrix.project }}
 
       # Keep the complete security gate while retaining functional evidence
       # when a development-only advisory has no upstream patch yet.
@@ -119,7 +122,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
@@ -131,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ui-audit-reports
+          name: ui-audit-reports-${{ matrix.project }}
           path: |
             test-results/**/*.json
           if-no-files-found: ignore
@@ -148,7 +151,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: verification-sqlite-${{ github.sha }}
+          name: verification-sqlite-${{ github.sha }}-${{ matrix.project }}
           path: |
             test-results/tested-commit.txt
             test-results/node-version.txt
