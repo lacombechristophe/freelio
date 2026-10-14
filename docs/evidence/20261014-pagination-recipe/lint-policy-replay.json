@@ -1,0 +1,175 @@
+{
+  "database": "no business data dependency",
+  "success": true,
+  "total": 41,
+  "passed": 41,
+  "failed": 0,
+  "skipped": 0,
+  "cases": [
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency preserves every configured severity and option for src/app/dashboard/page.tsx",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency preserves every configured severity and option for src/lib/bank-date.ts",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency preserves every configured severity and option for scripts/seed-ui-redesign.mjs",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'google-font-display'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'google-font-preconnect'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'inline-script-id'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'next-script-for-ga'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-assign-module-variable'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-async-client-component'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-before-interactive-script-outside-…'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-css-tags'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-document-import-in-page'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-duplicate-head'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-head-element'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-head-import-in-document'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-html-link-for-pages'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-img-element'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-page-custom-font'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-script-component-in-head'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-styled-jsx-in-document'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-sync-scripts'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-title-in-document-head'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-typos'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency detects the pre-migration Next sentinel: 'no-unwanted-polyfillio'",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency accepts a file without a Next violation and a download handled by an attachment route",
+      "status": "passed"
+    },
+    {
+      "name": "lint policy survives removal of the vulnerable Next plugin dependency requires both engines from the normal npm lint command",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule valid location.assign(\"https://example.test/page\")",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule valid window.location.href = \"//example.test/page\"",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule valid location.assign(destination)",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule valid function navigate(location){location.assign(\"/page\")}",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule valid const window = { location: {} }; window.location.href = \"/page\"",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule valid let destination = \"/page\"; destination = \"https://example.test\"; location.assign(destination)",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid location.assign(\"/page\")",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid window.location.href = \"/page\"",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid globalThis.location[\"assign\"](\"/page\")",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid self.location.href = \"/page\"",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid document.location.href = \"/page\"",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid location.assign(`/page/${identifier}`)",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid location.assign(\"/page/\" + identifier)",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid const destination = \"/page\"; location.assign(destination)",
+      "status": "passed"
+    },
+    {
+      "name": "retained Next relative navigation rule invalid let destination = \"https://example.test\"; destination = \"/page\"; location.assign(destination)",
+      "status": "passed"
+    }
+  ],
+  "limits": "Isolated replay; does not turn the earlier complete coverage run into success"
+}

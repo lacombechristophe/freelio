@@ -32,7 +32,9 @@ describe.sequential("paginated inbox SQL and mailbox privacy", () => {
   }
   it("reads every visible thread beyond the previous 100-row cap without duplicates", async () => {
     await asColleague(async () => {
-      const pages = await Promise.all([1, 2, 3].map((page) => readInboxPage(companyId, { page })))
+      // Keep the pagination assertions separate from SQLite transaction locking.
+      const pages = []
+      for (const page of [1, 2, 3]) pages.push(await readInboxPage(companyId, { page }))
       expect(pages.map((page) => page.total)).toEqual([126, 126, 126])
       const ids = pages.flatMap((page) => page.threads.map((thread) => thread.id))
       expect(new Set(ids).size).toBe(126)

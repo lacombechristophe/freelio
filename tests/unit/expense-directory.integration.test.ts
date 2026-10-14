@@ -47,7 +47,10 @@ describe.sequential("Expense directory on real SQL", () => {
   })
 
   it("reaches all 51 rows with stable equal-date pages and complete independent cards", async () => {
-    const pages = await Promise.all([1, 2, 3].map(page => getExpenseDirectory({ page })))
+    // Page completeness is independent of concurrent transaction scheduling.
+    // SQLite starts each interactive read transaction with BEGIN IMMEDIATE.
+    const pages = []
+    for (const page of [1, 2, 3]) pages.push(await getExpenseDirectory({ page }))
     expect(pages.map(page => page.items.length)).toEqual([25, 25, 1])
     expect(new Set(pages.flatMap(page => page.items.map(item => item.id))).size).toBe(51)
     expect(pages[2].items[0].id).toBe(olderId)
