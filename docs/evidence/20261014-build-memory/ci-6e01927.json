@@ -1,0 +1,121 @@
+{
+  "candidate": "6e01927eef1392c7515a6f248dc779ad787a7e0e",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38561878702",
+      "attempt": 1,
+      "conclusion": "failure",
+      "sqlite": {
+        "passed": 2346,
+        "failed": 0,
+        "files": 218
+      },
+      "typesAndLint": {
+        "passed": true
+      },
+      "build": {
+        "compiled": true,
+        "typeCheckPassed": false,
+        "reason": "Next CLI TypeScript child heap out of memory near 2048 MiB"
+      },
+      "browser": {
+        "executed": false,
+        "passed": null
+      },
+      "linux": {
+        "checksPassed": 9,
+        "success": true,
+        "reportUploaded": false,
+        "logSha256": "0c3e9dd1fdc888a9759ff099a211f48367135a60dd69ffd3c1ae5f5f3aab6e46"
+      },
+      "postgres": {
+        "passed": 2344,
+        "failed": 1,
+        "skipped": 1,
+        "reportUploaded": false,
+        "failure": {
+          "file": "supplier-history.integration.test.ts",
+          "case": "keeps global metrics independent of three searches",
+          "reason": "5000ms test timeout"
+        },
+        "logSha256": "8c59ca5d2567322a6c2d144aa2fec17bb746890d74324e678f44edadea9600eb"
+      },
+      "focusedPurchaseSql": {
+        "choices": 35,
+        "creationIntegrity": 24,
+        "passedOn": [
+          "SQLite",
+          "PostgreSQL"
+        ]
+      },
+      "artifactUploads": {
+        "passed": false,
+        "reason": "Artifact storage quota has been hit"
+      },
+      "dependencyAuditsZeroVulnerabilities": 2,
+      "qualityLogSha256": "ca51cccbdf7cd9c762a36102167c37c36c4ef2d25d81248b916a068a619adc63"
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38561886867",
+      "attempt": 1,
+      "conclusion": "failure",
+      "sqlite": {
+        "passed": 2346,
+        "failed": 0,
+        "files": 218
+      },
+      "typesAndLint": {
+        "passed": true
+      },
+      "build": {
+        "compiled": true,
+        "typeCheckPassed": false,
+        "reason": "Next CLI TypeScript child heap out of memory near 2048 MiB"
+      },
+      "browser": {
+        "executed": false,
+        "passed": null
+      },
+      "linux": {
+        "checksPassed": 9,
+        "success": true,
+        "reportUploaded": false,
+        "logSha256": "e2e3de9b9cbd8c1e5b3229fa7f6b9f0518db38ad14476e445f9752c334b9d2a2"
+      },
+      "postgres": {
+        "passed": 2344,
+        "failed": 1,
+        "skipped": 1,
+        "reportUploaded": false,
+        "failure": {
+          "file": "supplier-history.integration.test.ts",
+          "case": "keeps global metrics independent of three searches",
+          "reason": "5000ms test timeout"
+        },
+        "logSha256": "ea44946e3924e6087982b76917bd3831cc6a74dd1261a46fd357ab0232eeff06"
+      },
+      "focusedPurchaseSql": {
+        "choices": 35,
+        "creationIntegrity": 24,
+        "passedOn": [
+          "SQLite",
+          "PostgreSQL"
+        ]
+      },
+      "artifactUploads": {
+        "passed": false,
+        "reason": "Artifact storage quota has been hit"
+      },
+      "dependencyAuditsZeroVulnerabilities": 2,
+      "qualityLogSha256": "bffd3c79225a9b17a81b17b6d9dde08465e876765ccfbacd9ee87d1d10dc9ee4"
+    }
+  ],
+  "qualified": false,
+  "limits": [
+    "PostgreSQL/Linux detailed JSON reports not uploaded; log summaries only",
+    "Browser mutation cases not executed after failed build",
+    "Read-only hosted traversal does not qualify purchase mutations"
+  ]
+}
