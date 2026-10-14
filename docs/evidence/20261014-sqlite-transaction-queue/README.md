@@ -1,0 +1,13 @@
+# Transactions SQLite entre actions concurrentes
+
+Les [CI de 49082a4](ci-49082a4.json) passent types, lint, couverture et build, 2 354 SQLite, 2 353 PostgreSQL avec une exclusion native SQLite et les neuf contrôles Linux. La PR termine 408 parcours, avec trois échecs et 19 exclusions historiques. Les quatre parcours Achat passent ; Communications est débloqué. La branche reste incomplète à 45 minutes : 286 réussites, trois échecs et 16 exclusions recensées. Les JSON détaillés n'ont pas été téléversés.
+
+Deux échecs Fournisseurs viennent d'un sélecteur de test devenu ambigu : la fenêtre Achat contient désormais trois paginations. Le test cible le bloc Fournisseur, avec les mêmes pages, choix et assertions. Le troisième échec de la PR correspond à P1008 sur une action Campagnes ; des lecteurs transactionnels peuvent démarrer depuis plusieurs requêtes en même temps. La correction locale de Communications ne règle pas ce cas.
+
+Le proxy Prisma partage désormais une file par processus pour les transactions interactives SQLite. Elle ne transmet qu'un callback au moteur à la fois. Le budget d'attente reste celui de maxWait, 2 000 ms par défaut : le temps passé en file est déduit du budget transmis au moteur. Un appel expiré reçoit P2028 et n'est jamais exécuté ensuite ; une transaction refusée ne bloque pas les suivantes. Le délai du callback, l'isolation et les options restent conservés. Le temps d'attente utilise une horloge monotone. Les transactions par tableau et PostgreSQL gardent leur chemin actuel.
+
+La [comparaison SQL](local-queue.json) conserve le résultat initial : deux appels transmis au moteur, avec les projections de société correctes, puis un seul après correction. Les contrôles de file vérifient ordre, rejet, expiration et contexte de chaque demandeur. La sérialisation n'élargit aucun droit et ne modifie pas les interfaces.
+
+Ce compteur observe les appels transmis au connecteur, pas deux verrous d'écriture acquis simultanément. La file ne coordonne pas plusieurs processus et n'ajoute pas de transactions imbriquées. Les tests natifs PostgreSQL, la recette compilée et les volumes réels restent à vérifier sur le nouveau candidat. Les délais de 45 minutes du job et de 240 secondes des parcours sont conservés.
+
+Le [passage local complet](local-coverage.json) réussit 2 359 cas de 222 fichiers, avec les seuils de couverture conservés sur leurs six modules. Il précède le raffinement de l'horloge monotone et son contrôle supplémentaire. Les dix contrôles ciblés de la version finale passent ensuite, ainsi que types, ESLint et Oxlint. Ce passage n'est pas présenté comme 2 360 cas complets ni comme une couverture globale de l'application.

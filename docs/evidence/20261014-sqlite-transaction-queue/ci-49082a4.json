@@ -1,0 +1,741 @@
+{
+  "candidate": "49082a4bc692a6501e5799c703aa019cac3169d2",
+  "qualified": false,
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38581734310",
+      "attempt": 1,
+      "conclusion": "failure",
+      "typesLintCoverageAndBuildPassed": true,
+      "sqlite": {
+        "passed": 2354,
+        "failed": 0,
+        "files": 220
+      },
+      "postgres": {
+        "passed": 2353,
+        "failed": 0,
+        "skipped": 1,
+        "reportUploaded": false,
+        "logSha256": "fd9379adbf3de0c3660199a720231d6aa084575cae1a907927a31b6ff8a92e63"
+      },
+      "linux": {
+        "checksPassed": 9,
+        "success": true,
+        "reportUploaded": false,
+        "logSha256": "1d279cc92ab6b64d33b3330a28d07c2ea01647498674f06a5e68c2809f0169fe"
+      },
+      "browser": {
+        "planned": 430,
+        "complete": false,
+        "passed": 286,
+        "failed": 3,
+        "skipped": 16,
+        "reportedCases": 305,
+        "failures": [
+          {
+            "ordinal": 57,
+            "project": "desktop",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "plans a multichannel marketing campaign and links its sequence (33.3s)",
+            "status": "failed"
+          },
+          {
+            "ordinal": 85,
+            "project": "desktop",
+            "file": "tests/e2e/expense-project-choices.spec.ts",
+            "title": "Editing an older linked expense preserves fields and blocks saving through a failed lookup (4.0m)",
+            "status": "failed"
+          },
+          {
+            "ordinal": 178,
+            "project": "desktop",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "keeps an off-page supplier choice while searching a purchase or product form (1.7s)",
+            "status": "failed"
+          }
+        ],
+        "purchaseCases": [
+          {
+            "ordinal": 141,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (7.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 142,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (3.8s)",
+            "status": "passed"
+          }
+        ],
+        "communicationsCases": [
+          {
+            "ordinal": 16,
+            "project": "desktop",
+            "file": "tests/e2e/communications-attachments.spec.ts",
+            "title": "retains a private attachment after reload and refuses stale-tab removal (6.0s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 17,
+            "project": "desktop",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "autosaves after a pause without creating an untouched draft or overwriting newer typing during a slow response (12.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 18,
+            "project": "desktop",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "manual save waits for the automatic revision and attachment changes use its latest version (5.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 19,
+            "project": "desktop",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "stops autosaving after a cross-tab conflict and resumes only after reopening the saved revision (10.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 20,
+            "project": "desktop",
+            "file": "tests/e2e/communications-contract-archive.spec.ts",
+            "title": "paginates signed contract archives and preserves a private copy in a draft without sending (5.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 21,
+            "project": "desktop",
+            "file": "tests/e2e/communications-crm-documents.spec.ts",
+            "title": "paginates and searches recipient CRM files, privately retains a file and archived invoice after reload, and leaves send manual (7.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 22,
+            "project": "desktop",
+            "file": "tests/e2e/communications-drafts.spec.ts",
+            "title": "saves incomplete private drafts, reopens copies and preserves text after a version conflict (7.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 23,
+            "project": "desktop",
+            "file": "tests/e2e/communications-forward.spec.ts",
+            "title": "forwards the selected older message into a new draft, resets copies and files, and leaves recipient and send manual (8.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 24,
+            "project": "desktop",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "preserves explicit marketing purpose through autosave, personal preview, scheduling and cancellation (7.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 25,
+            "project": "desktop",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "explains missing proof while preserving typing and requires a decision on historical drafts (4.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 26,
+            "project": "desktop",
+            "file": "tests/e2e/communications-quote-copy.spec.ts",
+            "title": "selects a current quote revision, refuses an edit at the same version and retains its generated private copy (11.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 27,
+            "project": "desktop",
+            "file": "tests/e2e/communications-reading.spec.ts",
+            "title": "reads paginated conversations, archive filters and older messages on desktop and mobile (4.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 28,
+            "project": "desktop",
+            "file": "tests/e2e/communications-recipients.spec.ts",
+            "title": "finds all recipients and preserves the choice across search and pages (4.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 29,
+            "project": "desktop",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "repairs known acceptance without resending or exposing hidden recipients (2.3s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 30,
+            "project": "desktop",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "keeps unknown results explicit, paginates commands and confirms classification without retry (2.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 31,
+            "project": "desktop",
+            "file": "tests/e2e/communications-reply-all.spec.ts",
+            "title": "prepares all visible incoming recipients beyond the message page, keeps copies editable and leaves send manual (5.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 32,
+            "project": "desktop",
+            "file": "tests/e2e/communications-reply.spec.ts",
+            "title": "replies using the conversation mailbox and refuses a disconnected mailbox (3.0s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 33,
+            "project": "desktop",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "schedules the latest private draft with files, freezes it across reload and makes it editable after cancellation (6.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 34,
+            "project": "desktop",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "preserves stale-tab typing when another tab schedules, then reopens the frozen server revision (6.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 35,
+            "project": "desktop",
+            "file": "tests/e2e/communications-signature.spec.ts",
+            "title": "inserts a saved personal signature on request, preserves old drafts and previews the plain alternative (8.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 231,
+            "project": "mobile",
+            "file": "tests/e2e/communications-attachments.spec.ts",
+            "title": "retains a private attachment after reload and refuses stale-tab removal (5.0s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 232,
+            "project": "mobile",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "autosaves after a pause without creating an untouched draft or overwriting newer typing during a slow response (11.3s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 233,
+            "project": "mobile",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "manual save waits for the automatic revision and attachment changes use its latest version (4.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 234,
+            "project": "mobile",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "stops autosaving after a cross-tab conflict and resumes only after reopening the saved revision (10.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 235,
+            "project": "mobile",
+            "file": "tests/e2e/communications-contract-archive.spec.ts",
+            "title": "paginates signed contract archives and preserves a private copy in a draft without sending (5.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 236,
+            "project": "mobile",
+            "file": "tests/e2e/communications-crm-documents.spec.ts",
+            "title": "paginates and searches recipient CRM files, privately retains a file and archived invoice after reload, and leaves send manual (5.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 237,
+            "project": "mobile",
+            "file": "tests/e2e/communications-drafts.spec.ts",
+            "title": "saves incomplete private drafts, reopens copies and preserves text after a version conflict (6.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 238,
+            "project": "mobile",
+            "file": "tests/e2e/communications-forward.spec.ts",
+            "title": "forwards the selected older message into a new draft, resets copies and files, and leaves recipient and send manual (7.0s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 239,
+            "project": "mobile",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "preserves explicit marketing purpose through autosave, personal preview, scheduling and cancellation (6.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 240,
+            "project": "mobile",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "explains missing proof while preserving typing and requires a decision on historical drafts (4.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 241,
+            "project": "mobile",
+            "file": "tests/e2e/communications-quote-copy.spec.ts",
+            "title": "selects a current quote revision, refuses an edit at the same version and retains its generated private copy (10.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 242,
+            "project": "mobile",
+            "file": "tests/e2e/communications-reading.spec.ts",
+            "title": "reads paginated conversations, archive filters and older messages on desktop and mobile (3.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 243,
+            "project": "mobile",
+            "file": "tests/e2e/communications-recipients.spec.ts",
+            "title": "finds all recipients and preserves the choice across search and pages (4.0s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 244,
+            "project": "mobile",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "repairs known acceptance without resending or exposing hidden recipients (2.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 245,
+            "project": "mobile",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "keeps unknown results explicit, paginates commands and confirms classification without retry (2.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 246,
+            "project": "mobile",
+            "file": "tests/e2e/communications-reply-all.spec.ts",
+            "title": "prepares all visible incoming recipients beyond the message page, keeps copies editable and leaves send manual (5.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 247,
+            "project": "mobile",
+            "file": "tests/e2e/communications-reply.spec.ts",
+            "title": "replies using the conversation mailbox and refuses a disconnected mailbox (2.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 248,
+            "project": "mobile",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "schedules the latest private draft with files, freezes it across reload and makes it editable after cancellation (5.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 249,
+            "project": "mobile",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "preserves stale-tab typing when another tab schedules, then reopens the frozen server revision (5.3s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 250,
+            "project": "mobile",
+            "file": "tests/e2e/communications-signature.spec.ts",
+            "title": "inserts a saved personal signature on request, preserves old drafts and previews the plain alternative (6.7s)",
+            "status": "passed"
+          }
+        ],
+        "completeReportUploaded": false
+      },
+      "dependencyAuditsZeroVulnerabilities": 2,
+      "qualityLogSha256": "7021ae092cee0a3ed6144367b7924a3e5ec636cfcb560e1f052441cc80ee5fc2",
+      "artifactUploadsPassed": false
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38581742795",
+      "attempt": 1,
+      "conclusion": "failure",
+      "typesLintCoverageAndBuildPassed": true,
+      "sqlite": {
+        "passed": 2354,
+        "failed": 0,
+        "files": 220
+      },
+      "postgres": {
+        "passed": 2353,
+        "failed": 0,
+        "skipped": 1,
+        "reportUploaded": false,
+        "logSha256": "0fa21b5e17d2ca869fa99a4b47d76dd2c31134d8e011d245cfebfabda16f0034"
+      },
+      "linux": {
+        "checksPassed": 9,
+        "success": true,
+        "reportUploaded": false,
+        "logSha256": "9562e907675b72829185a0c2cc2a2ea6c3bec3bed5911b7c16d76075ee073a0a"
+      },
+      "browser": {
+        "planned": 430,
+        "complete": true,
+        "passed": 408,
+        "failed": 3,
+        "skipped": 19,
+        "reportedCases": 430,
+        "failures": [
+          {
+            "ordinal": 57,
+            "project": "desktop",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "plans a multichannel marketing campaign and links its sequence (24.2s)",
+            "status": "failed"
+          },
+          {
+            "ordinal": 178,
+            "project": "desktop",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "keeps an off-page supplier choice while searching a purchase or product form (1.1s)",
+            "status": "failed"
+          },
+          {
+            "ordinal": 393,
+            "project": "mobile",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "keeps an off-page supplier choice while searching a purchase or product form (1.5s)",
+            "status": "failed"
+          }
+        ],
+        "purchaseCases": [
+          {
+            "ordinal": 141,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (6.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 142,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (2.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 356,
+            "project": "mobile",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (5.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 357,
+            "project": "mobile",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (2.3s)",
+            "status": "passed"
+          }
+        ],
+        "communicationsCases": [
+          {
+            "ordinal": 16,
+            "project": "desktop",
+            "file": "tests/e2e/communications-attachments.spec.ts",
+            "title": "retains a private attachment after reload and refuses stale-tab removal (3.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 17,
+            "project": "desktop",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "autosaves after a pause without creating an untouched draft or overwriting newer typing during a slow response (10.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 18,
+            "project": "desktop",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "manual save waits for the automatic revision and attachment changes use its latest version (4.3s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 19,
+            "project": "desktop",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "stops autosaving after a cross-tab conflict and resumes only after reopening the saved revision (9.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 20,
+            "project": "desktop",
+            "file": "tests/e2e/communications-contract-archive.spec.ts",
+            "title": "paginates signed contract archives and preserves a private copy in a draft without sending (4.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 21,
+            "project": "desktop",
+            "file": "tests/e2e/communications-crm-documents.spec.ts",
+            "title": "paginates and searches recipient CRM files, privately retains a file and archived invoice after reload, and leaves send manual (5.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 22,
+            "project": "desktop",
+            "file": "tests/e2e/communications-drafts.spec.ts",
+            "title": "saves incomplete private drafts, reopens copies and preserves text after a version conflict (4.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 23,
+            "project": "desktop",
+            "file": "tests/e2e/communications-forward.spec.ts",
+            "title": "forwards the selected older message into a new draft, resets copies and files, and leaves recipient and send manual (6.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 24,
+            "project": "desktop",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "preserves explicit marketing purpose through autosave, personal preview, scheduling and cancellation (4.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 25,
+            "project": "desktop",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "explains missing proof while preserving typing and requires a decision on historical drafts (3.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 26,
+            "project": "desktop",
+            "file": "tests/e2e/communications-quote-copy.spec.ts",
+            "title": "selects a current quote revision, refuses an edit at the same version and retains its generated private copy (8.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 27,
+            "project": "desktop",
+            "file": "tests/e2e/communications-reading.spec.ts",
+            "title": "reads paginated conversations, archive filters and older messages on desktop and mobile (2.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 28,
+            "project": "desktop",
+            "file": "tests/e2e/communications-recipients.spec.ts",
+            "title": "finds all recipients and preserves the choice across search and pages (3.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 29,
+            "project": "desktop",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "repairs known acceptance without resending or exposing hidden recipients (1.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 30,
+            "project": "desktop",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "keeps unknown results explicit, paginates commands and confirms classification without retry (1.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 31,
+            "project": "desktop",
+            "file": "tests/e2e/communications-reply-all.spec.ts",
+            "title": "prepares all visible incoming recipients beyond the message page, keeps copies editable and leaves send manual (4.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 32,
+            "project": "desktop",
+            "file": "tests/e2e/communications-reply.spec.ts",
+            "title": "replies using the conversation mailbox and refuses a disconnected mailbox (1.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 33,
+            "project": "desktop",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "schedules the latest private draft with files, freezes it across reload and makes it editable after cancellation (4.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 34,
+            "project": "desktop",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "preserves stale-tab typing when another tab schedules, then reopens the frozen server revision (4.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 35,
+            "project": "desktop",
+            "file": "tests/e2e/communications-signature.spec.ts",
+            "title": "inserts a saved personal signature on request, preserves old drafts and previews the plain alternative (5.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 231,
+            "project": "mobile",
+            "file": "tests/e2e/communications-attachments.spec.ts",
+            "title": "retains a private attachment after reload and refuses stale-tab removal (3.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 232,
+            "project": "mobile",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "autosaves after a pause without creating an untouched draft or overwriting newer typing during a slow response (10.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 233,
+            "project": "mobile",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "manual save waits for the automatic revision and attachment changes use its latest version (4.0s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 234,
+            "project": "mobile",
+            "file": "tests/e2e/communications-autosave.spec.ts",
+            "title": "stops autosaving after a cross-tab conflict and resumes only after reopening the saved revision (8.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 235,
+            "project": "mobile",
+            "file": "tests/e2e/communications-contract-archive.spec.ts",
+            "title": "paginates signed contract archives and preserves a private copy in a draft without sending (3.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 236,
+            "project": "mobile",
+            "file": "tests/e2e/communications-crm-documents.spec.ts",
+            "title": "paginates and searches recipient CRM files, privately retains a file and archived invoice after reload, and leaves send manual (4.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 237,
+            "project": "mobile",
+            "file": "tests/e2e/communications-drafts.spec.ts",
+            "title": "saves incomplete private drafts, reopens copies and preserves text after a version conflict (4.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 238,
+            "project": "mobile",
+            "file": "tests/e2e/communications-forward.spec.ts",
+            "title": "forwards the selected older message into a new draft, resets copies and files, and leaves recipient and send manual (5.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 239,
+            "project": "mobile",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "preserves explicit marketing purpose through autosave, personal preview, scheduling and cancellation (4.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 240,
+            "project": "mobile",
+            "file": "tests/e2e/communications-purpose.spec.ts",
+            "title": "explains missing proof while preserving typing and requires a decision on historical drafts (3.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 241,
+            "project": "mobile",
+            "file": "tests/e2e/communications-quote-copy.spec.ts",
+            "title": "selects a current quote revision, refuses an edit at the same version and retains its generated private copy (8.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 242,
+            "project": "mobile",
+            "file": "tests/e2e/communications-reading.spec.ts",
+            "title": "reads paginated conversations, archive filters and older messages on desktop and mobile (2.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 243,
+            "project": "mobile",
+            "file": "tests/e2e/communications-recipients.spec.ts",
+            "title": "finds all recipients and preserves the choice across search and pages (3.3s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 244,
+            "project": "mobile",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "repairs known acceptance without resending or exposing hidden recipients (1.3s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 245,
+            "project": "mobile",
+            "file": "tests/e2e/communications-recovery.spec.ts",
+            "title": "keeps unknown results explicit, paginates commands and confirms classification without retry (1.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 246,
+            "project": "mobile",
+            "file": "tests/e2e/communications-reply-all.spec.ts",
+            "title": "prepares all visible incoming recipients beyond the message page, keeps copies editable and leaves send manual (4.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 247,
+            "project": "mobile",
+            "file": "tests/e2e/communications-reply.spec.ts",
+            "title": "replies using the conversation mailbox and refuses a disconnected mailbox (2.2s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 248,
+            "project": "mobile",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "schedules the latest private draft with files, freezes it across reload and makes it editable after cancellation (3.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 249,
+            "project": "mobile",
+            "file": "tests/e2e/communications-scheduling.spec.ts",
+            "title": "preserves stale-tab typing when another tab schedules, then reopens the frozen server revision (3.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 250,
+            "project": "mobile",
+            "file": "tests/e2e/communications-signature.spec.ts",
+            "title": "inserts a saved personal signature on request, preserves old drafts and previews the plain alternative (4.9s)",
+            "status": "passed"
+          }
+        ],
+        "completeReportUploaded": false
+      },
+      "dependencyAuditsZeroVulnerabilities": 2,
+      "qualityLogSha256": "c183890540f0c7bce07ac07baf06d5fa368271c9284a9035d668de8b334d2bdd",
+      "artifactUploadsPassed": false
+    }
+  ],
+  "limits": [
+    "Log results without native JSON artifacts; storage quota prevents uploads",
+    "Push browser incomplete after the 45 minute job deadline",
+    "PR browser has three genuine failures; no retry or deadline removed"
+  ]
+}

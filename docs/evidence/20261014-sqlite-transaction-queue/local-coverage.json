@@ -1,0 +1,32 @@
+{
+  "baseCommit": "49082a4bc692a6501e5799c703aa019cac3169d2",
+  "database": "isolated SQLite",
+  "fullPass": {
+    "success": true,
+    "passed": 2359,
+    "failed": 0,
+    "skipped": 0,
+    "files": 222,
+    "variant": "Queue before monotonic clock refinement and its extra test"
+  },
+  "coverage": {
+    "scope": "Six configured high-risk deterministic modules; not whole application coverage",
+    "statements": 82.6,
+    "branches": 58.17,
+    "functions": 84.34,
+    "lines": 86
+  },
+  "finalTargeted": {
+    "passed": 10,
+    "failed": 0,
+    "files": [
+      "communication-dashboard.integration.test.ts",
+      "sqlite-transaction-scope.integration.test.ts",
+      "sqlite-transactions.test.ts"
+    ],
+    "queueSha256": "531e1a95d725f8390c89126785bafb1992ac879f8f2a3b7eb12ebf3cecbafc6e",
+    "includesWallClockChangeTest": true
+  },
+  "nativePostgresAndCompiledBrowserQualified": false,
+  "noRealProviderCalls": true
+}

@@ -4,6 +4,7 @@ import { canActionPermissionMutateModel, hasPermission, requiredMutationPermissi
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
 import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "./demo-policy"
 import { mailboxScope, scopeMailboxIncludes } from "./communications/mailbox-access"
+import { runSqliteTransaction, type SqliteTransactionQueue } from "./sqlite-transactions"
 
 const MUTATION_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"])
 
@@ -233,6 +234,7 @@ export type TransactionClient = Parameters<Parameters<PrismaClientExtended["$tra
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientExtended | undefined
+  sqliteTransactions?: SqliteTransactionQueue
 }
 
 const getPrisma = (): PrismaClientExtended => {
@@ -252,6 +254,13 @@ const prisma = new Proxy({} as PrismaClientExtended, {
 
     // If the property is a function, we must bind it to the client to preserve 'this'
     if (typeof value === "function") {
+      if (prop === "$transaction" && process.env.DATABASE_URL?.startsWith("file:")) {
+        return (callback: unknown, options?: { maxWait?: number }) => {
+          if (typeof callback !== "function") return value.call(client, callback, options)
+          const queue = globalForPrisma.sqliteTransactions ??= {}
+          return runSqliteTransaction(queue, maxWait => value.call(client, callback, { ...options, maxWait }), options?.maxWait)
+        }
+      }
       if (prop === "$queryRaw" && isPublicReadOnlyDemo()) {
         return (query: TemplateStringsArray) => {
           if (!Array.isArray(query) || query.length !== 1 || query[0].trim().toUpperCase() !== "SELECT 1") assertDemoMutationAllowed()
