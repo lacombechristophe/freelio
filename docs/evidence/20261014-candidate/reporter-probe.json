@@ -1,0 +1,26 @@
+{
+  "observedAt": "2026-10-14T21:00:04.443Z",
+  "baseline": "a01ce4c533a2527d6c2ead8450d194804f5d735d",
+  "method": "Two synthetic Playwright assertions, importing the real configuration with CI unset/set; server, global authentication setup and browser fixtures disabled",
+  "results": [
+    {
+      "reporter": "list",
+      "expectedExitCode": 1,
+      "assertionPrintedBeforeNextTest": false,
+      "logSha256": "5a0e837037b5880b21b877abc83d66fd6e41123977bf41331ad5ef413a9b77b8"
+    },
+    {
+      "reporter": "line",
+      "expectedExitCode": 1,
+      "assertionPrintedBeforeNextTest": true,
+      "logSha256": "1d30aecc432a1ef0ce5a9d1198ca8af316bbfd7bc0c41ce9d4f02736e1dff26d"
+    }
+  ],
+  "configurationSha256": "620973771585383d78c586d6059f0cf96d16a974492121107fcf2ecb06cf682a",
+  "limits": [
+    "Validates reporter ordering only; not a portal reproduction or browser pass",
+    "No application server, database mutation, provider call or installation"
+  ],
+  "checkedAgainstCommit": "20ee4e437738d0ced0ba07df47b31d113e00ad53",
+  "normalizedSourceMatchesCommit": true
+}

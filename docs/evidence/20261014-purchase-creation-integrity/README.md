@@ -12,7 +12,7 @@ Les [171 contrôles ciblés](local-after.json) passent, dont 24 nouveaux cas de 
 
 Les intercalages introduisent des modifications SQL réelles autour de la lecture des numéros : client du chantier, état, agence ou activation du produit. Ils prouvent la relecture après cette préparation, pas une simultanéité réseau. Les modifications introduites restent présentes lors du refus.
 
-Les [deux fixtures navigateur](seed.json) sont exécutées et supprimées sans résidu. Deux parcours compilés ordinateur/mobile sont définis : refus d'un chantier devenu incohérent, refus d'un produit désactivé, conservation du formulaire, puis reprise cohérente avec les prix saisis. La commande finale doit rester brouillon, sans stock ni envoi. Leur passage dans les CI exactes du commit publié reste requis.
+Les [deux fixtures navigateur](seed.json) sont exécutées et supprimées sans résidu. Les deux parcours compilés ordinateur/mobile passent dans les [deux CI de a01ce4c](../20261014-candidate/ci-a01ce4c.json) : refus d'un chantier devenu incohérent, refus d'un produit désactivé, conservation du formulaire, puis reprise cohérente avec les prix saisis. La commande finale reste brouillon, sans stock ni envoi. Les 24 cas SQL passent aussi sur SQLite et PostgreSQL réel. La branche reste globalement incomplète et les uploads sont refusés ; le résultat de ce lot ne suffit pas à qualifier tout le candidat.
 
 ## Limites
 

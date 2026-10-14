@@ -12,7 +12,7 @@ Les [147 cas ciblés](local-after.json) passent, dont 35 nouveaux cas Achat. Ils
 
 Le premier passage des 34 cas initiaux réussit ses assertions métier mais échoue au nettoyage des clients. L'ordre de suppression est corrigé, les résidus sont retirés et la recette ciblée complète est rejouée sans assouplir les tests. Les [deux fixtures navigateur](seed.json), avec 501 produits et 301 chantiers chacune, sont réellement créées, vérifiées puis supprimées : zéro société restante.
 
-Deux parcours compilés sont définis sur ordinateur/mobile : pages indépendantes, choix de chantier et produit disparus/remplacés, panne/reprise, modification du coût catalogue pendant la saisie, conservation du prix personnel, retrait de la première ligne, ajout d'une ligne libre et création réelle du brouillon cohérent. Leur exécution dans les deux CI du commit publié reste requise.
+Les deux parcours compilés ordinateur/mobile passent dans les [deux CI de a01ce4c](../20261014-candidate/ci-a01ce4c.json) : pages indépendantes, choix de chantier et produit disparus/remplacés, panne/reprise, modification du coût catalogue pendant la saisie, conservation du prix personnel, retrait de la première ligne, ajout d'une ligne libre et création réelle du brouillon cohérent. Les 35 cas SQL passent aussi sur SQLite et PostgreSQL réel. La branche reste globalement incomplète et les uploads sont refusés ; ce lot réussi ne qualifie pas tout le candidat.
 
 ## Limites
 

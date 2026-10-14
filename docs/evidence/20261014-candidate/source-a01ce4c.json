@@ -1,0 +1,9 @@
+{
+  "observedAt": "2026-10-14T20:16:55.416Z",
+  "candidate": "a01ce4c533a2527d6c2ead8450d194804f5d735d",
+  "testedMerge": "9bffef8b84d7c07ceb41add8dfba4bb5819d370b",
+  "method": "Identical Git tree entries outside docs/: mode, type, blob SHA and path",
+  "entries": 1071,
+  "sha256": "3c7c957632114d6f0ae61c1cee8341165055d9781149cbedfb3359615052bf26",
+  "identical": true
+}

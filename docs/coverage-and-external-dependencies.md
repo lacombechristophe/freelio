@@ -5,6 +5,8 @@ Portée : état du dépôt et recette technique de la production ; la configurat
 
 Cette matrice conserve le constat du 3 septembre. Le [plan du 2 octobre](plan-completude-fonctionnelle-20261002.md) précise les lacunes fonctionnelles ; la [recette récente](completude-recette-20261003.md) distingue les sous-lots corrigés, leurs preuves et les fonctions encore ouvertes. Les mentions « Disponible » ci-dessous ne signifient ni complétude du domaine ni qualification fournisseur actuelle. La [livraison de démo](livraison-demo-vercel-20261003.md) est fictive et en lecture seule, distincte du candidat non fusionné.
 
+La preview du candidat utilise désormais le profil de [démo sans stockage persistant](qualification-demo-sans-stockage-20261010.md), sans R2. La ligne R2 ci-dessous concerne l'exploitation modifiable, pas ce profil. Les résultats E2E du 3 septembre restent historiques ; les résultats courants sont liés à leur commit dans la recette récente.
+
 ## 1. Légende
 
 | État | Signification |
