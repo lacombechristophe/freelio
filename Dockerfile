@@ -14,6 +14,7 @@ COPY public ./public
 COPY src ./src
 COPY prisma ./prisma
 COPY scripts/sync-prisma-schemas.mjs ./scripts/sync-prisma-schemas.mjs
+COPY scripts/build-memory.mjs ./scripts/build-memory.mjs
 COPY scripts/public-demo-network.cjs ./scripts/public-demo-network.cjs
 # A schema selection URL, never a credential to an existing database.
 # Generation and compilation do not migrate or seed the runtime database.
