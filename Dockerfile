@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:24-bookworm-slim AS dependencies
+FROM docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS dependencies
 # Prisma selects its native engine when generating the client. Install the
 # same OpenSSL major version in the builder and runtime before generation.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
@@ -28,7 +28,7 @@ ENV DEMO_ACCESS_MODE=$DEMO_ACCESS_MODE
 RUN npm run build
 RUN npm prune --omit=dev --ignore-scripts --no-audit --fund=false
 
-FROM public.ecr.aws/docker/library/node:24-bookworm-slim AS runtime
+FROM docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends chromium tini openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
