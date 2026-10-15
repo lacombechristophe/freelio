@@ -258,6 +258,13 @@ try {
     }
   }
   for (const surface of ["desktop", "mobile"]) {
+    // This historical archive case must not depend on bank reconciliation or
+    // the automatic overdue transition exercised by other browser journeys.
+    const id = `cuiqahistoricalinvoice${surface}`
+    const data = { companyId, clientId: recipientClientId, number: `UIQA-HISTORICAL-${surface}`, object: "Fictional historical invoice without archive", status: "SENT",
+      lockedAt: new Date("2020-01-01"), date: new Date("2020-01-01"), createdAt: new Date("2020-01-01"), dueDate: new Date("2100-01-01"),
+      issuedDocument: null, pdfUrl: null, pdfHash: null, totalHtCents: 10000, totalTvaCents: 2000, totalTtcCents: 12000 }
+    await prisma.invoice.upsert({ where: { id }, update: data, create: { id, ...data } })
     const amountCents = surface === "desktop" ? 912345 : 912346
     const client = await prisma.client.create({ data: { companyId, name: `UIQA Bank client ${surface}` } })
     await prisma.bankTransaction.createMany({ data: Array.from({ length: 251 }, (_, index) => ({

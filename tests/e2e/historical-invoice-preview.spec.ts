@@ -6,9 +6,11 @@ test("an issued invoice without its historical archive stays readable without re
   const database = new PrismaClient()
   try {
     const invoice = await database.invoice.findUniqueOrThrow({
-      where: { companyId_number: { companyId: "e2e-company", number: `UIQA-BANK-${info.project.name}-000` } },
+      where: { companyId_number: { companyId: "e2e-company", number: `UIQA-HISTORICAL-${info.project.name}` } },
     })
     expect(invoice).toMatchObject({ status: "SENT", issuedDocument: null, pdfUrl: null, pdfHash: null })
+    expect(invoice.lockedAt).not.toBeNull()
+    expect(invoice.dueDate.getTime()).toBeGreaterThan(Date.now())
     const lines = await database.invoiceLine.findMany({ where: { invoiceId: invoice.id }, orderBy: { id: "asc" } })
     const audits = await database.auditLog.findMany({ where: { resourceId: invoice.id }, orderBy: { id: "asc" } })
     const errors: string[] = [], pdfRequests: string[] = []
