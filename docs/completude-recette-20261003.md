@@ -1,26 +1,26 @@
 # Qualification du candidat Freelio
 
-État du 14 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
+État du 15 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
 
 ## Résultat actuel
 
-Le code `a01ce4c533a2527d6c2ead8450d194804f5d735d` passe toute la recette fonctionnelle de la CI PR. Il n'est pas entièrement qualifié : la CI branche comporte un échec Portail, puis atteint le plafond de 45 minutes, et GitHub refuse les uploads de rapports dans les deux runs faute de stockage disponible.
+Le dernier résultat complet disponible concerne `1fcb8a5a06a71a9a378e53e0a6b3b57ed5cf5571`. Les deux surfaces terminent désormais avant le plafond du job. Le candidat reste non qualifié : les deux CI mobiles signalent deux échecs, le registre ECR refuse Linux dans la branche et le quota GitHub empêche les uploads de rapports.
 
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
 | Types, ESLint, Oxlint, couverture et build | Réussis | Réussis |
-| SQLite | 2 360 cas / 222 fichiers réussis | 2 360 cas / 222 fichiers réussis |
+| SQLite | 2 360 cas / 222 fichiers réussis dans chacun des deux jobs UI | 2 360 cas / 222 fichiers réussis dans chacun des deux jobs UI |
 | PostgreSQL | 2 359 réussis, une exclusion native SQLite | 2 359 réussis, une exclusion native SQLite |
-| Image Linux et runtime | Neuf contrôles réussis | Neuf contrôles réussis |
-| Audits production et complet | Zéro vulnérabilité dans les deux audits | Zéro vulnérabilité dans les deux audits |
-| Navigateur compilé | Incomplet : 372 réussis, un échec, 17 exclusions recensées sur 390 cas ; 40 non recensés | 411 réussis, 19 exclusions historiques, aucun échec ; 27,8 minutes |
+| Image Linux et runtime | HTTP 429 avant construction, conservé après relance du seul job Linux | Neuf contrôles réussis |
+| Audits production et complet | Zéro vulnérabilité dans les deux audits de chaque job UI | Zéro vulnérabilité dans les deux audits de chaque job UI |
+| Navigateur compilé | Ordinateur : 214 réussis / une exclusion ; mobile : 195 réussis / deux échecs / 18 exclusions | Ordinateur : 214 réussis / une exclusion ; mobile : 195 réussis / deux échecs / 18 exclusions |
 | Rapports détaillés téléversés | Refusés : quota GitHub | Refusés : quota GitHub |
 
-Les [résultats et digests des logs](evidence/20261014-candidate/ci-a01ce4c.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38629552114) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38629561175) restent rouges. Le bilan n'est pas reconstruit comme une CI verte à partir des seuls tests réussis.
+Les [résultats et digests des logs](evidence/20261015-browser-recipes/ci-1fcb8a5.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38637975566) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38637983101) restent rouges. Les trois jobs non relancés de la tentative 2 sont des résultats reportés, pas de nouveaux passages. Le bilan n'est pas reconstruit comme une CI verte à partir des seuls tests réussis.
 
-Les 59 nouveaux contrôles SQL Achat et les quatre parcours Achat ordinateur/mobile passent dans les deux runs. Les contrôles de Communications et de sérialisation SQLite passent aussi sur PostgreSQL réel. Aucun P1008 ou P2028 n'est relevé dans les logs de la recette navigateur de ce candidat ; cela ne prouve pas l'absence de contention sous charge.
+Les 59 nouveaux contrôles SQL Achat et les quatre parcours Achat ordinateur/mobile passent dans les deux runs. Les contrôles de Communications et de sérialisation SQLite passent aussi sur PostgreSQL réel. Le Portail passe dans les deux jobs ordinateur ; le premier échec de a01ce4c reste conservé sans cause attribuée. Ces passages ne constituent pas une mesure de charge.
 
-La [preview exacte](evidence/20261014-candidate/hosted-a01ce4c.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261014-candidate/source-a01ce4c.json) compare 1 071 entrées Git hors `docs/` au merge PR réellement testé `9bffef8b84d7c07ceb41add8dfba4bb5819d370b`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
+La [preview exacte](evidence/20261015-browser-recipes/hosted-1fcb8a5.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261015-browser-recipes/source-1fcb8a5.json) compare 1 071 entrées Git hors `docs/` au merge PR réellement testé `09cd36172cfb04cec8e1570b5f889c68ac826f43`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
 
 ## Corrections récentes
 
@@ -31,14 +31,19 @@ La [preview exacte](evidence/20261014-candidate/hosted-a01ce4c.json) passe 49 pa
 | Les lectures interactives SQLite ne se bloquent pas entre actions | [Transactions SQLite](evidence/20261014-sqlite-transaction-queue/README.md) : file par processus, budget maxWait conservé, appel expiré jamais exécuté, contexte de chaque demandeur conservé ; PostgreSQL et transactions par tableau inchangés. |
 | Le compilateur enfant reçoit le budget du build | [Mémoire et image](evidence/20261014-build-memory/README.md) : transmission explicite au CLI TypeScript de Next ; préchargement inclus dans le builder Docker. |
 | La recette fournisseur distingue chaque recherche | [Historiques fournisseur](evidence/20261014-supplier-history-recipe/README.md) : attentes métier identiques dans trois cas indépendants, sans modification du lecteur ni de son délai. |
+| Une facture historique sans archive ne charge pas une erreur JSON comme PDF | [Lot approuvé](contrat-factures-historiques-apercu.md) et [preuves locales](evidence/20261015-historical-invoice-preview/README.md) : indisponibilité explicite, accès PDF désactivés, aucun rendu régénéré ; CI du nouveau code encore requise. |
 
 Les intercalages SQL Achat prouvent la relecture après préparation du numéro. Ils ne constituent pas un stress concurrent sur plusieurs connexions. Les prix, libellés, lignes libres et changements légitimes restent conservés. Aucun fournisseur réel n'est appelé.
 
 ## Qualification à poursuivre
 
-Le parcours Portail échoue sur la branche et passe sur la PR. Les logs de la branche ne contiennent pas son assertion détaillée : le reporter la diffère jusqu'à la fin de suite, interrompue à 45 minutes. La correction de recette utilise le reporter intégré qui imprime l'erreur immédiatement et sépare ordinateur/mobile sur deux runners avec leurs propres bases fictives. Le [contrôle de sélection](evidence/20261014-candidate/browser-project-split.json) retrouve exactement les mêmes 430 cas, 215 par surface. Le [contrôle du reporter](evidence/20261014-candidate/reporter-probe.json) vérifie l'ordre d'impression avec deux assertions synthétiques, sans serveur ni navigateur. Il ne reproduit pas le défaut Portail.
+Les deux échecs mobiles de 1fcb8a5 sont désormais diagnostiqués. Un compteur Fournisseur était recherché dans toute la fenêtre Produit, où le choix Produit parent affiche aussi « 1 résultat ». L'audit général choisissait la première facture découverte et dépendait des documents créés sur ordinateur ; la base mobile neuve proposait une facture SENT sans archive. `53d47f2` limite le compteur à son champ et réserve un brouillon fictif vérifié pour la route représentative. Tous les contrôles console/HTTP restent actifs et le rapport annonce le choix de sa fixture.
 
-Le commit `20ee4e4` conserve les délais individuels de 240 secondes et du job de 45 minutes, les assertions, seuils de couverture et audits. L'indépendance effective des deux surfaces et le résultat Portail doivent être observés dans sa nouvelle CI. Cette modification de recette ne transforme pas les résultats antérieurs.
+Le défaut produit de facture historique est traité séparément dans `c578bdf` : le nouveau test SSR échoue avant correction, puis les 39 contrôles ciblés passent avec types, lint et build local de 75 pages statiques. Deux nouveaux E2E vérifient le cas historique sans écriture ; le [contrôle de sélection](evidence/20261015-historical-invoice-preview/browser-selection.json) compte 432 cas, 216 par surface. La compilation locale ne prouve pas leur exécution.
+
+`6a4cf3d` remplace les accès directs ECR des images Node et du service PostgreSQL par leurs [manifestes officiels identiques et épinglés](evidence/20261015-container-registries/README.md). Aucun moteur ni contrôle Linux n'est retiré. La disponibilité depuis les runners et les neuf contrôles restent à qualifier.
+
+Les délais existants restent conservés : 240 secondes par défaut, 15 minutes pour l'audit UI et 45 minutes par job. Les assertions, seuils de couverture et audits sont inchangés. La nouvelle CI doit confirmer ces corrections ; les [résultats antérieurs de a01ce4c](evidence/20261014-candidate/ci-a01ce4c.json) et les [contrôles du reporter](evidence/20261014-candidate/reporter-probe.json) restent datés.
 
 Deux opérations préparées attendent encore l'accord du propriétaire :
 

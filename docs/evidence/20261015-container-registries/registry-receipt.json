@@ -1,0 +1,567 @@
+{
+  "schema": "freelio.registry-readonly.v1",
+  "observedAt": "2026-10-15T11:39:40.073Z",
+  "method": "Anonymous public OCI manifest/config reads only; no layers downloaded, token output, Docker execution or repository changes",
+  "records": [
+    {
+      "observedAt": "2026-10-15T11:39:36.706Z",
+      "url": "https://registry-1.docker.io/v2/library/node/manifests/24-bookworm-slim",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+      "bodyDigest": "sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+      "platforms": [
+        {
+          "digest": "sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:156e9bc7a0a267cc6ca77b4283e32b123479342df684ce297455d7b95ff5a6b5",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:aebbbd33159ba6a85f2374ab6e91688d3126d45217b3e7551bc5c40826648daa",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:37.070Z",
+      "url": "https://registry-1.docker.io/v2/library/node/manifests/sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.manifest.v1+json",
+      "headerDigest": "sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7",
+      "bodyDigest": "sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7"
+    },
+    {
+      "observedAt": "2026-10-15T11:39:37.237Z",
+      "url": "https://registry-1.docker.io/v2/library/node/blobs/sha256:a797d6440ed0b09e51fb884f30e47ec14cbf58482c5e19db681a0cb8df45b089",
+      "status": 200,
+      "contentType": "application/octet-stream",
+      "headerDigest": null,
+      "bodyDigest": "sha256:a797d6440ed0b09e51fb884f30e47ec14cbf58482c5e19db681a0cb8df45b089",
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "nodeVersion": "24.22.0",
+      "created": "2026-10-14T18:30:05.784794905Z"
+    },
+    {
+      "observedAt": "2026-10-15T11:39:37.409Z",
+      "url": "https://registry-1.docker.io/v2/library/node/manifests/sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+      "bodyDigest": "sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20",
+      "platforms": [
+        {
+          "digest": "sha256:51b1100cc2a83d370c6a60952e3f2989c8a43159d0e38586e090f3b3326efefd",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:ba6b7d0ee561d9d49deb99e2b93c98632cc287b6cca1a6b18d66127054efa4dc",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:e6dc05f51264293dfefb90c806ddfd4a18cee9ac1c7884f266b14c38eccc309a",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:37.567Z",
+      "url": "https://registry-1.docker.io/v2/library/node/manifests/sha256:51b1100cc2a83d370c6a60952e3f2989c8a43159d0e38586e090f3b3326efefd",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.manifest.v1+json",
+      "headerDigest": "sha256:51b1100cc2a83d370c6a60952e3f2989c8a43159d0e38586e090f3b3326efefd",
+      "bodyDigest": "sha256:51b1100cc2a83d370c6a60952e3f2989c8a43159d0e38586e090f3b3326efefd"
+    },
+    {
+      "observedAt": "2026-10-15T11:39:37.688Z",
+      "url": "https://registry-1.docker.io/v2/library/node/blobs/sha256:470015c1ab1577c19efce2e80cdad4afd9c682cf8f4dcf3dccae5abfd9113397",
+      "status": 200,
+      "contentType": "application/octet-stream",
+      "headerDigest": null,
+      "bodyDigest": "sha256:470015c1ab1577c19efce2e80cdad4afd9c682cf8f4dcf3dccae5abfd9113397",
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "nodeVersion": "24.21.0",
+      "created": "2026-10-06T01:45:32.370525756Z"
+    },
+    {
+      "observedAt": "2026-10-15T11:39:37.968Z",
+      "url": "https://registry-1.docker.io/v2/library/postgres/manifests/18.6-bookworm",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "bodyDigest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "platforms": [
+        {
+          "digest": "sha256:9551dd5bf356409a21b31248f49b33bba9bb1877365f3a7e933aecd9af3cf52d",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:f7661e7b1812ac9584d4f6f94453bcac001c3d172ac08dc9141631cc3e9f06e3",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:67ba68a22dc7d5af3627b7e0f33d10bbefad07562ff9703b3a6c2de247649129",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:3bd5f13e7d698b30b8d38b14ae0d3777bc22e4d08fca3861c9739f0be5bdc9ec",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:89521e0aa4a1f7bb915d42c32c72f68f33518cf8de0f2710c5cf05de829b34d8",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:38.125Z",
+      "url": "https://registry-1.docker.io/v2/library/postgres/manifests/sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "bodyDigest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "platforms": [
+        {
+          "digest": "sha256:9551dd5bf356409a21b31248f49b33bba9bb1877365f3a7e933aecd9af3cf52d",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:f7661e7b1812ac9584d4f6f94453bcac001c3d172ac08dc9141631cc3e9f06e3",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:67ba68a22dc7d5af3627b7e0f33d10bbefad07562ff9703b3a6c2de247649129",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:3bd5f13e7d698b30b8d38b14ae0d3777bc22e4d08fca3861c9739f0be5bdc9ec",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:89521e0aa4a1f7bb915d42c32c72f68f33518cf8de0f2710c5cf05de829b34d8",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:38.775Z",
+      "url": "https://public.ecr.aws/v2/docker/library/postgres/manifests/sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": null,
+      "bodyDigest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+      "platforms": [
+        {
+          "digest": "sha256:9551dd5bf356409a21b31248f49b33bba9bb1877365f3a7e933aecd9af3cf52d",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:f7661e7b1812ac9584d4f6f94453bcac001c3d172ac08dc9141631cc3e9f06e3",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:67ba68a22dc7d5af3627b7e0f33d10bbefad07562ff9703b3a6c2de247649129",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:3bd5f13e7d698b30b8d38b14ae0d3777bc22e4d08fca3861c9739f0be5bdc9ec",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:89521e0aa4a1f7bb915d42c32c72f68f33518cf8de0f2710c5cf05de829b34d8",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:39.051Z",
+      "url": "https://registry-1.docker.io/v2/library/redis/manifests/7.4-bookworm",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "bodyDigest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "platforms": [
+        {
+          "digest": "sha256:cd745595f143052dd6a743bc5651d3ce4b03979fe5c99c7fcfab73461f6f217b",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:df0a297829e941827d69386cc00e48e4cde8a820e2f09e779b0c66f04bc78b84",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:7e180df929e2aa87c71fd61838e7775ebab7e7e7a08e438045fbeaa123960320",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:7a5b9491af0cb242bac21e579ca9db42e0acee1f4d7a361c277b2dbb4e269d4b",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:4582d382c2e7bcaf57613bf45a818a2773e99cfb4c5410ab1cf8bdcf5635c406",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:39.211Z",
+      "url": "https://registry-1.docker.io/v2/library/redis/manifests/sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "bodyDigest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "platforms": [
+        {
+          "digest": "sha256:cd745595f143052dd6a743bc5651d3ce4b03979fe5c99c7fcfab73461f6f217b",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:df0a297829e941827d69386cc00e48e4cde8a820e2f09e779b0c66f04bc78b84",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:7e180df929e2aa87c71fd61838e7775ebab7e7e7a08e438045fbeaa123960320",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:7a5b9491af0cb242bac21e579ca9db42e0acee1f4d7a361c277b2dbb4e269d4b",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:4582d382c2e7bcaf57613bf45a818a2773e99cfb4c5410ab1cf8bdcf5635c406",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:39.483Z",
+      "url": "https://public.ecr.aws/v2/docker/library/redis/manifests/sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": null,
+      "bodyDigest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+      "platforms": [
+        {
+          "digest": "sha256:cd745595f143052dd6a743bc5651d3ce4b03979fe5c99c7fcfab73461f6f217b",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:df0a297829e941827d69386cc00e48e4cde8a820e2f09e779b0c66f04bc78b84",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:7e180df929e2aa87c71fd61838e7775ebab7e7e7a08e438045fbeaa123960320",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:7a5b9491af0cb242bac21e579ca9db42e0acee1f4d7a361c277b2dbb4e269d4b",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:4582d382c2e7bcaf57613bf45a818a2773e99cfb4c5410ab1cf8bdcf5635c406",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:39.635Z",
+      "url": "https://registry-1.docker.io/v2/library/postgres/manifests/18.6",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+      "bodyDigest": "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+      "platforms": [
+        {
+          "digest": "sha256:885953109528ad3dfc90362b1a6f50a78620b5315be19f187753d267e484dc5b",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:f999d2cde93ef81bd1dcbcd245c7bf767adbca02dbe6c92a661a9f852de705d9",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v5"
+          }
+        },
+        {
+          "digest": "sha256:06bfcdeb7719e2730a9852ff32a4b487aa01efaad7844833262955b1d1f88aea",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:a63b24165ea0eacced7585766d790ac08bbaefe10a1841f87783a4505d29a69c",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:05464a702a665b5cc80c5b5d842ffd31c5503be58274f4c8cf96c50d3fa4d7a3",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:58fff7c2d8fad6acec136b663c917c56f33ec82ef1ca32aefc94e1b0687bfbf2",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:2337683c7a1556e93a8472ecb3c23a86d8d4c34daa534ef6ea0af23c082037f2",
+          "platform": {
+            "architecture": "riscv64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:3b1b1289edf5a217a154b5e64c4eba5844f393b9b81e08995a043c5a9acdf81b",
+          "platform": {
+            "architecture": "s390x",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:39.809Z",
+      "url": "https://public.ecr.aws/v2/docker/library/postgres/manifests/18.6",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": null,
+      "bodyDigest": "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+      "platforms": [
+        {
+          "digest": "sha256:885953109528ad3dfc90362b1a6f50a78620b5315be19f187753d267e484dc5b",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:f999d2cde93ef81bd1dcbcd245c7bf767adbca02dbe6c92a661a9f852de705d9",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v5"
+          }
+        },
+        {
+          "digest": "sha256:06bfcdeb7719e2730a9852ff32a4b487aa01efaad7844833262955b1d1f88aea",
+          "platform": {
+            "architecture": "arm",
+            "os": "linux",
+            "variant": "v7"
+          }
+        },
+        {
+          "digest": "sha256:a63b24165ea0eacced7585766d790ac08bbaefe10a1841f87783a4505d29a69c",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:05464a702a665b5cc80c5b5d842ffd31c5503be58274f4c8cf96c50d3fa4d7a3",
+          "platform": {
+            "architecture": "386",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:58fff7c2d8fad6acec136b663c917c56f33ec82ef1ca32aefc94e1b0687bfbf2",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:2337683c7a1556e93a8472ecb3c23a86d8d4c34daa534ef6ea0af23c082037f2",
+          "platform": {
+            "architecture": "riscv64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:3b1b1289edf5a217a154b5e64c4eba5844f393b9b81e08995a043c5a9acdf81b",
+          "platform": {
+            "architecture": "s390x",
+            "os": "linux"
+          }
+        }
+      ]
+    },
+    {
+      "observedAt": "2026-10-15T11:39:40.073Z",
+      "url": "https://public.ecr.aws/v2/docker/library/node/manifests/24-bookworm-slim",
+      "status": 200,
+      "contentType": "application/vnd.oci.image.index.v1+json",
+      "headerDigest": null,
+      "bodyDigest": "sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+      "platforms": [
+        {
+          "digest": "sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "digest": "sha256:156e9bc7a0a267cc6ca77b4283e32b123479342df684ce297455d7b95ff5a6b5",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux",
+            "variant": "v8"
+          }
+        },
+        {
+          "digest": "sha256:aebbbd33159ba6a85f2374ab6e91688d3126d45217b3e7551bc5c40826648daa",
+          "platform": {
+            "architecture": "ppc64le",
+            "os": "linux"
+          }
+        }
+      ]
+    }
+  ]
+}
