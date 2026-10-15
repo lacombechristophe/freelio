@@ -31,6 +31,7 @@ type DocumentStudioProps = {
   defaultTemplate?: string | null
   document: PdfDocument
   readOnly?: boolean
+  archiveUnavailable?: boolean
 }
 
 type LayoutId = "ESSENTIAL" | "STANDARD" | "COMPACT"
@@ -100,7 +101,9 @@ export function DocumentStudio({
   defaultTemplate,
   document,
   readOnly = false,
+  archiveUnavailable = false,
 }: DocumentStudioProps) {
+  const missingArchive = readOnly && archiveUnavailable
   const [layoutId, setLayoutId] = React.useState<LayoutId>(() => initialLayout(defaultTemplate))
   const [showPayment, setShowPayment] = React.useState(true)
   const [showReference, setShowReference] = React.useState(true)
@@ -155,11 +158,16 @@ export function DocumentStudio({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base"><FileCheck2 className="size-5 text-primary" />Document prêt à contrôler</CardTitle>
-            <CardDescription>{readOnly ? "Facture émise : aperçu de l’archive d’origine, présentation figée." : "Un rendu A4 sobre, conçu pour l’impression, la signature et l’archivage."}</CardDescription>
+            <CardDescription>{readOnly ? missingArchive ? "Facture émise : présentation figée." : "Facture émise : aperçu de l’archive d’origine, présentation figée." : "Un rendu A4 sobre, conçu pour l’impression, la signature et l’archivage."}</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={screenUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}><ExternalLink className="size-4" />Plein écran</a>
-            <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm" })}><Download className="size-4" />Télécharger {documentNumber}</a>
+            {missingArchive ? <>
+              <button type="button" disabled className={buttonVariants({ variant: "outline", size: "sm" })}><ExternalLink className="size-4" />Plein écran</button>
+              <button type="button" disabled className={buttonVariants({ size: "sm" })}><Download className="size-4" />Télécharger {documentNumber}</button>
+            </> : <>
+              <a href={screenUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}><ExternalLink className="size-4" />Plein écran</a>
+              <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "sm" })}><Download className="size-4" />Télécharger {documentNumber}</a>
+            </>}
           </div>
         </div>
       </CardHeader>
@@ -191,7 +199,10 @@ export function DocumentStudio({
           <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Aperçu du document</p><p className="text-xs text-muted-foreground">Vérifiez aussi les sauts de page dans le PDF téléchargé.</p></div><span className="rounded-md border bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">A4</span></div>
           <div className="h-[min(620px,75dvh)] min-h-80 overflow-hidden rounded-lg border border-border bg-zinc-200 p-2 sm:p-3">
             <div ref={previewRef} className="relative h-full w-full overflow-hidden">
-              <iframe key={readOnly ? apiPath : queryString} title={`Aperçu ${documentNumber}`} src={readOnly ? apiPath : undefined} srcDoc={previewHtml} className="absolute top-0 left-0 origin-top-left rounded border-0 bg-white" style={{ width: PREVIEW_WIDTH, height: previewSize.height / previewScale, transform: `scale(${previewScale})` }} />
+              {missingArchive ? <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center" style={{ color: DOCUMENT_INK }}>
+                <p className="text-sm font-semibold">Archive historique indisponible</p>
+                <p className="text-xs">Le document d’origine doit être récupéré ; il ne sera pas régénéré.</p>
+              </div> : <iframe key={readOnly ? apiPath : queryString} title={`Aperçu ${documentNumber}`} src={readOnly ? apiPath : undefined} srcDoc={previewHtml} className="absolute top-0 left-0 origin-top-left rounded border-0 bg-white" style={{ width: PREVIEW_WIDTH, height: previewSize.height / previewScale, transform: `scale(${previewScale})` }} />}
             </div>
           </div>
         </section>

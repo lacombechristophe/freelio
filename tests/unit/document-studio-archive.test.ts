@@ -13,6 +13,30 @@ const document: pdfRender.PdfDocument = {
 }
 
 describe("invoice Studio archive", () => {
+  it("shows an unavailable historical archive without loading or regenerating a document", () => {
+    const render = vi.spyOn(pdfRender, "renderDocumentHtml")
+    try {
+      const html = renderToStaticMarkup(React.createElement(DocumentStudio, {
+        kind: "facture", documentId: "synthetic-historical-invoice", documentNumber: document.number,
+        document, readOnly: true, archiveUnavailable: true,
+      }))
+      expect(render).not.toHaveBeenCalled()
+      expect(html).toContain("Archive historique indisponible")
+      expect(html).toContain("Le document d’origine doit être récupéré ; il ne sera pas régénéré.")
+      expect(html).not.toContain("<iframe")
+      expect(html).not.toContain("/api/pdf/facture/synthetic-historical-invoice")
+      expect(html).not.toContain("aperçu de l’archive d’origine")
+      const controls = html.match(/<button\b[^>]*>/g) ?? []
+      expect(controls).toHaveLength(5)
+      expect(controls.every(control => control.includes("disabled="))).toBe(true)
+      expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*?Plein écran<\/button>/)
+      expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*?Télécharger DEMO-001<\/button>/)
+      const switches = html.match(/<[^>]*data-slot="switch"[^>]*>/g) ?? []
+      expect(switches).toHaveLength(2)
+      expect(switches.every(control => control.includes("data-disabled="))).toBe(true)
+    } finally { render.mockRestore() }
+  })
+
   it("uses the archived PDF for issued previews and downloads and disables every presentation control", () => {
     const render = vi.spyOn(pdfRender, "renderDocumentHtml")
     try {
