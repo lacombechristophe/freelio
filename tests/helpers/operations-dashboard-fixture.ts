@@ -21,6 +21,7 @@ export async function createOperationsDashboardFixture(db: PrismaClient) {
   const product = await db.product.create({ data: { companyId, supplierId: supplier.id, sku: "LOCAL", label: "Fictional permitted product" } })
   const foreignProduct = await db.product.create({ data: { companyId: foreignCompanyId, sku: "FOREIGN", label: "FOREIGN-OPERATIONS-PRODUCT" } })
   const warehouse = await db.warehouse.create({ data: { companyId, agencyId: agency.id, code: "LOCAL", name: "Fictional permitted warehouse" } })
+  const destinationWarehouse = await db.warehouse.create({ data: { companyId, agencyId: agency.id, code: "DESTINATION", name: "Fictional permitted destination" } })
   const foreignWarehouse = await db.warehouse.create({ data: { companyId: foreignCompanyId, agencyId: foreignAgency.id, code: "FOREIGN", name: "FOREIGN-OPERATIONS-WAREHOUSE" } })
   const site = await db.customerSite.create({ data: { companyId, clientId: client.id, agencyId: agency.id, label: "Fictional permitted site", address1: "12 rue fictive" } })
   const equipment = await db.equipment.create({ data: { companyId, siteId: site.id, productId: product.id, label: "Fictional permitted equipment" } })
@@ -89,7 +90,7 @@ export async function createOperationsDashboardFixture(db: PrismaClient) {
   const reservation = await db.stockReservation.create({ data: { companyId, productId: product.id, warehouseId: warehouse.id, customerOrderId: order.id, quantity: 1 } })
   await db.stockReservation.create({ data: { companyId, productId: foreignProduct.id, warehouseId: warehouse.id, customerOrderId: order.id, quantity: 1 } })
   await db.deliveryNote.create({ data: { companyId: foreignCompanyId, customerOrderId: order.id, number: "FOREIGN-CHILD" } })
-  const stockTransfer = await db.stockTransfer.create({ data: { companyId, productId: product.id, fromWarehouseId: warehouse.id, toWarehouseId: warehouse.id, quantity: 1 } })
+  const stockTransfer = await db.stockTransfer.create({ data: { companyId, productId: product.id, fromWarehouseId: warehouse.id, toWarehouseId: destinationWarehouse.id, quantity: 1 } })
   const badTransfer = await db.stockTransfer.create({ data: { companyId, productId: product.id, fromWarehouseId: warehouse.id, toWarehouseId: foreignWarehouse.id, quantity: 1 } })
   async function snapshot() {
     const where = { companyId: { in: [companyId, foreignCompanyId] } }
