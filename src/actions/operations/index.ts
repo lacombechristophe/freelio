@@ -21,6 +21,7 @@ import { hasPermission } from "@/lib/permissions"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import { readStockDirectory } from "@/lib/operations/stock-directory"
+import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
@@ -514,6 +515,7 @@ async function findInterventionSlotConflict({
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const canReadFinance = hasPermission(role, "finance.read")
+    const scope = operationsDashboardScope(companyId, agencyIds)
     const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
     const now = new Date()
     const [
@@ -535,118 +537,118 @@ export async function getOperationsDashboard() {
       stockTransfers,
     ] = await Promise.all([
       prisma.agency.findMany({
-        where: { companyId, active: true },
+        where: { ...scope.agency, active: true },
         select: { id: true, code: true, name: true, isDefault: true },
         orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       }),
       prisma.customerSite.findMany({
-        where: { companyId },
-        include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } },
+        where: scope.site,
+        include: { client: { select: { name: true } }, _count: { select: { equipments: { where: scope.equipment }, serviceTickets: { where: scope.ticket } } } },
         orderBy: { updatedAt: "desc" },
         take: 100,
       }),
       readStockDirectory(companyId, agencyIds, { search: "", page: 1 }),
       prisma.warehouse.findMany({
-        where: { companyId, active: true },
+        where: { ...scope.warehouse, active: true },
         orderBy: { name: "asc" },
       }),
       prisma.purchaseOrder.findMany({
-        where: { companyId },
+        where: scope.purchaseOrder,
         include: {
           supplier: { select: { name: true } },
           project: { select: { name: true, agencyId: true } },
           approvedByMembership: { include: { user: { select: { name: true, email: true } } } },
-          lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } },
-          issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } },
-          supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true, agencyId: true } } }, orderBy: { createdAt: "desc" } },
+          lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { where: scope.supplierReturn, select: { quantity: true } } }, orderBy: { order: "asc" } },
+          issues: { where: scope.purchaseIssue, include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } },
+          supplierReturns: { where: scope.supplierReturn, include: { product: { select: { label: true } }, warehouse: { select: { name: true, agencyId: true } } }, orderBy: { createdAt: "desc" } },
         },
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
       prisma.equipment.findMany({
-        where: { companyId },
+        where: scope.equipment,
         include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } },
         orderBy: { updatedAt: "desc" },
         take: 200,
       }),
       prisma.serviceTicket.findMany({
-        where: { companyId, status: { not: "MERGED" } },
+        where: { ...scope.ticket, status: { not: "MERGED" } },
         include: {
           client: { select: { name: true } },
           site: { select: { label: true, agencyId: true } },
           equipment: { select: { label: true } },
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
-          _count: { select: { interventions: true } },
+          _count: { select: { interventions: { where: scope.intervention } } },
         },
         orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
         take: 200,
       }),
       prisma.fieldIntervention.findMany({
-        where: { companyId },
+        where: scope.intervention,
         include: {
           site: { include: { client: { select: { name: true } } } },
           ticket: { select: { number: true } },
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
           files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } },
           stockMovements: {
-            where: { type: "OUT" },
+            where: { ...scope.stockMovement, type: "OUT" },
             include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } },
             orderBy: { happenedAt: "asc" },
           },
-          expenses: { select: { id: true, label: true, amountCents: true, status: true }, orderBy: { createdAt: "asc" } },
-          reservations: { orderBy: { createdAt: "asc" } },
+          expenses: { where: scope.expense, select: { id: true, label: true, amountCents: true, status: true }, orderBy: { createdAt: "asc" } },
+          reservations: { where: { companyId }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { scheduledStart: "asc" },
         take: 200,
       }),
       prisma.maintenanceContract.findMany({
-        where: { companyId },
+        where: scope.contract,
         include: {
           client: { select: { name: true } },
           site: { select: { label: true, agencyId: true } },
           recurringInvoice: { select: { id: true, isActive: true } },
           renewedFrom: { select: { id: true, number: true } },
-          renewalProposals: { select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
-          _count: { select: { equipments: true, renewedContracts: true } },
+          renewalProposals: { where: { companyId, client: { companyId } }, select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          _count: { select: { equipments: { where: { equipment: scope.equipment } }, renewedContracts: { where: scope.contract } } },
         },
         orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }],
         take: 200,
       }),
       prisma.project.findMany({
-        where: { companyId, status: "ACTIVE" },
+        where: { ...scope.project, status: "ACTIVE" },
         select: { id: true, name: true, clientId: true, siteId: true, agencyId: true },
         orderBy: { name: "asc" },
         take: 300,
       }),
       prisma.membership.findMany({
         where: { companyId, status: "ACTIVE" },
-        include: { user: { select: { name: true, email: true } }, agencyMemberships: { select: { agencyId: true, isPrimary: true } } },
+        include: { user: { select: { name: true, email: true } }, agencyMemberships: { where: { agency: scope.agency }, select: { agencyId: true, isPrimary: true } } },
         orderBy: { createdAt: "asc" },
       }),
       prisma.customerOrder.findMany({
-        where: { companyId },
+        where: scope.customerOrder,
         include: {
           client: { select: { name: true } },
           project: { select: { name: true, agencyId: true } },
           lines: true,
-          invoices: canReadFinance ? { where: { companyId, client: { companyId } }, select: { id: true, type: true, status: true } } : false,
-          _count: { select: { deliveryNotes: true, stockReservations: true } },
+          invoices: canReadFinance ? { where: scope.invoice, select: { id: true, type: true, status: true } } : false,
+          _count: { select: { deliveryNotes: { where: scope.deliveryNote }, stockReservations: { where: scope.reservation } } },
         },
         orderBy: { createdAt: "desc" },
         take: 150,
       }),
       prisma.goodsReceipt.findMany({
-        where: { companyId },
+        where: scope.goodsReceipt,
         include: {
           purchaseOrder: { include: { supplier: { select: { name: true } } } },
           warehouse: { select: { name: true, agencyId: true } },
-          lines: { include: { product: { select: { sku: true, label: true } }, issues: true } },
+          lines: { where: scope.receiptLine, include: { product: { select: { sku: true, label: true } }, issues: { where: scope.purchaseIssue } } },
         },
         orderBy: { receivedAt: "desc" },
         take: 100,
       }),
       prisma.stockReservation.findMany({
-        where: { companyId, status: "ACTIVE" },
+        where: { ...scope.reservation, status: "ACTIVE" },
         include: {
           warehouse: { select: { name: true, agencyId: true } },
           product: { select: { sku: true, label: true } },
@@ -657,13 +659,13 @@ export async function getOperationsDashboard() {
         take: 150,
       }),
       prisma.deliveryNote.findMany({
-        where: { companyId },
+        where: scope.deliveryNote,
         include: { customerOrder: { include: { client: { select: { name: true } }, project: { select: { agencyId: true } } } }, lines: true },
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
       prisma.stockTransfer.findMany({
-        where: { companyId },
+        where: scope.stockTransfer,
         include: {
           fromWarehouse: { select: { name: true, agencyId: true } },
           toWarehouse: { select: { name: true, agencyId: true } },
