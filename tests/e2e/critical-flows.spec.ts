@@ -1078,6 +1078,9 @@ test("configures an email sequence and a lead automation", async ({ page }, test
 
 test("plans a multichannel marketing campaign and links its sequence", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "La campagne est créée une seule fois ; sa vue reste couverte au build mobile.")
+  const now = Date.now()
+  const startDay = new Date(now - 86_400_000).toISOString().slice(0, 10)
+  const endDay = new Date(now + 7 * 86_400_000).toISOString().slice(0, 10)
   // This campaign owns its sequence instead of depending on an earlier test.
   const sequenceName = `Campagne sequence ${Date.now()}`
   const campaignName = `Campagne QA printemps ${Date.now()}`
@@ -1109,8 +1112,8 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await creation.locator('input[name="objective"]').fill("Obtenir des demandes de visite technique")
   await creation.getByLabel("Rechercher : Audience", { exact: true }).fill("Prospects consentis QA")
   await creation.locator('select[name="segmentId"]').selectOption({ label: "Prospects consentis QA · 1 membre(s)" })
-  await creation.locator('input[name="startAt"]').fill("2026-09-01")
-  await creation.locator('input[name="endAt"]').fill("2026-10-15")
+  await creation.locator('input[name="startAt"]').fill(startDay)
+  await creation.locator('input[name="endAt"]').fill(endDay)
   await creation.locator('input[name="budget"]').fill("1500")
   await creation.locator('input[name="utmCampaign"]').fill("qa-printemps")
   await creation.getByRole("button", { name: "Créer la campagne" }).click()
@@ -1120,7 +1123,7 @@ test("plans a multichannel marketing campaign and links its sequence", async ({ 
   await campaign.getByLabel(`Statut de la campagne ${campaignName}`).selectOption("PLANNED")
   await expect(page.getByText("Statut de campagne mis à jour.")).toBeVisible()
   await campaign.getByLabel(`Nom du livrable pour ${campaignName}`).fill("E-mail d’annonce QA")
-  await campaign.getByLabel(`Échéance du livrable pour ${campaignName}`).fill("2026-09-01")
+  await campaign.getByLabel(`Échéance du livrable pour ${campaignName}`).fill(startDay)
   await campaign.getByRole("button", { name: "Ajouter" }).click()
   await expect(page.getByText("Livrable ajouté.")).toBeVisible()
   await campaign.getByLabel(`Rechercher : Séquence à rattacher à ${campaignName}`, { exact: true }).fill(sequenceName)
