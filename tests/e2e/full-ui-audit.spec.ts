@@ -286,7 +286,26 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     const expression = template.split("/").map((segment) => segment.startsWith("[") ? "[^/]+" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("/")
     return new RegExp(`^${expression}$`).test(route)
   }) ?? route
-  const queue = focusedRoutes?.length ? [...focusedRoutes] : [...routes]
+  const representativeRecords: Array<{ route: string; fixture: string; state: string }> = []
+  if (!focusedRoutes?.length && process.env.E2E_DIRECTORY_FIXTURES === "true") {
+    if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL) throw new Error("Les documents de recette exigent une SQLite fictive isolée")
+    const { PrismaClient } = await import("@prisma/client")
+    const database = new PrismaClient()
+    try {
+      // Banking fixtures intentionally have no historical PDF archive. Audit a
+      // seeded draft, independently of invoices created by desktop workflows.
+      const invoice = await database.invoice.findUniqueOrThrow({
+        where: { companyId_number: { companyId: "e2e-company", number: "UIQA-054" } },
+        select: { id: true, status: true, lockedAt: true },
+      })
+      expect(invoice.status).toBe("DRAFT")
+      expect(invoice.lockedAt).toBeNull()
+      representativeRecords.push({ route: `/dashboard/factures/${invoice.id}`, fixture: "UIQA-054", state: invoice.status })
+    } finally {
+      await database.$disconnect()
+    }
+  }
+  const queue = focusedRoutes?.length ? [...focusedRoutes] : [...routes, ...representativeRecords.map(record => record.route)]
   const visited = new Set<string>()
   const coveredTemplates = new Set<string>()
   const evidence: Array<{ route: string } & Awaited<ReturnType<typeof captureScrollablePage>>> = []
@@ -386,6 +405,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
   const report = {
     generatedAt: new Date().toISOString(),
     project: testInfo.project.name,
+    representativeRecords,
     routesAudited: [...visited],
     templatesCovered: [...coveredTemplates],
     templatesNotDiscovered: templates.filter((template) => !coveredTemplates.has(template)),
