@@ -1,0 +1,108 @@
+{
+  "schema": "freelio.hosted-summary.v1",
+  "observedAt": "2026-10-15T12:12:33.103Z",
+  "commit": "a39e5a5fff11d7b11ca0fbb8196a0273776e113d",
+  "deployment": {
+    "id": "dpl_9zGHGRpk5npd4jMV7RsGhykx6DU8",
+    "url": "https://freelio-m04d56s0d-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "state": "READY",
+    "createdAt": 1792065492522
+  },
+  "exitCode": 0,
+  "stats": {
+    "startTime": "2026-10-15T12:08:22.191Z",
+    "duration": 250890.25,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "surfaces": [
+    {
+      "project": "desktop",
+      "visited": 49,
+      "pageErrors": 0,
+      "durationMs": 141672
+    },
+    {
+      "project": "mobile",
+      "visited": 49,
+      "pageErrors": 0,
+      "durationMs": 106829
+    }
+  ],
+  "routes": [
+    "/dashboard/clients",
+    "/dashboard/devis",
+    "/dashboard/factures",
+    "/dashboard/depenses",
+    "/dashboard/crm",
+    "/dashboard/sales",
+    "/dashboard/revenue",
+    "/dashboard/marketing/overview",
+    "/dashboard/service",
+    "/dashboard/contacts",
+    "/dashboard/leads",
+    "/dashboard/pipeline",
+    "/dashboard/projets",
+    "/dashboard/contrats",
+    "/dashboard/communications",
+    "/dashboard/communications?tab=compose",
+    "/dashboard/communications?tab=drafts",
+    "/dashboard/communications?tab=recovery",
+    "/dashboard/communications?tab=integrations",
+    "/dashboard/marketing",
+    "/dashboard/campagnes",
+    "/dashboard/automatisations",
+    "/dashboard/catalogue",
+    "/dashboard/operations",
+    "/dashboard/operations?tab=orders",
+    "/dashboard/operations?tab=assets",
+    "/dashboard/operations?tab=planning",
+    "/dashboard/operations?tab=maintenance",
+    "/dashboard/operations/fournisseurs",
+    "/dashboard/comptabilite",
+    "/dashboard/comptabilite/banque",
+    "/dashboard/factures/recurrentes",
+    "/dashboard/factures/temps-non-facture",
+    "/dashboard/organisation",
+    "/dashboard/temps",
+    "/dashboard/service/help-desk",
+    "/dashboard/service/customer-success",
+    "/dashboard/service/analytics",
+    "/dashboard/service/diagnostics",
+    "/dashboard/service/macros",
+    "/dashboard/service/connaissance",
+    "/dashboard/service/satisfaction",
+    "/dashboard/reports",
+    "/dashboard/notifications",
+    "/dashboard/equipe",
+    "/dashboard/settings",
+    "/dashboard/settings/properties",
+    "/dashboard/settings/agencies",
+    "/dashboard/help"
+  ],
+  "harnessIdentity": [
+    {
+      "file": "playwright.hosted.config.ts",
+      "gitBlob": "b750febd5668cd2f61f1b2f9c6cd34779c2857db",
+      "sha256WithLf": "0c438a37729db2b5f0da783186e0cffae0f1744a123fdaf1a59339e4abc71016",
+      "matchesCandidate": true
+    },
+    {
+      "file": "tests/hosted/readonly-demo.spec.ts",
+      "gitBlob": "86bca539851e9c1adca353d0f270de0277acfa19",
+      "sha256WithLf": "a70dca86048aa93f4ef2704c3bc3fb96d1bac7d898f0c0ffa613b647f63e6849",
+      "matchesCandidate": true
+    }
+  ],
+  "aliasVerifiedAfter": {
+    "observedAt": "2026-10-15T12:13:10.852Z",
+    "deploymentId": "dpl_9zGHGRpk5npd4jMV7RsGhykx6DU8"
+  },
+  "sourceReportSha256": "a801dc7d48e54d2c135169dcff4e021b5589a70e34940b3c1347a0d8d36ef0a4",
+  "limits": [
+    "Read-only fictional Owner demo with persistent storage disabled.",
+    "Does not qualify writes, real providers, delivery, load or remote recovery."
+  ]
+}

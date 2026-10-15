@@ -4,23 +4,23 @@
 
 ## Résultat actuel
 
-Le dernier résultat complet disponible concerne `1fcb8a5a06a71a9a378e53e0a6b3b57ed5cf5571`. Les deux surfaces terminent désormais avant le plafond du job. Le candidat reste non qualifié : les deux CI mobiles signalent deux échecs, le registre ECR refuse Linux dans la branche et le quota GitHub empêche les uploads de rapports.
+Le dernier résultat complet concerne `a39e5a5fff11d7b11ca0fbb8196a0273776e113d`. Les quatre jobs navigateur terminent avant leur plafond. Le candidat reste non qualifié : ses recettes signalent des échecs, et GitHub refuse encore les uploads après le nettoyage des anciennes archives. Linux passe désormais dans les deux workflows.
 
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
 | Types, ESLint, Oxlint, couverture et build | Réussis | Réussis |
-| SQLite | 2 360 cas / 222 fichiers réussis dans chacun des deux jobs UI | 2 360 cas / 222 fichiers réussis dans chacun des deux jobs UI |
-| PostgreSQL | 2 359 réussis, une exclusion native SQLite | 2 359 réussis, une exclusion native SQLite |
-| Image Linux et runtime | HTTP 429 avant construction, conservé après relance du seul job Linux | Neuf contrôles réussis |
+| SQLite | 2 361 cas / 222 fichiers réussis dans chacun des deux jobs UI | 2 361 cas / 222 fichiers réussis dans chacun des deux jobs UI |
+| PostgreSQL | 2 360 réussis, une exclusion native SQLite | 2 360 réussis, une exclusion native SQLite |
+| Image Linux et runtime | Neuf contrôles réussis | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité dans les deux audits de chaque job UI | Zéro vulnérabilité dans les deux audits de chaque job UI |
-| Navigateur compilé | Ordinateur : 214 réussis / une exclusion ; mobile : 195 réussis / deux échecs / 18 exclusions | Ordinateur : 214 réussis / une exclusion ; mobile : 195 réussis / deux échecs / 18 exclusions |
+| Navigateur compilé | Ordinateur : 213 réussis / deux échecs / une exclusion ; mobile : 197 réussis / un échec / 18 exclusions | Ordinateur : 212 réussis / trois échecs / une exclusion ; mobile : 197 réussis / un échec / 18 exclusions |
 | Rapports détaillés téléversés | Refusés : quota GitHub | Refusés : quota GitHub |
 
-Les [résultats et digests des logs](evidence/20261015-browser-recipes/ci-1fcb8a5.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38637975566) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38637983101) restent rouges. Les trois jobs non relancés de la tentative 2 sont des résultats reportés, pas de nouveaux passages. Le bilan n'est pas reconstruit comme une CI verte à partir des seuls tests réussis.
+Les [résultats et digests des logs](evidence/20261015-candidate/ci-a39e5a5.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38731137154) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38731141563) restent rouges. Les uploads refusés ne sont pas transformés en succès par les seuls tests réussis. Les [échecs précédents de 1fcb8a5](evidence/20261015-browser-recipes/ci-1fcb8a5.json) restent conservés.
 
 Les 59 nouveaux contrôles SQL Achat et les quatre parcours Achat ordinateur/mobile passent dans les deux runs. Les contrôles de Communications et de sérialisation SQLite passent aussi sur PostgreSQL réel. Le Portail passe dans les deux jobs ordinateur ; le premier échec de a01ce4c reste conservé sans cause attribuée. Ces passages ne constituent pas une mesure de charge.
 
-La [preview exacte](evidence/20261015-browser-recipes/hosted-1fcb8a5.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261015-browser-recipes/source-1fcb8a5.json) compare 1 071 entrées Git hors `docs/` au merge PR réellement testé `09cd36172cfb04cec8e1570b5f889c68ac826f43`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
+La [preview exacte](evidence/20261015-candidate/hosted-a39e5a5.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261015-candidate/source-a39e5a5.json) compare 1 072 entrées Git hors `docs/` au merge PR réellement testé `a6f399adcb535bf716d6761ab746563f5523874c`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
 
 ## Corrections récentes
 
@@ -32,6 +32,7 @@ La [preview exacte](evidence/20261015-browser-recipes/hosted-1fcb8a5.json) passe
 | Le compilateur enfant reçoit le budget du build | [Mémoire et image](evidence/20261014-build-memory/README.md) : transmission explicite au CLI TypeScript de Next ; préchargement inclus dans le builder Docker. |
 | La recette fournisseur distingue chaque recherche | [Historiques fournisseur](evidence/20261014-supplier-history-recipe/README.md) : attentes métier identiques dans trois cas indépendants, sans modification du lecteur ni de son délai. |
 | Une facture historique sans archive ne charge pas une erreur JSON comme PDF | [Lot approuvé](contrat-factures-historiques-apercu.md) et [preuves locales](evidence/20261015-historical-invoice-preview/README.md) : indisponibilité explicite, accès PDF désactivés, aucun rendu régénéré ; CI du nouveau code encore requise. |
+| La synthèse Opérations n'inclut pas une référence étrangère dans ses listes ou compteurs | [Lot approuvé](contrat-operations-dashboard-relations.md) et [preuves locales](evidence/20261015-operations-dashboard/README.md) : treize exclusions initialement manquantes ; 37 cas dédiés et 121 avec les suites voisines passent sur SQLite. PostgreSQL et navigateur restent à qualifier sur ce nouveau code. |
 
 Les intercalages SQL Achat prouvent la relecture après préparation du numéro. Ils ne constituent pas un stress concurrent sur plusieurs connexions. Les prix, libellés, lignes libres et changements légitimes restent conservés. Aucun fournisseur réel n'est appelé.
 
@@ -39,16 +40,17 @@ Les intercalages SQL Achat prouvent la relecture après préparation du numéro.
 
 Les deux échecs mobiles de 1fcb8a5 sont désormais diagnostiqués. Un compteur Fournisseur était recherché dans toute la fenêtre Produit, où le choix Produit parent affiche aussi « 1 résultat ». L'audit général choisissait la première facture découverte et dépendait des documents créés sur ordinateur ; la base mobile neuve proposait une facture SENT sans archive. `53d47f2` limite le compteur à son champ et réserve un brouillon fictif vérifié pour la route représentative. Tous les contrôles console/HTTP restent actifs et le rapport annonce le choix de sa fixture.
 
-Le défaut produit de facture historique est traité séparément dans `c578bdf` : le nouveau test SSR échoue avant correction, puis les 39 contrôles ciblés passent avec types, lint et build local de 75 pages statiques. Deux nouveaux E2E vérifient le cas historique sans écriture ; le [contrôle de sélection](evidence/20261015-historical-invoice-preview/browser-selection.json) compte 432 cas, 216 par surface. La compilation locale ne prouve pas leur exécution.
+Le défaut produit de facture historique est traité séparément dans `c578bdf` : le nouveau test SSR échoue avant correction, puis les 39 contrôles ciblés passent avec types, lint et build local de 75 pages statiques. Sur a39e5a5, ses deux E2E s'arrêtent avant l'interface : la facture bancaire réutilisée est devenue OVERDUE au lieu du SENT attendu. `eb90c50` fournit deux fixtures réservées, figées et sans archive, dont l'échéance est en 2100. Les assertions SENT, absence de PDF, refus 409 et absence de mutation restent conservées ; une fixture de recette ne constitue pas l'émission d'un document.
 
-`6a4cf3d` remplace les accès directs ECR des images Node et du service PostgreSQL par leurs [manifestes officiels identiques et épinglés](evidence/20261015-container-registries/README.md). Aucun moteur ni contrôle Linux n'est retiré. La disponibilité depuis les runners et les neuf contrôles restent à qualifier.
+`6a4cf3d` remplace les accès directs ECR des images Node et du service PostgreSQL par leurs [manifestes officiels identiques et épinglés](evidence/20261015-container-registries/README.md). Aucun moteur ni contrôle Linux n'est retiré. Les neuf contrôles passent ensuite dans les deux CI de a39e5a5.
 
-Les délais existants restent conservés : 240 secondes par défaut, 15 minutes pour l'audit UI et 45 minutes par job. Les assertions, seuils de couverture et audits sont inchangés. La nouvelle CI doit confirmer ces corrections ; les [résultats antérieurs de a01ce4c](evidence/20261014-candidate/ci-a01ce4c.json) et les [contrôles du reporter](evidence/20261014-candidate/reporter-probe.json) restent datés.
+Le parcours Campagnes utilisait une fin fixe au 15 octobre 2026, déjà atteinte lors du run : l'activation est refusée par la règle existante. `94cb4c6` fournit une fenêtre relative au jour du test, avec les mêmes contrôles d'audience et d'inscription. Un troisième échec existe uniquement sur le desktop PR : le menu Supprimer ne s'ouvre pas avant l'expiration du test de libération des temps. Le harnais attend désormais l'hydratation et vérifie explicitement `aria-expanded` après chaque ouverture. Sans trace téléversée, la cause initiale n'est pas attribuée au produit ou au réseau ; le résultat de cette correction de recette reste à confirmer.
 
-Deux opérations préparées attendent encore l'accord du propriétaire :
+`625d66b` applique la protection Opérations approuvée. Ses [preuves locales](evidence/20261015-operations-dashboard/local.json) comprennent les contrôles positifs, relations optionnelles, historiques et agences. Types, lint et build de 75 pages statiques passent. Le [contrôle de sélection](evidence/20261015-operations-dashboard/browser-selection.json) compte désormais 434 cas, 217 par surface ; il ne les exécute pas.
 
-- Retirer 269 anciennes archives UI GitHub, sauvegardées localement et vérifiées par SHA-256, pour libérer le quota sans toucher aux runs, logs et preuves SQL/Linux. Aucune suppression distante n'a été exécutée.
-- Corriger treize lectures de relations incohérentes dans la synthèse Opérations. La reproduction utilise des fixtures volontairement injectées ; elle ne prouve pas leur création par les formulaires. Ce lot comporte des refus visibles et reste distinct des créations Achat approuvées.
+Les délais existants restent conservés : 240 secondes par défaut, 15 minutes pour l'audit UI et 45 minutes par job. Les seuils de couverture et audits sont inchangés. La nouvelle CI doit qualifier ce code ; les [résultats antérieurs de a01ce4c](evidence/20261014-candidate/ci-a01ce4c.json) et les [contrôles du reporter](evidence/20261014-candidate/reporter-probe.json) restent datés.
+
+Le [nettoyage distant autorisé](evidence/20261015-ci-storage/README.md) a traité les 269 identifiants sauvegardés : 256 supprimés, 13 déjà absents. Les 269 ZIP locaux et les 750 autres artefacts sont conservés et vérifiés. Le recalcul du quota n'est pas prouvé par cette suppression ; les uploads du candidat a39e5a5 restent refusés.
 
 Le stockage durable, les comptes OAuth/transport réels, la délivrabilité, la charge, la reprise après arrêt brutal et la récupération distante restent à qualifier avant un usage commercial. Le budget courant est de 0 € et aucun abonnement R2 n'est engagé.
 
