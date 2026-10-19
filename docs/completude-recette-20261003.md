@@ -4,23 +4,23 @@
 
 ## Résultat actuel
 
-Le dernier résultat complet concerne `8aab95f842ac5c5911ca0ef1bcad7b0ab3d1dd33`. Les quatre jobs navigateur terminent avant leur plafond. Le seul échec navigateur est un sélecteur ambigu du test d'archive historique, corrigé dans `93a906e` sans retirer d'assertion. GitHub refuse encore les uploads dans ces runs. Les quatre lecteurs Service/Achat sont ensuite protégés dans `3d79096`, avec 190 contrôles SQL ciblés, types et lint réussis localement ; leur nouvelle CI reste requise.
+Le dernier résultat complet concerne `8d2232385f8cfcca9006d5e56ecdb3794485610c`. Tous les contrôles fonctionnels passent dans les deux workflows, dont l'archive historique et les quatre fiches Service/Achat. La CI reste rouge uniquement sur les uploads refusés par GitHub pour quota. Le complément d'écritures `639f231`, encore local, passe ensuite la suite SQLite complète de 2 456 cas sur une base neuve ; PostgreSQL et navigateur de ce complément restent à qualifier.
 
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
 | Types, ESLint, Oxlint, couverture et build | Réussis | Réussis |
-| SQLite | 2 398 cas / 223 fichiers réussis dans chacun des deux jobs UI | 2 398 cas / 223 fichiers réussis dans chacun des deux jobs UI |
-| PostgreSQL | 2 397 réussis, une exclusion native SQLite | 2 397 réussis, une exclusion native SQLite |
+| SQLite | 2 440 cas / 224 fichiers réussis dans chacun des deux jobs UI | 2 440 cas / 224 fichiers réussis dans chacun des deux jobs UI |
+| PostgreSQL | 2 439 réussis, une exclusion native SQLite | 2 439 réussis, une exclusion native SQLite |
 | Image Linux et runtime | Neuf contrôles réussis | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité dans les deux audits de chaque job UI | Zéro vulnérabilité dans les deux audits de chaque job UI |
-| Navigateur compilé | Ordinateur : 215 réussis / un échec / une exclusion ; mobile : 198 réussis / un échec / 18 exclusions | Ordinateur : 215 réussis / un échec / une exclusion ; mobile : 198 réussis / un échec / 18 exclusions |
+| Navigateur compilé | Ordinateur : 217 réussis / une exclusion ; mobile : 200 réussis / 18 exclusions ; aucun échec | Ordinateur : 217 réussis / une exclusion ; mobile : 200 réussis / 18 exclusions ; aucun échec |
 | Rapports détaillés téléversés | Refusés : quota GitHub | Refusés : quota GitHub |
 
-Les [résultats et digests des logs](evidence/20261015-candidate/ci-8aab95f.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38737487836) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38737497518) restent rouges. Les uploads refusés ne sont pas transformés en succès par les seuls tests réussis. Les [échecs précédents](evidence/20261015-candidate/README.md) restent conservés.
+Les [résultats et digests des logs](evidence/20261019-candidate/ci-8d22323.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/39263465902) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/39263471846) restent rouges. Les uploads refusés ne sont pas transformés en succès par les seuls tests réussis. Les [échecs précédents](evidence/20261015-candidate/README.md) restent conservés.
 
 Les 59 nouveaux contrôles SQL Achat et les quatre parcours Achat ordinateur/mobile passent dans les deux runs. Les contrôles de Communications et de sérialisation SQLite passent aussi sur PostgreSQL réel. Le Portail passe dans les deux jobs ordinateur ; le premier échec de a01ce4c reste conservé sans cause attribuée. Ces passages ne constituent pas une mesure de charge.
 
-La [preview exacte](evidence/20261015-candidate/hosted-8aab95f.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261015-candidate/source-8aab95f.json) compare 1 076 entrées Git hors `docs/` au merge PR réellement testé `ba192f5560b4fee32b48f55b783e99a1514adaa1`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
+La [preview exacte](evidence/20261019-candidate/hosted-8d22323.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261019-candidate/source-8d22323.json) compare 1 079 entrées Git hors `docs/` au merge PR réellement testé `2bdd1b29e74efed5b1bbd576aad2b68b1ebb6a9e`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
 
 ## Corrections récentes
 
@@ -31,14 +31,16 @@ La [preview exacte](evidence/20261015-candidate/hosted-8aab95f.json) passe 49 pa
 | Les lectures interactives SQLite ne se bloquent pas entre actions | [Transactions SQLite](evidence/20261014-sqlite-transaction-queue/README.md) : file par processus, budget maxWait conservé, appel expiré jamais exécuté, contexte de chaque demandeur conservé ; PostgreSQL et transactions par tableau inchangés. |
 | Le compilateur enfant reçoit le budget du build | [Mémoire et image](evidence/20261014-build-memory/README.md) : transmission explicite au CLI TypeScript de Next ; préchargement inclus dans le builder Docker. |
 | La recette fournisseur distingue chaque recherche | [Historiques fournisseur](evidence/20261014-supplier-history-recipe/README.md) : attentes métier identiques dans trois cas indépendants, sans modification du lecteur ni de son délai. |
-| Une facture historique sans archive ne charge pas une erreur JSON comme PDF | [Lot approuvé](contrat-factures-historiques-apercu.md) et [preuves locales](evidence/20261015-historical-invoice-preview/README.md) : indisponibilité explicite, accès PDF désactivés, aucun rendu régénéré ; CI du nouveau code encore requise. |
+| Une facture historique sans archive ne charge pas une erreur JSON comme PDF | [Lot approuvé](contrat-factures-historiques-apercu.md) et [preuves locales](evidence/20261015-historical-invoice-preview/README.md) : indisponibilité explicite, accès PDF désactivés, aucun rendu régénéré ; parcours réussi sur les deux surfaces dans les deux CI de 8d22323. |
 | La synthèse Opérations n'inclut pas une référence étrangère dans ses listes ou compteurs | [Lot approuvé](contrat-operations-dashboard-relations.md) et [preuves](evidence/20261015-operations-dashboard/README.md) : treize exclusions initialement manquantes ; 37 cas dédiés et 121 avec les suites voisines passent sur SQLite. Les 37 cas PostgreSQL et les deux parcours compilés passent dans les deux CI de 8aab95f. |
-| Les fiches Équipement, Intervention, Ticket et Achat ne restituent pas leurs relations étrangères | [Portée et reproduction](contrat-operations-details-relations.md), [preuves locales](evidence/20261019-operations-details/README.md) : sept échecs sur douze cas avant correction ; 42 contrôles dédiés et 190 avec les voisins réussis après correction. CI PostgreSQL et navigateur encore requise. |
+| Les fiches Équipement, Intervention, Ticket et Achat ne restituent pas leurs relations étrangères | [Portée et reproduction](contrat-operations-details-relations.md), [preuves](evidence/20261019-operations-details/README.md) : sept échecs sur douze cas avant correction ; 42 contrôles dédiés et 190 avec les voisins réussis localement. Les 42 PostgreSQL et les deux parcours compilés passent dans les deux CI de 8d22323. |
 | Une intervention ou réserve inaccessible ne peut plus changer d'état par appel direct | `639f231` : relation contrôlée dans la lecture et la mise à jour ; [seize cas dédiés, 206 avec les voisins](evidence/20261019-operations-details/intervention-state.json) réussis localement. Double appel sans double audit, droits et démo vérifiés ; nouvelle CI encore requise. |
 
 Les intercalages SQL Achat prouvent la relecture après préparation du numéro. Ils ne constituent pas un stress concurrent sur plusieurs connexions. Les prix, libellés, lignes libres et changements légitimes restent conservés. Aucun fournisseur réel n'est appelé.
 
 ## Qualification à poursuivre
+
+Les contrôles fonctionnels et les quatre jobs navigateur de `8d22323` passent. Les uploads restent refusés : cette limite externe empêche la qualification entière de la CI. `639f231` protège ensuite les écritures d'intervention ; il n'est pas encore poussé. Ses [2 456 tests SQLite et six fichiers de couverture ciblée](evidence/20261019-operations-details/full-sqlite.json) passent sur une base neuve avec identité des sources contrôlée. Le plafond GitHub de 0 € doit être vérifié avant toute nouvelle CI. Les paragraphes suivants restent l'historique de qualification, et leurs attentes sont désormais résolues pour 8d22323 seulement.
 
 Les deux workflows complets de `8aab95f` confirment les corrections de période Campagnes, d'ouverture du menu de suppression et de préparation PostgreSQL du transfert. Leur seul échec navigateur restant concerne `summary`, ambigu entre la vérification du document et les réglages de présentation. `93a906e` cible le second panneau explicitement et en vérifie l'unicité. Les assertions de verrouillage, refus PDF et absence de mutation restent conservées. Les paragraphes suivants décrivent les reproductions précédentes ; leurs résultats ne sont pas remplacés rétroactivement.
 

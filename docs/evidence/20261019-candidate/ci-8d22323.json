@@ -1,0 +1,220 @@
+{
+  "schema": "freelio.ci-log-summary.v2",
+  "candidate": "8d2232385f8cfcca9006d5e56ecdb3794485610c",
+  "observedAt": "2026-10-19T14:20:40.902Z",
+  "fullyQualified": false,
+  "evidenceBasis": "Terminal GitHub job metadata and native reporter totals in complete job logs; no missing native JSON reconstructed.",
+  "runs": [
+    {
+      "event": "push",
+      "id": 39263465902,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/39263465902",
+      "attempt": 1,
+      "startedAt": "2026-10-19T13:49:35Z",
+      "conclusion": "failure",
+      "quality": [
+        {
+          "project": "desktop",
+          "id": 118096880798,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/39263465902/job/118096880798",
+          "startedAt": "2026-10-19T13:49:39Z",
+          "completedAt": "2026-10-19T14:20:05Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2440,
+            "failed": 0,
+            "files": 224
+          },
+          "browser": {
+            "planned": 218,
+            "passed": 217,
+            "failed": 0,
+            "skipped": 1,
+            "complete": true,
+            "duration": "21.2m",
+            "failures": [],
+            "termination": null
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 176032,
+            "sha256": "84fc6c3b10018e36a05d9d8f0a150e54082621ff152a353883260289a1230783"
+          }
+        },
+        {
+          "project": "mobile",
+          "id": 118096880334,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/39263465902/job/118096880334",
+          "startedAt": "2026-10-19T13:49:39Z",
+          "completedAt": "2026-10-19T14:17:26Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2440,
+            "failed": 0,
+            "files": 224
+          },
+          "browser": {
+            "planned": 218,
+            "passed": 200,
+            "failed": 0,
+            "skipped": 18,
+            "complete": true,
+            "duration": "18.1m",
+            "failures": [],
+            "termination": null
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 172152,
+            "sha256": "475a62c2fe1bb2b4891f66b7373d79233053707297268dcba1a58b051f36c96c"
+          }
+        }
+      ],
+      "postgres": {
+        "id": 118096880659,
+        "conclusion": "failure",
+        "passed": 2439,
+        "skipped": 1,
+        "total": 2440,
+        "failedSuites": [],
+        "unitStagePassed": true,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 453077,
+          "sha256": "c7035589afa9b3ae8db597d42473a0c853bf6b3e8b99cb7a4e08b087549f3a40"
+        }
+      },
+      "linux": {
+        "id": 118096880888,
+        "conclusion": "failure",
+        "checksPassed": 9,
+        "success": true,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 157490,
+          "sha256": "d5c68bf36eca96283350d5d3d1d5913ec6bc43f834704eaa8d0a6014a1ff2cf5"
+        }
+      }
+    },
+    {
+      "event": "pr",
+      "id": 39263471846,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/39263471846",
+      "attempt": 1,
+      "startedAt": "2026-10-19T13:49:38Z",
+      "conclusion": "failure",
+      "quality": [
+        {
+          "project": "desktop",
+          "id": 118096903785,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/39263471846/job/118096903785",
+          "startedAt": "2026-10-19T13:49:42Z",
+          "completedAt": "2026-10-19T14:16:52Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2440,
+            "failed": 0,
+            "files": 224
+          },
+          "browser": {
+            "planned": 218,
+            "passed": 217,
+            "failed": 0,
+            "skipped": 1,
+            "complete": true,
+            "duration": "18.5m",
+            "failures": [],
+            "termination": null
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 178283,
+            "sha256": "cbcccfd07a9bfae37ff125fe95da23788cd5667f5349f6a54e3ca68d0781200b"
+          }
+        },
+        {
+          "project": "mobile",
+          "id": 118096904019,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/39263471846/job/118096904019",
+          "startedAt": "2026-10-19T13:49:42Z",
+          "completedAt": "2026-10-19T14:17:33Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2440,
+            "failed": 0,
+            "files": 224
+          },
+          "browser": {
+            "planned": 218,
+            "passed": 200,
+            "failed": 0,
+            "skipped": 18,
+            "complete": true,
+            "duration": "18.1m",
+            "failures": [],
+            "termination": null
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 172520,
+            "sha256": "a567aa60a3636fad04e138ff61bf524b54b12ac8a0e5fbecbac0994d2fe7bb11"
+          }
+        }
+      ],
+      "postgres": {
+        "id": 118096903967,
+        "conclusion": "failure",
+        "passed": 2439,
+        "skipped": 1,
+        "total": 2440,
+        "failedSuites": [],
+        "unitStagePassed": true,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 455959,
+          "sha256": "343981ff4af7a884d6d978f00b85f1213b785549cd385255910c6bfec18b8374"
+        }
+      },
+      "linux": {
+        "id": 118096903411,
+        "conclusion": "failure",
+        "checksPassed": 9,
+        "success": true,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 157753,
+          "sha256": "630c912b9ae83dd5f9cbedc2c6c566c9039797ddd6e49be2eefda5781161737f"
+        }
+      }
+    }
+  ],
+  "limits": [
+    "The line reporter gives exclusion totals, without a detailed native exclusion list.",
+    "Coverage gates cover six named modules, not the whole application.",
+    "Failed uploads remain failed CI steps. Successful functional stages do not qualify the whole candidate."
+  ]
+}
