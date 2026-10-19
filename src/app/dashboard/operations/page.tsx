@@ -9,7 +9,7 @@ export default async function OperationsPage() {
   const data = await getOperationsDashboard()
   return (
     <div className="workspace-page">
-      <PageHeader className="workspace-page-header" eyebrow="Exécution terrain" title="Centre des opérations" description="Pilotez en temps réel les chantiers, équipes, achats, stocks et interventions." actions={<Button variant="outline" render={<Link href="/dashboard/operations/fournisseurs" />}>Fournisseurs</Button>} />
+      <PageHeader className="workspace-page-header" eyebrow="Exécution terrain" title="Centre des opérations" description="Pilotez en temps réel les chantiers, équipes, achats, stocks et interventions." actions={<><Button variant="outline" render={<Link href="/dashboard/operations/depots" />}>Dépôts</Button><Button variant="outline" render={<Link href="/dashboard/operations/fournisseurs" />}>Fournisseurs</Button></>} />
       <OperationsCenter initialData={data} />
     </div>
   )
