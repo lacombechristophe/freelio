@@ -4,7 +4,7 @@
 
 ## Résultat actuel
 
-Le dernier résultat complet concerne `8d2232385f8cfcca9006d5e56ecdb3794485610c`. Tous les contrôles fonctionnels passent dans les deux workflows, dont l'archive historique et les quatre fiches Service/Achat. La CI reste rouge uniquement sur les uploads refusés par GitHub pour quota. Le complément d'écritures `639f231`, encore local, passe ensuite la suite SQLite complète de 2 456 cas sur une base neuve ; PostgreSQL et navigateur de ce complément restent à qualifier.
+Le dernier résultat distant complet concerne `8d2232385f8cfcca9006d5e56ecdb3794485610c`. Tous les contrôles fonctionnels passent dans les deux workflows, dont l'archive historique et les quatre fiches Service/Achat. La CI reste rouge uniquement sur les uploads refusés par GitHub pour quota. Les compléments locaux d'intervention et de gestion des dépôts passent ensuite [2 501 tests SQLite dans 228 fichiers](evidence/20261019-warehouses/README.md), sur une base neuve, ainsi que types, deux lints et build sur `3836dc4`. PostgreSQL et navigateur de ces compléments restent à qualifier.
 
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
@@ -73,7 +73,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
 | MAIL-02 : état et pièces des messages entrants | La synchronisation pagine et reprend ses imports, mais ignore un message déjà présent. Elle ne réconcilie pas encore les changements lu/non lu, déplacement et suppression via history/delta, ni les pièces OAuth entrantes. Les pièces sortantes déjà livrées ne couvrent pas ce besoin. |
-| CRM-01 : cycle de vie des référentiels | L'annuaire Fournisseurs possède édition et désactivation. Sites, dépôts et équipements n'ont pas encore un parcours équivalent complet. Les modifications d'import et les créations ne remplacent pas ce parcours. |
+| CRM-01 : cycle de vie des référentiels | Fournisseurs dispose d'édition/désactivation qualifiées. Les [dépôts](gestion-depots.md) disposent maintenant de leur annuaire, édition, désactivation/réactivation et protection transactionnelle du stock dans les commits locaux `fe1f1ad` / `3836dc4` ; leur qualification distante reste requise. Sites et équipements restent à compléter. Les modifications d'import et les créations ne remplacent pas ces parcours. |
 | PORTAL-01 : demande et réservation | La confirmation modifie le statut et la réponse d'une demande ; elle ne réserve pas atomiquement un créneau, une durée et une capacité d'intervenant. Le portail reste présenté comme un parcours de demande. |
 | Calendrier et connecteurs avancés | Invitations, disponibilité, conflits, récurrences, Microsoft personnel, préférences multicanal et connecteurs supplémentaires restent des extensions distinctes ; les comptes fournisseurs réels ne sont pas qualifiés. |
 | Exploitation et présentation du candidat | CI complète et preuves natives du SHA retenu, migrations/configuration et recette du déploiement exact sont requises avant fusion. Charge, récupération distante, stockage durable, délivrabilité et traitement permanent sont des conditions supplémentaires d'ouverture commerciale. |
