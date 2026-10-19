@@ -710,15 +710,31 @@ export async function getServiceTicketDetail(ticketId: string) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const ticketScope = { ...scope.ticket, ...(agencyIds === null ? {} : { site: scope.site }) }
+    const noteScope = { companyId, OR: [{ authorMembershipId: null }, { authorMembership: { companyId } }] }
+    const diagnosticScope = { companyId, AND: [
+      { OR: [{ performedByMembershipId: null }, { performedByMembership: { companyId } }] },
+      { OR: [{ guideId: null }, { guide: { companyId } }] },
+    ] }
+    const threadScope = { companyId, AND: [
+      { OR: [{ channelId: null }, { channel: { companyId } }] },
+      { OR: [{ clientId: null }, { client: { companyId } }] },
+      { OR: [{ contactId: null }, { contact: { client: { companyId } } }] },
+      { OR: [{ leadCaptureId: null }, { leadCapture: { companyId } }] },
+    ] }
+    const messages = { where: { companyId }, select: { ...messageReadSelect,
+      events: { ...messageReadSelect.events, where: { companyId } },
+    }, orderBy: { createdAt: "asc" as const }, take: 200 }
     const [ticket, members, company, serviceMacros, diagnosticGuides] = await Promise.all([
       prisma.serviceTicket.findFirst({
-        where: { id: parsedId.data, companyId },
+        where: { id: parsedId.data, ...ticketScope },
         include: {
           client: {
             include: {
               contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] },
               emailThreads: {
-                where: { serviceTicketId: null },
+                where: { serviceTicketId: null, ...threadScope },
                 select: { id: true, subject: true, lastMessageAt: true, unreadCount: true },
                 orderBy: { lastMessageAt: "desc" },
                 take: 50,
@@ -729,39 +745,43 @@ export async function getServiceTicketDetail(ticketId: string) {
           equipment: true,
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
           mergedTickets: {
-            where: { companyId },
+            where: ticketScope,
             include: {
               interventions: {
+                where: scope.intervention,
                 include: {
                   assignedMembership: { include: { user: { select: { name: true, email: true } } } },
                   files: { orderBy: { createdAt: "asc" } },
-                  reservations: { orderBy: { createdAt: "desc" } },
+                  reservations: { where: { companyId }, orderBy: { createdAt: "desc" } },
                 },
                 orderBy: { scheduledStart: "desc" },
               },
               emailThreads: {
-                include: { messages: { select: messageReadSelect, orderBy: { createdAt: "asc" }, take: 200 } },
+                where: threadScope,
+                select: { id: true, subject: true, lastMessageAt: true, unreadCount: true, messages },
                 orderBy: { lastMessageAt: "asc" },
               },
-              notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
-              diagnostics: { include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
+              notes: { where: noteScope, include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+              diagnostics: { where: diagnosticScope, include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
             },
             orderBy: { mergedAt: "asc" },
           },
           interventions: {
+            where: scope.intervention,
             include: {
               assignedMembership: { include: { user: { select: { name: true, email: true } } } },
               files: { orderBy: { createdAt: "asc" } },
-              reservations: { orderBy: { createdAt: "desc" } },
+              reservations: { where: { companyId }, orderBy: { createdAt: "desc" } },
             },
             orderBy: { scheduledStart: "desc" },
           },
           emailThreads: {
-            include: { messages: { select: messageReadSelect, orderBy: { createdAt: "asc" }, take: 200 } },
+            where: threadScope,
+            select: { id: true, subject: true, lastMessageAt: true, unreadCount: true, messages },
             orderBy: { lastMessageAt: "asc" },
           },
-          notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
-          diagnostics: { include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
+          notes: { where: noteScope, include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+          diagnostics: { where: diagnosticScope, include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
@@ -789,16 +809,17 @@ export async function getServiceTicketDetail(ticketId: string) {
     if (!ticket) return null
     const mergedInto = ticket.mergedIntoTicketId
       ? await prisma.serviceTicket.findFirst({
-          where: { id: ticket.mergedIntoTicketId, companyId },
+          where: { id: ticket.mergedIntoTicketId, ...ticketScope },
           select: { id: true, number: true, title: true },
         })
       : null
+    if (ticket.mergedIntoTicketId && !mergedInto) return null
     const duplicateRecords =
       ticket.status === "MERGED"
         ? []
         : await prisma.serviceTicket.findMany({
             where: {
-              companyId,
+              ...ticketScope,
               clientId: ticket.clientId,
               id: { not: ticket.id },
               status: { not: "MERGED" },
@@ -924,18 +945,19 @@ export async function getFieldInterventionDetail(interventionId: string) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(interventionId)
     if (!parsedId.success) return null
+    const scope = operationsDashboardScope(companyId, agencyIds)
     const intervention = await prisma.fieldIntervention.findFirst({
-      where: { id: parsedId.data, companyId },
+      where: { id: parsedId.data, ...scope.intervention },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
-        ticket: true,
-        project: true,
-        maintenanceContract: true,
+        ticket: { select: { id: true, number: true, title: true } },
+        project: { select: { id: true, name: true } },
+        maintenanceContract: { select: { id: true, number: true, label: true } },
         assignedMembership: { include: { user: { select: { name: true, email: true } } } },
         files: { orderBy: { createdAt: "asc" } },
-        stockMovements: { include: { product: true, warehouse: true }, orderBy: { happenedAt: "desc" } },
-        expenses: { orderBy: { date: "desc" } },
-        reservations: { orderBy: { createdAt: "desc" } },
+        stockMovements: { where: scope.stockMovement, include: { product: { select: { id: true, label: true } }, warehouse: { select: { id: true, name: true } } }, orderBy: { happenedAt: "desc" } },
+        expenses: { where: scope.expense, orderBy: { date: "desc" } },
+        reservations: { where: { companyId }, orderBy: { createdAt: "desc" } },
       },
     })
     return intervention ? { ...intervention, site: { ...intervention.site, client: clientWithAccessibleMetrics(intervention.site.client, { role, agencyIds }) } } : null
@@ -946,16 +968,18 @@ export async function getEquipmentDetail(equipmentId: string) {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(equipmentId)
     if (!parsedId.success) return null
+    const scope = operationsDashboardScope(companyId, agencyIds)
     const equipment = await prisma.equipment.findFirst({
-      where: { id: parsedId.data, companyId },
+      where: { id: parsedId.data, ...scope.equipment },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
-        product: { include: { supplier: true } },
+        product: { select: { id: true, sku: true, label: true, manufacturer: true, supplier: { select: { id: true, name: true } } } },
         tickets: {
-          include: { assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } },
+          where: { ...scope.ticket, ...(agencyIds === null ? {} : { site: scope.site }) },
+          select: { id: true, number: true, title: true, description: true, status: true, priority: true, requestedAt: true, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: { where: scope.intervention } } } },
           orderBy: { requestedAt: "desc" },
         },
-        maintenanceContracts: { include: { contract: true }, orderBy: { contract: { createdAt: "desc" } } },
+        maintenanceContracts: { where: { contract: scope.contract }, include: { contract: { select: { id: true, number: true, label: true, status: true, frequency: true, nextVisitAt: true } } }, orderBy: { contract: { createdAt: "desc" } } },
       },
     })
     return equipment ? { ...equipment, site: { ...equipment.site, client: clientWithAccessibleMetrics(equipment.site.client, { role, agencyIds }) } } : null
@@ -981,26 +1005,27 @@ export async function getSupplierDetail(supplierId: string) {
 }
 
 export async function getPurchaseOrderDetail(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(purchaseOrderId)
     if (!parsedId.success) return null
+    const scope = operationsDashboardScope(companyId, agencyIds)
     const order = await prisma.purchaseOrder.findFirst({
-      where: { id: parsedId.data, companyId },
+      where: { id: parsedId.data, ...scope.purchaseOrder },
       include: {
         supplier: true,
-        project: { include: { client: { select: { id: true, name: true } } } },
+        project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
         approvedByMembership: { include: { user: { select: { name: true, email: true } } } },
         lines: {
           include: {
             product: true,
-            receiptLines: { include: { goodsReceipt: { include: { warehouse: true } }, issues: true } },
-            supplierReturns: { include: { warehouse: true, product: true } },
+            receiptLines: { where: scope.receiptLine, include: { goodsReceipt: { include: { warehouse: true } }, issues: { where: scope.purchaseIssue } } },
+            supplierReturns: { where: scope.supplierReturn, include: { warehouse: true, product: true } },
           },
           orderBy: { order: "asc" },
         },
-        goodsReceipts: { include: { warehouse: true, lines: { include: { product: true, issues: true } } }, orderBy: { receivedAt: "desc" } },
-        issues: { include: { product: true, purchaseOrderLine: true }, orderBy: { createdAt: "desc" } },
-        supplierReturns: { include: { product: true, warehouse: true }, orderBy: { shippedAt: "desc" } },
+        goodsReceipts: { where: scope.goodsReceipt, include: { warehouse: true, lines: { where: scope.receiptLine, include: { product: true, issues: { where: scope.purchaseIssue } } } }, orderBy: { receivedAt: "desc" } },
+        issues: { where: scope.purchaseIssue, include: { product: true, purchaseOrderLine: true }, orderBy: { createdAt: "desc" } },
+        supplierReturns: { where: scope.supplierReturn, include: { product: true, warehouse: true }, orderBy: { shippedAt: "desc" } },
       },
     })
     return order ? { ...order, canApprovePurchases: hasPermission(role, "purchases.approve") } : null
