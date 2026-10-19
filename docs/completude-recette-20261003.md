@@ -6,6 +6,8 @@
 
 Le dernier résultat distant complet concerne `8d2232385f8cfcca9006d5e56ecdb3794485610c`. Tous les contrôles fonctionnels passent dans les deux workflows, dont l'archive historique et les quatre fiches Service/Achat. La CI reste rouge uniquement sur les uploads refusés par GitHub pour quota. Les compléments locaux d'intervention et de gestion des dépôts passent ensuite [2 501 tests SQLite dans 228 fichiers](evidence/20261019-warehouses/README.md), sur une base neuve, ainsi que types, deux lints et build sur `3836dc4`. PostgreSQL et navigateur de ces compléments restent à qualifier.
 
+Le lecteur des annuaires Sites et parc est corrigé ensuite dans `cd0f965` : [109 cas ciblés, types, deux lints et build réussis](evidence/20261019-asset-directories/README.md). Les sept défauts reproduits concernent les relations étrangères et les compteurs, y compris pendant une recherche. La suite complète précédente ne qualifie pas ce commit ultérieur ; son parcours navigateur est préparé, pas exécuté.
+
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
 | Types, ESLint, Oxlint, couverture et build | Réussis | Réussis |
