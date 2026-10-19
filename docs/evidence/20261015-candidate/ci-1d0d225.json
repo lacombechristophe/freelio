@@ -1,0 +1,220 @@
+{
+  "schema": "freelio.ci-log-summary.v2",
+  "candidate": "1d0d2253f3caeafc75a921222b55f4fc0d15a3c4",
+  "observedAt": "2026-10-15T12:50:18.114Z",
+  "fullyQualified": false,
+  "evidenceBasis": "Terminal GitHub job metadata and native reporter totals in complete job logs; no missing native JSON reconstructed.",
+  "runs": [
+    {
+      "event": "push",
+      "id": 38736267987,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38736267987",
+      "attempt": 1,
+      "startedAt": "2026-10-15T12:39:05Z",
+      "conclusion": "cancelled",
+      "quality": [
+        {
+          "project": "desktop",
+          "id": 116426236102,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38736267987/job/116426236102",
+          "startedAt": "2026-10-15T12:39:09Z",
+          "completedAt": "2026-10-15T12:49:04Z",
+          "conclusion": "cancelled",
+          "failedSteps": [
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2398,
+            "failed": 0,
+            "files": 223
+          },
+          "browser": {
+            "planned": 0,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "complete": false,
+            "duration": null,
+            "failures": [],
+            "termination": "Cancelled after a fixture correction was published; no full browser outcome."
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 121853,
+            "sha256": "cc0dd9f1e1673438a8ac14e778265a1a57c309a049f5dda8e3ff61745c2f8b01"
+          }
+        },
+        {
+          "project": "mobile",
+          "id": 116426236068,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38736267987/job/116426236068",
+          "startedAt": "2026-10-15T12:39:09Z",
+          "completedAt": "2026-10-15T12:49:04Z",
+          "conclusion": "cancelled",
+          "failedSteps": [
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2398,
+            "failed": 0,
+            "files": 223
+          },
+          "browser": {
+            "planned": 217,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "complete": false,
+            "duration": null,
+            "failures": [],
+            "termination": "Cancelled after a fixture correction was published; no full browser outcome."
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 132482,
+            "sha256": "aead328189853caaa83f0f7d090ad344ddf32f6120d3fb67f6f166b40b8f5441"
+          }
+        }
+      ],
+      "postgres": {
+        "id": 116426236004,
+        "conclusion": "failure",
+        "passed": 2360,
+        "skipped": 38,
+        "total": 2398,
+        "failedSuites": [
+          "tests/unit/operations-dashboard-relations.integration.test.ts"
+        ],
+        "unitStagePassed": false,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 457919,
+          "sha256": "0b6b5853f5c84801cd302dc826f13c827ed3baaaab404a85feb2925432bfc01a"
+        }
+      },
+      "linux": {
+        "id": 116426235796,
+        "conclusion": "failure",
+        "checksPassed": 9,
+        "success": true,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 156482,
+          "sha256": "f92b3ae521c85dacb757ff09022092b557fef8ca662408756ed6f0524532ddf2"
+        }
+      }
+    },
+    {
+      "event": "pr",
+      "id": 38736274048,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38736274048",
+      "attempt": 1,
+      "startedAt": "2026-10-15T12:39:08Z",
+      "conclusion": "cancelled",
+      "quality": [
+        {
+          "project": "desktop",
+          "id": 116426258200,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38736274048/job/116426258200",
+          "startedAt": "2026-10-15T12:39:12Z",
+          "completedAt": "2026-10-15T12:49:09Z",
+          "conclusion": "cancelled",
+          "failedSteps": [
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2398,
+            "failed": 0,
+            "files": 223
+          },
+          "browser": {
+            "planned": 217,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "complete": false,
+            "duration": null,
+            "failures": [],
+            "termination": "Cancelled after a fixture correction was published; no full browser outcome."
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 138309,
+            "sha256": "369b4ba1f2c94f642c927f55999413008d3cd6d54dedb1f6a2b1b4201ece47fd"
+          }
+        },
+        {
+          "project": "mobile",
+          "id": 116426258285,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38736274048/job/116426258285",
+          "startedAt": "2026-10-15T12:39:12Z",
+          "completedAt": "2026-10-15T12:49:11Z",
+          "conclusion": "cancelled",
+          "failedSteps": [
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2398,
+            "failed": 0,
+            "files": 223
+          },
+          "browser": {
+            "planned": 217,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "complete": false,
+            "duration": null,
+            "failures": [],
+            "termination": "Cancelled after a fixture correction was published; no full browser outcome."
+          },
+          "auditsZeroVulnerabilities": 2,
+          "artifactQuotaExceeded": true,
+          "log": {
+            "bytes": 135854,
+            "sha256": "1f457743ff104ba2f23e6610c352c32f4ef1a2ba9b3d40ea049fa61f78a895b2"
+          }
+        }
+      ],
+      "postgres": {
+        "id": 116426258242,
+        "conclusion": "failure",
+        "passed": 2360,
+        "skipped": 38,
+        "total": 2398,
+        "failedSuites": [
+          "tests/unit/operations-dashboard-relations.integration.test.ts"
+        ],
+        "unitStagePassed": false,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 457140,
+          "sha256": "0ff8b3be12dcd0d521b92bffc75d1036b1be962e258e2591d7367150041308e8"
+        }
+      },
+      "linux": {
+        "id": 116426258291,
+        "conclusion": "failure",
+        "checksPassed": 9,
+        "success": true,
+        "artifactQuotaExceeded": true,
+        "log": {
+          "bytes": 159666,
+          "sha256": "00689acd5186ec4d8302de2ae96c11cc472eec6b03d76f5e83193f526765005c"
+        }
+      }
+    }
+  ],
+  "limits": [
+    "The line reporter gives exclusion totals, without a detailed native exclusion list.",
+    "Coverage gates cover six named modules, not the whole application.",
+    "Failed uploads remain failed CI steps. Successful functional stages do not qualify the whole candidate."
+  ]
+}

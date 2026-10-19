@@ -1,0 +1,150 @@
+{
+  "schema": "freelio.operations-details-local.v1",
+  "observedAt": "2026-10-19T13:49:15.884Z",
+  "codeCommit": "3d79096c90f0f2870eee02ff48ab04fe598aefc8",
+  "baselineProduct": "93a906e9c91fc9ab98eeb598b1554b18f3f0e8a9",
+  "baselineTestSha256": "e0699c451b3efe281f68b6fc958c8119187bc05c0822234bd2d096bf4c20fa3f",
+  "before": {
+    "passed": 5,
+    "failed": 7,
+    "pending": 0,
+    "success": false,
+    "sha256": "fa258ec63f30e7b9398097450e6878dbb85b8845257bcc63d591310c48414689",
+    "suites": [
+      {
+        "file": "operations-details-relations.integration.test.ts",
+        "status": "failed",
+        "passed": 5,
+        "failed": 7,
+        "pending": 0
+      }
+    ]
+  },
+  "incompleteAttempt": {
+    "passed": 64,
+    "failed": 0,
+    "pending": 42,
+    "success": false,
+    "sha256": "148a60a971d26ec26f50f4b6ec5e51fb0f3cbc25d091a9d715d7a1c2b338e62b",
+    "suites": [
+      {
+        "file": "operations-dashboard-relations.integration.test.ts",
+        "status": "passed",
+        "passed": 37,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "operations-details-relations.integration.test.ts",
+        "status": "failed",
+        "passed": 0,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "service-detail-client-metrics.integration.test.ts",
+        "status": "passed",
+        "passed": 27,
+        "failed": 0,
+        "pending": 0
+      }
+    ]
+  },
+  "after": {
+    "passed": 190,
+    "failed": 0,
+    "pending": 0,
+    "success": true,
+    "sha256": "1744d2bde0897f45e0cc04b7bdf42a9004b87b6d2fc49539667db87a70a2dbfc",
+    "suites": [
+      {
+        "file": "operations-assets.integration.test.ts",
+        "status": "passed",
+        "passed": 20,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "operations-dashboard-relations.integration.test.ts",
+        "status": "passed",
+        "passed": 37,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "operations-details-relations.integration.test.ts",
+        "status": "passed",
+        "passed": 42,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "operations-order-directory.integration.test.ts",
+        "status": "passed",
+        "passed": 19,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "operations-order-finance.integration.test.ts",
+        "status": "passed",
+        "passed": 16,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "operations-stock-directory.integration.test.ts",
+        "status": "passed",
+        "passed": 29,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "service-detail-client-metrics.integration.test.ts",
+        "status": "passed",
+        "passed": 27,
+        "failed": 0,
+        "pending": 0
+      }
+    ]
+  },
+  "typecheckPassed": true,
+  "targetedLintPassed": true,
+  "source": [
+    {
+      "file": "src/actions/operations/index.ts",
+      "gitBlob": "5d91eb7a8c87749a031257e641be9e328c981606",
+      "normalizedSha256": "c1b1964ac387ebdd2a93a69c4f830a3b7cbe42e52132c63360c1aade97df12f9"
+    },
+    {
+      "file": "src/lib/operations/dashboard-scope.ts",
+      "gitBlob": "8a2cf5a71d8f4795990a6f0140b7d2f0d97f27f9",
+      "normalizedSha256": "af5e96257c2e16f9d95171e070e769666c8ce8593a6c38206c43832b82255328"
+    },
+    {
+      "file": "tests/helpers/operations-dashboard-fixture.ts",
+      "gitBlob": "ef33f322ec47e2b1d22d0cbb84357dd68a4e9476",
+      "normalizedSha256": "48969efa554ff43900128dff68bdc543c35ef838cb130ffc3181c676c27e3311"
+    },
+    {
+      "file": "tests/helpers/operations-details-fixture.ts",
+      "gitBlob": "2a4aa54cf0a9d47cad6e13bd63848374cadad265",
+      "normalizedSha256": "107ecf6da04c5e788560ba7bb78a07ba690d8e011e46ae300fd1ef649220475f"
+    },
+    {
+      "file": "tests/unit/operations-details-relations.integration.test.ts",
+      "gitBlob": "041aaf93314e632a02e7abe0f92e3f3122059c48",
+      "normalizedSha256": "1afccbd6a20d6192dfe5d5043d00cab0d166a3cb17010784b49a659fc425d7aa"
+    },
+    {
+      "file": "tests/e2e/operations-details-relations.spec.ts",
+      "gitBlob": "731f2fbc0d55dcc1c8d5b0942191c72671bbc001",
+      "normalizedSha256": "6b20c22a6d5f57142be472847dad7fbf1e875c3f182cdd9eb08e10cecabb858f"
+    }
+  ],
+  "limits": [
+    "Real isolated SQLite with auth and Next cache mocked.",
+    "Native JSON summaries preserve test outcomes; incomplete fixture setup is not a pass.",
+    "Browser selection is not execution; no provider, load or commercial qualification."
+  ]
+}

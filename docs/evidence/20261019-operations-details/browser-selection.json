@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-19T13:43:56.452Z",
+  "baseline": "93a906e9c91fc9ab98eeb598b1554b18f3f0e8a9",
+  "all": 436,
+  "desktop": 218,
+  "mobile": 218,
+  "identicalCaseUnion": true,
+  "failFast": false,
+  "jobTimeoutMinutes": 45,
+  "isolatedRunnersAndDatabases": true,
+  "artifactNames": [
+    "playwright-report-${{ matrix.project }}",
+    "ui-audit-reports-${{ matrix.project }}",
+    "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+  ],
+  "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+  "limits": [
+    "Listing only; does not execute application or browser",
+    "Union compares current complete selection to the two current project selections, not historical run outcomes"
+  ]
+}

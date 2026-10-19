@@ -1,26 +1,26 @@
 # Qualification du candidat Freelio
 
-État du 15 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
+État du 19 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
 
 ## Résultat actuel
 
-Le dernier résultat complet concerne `a39e5a5fff11d7b11ca0fbb8196a0273776e113d`. Les quatre jobs navigateur terminent avant leur plafond. Le candidat reste non qualifié : ses recettes signalent des échecs, et GitHub refuse encore les uploads après le nettoyage des anciennes archives. Linux passe désormais dans les deux workflows.
+Le dernier résultat complet concerne `8aab95f842ac5c5911ca0ef1bcad7b0ab3d1dd33`. Les quatre jobs navigateur terminent avant leur plafond. Le seul échec navigateur est un sélecteur ambigu du test d'archive historique, corrigé dans `93a906e` sans retirer d'assertion. GitHub refuse encore les uploads dans ces runs. Les quatre lecteurs Service/Achat sont ensuite protégés dans `3d79096`, avec 190 contrôles SQL ciblés, types et lint réussis localement ; leur nouvelle CI reste requise.
 
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
 | Types, ESLint, Oxlint, couverture et build | Réussis | Réussis |
-| SQLite | 2 361 cas / 222 fichiers réussis dans chacun des deux jobs UI | 2 361 cas / 222 fichiers réussis dans chacun des deux jobs UI |
-| PostgreSQL | 2 360 réussis, une exclusion native SQLite | 2 360 réussis, une exclusion native SQLite |
+| SQLite | 2 398 cas / 223 fichiers réussis dans chacun des deux jobs UI | 2 398 cas / 223 fichiers réussis dans chacun des deux jobs UI |
+| PostgreSQL | 2 397 réussis, une exclusion native SQLite | 2 397 réussis, une exclusion native SQLite |
 | Image Linux et runtime | Neuf contrôles réussis | Neuf contrôles réussis |
 | Audits production et complet | Zéro vulnérabilité dans les deux audits de chaque job UI | Zéro vulnérabilité dans les deux audits de chaque job UI |
-| Navigateur compilé | Ordinateur : 213 réussis / deux échecs / une exclusion ; mobile : 197 réussis / un échec / 18 exclusions | Ordinateur : 212 réussis / trois échecs / une exclusion ; mobile : 197 réussis / un échec / 18 exclusions |
+| Navigateur compilé | Ordinateur : 215 réussis / un échec / une exclusion ; mobile : 198 réussis / un échec / 18 exclusions | Ordinateur : 215 réussis / un échec / une exclusion ; mobile : 198 réussis / un échec / 18 exclusions |
 | Rapports détaillés téléversés | Refusés : quota GitHub | Refusés : quota GitHub |
 
-Les [résultats et digests des logs](evidence/20261015-candidate/ci-a39e5a5.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38731137154) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38731141563) restent rouges. Les uploads refusés ne sont pas transformés en succès par les seuls tests réussis. Les [échecs précédents de 1fcb8a5](evidence/20261015-browser-recipes/ci-1fcb8a5.json) restent conservés.
+Les [résultats et digests des logs](evidence/20261015-candidate/ci-8aab95f.json) distinguent ces états. Les runs [branche](https://github.com/lacombechristophe/freelio/actions/runs/38737487836) et [PR](https://github.com/lacombechristophe/freelio/actions/runs/38737497518) restent rouges. Les uploads refusés ne sont pas transformés en succès par les seuls tests réussis. Les [échecs précédents](evidence/20261015-candidate/README.md) restent conservés.
 
 Les 59 nouveaux contrôles SQL Achat et les quatre parcours Achat ordinateur/mobile passent dans les deux runs. Les contrôles de Communications et de sérialisation SQLite passent aussi sur PostgreSQL réel. Le Portail passe dans les deux jobs ordinateur ; le premier échec de a01ce4c reste conservé sans cause attribuée. Ces passages ne constituent pas une mesure de charge.
 
-La [preview exacte](evidence/20261015-candidate/hosted-a39e5a5.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261015-candidate/source-a39e5a5.json) compare 1 072 entrées Git hors `docs/` au merge PR réellement testé `a6f399adcb535bf716d6761ab746563f5523874c`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
+La [preview exacte](evidence/20261015-candidate/hosted-8aab95f.json) passe 49 pages/onglets sur ordinateur et 49 sur mobile, sans erreur JavaScript, retry ni exclusion. Compte fictif Owner, lecture seule, PostgreSQL et Upstash, stockage persistant désactivé. L'[identité du code](evidence/20261015-candidate/source-8aab95f.json) compare 1 076 entrées Git hors `docs/` au merge PR réellement testé `ba192f5560b4fee32b48f55b783e99a1514adaa1`. Harnais et alias ont été vérifiés après la visite. Cette consultation ne prouve pas les mutations ni les comptes fournisseurs.
 
 ## Corrections récentes
 
@@ -32,11 +32,16 @@ La [preview exacte](evidence/20261015-candidate/hosted-a39e5a5.json) passe 49 pa
 | Le compilateur enfant reçoit le budget du build | [Mémoire et image](evidence/20261014-build-memory/README.md) : transmission explicite au CLI TypeScript de Next ; préchargement inclus dans le builder Docker. |
 | La recette fournisseur distingue chaque recherche | [Historiques fournisseur](evidence/20261014-supplier-history-recipe/README.md) : attentes métier identiques dans trois cas indépendants, sans modification du lecteur ni de son délai. |
 | Une facture historique sans archive ne charge pas une erreur JSON comme PDF | [Lot approuvé](contrat-factures-historiques-apercu.md) et [preuves locales](evidence/20261015-historical-invoice-preview/README.md) : indisponibilité explicite, accès PDF désactivés, aucun rendu régénéré ; CI du nouveau code encore requise. |
-| La synthèse Opérations n'inclut pas une référence étrangère dans ses listes ou compteurs | [Lot approuvé](contrat-operations-dashboard-relations.md) et [preuves locales](evidence/20261015-operations-dashboard/README.md) : treize exclusions initialement manquantes ; 37 cas dédiés et 121 avec les suites voisines passent sur SQLite. PostgreSQL et navigateur restent à qualifier sur ce nouveau code. |
+| La synthèse Opérations n'inclut pas une référence étrangère dans ses listes ou compteurs | [Lot approuvé](contrat-operations-dashboard-relations.md) et [preuves](evidence/20261015-operations-dashboard/README.md) : treize exclusions initialement manquantes ; 37 cas dédiés et 121 avec les suites voisines passent sur SQLite. Les 37 cas PostgreSQL et les deux parcours compilés passent dans les deux CI de 8aab95f. |
+| Les fiches Équipement, Intervention, Ticket et Achat ne restituent pas leurs relations étrangères | [Portée et reproduction](contrat-operations-details-relations.md), [preuves locales](evidence/20261019-operations-details/README.md) : sept échecs sur douze cas avant correction ; 42 contrôles dédiés et 190 avec les voisins réussis après correction. CI PostgreSQL et navigateur encore requise. |
 
 Les intercalages SQL Achat prouvent la relecture après préparation du numéro. Ils ne constituent pas un stress concurrent sur plusieurs connexions. Les prix, libellés, lignes libres et changements légitimes restent conservés. Aucun fournisseur réel n'est appelé.
 
 ## Qualification à poursuivre
+
+Les deux workflows complets de `8aab95f` confirment les corrections de période Campagnes, d'ouverture du menu de suppression et de préparation PostgreSQL du transfert. Leur seul échec navigateur restant concerne `summary`, ambigu entre la vérification du document et les réglages de présentation. `93a906e` cible le second panneau explicitement et en vérifie l'unicité. Les assertions de verrouillage, refus PDF et absence de mutation restent conservées. Les paragraphes suivants décrivent les reproductions précédentes ; leurs résultats ne sont pas remplacés rétroactivement.
+
+`3d79096` protège ensuite les quatre lecteurs Service/Achat approuvés. Les [preuves locales](evidence/20261019-operations-details/README.md) distinguent la reproduction, le passage de fixture incomplet, les 190 contrôles réussis et les 436 cas navigateur sélectionnés. La nouvelle CI doit exécuter PostgreSQL et les deux surfaces ; aucun résultat de sélection n'est présenté comme une réussite navigateur.
 
 Les deux échecs mobiles de 1fcb8a5 sont désormais diagnostiqués. Un compteur Fournisseur était recherché dans toute la fenêtre Produit, où le choix Produit parent affiche aussi « 1 résultat ». L'audit général choisissait la première facture découverte et dépendait des documents créés sur ordinateur ; la base mobile neuve proposait une facture SENT sans archive. `53d47f2` limite le compteur à son champ et réserve un brouillon fictif vérifié pour la route représentative. Tous les contrôles console/HTTP restent actifs et le rapport annonce le choix de sa fixture.
 
