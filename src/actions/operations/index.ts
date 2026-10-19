@@ -2794,17 +2794,20 @@ export async function unmergeServiceTicket(sourceId: string) {
 }
 
 export async function updateInterventionStatus(interventionId: string, status: "PLANNED" | "EN_ROUTE" | "IN_PROGRESS" | "CANCELED") {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const parsed = z.object({ interventionId: id, status: z.enum(["PLANNED", "EN_ROUTE", "IN_PROGRESS", "CANCELED"]) }).parse({ interventionId, status })
-    const intervention = await prisma.fieldIntervention.findFirst({ where: { id: parsed.interventionId, companyId }, select: { id: true } })
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const where = { id: parsed.interventionId, ...scope.intervention }
+    const intervention = await prisma.fieldIntervention.findFirst({ where, select: { id: true } })
     if (!intervention) throw new Error("Intervention introuvable")
-    await prisma.fieldIntervention.update({
-      where: { id: intervention.id },
+    const updated = await prisma.fieldIntervention.updateMany({
+      where,
       data: {
         status: parsed.status,
         startedAt: parsed.status === "IN_PROGRESS" ? new Date() : undefined,
       },
     })
+    if (updated.count !== 1) throw new Error("Intervention introuvable")
     revalidateOperations()
     revalidatePath(`/dashboard/service/interventions/${intervention.id}`)
     return { success: true as const }
@@ -2812,15 +2815,22 @@ export async function updateInterventionStatus(interventionId: string, status: "
 }
 
 export async function resolveInterventionReservation(reservationId: string) {
-  return withAuth(async ({ companyId, userId, membershipId, role }) => {
+  return withAuth(async ({ companyId, userId, membershipId, role, agencyIds }) => {
     const parsedId = id.parse(reservationId)
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const where = { id: parsedId, companyId, intervention: { ...scope.intervention, ...(role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {}) } }
     const reservation = await prisma.interventionReservation.findFirst({
-      where: { id: parsedId, companyId, intervention: role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {} },
+      where,
       select: { id: true, interventionId: true, status: true },
     })
     if (!reservation) throw new Error("Réserve introuvable")
     if (reservation.status === "RESOLVED") return { success: true as const, alreadyResolved: true }
-    await prisma.interventionReservation.update({ where: { id: reservation.id }, data: { status: "RESOLVED", resolvedAt: new Date() } })
+    const updated = await prisma.interventionReservation.updateMany({ where: { ...where, status: { not: "RESOLVED" } }, data: { status: "RESOLVED", resolvedAt: new Date() } })
+    if (updated.count !== 1) {
+      const current = await prisma.interventionReservation.findFirst({ where, select: { status: true } })
+      if (current?.status === "RESOLVED") return { success: true as const, alreadyResolved: true }
+      throw new Error("Réserve introuvable")
+    }
     await logAction({
       userId,
       action: "RESOLVE_INTERVENTION_RESERVATION",

@@ -59,3 +59,43 @@ test("Operations details exclude foreign roots, nested histories and inaccessibl
     await database.$disconnect()
   }
 })
+
+test("an intervention made inaccessible after display refuses its state change without losing data", async ({ page }, info) => {
+  if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette des états d'intervention exige une SQLite fictive isolée")
+  const database = new PrismaClient()
+  const fixture = await createOperationsDetailsFixture(database)
+  try {
+    const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
+    await database.user.update({ where: { id: fixture.user.id }, data: { emailVerified: new Date(), passwordHash: await hashPassword(password) } })
+    await database.saasSubscription.create({ data: { companyId: fixture.companyId, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+    const errors: string[] = []
+    page.on("pageerror", error => errors.push(error.message))
+    await page.context().clearCookies()
+    await page.goto("/auth/login")
+    await page.getByLabel("Adresse e-mail professionnelle").fill(fixture.user.email!)
+    await page.getByLabel("Mot de passe", { exact: true }).fill(password)
+    await page.getByRole("button", { name: "Se connecter", exact: true }).click()
+    await page.waitForURL(url => url.pathname === "/dashboard", { timeout: 60_000 })
+    const url = `/dashboard/service/interventions/${fixture.positive.interventions}`
+    await page.goto(url)
+    await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+    await expect(page.getByRole("heading", { name: "Fictional permitted intervention", exact: true })).toBeVisible()
+    await database.fieldIntervention.update({ where: { id: fixture.positive.interventions }, data: { projectId: fixture.negative.projects } })
+    const before = await fixture.snapshot()
+    await page.getByRole("button", { name: "Démarrer", exact: true }).click()
+    await expect(page.getByText("Intervention introuvable", { exact: true })).toBeVisible()
+    expect(await fixture.snapshot()).toEqual(before)
+    await expect(page.getByRole("heading", { name: "Fictional permitted intervention", exact: true })).toBeVisible()
+
+    await database.fieldIntervention.update({ where: { id: fixture.positive.interventions }, data: { projectId: fixture.project.id } })
+    await page.goto(url)
+    await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
+    await page.getByRole("button", { name: "Démarrer", exact: true }).click()
+    await expect(page.getByText("Intervention démarrée.", { exact: true })).toBeVisible()
+    await expect.poll(async () => (await database.fieldIntervention.findUniqueOrThrow({ where: { id: fixture.positive.interventions } })).status).toBe("IN_PROGRESS")
+    expect(errors).toEqual([])
+  } finally {
+    await fixture.cleanup()
+    await database.$disconnect()
+  }
+})
