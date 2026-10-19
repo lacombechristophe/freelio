@@ -3,6 +3,7 @@
 import { z } from "zod"
 import { withAuth, type AuthContext } from "@/lib/auth-wrapper"
 import { assertAgencyAccess } from "@/lib/agency-access"
+import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 import prisma from "@/lib/prisma"
 
 const querySchema = z.object({
@@ -17,20 +18,21 @@ async function siteScope({ companyId, agencyIds }: AuthContext, agencyId?: strin
     assertAgencyAccess(agencyIds, agencyId)
     if (!await prisma.agency.findFirst({ where: { id: agencyId, companyId, active: true }, select: { id: true } })) throw new Error("Agence introuvable ou inactive")
   }
-  return { companyId, client: { companyId }, ...(agencyId ? { agencyId } : agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+  return { ...operationsDashboardScope(companyId, agencyIds).site, ...(agencyId ? { agencyId } : {}) }
 }
 
 export async function getCustomerSiteDirectory(input: unknown = {}) {
   return withAuth(async context => {
     const query = querySchema.parse(input)
     const scope = await siteScope(context, query.agencyId)
-    const where = { ...scope, ...(query.search ? { OR: [{ label: contains(query.search) }, { address1: contains(query.search) }, { address2: contains(query.search) }, { postalCode: contains(query.search) }, { city: contains(query.search) }, { client: { companyId: context.companyId, name: contains(query.search) } }] } : {}) }
+    const relations = operationsDashboardScope(context.companyId, context.agencyIds)
+    const where = { AND: [scope, ...(query.search ? [{ OR: [{ label: contains(query.search) }, { address1: contains(query.search) }, { address2: contains(query.search) }, { postalCode: contains(query.search) }, { city: contains(query.search) }, { client: { companyId: context.companyId, name: contains(query.search) } }] }] : [])] }
     return prisma.$transaction(async tx => {
       const total = await tx.customerSite.count({ where })
       const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
       const items = await tx.customerSite.findMany({ where, skip: (page - 1) * 25, take: 25, orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
         select: { id: true, label: true, address1: true, postalCode: true, city: true, client: { select: { name: true } },
-          _count: { select: { equipments: { where: { companyId: context.companyId } }, serviceTickets: { where: { companyId: context.companyId, client: { companyId: context.companyId } } } } } } })
+          _count: { select: { equipments: { where: relations.equipment }, serviceTickets: { where: relations.ticket } } } } })
       return { items, total, page }
     }, { isolationLevel: "Serializable" })
   }, "operations.read")
@@ -40,8 +42,8 @@ export async function getEquipmentDirectory(input: unknown = {}) {
   return withAuth(async context => {
     const query = querySchema.parse(input)
     const scope = await siteScope(context, query.agencyId)
-    const where = { companyId: context.companyId, site: scope,
-      ...(query.search ? { OR: [{ label: contains(query.search) }, { serialNumber: contains(query.search) }, { category: contains(query.search) }, { site: { ...scope, OR: [{ label: contains(query.search) }, { client: { companyId: context.companyId, name: contains(query.search) } }] } }] } : {}) }
+    const eligible = { ...operationsDashboardScope(context.companyId, context.agencyIds).equipment, site: scope }
+    const where = { AND: [eligible, ...(query.search ? [{ OR: [{ label: contains(query.search) }, { serialNumber: contains(query.search) }, { category: contains(query.search) }, { site: { AND: [scope, { OR: [{ label: contains(query.search) }, { client: { companyId: context.companyId, name: contains(query.search) } }] }] } }] }] : [])] }
     return prisma.$transaction(async tx => {
       const total = await tx.equipment.count({ where })
       const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
