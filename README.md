@@ -106,4 +106,4 @@ Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dé
 
 Les rapports d’audit et de déploiement sont historiques et datés. Les changements se présentent par lots cohérents, avec leur validation et leur périmètre. Aucun ancien lien de déploiement n’est présenté ici comme une démo courante vérifiée.
 
-Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. À la demande du propriétaire, le dépôt public reste sans licence de redistribution du code propre. Les licences des dépendances et assets sont distinctes ; leur [inventaire](docs/dependances-et-licences.md) précise les notices à examiner.
+Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. À la demande du propriétaire, le code propre reste sans licence de redistribution. Les licences des dépendances et assets sont distinctes ; leur [inventaire](docs/dependances-et-licences.md) précise les notices à examiner.

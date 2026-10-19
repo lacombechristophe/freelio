@@ -34,6 +34,7 @@ La [preview exacte](evidence/20261015-candidate/hosted-8aab95f.json) passe 49 pa
 | Une facture historique sans archive ne charge pas une erreur JSON comme PDF | [Lot approuvé](contrat-factures-historiques-apercu.md) et [preuves locales](evidence/20261015-historical-invoice-preview/README.md) : indisponibilité explicite, accès PDF désactivés, aucun rendu régénéré ; CI du nouveau code encore requise. |
 | La synthèse Opérations n'inclut pas une référence étrangère dans ses listes ou compteurs | [Lot approuvé](contrat-operations-dashboard-relations.md) et [preuves](evidence/20261015-operations-dashboard/README.md) : treize exclusions initialement manquantes ; 37 cas dédiés et 121 avec les suites voisines passent sur SQLite. Les 37 cas PostgreSQL et les deux parcours compilés passent dans les deux CI de 8aab95f. |
 | Les fiches Équipement, Intervention, Ticket et Achat ne restituent pas leurs relations étrangères | [Portée et reproduction](contrat-operations-details-relations.md), [preuves locales](evidence/20261019-operations-details/README.md) : sept échecs sur douze cas avant correction ; 42 contrôles dédiés et 190 avec les voisins réussis après correction. CI PostgreSQL et navigateur encore requise. |
+| Une intervention ou réserve inaccessible ne peut plus changer d'état par appel direct | `639f231` : relation contrôlée dans la lecture et la mise à jour ; [seize cas dédiés, 206 avec les voisins](evidence/20261019-operations-details/intervention-state.json) réussis localement. Double appel sans double audit, droits et démo vérifiés ; nouvelle CI encore requise. |
 
 Les intercalages SQL Achat prouvent la relecture après préparation du numéro. Ils ne constituent pas un stress concurrent sur plusieurs connexions. Les prix, libellés, lignes libres et changements légitimes restent conservés. Aucun fournisseur réel n'est appelé.
 
@@ -62,6 +63,20 @@ Le stockage durable, les comptes OAuth/transport réels, la délivrabilité, la 
 ## Dernière référence entièrement qualifiée
 
 `2b05e5f6d425542971285f13170fbcb44bb6f1bb` complète le Stock. Ses deux CI passent entièrement : 2 287 SQLite, 2 286 PostgreSQL avec une exclusion native SQLite, 407 parcours navigateur avec 19 exclusions historiques, neuf contrôles Linux et deux audits sans vulnérabilité par run. Sa lecture hébergée passe 49 visites par surface. Les [preuves CI](evidence/20261013-candidate/ci-2b05e5f.json), l'[identité](evidence/20261013-candidate/source-2b05e5f.json) et la [lecture hébergée](evidence/20261013-candidate/hosted-2b05e5f.json) restent datées ; elles ne qualifient pas les évolutions suivantes.
+
+## Écarts fonctionnels encore ouverts
+
+Les corrections d'intégrité et les listes complètes ne suffisent pas à clore le [plan fonctionnel](plan-completude-fonctionnelle-20261002.md). Les points suivants restent distincts des résultats CI :
+
+| Point | Comportement actuel et prochaine condition |
+| --- | --- |
+| MAIL-02 : état et pièces des messages entrants | La synchronisation pagine et reprend ses imports, mais ignore un message déjà présent. Elle ne réconcilie pas encore les changements lu/non lu, déplacement et suppression via history/delta, ni les pièces OAuth entrantes. Les pièces sortantes déjà livrées ne couvrent pas ce besoin. |
+| CRM-01 : cycle de vie des référentiels | L'annuaire Fournisseurs possède édition et désactivation. Sites, dépôts et équipements n'ont pas encore un parcours équivalent complet. Les modifications d'import et les créations ne remplacent pas ce parcours. |
+| PORTAL-01 : demande et réservation | La confirmation modifie le statut et la réponse d'une demande ; elle ne réserve pas atomiquement un créneau, une durée et une capacité d'intervenant. Le portail reste présenté comme un parcours de demande. |
+| Calendrier et connecteurs avancés | Invitations, disponibilité, conflits, récurrences, Microsoft personnel, préférences multicanal et connecteurs supplémentaires restent des extensions distinctes ; les comptes fournisseurs réels ne sont pas qualifiés. |
+| Exploitation et présentation du candidat | CI complète et preuves natives du SHA retenu, migrations/configuration et recette du déploiement exact sont requises avant fusion. Charge, récupération distante, stockage durable, délivrabilité et traitement permanent sont des conditions supplémentaires d'ouverture commerciale. |
+
+Le dépôt GitHub est privé lors du contrôle du 19 octobre. L'offre actuelle ne permet pas d'attester les protections de branche/rulesets interrogées ; la consultation de facturation disponible ne permet pas non plus d'attester un plafond de dépenses. Aucune visibilité, offre ou limite financière n'est modifiée. La démo garde son budget de 0 € et sa portée fictive en lecture seule.
 
 ## Portée et historique
 
