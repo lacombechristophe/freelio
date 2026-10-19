@@ -48,6 +48,7 @@ import {
   warehouseCandidate,
 } from "@/lib/migrations/normalize"
 import { readMigrationArtifact, storeMigrationArtifact } from "@/lib/migrations/storage"
+import { assertWarehouseEmpty, lockActiveWarehouses } from "@/lib/operations/warehouses"
 import { testExtrabatConnection, type ExtrabatConnectionConfig } from "@/lib/migrations/extrabat"
 import { migrationDatabase as prisma, withMigrationRecordTransaction } from "@/lib/migrations/database"
 import { reconcileImportedTarget } from "@/lib/migrations/reconciliation"
@@ -1014,6 +1015,7 @@ export async function importMigrationRun(runId: string) {
             const warehouse = existing
               ? await prisma.warehouse.update({ where: { id: existing.id }, data: candidate })
               : await prisma.warehouse.upsert({ where: { companyId_code: { companyId, code: candidate.code } }, update: candidate, create: { companyId, ...candidate } })
+            if (!candidate.active) await assertWarehouseEmpty(prisma, companyId, warehouse.id)
             targetModel = "Warehouse"
             targetRecordId = warehouse.id
           } else if (kind === "OPPORTUNITY") {
@@ -1248,6 +1250,7 @@ export async function importMigrationRun(runId: string) {
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de réception déjà utilisé : un suffixe source stable a été ajouté sans écraser le document existant." })
             }
             const receipt = await prisma.$transaction(async (tx) => {
+              await lockActiveWarehouses(tx, companyId, [warehouseId])
               const { quantity, unitCostCents, ...document } = candidate
               const base = existing
                 ? await tx.goodsReceipt.update({ where: { id: existing.id }, data: { ...document, purchaseOrderId, warehouseId } })
@@ -1281,6 +1284,7 @@ export async function importMigrationRun(runId: string) {
             const candidate = stockReservationCandidate(payload)
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "StockReservation", record.objectType)
             const existing = mapping ? await prisma.stockReservation.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
+            await lockActiveWarehouses(prisma, companyId, [warehouseId])
             const reservation = existing
               ? await prisma.stockReservation.update({ where: { id: existing.id }, data: { ...candidate, warehouseId, productId, projectId, customerOrderId } })
               : await prisma.stockReservation.create({ data: { companyId, warehouseId, productId, projectId, customerOrderId, ...candidate } })
@@ -1301,6 +1305,7 @@ export async function importMigrationRun(runId: string) {
             const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "StockMovement", record.objectType)
             const existing = mapping ? await prisma.stockMovement.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true } }) : null
+            await lockActiveWarehouses(prisma, companyId, [warehouseId])
             const movement = existing
               ? await prisma.stockMovement.update({ where: { id: existing.id }, data: { ...candidate, warehouseId, productId, projectId } })
               : await prisma.stockMovement.create({ data: { companyId, warehouseId, productId, projectId, ...candidate } })

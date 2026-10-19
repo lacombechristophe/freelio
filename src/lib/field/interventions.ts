@@ -5,6 +5,7 @@ import { createHash } from "node:crypto"
 import { logAction } from "@/lib/audit"
 import { interventionCompletionSchema } from "@/lib/field/completion-schema"
 import { calculateStockBalance } from "@/lib/operations/stock"
+import { lockActiveWarehouses } from "@/lib/operations/warehouses"
 import prisma from "@/lib/prisma"
 import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 
@@ -34,6 +35,7 @@ export async function completeFieldInterventionForContext(input: unknown, contex
     .digest("hex")
 
   const result = await prisma.$transaction(async (tx) => {
+    await lockActiveWarehouses(tx, context.companyId, data.materials.map(material => material.warehouseId))
     const claimed = await tx.fieldIntervention.updateMany({
       where: { id: intervention.id, companyId: context.companyId, ...technicianScope, status: { notIn: ["CANCELED", "COMPLETED"] } },
       data: {

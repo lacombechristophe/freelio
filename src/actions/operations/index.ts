@@ -22,6 +22,7 @@ import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import { readStockDirectory } from "@/lib/operations/stock-directory"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
+import { lockActiveWarehouses } from "@/lib/operations/warehouses"
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
@@ -1902,6 +1903,7 @@ export async function receivePurchaseOrder(input: unknown) {
     const receipt = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
+          await lockActiveWarehouses(tx, companyId, [data.warehouseId])
     const last = await readCompanyDocumentNumbers(() => tx.goodsReceipt.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
           if (acceptedQuantity) {
             const claimedLine = await tx.purchaseOrderLine.updateMany({
@@ -2015,6 +2017,7 @@ export async function resolvePurchaseIssue(input: unknown) {
     }
 
     await prisma.$transaction(async (tx) => {
+      if (data.resolution === "ACCEPTED") await lockActiveWarehouses(tx, companyId, [issue.goodsReceiptLine!.goodsReceipt.warehouseId])
       const nextStatus = data.resolution === "REPLACEMENT" ? "WAITING_REPLACEMENT" : "RESOLVED"
       const claimed = await tx.purchaseIssue.updateMany({
         where: { id: issue.id, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
@@ -2109,6 +2112,7 @@ export async function createSupplierReturn(input: unknown) {
     const supplierReturn = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
+          await lockActiveWarehouses(tx, companyId, [data.warehouseId])
           // A no-op update takes a row lock. The following re-read therefore includes
           // returns committed by another concurrent request before validating the cap.
           const lockedLine = await tx.purchaseOrderLine.updateMany({
@@ -2225,6 +2229,7 @@ export async function reserveStock(input: unknown) {
     if (!data.projectId && !data.customerOrderId) throw new Error("Rattachez la réservation à un chantier ou une commande client")
 
     const reservation = await prisma.$transaction(async (tx) => {
+      await lockActiveWarehouses(tx, companyId, [data.warehouseId])
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId: data.productId } } })
       if (!current) throw new Error("Aucun stock disponible pour ce produit")
       const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "RESERVE", movementQuantity: data.quantity })
@@ -2448,6 +2453,7 @@ export async function createStockMovement(input: unknown) {
     if (data.projectId && !project) throw new Error("Chantier introuvable")
 
     await prisma.$transaction(async (tx) => {
+      await lockActiveWarehouses(tx, companyId, [data.warehouseId])
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId: data.productId } } })
       const magnitude = Math.abs(data.quantity)
       const next = calculateStockBalance({ quantity: current?.quantity ?? 0, reservedQuantity: current?.reservedQuantity ?? 0, type: data.type, movementQuantity: data.quantity })
@@ -2488,6 +2494,7 @@ export async function createStockTransfer(input: unknown) {
 
     const transfer = await prisma.$transaction(
       async (tx) => {
+        await lockActiveWarehouses(tx, companyId, [fromWarehouse.id, toWarehouse.id])
         const [sourceInventory, destinationInventory] = await Promise.all([
           tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: fromWarehouse.id, productId: product.id } } }),
           tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: toWarehouse.id, productId: product.id } } }),
@@ -2578,6 +2585,7 @@ export async function consumeInterventionMaterial(input: unknown) {
     if (!warehouse || !product) throw new Error("Dépôt ou produit suivi en stock introuvable")
 
     const movement = await prisma.$transaction(async (tx) => {
+      await lockActiveWarehouses(tx, companyId, [warehouse.id])
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: warehouse.id, productId: product.id } } })
       if (!current) throw new Error("Aucun stock disponible pour ce produit dans ce dépôt")
       const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "OUT", movementQuantity: data.quantity })
