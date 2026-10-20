@@ -30,6 +30,7 @@ for (const role of ["operations", "service"]) {
     await expect(page.getByLabel("Objet", { exact: true })).toHaveValue(`UIQA Access private draft ${role.toUpperCase()}`)
     await expect(page.getByLabel("Contenu HTML", { exact: true })).toBeDisabled()
     await page.getByRole("tab", { name: "Boîte de réception", exact: false }).click()
+    if (info.project.name === "mobile") await page.getByRole("button", { name: "Retour aux conversations", exact: true }).click()
     await page.getByLabel("Recherche", { exact: true }).fill("No matching fictional conversation")
     await page.getByRole("button", { name: "Rechercher", exact: true }).click()
     await expect(page.getByText("Aucune conversation", { exact: true })).toBeVisible()
