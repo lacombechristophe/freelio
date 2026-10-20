@@ -76,12 +76,15 @@ async function syncOAuthEmailChannelUnlocked(companyId: string, channelId: strin
   const channel = await activeCommunicationChannel(companyId, channelId)
   if (channel.mailEnabled === false) return { examined: 0, imported: 0, complete: true, disabled: true }
   if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Ce canal reçoit déjà ses événements par webhook")
-  const credentials = await validOAuthCredentials(channel)
-  if (!mailScopeGranted(channel.provider as EmailOAuthProvider, credentials.scope, "READ")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser la lecture des e-mails")
-  const token = credentials.accessToken
+  // Bind credentials to the captured connection, including a reconnect that
+  // finishes before the first provider request or checkpoint.
   const stored = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, companyId, status: "ACTIVE" }, select: { config: true } })
   const config = channelConfig(stored.config)
   const generation = typeof config.mailSyncGeneration === "string" ? config.mailSyncGeneration : "legacy"
+  const credentials = await validOAuthCredentials(channel)
+  await assertCurrent()
+  if (!mailScopeGranted(channel.provider as EmailOAuthProvider, credentials.scope, "READ")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser la lecture des e-mails")
+  const token = credentials.accessToken
   const resume = mailSyncStateSchema.safeParse(config.emailSync)
   let state = resume.success && resume.data.generation === generation ? resume.data : await initialState(companyId, channel, token, generation, control.signal)
   if (!resume.success && config.emailSync && typeof config.emailSync === "object" && !Array.isArray(config.emailSync) && typeof config.emailSync.since === "string" && Number.isFinite(Date.parse(config.emailSync.since))) {
@@ -180,8 +183,11 @@ async function syncOAuthEmailChannelUnlocked(companyId: string, channelId: strin
   } catch (error) {
     // Reconnection must not receive errors or checkpoints from its old worker.
     await assertCurrent()
-    await prisma.communicationChannel.updateMany({ where: { id: channel.id, companyId, status: "ACTIVE" }, data: { lastError: (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500) } })
-    if (error instanceof MailReadError && error.status === 401) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour reprendre la lecture des e-mails")
+    const reconnect = error instanceof MailReadError && error.status === 401
+    const message = (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500)
+    await storeChannelSyncState(companyId, channel.id, "emailSyncStatus", { status: reconnect ? "RECONNECT_REQUIRED" : "FAILED", error: message, checkedAt: new Date().toISOString() }, undefined,
+      { mailGeneration: generation, lastError: message })
+    if (reconnect) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour reprendre la lecture des e-mails")
     throw error
   }
 }

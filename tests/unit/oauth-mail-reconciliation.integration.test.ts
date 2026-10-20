@@ -9,6 +9,7 @@ import prisma from "@/lib/prisma"
 import { syncOAuthEmailChannel } from "@/lib/communications/email-sync"
 import { channelConfig } from "@/lib/communications/sync-state"
 import { syncOAuthCommunicationChannel } from "@/lib/communications/communication-sync"
+import * as emailProvider from "@/lib/communications/email-provider"
 
 type Remote = { id: string; date: string; read: boolean; folder: string; listed: boolean; draft?: boolean }
 describe.sequential("OAuth message history and delta reconcile copies without replaying receptions", () => {
@@ -142,5 +143,47 @@ describe.sequential("OAuth message history and delta reconcile copies without re
     expect(await message()).toEqual(before)
     const current = await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })
     expect(channelConfig(current.config)).toEqual({ mode: "OAUTH", mailSyncGeneration: "new-connection" }); expect(current.lastError).toBeNull()
+  })
+  it.each(["GOOGLE", "MICROSOFT"])("refuses old %s credentials if reconnection finishes before the initial checkpoint", async provider => {
+    channel = await fixture(provider); remote.set("message", row())
+    const original = emailProvider.validOAuthCredentials
+    const credentials = vi.spyOn(emailProvider, "validOAuthCredentials").mockImplementationOnce(async selected => {
+      const old = await original(selected)
+      await prisma.communicationChannel.update({ where: { id: channel.id }, data: { config: { mode: "OAUTH", mailSyncGeneration: "new-connection" }, lastError: null } })
+      return old
+    })
+    try {
+      await expect(syncOAuthEmailChannel(channel.companyId, channel.id)).rejects.toThrow("connexion a changé")
+      expect(fetch).not.toHaveBeenCalled()
+      expect(await prisma.emailMessage.count({ where: { companyId: channel.companyId } })).toBe(0)
+      const current = await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })
+      expect(channelConfig(current.config)).toEqual({ mode: "OAUTH", mailSyncGeneration: "new-connection" })
+      expect(current.lastError).toBeNull()
+    } finally { credentials.mockRestore() }
+  })
+  it("keeps a new connection's error state when it reconnects immediately before the old failure is written", async () => {
+    const before = await start("GOOGLE"); failingStatus = 503
+    const original = prisma.communicationChannel.updateMany.bind(prisma.communicationChannel)
+    let interleaved = false
+    // Both writes use real SQL. Insert the reconnect immediately before the
+    // old worker's error statement, after its last successful access check.
+    const write = vi.spyOn(prisma.communicationChannel, "updateMany").mockImplementation(input => {
+      const operation = async () => {
+        if (!interleaved && typeof input.data.lastError === "string" && input.data.lastError) {
+          interleaved = true
+          await prisma.communicationChannel.update({ where: { id: channel.id }, data: { config: { mode: "OAUTH", mailSyncGeneration: "new-connection" }, lastError: null } })
+        }
+        return original(input)
+      }
+      return operation() as ReturnType<typeof original>
+    })
+    try {
+      await expect(syncOAuthEmailChannel(channel.companyId, channel.id)).rejects.toThrow()
+      expect(interleaved).toBe(true)
+      expect(await message()).toEqual(before)
+      const current = await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })
+      expect(channelConfig(current.config)).toEqual({ mode: "OAUTH", mailSyncGeneration: "new-connection" })
+      expect(current.lastError).toBeNull()
+    } finally { write.mockRestore() }
   })
 })
