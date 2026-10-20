@@ -120,4 +120,13 @@ describe.sequential("mail quota boundary at the real transport with fictional HT
     expect(JSON.parse(request.body).from).toContain("<sender@example.test>")
     expect(await prisma.emailSendQuotaCharge.count({ where: { companyId: f.company.id, channelKey: f.channel.id } })).toBe(2)
   })
+  it("refuses unreadable BYOK credentials instead of replacing them with the platform key", async () => {
+    const f = await fixture()
+    vi.stubEnv("RESEND_API_KEY", "re_platform_fixture")
+    vi.stubEnv("EMAIL_FROM", "Platform <platform@example.test>")
+    await prisma.communicationChannel.update({ where: { id: f.channel.id }, data: { credentialsEncrypted: "unreadable-fictional-credentials" } })
+    await expect(sendEmailThroughChannel(f.input)).rejects.toThrow("Identifiants Resend invalides")
+    expect(f.http).not.toHaveBeenCalled()
+    expect(await prisma.emailSendQuotaCharge.count({ where: { companyId: f.company.id } })).toBe(0)
+  })
 })

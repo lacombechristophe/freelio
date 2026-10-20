@@ -49,6 +49,7 @@ export async function getResendTransport(companyId: string, channelId?: string |
     orderBy: { updatedAt: "desc" },
   })
   const stored = readResendCredentials(channel?.credentialsEncrypted)
+  if (channel?.credentialsEncrypted && !stored) throw new Error("Identifiants Resend invalides ; reconnectez cette boîte")
   if (channel && stored) {
     return { apiKey: stored.apiKey, webhookSecret: stored.webhookSecret, fromAddress: channel.emailAddress, displayName: channel.displayName, channelId: channel.id, mode: "BYOK" }
   }
