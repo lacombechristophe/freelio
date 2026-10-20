@@ -16,6 +16,7 @@ import { DraftList } from "./draft-list"
 import { RecoveryList } from "./recovery-list"
 import { CrmDocumentPicker } from "./crm-document-picker"
 import { SignatureEditor } from "./signature-editor"
+import { SendQuotaSettings, type MailboxSendQuota } from "./send-quota-settings"
 import { insertEmailSignature, type EmailSignatureDto } from "@/lib/communications/signature-input"
 import type { InboxPage } from "@/lib/communications/inbox-reader"
 import type { RecipientPage } from "@/lib/communications/recipient-reader"
@@ -39,6 +40,7 @@ type CommunicationData = {
   signature: EmailSignatureDto
   signatureOwnerId: string
   access: { write: boolean; manage: boolean }
+  sendQuotas?: MailboxSendQuota[]
   channels: Array<{ id: string; provider: string; emailAddress: string; displayName: string | null; status: string; connectionMode: string | null; hasCredentials: boolean; lastSyncAt: string | null; lastError: string | null; visibility?: string; mailEnabled?: boolean; calendarEnabled?: boolean; emailSyncStatus?: unknown; calendarSyncStatus?: unknown }>
   recipients: RecipientPage
   stats: { sent: number; received: number; unread: number; events: Record<string, number> }
@@ -554,6 +556,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
           <ProviderCard canManage={canManage} name="Google Workspace" provider="GOOGLE" description="Gmail et Google Calendar synchronisés en quelques clics, sans partager le mot de passe." channels={initialData.channels} onConfigure={() => openIntegration("GOOGLE")} onDisconnect={disconnectIntegration} onSync={syncIntegration} />
           <ProviderCard canManage={canManage} name="Microsoft 365" provider="MICROSOFT" description="Outlook et calendrier Microsoft synchronisés via Graph et OAuth." channels={initialData.channels} onConfigure={() => openIntegration("MICROSOFT")} onDisconnect={disconnectIntegration} onSync={syncIntegration} />
         </div>
+        {initialData.sendQuotas?.map(quota => <SendQuotaSettings key={`${quota.channelKey}:${quota.version}`} quota={quota} canManage={canManage} />)}
       </TabsContent>
     </Tabs>
 

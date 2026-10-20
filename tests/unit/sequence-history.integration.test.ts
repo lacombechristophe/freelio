@@ -17,6 +17,7 @@ import { recordOutgoingEmail } from "@/lib/communications/threads"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
 import { assertManualMarketingConsent } from "@/lib/communications/marketing-consent"
 import { fictionalMarketingProof } from "../helpers/fictional-marketing-proof"
+import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
 
 describe.sequential("accepted sequence transport and durable history", () => {
   const companies: string[] = []
@@ -162,4 +163,17 @@ describe.sequential("accepted sequence transport and durable history", () => {
     await prisma.processorLease.deleteMany({ where: { name: "email-sequences" } })
   })
 
+  it("defers quota waits to the supplied reset without consuming attempts or pausing the enrollment", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    const now = new Date("2035-01-02T08:00:00Z"); vi.setSystemTime(now)
+    const f = await fixture()
+    const retryAt = new Date(now.getTime() + 60_000)
+    vi.mocked(sendSequenceEmail).mockRejectedValueOnce(new EmailSendQuotaError("Plafond interne atteint", retryAt))
+    expect(await processDueSequenceEmails(10, f.company.id)).toMatchObject({ sent: 0, failed: 0, deadLettered: 0 })
+    expect(await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ status: "FAILED", attempts: 0, firstAttemptAt: null, lastAttemptAt: null, nextAttemptAt: retryAt })
+    expect(await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: f.enrollment.id } })).toMatchObject({ status: "ACTIVE", nextSendAt: retryAt })
+    vi.setSystemTime(retryAt)
+    expect(await processDueSequenceEmails(10, f.company.id)).toMatchObject({ sent: 1 })
+    expect(await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ status: "SENT", attempts: 1 })
+  })
 })

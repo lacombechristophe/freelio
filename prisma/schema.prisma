@@ -218,6 +218,9 @@ model Company {
   emailTemplates             EmailTemplate[]
   emailSequences             EmailSequence[]
   emailDeliveries            EmailDelivery[]
+  emailSendQuotaPolicies     EmailSendQuotaPolicy[]
+  emailSendQuotaStates       EmailSendQuotaState[]
+  emailSendQuotaCharges      EmailSendQuotaCharge[]
   emailSuppressions          EmailSuppression[]
   emailSequenceTasks         EmailSequenceTask[]
   emailThreads               EmailThread[]
@@ -1077,6 +1080,7 @@ model EmailDelivery {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   message        EmailMessage?
+  quotaCharges   EmailSendQuotaCharge[]
 
   @@unique([enrollmentId, stepId])
   @@unique([companyId, requestKey])
@@ -1085,6 +1089,58 @@ model EmailDelivery {
   @@index([status, scheduledAt])
   @@index([status, nextAttemptAt])
   @@index([leadCaptureId])
+}
+
+model EmailSendQuotaPolicy {
+  id                  String @id @default(cuid())
+  companyId           String
+  company             Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelKey          String // Channel id, or "platform" for the company's fallback sender.
+  channelId           String?
+  channel             CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  enabled             Boolean @default(false)
+  dailyRecipientLimit Int
+  minuteRecipientLimit Int
+  version             Int @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([companyId, channelKey])
+}
+
+model EmailSendQuotaState {
+  id          String @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelKey  String
+  channelId   String?
+  channel     CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  period      String // DAY / MINUTE, fixed UTC windows.
+  windowStart DateTime
+  used        Int @default(0)
+  version     Int @default(1)
+
+  @@unique([companyId, channelKey, period])
+}
+
+model EmailSendQuotaCharge {
+  id            String @id @default(cuid())
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  channelKey    String
+  channelId     String?
+  channel       CommunicationChannel? @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  deliveryId    String
+  delivery      EmailDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  period        String
+  windowStart   DateTime
+  recipientUnits Int
+  bindingHash   String
+  policyVersion Int
+  createdAt     DateTime @default(now())
+
+  @@unique([deliveryId, period, windowStart])
+  @@index([companyId, channelKey, period, windowStart])
 }
 
 model EmailSuppression {
@@ -1149,6 +1205,9 @@ model CommunicationChannel {
   credentialsEncrypted String?
   config               Json?
   emailDeliveries      EmailDelivery[]
+  sendQuotaPolicies    EmailSendQuotaPolicy[]
+  sendQuotaStates      EmailSendQuotaState[]
+  sendQuotaCharges     EmailSendQuotaCharge[]
   emailThreads         EmailThread[]
   calendarTasks        OrganisationTask[]
   automationEvents     AutomationEventOutbox[]

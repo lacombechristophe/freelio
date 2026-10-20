@@ -12,6 +12,7 @@ import { emailPlainText } from "./email-content"
 import { EmailDraftConflict } from "./drafts"
 import { emailPurposeSchema, requireEmailPurpose, assertPurposeRecipients, EmailPurposeError } from "./email-purpose"
 import { marketingAuthorizationSchema, prepareManualMarketingContent, assertManualMarketingConsent } from "./marketing-consent"
+import { EmailSendQuotaError } from "./send-quotas"
 
 export const manualEmailPayloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
@@ -127,6 +128,14 @@ export async function sendManualEmail(input: ManualSendInput) {
         })
         await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENT", provider: sent.provider, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt: new Date(), error: null } })
       } catch (error) {
+        if (error instanceof EmailSendQuotaError) {
+          await control.assertOwned()
+          await prisma.emailDelivery.updateMany({ where: { id: deliveryId, companyId: input.companyId, status: "SENDING" }, data: {
+            status: "FAILED", error: error.message, attempts: current.attempts, firstAttemptAt: current.firstAttemptAt,
+            lastAttemptAt: current.lastAttemptAt, nextAttemptAt: error.retryAt,
+          } })
+          throw error
+        }
         // Provider errors may quote a hidden recipient. The shared delivery
         // journal must never disclose a Bcc address through its error text.
         await prisma.emailDelivery.updateMany({ where: { id: deliveryId, status: "SENDING" }, data: { status: "FAILED", error: payload.bcc?.length ? "Échec de l’envoi avec destinataires cachés ; résultat à vérifier" : (error instanceof Error ? error.message : "Résultat d’envoi à vérifier").slice(0, 500) } })

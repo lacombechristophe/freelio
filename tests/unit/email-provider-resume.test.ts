@@ -13,6 +13,9 @@ const prismaMock = vi.hoisted(() => ({
 }))
 
 vi.mock("server-only", () => ({}))
+// These cases isolate provider resume/MIME protocols; quota persistence has its
+// own SQL transport suite, without mocking the reservation boundary.
+vi.mock("@/lib/communications/send-quotas", () => ({ reserveEmailSendQuota: vi.fn() }))
 vi.mock("@/lib/prisma", () => ({ default: prismaMock }))
 vi.mock("@/lib/crypto", () => ({ decrypt: (value: string) => value, encrypt: (value: string) => value }))
 vi.mock("@/lib/communications/provider-credentials", () => ({

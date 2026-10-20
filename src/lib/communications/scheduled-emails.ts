@@ -16,6 +16,7 @@ import { scheduledEmailInstant, scheduledTimeInput } from "./scheduled-time"
 import { jsonValue } from "./threads"
 import { activeCommunicationChannel } from "./email-provider"
 import { requireEmailPurpose, EmailPurposeError } from "./email-purpose"
+import { EmailSendQuotaError } from "./send-quotas"
 
 export class EmailScheduleError extends Error {}
 const identity = z.object({ id: z.string().cuid(), version: z.number().int().positive() })
@@ -69,13 +70,27 @@ export async function cancelScheduledEmail(companyId: string, userId: string, in
     assertUnarchivedDraft(draft)
     if (draft.version !== data.version) throw new EmailDraftConflict("Conflit : actualisez la programmation avant de l’annuler")
     if (!draft.scheduledAt || draft.sentAt) throw new EmailScheduleError("Ce brouillon n’a pas de programmation à annuler")
-    if (draft.scheduleStartedAt || await prisma.emailDelivery.count({ where: { companyId, requestKey: draft.requestKey } })) throw new EmailScheduleError("L’envoi a commencé ; son résultat doit être vérifié avant toute modification")
     await control.assertOwned()
-    const canceled = await prisma.emailDraft.updateMany({ where: { companyId, authorUserId: userId, id: draft.id, version: draft.version, scheduleStartedAt: null, sentAt: null }, data: {
-      scheduledAt: null, scheduledTimezone: null, scheduledPayload: Prisma.DbNull, scheduleStatus: null, scheduleAttempts: 0,
-      scheduleNextAttemptAt: null, scheduleStartedAt: null, scheduleError: null, requestKey: randomUUID(), version: { increment: 1 },
-    } })
-    if (canceled.count !== 1) throw new EmailDraftConflict("Conflit : l’annulation n’a pas été enregistrée")
+    await prisma.$transaction(async tx => {
+      await control.assertOwned(tx)
+      const command = await tx.emailDelivery.findUnique({ where: { companyId_requestKey: { companyId, requestKey: draft.requestKey } }, select: {
+        id: true, status: true, attempts: true, firstAttemptAt: true, providerId: true, sentAt: true,
+      } })
+      const waitingWithoutSend = draft.scheduleStatus === "WAITING_QUOTA" && !draft.scheduleStartedAt && command?.status === "FAILED" &&
+        command.attempts === 0 && !command.firstAttemptAt && !command.providerId && !command.sentAt
+      if (draft.scheduleStartedAt || command && !waitingWithoutSend) throw new EmailScheduleError("L’envoi a commencé ; son résultat doit être vérifié avant toute modification")
+      if (waitingWithoutSend && command) {
+        // The relation predicate also sees an incoherent foreign charge; a
+        // mailbox-scoped list of charges would hide it and could allow a refund.
+        const closed = await tx.emailDelivery.updateMany({ where: { id: command.id, companyId, status: "FAILED", attempts: 0, firstAttemptAt: null, providerId: null, sentAt: null, quotaCharges: { none: {} } }, data: { status: "CANCELED", nextAttemptAt: null } })
+        if (closed.count !== 1) throw new EmailScheduleError("L’envoi a commencé ; son résultat doit être vérifié avant toute modification")
+      }
+      const result = await tx.emailDraft.updateMany({ where: { companyId, authorUserId: userId, id: draft.id, version: draft.version, scheduleStartedAt: null, sentAt: null }, data: {
+        scheduledAt: null, scheduledTimezone: null, scheduledPayload: Prisma.DbNull, scheduleStatus: null, scheduleAttempts: 0,
+        scheduleNextAttemptAt: null, scheduleStartedAt: null, scheduleError: null, requestKey: randomUUID(), version: { increment: 1 },
+      } })
+      if (result.count !== 1) throw new EmailDraftConflict("Conflit : l’annulation n’a pas été enregistrée")
+    })
     await logAction({ userId, action: "CANCEL_SCHEDULED_CRM_EMAIL", resource: "EMAIL_DRAFT", resourceId: draft.id })
     return getEmailDraft(companyId, userId, draft.id)
   })
@@ -96,14 +111,14 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
   if (isPublicReadOnlyDemo()) return summary
   const now = input.now || new Date()
   const jobs = await prisma.emailDraft.findMany({ where: { ...(input.companyId ? { companyId: input.companyId } : {}), sentAt: null, scheduledAt: { lte: now },
-    archivedAt: null, scheduleStatus: { in: ["QUEUED", "PROCESSING", "RETRY"] }, scheduleNextAttemptAt: { lte: now } },
+    archivedAt: null, scheduleStatus: { in: ["QUEUED", "PROCESSING", "RETRY", "WAITING_QUOTA"] }, scheduleNextAttemptAt: { lte: now } },
     select: { id: true, companyId: true, authorUserId: true }, orderBy: [{ scheduleNextAttemptAt: "asc" }, { id: "asc" }], take: Math.min(Math.max(input.limit || 50, 1), 100) })
   summary.examined = jobs.length
   for (const job of jobs) {
     try {
       await withEmailDraftLease(job.id, async control => {
         const draft = await readEmailDraft(job.companyId, job.authorUserId, job.id)
-        if (draft.sentAt || !draft.scheduledAt || draft.scheduledAt > now || !draft.scheduleNextAttemptAt || draft.scheduleNextAttemptAt > now || !["QUEUED", "PROCESSING", "RETRY"].includes(draft.scheduleStatus || "")) { summary.skipped++; return }
+        if (draft.sentAt || !draft.scheduledAt || draft.scheduledAt > now || !draft.scheduleNextAttemptAt || draft.scheduleNextAttemptAt > now || !["QUEUED", "PROCESSING", "RETRY", "WAITING_QUOTA"].includes(draft.scheduleStatus || "")) { summary.skipped++; return }
         if (draft.scheduleAttempts >= MAX_ATTEMPTS) {
           await control.assertOwned()
           await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: "FAILED", scheduleNextAttemptAt: null, scheduleError: "Tentatives épuisées ; résultat fournisseur à vérifier" } })
@@ -146,6 +161,13 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
             summary.sent++
           } catch (error) {
             await control.assertOwned()
+            if (error instanceof EmailSendQuotaError) {
+              await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: {
+                scheduleStatus: "WAITING_QUOTA", scheduleAttempts: draft.scheduleAttempts, scheduleStartedAt: draft.scheduleStartedAt,
+                scheduleNextAttemptAt: error.retryAt || new Date(now.getTime() + 5 * 60_000), scheduleError: error.message,
+              } })
+              summary.skipped++; return
+            }
             const exhausted = error instanceof EmailPurposeError || draft.scheduleAttempts + 1 >= MAX_ATTEMPTS
             await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: exhausted ? "FAILED" : "RETRY", ...(exhausted ? { scheduleNextAttemptAt: null } : {}), scheduleError: error instanceof EmailPurposeError ? error.message : "Échec de l’envoi programmé ; résultat fournisseur à vérifier" } })
             summary.failed++

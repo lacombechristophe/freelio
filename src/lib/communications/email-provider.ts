@@ -22,6 +22,7 @@ import { emailAttachmentsSchema } from "./attachment-types"
 import type { LoadedEmailAttachment } from "./attachment-content"
 import { hasExpectedSignature } from "@/lib/local-files"
 import { prepareGraphAttachments } from "./graph-attachments"
+import { reserveEmailSendQuota } from "./send-quotas"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -254,6 +255,12 @@ export async function sendEmailThroughChannel(input: {
   const from = input.from ?? formatMailboxSender(channel.displayName || input.companyName, channel.emailAddress)
   const fromAddress = (from.match(/<([^<>]+)>$/)?.[1] || from).trim().toLowerCase()
   if (/[\r\n]/.test(from) || fromAddress !== channel.emailAddress.trim().toLowerCase()) throw new Error("L’expéditeur préparé ne correspond plus à la messagerie")
+  const beforeRemoteSend = async () => {
+    await beforeDispatch()
+    await reserveEmailSendQuota({ ...input, deliveryId: input.idempotencyKey, channelKey: channel.id, from })
+    // Admission may wait for a database connection. Recheck ownership before HTTP.
+    await beforeDispatch()
+  }
   let messageId = input.resume?.providerMessageId || deterministicMessageId(input.idempotencyKey)
   const reply = input.reply ? replyContextSchema.parse(input.reply) : null
   if (reply && (reply.provider !== channel.provider || canonicalEmailSubject(input.subject) !== canonicalEmailSubject(reply.subject))) throw new Error("La réponse ne correspond pas au fournisseur ou à l’objet préparé")
@@ -264,7 +271,7 @@ export async function sendEmailThroughChannel(input: {
   if (channel.provider === "RESEND") {
     const transport = await getResendTransport(input.companyId, channel.id === "platform" ? null : channel.id)
     await input.onPrepared?.({ provider: "RESEND", channelId: channel.id, providerDraftId: null, providerMessageId: null })
-    await beforeDispatch()
+    await beforeRemoteSend()
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${transport.apiKey}`, "Idempotency-Key": input.idempotencyKey },
@@ -330,7 +337,7 @@ export async function sendEmailThroughChannel(input: {
       conversationId = readProviderConversationId(draft.message?.threadId) || readProviderConversationId(nativeThreadId)
       await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId })
     }
-    await beforeDispatch()
+    await beforeRemoteSend()
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts/send", { method: "POST", headers, body: JSON.stringify({ id: draftId }) })
     const payload = await response.json().catch(() => ({})) as { id?: string; threadId?: string; error?: { message?: string } }
     if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Envoi Google refusé (${response.status})`)
@@ -389,7 +396,7 @@ export async function sendEmailThroughChannel(input: {
     await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId })
   }
   if (input.attachments?.length) await prepareGraphAttachments(draftId, graphHeaders, input.attachments, beforeDispatch)
-  await beforeDispatch()
+  await beforeRemoteSend()
   const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}/send`, {
     method: "POST",
     headers: graphHeaders,

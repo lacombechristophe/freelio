@@ -6,6 +6,12 @@ Périmètre : application Next.js, PostgreSQL, R2, Resend, Redis/BullMQ et Upsta
 
 Ce document décrit l'exploitation du code présent dans ce dépôt. Il ne vaut pas preuve de mise en production : l'hébergeur, les accès, les objectifs de reprise et les alertes doivent encore être renseignés dans la fiche d'environnement. Pour la démo de portfolio, lire d’abord le [suivi courant](execution-cto-20261001.md) et les [décisions techniques](decisions-techniques.md). Les fournisseurs décrits ci-dessous ne sont pas tous actifs dans cette démo.
 
+Le candidat ajoute des [plafonds internes par boîte](contrat-plafonds-envoi.md).
+Après migration, configurer explicitement les plafonds dans Communications →
+Intégrations avant de réactiver les envois CRM. Une ancienne boîte sans politique
+attend cette configuration ; aucun volume historique ni quota fournisseur n’est
+déduit. Les liens magiques d’authentification utilisent leur transport distinct.
+
 ## 1. Fiche d'environnement à compléter
 
 | Élément | Production | Préproduction |

@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client"
+import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
 
 import { prepareSequenceEmail, renderEmailVariables, sendSequenceEmail } from "@/lib/automations/email"
 import { nextDeliveryRetry } from "@/lib/automations/delivery-retry"
@@ -160,6 +161,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       continue
     }
 
+    let beforeQuotaAttempt: { id: string; attempts: number; firstAttemptAt: Date | null; lastAttemptAt: Date | null } | null = null
     try {
       const existing = await prisma.emailDelivery.findUnique({
         where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } },
@@ -230,6 +232,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
         data: { status: "SENDING", error: null, attempts: { increment: 1 }, lastAttemptAt: now, firstAttemptAt: delivery.firstAttemptAt || now },
       })
       if (claimed.count !== 1) continue
+      beforeQuotaAttempt = delivery
       let payload = delivery.payload
       const beforeDispatch = async () => {
         await control.assertOwned()
@@ -306,6 +309,19 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       })
       if (advanced.count === 1 && !progressed.nextStep) summary.completed += 1
     } catch (error) {
+      if (error instanceof EmailSendQuotaError && beforeQuotaAttempt) {
+        const previous = beforeQuotaAttempt
+        const retryAt = error.retryAt || new Date(Date.now() + 5 * 60_000)
+        await prisma.$transaction(async tx => {
+          await control.assertOwned(tx)
+          await tx.emailDelivery.updateMany({ where: { id: previous.id, companyId: enrollment.sequence.companyId, status: "SENDING" }, data: {
+            status: "FAILED", error: error.message, nextAttemptAt: retryAt, attempts: previous.attempts,
+            firstAttemptAt: previous.firstAttemptAt, lastAttemptAt: previous.lastAttemptAt,
+          } })
+          await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position }, data: { nextSendAt: retryAt } })
+        })
+        continue
+      }
       if (error instanceof SequenceResultUncertainError) {
         await prisma.$transaction(async tx => {
           await control.assertOwned(tx)

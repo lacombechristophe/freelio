@@ -31,6 +31,24 @@ import { listCrmEmailDocuments, attachCrmEmailDocument, EmailCrmDocumentError } 
 import { EmailAttachmentError } from "@/lib/communications/draft-attachments"
 import { listManualEmailRecovery, recoverManualEmail, EmailRecoveryError } from "@/lib/communications/manual-recovery"
 import { isPublicReadOnlyDemo, DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
+import { EmailSendQuotaError, EmailSendQuotaConflict, readEmailSendQuota, saveEmailSendQuota } from "@/lib/communications/send-quotas"
+
+export async function configureCommunicationSendQuota(input: unknown) {
+  if (isPublicReadOnlyDemo()) return { success: false as const, error: DEMO_READ_ONLY_MESSAGE }
+  return withAuth(async ({ companyId, userId }) => {
+    try {
+      const quota = await saveEmailSendQuota(companyId, input)
+      await logAction({ userId, action: "CONFIGURE_EMAIL_SEND_QUOTA", resource: "COMMUNICATION_CHANNEL", resourceId: quota.channelKey,
+        payload: { version: quota.version, enabled: quota.enabled, dailyRecipientLimit: quota.dailyRecipientLimit, minuteRecipientLimit: quota.minuteRecipientLimit } })
+      revalidatePath("/dashboard/communications")
+      return { success: true as const, quota }
+    } catch (error) {
+      if (error instanceof EmailSendQuotaConflict) return { success: false as const, error: error.message }
+      if (error instanceof z.ZodError) return { success: false as const, error: "Choisissez des plafonds entiers de 1 à 1 000 000, minute inférieure ou égale au jour" }
+      throw error
+    }
+  }, "company.manage")
+}
 
 export async function getCommunicationRecovery(input: unknown = {}) {
   return withAuth(async ({ companyId, userId }) => {
@@ -219,8 +237,17 @@ export async function getCommunicationDashboard() {
     ])
     const sent = await prisma.emailMessage.count({ where: { companyId, direction: "OUTBOUND", createdAt: { gte: since } } })
     const received = await prisma.emailMessage.count({ where: { companyId, direction: "INBOUND", createdAt: { gte: since } } })
+    const sendQuotas = []
+    // Keep SQLite interactive reads sequential, including initial inbox reads.
+    for (const channel of channels.filter(channel => channel.mailEnabled)) {
+      sendQuotas.push({ label: channel.displayName || channel.emailAddress, ...await readEmailSendQuota({ companyId, channelKey: channel.id }) })
+    }
+    if (["OWNER", "ADMIN"].includes(role) && process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim()) {
+      sendQuotas.push({ label: "Relais de la plateforme (cette société)", ...await readEmailSendQuota({ companyId, channelKey: "platform" }) })
+    }
     return {
       company,
+      sendQuotas,
       signature,
       signatureOwnerId: userId,
       access: { write: hasPermission(role, "automation.write"), manage: hasPermission(role, "company.manage") },
@@ -291,7 +318,7 @@ export async function sendCrmEmail(input: unknown) {
       try {
         return data.draftId ? await sendEmailDraft(companyId, userId, { ...data, id: data.draftId, version: data.draftVersion }, send) : await send(data.requestKey || randomUUID())
       } catch (error) {
-        if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError) return { success: false as const, error: error.message }
+        if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError || error instanceof EmailSendQuotaError) return { success: false as const, error: error.message }
         throw error
       }
     })()

@@ -9,6 +9,9 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
   afterEach(() => vi.unstubAllGlobals())
   afterAll(async () => {
     for (const companyId of companies) {
+      await prisma.emailSendQuotaCharge.deleteMany({ where: { companyId } })
+      await prisma.emailSendQuotaState.deleteMany({ where: { companyId } })
+      await prisma.emailSendQuotaPolicy.deleteMany({ where: { companyId } })
       await prisma.emailThread.deleteMany({ where: { companyId } })
       await prisma.contact.deleteMany({ where: { client: { companyId } } })
       await prisma.client.deleteMany({ where: { companyId } })
@@ -22,6 +25,7 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
     const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictitious client" } })
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Native", email: "recipient@example.test" } })
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider, emailAddress: "sender@example.test", status: "ACTIVE", credentialsEncrypted: encrypt(JSON.stringify(provider === "RESEND" ? { mode: "BYOK", apiKey: "fiction-resend-key-only", webhookSecret: "fiction-webhook-key-only" } : { mode: "OAUTH", accessToken: "fiction-access-token-only", refreshToken: "fiction-refresh-token-only", tokenType: "Bearer", scope: "Mail.Send Mail.ReadWrite https://www.googleapis.com/auth/gmail.modify", expiresAt: "2099-01-01T00:00:00.000Z" })) } })
+    await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelKey: channel.id, channelId: channel.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 100 } })
     const thread = await prisma.emailThread.create({ data: { companyId: company.id, channelId: channel.id, providerConversationId: provider === "RESEND" ? null : "native-thread", clientId: client.id, contactId: contact.id, subject: "Fictitious native conversation" } })
     await prisma.emailMessage.create({ data: { companyId: company.id, threadId: thread.id, direction: "INBOUND", provider, providerId: `${channel.id}:parent`, internetMessageId: "<parent@example.test>", fromAddress: contact.email!, toAddresses: [channel.emailAddress], subject: thread.subject } })
     const command = { companyId: company.id, userId: "fiction-owner", companyName: company.name, purpose: "SERVICE" as const, clientId: client.id, contactId: contact.id, channelId: channel.id, requestKey: crypto.randomUUID(), threadId: thread.id, serviceTicketId: null, to: contact.email!, cc: ["cc@example.test"], bcc: ["hidden@example.test"], replyTo: null, subject: `Re: ${thread.subject}`, html: "<p>Fictitious reply only</p>" }

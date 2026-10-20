@@ -18,6 +18,8 @@ import { sendEmailThroughChannel } from "@/lib/communications/email-provider"
 import { sendManualEmail, preparedManualEmailSchema } from "@/lib/communications/manual-send"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
 
+import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
+
 describe.sequential("private frozen schedules, cancellation and durable dispatch", () => {
   const companies: string[] = [], users: string[] = []
   beforeEach(() => {
@@ -190,5 +192,42 @@ describe.sequential("private frozen schedules, cancellation and durable dispatch
     await f.asAuthor(async () => await expect(cancelScheduledEmail(f.company.id, f.user.id, queued)).rejects.toThrow("lecture seule"))
     await f.asAuthor(async () => await expect(scheduleEmailDraft(f.company.id, f.user.id, { id: queued.id, version: queued.version, localDateTime: new Date(Date.now() + 3_600_000).toISOString().slice(0, 16), timezone: "UTC" })).rejects.toThrow("lecture seule"))
     expect(sendEmailThroughChannel).not.toHaveBeenCalled()
+  })
+  it("keeps a never-sent quota wait cancelable without exhausting transport retries", async () => {
+    const f = await fixture(), queued = await f.queue()
+    const due = new Date(queued.scheduledAt!)
+    vi.mocked(sendEmailThroughChannel).mockRejectedValue(new EmailSendQuotaError("Plafond interne atteint"))
+    for (let attempt = 0; attempt < 7; attempt++) {
+      expect(await processDueScheduledEmails({ companyId: f.company.id, now: new Date(due.getTime() + attempt * 5 * 60_000) })).toMatchObject({ sent: 0, failed: 0, skipped: 1 })
+    }
+    expect(await prisma.emailDraft.findUniqueOrThrow({ where: { id: queued.id } })).toMatchObject({ scheduleAttempts: 0, scheduleStatus: "WAITING_QUOTA", scheduleStartedAt: null })
+    const delivery = await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: f.company.id } })
+    expect(delivery).toMatchObject({ attempts: 0, firstAttemptAt: null })
+    const canceled = await f.asAuthor(() => cancelScheduledEmail(f.company.id, f.user.id, queued))
+    expect(canceled.scheduledAt).toBeNull()
+    expect(canceled.requestKey).not.toBe(queued.requestKey)
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: delivery.id } })).toMatchObject({ status: "CANCELED" })
+  })
+  it("keeps a previous uncertain attempt protected from cancellation after a quota refusal", async () => {
+    const f = await fixture(), queued = await f.queue(), due = new Date(queued.scheduledAt!)
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Fictional timeout"))
+    await processDueScheduledEmails({ companyId: f.company.id, now: due })
+    const draft = await prisma.emailDraft.findUniqueOrThrow({ where: { id: queued.id } })
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new EmailSendQuotaError("Plafond interne atteint"))
+    await processDueScheduledEmails({ companyId: f.company.id, now: draft.scheduleNextAttemptAt! })
+    expect(await prisma.emailDraft.findUniqueOrThrow({ where: { id: queued.id } })).toMatchObject({ scheduleAttempts: 1, scheduleStatus: "WAITING_QUOTA", scheduleStartedAt: draft.scheduleStartedAt })
+    await f.asAuthor(() => expect(cancelScheduledEmail(f.company.id, f.user.id, queued)).rejects.toThrow("commencé"))
+  })
+  it("refuses cancellation if a supposedly never-sent wait already has a durable admission", async () => {
+    const f = await fixture(), queued = await f.queue()
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new EmailSendQuotaError("Plafond interne atteint"))
+    await processDueScheduledEmails({ companyId: f.company.id, now: new Date(queued.scheduledAt!) })
+    const command = await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: f.company.id } })
+    const charge = await prisma.emailSendQuotaCharge.create({ data: { companyId: f.company.id, channelId: f.channel.id, channelKey: f.channel.id, deliveryId: command.id, period: "DAY", windowStart: new Date(), recipientUnits: 3, bindingHash: "fictional-admission", policyVersion: 1 } })
+    try {
+      await f.asAuthor(() => expect(cancelScheduledEmail(f.company.id, f.user.id, queued)).rejects.toThrow("commencé"))
+      expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: command.id } })).toMatchObject({ status: "FAILED" })
+      expect(await prisma.emailDraft.findUniqueOrThrow({ where: { id: queued.id } })).toMatchObject({ scheduleStatus: "WAITING_QUOTA", requestKey: queued.requestKey })
+    } finally { await prisma.emailSendQuotaCharge.delete({ where: { id: charge.id } }) }
   })
 })

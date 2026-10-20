@@ -98,6 +98,9 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   related("EmailSequenceEnrollment", { sequence: { companyId: "$companyId" } }),
   direct("EmailSequenceTask"),
   direct("EmailDelivery"),
+  direct("EmailSendQuotaPolicy"),
+  direct("EmailSendQuotaState"),
+  direct("EmailSendQuotaCharge"),
   direct("EmailThread"),
   direct("EmailMessage"),
   direct("EmailEvent"),
@@ -580,6 +583,7 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 }
 
 const LEGACY_UNREPRESENTED_TABLES = [
+  "EmailSendQuotaPolicy", "EmailSendQuotaState", "EmailSendQuotaCharge",
   "CampaignAudience", "CampaignAudienceMember",
   "Agency", "AgencyMembership", "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",

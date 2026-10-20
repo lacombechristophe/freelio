@@ -76,6 +76,9 @@ const MUTATION_PERMISSIONS: Partial<Record<string, Permission>> = {
   EmailSequenceEnrollment: "automation.write",
   EmailSequenceTask: "automation.write",
   EmailDelivery: "automation.write",
+  EmailSendQuotaPolicy: "company.manage",
+  EmailSendQuotaState: "automation.write",
+  EmailSendQuotaCharge: "automation.write",
   EmailDraft: "automation.write",
   EmailSignature: "automation.write",
   EmailThread: "automation.write",
@@ -196,7 +199,7 @@ export function requiredMutationPermission(model: string): Permission | undefine
 const ACTION_PERMISSION_MODEL_ALIASES: Partial<Record<Permission, ReadonlySet<string>>> = {
   // Accounting actions can journal their invoice reminders without granting
   // access to editing campaigns or automation configuration.
-  "finance.write": new Set(["EmailDelivery", "EmailThread", "EmailMessage"]),
+  "finance.write": new Set(["EmailDelivery", "EmailThread", "EmailMessage", "EmailSendQuotaState", "EmailSendQuotaCharge"]),
   // Field technicians can attach and reconcile expenses for their own
   // interventions without receiving company-wide finance permissions.
   "operations.write": new Set(["CrmPropertyValue", "CrmPropertyHistory", "Expense", "ExpenseFile", "AutomationRun", "AutomationEventOutbox"]),

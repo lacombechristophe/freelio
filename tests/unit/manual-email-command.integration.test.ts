@@ -18,6 +18,7 @@ import { createHash } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { storeFileBytes, removeLocalFile, resolveLocalFile } from "@/lib/local-files"
 import * as emailContent from "@/lib/communications/email-content"
+import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
 
 describe.sequential("manual email durable command on SQL", () => {
   const companyIds: string[] = []
@@ -287,5 +288,23 @@ describe.sequential("manual email durable command on SQL", () => {
     } finally { release() }
     await first
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+  })
+  it("does not turn quota waits into transport attempts or hide their safe explanation behind BCC", async () => {
+    const { input } = await fixture()
+    const command = { ...input, bcc: ["hidden@example.test"] }
+    const retryAt = new Date(Date.now() + 60_000)
+    vi.mocked(sendEmailThroughChannel).mockRejectedValue(new EmailSendQuotaError("Plafond interne atteint", retryAt))
+    for (let attempt = 0; attempt < 6; attempt++) await expect(sendManualEmail(command)).rejects.toBeInstanceOf(EmailSendQuotaError)
+    expect(await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: input.companyId } })).toMatchObject({ attempts: 0, firstAttemptAt: null, lastAttemptAt: null, nextAttemptAt: retryAt, status: "FAILED", error: "Plafond interne atteint" })
+    expect(await prisma.emailMessage.count({ where: { companyId: input.companyId } })).toBe(0)
+  })
+  it("preserves the uncertainty of a previous attempt when a later quota check blocks it", async () => {
+    const { input } = await fixture()
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new Error("Fictional unknown acceptance"))
+    await expect(sendManualEmail(input)).rejects.toThrow("unknown")
+    const before = await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: input.companyId } })
+    vi.mocked(sendEmailThroughChannel).mockRejectedValueOnce(new EmailSendQuotaError("Plafond interne atteint"))
+    await expect(sendManualEmail(input)).rejects.toBeInstanceOf(EmailSendQuotaError)
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: before.id } })).toMatchObject({ attempts: 1, firstAttemptAt: before.firstAttemptAt, lastAttemptAt: before.lastAttemptAt })
   })
 })
