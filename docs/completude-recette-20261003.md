@@ -1,12 +1,14 @@
 # Qualification du candidat Freelio
 
-État du 19 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
+État du 20 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
 
 ## Résultat actuel
 
 Le dernier résultat distant complet concerne `8d2232385f8cfcca9006d5e56ecdb3794485610c`. Tous les contrôles fonctionnels passent dans les deux workflows, dont l'archive historique et les quatre fiches Service/Achat. La CI reste rouge uniquement sur les uploads refusés par GitHub pour quota. Les compléments locaux d'intervention et de gestion des dépôts passent ensuite [2 501 tests SQLite dans 228 fichiers](evidence/20261019-warehouses/README.md), sur une base neuve, ainsi que types, deux lints et build sur `3836dc4`. PostgreSQL et navigateur de ces compléments restent à qualifier.
 
 Le lecteur des annuaires Sites et parc est corrigé ensuite dans `cd0f965` : [109 cas ciblés, types, deux lints et build réussis](evidence/20261019-asset-directories/README.md). Les sept défauts reproduits concernent les relations étrangères et les compteurs, y compris pendant une recherche. La suite complète précédente ne qualifie pas ce commit ultérieur ; son parcours navigateur est préparé, pas exécuté.
+
+Le cycle d’édition et de désactivation des Sites et équipements passe ensuite [2 635 tests SQLite dans 234 fichiers](evidence/20261020-asset-lifecycle/README.md) sur `4463f67`, avec types, deux lints, build et évolution d’une base fictive déjà remplie réussis. Les 124 cas dédiés couvrent aussi imports, renouvellements et choix complets. PostgreSQL et navigateur du lot restent à qualifier ; le transfert entre agences est traité séparément.
 
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
@@ -75,7 +77,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
 | MAIL-02 : état et pièces des messages entrants | La synchronisation pagine et reprend ses imports, mais ignore un message déjà présent. Elle ne réconcilie pas encore les changements lu/non lu, déplacement et suppression via history/delta, ni les pièces OAuth entrantes. Les pièces sortantes déjà livrées ne couvrent pas ce besoin. |
-| CRM-01 : cycle de vie des référentiels | Fournisseurs dispose d'édition/désactivation qualifiées. Les [dépôts](gestion-depots.md) disposent maintenant de leur annuaire, édition, désactivation/réactivation et protection transactionnelle du stock dans les commits locaux `fe1f1ad` / `3836dc4` ; leur qualification distante reste requise. Sites et équipements restent à compléter. Les modifications d'import et les créations ne remplacent pas ces parcours. |
+| CRM-01 : cycle de vie des référentiels | Fournisseurs dispose d'édition/désactivation qualifiées. Les [dépôts](gestion-depots.md), [sites et équipements](gestion-sites-equipements.md) disposent de leurs parcours locaux d’édition et d’activité, avec protections transactionnelles et historiques conservés. La [suite complète de 2 635 cas](evidence/20261020-asset-lifecycle/README.md) passe sur `4463f67`. Le transfert complet d’agence a été choisi et reste un complément distinct en cours ; qualification PostgreSQL et navigateur des nouveaux parcours encore requise. |
 | PORTAL-01 : demande et réservation | La confirmation modifie le statut et la réponse d'une demande ; elle ne réserve pas atomiquement un créneau, une durée et une capacité d'intervenant. Le portail reste présenté comme un parcours de demande. |
 | Calendrier et connecteurs avancés | Invitations, disponibilité, conflits, récurrences, Microsoft personnel, préférences multicanal et connecteurs supplémentaires restent des extensions distinctes ; les comptes fournisseurs réels ne sont pas qualifiés. |
 | Exploitation et présentation du candidat | CI complète et preuves natives du SHA retenu, migrations/configuration et recette du déploiement exact sont requises avant fusion. Charge, récupération distante, stockage durable, délivrabilité et traitement permanent sont des conditions supplémentaires d'ouverture commerciale. |
