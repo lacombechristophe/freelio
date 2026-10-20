@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           call_processor() {
             curl --silent --show-error --fail-with-body \
-              --retry 3 --retry-all-errors --max-time 240 \
+              --max-time 240 \
               --request POST \
               --header "Authorization: Bearer ${PROCESSOR_SECRET}" \
               "${APP_URL}${1}"

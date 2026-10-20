@@ -18,6 +18,8 @@ La synchronisation manuelle garde son parcours explicite. Les dates de succès m
 
 Un bilan comportant des échecs renvoie HTTP 503 avec ses compteurs conservés, afin que le cron utilisant `curl --fail-with-body` ne présente pas un succès. Un lot réussi ou un verrou déjà occupé reste en HTTP 200 ; un appel sans secret valide reste refusé avant traitement.
 
+Le workflow ne relance pas automatiquement ces requêtes POST. Une relance HTTP peut démarrer un autre lot et masquer l'échec du précédent ; la reprise appartient aux traitements durables et au prochain passage planifié. Le workflow continue les autres familles de traitements, puis conserve un code de sortie en échec si l'une a échoué. La [documentation curl](https://curl.se/docs/manpage.html#--retry) précise que HTTP 503 déclenche les relances de transport lorsqu'elles sont activées.
+
 ## Qualification
 
 Les tests vérifient rotation, sociétés distinctes, échecs, continuation, horloge figée/reculée, sélection périmée, perte de verrou, durée et limite de lot. Deux parcours supplémentaires conservent les vrais traitements SQL et cryptographiques avec HTTP Google/Graph simulé. `node scripts/verify-sync-attempt-upgrade.mjs` vérifie une base historique fictive, l'index SQLite et le diff PostgreSQL. L'exécution PostgreSQL réelle, les fournisseurs réels, la charge et les quotas restent des qualifications distinctes.
