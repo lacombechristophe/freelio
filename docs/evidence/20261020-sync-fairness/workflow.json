@@ -1,0 +1,147 @@
+{
+  "schema": "freelio.processor-workflow-evidence.v1",
+  "observedAt": "2026-10-20T14:01:25.796Z",
+  "beforeCommit": "689159e77ed5966084223e3571f707d30561e6e6",
+  "afterCommit": "d6d523145a8f05b62e5bf1be8d205715f02f9de5",
+  "reports": [
+    {
+      "file": "Freelio-processor-workflow-before-20261020.json",
+      "sha256": "87826facebc50c64db12db6b810b1d2d5a25acdddd10d6969eaade9ba554e2d8",
+      "schema": "freelio.processor-workflow-shell.v1",
+      "observedAt": "2026-10-20T13:52:18.385Z",
+      "workflowSha256": "70e06639618cceb4f1970b74c04a0da0d8fbdaf3a20d84f044951f0c08c364bc",
+      "cases": [
+        {
+          "failedEndpoint": null,
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 200",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200"
+          ],
+          "passed": true
+        },
+        {
+          "failedEndpoint": "/api/automations/process",
+          "exitCode": 0,
+          "expectedExitCode": 1,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 503",
+            "ATTEMPT https://fiction.invalid/api/automations/process 200_after_transport_retry",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200"
+          ],
+          "passed": false
+        },
+        {
+          "failedEndpoint": "/api/communications/sync/process",
+          "exitCode": 0,
+          "expectedExitCode": 1,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 200",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 503",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200_after_transport_retry",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200"
+          ],
+          "passed": false
+        },
+        {
+          "failedEndpoint": "/api/backup/process",
+          "exitCode": 0,
+          "expectedExitCode": 1,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 200",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200",
+            "ATTEMPT https://fiction.invalid/api/backup/process 503",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200_after_transport_retry"
+          ],
+          "passed": false
+        }
+      ],
+      "passed": 1,
+      "failed": 3,
+      "limits": [
+        "Actual Bash body extracted from the current workflow; curl is a deterministic shell function simulating first failure followed by success when retry flags are present.",
+        "This tests orchestration and error propagation, not libcurl or an actual HTTP server.",
+        "No network, credentials, GitHub job, processor dispatch, provider or paid action."
+      ]
+    },
+    {
+      "file": "Freelio-processor-workflow-portable-20261020.json",
+      "sha256": "318f2a86f19bb1b7df57161ec464ea58de79cb5f8b3c947db51fcb02a5e6524d",
+      "schema": "freelio.processor-workflow-shell.v1",
+      "observedAt": "2026-10-20T13:54:12.711Z",
+      "workflowSha256": "a9b3e4c51987f689dd1abfc91e8e61df9b63a1fffaaedf7dec0cde9840e54a5b",
+      "cases": [
+        {
+          "failedEndpoint": null,
+          "exitCode": 0,
+          "expectedExitCode": 0,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 200",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200"
+          ],
+          "passed": true
+        },
+        {
+          "failedEndpoint": "/api/automations/process",
+          "exitCode": 1,
+          "expectedExitCode": 1,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 503",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200"
+          ],
+          "passed": true
+        },
+        {
+          "failedEndpoint": "/api/communications/sync/process",
+          "exitCode": 1,
+          "expectedExitCode": 1,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 200",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 503",
+            "ATTEMPT https://fiction.invalid/api/backup/process 200"
+          ],
+          "passed": true
+        },
+        {
+          "failedEndpoint": "/api/backup/process",
+          "exitCode": 1,
+          "expectedExitCode": 1,
+          "attempts": [
+            "ATTEMPT https://fiction.invalid/api/automations/process 200",
+            "ATTEMPT https://fiction.invalid/api/scheduling/process 200",
+            "ATTEMPT https://fiction.invalid/api/communications/sync/process 200",
+            "ATTEMPT https://fiction.invalid/api/backup/process 503"
+          ],
+          "passed": true
+        }
+      ],
+      "passed": 4,
+      "failed": 0,
+      "limits": [
+        "Actual Bash body extracted from the current workflow; curl is a deterministic shell function simulating first failure followed by success when retry flags are present.",
+        "This tests orchestration and error propagation, not libcurl or an actual HTTP server.",
+        "No network, credentials, GitHub job, processor dispatch, provider or paid action."
+      ]
+    }
+  ],
+  "source": {
+    "file": "workflow-reproduction.cjs.txt",
+    "sha256": "5b244f7e46ad9cc162985d22dfadead220121ecf4d83e3c4fc2dcf523153436d",
+    "normalization": "CRLF to LF, one final newline"
+  },
+  "yamlParsedWithInstalledDependency": "js-yaml",
+  "workflowSteps": 2,
+  "actualGitHubExecution": false
+}
