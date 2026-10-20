@@ -60,7 +60,7 @@ void schedulingProcessor.run()
 
 const processCommunicationSync = async () => {
   try {
-    const lease = await withProcessorLease("communication-sync", () => syncDueOAuthCommunicationChannels(10))
+    const lease = await withProcessorLease("communication-sync", control => syncDueOAuthCommunicationChannels(10, control))
     if (!lease.acquired) return
     const result = lease.value
     if (result.messagesImported || result.calendarEventsImported || result.failed) console.log(`[Worker] Communication sync: ${result.messagesImported} message(s), ${result.calendarEventsImported} événement(s), ${result.failed} échec(s).`)

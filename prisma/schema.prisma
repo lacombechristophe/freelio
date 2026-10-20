@@ -1153,6 +1153,7 @@ model CommunicationChannel {
   calendarTasks        OrganisationTask[]
   automationEvents     AutomationEventOutbox[]
   lastSyncAt           DateTime?
+  syncAttemptCursor    DateTime? // Scheduling order, not a success or observation timestamp.
   lastError            String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -1160,6 +1161,7 @@ model CommunicationChannel {
   @@unique([companyId, provider, emailAddress])
   @@index([companyId, status])
   @@index([provider, emailAddress])
+  @@index([status, syncAttemptCursor, id], map: "CommunicationChannel_sync_attempt_idx")
 }
 
 model EmailThread {

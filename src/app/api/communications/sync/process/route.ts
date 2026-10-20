@@ -9,7 +9,7 @@ async function processSync(request: Request) {
   if (!cronRequestIsAuthorized(request, "COMMUNICATIONS_CRON_SECRET", "AUTOMATION_CRON_SECRET")) {
     return Response.json({ error: "Accès refusé" }, { status: 401, headers: { "cache-control": "no-store" } })
   }
-  const result = await withProcessorLease("communication-sync", () => syncDueOAuthCommunicationChannels(10))
+  const result = await withProcessorLease("communication-sync", control => syncDueOAuthCommunicationChannels(10, control))
   return Response.json(result.acquired ? result.value : { examined: 0, synced: 0, messagesImported: 0, calendarEventsImported: 0, calendarReconnectRequired: 0, failed: 0, skipped: "PROCESSOR_BUSY" }, { headers: { "cache-control": "no-store" } })
 }
 

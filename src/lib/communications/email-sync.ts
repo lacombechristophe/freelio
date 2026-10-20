@@ -201,23 +201,3 @@ export async function syncOAuthEmailChannel(companyId: string, channelId: string
     throw error
   }
 }
-
-export async function syncDueOAuthEmailChannels(limit = 10) {
-  const channels = await prisma.communicationChannel.findMany({
-    where: { provider: { in: [...EMAIL_OAUTH_PROVIDERS] }, status: "ACTIVE" },
-    select: { id: true, companyId: true },
-    orderBy: { lastSyncAt: "asc" },
-    take: Math.min(25, Math.max(1, limit)),
-  })
-  const summary = { examined: channels.length, synced: 0, imported: 0, failed: 0 }
-  for (const channel of channels) {
-    try {
-      const result = await syncOAuthEmailChannel(channel.companyId, channel.id)
-      summary.synced += 1
-      summary.imported += result.imported
-    } catch {
-      summary.failed += 1
-    }
-  }
-  return summary
-}
