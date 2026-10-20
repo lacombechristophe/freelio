@@ -111,7 +111,8 @@ export async function recoverManualEmail(companyId: string, userId: string, inpu
       await control.assertOwned()
       // Only SQL below. The shared journal function preserves frozen recipients,
       // attachments and purpose; it never invokes a provider transport.
-      const threadId = (!proof.providerConversationId && payload.threadId) || (await getOrCreateEmailThread({ companyId, channelId: row.channelId, providerConversationId: proof.providerConversationId ?? (row.provider === "RESEND" ? undefined : null), clientId: payload.clientId, contactId: row.contactId, subject: payload.subject, occurredAt: row.sentAt || undefined })).id
+      const imported = await prisma.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider: row.provider!, providerId: proof.providerId } }, select: { threadId: true } })
+      const threadId = imported?.threadId || (!proof.providerConversationId && payload.threadId) || (await getOrCreateEmailThread({ companyId, channelId: row.channelId, providerConversationId: proof.providerConversationId ?? (row.provider === "RESEND" ? undefined : null), clientId: payload.clientId, contactId: row.contactId, subject: payload.subject, occurredAt: row.sentAt || undefined })).id
       await prisma.$transaction(async tx => {
         await control.assertOwned(tx); await readOwn(companyId, userId, row.id, tx, true)
         const saved = await tx.emailDelivery.updateMany({ where: unchanged(row), data: { recoveryVersion: { increment: 1 }, providerId: proof.providerId, providerMessageId: proof.providerMessageId, providerConversationId: proof.providerConversationId ?? null, sentAt: row.sentAt || new Date(),

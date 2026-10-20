@@ -18,6 +18,7 @@ import { saveEmailDraft, deleteEmailDraft, getEmailDraft } from "@/lib/communica
 import { scheduleEmailDraft, processDueScheduledEmails } from "@/lib/communications/scheduled-emails"
 import { assertEditableDraft } from "@/lib/communications/draft-attachments"
 import { withProcessorLease } from "@/lib/processing/lease"
+import { recordOutgoingEmail } from "@/lib/communications/threads"
 import { getCommunicationRecovery, closeCommunicationWithoutRetry, repairCommunicationHistory } from "@/actions/communications"
 
 describe.sequential("human recovery of frozen manual email commands on real SQL", () => {
@@ -113,6 +114,20 @@ describe.sequential("human recovery of frozen manual email commands on real SQL"
     expect(http).toHaveBeenCalledTimes(2)
     expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toMatchObject({ providerConversationId: "fictional-graph-conversation" })
     expect(await prisma.emailThread.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ providerConversationId: "fictional-graph-conversation" })
+  })
+  it("repairs an already synchronized historical message without creating an empty native thread", async () => {
+    const f = await fixture("GOOGLE")
+    const original = await recordOutgoingEmail({ companyId: f.company.id, channelId: f.channel.id, clientId: f.client.id, contactId: f.contact.id,
+      provider: "GOOGLE", providerId: `${f.channel.id}:fiction-sent`, internetMessageId: f.delivery.providerMessageId, from: f.prepared.payload.from,
+      to: [f.input.to], cc: f.input.cc, bcc: f.input.bcc, subject: f.input.subject, bodyHtml: f.prepared.payload.renderedHtml || f.prepared.payload.html })
+    http.mockImplementation(async url => new URL(String(url)).pathname.endsWith("/messages") ? Response.json({ messages: [{ id: "fiction-sent" }] })
+      : Response.json({ id: "fiction-sent", threadId: "fictional-newly-observed-native", labelIds: ["SENT"], payload: { headers: [{ name: "Message-ID", value: f.delivery.providerMessageId }, { name: "From", value: f.prepared.payload.from }] } }))
+    await f.recover("CHECK")
+    await f.recover("REPAIR", { version: 2 })
+    expect(await prisma.emailMessage.findUniqueOrThrow({ where: { deliveryId: f.delivery.id } })).toMatchObject({ id: original.id, threadId: original.threadId })
+    expect(await prisma.emailThread.count({ where: { companyId: f.company.id } })).toBe(1)
+    expect(await prisma.emailThread.findUniqueOrThrow({ where: { id: original.threadId } })).toMatchObject({ providerConversationId: null })
+    expect(http).toHaveBeenCalledTimes(2)
   })
   it.each([403, 404, 429])("keeps HTTP %i unavailable and never exposes the provider error containing hidden addresses", async status => {
     const f = await fixture("GOOGLE")

@@ -83,7 +83,8 @@ export async function recoverSequenceEmail(companyId: string, userId: string, in
       if (operation === "CLOSE" && proof) throw new SequenceRecoveryError("Une acceptation est connue ; réparez l’historique sans relancer")
       // Persist the thread before the atomic history write: mailbox ACLs resolve
       // message.threadId through the committed view, including for ordinary members.
-      const thread = operation === "REPAIR" ? await getOrCreateEmailThread({ companyId, channelId: row.channelId, providerConversationId: proof?.providerConversationId ?? (row.provider === "RESEND" ? undefined : null), contactId: row.contactId, leadCaptureId: row.leadCaptureId, subject: payload.subject, occurredAt: row.sentAt || checkedAt }) : null
+      const imported = operation === "REPAIR" && proof ? await prisma.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider: row.provider!, providerId: proof.providerId } }, select: { threadId: true } }) : null
+      const thread = operation === "REPAIR" ? imported ? { id: imported.threadId } : await getOrCreateEmailThread({ companyId, channelId: row.channelId, providerConversationId: proof?.providerConversationId ?? (row.provider === "RESEND" ? undefined : null), contactId: row.contactId, leadCaptureId: row.leadCaptureId, subject: payload.subject, occurredAt: row.sentAt || checkedAt }) : null
       await prisma.$transaction(async tx => {
         await control.assertOwned(tx)
         await readCommand(companyId, userId, row.id, tx, true)

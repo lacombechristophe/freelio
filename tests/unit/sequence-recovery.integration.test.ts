@@ -87,6 +87,21 @@ describe.sequential("human sequence recovery uses real authorization and SQL wit
     expect((await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: f.enrollment.id } })).status).toBe("STOPPED")
     expect(await prisma.emailMessage.count({ where: { deliveryId: f.delivery.id } })).toBe(0)
   })
+  it("adopts a historical synchronized message without creating an empty native thread", async () => {
+    const f = await fixture("GOOGLE")
+    const { recordOutgoingEmail } = await import("@/lib/communications/threads")
+    const original = await recordOutgoingEmail({ companyId: f.company.id, channelId: f.channel.id, contactId: f.delivery.contactId, leadCaptureId: f.delivery.leadCaptureId,
+      provider: "GOOGLE", providerId: `${f.channel.id}:fiction-sequence-sent`, internetMessageId: f.delivery.providerMessageId, from: f.payload.from, to: [f.payload.to], subject: f.payload.subject, bodyHtml: f.payload.html })
+    http.mockImplementation(async url => new URL(String(url)).pathname.endsWith("/messages") ? Response.json({ messages: [{ id: "fiction-sequence-sent" }] })
+      : Response.json({ id: "fiction-sequence-sent", threadId: "fictional-observed-native", labelIds: ["SENT"], payload: { headers: [{ name: "Message-ID", value: f.delivery.providerMessageId }, { name: "From", value: f.payload.from }] } }))
+    expect(await f.recover("CHECK")).toMatchObject({ outcome: "ACCEPTED" })
+    expect(await f.recover("REPAIR", { version: 2 })).toMatchObject({ success: true })
+    expect(await prisma.emailMessage.findUniqueOrThrow({ where: { deliveryId: f.delivery.id } })).toMatchObject({ id: original.id, threadId: original.threadId })
+    expect(await prisma.emailThread.count({ where: { companyId: f.company.id } })).toBe(1)
+    expect(await prisma.emailThread.findUniqueOrThrow({ where: { id: original.threadId } })).toMatchObject({ providerConversationId: null })
+    expect((await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: f.enrollment.id } })).status).toBe("PAUSED")
+    expect(http).toHaveBeenCalledTimes(2)
+  })
   it("never interprets a Graph draft or ambiguous Google search as acceptance", async () => {
     const f = await fixture("MICROSOFT")
     http.mockResolvedValue(Response.json({ id: f.delivery.providerDraftId, isDraft: true, internetMessageId: f.delivery.providerMessageId, from: { emailAddress: { address: f.payload.from } } }))
