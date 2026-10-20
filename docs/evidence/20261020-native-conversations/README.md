@@ -1,0 +1,9 @@
+# Identité des conversations entrantes : défaut reproduit
+
+L'audit du commit `1194b51df21158a9c008c2cc7ca327f64cfa07e4` importe deux messages du même contact connu, au même objet, avec deux identifiants de conversation fournisseur différents. Gmail fournit `threadId` et Microsoft `conversationId`. Les deux cas SQL échouent : deux messages sont conservés, mais ils partagent un seul fil CRM au lieu de deux.
+
+Le [résultat initial](baseline.json) et la [source de reproduction](reproduction.test.ts.txt) sont conservés. Le lecteur actuel ne transporte pas cet identifiant vers `getOrCreateEmailThread`, qui peut utiliser contact et objet comme rapprochement. Les réponses natives déjà testées ne prouvent donc pas la séparation des conversations entrantes. Ce défaut MAIL-05 reste ouvert ; les deux échecs ne sont pas inclus dans les 2 858 tests de la suite réussie du même commit.
+
+Pour reproduire sur une copie isolée préparée avec une **nouvelle SQLite fictive**, copier la source dans `tests/unit/native-conversation-baseline.integration.test.ts`, puis lancer `node node_modules/vitest/vitest.mjs run --no-file-parallelism tests/unit/native-conversation-baseline.integration.test.ts`. Les accès HTTP sont simulés ; lectures, création des messages et regroupement Prisma sont réels. Aucun message n'est envoyé et aucune réception d'automatisation n'est émise.
+
+Le correctif doit traiter identité native, réponses et premier envoi, reprise d'historique, société/boîte et concurrence. Il ne doit pas attribuer par supposition une identité aux anciens regroupements ni déplacer leurs messages automatiquement. Références : [message Gmail](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages), [message Microsoft](https://learn.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0).

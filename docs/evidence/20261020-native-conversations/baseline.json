@@ -1,0 +1,31 @@
+{
+  "observedOn": "2026-10-20",
+  "codeCommit": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+  "success": false,
+  "total": 2,
+  "passed": 0,
+  "failed": 2,
+  "pending": 0,
+  "nativeReport": "Freelio-native-thread-baseline-20261020.json",
+  "sha256": "2d87428f2d6462998635cef68384f8f97d00abdbbaae3bdc7b99f53a0a534437",
+  "testSourceSha256": "4874bd0e95803efa15c10a261b41a37f93804e34d61859dd7389542c1c6e91f9",
+  "cases": [
+    {
+      "name": "native conversation identity audit on real SQL keeps two native GOOGLE conversations distinct for the same known contact and subject",
+      "status": "failed",
+      "expectedLocalThreads": 2,
+      "observedLocalThreads": 1
+    },
+    {
+      "name": "native conversation identity audit on real SQL keeps two native MICROSOFT conversations distinct for the same known contact and subject",
+      "status": "failed",
+      "expectedLocalThreads": 2,
+      "observedLocalThreads": 1
+    }
+  ],
+  "limits": [
+    "Real isolated SQLite and Prisma; provider HTTP simulated",
+    "Separate probe outside the passing full suite",
+    "No production data, live account, remote send or automation event emitted"
+  ]
+}
