@@ -1,14 +1,23 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 const cursors = vi.hoisted(() => new Map<string, string | null>())
+const windows = vi.hoisted(() => new Map<string, { start: string; end: string } | null>())
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/communications/email-provider", async () => {
   const { default: db } = await import("@/lib/prisma")
   return {
     activeCommunicationChannel: (companyId: string, id: string) => db.communicationChannel.findFirstOrThrow({ where: { companyId, id, status: "ACTIVE" } }),
     validOAuthAccessToken: async () => "fictitious-token",
-    validOAuthCredentials: async (channel: { id: string }) => ({ accessToken: "fictitious-token", scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.modify Mail.ReadWrite", calendarCursor: cursors.get(channel.id) }),
-    storeOAuthCalendarCursor: async (channel: { id: string }, cursor: string | null) => { cursors.set(channel.id, cursor) },
+    validOAuthCredentials: async (channel: { id: string }) => ({ accessToken: "fictitious-token", scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.modify Mail.ReadWrite Calendars.ReadWrite", calendarCursor: cursors.get(channel.id), calendarWindow: windows.get(channel.id) || undefined }),
+    storeOAuthCalendarCursor: async (channel: { id: string }, cursor: string | null, checkpoint?: { window: { start: string; end: string } | null }) => {
+      cursors.set(channel.id, cursor)
+      if (checkpoint) {
+        windows.set(channel.id, checkpoint.window)
+        const current = await db.communicationChannel.findUniqueOrThrow({ where: { id: channel.id }, select: { config: true } })
+        const config = current.config && typeof current.config === "object" && !Array.isArray(current.config) ? current.config : {}
+        await db.communicationChannel.update({ where: { id: channel.id }, data: { config: { ...config, calendarSync: null } } })
+      }
+    },
   }
 })
 
@@ -19,7 +28,7 @@ import { syncOAuthCommunicationChannel } from "@/lib/communications/communicatio
 
 describe.sequential("bounded and resumable provider pagination on SQL", () => {
   const companyIds: string[] = []
-  beforeEach(() => { vi.unstubAllGlobals(); cursors.clear() })
+  beforeEach(() => { vi.unstubAllGlobals(); cursors.clear(); windows.clear() })
   afterAll(async () => {
     vi.unstubAllGlobals()
     for (const id of companyIds) await prisma.company.delete({ where: { id } })

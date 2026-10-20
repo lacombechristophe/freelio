@@ -1,5 +1,7 @@
 import "server-only"
+import { Prisma } from "@prisma/client"
 import { getContext, requestContext } from "@/lib/context"
+import { channelConfig } from "./sync-state"
 
 import { z } from "zod"
 import { createHash } from "node:crypto"
@@ -29,6 +31,8 @@ const oauthCredentialsSchema = z.object({
   expiresAt: z.string().datetime(),
   calendarCursor: z.string().max(20_000).optional(),
   calendarCursorKind: z.enum(["GOOGLE_SYNC_TOKEN", "MICROSOFT_DELTA_LINK"]).optional(),
+  calendarWindow: z.object({ start: z.string().datetime(), end: z.string().datetime() })
+    .refine(window => Date.parse(window.start) < Date.parse(window.end)).optional().catch(undefined),
 })
 
 export type OAuthCredentials = z.infer<typeof oauthCredentialsSchema>
@@ -105,6 +109,7 @@ export async function validOAuthCredentials(channel: ActiveChannel) {
     expiresAt: new Date(Date.now() + Math.max(60, refreshed.expires_in ?? 3600) * 1000).toISOString(),
     calendarCursor: credentials.calendarCursor,
     calendarCursorKind: credentials.calendarCursorKind,
+    calendarWindow: credentials.calendarWindow,
   }
   // A concurrent cursor write is merged with the refreshed token; a reconnect
   // or disconnect must never be overwritten by an old refresh response.
@@ -113,7 +118,7 @@ export async function validOAuthCredentials(channel: ActiveChannel) {
     const latest = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, status: "ACTIVE" }, select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true } })
     const latestCredentials = readOAuthCredentials(latest)
     if (latestCredentials.refreshToken !== credentials.refreshToken || latestCredentials.accessToken !== credentials.accessToken) throw new Error("La connexion OAuth a changé pendant le renouvellement")
-    const merged = { ...latestCredentials, ...updated, calendarCursor: latestCredentials.calendarCursor, calendarCursorKind: latestCredentials.calendarCursorKind }
+    const merged = { ...latestCredentials, ...updated, calendarCursor: latestCredentials.calendarCursor, calendarCursorKind: latestCredentials.calendarCursorKind, calendarWindow: latestCredentials.calendarWindow }
     const context = getContext()
     const save = () => prisma.communicationChannel.updateMany({ where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: latest.credentialsEncrypted }, data: { credentialsEncrypted: encrypt(JSON.stringify(merged)), lastError: null } })
     const stored = context ? await requestContext.run({ ...context, oauthCredentialRefreshChannelId: channel.id }, async () => await save()) : await save()
@@ -129,13 +134,14 @@ export async function validOAuthAccessToken(channel: ActiveChannel) {
   return (await validOAuthCredentials(channel)).accessToken
 }
 
-export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: string | null) {
+export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: string | null, checkpoint?: { generation: string; window: NonNullable<OAuthCredentials["calendarWindow"]> | null }) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
   const current = await prisma.communicationChannel.findUnique({
-    where: { id: channel.id },
-    select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true },
+    where: { id: channel.id, status: "ACTIVE", provider: channel.provider, emailAddress: channel.emailAddress },
+    select: { id: true, provider: true, emailAddress: true, displayName: true, credentialsEncrypted: true, lastSyncAt: true, config: true },
   })
   if (!current) throw new Error("Messagerie introuvable")
+  if (checkpoint && (channelConfig(current.config).mailSyncGeneration ?? "legacy") !== checkpoint.generation) throw new Error("La connexion a changé pendant la synchronisation du calendrier")
   const credentials = readOAuthCredentials(current)
   const updated: OAuthCredentials = {
     ...credentials,
@@ -143,10 +149,11 @@ export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: s
     calendarCursorKind: cursor
       ? channel.provider === "GOOGLE" ? "GOOGLE_SYNC_TOKEN" : "MICROSOFT_DELTA_LINK"
       : undefined,
+    calendarWindow: checkpoint ? checkpoint.window || undefined : credentials.calendarWindow,
   }
   const saved = await prisma.communicationChannel.updateMany({
-    where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: current.credentialsEncrypted },
-    data: { credentialsEncrypted: encrypt(JSON.stringify(updated)) },
+    where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: current.credentialsEncrypted, ...(checkpoint ? { config: { equals: current.config ?? Prisma.DbNull } } : {}) },
+    data: { credentialsEncrypted: encrypt(JSON.stringify(updated)), ...(checkpoint ? { config: { ...channelConfig(current.config), calendarSync: null } } : {}) },
   })
   if (saved.count === 1) return
   }
