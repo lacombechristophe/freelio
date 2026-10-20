@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const commands = vi.hoisted(() => ({ updateCustomerSite: vi.fn(), updateEquipment: vi.fn(), setCustomerSiteActive: vi.fn(), setEquipmentActive: vi.fn(),
-  createCustomerSite: vi.fn(), createEquipment: vi.fn(), createServiceTicket: vi.fn(), createFieldIntervention: vi.fn(), createMaintenanceContract: vi.fn(), renewMaintenanceContract: vi.fn() }))
+  createCustomerSite: vi.fn(), createEquipment: vi.fn(), createServiceTicket: vi.fn(), createFieldIntervention: vi.fn(), createMaintenanceContract: vi.fn(), renewMaintenanceContract: vi.fn(), transferCustomerSite: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: vi.fn() }))
 vi.mock("@/actions/asset-management", () => commands)
 vi.mock("@/actions/operations", () => commands)
+vi.mock("@/actions/site-transfers", () => commands)
 import { AuthorizationError } from "@/lib/auth-wrapper"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
@@ -20,6 +21,7 @@ describe("asset form replies at the Server Action boundary", () => {
     [actions.addCustomerSite, commands.createCustomerSite], [actions.addEquipment, commands.createEquipment],
     [actions.addServiceTicket, commands.createServiceTicket], [actions.addFieldIntervention, commands.createFieldIntervention],
     [actions.addMaintenanceContract, commands.createMaintenanceContract], [actions.renewAssetMaintenance, commands.renewMaintenanceContract],
+    [actions.moveSiteAgency, commands.transferCustomerSite],
   ] as const
   it.each(cases)("returns an expected refusal as serializable data for %s", async (action, command) => {
     command.mockRejectedValueOnce(new AssetLifecycleError("La référence n’est plus disponible."))

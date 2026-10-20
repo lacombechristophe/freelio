@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react"
 import { getAssetEquipmentChoices, getAssetSiteChoices } from "@/actions/asset-choices"
+import { getSiteTransferChoices } from "@/actions/site-transfers"
 import { DirectoryPagination } from "./directory-pagination"
 import { Input } from "@/components/ui/input"
 
 type Result = Awaited<ReturnType<typeof getAssetSiteChoices>>
 type Context = { clientId?: string; siteId?: string; enabled?: boolean }
 
-export function useAssetChoices(kind: "site" | "equipment", value: string, { clientId, siteId, enabled = true }: Context = {}) {
+export function useAssetChoices(kind: "site" | "equipment" | "agency", value: string, { clientId, siteId, enabled = true }: Context = {}) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [revision, setRevision] = useState(0)
@@ -24,7 +25,8 @@ export function useAssetChoices(kind: "site" | "equipment", value: string, { cli
     const timer = setTimeout(() => startTransition(async () => {
       try {
         const query = { search, page, selectedId: value || undefined, clientId: clientId || undefined }
-        const data = kind === "site" ? await getAssetSiteChoices(query) : await getAssetEquipmentChoices({ ...query, siteId: siteId || undefined })
+        const data = kind === "agency" ? await getSiteTransferChoices({ search, page, selectedId: value || undefined, siteId })
+          : kind === "site" ? await getAssetSiteChoices(query) : await getAssetEquipmentChoices({ ...query, siteId: siteId || undefined })
         if (current) {
           setPage(data.page)
           setLookup({ key: JSON.stringify([kind, value, search, data.page, clientId, siteId, revision]), data, error: false })
@@ -47,9 +49,9 @@ export function useAssetChoices(kind: "site" | "equipment", value: string, { cli
 export function AssetChoice({ choices, name, required = false, disabled = false, onChange }: {
   choices: ReturnType<typeof useAssetChoices>; name: string; required?: boolean; disabled?: boolean; onChange: (value: string) => void
 }) {
-  const noun = choices.kind === "site" ? "site" : "équipement"
+  const noun = choices.kind === "site" ? "un site" : choices.kind === "agency" ? "une agence" : "un équipement"
   return <>
-    <Input aria-label={`Rechercher un ${noun} à rattacher`} placeholder={`Rechercher un ${noun}…`} maxLength={200} value={choices.search} disabled={disabled || !choices.enabled} onChange={event => choices.searchFor(event.target.value)} />
+    <Input aria-label={`Rechercher ${noun} à rattacher`} placeholder={`Rechercher ${noun}…`} maxLength={200} value={choices.search} disabled={disabled || !choices.enabled} onChange={event => choices.searchFor(event.target.value)} />
     <select id={name} name={name} value={choices.value} required={required} disabled={disabled || !choices.enabled} onChange={event => { choices.remember(event.target.value); onChange(event.target.value) }} className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-3 focus:ring-ring/20">
       <option value="">Sélectionner…</option>{choices.options.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
     </select>

@@ -6,6 +6,7 @@ import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import * as management from "@/actions/asset-management"
 import * as operations from "@/actions/operations"
+import { transferCustomerSite } from "@/actions/site-transfers"
 
 // The existing commands own authorization and their transaction. This boundary
 // returns expected failures as data so production Server Actions can display them.
@@ -25,6 +26,7 @@ export async function saveSite(input: unknown) { return reply(() => management.u
 export async function saveEquipment(input: unknown) { return reply(() => management.updateEquipment(input)) }
 export async function changeSiteActivity(input: unknown) { return reply(() => management.setCustomerSiteActive(input)) }
 export async function changeEquipmentActivity(input: unknown) { return reply(() => management.setEquipmentActive(input)) }
+export async function moveSiteAgency(input: unknown) { return reply(() => transferCustomerSite(input)) }
 export async function addCustomerSite(input: unknown) { return reply(() => operations.createCustomerSite(input)) }
 export async function addEquipment(input: unknown) { return reply(() => operations.createEquipment(input)) }
 export async function addServiceTicket(input: unknown) { return reply(() => operations.createServiceTicket(input)) }

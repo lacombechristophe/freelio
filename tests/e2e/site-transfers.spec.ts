@@ -1,0 +1,63 @@
+import { PrismaClient } from "@prisma/client"
+import { expect, test } from "@playwright/test"
+import { hashPassword } from "../../src/lib/auth/password-core"
+import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
+
+test("transfers a complete site dossier with a reason, confirmation and preserved stale form", async ({ page }, info) => {
+  if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette de transfert exige une SQLite fictive isolée")
+  const db = new PrismaClient(), fixture = await createOperationsDashboardFixture(db)
+  try {
+    const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
+    await db.user.update({ where: { id: fixture.user.id }, data: { emailVerified: new Date(), passwordHash: await hashPassword(password) } })
+    await db.saasSubscription.create({ data: { companyId: fixture.companyId, plan: "RESEAU", status: "ACTIVE", seatQuantity: 30 } })
+    const site = await db.customerSite.create({ data: { companyId: fixture.companyId, clientId: fixture.site.clientId, agencyId: fixture.agency.id, label: "UIQA Transfer Site", address1: "Fictional address" } })
+    const project = await db.project.create({ data: { companyId: fixture.companyId, clientId: fixture.site.clientId, siteId: site.id, agencyId: fixture.agency.id, name: "Fictional transferred history" } })
+    await db.agency.createMany({ data: Array.from({ length: 51 }, (_, i) => ({ companyId: fixture.companyId, name: `UIQA Agency ${String(i).padStart(3, "0")}`, code: `UIQA-${i}` })) })
+    const target = await db.agency.findFirstOrThrow({ where: { companyId: fixture.companyId, code: "UIQA-50" } })
+    const errors: string[] = []
+    page.on("pageerror", error => errors.push(error.message))
+    await page.context().clearCookies(); await page.goto("/auth/login")
+    await page.getByLabel("Adresse e-mail professionnelle").fill(fixture.user.email!)
+    await page.getByLabel("Mot de passe", { exact: true }).fill(password)
+    await page.getByRole("button", { name: "Se connecter", exact: true }).click()
+    await page.waitForURL(url => url.pathname === "/dashboard", { timeout: 60_000 })
+    await page.goto("/dashboard/operations?tab=assets")
+    const sites = page.getByRole("region", { name: "Sites clients", exact: true })
+    await sites.getByRole("textbox", { name: "Rechercher un site", exact: true }).fill(site.label)
+    const row = sites.getByRole("article", { name: site.label, exact: true })
+    await row.getByRole("button", { name: "Transférer vers une agence", exact: true }).click()
+    const dialog = page.getByRole("dialog", { name: "Transférer le dossier du site", exact: true })
+    const search = dialog.getByRole("textbox", { name: "Rechercher une agence à rattacher", exact: true })
+    await search.fill("UIQA Agency 050")
+    await expect(dialog.getByRole("status")).toHaveText("1 résultat")
+    await dialog.getByLabel("Agence destinataire", { exact: true }).selectOption(target.id)
+    await search.fill("UIQA Agency")
+    await expect(dialog.getByRole("status")).toHaveText("51 résultats")
+    await expect(dialog.getByLabel("Agence destinataire", { exact: true })).toHaveValue(target.id)
+    await dialog.getByLabel("Motif du transfert", { exact: true }).fill("Fictional documented reassignment")
+    await expect(dialog.getByRole("button", { name: "Transférer le dossier", exact: true })).toBeDisabled()
+    await dialog.getByRole("checkbox").check()
+    await db.customerSite.update({ where: { id: site.id }, data: { address1: "Fictional concurrent correction", updatedAt: new Date(Date.now() + 1000) } })
+    await dialog.getByRole("button", { name: "Transférer le dossier", exact: true }).click()
+    await expect(dialog.getByRole("alert")).toContainText("Ce site a changé")
+    await expect(dialog.getByLabel("Motif du transfert", { exact: true })).toHaveValue("Fictional documented reassignment")
+    await dialog.getByRole("button", { name: "Annuler", exact: true }).click()
+    await page.reload()
+    await sites.getByRole("textbox", { name: "Rechercher un site", exact: true }).fill(site.label)
+    await row.getByRole("button", { name: "Transférer vers une agence", exact: true }).click()
+    await search.fill("UIQA Agency 050")
+    await expect(dialog.getByRole("status")).toHaveText("1 résultat")
+    await dialog.getByLabel("Agence destinataire", { exact: true }).selectOption(target.id)
+    await dialog.getByLabel("Motif du transfert", { exact: true }).fill("Fictional validated reassignment")
+    await dialog.getByRole("checkbox").check()
+    await dialog.getByRole("button", { name: "Transférer le dossier", exact: true }).click()
+    await expect(dialog).not.toBeVisible()
+    expect((await db.customerSite.findUniqueOrThrow({ where: { id: site.id } })).agencyId).toBe(target.id)
+    expect((await db.project.findUniqueOrThrow({ where: { id: project.id } })).agencyId).toBe(target.id)
+    expect(await db.auditLog.count({ where: { userId: fixture.user.id, action: "TRANSFER_CUSTOMER_SITE", resourceId: site.id } })).toBe(1)
+    expect(errors).toEqual([])
+  } finally {
+    await db.auditLog.deleteMany({ where: { userId: fixture.user.id } })
+    await fixture.cleanup(); await db.$disconnect()
+  }
+})

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { SiteEditorDialog, EquipmentEditorDialog, AssetActivityDialog, type SiteEditorRecord, type EquipmentEditorRecord, type AssetActivityRecord } from "./asset-editors"
+import { SiteTransferDialog } from "./site-transfer-dialog"
 
 type Query = { search: string; page: number; agencyId?: string }
 
@@ -26,6 +27,7 @@ export function AssetsDirectory({ agencyId, revision }: { agencyId: string; revi
   const [siteEditor, setSiteEditor] = useState<SiteEditorRecord | null>(null)
   const [equipmentEditor, setEquipmentEditor] = useState<EquipmentEditorRecord | null>(null)
   const [activity, setActivity] = useState<AssetActivityRecord | null>(null)
+  const [transfer, setTransfer] = useState<SiteEditorRecord | null>(null)
   function refresh() { sites.retry(); equipment.retry(); router.refresh() }
   return <><div className="grid gap-6 xl:grid-cols-2">
     <section className="min-w-0 overflow-hidden rounded-xl border bg-card" aria-label="Sites clients">
@@ -41,6 +43,7 @@ export function AssetsDirectory({ agencyId, revision }: { agencyId: string; revi
           {site.archivedAt ? <Badge variant="outline" className="mt-1">Référencement désactivé</Badge> : null}
         </div><span className="text-xs tabular-nums text-muted-foreground">{site._count.equipments} équip.</span></div>
         {sites.visible?.canManage ? <div className="flex flex-wrap gap-2 px-5 pb-3"><Button demoMutation size="sm" variant="outline" onClick={() => setSiteEditor(site)}>Modifier</Button><Button demoMutation size="sm" variant="outline" onClick={() => setActivity({ ...site, kind: "site" })}>{site.archivedAt ? "Réactiver" : "Désactiver"}</Button></div> : null}
+        {sites.visible?.canTransfer ? <div className="px-5 pb-3"><Button demoMutation size="sm" variant="outline" onClick={() => setTransfer(site)}>Transférer vers une agence</Button></div> : null}
       </article>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun site.</p> : null}
     </section>
     <section className="min-w-0 overflow-hidden rounded-xl border bg-card" aria-label="Parc installé">
@@ -60,5 +63,6 @@ export function AssetsDirectory({ agencyId, revision }: { agencyId: string; revi
     {siteEditor ? <SiteEditorDialog site={siteEditor} onClose={() => setSiteEditor(null)} onSaved={refresh} /> : null}
     {equipmentEditor ? <EquipmentEditorDialog equipment={equipmentEditor} onClose={() => setEquipmentEditor(null)} onSaved={refresh} /> : null}
     {activity ? <AssetActivityDialog record={activity} onClose={() => setActivity(null)} onSaved={refresh} /> : null}
+    {transfer ? <SiteTransferDialog site={transfer} onClose={() => setTransfer(null)} onSaved={refresh} /> : null}
   </>
 }

@@ -37,7 +37,8 @@ export async function getCustomerSiteDirectory(input: unknown = {}) {
         select: { id: true, label: true, kind: true, address1: true, address2: true, postalCode: true, city: true, country: true,
           accessNotes: true, latitude: true, longitude: true, archivedAt: true, updatedAt: true, client: { select: { name: true } }, agency: { select: { name: true } },
           _count: { select: { equipments: { where: relations.equipment }, serviceTickets: { where: relations.ticket } } } } })
-      return { items: items.map(item => ({ ...item, archivedAt: item.archivedAt?.toISOString() ?? null, updatedAt: item.updatedAt.toISOString() })), total, page, canManage: hasPermission(context.role, "crm.write") }
+      return { items: items.map(item => ({ ...item, archivedAt: item.archivedAt?.toISOString() ?? null, updatedAt: item.updatedAt.toISOString() })), total, page,
+        canManage: hasPermission(context.role, "crm.write"), canTransfer: hasPermission(context.role, "company.manage") }
     }, { isolationLevel: "Serializable" })
   }, "operations.read")
 }
