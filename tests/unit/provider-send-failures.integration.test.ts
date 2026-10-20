@@ -12,7 +12,12 @@ import { EmailProviderWaitError } from "@/lib/communications/provider-errors"
 
 describe.sequential("provider rejections through durable SQL commands", () => {
   const companies: string[] = [], users: string[] = []
-  afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
+  afterEach(async () => {
+    // This fixture runs in 2035. A released global lease keeps that timestamp
+    // and would otherwise block later suites using the real clock.
+    await prisma.processorLease.deleteMany({ where: { name: "email-sequences" } })
+    vi.unstubAllGlobals(); vi.useRealTimers()
+  })
   afterAll(async () => {
     for (const companyId of companies) {
       await prisma.emailSendQuotaCharge.deleteMany({ where: { companyId } })
