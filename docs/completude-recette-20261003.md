@@ -16,6 +16,8 @@ La [réservation CRM du portail](evidence/20261020-portal-bookings/README.md) es
 
 Les [observations Gmail/Outlook et pièces entrantes](evidence/20261020-mail-observations/README.md) sont implémentées dans `d02c701`, puis protégées contre les reconnexions intercalées dans `8a7f9a6`. La suite finale passe **2 817 tests dans 246 fichiers**, sans échec ni exclusion, sur une nouvelle SQLite fictive. Types, deux lints, build de 76 pages statiques et évolution des messages historiques passent ; les 1 140 fichiers source correspondent au commit. Les 448 cas navigateur sont sélectionnés, pas exécutés. PostgreSQL réel, comptes OAuth réels et nouvelle livraison distante restent à qualifier ; aucune nouvelle CI n'est déclenchée sans vérification du plafond de dépenses à 0 €.
 
+`194066c` aligne ensuite les [commandes Communications sur les rôles](evidence/20261020-communications-access/README.md) et corrige le plantage d'une boîte vide. Les 64 contrôles ciblés puis **2 829 tests complets dans 246 fichiers** passent sur une nouvelle SQLite fictive, sans échec ni exclusion. Types, deux lints, build de 76 pages statiques et audits npm complet/production passent ; les audits ne signalent aucune vulnérabilité à cette date. Les 1 142 fichiers source correspondent au commit. Le complément de recette `d606c09` ajoute uniquement le retour à la liste avant recherche sur mobile ; ses 454 cas navigateur sont sélectionnés, pas exécutés. Les effets de navigateur ne sont pas présentés comme exécutés par les tests SSR.
+
 | Contrôle | CI branche | CI PR |
 | --- | --- | --- |
 | Types, ESLint, Oxlint, couverture et build | Réussis | Réussis |
