@@ -5,7 +5,8 @@ import { calendarPeriods } from "@/lib/calendar-days"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, AuthorizationError } from "@/lib/auth-wrapper"
+import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { messageReadSelect } from "@/lib/communications/inbox-reader"
 import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
@@ -23,6 +24,7 @@ import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import { readStockDirectory } from "@/lib/operations/stock-directory"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 import { lockActiveWarehouses } from "@/lib/operations/warehouses"
+import { lockActiveSite, lockActiveEquipment, lockActiveAssetProduct } from "@/lib/operations/asset-lifecycle"
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
@@ -688,7 +690,11 @@ export async function getOperationsDashboard() {
       equipments,
       tickets,
       interventions,
-      contracts,
+      contracts: contracts.map(contract => ({ ...contract,
+        canManageRenewal: hasPermission(role, "service.write") && !isPublicReadOnlyDemo(),
+        canCreateRenewalProposal: hasPermission(role, "sales.write") && !isPublicReadOnlyDemo(),
+        canRenew: hasPermission(role, "service.write") && hasPermission(role, "operations.write") && (!(contract.autoInvoice || contract.recurringInvoice?.isActive) || hasPermission(role, "finance.write")) && !isPublicReadOnlyDemo(),
+      })),
       projects,
       members,
       customerOrders: customerOrders.map(order => ({
@@ -703,6 +709,7 @@ export async function getOperationsDashboard() {
       stockTransfers,
       canApprovePurchases: hasPermission(role, "purchases.approve"),
       canBillOrders: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
+      canAutomateMaintenanceBilling: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
     }
   }, "operations.read")
 }
@@ -983,7 +990,7 @@ export async function getEquipmentDetail(equipmentId: string) {
         maintenanceContracts: { where: { contract: scope.contract }, include: { contract: { select: { id: true, number: true, label: true, status: true, frequency: true, nextVisitAt: true } } }, orderBy: { contract: { createdAt: "desc" } } },
       },
     })
-    return equipment ? { ...equipment, site: { ...equipment.site, client: clientWithAccessibleMetrics(equipment.site.client, { role, agencyIds }) } } : null
+    return equipment ? { ...equipment, canManage: hasPermission(role, "operations.write"), site: { ...equipment.site, client: clientWithAccessibleMetrics(equipment.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
@@ -1107,8 +1114,8 @@ export async function createCustomerSite(input: unknown) {
       data.agencyId ? prisma.agency.findFirst({ where: { id: data.agencyId, companyId, active: true }, select: { id: true } }) : null,
       data.agencyId ? null : prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
     ])
-    if (!client) throw new Error("Client introuvable")
-    if (data.agencyId && !requestedAgency) throw new Error("Agence introuvable ou inactive")
+    if (!client) throw new AssetLifecycleError("Client introuvable")
+    if (data.agencyId && !requestedAgency) throw new AssetLifecycleError("Agence introuvable ou inactive")
     const site = await prisma.customerSite.create({ data: { companyId, ...data, agencyId: requestedAgency?.id || defaultAgency?.id || null } })
     revalidateOperations()
     return { success: true as const, id: site.id }
@@ -1155,38 +1162,50 @@ export async function createWarehouse(input: unknown) {
 }
 
 export async function createEquipment(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const data = equipmentSchema.parse(input)
-    const site = await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId }, select: { id: true } })
-    if (!site) throw new Error("Site client introuvable")
-    if (data.productId && !(await prisma.product.findFirst({ where: { id: data.productId, companyId }, select: { id: true } }))) throw new Error("Produit introuvable")
-    const equipment = await prisma.equipment.create({ data: { companyId, ...data } })
+    const equipment = await prisma.$transaction(async tx => {
+      await lockActiveSite(tx, companyId, data.siteId, agencyIds)
+      if (data.productId) await lockActiveAssetProduct(tx, companyId, data.productId)
+      return tx.equipment.create({ data: { companyId, ...data } })
+    }).catch(error => {
+      if (isUniqueConstraintConflict(error, "serialNumber")) throw new AssetLifecycleError("Ce numéro de série existe déjà dans la société.")
+      throw error
+    })
     revalidateOperations()
     return { success: true as const, id: equipment.id }
   }, "operations.write")
 }
 
 export async function createServiceTicket(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const data = ticketSchema.parse(input)
     const client = await prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } })
-    if (!client) throw new Error("Client introuvable")
+    if (!client) throw new AssetLifecycleError("Client introuvable")
     if (data.siteId && !(await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } })))
-      throw new Error("Le site n'appartient pas à ce client")
+      throw new AssetLifecycleError("Le site n'appartient pas à ce client")
     const equipment = data.equipmentId
       ? await prisma.equipment.findFirst({ where: { id: data.equipmentId, companyId }, select: { id: true, siteId: true, site: { select: { clientId: true } } } })
       : null
-    if (data.equipmentId && !equipment) throw new Error("Équipement introuvable")
-    if (equipment && equipment.site.clientId !== data.clientId) throw new Error("L’équipement n’appartient pas à ce client")
-    if (equipment && data.siteId && equipment.siteId !== data.siteId) throw new Error("L’équipement n’appartient pas au site sélectionné")
+    if (data.equipmentId && !equipment) throw new AssetLifecycleError("Équipement introuvable")
+    if (equipment && equipment.site.clientId !== data.clientId) throw new AssetLifecycleError("L’équipement n’appartient pas à ce client")
+    if (equipment && data.siteId && equipment.siteId !== data.siteId) throw new AssetLifecycleError("L’équipement n’appartient pas au site sélectionné")
     if (data.assignedMembershipId && !(await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })))
-      throw new Error("Intervenant introuvable")
+      throw new AssetLifecycleError("Intervenant introuvable")
     const siteId = data.siteId || equipment?.siteId || null
     const prefix = buildYearlyDocumentPrefix("SAV-", "SAV-")
     const ticket = await withDocumentNumberRetry(
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.serviceTicket.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last, prefix) } })
+        return prisma.$transaction(async tx => {
+          if (!await tx.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } })) throw new AssetLifecycleError("Client introuvable")
+          if (siteId) {
+            const site = await lockActiveSite(tx, companyId, siteId, agencyIds)
+            if (site.clientId !== data.clientId) throw new AssetLifecycleError("Le site n'appartient pas à ce client")
+            if (equipment) await lockActiveEquipment(tx, companyId, siteId, [equipment.id], agencyIds)
+          }
+          return tx.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last, prefix) } })
+        })
       },
       { label: "le ticket SAV" },
     )
@@ -1220,29 +1239,41 @@ export async function createServiceTicket(input: unknown) {
 }
 
 export async function createFieldIntervention(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const data = interventionSchema.parse(input)
     const site = await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId }, select: { id: true } })
-    if (!site) throw new Error("Site client introuvable")
+    if (!site) throw new AssetLifecycleError("Site client introuvable")
     if (
       data.ticketId &&
       !(await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }))
     )
-      throw new Error("Ticket introuvable ou déjà fusionné")
-    if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new Error("Chantier introuvable")
+      throw new AssetLifecycleError("Ticket introuvable ou déjà fusionné")
+    if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new AssetLifecycleError("Chantier introuvable")
     if (data.assignedMembershipId && !(await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })))
-      throw new Error("Intervenant introuvable")
+      throw new AssetLifecycleError("Intervenant introuvable")
     const scheduledStart = new Date(data.scheduledStart)
     const scheduledEnd = data.scheduledEnd ? new Date(data.scheduledEnd) : null
     const conflict = await findInterventionSlotConflict({ companyId, assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd })
     if (conflict) return { success: false as const, error: conflict }
-    const intervention = await prisma.fieldIntervention.create({
-      data: {
-        companyId,
-        ...data,
-        scheduledStart,
-        scheduledEnd,
-      },
+    const intervention = await prisma.$transaction(async tx => {
+      const activeSite = await lockActiveSite(tx, companyId, data.siteId, agencyIds)
+      const scope = operationsDashboardScope(companyId, agencyIds)
+      if (data.ticketId) {
+        const ticket = await tx.serviceTicket.findFirst({ where: { ...scope.ticket, id: data.ticketId, clientId: activeSite.clientId, status: { not: "MERGED" }, mergedIntoTicketId: null },
+          select: { siteId: true, equipmentId: true } })
+        if (!ticket || ticket.siteId && ticket.siteId !== data.siteId) throw new AssetLifecycleError("Ticket introuvable ou incompatible avec le site")
+        if (ticket.equipmentId) await lockActiveEquipment(tx, companyId, data.siteId, [ticket.equipmentId], agencyIds)
+      }
+      if (data.projectId && !await tx.project.findFirst({ where: { ...scope.project, id: data.projectId, clientId: activeSite.clientId,
+        OR: [{ siteId: null }, { siteId: data.siteId }] }, select: { id: true } })) throw new AssetLifecycleError("Chantier introuvable ou incompatible avec le site")
+      return tx.fieldIntervention.create({
+        data: {
+          companyId,
+          ...data,
+          scheduledStart,
+          scheduledEnd,
+        },
+      })
     })
     revalidateOperations()
     return { success: true as const, id: intervention.id }
@@ -1287,24 +1318,28 @@ export async function rescheduleFieldIntervention(input: unknown) {
 }
 
 export async function createMaintenanceContract(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds, role }) => {
     const data = maintenanceContractSchema.parse(input)
+    if (data.autoInvoice && !hasPermission(role, "finance.write")) throw new AuthorizationError("La facturation automatique nécessite le droit Finance en écriture.")
     const [client, site, equipmentCount, company] = await Promise.all([
       prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
       prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } }),
       data.equipmentIds.length ? prisma.equipment.count({ where: { id: { in: data.equipmentIds }, companyId, siteId: data.siteId } }) : 0,
       prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
     ])
-    if (!client) throw new Error("Client introuvable")
-    if (!site) throw new Error("Le site n’appartient pas à ce client")
-    if (equipmentCount !== data.equipmentIds.length) throw new Error("Un équipement ne correspond pas au site sélectionné")
-    if (!company) throw new Error("Entreprise introuvable")
+    if (!client) throw new AssetLifecycleError("Client introuvable")
+    if (!site) throw new AssetLifecycleError("Le site n’appartient pas à ce client")
+    if (equipmentCount !== data.equipmentIds.length) throw new AssetLifecycleError("Un équipement ne correspond pas au site sélectionné")
+    if (!company) throw new AssetLifecycleError("Entreprise introuvable")
 
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const contract = await withDocumentNumberRetry(
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
+          const activeSite = await lockActiveSite(tx, companyId, data.siteId, agencyIds)
+          if (activeSite.clientId !== data.clientId) throw new AssetLifecycleError("Le site n’appartient pas à ce client")
+          await lockActiveEquipment(tx, companyId, data.siteId, data.equipmentIds, agencyIds)
           const startDate = new Date(data.startDate)
           const created = await tx.maintenanceContract.create({
             data: {
@@ -1403,7 +1438,8 @@ export async function updateMaintenanceRenewalSettings(input: unknown) {
 }
 
 export async function renewMaintenanceContract(contractId: string) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds, role }) => {
+    if (!hasPermission(role, "operations.write")) throw new AuthorizationError("La création du nouveau terme nécessite le droit Opérations en écriture.")
     const parsedId = id.parse(contractId)
     const [contract, company] = await Promise.all([
       prisma.maintenanceContract.findFirst({
@@ -1412,12 +1448,13 @@ export async function renewMaintenanceContract(contractId: string) {
       }),
       prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
     ])
-    if (!contract || !company) throw new Error("Contrat d’entretien introuvable")
-    if (!contract.endDate) throw new Error("Renseignez une date de fin avant de renouveler ce contrat")
-    if (contract.renewalStatus === "DECLINED") throw new Error("Le renouvellement a été refusé. Modifiez d’abord la décision.")
+    if (!contract || !company) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+    if ((contract.autoInvoice || contract.recurringInvoice?.isActive) && !hasPermission(role, "finance.write")) throw new AuthorizationError("La facturation automatique nécessite le droit Finance en écriture.")
+    if (!contract.endDate) throw new AssetLifecycleError("Renseignez une date de fin avant de renouveler ce contrat")
+    if (contract.renewalStatus === "DECLINED") throw new AssetLifecycleError("Le renouvellement a été refusé. Modifiez d’abord la décision.")
     if (contract.renewalStatus !== "ACCEPTED" && !contract.autoRenew)
-      throw new Error("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
-    if (contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new Error("Ce terme a déjà été renouvelé")
+      throw new AssetLifecycleError("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
+    if (contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new AssetLifecycleError("Ce terme a déjà été renouvelé")
     const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
     const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
@@ -1426,6 +1463,9 @@ export async function renewMaintenanceContract(contractId: string) {
     const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(
           async (transaction) => {
+            const site = await lockActiveSite(transaction, companyId, contract.siteId, agencyIds)
+            if (site.clientId !== contract.clientId) throw new AssetLifecycleError("Site du contrat incompatible avec le client")
+            await lockActiveEquipment(transaction, companyId, contract.siteId, contract.equipments.map(item => item.equipmentId), agencyIds)
             const created = await transaction.maintenanceContract.create({
               data: {
                 companyId,
@@ -1439,6 +1479,7 @@ export async function renewMaintenanceContract(contractId: string) {
                 frequency: contract.frequency,
                 nextVisitAt: term.startDate,
                 priceCents: nextPriceCents,
+                autoInvoice: contract.autoInvoice,
                 tvaRate: company.isTvaApplicable ? contract.tvaRate : 0,
                 invoiceDueDays: contract.invoiceDueDays,
                 notes: contract.notes,
@@ -1483,7 +1524,7 @@ export async function renewMaintenanceContract(contractId: string) {
               where: { id: contract.id, companyId, renewalStatus: { not: "RENEWED" } },
               data: { status: "RENEWED", renewalStatus: "RENEWED", renewedAt: new Date(), nextVisitAt: null },
             })
-            if (updated.count !== 1) throw new Error("Le contrat a changé pendant le renouvellement. Rechargez la page.")
+            if (updated.count !== 1) throw new AssetLifecycleError("Le contrat a changé pendant le renouvellement. Rechargez la page.")
             return created
           },
           { isolationLevel: "Serializable" },

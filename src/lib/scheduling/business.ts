@@ -10,6 +10,7 @@ import { calculateCommercialDocument } from "@/lib/finance/commercial-calculatio
 import { processDueInvoiceReminders } from "@/lib/finance/invoice-reminder-sender"
 import { processDueScheduledEmails } from "@/lib/communications/scheduled-emails"
 import { processDueContractArchives } from "@/lib/contracts/archive"
+import { lockActiveSite, lockActiveEquipment } from "@/lib/operations/asset-lifecycle"
 
 const storedTemplateSchema = z.object({
   object: z.string().min(3),
@@ -137,6 +138,10 @@ export async function processDueMaintenanceVisits(input: { companyId?: string; u
     try {
       const created = await prisma.$transaction(async (tx) => {
         if (await tx.fieldIntervention.findUnique({ where: { maintenanceContractId_maintenanceScheduledFor: { maintenanceContractId: contract.id, maintenanceScheduledFor: scheduledFor } } })) return false
+        const site = await lockActiveSite(tx, contract.companyId, contract.siteId)
+        if (site.clientId !== contract.clientId) throw new Error("Site du contrat incompatible avec le client")
+        const equipment = await tx.maintenanceContractEquipment.findMany({ where: { contractId: contract.id }, select: { equipmentId: true } })
+        await lockActiveEquipment(tx, contract.companyId, contract.siteId, equipment.map(item => item.equipmentId))
         const intervention = await tx.fieldIntervention.create({
           data: {
             companyId: contract.companyId,

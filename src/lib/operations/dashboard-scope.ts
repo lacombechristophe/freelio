@@ -75,6 +75,6 @@ export function operationsDashboardScope(companyId: string, agencyIds: AgencyAcc
     { OR: [{ clientId: null }, { client: { companyId } }] },
     { OR: [{ projectId: null }, { project }] },
   ] } satisfies Prisma.ExpenseWhereInput
-  return { agency, site, warehouse, project, equipment, ticket, contract, intervention,
+  return { agency, site, warehouse, product, project, equipment, ticket, contract, intervention,
     customerOrder, purchaseOrder, deliveryNote, goodsReceipt, receiptLine, reservation, stockTransfer, stockMovement, supplierReturn, purchaseIssue, invoice, expense }
 }

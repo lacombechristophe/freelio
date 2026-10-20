@@ -1820,6 +1820,7 @@ model CustomerSite {
   latitude     Float?
   longitude    Float?
   customFields Json?
+  archivedAt   DateTime?
 
   projects             Project[]
   equipments           Equipment[]
@@ -1833,6 +1834,7 @@ model CustomerSite {
   @@index([companyId, clientId])
   @@index([companyId, postalCode])
   @@index([companyId, agencyId])
+  @@index([companyId, archivedAt])
 }
 
 model Supplier {
@@ -2421,6 +2423,7 @@ model Equipment {
   status        String    @default("ACTIVE")
   notes         String?
   customFields  Json?
+  archivedAt    DateTime?
 
   tickets              ServiceTicket[]
   maintenanceContracts MaintenanceContractEquipment[]
@@ -2431,6 +2434,7 @@ model Equipment {
   @@unique([companyId, serialNumber])
   @@index([companyId, status])
   @@index([siteId])
+  @@index([companyId, archivedAt])
 }
 
 model ServiceTicket {

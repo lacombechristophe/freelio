@@ -49,6 +49,8 @@ import {
 } from "@/lib/migrations/normalize"
 import { readMigrationArtifact, storeMigrationArtifact } from "@/lib/migrations/storage"
 import { assertWarehouseEmpty, lockActiveWarehouses } from "@/lib/operations/warehouses"
+import { lockActiveSite, lockActiveEquipment, lockActiveAssetProduct, closedProjectStatuses, closedTicketStatuses,
+  closedInterventionStatuses, closedMaintenanceStatuses } from "@/lib/operations/asset-lifecycle"
 import { testExtrabatConnection, type ExtrabatConnectionConfig } from "@/lib/migrations/extrabat"
 import { migrationDatabase as prisma, withMigrationRecordTransaction } from "@/lib/migrations/database"
 import { reconcileImportedTarget } from "@/lib/migrations/reconciliation"
@@ -1037,10 +1039,14 @@ export async function importMigrationRun(runId: string) {
           } else if (kind === "PROJECT") {
             const candidate = projectCandidate(payload)
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Project", record.objectType)
-            const existing = mapping ? await prisma.project.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true } }) : null
+            const existing = mapping ? await prisma.project.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true, status: true } }) : null
             const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
             const clientId = mappedClientId ?? await ensureFallbackClient()
             const siteId = await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
+            if (siteId && (siteId !== existing?.siteId || candidate.status !== existing.status && !closedProjectStatuses.includes(candidate.status))) {
+              const site = await lockActiveSite(prisma, companyId, siteId)
+              if (site.clientId !== clientId) throw new Error("Le site source n’appartient pas au client du chantier")
+            }
             if (!mappedClientId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_PROJECT_WITHOUT_CLIENT", message: "Chantier rattaché au client de contrôle faute d’association source." })
             const project = existing
               ? await prisma.project.update({ where: { id: existing.id }, data: { ...candidate, clientId, siteId } })
@@ -1050,8 +1056,14 @@ export async function importMigrationRun(runId: string) {
           } else if (kind === "EQUIPMENT") {
             const candidate = equipmentCandidate(payload)
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "Equipment", record.objectType)
-            const existing = mapping ? await prisma.equipment.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true } }) : null
-            let siteId = existing?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
+            let existing = mapping ? await prisma.equipment.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true, productId: true } }) : null
+            const sourceSiteId = await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
+            if (!existing && candidate.serialNumber) {
+              const serialMatch = await prisma.equipment.findUnique({ where: { companyId_serialNumber: { companyId, serialNumber: candidate.serialNumber } }, select: { id: true, siteId: true, productId: true } })
+              if (serialMatch && sourceSiteId && serialMatch.siteId !== sourceSiteId) throw new Error("Ce numéro de série est déjà rattaché à un autre site")
+              existing = serialMatch
+            }
+            let siteId = existing?.siteId ?? sourceSiteId
             if (!siteId) {
               const clientId = await mappedClientFromAssociations(companyId, run.provider, payload)
               if (clientId) siteId = (await prisma.customerSite.findFirst({ where: { companyId, clientId }, select: { id: true } }))?.id ?? null
@@ -1061,27 +1073,33 @@ export async function importMigrationRun(runId: string) {
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_EQUIPMENT_WITHOUT_SITE", message: "Équipement rattaché au site de contrôle faute d’association source." })
             }
             const productId = await mappedTargetFromAssociations(companyId, run.provider, payload, "product", "Product")
+            if (!existing || siteId !== existing.siteId) await lockActiveSite(prisma, companyId, siteId)
+            if (productId && productId !== existing?.productId) await lockActiveAssetProduct(prisma, companyId, productId)
             const equipment = existing
               ? await prisma.equipment.update({ where: { id: existing.id }, data: { ...candidate, siteId, productId } })
-              : candidate.serialNumber
-                ? await prisma.equipment.upsert({ where: { companyId_serialNumber: { companyId, serialNumber: candidate.serialNumber } }, update: { ...candidate, siteId, productId }, create: { companyId, siteId, productId, ...candidate } })
-                : await prisma.equipment.create({ data: { companyId, siteId, productId, ...candidate } })
+              : await prisma.equipment.create({ data: { companyId, siteId, productId, ...candidate } })
             targetModel = "Equipment"
             targetRecordId = equipment.id
           } else if (kind === "TICKET") {
             const candidate = ticketCandidate(payload, migrationReference("SAV", record.sourceId))
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "ServiceTicket", record.objectType)
-            const existing = mapping ? await prisma.serviceTicket.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true, equipmentId: true } }) : null
+            const existing = mapping ? await prisma.serviceTicket.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true, equipmentId: true, status: true } }) : null
             if (!existing && await prisma.serviceTicket.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
               candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de ticket déjà utilisé : un suffixe source stable a été ajouté sans écraser la fiche existante." })
             }
             const equipmentId = existing?.equipmentId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "equipment", "Equipment")
             const equipment = equipmentId ? await prisma.equipment.findFirst({ where: { id: equipmentId, companyId }, select: { siteId: true, site: { select: { clientId: true } } } }) : null
+            if (equipmentId && !equipment) throw new Error("Équipement source introuvable")
             const siteId = existing?.siteId ?? equipment?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
             const site = siteId ? await prisma.customerSite.findFirst({ where: { id: siteId, companyId }, select: { clientId: true } }) : null
             const mappedClientId = existing?.clientId ?? site?.clientId ?? equipment?.site.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
             const clientId = mappedClientId ?? await ensureFallbackClient()
+            if (siteId && (!existing || siteId !== existing.siteId || equipmentId !== existing.equipmentId || candidate.status !== existing.status && !closedTicketStatuses.includes(candidate.status))) {
+              const activeSite = await lockActiveSite(prisma, companyId, siteId)
+              if (activeSite.clientId !== clientId) throw new Error("Le site source n’appartient pas au client du ticket")
+              if (equipmentId) await lockActiveEquipment(prisma, companyId, siteId, [equipmentId])
+            }
             if (!mappedClientId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_TICKET_WITHOUT_CLIENT", message: "Ticket SAV rattaché au client de contrôle faute d’association source." })
             const ticket = existing
               ? await prisma.serviceTicket.update({ where: { id: existing.id }, data: { ...candidate, clientId, siteId, equipmentId } })
@@ -1091,7 +1109,7 @@ export async function importMigrationRun(runId: string) {
           } else if (kind === "INTERVENTION") {
             const candidate = interventionCandidate(payload)
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "FieldIntervention", record.objectType)
-            const existing = mapping ? await prisma.fieldIntervention.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true } }) : null
+            const existing = mapping ? await prisma.fieldIntervention.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true, ticketId: true, projectId: true, status: true } }) : null
             const ticketId = await mappedTargetFromAssociations(companyId, run.provider, payload, "ticket", "ServiceTicket")
             const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
             let siteId = existing?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
@@ -1101,6 +1119,15 @@ export async function importMigrationRun(runId: string) {
               siteId = await ensureFallbackSite()
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_INTERVENTION_WITHOUT_SITE", message: "Intervention rattachée au site de contrôle faute d’association source." })
             }
+            if (!existing || siteId !== existing.siteId || ticketId !== existing.ticketId || projectId !== existing.projectId || candidate.status !== existing.status && !closedInterventionStatuses.includes(candidate.status)) {
+              const site = await lockActiveSite(prisma, companyId, siteId)
+              if (ticketId) {
+                const ticket = await prisma.serviceTicket.findFirst({ where: { id: ticketId, companyId, clientId: site.clientId }, select: { siteId: true, equipmentId: true } })
+                if (!ticket || ticket.siteId && ticket.siteId !== siteId) throw new Error("Ticket source incompatible avec le site")
+                if (ticket.equipmentId) await lockActiveEquipment(prisma, companyId, siteId, [ticket.equipmentId])
+              }
+              if (projectId && !await prisma.project.findFirst({ where: { id: projectId, companyId, clientId: site.clientId, OR: [{ siteId: null }, { siteId }] }, select: { id: true } })) throw new Error("Chantier source incompatible avec le site")
+            }
             const intervention = existing
               ? await prisma.fieldIntervention.update({ where: { id: existing.id }, data: { ...candidate, siteId, ticketId, projectId } })
               : await prisma.fieldIntervention.create({ data: { companyId, siteId, ticketId, projectId, ...candidate } })
@@ -1109,7 +1136,7 @@ export async function importMigrationRun(runId: string) {
           } else if (kind === "MAINTENANCE_CONTRACT") {
             const candidate = maintenanceContractCandidate(payload, migrationReference("CTR", record.sourceId))
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "MaintenanceContract", record.objectType)
-            const existing = mapping ? await prisma.maintenanceContract.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true } }) : null
+            const existing = mapping ? await prisma.maintenanceContract.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, clientId: true, siteId: true, status: true } }) : null
             if (!existing && await prisma.maintenanceContract.findFirst({ where: { companyId, number: candidate.number }, select: { id: true } })) {
               candidate.number = migrationCollisionNumber(candidate.number, run.provider, record.objectType, record.sourceId)
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_NUMBER_COLLISION", message: "Numéro de contrat déjà utilisé : un suffixe source stable a été ajouté sans écraser la fiche existante." })
@@ -1119,6 +1146,10 @@ export async function importMigrationRun(runId: string) {
             const site = await prisma.customerSite.findFirstOrThrow({ where: { id: siteId, companyId }, select: { clientId: true } })
             const mappedClientId = existing?.clientId ?? await mappedClientFromAssociations(companyId, run.provider, payload)
             const clientId = mappedClientId ?? site.clientId
+            if (!existing || siteId !== existing.siteId || candidate.status !== existing.status && !closedMaintenanceStatuses.includes(candidate.status)) {
+              const activeSite = await lockActiveSite(prisma, companyId, siteId)
+              if (activeSite.clientId !== clientId) throw new Error("Le site source n’appartient pas au client du contrat")
+            }
             if (!mappedClientId) issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_CONTRACT_WITHOUT_CLIENT", message: "Contrat rattaché au client du site faute d’association source explicite." })
             const contract = existing
               ? await prisma.maintenanceContract.update({ where: { id: existing.id }, data: { ...candidate, clientId, siteId } })
