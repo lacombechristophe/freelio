@@ -23,6 +23,7 @@ import type { LoadedEmailAttachment } from "./attachment-content"
 import { hasExpectedSignature } from "@/lib/local-files"
 import { prepareGraphAttachments } from "./graph-attachments"
 import { reserveEmailSendQuota } from "./send-quotas"
+import { throwEmailProviderFailure } from "./provider-errors"
 
 const oauthCredentialsSchema = z.object({
   mode: z.literal("OAUTH"),
@@ -278,7 +279,8 @@ export async function sendEmailThroughChannel(input: {
       body: JSON.stringify({ from, to: [input.to], cc: input.cc!.length ? input.cc : undefined, bcc: input.bcc!.length ? input.bcc : undefined, reply_to: input.replyTo || undefined, subject: input.subject, html: input.html, text: input.text, attachments: input.attachments?.length ? input.attachments.map(file => ({ filename: file.name, content: file.bytes.toString("base64") })) : undefined, headers: { ...input.headers, ...(reply ? replyHeaders(reply) : {}) } }),
     })
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
-    if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
+    if (!response.ok) throwEmailProviderFailure("RESEND", response, payload)
+    if (!payload.id) throw new Error("Réponse Resend sans référence ; résultat d’envoi à vérifier")
     return { provider: "RESEND", providerId: payload.id, providerDraftId: null, providerMessageId: payload.id, providerConversationId: null, channelId: channel.id, from }
   }
 
@@ -300,13 +302,13 @@ export async function sendEmailThroughChannel(input: {
         persistedDraftDisappeared = true
         draftId = null
       }
-      else if (!draftCheck.ok) throw new Error(`Vérification du brouillon Google refusée (${draftCheck.status})`)
+      else if (!draftCheck.ok) throwEmailProviderFailure(provider, draftCheck, await draftCheck.json().catch(() => null))
     }
     if (!draftId) {
       const query = new URLSearchParams({ q: `rfc822msgid:${messageId}`, labelIds: "SENT", maxResults: "2" })
       const sentCheck = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${query}`, { headers })
       const sentPayload = await sentCheck.json().catch(() => ({})) as { messages?: Array<{ id: string; threadId?: string }>; nextPageToken?: string; error?: { message?: string } }
-      if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Google refusée (${sentCheck.status})`)
+      if (!sentCheck.ok) throwEmailProviderFailure(provider, sentCheck, sentPayload)
       if ((sentPayload.messages?.length || 0) > 1 || sentPayload.nextPageToken) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
       const alreadySentId = sentPayload.messages?.[0]?.id
       if (alreadySentId) return { provider, providerId: `${channel.id}:${alreadySentId}`, providerDraftId: null, providerMessageId: messageId, providerConversationId: readProviderConversationId(sentPayload.messages![0].threadId) || conversationId, channelId: channel.id, from }
@@ -319,7 +321,8 @@ export async function sendEmailThroughChannel(input: {
         for (const name of ["Message-ID", "Subject", "References", "Reply-To", "From"]) metadataQuery.append("metadataHeaders", name)
         const originalResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(remoteReplyId!)}?${metadataQuery}`, { headers })
         const original = await originalResponse.json().catch(() => ({})) as { id?: string; threadId?: string; payload?: { headers?: Array<{ name: string; value: string }> } }
-        if (!originalResponse.ok || original.id !== remoteReplyId || !original.threadId) throw new Error("Message Gmail d’origine introuvable ; aucune réponse créée")
+        if (!originalResponse.ok) throwEmailProviderFailure(provider, originalResponse, original)
+        if (original.id !== remoteReplyId || !original.threadId) throw new Error("Message Gmail d’origine introuvable ; aucune réponse créée")
         if (reply.providerConversationId && original.threadId !== reply.providerConversationId) throw new Error("La conversation distante diffère de la réponse préparée")
         const header = (name: string) => original.payload?.headers?.find(item => item.name.toLowerCase() === name.toLowerCase())?.value || ""
         const replyTo = header("Reply-To") || header("From")
@@ -331,7 +334,8 @@ export async function sendEmailThroughChannel(input: {
       await beforeDispatch()
       const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw, ...(nativeThreadId ? { threadId: nativeThreadId } : {}) } }) })
       const draft = await draftResponse.json().catch(() => ({})) as { id?: string; message?: { threadId?: string }; error?: { message?: string } }
-      if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du brouillon Google refusée (${draftResponse.status})`)
+      if (!draftResponse.ok) throwEmailProviderFailure(provider, draftResponse, draft)
+      if (!draft.id) throw new Error("Réponse Google sans brouillon ; résultat à vérifier")
       draftId = draft.id
       conversationId = readProviderConversationId(draft.message?.threadId) || readProviderConversationId(nativeThreadId)
       await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId })
@@ -339,7 +343,8 @@ export async function sendEmailThroughChannel(input: {
     await beforeRemoteSend()
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts/send", { method: "POST", headers, body: JSON.stringify({ id: draftId }) })
     const payload = await response.json().catch(() => ({})) as { id?: string; threadId?: string; error?: { message?: string } }
-    if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Envoi Google refusé (${response.status})`)
+    if (!response.ok) throwEmailProviderFailure(provider, response, payload)
+    if (!payload.id) throw new Error("Réponse Google sans référence ; résultat d’envoi à vérifier")
     return { provider, providerId: `${channel.id}:${payload.id}`, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: readProviderConversationId(payload.threadId) || conversationId, channelId: channel.id, from }
   }
 
@@ -354,7 +359,7 @@ export async function sendEmailThroughChannel(input: {
     }
     else {
       const state = await check.json().catch(() => ({})) as { id?: string; isDraft?: boolean; conversationId?: string; error?: { message?: string } }
-      if (!check.ok) throw new Error(state.error?.message || `Vérification Microsoft refusée (${check.status})`)
+      if (!check.ok) throwEmailProviderFailure(provider, check, state)
       conversationId = readProviderConversationId(state.conversationId) || conversationId
       if (state.isDraft === false) return { provider, providerId: `${channel.id}:${state.id || draftId}`, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId, channelId: channel.id, from }
     }
@@ -364,7 +369,7 @@ export async function sendEmailThroughChannel(input: {
     const query = new URLSearchParams({ "$filter": filter, "$select": "id,isDraft,internetMessageId,conversationId", "$top": "1" })
     const sentCheck = await fetch(`https://graph.microsoft.com/v1.0/me/messages?${query}`, { headers: graphHeaders })
     const sentPayload = await sentCheck.json().catch(() => ({})) as { value?: Array<{ id: string; isDraft?: boolean; conversationId?: string }>; error?: { message?: string } }
-    if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Microsoft refusée (${sentCheck.status})`)
+    if (!sentCheck.ok) throwEmailProviderFailure(provider, sentCheck, sentPayload)
     const existing = sentPayload.value?.find((message) => message.isDraft === false)
     if (existing) return { provider, providerId: `${channel.id}:${existing.id}`, providerDraftId: null, providerMessageId: messageId, providerConversationId: readProviderConversationId(existing.conversationId) || conversationId, channelId: channel.id, from }
     if (persistedDraftDisappeared) throw new Error("État d’envoi Microsoft incertain : vérification différée avant toute nouvelle création")
@@ -373,7 +378,8 @@ export async function sendEmailThroughChannel(input: {
     if (reply) {
       const originalResponse = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(remoteReplyId!)}?$select=id,internetMessageId,subject,replyTo,from,conversationId`, { headers: graphHeaders })
       const original = await originalResponse.json().catch(() => ({})) as { id?: string; conversationId?: string; internetMessageId?: string; subject?: string; replyTo?: Array<{ emailAddress?: { address?: string } }>; from?: { emailAddress?: { address?: string } } }
-      if (!originalResponse.ok || original.id !== remoteReplyId) throw new Error("Message Microsoft d’origine introuvable ; aucune réponse créée")
+      if (!originalResponse.ok) throwEmailProviderFailure(provider, originalResponse, original)
+      if (original.id !== remoteReplyId) throw new Error("Message Microsoft d’origine introuvable ; aucune réponse créée")
       if (reply.providerConversationId && original.conversationId !== reply.providerConversationId) throw new Error("La conversation distante diffère de la réponse préparée")
       mimeHeaders = { ...input.headers, ...replyHeaders(reply, { internetMessageId: original.internetMessageId || "", subject: original.subject || "", replyTo: original.replyTo?.length ? original.replyTo.map(item => item.emailAddress?.address || "") : [original.from?.emailAddress?.address || ""] }, input.to) }
     }
@@ -385,7 +391,8 @@ export async function sendEmailThroughChannel(input: {
       body: raw,
     })
     const draft = await draftResponse.json().catch(() => ({})) as { id?: string; internetMessageId?: string; conversationId?: string; error?: { message?: string } }
-    if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du message Microsoft refusée (${draftResponse.status})`)
+    if (!draftResponse.ok) throwEmailProviderFailure(provider, draftResponse, draft)
+    if (!draft.id) throw new Error("Réponse Microsoft sans brouillon ; résultat à vérifier")
     draftId = draft.id
     conversationId = readProviderConversationId(draft.conversationId)
     if (draft.internetMessageId) {
@@ -402,7 +409,7 @@ export async function sendEmailThroughChannel(input: {
   })
   if (!response.ok) {
     const payload = await response.json().catch(() => ({})) as { error?: { message?: string } }
-    throw new Error(payload.error?.message || `Envoi Microsoft refusé (${response.status})`)
+    throwEmailProviderFailure(provider, response, payload)
   }
   return { provider, providerId: `${channel.id}:${draftId}`, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId, channelId: channel.id, from }
 }

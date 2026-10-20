@@ -13,6 +13,8 @@ import { EmailDraftConflict } from "./drafts"
 import { emailPurposeSchema, requireEmailPurpose, assertPurposeRecipients, EmailPurposeError } from "./email-purpose"
 import { marketingAuthorizationSchema, prepareManualMarketingContent, assertManualMarketingConsent } from "./marketing-consent"
 import { EmailSendQuotaError } from "./send-quotas"
+import { EmailProviderError, EmailProviderWaitError, terminalProviderFailure, providerRetryDate } from "./provider-errors"
+import { nextDeliveryRetry } from "@/lib/automations/delivery-retry"
 
 export const manualEmailPayloadSchema = z.object({
   userId: z.string(), contactId: z.string(), clientId: z.string(), threadId: z.string().nullable(), serviceTicketId: z.string().nullable(),
@@ -94,6 +96,7 @@ export async function sendManualEmail(input: ManualSendInput) {
       }
       if (payload.threadId && !payload.reply) throw new Error("Ancienne réponse sans référence figée ; vérifiez son résultat avant de créer un nouvel envoi")
       if (["DEAD_LETTER", "CANCELED", "SUPPRESSED", "BOUNCED", "COMPLAINED"].includes(current.status)) throw new Error("Cette commande d’envoi ne peut pas être relancée")
+      if (["THROTTLED", "TRANSIENT"].includes(current.providerFailureKind || "") && current.nextAttemptAt && current.nextAttemptAt > new Date()) throw new EmailProviderWaitError(current.nextAttemptAt)
       // Resend's deduplication expires after 24 hours. No blind resend after an
       // ambiguous attempt outside that window, even after a worker restart.
       if (current.provider === "RESEND" && current.attempts > 0 && (!current.firstAttemptAt || Date.now() - current.firstAttemptAt.getTime() >= 23 * 60 * 60_000)) {
@@ -101,7 +104,7 @@ export async function sendManualEmail(input: ManualSendInput) {
         throw new Error("Vérifiez le résultat chez le fournisseur avant de créer un nouvel envoi")
       }
       await control.assertOwned()
-      await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENDING", attempts: { increment: 1 }, lastAttemptAt: new Date(), firstAttemptAt: current.firstAttemptAt || new Date(), error: null } })
+      await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENDING", attempts: { increment: 1 }, lastAttemptAt: new Date(), firstAttemptAt: current.firstAttemptAt || new Date(), error: null, providerFailureKind: null } })
       try {
         const attachments = await Promise.all((payload.attachments || []).map(file => readEmailAttachmentBytes(input.companyId, file)))
         const sent = await sendEmailThroughChannel({
@@ -126,13 +129,23 @@ export async function sendManualEmail(input: ManualSendInput) {
             if (saved.count !== 1) throw new Error("La préparation de l’envoi n’a pas pu être persistée")
           },
         })
-        await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENT", provider: sent.provider, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt: new Date(), error: null } })
+        await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENT", provider: sent.provider, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt: new Date(), error: null, providerFailureKind: null, nextAttemptAt: null } })
       } catch (error) {
+        if (error instanceof EmailProviderError) {
+          await control.assertOwned()
+          const retry = nextDeliveryRetry({ attempts: current.attempts + 1, maxAttempts: current.maxAttempts })
+          const terminal = terminalProviderFailure(error.kind) || retry.deadLetter
+          await prisma.emailDelivery.updateMany({ where: { id: deliveryId, companyId: input.companyId, status: "SENDING" }, data: {
+            status: terminal ? "DEAD_LETTER" : "FAILED", error: error.message, providerFailureKind: error.kind,
+            nextAttemptAt: terminal ? null : providerRetryDate(error, retry.nextAttemptAt!), deadLetteredAt: terminal ? new Date() : null,
+          } })
+          throw error
+        }
         if (error instanceof EmailSendQuotaError) {
           await control.assertOwned()
           await prisma.emailDelivery.updateMany({ where: { id: deliveryId, companyId: input.companyId, status: "SENDING" }, data: {
             status: "FAILED", error: error.message, attempts: current.attempts, firstAttemptAt: current.firstAttemptAt,
-            lastAttemptAt: current.lastAttemptAt, nextAttemptAt: error.retryAt,
+            lastAttemptAt: current.lastAttemptAt, nextAttemptAt: error.retryAt, providerFailureKind: current.providerFailureKind,
           } })
           throw error
         }

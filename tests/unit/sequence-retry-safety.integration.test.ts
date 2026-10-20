@@ -45,6 +45,19 @@ describe.sequential("sequence retry cannot erase provider evidence or an expired
     expect(await prisma.auditLog.count({ where: { userId: f.user.id } })).toBe(0)
   }
   it("refuses an uncertain 24-hour-old Resend delivery without changing its traces or paused enrollment", async () => { await unchanged(await fixture()) })
+  it.each(["THROTTLED", "TRANSIENT"])("does not let Retry bypass a persisted %s deadline", async providerFailureKind => {
+    const f = await fixture({ firstAttemptAt: new Date(), providerFailureKind, status: "FAILED", nextAttemptAt: new Date(Date.now() + 3_600_000) })
+    expect(await f.retry()).toMatchObject({ success: false, error: expect.stringContaining("Reprise fournisseur différée") })
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toEqual(f.delivery)
+    expect(await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: f.enrollment.id } })).toEqual(f.enrollment)
+    expect(await prisma.auditLog.count({ where: { userId: f.user.id } })).toBe(0)
+  })
+  it.each(["PERMANENT", "CONFIGURATION"])("does not retry an unchanged %s command from the journal", async providerFailureKind => {
+    const f = await fixture({ firstAttemptAt: new Date(), providerFailureKind })
+    expect(await f.retry()).toMatchObject({ success: false, error: expect.stringContaining("Corrigez la demande") })
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toEqual(f.delivery)
+    expect(await prisma.auditLog.count({ where: { userId: f.user.id } })).toBe(0)
+  })
   it.each([{ attempts: 0 }, { attempts: 0, firstAttemptAt: null }, { firstAttemptAt: null }, { firstAttemptAt: new Date(Date.now() + 3_600_000) }])("protects legacy/reset counters and missing or future first attempt dates: %j", async data => { await unchanged(await fixture(data)) })
   it("uses the original first attempt and the exact conservative 23-hour boundary", async () => {
     const f = await fixture(), now = new Date("2035-01-02T08:00:00Z")

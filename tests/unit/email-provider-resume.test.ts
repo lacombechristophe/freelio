@@ -65,6 +65,18 @@ describe("OAuth email crash recovery", () => {
     return { id: randomUUID(), name: "facture fictive.pdf", size: bytes.length, type: "application/pdf" as const, sha256: createHash("sha256").update(bytes).digest("hex"), relativePath: "local:private/fiction/email-draft/fiction/file.pdf", bytes }
   }
 
+  it.each([429, 422])("classifies Microsoft attachment preparation HTTP %i before any send", async status => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel("MICROSOFT"))
+    const http = vi.fn()
+      .mockResolvedValueOnce(Response.json({ value: [] }))
+      .mockResolvedValueOnce(Response.json({ id: "draft" }))
+      .mockResolvedValueOnce(Response.json({ error: { message: "hidden@example.test" } }, { status, headers: { "retry-after": "3600" } }))
+    vi.stubGlobal("fetch", http)
+    await expect(sendEmailThroughChannel({ ...baseInput, attachments: [attachment()] })).rejects.toMatchObject({ kind: status === 429 ? "THROTTLED" : "PERMANENT" })
+    expect(http).toHaveBeenCalledTimes(3)
+    expect(http.mock.calls.some(call => String(call[0]).endsWith("/send"))).toBe(false)
+  })
+
   it.each(["GOOGLE", "MICROSOFT"] as const)("retains %s native identity from preparation through acceptance and a resumed draft", async provider => {
     prismaMock.communicationChannel.findFirst.mockResolvedValue(channel(provider))
     const native = "fictional/native+conversation==", prepared = vi.fn()

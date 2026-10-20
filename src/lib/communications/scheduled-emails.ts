@@ -17,6 +17,7 @@ import { jsonValue } from "./threads"
 import { activeCommunicationChannel } from "./email-provider"
 import { requireEmailPurpose, EmailPurposeError } from "./email-purpose"
 import { EmailSendQuotaError } from "./send-quotas"
+import { EmailProviderError, EmailProviderWaitError, terminalProviderFailure, providerRetryDate } from "./provider-errors"
 
 export class EmailScheduleError extends Error {}
 const identity = z.object({ id: z.string().cuid(), version: z.number().int().positive() })
@@ -161,6 +162,13 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
             summary.sent++
           } catch (error) {
             await control.assertOwned()
+            if (error instanceof EmailProviderWaitError) {
+              await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: {
+                scheduleStatus: "RETRY", scheduleAttempts: draft.scheduleAttempts, scheduleStartedAt: draft.scheduleStartedAt,
+                scheduleNextAttemptAt: error.retryAt, scheduleError: error.message,
+              } })
+              summary.skipped++; return
+            }
             if (error instanceof EmailSendQuotaError) {
               await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: {
                 scheduleStatus: "WAITING_QUOTA", scheduleAttempts: draft.scheduleAttempts, scheduleStartedAt: draft.scheduleStartedAt,
@@ -168,8 +176,9 @@ export async function processDueScheduledEmails(input: { companyId?: string; lim
               } })
               summary.skipped++; return
             }
-            const exhausted = error instanceof EmailPurposeError || draft.scheduleAttempts + 1 >= MAX_ATTEMPTS
-            await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: exhausted ? "FAILED" : "RETRY", ...(exhausted ? { scheduleNextAttemptAt: null } : {}), scheduleError: error instanceof EmailPurposeError ? error.message : "Échec de l’envoi programmé ; résultat fournisseur à vérifier" } })
+            const exhausted = error instanceof EmailPurposeError || error instanceof EmailProviderError && terminalProviderFailure(error.kind) || draft.scheduleAttempts + 1 >= MAX_ATTEMPTS
+            const retryAt = new Date(now.getTime() + Math.min(2 ** draft.scheduleAttempts, 60) * 60_000)
+            await prisma.emailDraft.updateMany({ where: { id: draft.id, companyId: job.companyId }, data: { scheduleStatus: exhausted ? "FAILED" : "RETRY", scheduleNextAttemptAt: exhausted ? null : error instanceof EmailProviderError ? providerRetryDate(error, retryAt) : retryAt, scheduleError: error instanceof EmailPurposeError || error instanceof EmailProviderError ? error.message : "Échec de l’envoi programmé ; résultat fournisseur à vérifier" } })
             summary.failed++
           }
         })

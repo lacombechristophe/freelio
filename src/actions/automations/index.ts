@@ -919,6 +919,8 @@ export async function retryEmailDelivery(deliveryId: string) {
         if (!delivery.enrollmentId || !delivery.sequenceId || !delivery.stepId) return { success: false as const, error: "Seuls les envois rattachés à une séquence peuvent être relancés depuis ce journal" }
         const now = new Date()
         if (sequenceRetryNeedsReview(delivery, now)) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }
+        if (["THROTTLED", "TRANSIENT"].includes(delivery.providerFailureKind || "") && delivery.nextAttemptAt && delivery.nextAttemptAt > now) return { success: false as const, error: `Reprise fournisseur différée jusqu’au ${delivery.nextAttemptAt.toISOString()}` }
+        if (["PERMANENT", "CONFIGURATION"].includes(delivery.providerFailureKind || "")) return { success: false as const, error: "Corrigez la demande ou les limites du compte avant de préparer un nouvel envoi" }
         if (await tx.emailSuppression.count({ where: { companyId, email: delivery.recipientEmail.trim().toLowerCase(), active: true } })) return { success: false as const, error: "Cette adresse est bloquée. Le blocage doit d’abord être levé explicitement." }
         const enrollment = await tx.emailSequenceEnrollment.findFirst({ where: { id: delivery.enrollmentId, sequenceId: delivery.sequenceId, sequence: { companyId }, status: { in: ["ACTIVE", "PAUSED"] } }, include: { sequence: { select: { steps: { where: { id: delivery.stepId }, select: { position: true } } } } } })
         if (!enrollment || enrollment.sequence.steps[0]?.position !== enrollment.nextStepPosition) return { success: false as const, error: SEQUENCE_RETRY_REVIEW_MESSAGE }

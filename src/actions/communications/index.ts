@@ -32,6 +32,7 @@ import { EmailAttachmentError } from "@/lib/communications/draft-attachments"
 import { listManualEmailRecovery, recoverManualEmail, EmailRecoveryError } from "@/lib/communications/manual-recovery"
 import { isPublicReadOnlyDemo, DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 import { EmailSendQuotaError, EmailSendQuotaConflict, readEmailSendQuota, saveEmailSendQuota } from "@/lib/communications/send-quotas"
+import { EmailProviderError, EmailProviderWaitError } from "@/lib/communications/provider-errors"
 
 export async function configureCommunicationSendQuota(input: unknown) {
   if (isPublicReadOnlyDemo()) return { success: false as const, error: DEMO_READ_ONLY_MESSAGE }
@@ -318,7 +319,7 @@ export async function sendCrmEmail(input: unknown) {
       try {
         return data.draftId ? await sendEmailDraft(companyId, userId, { ...data, id: data.draftId, version: data.draftVersion }, send) : await send(data.requestKey || randomUUID())
       } catch (error) {
-        if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError || error instanceof EmailSendQuotaError) return { success: false as const, error: error.message }
+        if (error instanceof EmailDraftConflict || error instanceof EmailPurposeError || error instanceof EmailSendQuotaError || error instanceof EmailProviderError || error instanceof EmailProviderWaitError) return { success: false as const, error: error.message }
         throw error
       }
     })()

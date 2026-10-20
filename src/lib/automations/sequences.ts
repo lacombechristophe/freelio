@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client"
 import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
+import { EmailProviderError, terminalProviderFailure, providerRetryDate } from "@/lib/communications/provider-errors"
 
 import { prepareSequenceEmail, renderEmailVariables, sendSequenceEmail } from "@/lib/automations/email"
 import { nextDeliveryRetry } from "@/lib/automations/delivery-retry"
@@ -161,7 +162,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       continue
     }
 
-    let beforeQuotaAttempt: { id: string; attempts: number; firstAttemptAt: Date | null; lastAttemptAt: Date | null } | null = null
+    let beforeQuotaAttempt: { id: string; attempts: number; firstAttemptAt: Date | null; lastAttemptAt: Date | null; providerFailureKind: string | null } | null = null
     try {
       const existing = await prisma.emailDelivery.findUnique({
         where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } },
@@ -229,7 +230,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
             { status: "FAILED", OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] },
           ],
         },
-        data: { status: "SENDING", error: null, attempts: { increment: 1 }, lastAttemptAt: now, firstAttemptAt: delivery.firstAttemptAt || now },
+        data: { status: "SENDING", error: null, providerFailureKind: null, attempts: { increment: 1 }, lastAttemptAt: now, firstAttemptAt: delivery.firstAttemptAt || now },
       })
       if (claimed.count !== 1) continue
       beforeQuotaAttempt = delivery
@@ -299,7 +300,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       const sentAt = new Date()
       // Transport acceptance is durable before any history/progression work.
       // Failed history leaves this enrollment at the same step for SQL repair.
-      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, payload: { ...frozen, from: sent.from }, provider: sent.provider, channelId: sent.channelId === "platform" ? null : sent.channelId, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt, nextAttemptAt: null, deadLetteredAt: null, error: null } })
+      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, payload: { ...frozen, from: sent.from }, provider: sent.provider, channelId: sent.channelId === "platform" ? null : sent.channelId, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt, nextAttemptAt: null, deadLetteredAt: null, error: null, providerFailureKind: null } })
       summary.sent += 1
       await ensureSequenceHistory(delivery.id, enrollment.sequence.companyId)
       const progressed = progressionData(enrollment.sequence, step.id, sentAt)
@@ -317,6 +318,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
           await tx.emailDelivery.updateMany({ where: { id: previous.id, companyId: enrollment.sequence.companyId, status: "SENDING" }, data: {
             status: "FAILED", error: error.message, nextAttemptAt: retryAt, attempts: previous.attempts,
             firstAttemptAt: previous.firstAttemptAt, lastAttemptAt: previous.lastAttemptAt,
+            providerFailureKind: previous.providerFailureKind,
           } })
           await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position }, data: { nextSendAt: retryAt } })
         })
@@ -352,12 +354,12 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
         summary.failed += 1
         continue
       }
-      if (error instanceof EmailContentPreflightError) {
+      if (error instanceof EmailContentPreflightError || error instanceof EmailProviderError && terminalProviderFailure(error.kind)) {
         const held = await prisma.$transaction(async tx => {
           await control.assertOwned(tx)
           const saved = await tx.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: { in: ["SCHEDULED", "SENDING", "FAILED"] } },
-            data: { status: "DEAD_LETTER", error: message, nextAttemptAt: null, deadLetteredAt: new Date() } })
-          await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position }, data: { status: "PAUSED", stopReason: `Contenu invalide : ${message}`, nextSendAt: null } })
+            data: { status: "DEAD_LETTER", error: message, providerFailureKind: error instanceof EmailProviderError ? error.kind : null, nextAttemptAt: null, deadLetteredAt: new Date() } })
+          await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position }, data: { status: "PAUSED", stopReason: error instanceof EmailProviderError ? message : `Contenu invalide : ${message}`, nextSendAt: null } })
           return saved.count
         })
         summary.deadLettered += held
@@ -365,16 +367,18 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
         continue
       }
       const retry = nextDeliveryRetry({ attempts: failedDelivery?.attempts ?? 1, maxAttempts: failedDelivery?.maxAttempts ?? 5 })
+      const providerFailureKind = error instanceof EmailProviderError ? error.kind : null
       if (retry.deadLetter) {
         await prisma.$transaction([
-          prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: "SENDING" }, data: { status: "DEAD_LETTER", error: message, nextAttemptAt: null, deadLetteredAt: new Date() } }),
+          prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: "SENDING" }, data: { status: "DEAD_LETTER", error: message, providerFailureKind, nextAttemptAt: null, deadLetteredAt: new Date() } }),
           prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { status: "PAUSED", stopReason: "DELIVERY_RETRIES_EXHAUSTED", nextSendAt: null } }),
         ])
         summary.deadLettered += 1
       } else {
+        const retryAt = error instanceof EmailProviderError ? providerRetryDate(error, retry.nextAttemptAt) : retry.nextAttemptAt
         await prisma.$transaction([
-          prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: "SENDING" }, data: { status: "FAILED", error: message, nextAttemptAt: retry.nextAttemptAt } }),
-          prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: retry.nextAttemptAt } }),
+          prisma.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: "SENDING" }, data: { status: "FAILED", error: message, providerFailureKind, nextAttemptAt: retryAt } }),
+          prisma.emailSequenceEnrollment.update({ where: { id: enrollment.id }, data: { nextSendAt: retryAt } }),
         ])
       }
       summary.failed += 1
