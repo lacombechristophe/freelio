@@ -42,7 +42,8 @@ export function formatMailboxSender(displayName: string, address: string) {
 }
 
 export async function getResendTransport(companyId: string, channelId?: string | null): Promise<ResendTransport> {
-  const channel = await prisma.communicationChannel.findFirst({
+  // A pinned platform sender must not adopt a subsequently connected BYOK box.
+  const channel = channelId === "platform" ? null : await prisma.communicationChannel.findFirst({
     where: { companyId, provider: "RESEND", status: "ACTIVE", ...(channelId ? { id: channelId } : {}) },
     select: { id: true, emailAddress: true, displayName: true, credentialsEncrypted: true },
     orderBy: { updatedAt: "desc" },

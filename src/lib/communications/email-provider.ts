@@ -269,7 +269,7 @@ export async function sendEmailThroughChannel(input: {
   if (reply && channel.provider !== "RESEND" && (!remoteReplyId || /[\r\n]/.test(remoteReplyId))) throw new Error("Référence de réponse hors de la boîte expéditrice")
 
   if (channel.provider === "RESEND") {
-    const transport = await getResendTransport(input.companyId, channel.id === "platform" ? null : channel.id)
+    const transport = await getResendTransport(input.companyId, channel.id)
     await input.onPrepared?.({ provider: "RESEND", channelId: channel.id, providerDraftId: null, providerMessageId: null })
     await beforeRemoteSend()
     const response = await fetch("https://api.resend.com/emails", {

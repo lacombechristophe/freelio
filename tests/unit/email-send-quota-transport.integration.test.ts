@@ -7,7 +7,7 @@ import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
 
 describe.sequential("mail quota boundary at the real transport with fictional HTTP", () => {
   const companyIds: string[] = []
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
   afterAll(async () => {
     for (const companyId of companyIds) {
       await prisma.emailSendQuotaCharge.deleteMany({ where: { companyId } })
@@ -96,5 +96,28 @@ describe.sequential("mail quota boundary at the real transport with fictional HT
     })
     await sendEmailThroughChannel({ ...f.input, onPrepared: async state => { await prisma.emailDelivery.update({ where: { id: f.delivery.id }, data: { ...state } }) } })
     expect(f.http).toHaveBeenCalledTimes(3)
+  })
+  it("keeps an explicit platform sender on platform credentials when a BYOK mailbox exists", async () => {
+    const f = await fixture()
+    vi.stubEnv("RESEND_API_KEY", "re_platform_fixture")
+    vi.stubEnv("EMAIL_FROM", "Platform <platform@example.test>")
+    await prisma.emailSendQuotaPolicy.create({ data: { companyId: f.company.id, channelKey: "platform", enabled: true, dailyRecipientLimit: 1, minuteRecipientLimit: 1 } })
+    await prisma.emailDelivery.update({ where: { id: f.delivery.id }, data: { channelId: null } })
+    await sendEmailThroughChannel({ ...f.input, channelId: "platform" })
+    const request = f.http.mock.calls[0][1]
+    expect(request.headers.authorization).toBe("Bearer re_platform_fixture")
+    expect(JSON.parse(request.body).from).toContain("<platform@example.test>")
+    expect(await prisma.emailSendQuotaCharge.count({ where: { companyId: f.company.id, channelKey: "platform" } })).toBe(2)
+    expect(await prisma.emailSendQuotaCharge.count({ where: { companyId: f.company.id, channelKey: f.channel.id } })).toBe(0)
+  })
+  it("keeps an explicit BYOK sender on its own credentials when platform credentials also exist", async () => {
+    const f = await fixture()
+    vi.stubEnv("RESEND_API_KEY", "re_platform_fixture")
+    vi.stubEnv("EMAIL_FROM", "Platform <platform@example.test>")
+    await sendEmailThroughChannel(f.input)
+    const request = f.http.mock.calls[0][1]
+    expect(request.headers.authorization).toBe("Bearer re_fictional_only")
+    expect(JSON.parse(request.body).from).toContain("<sender@example.test>")
+    expect(await prisma.emailSendQuotaCharge.count({ where: { companyId: f.company.id, channelKey: f.channel.id } })).toBe(2)
   })
 })

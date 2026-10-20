@@ -5,6 +5,11 @@ société et boîte. Ils ne représentent ni le quota disponible chez un fournis
 ni une garantie de délivrabilité ou de gratuité. Le relais `platform` est limité
 par société ; plusieurs sociétés peuvent partager un même compte fournisseur.
 
+Un relais `platform` déjà fixé garde les identifiants de la plateforme, même si
+une boîte avec ses propres clés est connectée ensuite. Une boîte configurée avec
+ses propres clés conserve celles-ci. Le choix du transport et celui du plafond portent
+sur la même identité ; ajouter une boîte ne réaffecte pas une commande existante.
+
 Une configuration explicite est nécessaire pour autoriser un nouvel envoi.
 L’absence de configuration, sa désactivation ou un message plus grand que son
 plafond bloque l’admission. Aucun quota fournisseur n’est inventé. Les limites
