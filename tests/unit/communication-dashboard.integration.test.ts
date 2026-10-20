@@ -30,7 +30,7 @@ vi.mock("@/lib/communications/recipient-reader", async original => {
   } }
 })
 import prisma from "@/lib/prisma"
-import { getCommunicationDashboard } from "@/actions/communications"
+import { getCommunicationDashboard, getCommunicationInboxPage } from "@/actions/communications"
 import { updateEmailThread } from "@/actions/communications"
 import { CommunicationCenter } from "@/app/dashboard/communications/communication-center"
 import { seedCommunicationsAccess } from "../../scripts/seed-communications-access.mjs"
@@ -130,7 +130,7 @@ describe.sequential("Communications dashboard on real SQL", () => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role } })
     const html = await render("inbox")
     expect(html).toContain("Consultation seule")
-    for (const label of ["Clore", "Répondre", "Répondre à tous", "Transférer"]) expect(control(html, label)).toMatch(/\sdisabled(?:=|\s|>)/)
+    for (const label of ["Clore", "Archiver", "Prendre en charge", "Répondre", "Répondre à tous", "Transférer"]) expect(control(html, label)).toMatch(/\sdisabled(?:=|\s|>)/)
     for (const label of ["Rechercher", "Aperçu HTML"]) expect(control(html, label)).not.toMatch(/\sdisabled(?:=|\s|>)/)
     expect(await render("compose")).toMatch(/<fieldset\b[^>]*\sdisabled[^>]*>[\s\S]*id="email-html"/)
   })
@@ -149,6 +149,23 @@ describe.sequential("Communications dashboard on real SQL", () => {
     const html = await render("inbox", true)
     expect(html).toContain("Aucune conversation")
     expect(html).toContain("Sélectionnez une conversation.")
+  })
+  it("renders mailbox, state and ownership filters with local archive and claim controls", async () => {
+    const html = await render("inbox")
+    for (const id of ["inbox-channel", "inbox-assignment", "inbox-filter"]) expect(html).toContain(`id="${id}"`)
+    for (const label of ["Ouvertes", "Closes", "À moi", "Sans responsable", "Sans boîte associée"]) expect(html).toContain(label)
+    expect(control(html, "Archiver")).not.toMatch(/\sdisabled(?:=|\s|>)/)
+    expect(control(html, "Prendre en charge")).not.toMatch(/\sdisabled(?:=|\s|>)/)
+    await prisma.emailThread.update({ where: { id: threadId }, data: { status: "ARCHIVED", assignedUserId: session.userId } })
+    const data = await getCommunicationDashboard()
+    const archives = await getCommunicationInboxPage({ filter: "ARCHIVED" })
+    const archivedHtml = renderToStaticMarkup(React.createElement(CommunicationCenter, { initialTab: "inbox", initialData: {
+      ...data, inbox: archives, threads: archives.threads, channels: data.channels.map(channel => ({ ...channel, lastSyncAt: channel.lastSyncAt?.toISOString() || null })),
+    } }))
+    expect(control(archivedHtml, "Restaurer")).not.toMatch(/\sdisabled(?:=|\s|>)/)
+    expect(control(archivedHtml, "Libérer ma prise en charge")).not.toMatch(/\sdisabled(?:=|\s|>)/)
+    expect(archivedHtml).toContain("Archivé")
+    await prisma.emailThread.update({ where: { id: threadId }, data: { status: "OPEN", assignedUserId: null } })
   })
   it("provides isolated browser roles with private historical drafts and no live credentials", async () => {
     const previous = { ...session }

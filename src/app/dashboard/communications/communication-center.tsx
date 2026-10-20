@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Forward, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
 
-import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, attachCommunicationCrmDocument, sendCrmEmail, syncCommunicationChannel, updateEmailThread, previewCommunicationEmail } from "@/actions/communications"
+import { configureCommunicationChannel, disconnectCommunicationChannel, getCommunicationInboxPage, getPreviousCommunicationMessages, getCommunicationDraft, saveCommunicationDraft, deleteCommunicationDraft, getCommunicationReplyAll, getCommunicationForward, scheduleCommunicationDraft, cancelCommunicationDraftSchedule, attachCommunicationCrmDocument, sendCrmEmail, syncCommunicationChannel, updateEmailThread, updateCommunicationThreadAssignment, previewCommunicationEmail } from "@/actions/communications"
 import type { EmailDraftDto } from "@/lib/communications/drafts"
 import { emailPurposeSchema, emailPurposeLabel, type EmailPurpose } from "@/lib/communications/email-purpose"
 import { parseCopyRecipients } from "@/lib/communications/recipients"
@@ -190,9 +190,10 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
     router.replace(`/dashboard/communications?tab=${value}`, { scroll: false })
   }
 
-  async function loadInbox(page = inbox.page, filter = inbox.filter, query = inbox.search, selectionId = selectedId) {
+  async function loadInbox(page = inbox.page, filter = inbox.filter, query = inbox.search, selectionId = selectedId,
+    options: { channelId?: InboxPage["channelId"]; assignment?: InboxPage["assignment"] } = {}) {
     const request = ++inboxRequest.current
-    const next = await getCommunicationInboxPage({ page, filter, search: query })
+    const next = await getCommunicationInboxPage({ page, filter, search: query, channelId: inbox.channelId, assignment: inbox.assignment, ...options })
     if (!next || request !== inboxRequest.current) return
     setLoadedInbox(next)
     setHistory(null)
@@ -200,6 +201,16 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
       setSelectedId(next.threads[0]?.id ?? "")
       setMobileThreadOpen(false)
     }
+  }
+
+  function changeAssignment(operation: "CLAIM" | "RELEASE") {
+    if (!selected || !canWrite) return
+    run(async () => {
+      const result = await updateCommunicationThreadAssignment(selected.id, operation)
+      if (!result.success) throw new Error(result.error)
+      await loadInbox()
+      router.refresh()
+    })
   }
 
   function loadPreviousMessages() {
@@ -411,7 +422,9 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
           <div ref={threadListRef} className={cn("min-w-0 border-b lg:block lg:border-b-0 lg:border-r", mobileThreadOpen && "hidden")}>
             <div className="flex items-center justify-between border-b p-4"><div><p className="text-sm font-semibold">Conversations</p><p className="text-xs text-muted-foreground">{inbox.total} fil(s)</p></div><Button variant="ghost" size="icon" disabled={isPending} aria-label="Actualiser les conversations" onClick={() => run(async () => { await loadInbox(); router.refresh() })}><RefreshCw /></Button></div>
             <form className="space-y-2 border-b p-4" onSubmit={(event) => { event.preventDefault(); run(() => loadInbox(1, inbox.filter, search)) }}>
-              <Label htmlFor="inbox-filter">Conversations affichées</Label><select id="inbox-filter" value={inbox.filter} disabled={isPending} onChange={(event) => run(() => loadInbox(1, event.target.value as InboxPage["filter"], search))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="ALL">Toutes</option><option value="UNREAD">Non lues</option><option value="ARCHIVED">Archives</option></select>
+              <Label htmlFor="inbox-filter">Conversations affichées</Label><select id="inbox-filter" value={inbox.filter} disabled={isPending} onChange={(event) => run(() => loadInbox(1, event.target.value as InboxPage["filter"], search))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="ALL">Toutes</option><option value="UNREAD">Non lues</option><option value="OPEN">Ouvertes</option><option value="CLOSED">Closes</option><option value="ARCHIVED">Archives</option></select>
+              <Label htmlFor="inbox-channel">Boîte de réception</Label><select id="inbox-channel" value={inbox.channelId || ""} disabled={isPending} onChange={(event) => run(() => loadInbox(1, inbox.filter, search, selectedId, { channelId: event.target.value || null }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Toutes les boîtes</option>{initialData.channels.map(channel => <option key={channel.id} value={channel.id}>{channel.displayName || channel.emailAddress}</option>)}<option value="UNLINKED">Sans boîte associée</option></select>
+              <Label htmlFor="inbox-assignment">Prise en charge</Label><select id="inbox-assignment" value={inbox.assignment} disabled={isPending} onChange={(event) => run(() => loadInbox(1, inbox.filter, search, selectedId, { assignment: event.target.value as InboxPage["assignment"] }))} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="ALL">Toutes</option><option value="ME">À moi</option><option value="UNASSIGNED">Sans responsable</option></select>
               <Label htmlFor="inbox-search">Recherche</Label><Input id="inbox-search" value={search} onChange={(event) => setSearch(event.target.value)} maxLength={200} placeholder="Objet, contact ou message" /><Button demoMutation={false} type="submit" variant="outline" size="sm" disabled={isPending}>Rechercher</Button>
             </form>
             <div className="max-h-[555px] overflow-y-auto" aria-busy={isPending}>{inbox.threads.length ? inbox.threads.map((thread) => {
@@ -430,8 +443,19 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
               requestAnimationFrame(() => threadListRef.current?.querySelector<HTMLButtonElement>('[data-selected="true"]')?.focus())
             }}><ArrowLeft />Retour aux conversations</Button></div>
             {selected ? <>
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={!canWrite} onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); await loadInbox(); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button><Button size="sm" disabled={!canWrite} onClick={() => void prepareReply()}><Reply />Répondre</Button><Button size="sm" disabled={!canWrite} onClick={() => void prepareReply(true)}><Reply />Répondre à tous</Button></div></div>
-            <p className="px-5 pt-3 text-xs text-muted-foreground">La lecture et la clôture dans Freelio modifient le suivi CRM ; elles ne modifient pas la boîte distante.</p>
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b p-5">
+              <div><div className="flex items-center gap-2"><h2 className="font-semibold">{selected.subject}</h2><Badge variant={selected.status === "OPEN" ? "secondary" : "outline"}>{selected.status === "ARCHIVED" ? "Archivé" : selected.status === "OPEN" ? "Ouvert" : "Clos"}</Badge></div>
+                <p className="mt-1 text-xs text-muted-foreground">{selected.client?.name || "Non associé à un client"}{selected.contact?.email ? ` · ${selected.contact.email}` : ""}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{selected.assignedToMe ? "Pris en charge par vous" : selected.hasAssignment ? "Pris en charge par un autre membre" : "Sans responsable"}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" disabled={!canWrite} onClick={() => run(async () => { await updateEmailThread(selected.id, { status: selected.status === "OPEN" ? "CLOSED" : "OPEN" }); await loadInbox(); router.refresh() })}>{selected.status === "OPEN" ? <Archive /> : <MailOpen />}{selected.status === "ARCHIVED" ? "Restaurer" : selected.status === "OPEN" ? "Clore" : "Rouvrir"}</Button>
+                {selected.status !== "ARCHIVED" && <Button variant="outline" size="sm" disabled={!canWrite || isPending} onClick={() => run(async () => { await updateEmailThread(selected.id, { status: "ARCHIVED" }); await loadInbox(); router.refresh() })}><Archive />Archiver</Button>}
+                {(!selected.hasAssignment || selected.assignedToMe || canManage) && <Button variant="outline" size="sm" disabled={!canWrite || isPending} onClick={() => changeAssignment(selected.hasAssignment ? "RELEASE" : "CLAIM")}>{selected.assignedToMe ? "Libérer ma prise en charge" : selected.hasAssignment ? "Libérer la prise en charge" : "Prendre en charge"}</Button>}
+                <Button size="sm" disabled={!canWrite} onClick={() => void prepareReply()}><Reply />Répondre</Button><Button size="sm" disabled={!canWrite} onClick={() => void prepareReply(true)}><Reply />Répondre à tous</Button>
+              </div>
+            </div>
+            <p className="px-5 pt-3 text-xs text-muted-foreground">Lecture, clôture, archivage et prise en charge modifient le suivi CRM dans Freelio ; la boîte distante reste inchangée.</p>
             <div className="max-h-[530px] space-y-4 overflow-y-auto bg-muted/20 p-5">{hasPreviousMessages ? <Button variant="outline" size="sm" disabled={isPending} onClick={loadPreviousMessages}>Messages précédents</Button> : null}{selectedMessages.map((message) => <article key={message.id} className={cn("rounded-xl border bg-white p-4 shadow-sm", message.direction === "OUTBOUND" && "ml-auto max-w-[92%] border-primary/20")}>
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><p className="text-sm font-semibold">{message.direction === "OUTBOUND" ? initialData.company.name : message.fromAddress}</p><Badge variant="outline">{message.direction === "OUTBOUND" ? "Sortant" : "Entrant"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">À : {recipients(message.toAddresses)}</p></div><time className="text-xs text-muted-foreground">{formatDate(message.sentAt || message.receivedAt || message.createdAt)}</time></div>
               <p className="mt-3 text-sm font-medium">{message.subject}</p>{message.direction === "OUTBOUND" ? <p className="text-xs text-muted-foreground">{emailPurposeLabel(message.purpose)}</p> : null}<p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{message.bodyText || message.bodyHtml?.replace(/<[^>]+>/g, " ") || "Aucun contenu texte"}</p>

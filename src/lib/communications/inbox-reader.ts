@@ -2,11 +2,14 @@ import "server-only"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { getContext } from "@/lib/context"
 import { remoteMailView } from "./remote-mail-view"
 
 export const inboxQuerySchema = z.object({
   page: z.number().int().min(1).max(100_000).default(1),
-  filter: z.enum(["ALL", "UNREAD", "ARCHIVED"]).default("ALL"),
+  filter: z.enum(["ALL", "UNREAD", "OPEN", "CLOSED", "ARCHIVED"]).default("ALL"),
+  channelId: z.union([z.string().cuid(), z.literal("UNLINKED")]).nullable().default(null),
+  assignment: z.enum(["ALL", "ME", "UNASSIGNED"]).default("ALL"),
   search: z.string().trim().max(200).default(""),
 })
 export type InboxQuery = z.input<typeof inboxQuerySchema>
@@ -26,8 +29,12 @@ function messageDto(message: SelectedMessage) {
 
 export async function readInboxPage(companyId: string, input: InboxQuery = {}) {
   const query = inboxQuerySchema.parse(input)
+  const viewerId = getContext()?.userId
+  if (query.assignment === "ME" && !viewerId) throw new Error("Utilisateur requis pour les conversations personnelles")
   const where: Prisma.EmailThreadWhereInput = {
-    companyId, status: query.filter === "ARCHIVED" ? "ARCHIVED" : { not: "ARCHIVED" },
+    companyId, status: ["OPEN", "CLOSED", "ARCHIVED"].includes(query.filter) ? query.filter : { not: "ARCHIVED" },
+    ...(query.channelId ? { channelId: query.channelId === "UNLINKED" ? null : query.channelId } : {}),
+    ...(query.assignment === "ME" ? { assignedUserId: viewerId } : query.assignment === "UNASSIGNED" ? { assignedUserId: null } : {}),
     ...(query.filter === "UNREAD" ? { unreadCount: { gt: 0 } } : {}),
     ...(query.search ? { OR: [
       { subject: { contains: query.search } }, { client: { name: { contains: query.search } } },
@@ -41,15 +48,16 @@ export async function readInboxPage(companyId: string, input: InboxQuery = {}) {
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
     const page = Math.min(query.page, pageCount)
     const rows = await tx.emailThread.findMany({ where, orderBy: [{ lastMessageAt: "desc" }, { id: "desc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
-      select: { id: true, channelId: true, subject: true, status: true, unreadCount: true, lastMessageAt: true,
+      select: { id: true, channelId: true, subject: true, status: true, unreadCount: true, lastMessageAt: true, assignedUserId: true,
         client: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true, email: true } },
         leadCapture: { select: { id: true, firstName: true, lastName: true, email: true } },
         messages: { select: messageReadSelect, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: MESSAGE_PAGE_SIZE + 1 },
       },
     })
-    return { page, pageCount, total, filter: query.filter, search: query.search,
-      threads: rows.map((row) => ({ ...row, lastMessageAt: row.lastMessageAt.toISOString(), hasPreviousMessages: row.messages.length > MESSAGE_PAGE_SIZE,
+    return { page, pageCount, total, filter: query.filter, search: query.search, channelId: query.channelId, assignment: query.assignment,
+      threads: rows.map(({ assignedUserId, ...row }) => ({ ...row, assignedToMe: Boolean(viewerId && assignedUserId === viewerId), hasAssignment: assignedUserId !== null,
+        lastMessageAt: row.lastMessageAt.toISOString(), hasPreviousMessages: row.messages.length > MESSAGE_PAGE_SIZE,
         messages: row.messages.slice(0, MESSAGE_PAGE_SIZE).toReversed().map(messageDto) })),
     }
   })

@@ -7,6 +7,7 @@ import { encrypt } from "../src/lib/crypto.ts"
 import { seedCatalogueAssets } from "./seed-catalogue-assets.mjs"
 import { seedRemoteMail } from "./seed-remote-mail.mjs"
 import { seedCommunicationsAccess } from "./seed-communications-access.mjs"
+import { seedInboxManagement } from "./seed-inbox-management.mjs"
 import { seedDocumentRelations } from "./seed-document-relations.mjs"
 import { seedRecurringInvoices } from "./seed-recurring-invoices.mjs"
 import { seedOperationsOrderFinance } from "./seed-operations-order-finance.mjs"
@@ -352,5 +353,6 @@ try {
   }
   await seedRemoteMail(prisma, companyId, user.id)
   await seedCommunicationsAccess(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
+  await seedInboxManagement(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   console.log("QA fixtures ready: directories, documents, signed contract, supplier, purchase, migration and paginated inbox.")
 } finally { await prisma.$disconnect() }

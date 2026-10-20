@@ -19,6 +19,7 @@ import { encrypt } from "@/lib/crypto"
 import prisma from "@/lib/prisma"
 import { channelConfig } from "@/lib/communications/sync-state"
 import { readInboxPage, readPreviousThreadMessages, type InboxQuery } from "@/lib/communications/inbox-reader"
+import { changeThreadAssignment } from "@/lib/communications/thread-assignment"
 import { readRecipientPage } from "@/lib/communications/recipient-reader"
 import { deleteEmailDraft, EmailDraftConflict, getEmailDraft, listEmailDrafts, saveEmailDraft, sendEmailDraft } from "@/lib/communications/drafts"
 import { copyRecipientsSchema, validateRecipients } from "@/lib/communications/recipients"
@@ -384,5 +385,13 @@ export async function updateEmailThread(threadId: string, input: unknown) {
     await logAction({ userId, action: "UPDATE_EMAIL_THREAD", resource: "EMAIL_THREAD", resourceId: id, payload: data })
     revalidatePath("/dashboard/communications")
     return { success: true as const }
+  }, "automation.write")
+}
+
+export async function updateCommunicationThreadAssignment(threadId: string, operation: "CLAIM" | "RELEASE") {
+  return withAuth(async ({ companyId, userId }) => {
+    const result = await changeThreadAssignment(companyId, userId, { threadId, operation })
+    if (result.success) revalidatePath("/dashboard/communications")
+    return result
   }, "automation.write")
 }
