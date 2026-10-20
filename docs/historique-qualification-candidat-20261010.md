@@ -154,3 +154,7 @@ Le stockage durable, les comptes OAuth/transport réels, la délivrabilité, la 
 ## Préflight du contenu des campagnes — 20 octobre 2026
 
 `d00d517` complète les vérifications de contenu, liens et variables et empêche la réinterprétation des valeurs de contact. `59cbad2` inclut réellement les deux cas SSR dans le manifeste de tests, sans changer la production. Les [preuves](evidence/20261020-campaign-content/README.md) conservent les quatre échecs initiaux et 2 944 cas SQLite réussis sur une base neuve. Types et lints passent ; le build de d00d517 reste applicable. Quotas, domaine/fournisseur, PostgreSQL et navigateur restent distincts ; aucune nouvelle CI ni publication n'est effectuée.
+
+## 21 octobre 2026 — Plafonds internes d’envoi
+
+`ee695b3` raccorde la réservation atomique minute/jour aux trois transports CRM ; `e6ddcef` complète la preuve Comptabilité. `c689a50` déclare les prérequis des fixtures ; `3046a11` conserve les identifiants du relais et de la boîte choisis. La [qualification locale](evidence/20261020-mail-send-quotas/README.md) passe 2989 tests dans 259 fichiers sur une base neuve, sans exclusion. Les diagnostics initiaux, la régression de cascade trouvée puis corrigée et la preuve de mise à niveau sont conservés. Les plafonds exigent une configuration explicite ; aucun historique ou quota fournisseur n’est inventé. PostgreSQL, navigateur, CI distante et déploiement de ce code restent à qualifier ; aucun push n’a été effectué.

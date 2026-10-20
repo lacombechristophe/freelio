@@ -58,6 +58,10 @@ acceptation ou admission peut être annulée. La commande est conservée en
 tentative incertaine bloque cette libération. La fermeture de commande et la
 libération du brouillon sont atomiques sous le verrou du brouillon.
 
+Cette annulation est locale : elle arrête la commande Freelio, sans supprimer un
+éventuel brouillon déjà préparé chez le fournisseur. Ce brouillon et ses références
+restent conservés ; il n'y a pas de nouvelle demande d'envoi de Freelio.
+
 Les plafonds sont édités par les administrateurs dans Communications, avec une
 version de configuration pour refuser un écrasement concurrent. Les autres
 membres ne voient que les agrégats des boîtes auxquelles ils ont accès. Aucune
