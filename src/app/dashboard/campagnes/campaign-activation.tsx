@@ -19,6 +19,7 @@ const labels: Record<string, string> = {
   ADRESSE_OU_CONTACT_MODIFIE: "Adresse ou contact modifié", DROITS_RETIRES: "Droits d’activation retirés", CAMPAGNE_OU_SEQUENCE_ARRETEE: "Campagne ou séquence arrêtée",
   CONFIGURATION_MODIFIEE: "Configuration modifiée : rétablissez la configuration vérifiée ou clôturez l’inscription restante avant une nouvelle vérification", EXPEDITEUR_INDISPONIBLE: "Boîte expéditrice indisponible",
   CONTENU_INVALIDE: "Contenu de séquence invalide : clôturez l’inscription restante puis vérifiez une nouvelle audience",
+  PLAFONDS_INDISPONIBLES: "Plafonds internes indisponibles : corrigez les réglages de la boîte dans Communications, puis reprenez l’inscription",
   LOT_INTERROMPU: "Lot interrompu : reprise disponible sans recommencer les inscriptions", CAPTURE_INCOMPLETE: "Capture incomplète : contrôle administrateur requis",
 }
 
@@ -84,7 +85,7 @@ export function CampaignActivation({ campaign }: { campaign: Campaign }) {
           if (!result) throw new Error("Contrôle du contenu impossible")
           setContentReport(result); setError("")
         } catch (error) { setError(error instanceof Error ? error.message : "Contrôle du contenu impossible") } })
-      }}>Vérifier le contenu</Button>
+      }}>Vérifier la séquence</Button>
       <Button demoMutation type="submit" disabled={pending || !["PLANNED", "ACTIVE"].includes(campaign.status) || !!report?.activeAudienceId} className="shrink-0"><Rocket />Vérifier l’audience</Button>
     </form>
     {contentReport ? <CampaignContentReportView report={contentReport} /> : null}

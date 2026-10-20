@@ -303,7 +303,12 @@ try {
     const client = await prisma.client.create({ data: { companyId, name: `Fictional activation contacts ${surface}` } })
     const segment = await prisma.marketingSegment.create({ data: { companyId, name, kind: "STATIC", filters: {}, lastBuiltAt: new Date() } })
     const campaign = await prisma.marketingCampaign.create({ data: { companyId, segmentId: segment.id, name, objective: "Fictional resumable activation", channels: ["EMAIL"], status: "PLANNED", startAt: new Date("2030-01-01"), createdAt: new Date("1985-01-01") } })
-    await prisma.emailSequence.create({ data: { companyId, campaignId: campaign.id, senderChannelId: mailbox.id, name, status: "ACTIVE", businessDaysOnly: false, timezone: "UTC", steps: { create: { position: 0, subject: "Fictional unsent activation", bodyHtml: "<p>Fictional recipe only</p>" } } } })
+    const activationMailbox = await prisma.communicationChannel.upsert({ where: { companyId_provider_emailAddress: { companyId, provider: "RESEND", emailAddress: "activation-qa@example.test" } }, update: {}, create: {
+      companyId, provider: "RESEND", ownerUserId: user.id, visibility: "SHARED", status: "ACTIVE", mailEnabled: true, calendarEnabled: false, emailAddress: "activation-qa@example.test", displayName: "Boîte fictive QA Activation", createdAt: new Date("1980-01-01"),
+      credentialsEncrypted: encrypt(JSON.stringify({ mode: "BYOK", apiKey: "re_fictional_only", webhookSecret: "whsec_fictional_only" })),
+    } })
+    await prisma.emailSendQuotaPolicy.upsert({ where: { companyId_channelKey: { companyId, channelKey: activationMailbox.id } }, update: {}, create: { companyId, channelKey: activationMailbox.id, channelId: activationMailbox.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 10 } })
+    await prisma.emailSequence.create({ data: { companyId, campaignId: campaign.id, senderChannelId: activationMailbox.id, name, status: "ACTIVE", businessDaysOnly: false, timezone: "UTC", steps: { create: { position: 0, subject: "Fictional unsent activation", bodyHtml: "<p>Fictional recipe only</p>" } } } })
     for (let index = 0; index < 26; index++) {
       const email = `activation-${surface}-${index}@example.test`
       const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: `Activation ${index}`, email, marketingStatus: "OPTED_IN" } })

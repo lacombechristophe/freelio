@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
 vi.mock("server-only", () => ({}))
 import prisma from "@/lib/prisma"
+import { encrypt } from "@/lib/crypto"
 import { captureCampaignAudience, changeCampaignActivation, campaignAudienceReport, campaignAudienceHistory, processCampaignActivations } from "@/lib/marketing/campaign-activation"
 import { enrollLeadInSequenceInternal } from "@/lib/automations/sequences"
 import { assertManualMarketingConsent } from "@/lib/communications/marketing-consent"
@@ -32,7 +33,9 @@ describe.sequential("verified immutable campaign audiences and atomic resumable 
     const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictional activation contacts" } })
     const segment = await prisma.marketingSegment.create({ data: { companyId: company.id, name: "Fictional audience", kind: "STATIC", filters: {}, lastBuiltAt: new Date() } })
     const campaign = await prisma.marketingCampaign.create({ data: { companyId: company.id, segmentId: segment.id, name: "Fictional campaign", objective: "Fictional activation", channels: ["EMAIL"], status: "PLANNED", startAt: new Date(Date.now() + 86_400_000) } })
-    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, visibility: "PRIVATE", provider: "RESEND", status: "ACTIVE", emailAddress: "sender@example.test" } })
+    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, visibility: "PRIVATE", provider: "RESEND", status: "ACTIVE", emailAddress: "sender@example.test",
+      credentialsEncrypted: encrypt(JSON.stringify({ mode: "BYOK", apiKey: "re_fictional_only", webhookSecret: "whsec_fictional_only" })) } })
+    await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelId: channel.id, channelKey: channel.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 10 } })
     const sequence = await prisma.emailSequence.create({ data: { companyId: company.id, campaignId: campaign.id, senderChannelId: channel.id, name: "Fictional sequence", status: "ACTIVE", businessDaysOnly: false, timezone: "UTC", steps: { create: { position: 0, delayHours: 0, subject: "Fictional message", bodyHtml: "<p>Fictional recipe</p>" } } }, include: { steps: true } })
     const leads = Array.from({ length: count }, (_, index) => ({ id: cuid(), companyId: company.id, clientId: client.id, contactId: proven ? cuid() : null, firstName: "Fiction", lastName: `Recipient ${String(index).padStart(5, "0")}`, email: `fiction${index}@example.test`, privacyAccepted: true, marketingOptIn: true, fingerprint: `fixture-${index}` }))
     for (let offset = 0; offset < count; offset += 200) {

@@ -14,7 +14,7 @@ import prisma from "@/lib/prisma"
 import { providerFetch as fetch } from "@/lib/integrations/provider-fetch"
 import { withProcessorLease } from "@/lib/processing/lease"
 import { activeEmailSuppression } from "@/lib/communications/suppressions"
-import { mailScopeGranted, MailReconnectRequiredError } from "@/lib/communications/capabilities"
+import { mailScopeGranted, mailDraftScopeGranted, MailReconnectRequiredError } from "@/lib/communications/capabilities"
 import { canonicalEmailSubject } from "@/lib/communications/threads"
 import { replyContextSchema, replyHeaders, replyMailboxAddresses, validInternetMessageId, type ReplyContext } from "@/lib/communications/reply-context"
 import { copyRecipientsSchema, emailAddressSchema, validateRecipients } from "@/lib/communications/recipients"
@@ -285,8 +285,7 @@ export async function sendEmailThroughChannel(input: {
   const provider = channel.provider as EmailOAuthProvider
   const credentials = await validOAuthCredentials(channel)
   if (!mailScopeGranted(provider, credentials.scope, "SEND")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser l’envoi")
-  const scopes = new Set(credentials.scope.toLowerCase().split(/\s+/))
-  if (provider === "GOOGLE" ? !scopes.has("https://mail.google.com/") && !scopes.has("https://www.googleapis.com/auth/gmail.modify") : !scopes.has("mail.readwrite")) {
+  if (!mailDraftScopeGranted(provider, credentials.scope)) {
     throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser les brouillons et la reprise des envois")
   }
   const accessToken = credentials.accessToken

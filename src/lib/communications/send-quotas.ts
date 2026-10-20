@@ -19,6 +19,7 @@ export class EmailSendQuotaError extends Error {
   constructor(message: string, readonly retryAt: Date | null = null) { super(message) }
 }
 export class EmailSendQuotaConflict extends Error {}
+export class EmailSendQuotaConfigurationError extends Error {}
 class QuotaStateConflict extends Error {}
 
 type Tx = TransactionClient
@@ -47,7 +48,7 @@ function channelId(channelKey: string) { return channelKey === "platform" ? null
 async function readPolicy(tx: Tx, identity: Identity) {
   await assertMailbox(tx, identity)
   const policy = await tx.emailSendQuotaPolicy.findUnique({ where: { companyId_channelKey: identity } })
-  if (policy && policy.channelId !== channelId(identity.channelKey)) throw new Error("Configuration de plafond incohérente")
+  if (policy && policy.channelId !== channelId(identity.channelKey)) throw new EmailSendQuotaConfigurationError("Configuration de plafond incohérente")
   return policy
 }
 
@@ -74,7 +75,7 @@ function intentBinding(input: QuotaIntent) {
 
 async function quotaState(tx: Tx, identity: Identity, period: typeof periods[number], now: Date) {
   const state = await tx.emailSendQuotaState.findUnique({ where: { companyId_channelKey_period: { ...identity, period: period.name } } })
-  if (state && state.channelId !== channelId(identity.channelKey)) throw new Error("Compteur de plafond incohérent")
+  if (state && state.channelId !== channelId(identity.channelKey)) throw new EmailSendQuotaConfigurationError("Compteur de plafond incohérent")
   const floor = Math.floor(now.getTime() / period.duration) * period.duration
   // Rebuilding a missing cache never discards a later durable admission.
   const last = !state ? await tx.emailSendQuotaCharge.findFirst({ where: { ...identity, period: period.name }, orderBy: { windowStart: "desc" }, select: { windowStart: true } }) : null
@@ -139,8 +140,8 @@ export async function reserveEmailSendQuota(input: QuotaIntent, now = new Date()
 }
 
 /** Read-only projection: no command, recipient address, body or fingerprint. */
-export async function readEmailSendQuota(identity: Identity, now = new Date()) {
-  return prisma.$transaction(async tx => {
+export async function readEmailSendQuota(identity: Identity, now = new Date(), transaction?: TransactionClient) {
+  const read = async (tx: TransactionClient) => {
     const policy = await readPolicy(tx, identity)
     const windows = await Promise.all(periods.map(period => quotaState(tx, identity, period, now)))
     return {
@@ -148,7 +149,8 @@ export async function readEmailSendQuota(identity: Identity, now = new Date()) {
       dailyRecipientLimit: policy?.dailyRecipientLimit ?? null, minuteRecipientLimit: policy?.minuteRecipientLimit ?? null,
       windows: windows.map(window => ({ period: window.period, used: window.used, resetAt: new Date(window.windowStart.getTime() + window.duration).toISOString() })),
     }
-  })
+  }
+  return transaction ? read(transaction) : prisma.$transaction(read)
 }
 
 export async function saveEmailSendQuota(companyId: string, input: unknown) {

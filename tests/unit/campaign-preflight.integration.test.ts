@@ -4,6 +4,7 @@ const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 import prisma from "@/lib/prisma"
+import { encrypt } from "@/lib/crypto"
 import { captureCampaignAudience, processCampaignActivations } from "@/lib/marketing/campaign-activation"
 import { readCampaignContentPreflight } from "@/lib/marketing/campaign-preflight"
 import { processDueSequenceEmails } from "@/lib/automations/sequences"
@@ -23,7 +24,9 @@ async function fixture(bodyHtml: string) {
   const member = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
   const segment = await prisma.marketingSegment.create({ data: { companyId: company.id, name: "Fictional empty audience", kind: "STATIC", filters: {} } })
   const campaign = await prisma.marketingCampaign.create({ data: { companyId: company.id, segmentId: segment.id, name: "Fictional preflight campaign", objective: "Recipe", channels: ["EMAIL"], status: "PLANNED" } })
-  const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", status: "ACTIVE", visibility: "SHARED", emailAddress: "sender@example.test" } })
+  const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", status: "ACTIVE", visibility: "SHARED", emailAddress: "sender@example.test",
+    credentialsEncrypted: encrypt(JSON.stringify({ mode: "BYOK", apiKey: "re_fictional_only", webhookSecret: "whsec_fictional_only" })) } })
+  await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelId: channel.id, channelKey: channel.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 10 } })
   const sequence = await prisma.emailSequence.create({ data: { companyId: company.id, campaignId: campaign.id, senderChannelId: channel.id, name: "Fictional preflight sequence", status: "ACTIVE", businessDaysOnly: false, sendWindowStart: 0, sendWindowEnd: 23, timezone: "UTC", steps: { create: { position: 0, type: "EMAIL", subject: "Fictional message", bodyHtml } } }, include: { steps: true } })
   session.userId = user.id; session.companyId = company.id
   return { company, user, member, campaign, sequence }

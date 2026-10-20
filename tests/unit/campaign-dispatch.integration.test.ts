@@ -13,6 +13,7 @@ vi.mock("@/lib/automations/email", () => ({
 vi.mock("@/lib/communications/threads", () => ({ recordOutgoingEmail: vi.fn() }))
 
 import prisma from "@/lib/prisma"
+import { encrypt } from "@/lib/crypto"
 import { sendSequenceEmail } from "@/lib/automations/email"
 import { enrollLeadInSequenceInternal, processDueSequenceEmails } from "@/lib/automations/sequences"
 import { pinSequenceSender } from "@/lib/communications/email-provider"
@@ -77,7 +78,9 @@ describe.sequential("campaign gate and enrollment identity", () => {
     const startAt = new Date(Date.now() + 86_400_000)
     const { company, campaign, sequence, lead, enrollment } = await fixture("PLANNED", startAt)
     authContext.companyId = company.id
-    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "campaign-sender@example.test", status: "ACTIVE" } })
+    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "campaign-sender@example.test", status: "ACTIVE",
+      credentialsEncrypted: encrypt(JSON.stringify({ mode: "BYOK", apiKey: "re_fictional_only", webhookSecret: "whsec_fictional_only" })) } })
+    await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelId: channel.id, channelKey: channel.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 10 } })
     const user = await prisma.user.create({ data: { name: "Fictional activation author" } }); users.push(user.id)
     await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER" } })
     await prisma.emailSequence.update({ where: { id: sequence.id }, data: { senderChannelId: channel.id } })

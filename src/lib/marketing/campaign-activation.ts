@@ -11,6 +11,7 @@ import { nextSequenceExecution } from "@/lib/automations/schedule"
 import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
 import { CampaignManagementError, lockCampaignAudience, campaignPageSchema } from "./campaign-management"
 import { assertSequenceContentReady, CampaignContentPreflightError } from "./campaign-preflight"
+import { assertCampaignSendReady, CampaignSendPreflightError } from "./campaign-send-readiness"
 
 const id = z.string().cuid(), hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
 const sequenceInclude = { steps: { orderBy: { position: "asc" as const } } }
@@ -27,12 +28,7 @@ async function authorized(tx: TransactionClient, companyId: string, userId: stri
 
 async function senderReady(tx: TransactionClient, companyId: string, userId: string, role: string, sequence: Sequence) {
   assertSequenceContentReady(sequence.steps)
-  if (!sequence.steps.some(step => step.type === "EMAIL")) return
-  if (!sequence.senderChannelId) throw new CampaignManagementError("Choisissez une boîte expéditrice dans les réglages de la séquence avant de vérifier l’audience")
-  // A capture must name a real mailbox. Platform fallback does not invent one.
-  const channel = await tx.communicationChannel.findFirst({ where: { id: sequence.senderChannelId, companyId, status: "ACTIVE", mailEnabled: true,
-    ...(["OWNER", "ADMIN"].includes(role) ? {} : { OR: [{ visibility: "SHARED" }, { visibility: "PRIVATE", ownerUserId: userId }] }) }, select: { id: true } })
-  if (!channel) throw new CampaignManagementError("Boîte expéditrice déconnectée ou inaccessible")
+  await assertCampaignSendReady(tx, { companyId, userId, role }, sequence)
 }
 
 type CandidateLead = { id: string; companyId: string; email: string | null; contactId: string | null; status: string; marketingOptIn: boolean }
@@ -178,6 +174,7 @@ async function processActivationBatch(audienceId: string, control: ProcessorLeas
     if (audience.campaignHash !== campaignHash(campaign) || audience.sequenceHash !== hash(sequenceConfiguration(sequence))) return pause("CONFIGURATION_MODIFIEE")
     try { await senderReady(tx, audience.companyId, audience.authorUserId, role, sequence) } catch (error) {
       if (error instanceof CampaignContentPreflightError) return pause("CONTENU_INVALIDE")
+      if (error instanceof CampaignSendPreflightError && error.kind === "QUOTA") return pause("PLAFONDS_INDISPONIBLES")
       if (error instanceof CampaignManagementError) return pause("EXPEDITEUR_INDISPONIBLE")
       throw error
     }
