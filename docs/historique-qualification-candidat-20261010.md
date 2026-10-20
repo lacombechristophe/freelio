@@ -150,3 +150,7 @@ Les délais existants restent conservés : 240 secondes par défaut, 15 minutes 
 Le [nettoyage distant autorisé](evidence/20261015-ci-storage/README.md) a traité les 269 identifiants sauvegardés : 256 supprimés, 13 déjà absents. Les 269 ZIP locaux et les 750 autres artefacts sont conservés et vérifiés. Le recalcul du quota n'est pas prouvé par cette suppression ; les uploads du candidat a39e5a5 restent refusés.
 
 Le stockage durable, les comptes OAuth/transport réels, la délivrabilité, la charge, la reprise après arrêt brutal et la récupération distante restent à qualifier avant un usage commercial. Le budget courant est de 0 € et aucun abonnement R2 n'est engagé.
+
+## Préflight du contenu des campagnes — 20 octobre 2026
+
+`d00d517` complète les vérifications de contenu, liens et variables et empêche la réinterprétation des valeurs de contact. `59cbad2` inclut réellement les deux cas SSR dans le manifeste de tests, sans changer la production. Les [preuves](evidence/20261020-campaign-content/README.md) conservent les quatre échecs initiaux et 2 944 cas SQLite réussis sur une base neuve. Types et lints passent ; le build de d00d517 reste applicable. Quotas, domaine/fournisseur, PostgreSQL et navigateur restent distincts ; aucune nouvelle CI ni publication n'est effectuée.

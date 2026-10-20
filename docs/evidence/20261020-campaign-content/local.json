@@ -1,0 +1,466 @@
+{
+  "schema": "freelio.campaign-content-local.v1",
+  "observedAt": "2026-10-20T20:42:51.068Z",
+  "codeCommit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+  "source": {
+    "observedAt": "2026-10-20T20:42:50.728Z",
+    "commit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+    "filesCompared": 1165,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "38025405d592a9530171a6a3db0fdb659e79531ba9712e64cea16e91f50eda68",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-campaign-preflight-ssr-20261020.json",
+    "sha256": "2765ead24e29bfb5d5bd360e6bd0c5cafeb72591ea05eb84cedba53673576bcc",
+    "success": true,
+    "total": 2944,
+    "passed": 2944,
+    "failed": 0,
+    "pending": 0,
+    "files": 256
+  },
+  "unitManifest": {
+    "expectedFiles": 256,
+    "executedFiles": 256,
+    "identityMatch": true,
+    "recordsSha256": "5901eee3b136f224449113fc63ec166c367ea6cf99a18d9ec087cfc01f4724ba",
+    "scope": "Every tracked tests/unit/*.test.* file matched to the final complete report, by relative path"
+  },
+  "focused": {
+    "file": "full-sqlite-campaign-preflight-ssr-20261020.json",
+    "sha256": "2765ead24e29bfb5d5bd360e6bd0c5cafeb72591ea05eb84cedba53673576bcc",
+    "scope": "Nine named suites extracted from the final complete run, not a second execution",
+    "total": 77,
+    "passed": 77,
+    "failed": 0,
+    "files": 9,
+    "suites": [
+      {
+        "file": "campaign-activation.integration.test.ts",
+        "passed": 9
+      },
+      {
+        "file": "campaign-content-report.test.ts",
+        "passed": 2
+      },
+      {
+        "file": "campaign-dispatch.integration.test.ts",
+        "passed": 10
+      },
+      {
+        "file": "campaign-management.integration.test.ts",
+        "passed": 5
+      },
+      {
+        "file": "campaign-preflight.integration.test.ts",
+        "passed": 9
+      },
+      {
+        "file": "email-content.test.ts",
+        "passed": 2
+      },
+      {
+        "file": "email-preflight.test.ts",
+        "passed": 16
+      },
+      {
+        "file": "sequence-history.integration.test.ts",
+        "passed": 6
+      },
+      {
+        "file": "sequence-retry-safety.integration.test.ts",
+        "passed": 18
+      }
+    ]
+  },
+  "initialFocused": {
+    "file": "Freelio-campaign-preflight-final-focused-20261020.json",
+    "sha256": "93076dc40897222614f1e745d5f7ec7269da213dc5780a007adb2765595799bc",
+    "success": true,
+    "total": 75,
+    "passed": 75,
+    "failed": 0,
+    "pending": 0,
+    "files": 8,
+    "suites": [
+      {
+        "file": "campaign-activation.integration.test.ts",
+        "status": "passed",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "campaign-dispatch.integration.test.ts",
+        "status": "passed",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "file": "campaign-management.integration.test.ts",
+        "status": "passed",
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "campaign-preflight.integration.test.ts",
+        "status": "passed",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "email-content.test.ts",
+        "status": "passed",
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "email-preflight.test.ts",
+        "status": "passed",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "file": "sequence-history.integration.test.ts",
+        "status": "passed",
+        "passed": 6,
+        "failed": 0
+      },
+      {
+        "file": "sequence-retry-safety.integration.test.ts",
+        "status": "passed",
+        "passed": 18,
+        "failed": 0
+      }
+    ]
+  },
+  "actualSsrSelection": {
+    "file": "campaign-content-report.test.ts",
+    "selectedFiles": 1,
+    "passed": 2,
+    "cases": [
+      {
+        "name": "campaign content report initial SSR limits a successful result to the inspected content and leaves external checks explicit",
+        "status": "passed"
+      },
+      {
+        "name": "campaign content report initial SSR shows blocking corrections and the complete issue count without injecting sequence markup",
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": {
+    "types": {
+      "codeCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-release-types-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eslint": {
+      "codeCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-release-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oxlint": {
+      "codeCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-release-oxlint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build": {
+      "codeCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-release-build-20261020.log",
+      "sha256": "24eab53f0ff397d8f51d55cd708612e865ca58f36caf4b060165d57e1de9d41a"
+    },
+    "publication": {
+      "codeCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-release-publication-20261020.log",
+      "sha256": "2ba1c25ce02dd09eb0a9241a9945a6e646dec112f54f3369a7fd67872d4df6f2"
+    }
+  },
+  "productionEquivalence": {
+    "compiledCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+    "candidateCommit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+    "changedPaths": [
+      "tests/unit/campaign-content-report.test.ts",
+      "tests/unit/campaign-content-report.test.tsx"
+    ],
+    "meaning": "Only SSR test filename and React.createElement syntax changed; src, dependencies, configuration, workflows and production scripts unchanged"
+  },
+  "testCorrectionChecks": {
+    "eslint": {
+      "codeCommit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-ssr-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oxlint": {
+      "codeCommit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-ssr-oxlint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "publication": {
+      "codeCommit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+      "exitCode": 0,
+      "file": "Freelio-campaign-preflight-ssr-publication-20261020.log",
+      "sha256": "9abe74986c47175b2f9e2e75acbe0582b3b45becbb91e4df4616e5e2d745e0b2"
+    }
+  },
+  "unselectedSsrDiagnostic": {
+    "codeCommit": "d00d517c698a77ced0553215cdf284ee0580796f",
+    "full": {
+      "file": "full-sqlite-campaign-preflight-20261020.json",
+      "sha256": "8d239c61eb2b20e1d124de61e0dad350b644bd564be9901c0ae18da7820a8af3",
+      "success": true,
+      "total": 2942,
+      "passed": 2942,
+      "failed": 0,
+      "pending": 0,
+      "files": 255
+    },
+    "reason": "Vitest includes only **/*.test.ts. The .tsx SSR file was typechecked but not executed, including the first focused run. Filename corrected to .ts without changing test assertions; final full suite explicitly confirms both cases."
+  },
+  "packageTypecheck": {
+    "exitCode": 0,
+    "commands": [
+      "next typegen",
+      "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit"
+    ],
+    "codeCommit": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+    "file": "Freelio-campaign-preflight-ssr-typecheck-20261020.log",
+    "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084"
+  },
+  "earlierChecks": [
+    {
+      "report": {
+        "file": "Freelio-campaign-preflight-baseline-20261020.json",
+        "sha256": "bd58e8aa53dde1f5352bcb7def838ea5d5ebe52b3c0d96824beea175d13e65a2",
+        "success": false,
+        "total": 3,
+        "passed": 0,
+        "failed": 3,
+        "pending": 0,
+        "files": 1,
+        "suites": [
+          {
+            "file": "campaign-preflight.integration.test.ts",
+            "status": "failed",
+            "passed": 0,
+            "failed": 3
+          }
+        ]
+      },
+      "note": "Initial three SQL regressions before correction"
+    },
+    {
+      "report": {
+        "file": "Freelio-campaign-preflight-first-20261020.json",
+        "sha256": "e183037db37a1963c7d4dec2b360e386110fd4dd7218773671f1b2adb9051d50",
+        "success": true,
+        "total": 20,
+        "passed": 20,
+        "failed": 0,
+        "pending": 0,
+        "files": 3,
+        "suites": [
+          {
+            "file": "campaign-preflight.integration.test.ts",
+            "status": "passed",
+            "passed": 3,
+            "failed": 0
+          },
+          {
+            "file": "email-content.test.ts",
+            "status": "passed",
+            "passed": 2,
+            "failed": 0
+          },
+          {
+            "file": "email-preflight.test.ts",
+            "status": "passed",
+            "passed": 15,
+            "failed": 0
+          }
+        ]
+      },
+      "note": "First twenty checks passed"
+    },
+    {
+      "report": {
+        "file": "Freelio-campaign-preflight-expanded-20261020.json",
+        "sha256": "02834d99b7b323be426f80cfa603d4d0e19afcd13d5e8e671035763a3ebe98cb",
+        "success": false,
+        "total": 25,
+        "passed": 18,
+        "failed": 7,
+        "pending": 0,
+        "files": 3,
+        "suites": [
+          {
+            "file": "campaign-preflight.integration.test.ts",
+            "status": "failed",
+            "passed": 0,
+            "failed": 7
+          },
+          {
+            "file": "email-content.test.ts",
+            "status": "passed",
+            "passed": 2,
+            "failed": 0
+          },
+          {
+            "file": "email-preflight.test.ts",
+            "status": "passed",
+            "passed": 16,
+            "failed": 0
+          }
+        ]
+      },
+      "note": "Fixture used string hours instead of the schema integer values; not product evidence"
+    },
+    {
+      "report": {
+        "file": "Freelio-campaign-preflight-expanded-fixed-20261020.json",
+        "sha256": "98f450c26cb7ec8af6973f116220b346bec71ab7a095fcb95eb2b0108b2400f9",
+        "success": false,
+        "total": 25,
+        "passed": 23,
+        "failed": 2,
+        "pending": 0,
+        "files": 3,
+        "suites": [
+          {
+            "file": "campaign-preflight.integration.test.ts",
+            "status": "failed",
+            "passed": 5,
+            "failed": 2
+          },
+          {
+            "file": "email-content.test.ts",
+            "status": "passed",
+            "passed": 2,
+            "failed": 0
+          },
+          {
+            "file": "email-preflight.test.ts",
+            "status": "passed",
+            "passed": 16,
+            "failed": 0
+          }
+        ]
+      },
+      "note": "Task fixture used null strings; expectation confused processing-claim attempts with transport calls. Corrected to the schema and preserved the no-request assertion"
+    },
+    {
+      "report": {
+        "file": "Freelio-campaign-preflight-focused-20261020.json",
+        "sha256": "89d4e8e948ea48794234992fb6dc0123a21e5ffbdbec18d1b5e234a8d78c1cb9",
+        "success": true,
+        "total": 25,
+        "passed": 25,
+        "failed": 0,
+        "pending": 0,
+        "files": 3,
+        "suites": [
+          {
+            "file": "campaign-preflight.integration.test.ts",
+            "status": "passed",
+            "passed": 7,
+            "failed": 0
+          },
+          {
+            "file": "email-content.test.ts",
+            "status": "passed",
+            "passed": 2,
+            "failed": 0
+          },
+          {
+            "file": "email-preflight.test.ts",
+            "status": "passed",
+            "passed": 16,
+            "failed": 0
+          }
+        ]
+      },
+      "note": "Twenty-five checks passed after fixture corrections"
+    }
+  ],
+  "coverage": {
+    "scope": "Six configured modules only",
+    "metrics": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T20:31:24.159Z",
+    "baseline": "59cbad2254d2f55f2bda03d1e82c647d18f3c00e",
+    "all": 456,
+    "desktop": 228,
+    "mobile": 228,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "limits": [
+    "SQL real; session/cache and provider transport simulated where declared",
+    "The preflight never follows URLs, queries DNS or checks provider quotas",
+    "No schema, dependency or external service added",
+    "Browser selection only, not execution; SSR verifies initial report output only",
+    "Full SQL suite ran after build and publication history scan completed",
+    "PostgreSQL/Linux and browser qualification of this exact code remain required",
+    "No push/new CI/deploy, real provider account or message, R2, server or Docker; zero-spending guard remains unverified"
+  ]
+}

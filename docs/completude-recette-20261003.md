@@ -4,15 +4,15 @@
 
 ## Résultat actuel
 
-Le candidat local `f4fcbc1693bdb5ff7a166814c1610bad0b0f33f3` complète le tri, l'archivage et la prise en charge des conversations, puis protège leurs relations entre sociétés. Les [preuves reproductibles](evidence/20261020-inbox-management/README.md) distinguent les défauts initiaux, les corrections et les erreurs de préparation des fixtures.
+Le candidat local `59cbad2254d2f55f2bda03d1e82c647d18f3c00e` ajoute le [préflight du contenu des campagnes](evidence/20261020-campaign-content/README.md) : variables, texte visible et liens conservés, avec rapport de lecture et recontrôles avant activation/envoi. Les [conversations et leurs protections](evidence/20261020-inbox-management/README.md) restent incluses. Le contrôle du contenu ne vérifie pas les quotas fournisseur ni la disponibilité des domaines.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **2 917 tests / 253 fichiers**, aucun échec ni exclusion |
-| Gestion des conversations, droits et régressions voisines | 53 contrôles réussis |
-| Types, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi, 76 pages statiques |
-| Identité des sources de la recette | 1157 fichiers conformes au commit |
+| Suite SQLite, base fictive neuve | **2 944 tests / 256 fichiers**, aucun échec ni exclusion |
+| Préflight et régressions voisines | 77 cas présents et réussis dans la suite complète |
+| Types, génération des routes, ESLint et Oxlint | Réussis |
+| Build Next.js | Réussi sur d00d517, 76 pages statiques ; code de production inchangé ensuite |
+| Identité des sources de la recette | 1165 fichiers conformes au commit |
 | Navigateur | 456 cas sélectionnés, 228 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
@@ -21,6 +21,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Contenu de campagne vérifié sans interpréter les valeurs de contact comme des modèles | [Préflight et limites](contrat-preflight-contenu-campagnes.md) |
 | Filtres combinés, archives conservées et attribution concurrente | [Gestion des conversations](contrat-tri-conversations.md) |
 | Références étrangères exclues des fils, messages et événements, même pour Owner/Admin | [Relations des conversations](contrat-relations-conversations.md) |
 | Conversations natives séparées et réparation sans réaffectation historique | [Qualification](evidence/20261020-native-conversations/README.md) |
@@ -49,6 +50,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | MAIL-02 : état et pièces des messages entrants | Le [lot](contrat-etats-messageries-entrantes.md) est implémenté dans `d02c701` et `8a7f9a6` : history/delta, observation séparée du suivi CRM, copies conservées, reprise sans réception rejouée et pièces PDF/PNG/JPEG bornées avec ACL revérifiées. Les [preuves locales](evidence/20261020-mail-observations/README.md) couvrent aussi les reconnexions intercalées. PostgreSQL, navigateur et comptes réels restent à qualifier ; import historique exhaustif, archivage durable et analyse antivirus ne sont pas livrés. |
 | MAIL-05 : identité native des fils entrants | [Implémentée et qualifiée localement sur `1dd29ef`](evidence/20261020-native-conversations/README.md) : séparation native, préparation/acceptation et réparations, contrainte par société/boîte, anciens fils non réaffectés. Les diagnostics initiaux restent conservés. PostgreSQL, navigateur et comptes fournisseurs réels restent distincts. |
 | MAIL-04/06 : tri et suivi de la boîte de réception | [Implémentés et qualifiés localement](evidence/20261020-inbox-management/README.md) : boîte/état/attribution, archivage/restauration, prise en charge personnelle et libération administrative. Les relations étrangères sont exclues des lectures et actions. PostgreSQL et les parcours navigateur préparés restent à qualifier. Ce lot ne livre pas les quotas d’envoi ni l’archivage durable des pièces. |
+| L7 : préflight du contenu de campagne | [Implémenté et qualifié localement](evidence/20261020-campaign-content/README.md) : contenu retenu, variables et liens, rapport en lecture seule, recontrôle des activations et arrêt sans transport sur erreur définitive. Quotas internes par boîte, domaines et plafonds fournisseur restent ouverts ; PostgreSQL et interactions navigateur restent à qualifier. |
 | OPS-03 : progression des boîtes à synchroniser | [Rotation et supervision qualifiées localement](evidence/20261020-sync-fairness/README.md) : ordre persistant distinct du succès, anciennes valeurs nulles prioritaires, réservation comparée avant traitement, horloge reculée, sociétés distinctes et contrôle du verrou. L'API signale les échecs au cron et les reprises restent confiées aux traitements durables. Charge, quotas d'envoi par boîte, comptes réels et qualification distante restent distincts. |
 | CAL-01 : progression de la fenêtre calendrier | [Implémentée dans `1194b51`](evidence/20261020-calendar-window/README.md) : fenêtre associée au checkpoint chiffré, renouvellement paginé, anciennes copies conservées, transactions et génération de connexion. SQL/HTTP simulé qualifiés localement ; PostgreSQL et comptes réels distincts. |
 | CRM-01 : cycle de vie des référentiels | Fournisseurs dispose d'édition/désactivation qualifiées. Les [dépôts](gestion-depots.md), [sites et équipements](gestion-sites-equipements.md) disposent de leurs parcours locaux d’édition et d’activité, avec protections transactionnelles et historiques conservés. Le [transfert complet d’agence avec audit](transfert-dossier-site.md) est implémenté. La [suite complète de 2 664 cas](evidence/20261020-site-transfers/README.md) passe sur `ae1b02f` ; qualification PostgreSQL et navigateur des nouveaux parcours encore requise. |
