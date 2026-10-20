@@ -31,10 +31,18 @@ describe.sequential("explicit email purposes and address-bound marketing authori
     if (String(url) !== "https://api.resend.com/emails" || options?.method !== "POST") throw new Error("Unexpected isolated provider HTTP")
     return Response.json({ id: `fiction-${randomUUID()}` })
   })
-  beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal("fetch", http); vi.stubEnv("PUBLIC_APP_URL", "https://example.test") })
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    const actual = await vi.importActual<typeof import("@/lib/communications/threads")>("@/lib/communications/threads")
+    vi.mocked(recordOutgoingEmail).mockReset().mockImplementation(actual.recordOutgoingEmail)
+    vi.stubGlobal("fetch", http); vi.stubEnv("PUBLIC_APP_URL", "https://example.test")
+  })
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks() })
   afterAll(async () => {
     for (const companyId of companies) {
+      await prisma.emailSendQuotaCharge.deleteMany({ where: { companyId } })
+      await prisma.emailSendQuotaState.deleteMany({ where: { companyId } })
+      await prisma.emailSendQuotaPolicy.deleteMany({ where: { companyId } })
       await prisma.opportunity.deleteMany({ where: { pipeline: { companyId } } })
       await prisma.pipeline.deleteMany({ where: { companyId } })
       await prisma.leadCapture.deleteMany({ where: { companyId } })
@@ -54,6 +62,7 @@ describe.sequential("explicit email purposes and address-bound marketing authori
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Consent", email: "recipient@example.test", marketingStatus: "OPTED_IN" } })
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, ownerUserId: user.id, status: "ACTIVE", provider, emailAddress: "sender@example.test",
       credentialsEncrypted: encrypt(JSON.stringify(provider === "RESEND" ? { mode: "BYOK", apiKey: "fiction-resend-key-only", webhookSecret: "fiction-webhook-key-only" } : { mode: "OAUTH", accessToken: "fiction-access-token-only", refreshToken: "fiction-refresh-token-only", tokenType: "Bearer", scope: "https://www.googleapis.com/auth/gmail.modify", expiresAt: "2099-01-01T00:00:00.000Z" })) } })
+    await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelKey: channel.id, channelId: channel.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 100 } })
     const input = { companyId: company.id, userId: user.id, companyName: company.name, purpose: "MARKETING" as "MARKETING" | "SERVICE", contactId: contact.id, clientId: client.id, channelId: channel.id,
       to: contact.email!, requestKey: randomUUID(), threadId: null, serviceTicketId: null, replyTo: null, subject: "Fictional consent mail", html: prepareManualEmailContent("<p>Fictional content only</p>").html, cc: [] as string[], bcc: [] as string[] }
     const asAuthor = <T>(task: () => Promise<T>) => requestContext.run({ companyId: company.id, userId: user.id, membershipId: member.id, role: "OWNER", agencyIds: null, actionPermission: "automation.write" }, task)

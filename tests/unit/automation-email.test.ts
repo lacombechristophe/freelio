@@ -108,17 +108,19 @@ describe("email automation", () => {
     try {
       await prisma.marketingConsent.create({ data: { companyId: company.id, clientId: client.id, contactId: contact.id, recipientEmail: context.lead.email,
         channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "ISOLATED_FICTIONAL_RECIPE", noticeUrl: "https://example.test/privacy", proofHash: "a".repeat(64) } })
+      await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelKey: "platform", enabled: true, dailyRecipientLimit: 10, minuteRecipientLimit: 10 } })
+      const command = await prisma.emailDelivery.create({ data: { companyId: company.id, contactId: contact.id, recipientEmail: context.lead.email!, subject: "Bonjour Camille", status: "SENDING", scheduledAt: new Date(), provider: "RESEND" } })
       await expect(sendSequenceEmail({
         company: { ...context.company, id: company.id },
         lead: { ...context.lead, contactId: contact.id },
         subjectTemplate: "Bonjour {{contact.firstName}}",
         bodyTemplate: "<p>Votre projet {{lead.projectType}}</p>",
-        idempotencyKey: "delivery-1",
+        idempotencyKey: command.id,
       })).resolves.toMatchObject({ providerId: "email-1", subject: "Bonjour Camille", from: "Entreprise & Associés <noreply@example.fr>" })
 
       const [, request] = fetchMock.mock.calls[0]
       const body = JSON.parse(String(request.body))
-      expect(request.headers["Idempotency-Key"]).toBe("delivery-1")
+      expect(request.headers["Idempotency-Key"]).toBe(command.id)
       expect(body.from).toBe("Entreprise & Associés <noreply@example.fr>")
       expect(body.headers["List-Unsubscribe"]).toMatch(/^<https:\/\/crm\.example\.fr\/api\/public\/consent\/one-click\//)
       expect(body.html).toContain("Se désinscrire")
