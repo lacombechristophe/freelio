@@ -22,7 +22,7 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
     const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictitious client" } })
     const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Native", email: "recipient@example.test" } })
     const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider, emailAddress: "sender@example.test", status: "ACTIVE", credentialsEncrypted: encrypt(JSON.stringify(provider === "RESEND" ? { mode: "BYOK", apiKey: "fiction-resend-key-only", webhookSecret: "fiction-webhook-key-only" } : { mode: "OAUTH", accessToken: "fiction-access-token-only", refreshToken: "fiction-refresh-token-only", tokenType: "Bearer", scope: "Mail.Send Mail.ReadWrite https://www.googleapis.com/auth/gmail.modify", expiresAt: "2099-01-01T00:00:00.000Z" })) } })
-    const thread = await prisma.emailThread.create({ data: { companyId: company.id, channelId: channel.id, clientId: client.id, contactId: contact.id, subject: "Fictitious native conversation" } })
+    const thread = await prisma.emailThread.create({ data: { companyId: company.id, channelId: channel.id, providerConversationId: provider === "RESEND" ? null : "native-thread", clientId: client.id, contactId: contact.id, subject: "Fictitious native conversation" } })
     await prisma.emailMessage.create({ data: { companyId: company.id, threadId: thread.id, direction: "INBOUND", provider, providerId: `${channel.id}:parent`, internetMessageId: "<parent@example.test>", fromAddress: contact.email!, toAddresses: [channel.emailAddress], subject: thread.subject } })
     const command = { companyId: company.id, userId: "fiction-owner", companyName: company.name, purpose: "SERVICE" as const, clientId: client.id, contactId: contact.id, channelId: channel.id, requestKey: crypto.randomUUID(), threadId: thread.id, serviceTicketId: null, to: contact.email!, cc: ["cc@example.test"], bcc: ["hidden@example.test"], replyTo: null, subject: `Re: ${thread.subject}`, html: "<p>Fictitious reply only</p>" }
     return { company, channel, thread, command }
@@ -52,6 +52,7 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
       if (options?.method === "POST" && (target.endsWith("/drafts/send") || target.endsWith("/native-draft/send"))) {
         const prepared = await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: company.id } })
         expect(prepared.providerDraftId).toBe("native-draft")
+        expect(prepared.providerConversationId).toBe("native-thread")
         expect(prepared.payload).toMatchObject({ reply: { internetMessageId: "<parent@example.test>" } })
         expect(prepared.providerMessageId).toMatch(/^<.+@.+>$/)
         accepted = true
@@ -59,11 +60,11 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
         throw new Error("Injected HTTP timeout after provider acceptance")
       }
       if (target.includes("/drafts/native-draft") || target.includes("/messages/native-draft?")) {
-        return provider === "GOOGLE" ? new Response(null, { status: 404 }) : Response.json({ id: "native-draft", isDraft: false })
+        return provider === "GOOGLE" ? new Response(null, { status: 404 }) : Response.json({ id: "native-draft", isDraft: false, conversationId: "native-thread" })
       }
       if (target.includes("/messages/parent?")) return Response.json(provider === "GOOGLE"
         ? { id: "parent", threadId: "native-thread", payload: { headers: [{ name: "Message-ID", value: "<parent@example.test>" }, { name: "Subject", value: thread.subject }, { name: "From", value: command.to }] } }
-        : { id: "parent", internetMessageId: "<parent@example.test>", subject: thread.subject, from: { emailAddress: { address: command.to } } })
+        : { id: "parent", conversationId: "native-thread", internetMessageId: "<parent@example.test>", subject: thread.subject, from: { emailAddress: { address: command.to } } })
       if (options?.method === "POST" && (target.endsWith("/drafts") || target.endsWith("/parent/createReply"))) {
         const raw = provider === "GOOGLE" ? JSON.parse(String(options.body)).message.raw : String(options.body)
         const mime = Buffer.from(raw, provider === "GOOGLE" ? "base64url" : "base64").toString("utf8")
@@ -71,9 +72,9 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
         expect(mime).toContain("\r\nCc: cc@example.test\r\n")
         expect(mime).toContain("\r\nBcc: hidden@example.test\r\n")
         if (provider === "GOOGLE") expect(JSON.parse(String(options.body)).message.threadId).toBe("native-thread")
-        return Response.json({ id: "native-draft", internetMessageId: "<graph-native@example.test>" }, { status: 201 })
+        return Response.json({ id: "native-draft", conversationId: "native-thread", message: { threadId: "native-thread" }, internetMessageId: "<graph-native@example.test>" }, { status: 201 })
       }
-      if (target.includes("/messages?")) return Response.json(provider === "GOOGLE" ? { messages: accepted ? [{ id: "already-sent" }] : [] } : { value: [] })
+      if (target.includes("/messages?")) return Response.json(provider === "GOOGLE" ? { messages: accepted ? [{ id: "already-sent", threadId: "native-thread" }] : [] } : { value: [] })
       throw new Error(`Unexpected isolated HTTP request: ${target}`)
     })
     vi.stubGlobal("fetch", http)
@@ -90,5 +91,6 @@ describe.sequential("native reply commands through SQL and isolated provider HTT
     await sendManualEmail(command)
     expect(http).toHaveBeenCalledTimes(calls)
     expect(await prisma.emailMessage.count({ where: { companyId: company.id, direction: "OUTBOUND" } })).toBe(1)
+    expect(await prisma.emailThread.count({ where: { companyId: company.id } })).toBe(1)
   })
 })
