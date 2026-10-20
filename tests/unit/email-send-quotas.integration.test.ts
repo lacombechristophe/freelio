@@ -205,4 +205,13 @@ describe.sequential("internal mailbox send quotas on SQL", () => {
     expect(await prisma.emailSendQuotaCharge.count({ where: { companyId: f.company.id } })).toBe(0)
     expect(await prisma.emailSendQuotaPolicy.count({ where: { companyId: f.company.id } })).toBe(0)
   })
+  it("allows Finance to reserve its reminder without granting policy administration", async () => {
+    const f = await fixture(), command = await f.command()
+    await prisma.membership.update({ where: { id: f.membership.id }, data: { role: "ACCOUNTING" } })
+    await requestContext.run({ ...f.context, role: "ACCOUNTING", actionPermission: "finance.write" }, async () => {
+      expect(await reserveEmailSendQuota(command, at)).toEqual({ recipientUnits: 1 })
+      await expect(saveEmailSendQuota(f.company.id, { channelKey: f.channel.id, version: 1, enabled: false, dailyRecipientLimit: 5, minuteRecipientLimit: 3 })).rejects.toThrow("administrateur")
+    })
+    expect((await readEmailSendQuota(f.identity, at)).windows.map(window => window.used)).toEqual([1, 1])
+  })
 })
