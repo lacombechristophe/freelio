@@ -1,0 +1,348 @@
+{
+  "schema": "freelio.provider-send-failures-local.v1",
+  "observedAt": "2026-10-20T23:56:07.974Z",
+  "codeCommit": "379709e76b1be245c77e5e78f603de9ab3e0484e",
+  "productionCodeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+  "source": {
+    "observedAt": "2026-10-20T23:56:07.325Z",
+    "commit": "379709e76b1be245c77e5e78f603de9ab3e0484e",
+    "filesCompared": 1178,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "a3ab17811c479d31e849e66e1a20e5e6fb9e8b867c6c91700761aeaa80876d5c",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "nonProductionDelta": [
+    "scripts/verify-provider-failure-upgrade.mjs",
+    "tests/unit/provider-send-failures.integration.test.ts"
+  ],
+  "full": {
+    "file": "full-sqlite-provider-failure-final-20261021.json",
+    "sha256": "6eafb88fd1743af916cb685f86cf53e710019476ae991aa24928f208f88dbb74",
+    "freshDatabase": true,
+    "database": "verification-provider-failure-final-20261021.db",
+    "total": 3061,
+    "passed": 3061,
+    "failed": 0,
+    "pending": 0,
+    "files": 262,
+    "success": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 262,
+    "executedFiles": 262,
+    "identityMatch": true,
+    "recordsSha256": "cebef0f57cc7a6456617a397d98ba6b944d759e0c6eda55ac36a4a596272a5ed"
+  },
+  "focusedWithinFull": {
+    "files": 10,
+    "passed": 199,
+    "suites": [
+      {
+        "file": "email-provider-resume.test.ts",
+        "passed": 39,
+        "status": "passed"
+      },
+      {
+        "file": "email-send-quota-transport.integration.test.ts",
+        "passed": 13,
+        "status": "passed"
+      },
+      {
+        "file": "email-send-quotas.integration.test.ts",
+        "passed": 25,
+        "status": "passed"
+      },
+      {
+        "file": "manual-email-command.integration.test.ts",
+        "passed": 19,
+        "status": "passed"
+      },
+      {
+        "file": "provider-errors.test.ts",
+        "passed": 27,
+        "status": "passed"
+      },
+      {
+        "file": "provider-send-failures.integration.test.ts",
+        "passed": 15,
+        "status": "passed"
+      },
+      {
+        "file": "scheduled-emails.integration.test.ts",
+        "passed": 13,
+        "status": "passed"
+      },
+      {
+        "file": "sequence-history.integration.test.ts",
+        "passed": 7,
+        "status": "passed"
+      },
+      {
+        "file": "sequence-recovery.integration.test.ts",
+        "passed": 19,
+        "status": "passed"
+      },
+      {
+        "file": "sequence-retry-safety.integration.test.ts",
+        "passed": 22,
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "check": "typegen",
+      "exit": 0,
+      "log": "Freelio-provider-failure-final-typegen-20261021.log",
+      "codeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+      "logSha256": "adba4af9194e10e47dda75ff0fd0f8c2b756474896d0eba5612799c527ff372a"
+    },
+    {
+      "check": "types",
+      "exit": 0,
+      "log": "Freelio-provider-failure-final-types-20261021.log",
+      "codeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint",
+      "exit": 0,
+      "log": "Freelio-provider-failure-final-eslint-20261021.log",
+      "codeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "oxlint",
+      "exit": 0,
+      "log": "Freelio-provider-failure-final-oxlint-20261021.log",
+      "codeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "build",
+      "exit": 0,
+      "log": "Freelio-provider-failure-final-build-20261021.log",
+      "codeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+      "logSha256": "4dd4540fa0da1031e1d0932191e3f7d3e0ef3d468172774948649d952737835f"
+    },
+    {
+      "check": "types-after-fixture-fix",
+      "codeCommit": "379709e76b1be245c77e5e78f603de9ab3e0484e",
+      "exit": 0,
+      "log": "Freelio-provider-failure-additional-types-20261021.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint-changed-script-and-test",
+      "codeCommit": "379709e76b1be245c77e5e78f603de9ab3e0484e",
+      "exit": 0,
+      "log": "Freelio-provider-failure-additional-eslint-20261021.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "oxlint-changed-script-and-test",
+      "codeCommit": "379709e76b1be245c77e5e78f603de9ab3e0484e",
+      "exit": 0,
+      "log": "Freelio-provider-failure-additional-oxlint-20261021.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "upgrade": {
+    "baseline": "8987addad8f7c47ddcc5c76b4b4cab64ff15c78a",
+    "observedAt": "2026-10-20T23:33:21.978Z",
+    "sqlite": {
+      "applied": true,
+      "historicalCompanyMailboxAndDeliveriesUnchanged": true,
+      "beforeSha256": "a2c88c4296e528bfd88a8f6b8fdf62fb912abca61314996dfe18dd987f8ae8c7",
+      "afterSha256": "a2c88c4296e528bfd88a8f6b8fdf62fb912abca61314996dfe18dd987f8ae8c7",
+      "historicalFailureKinds": [
+        null,
+        null
+      ],
+      "deltaSha256": "bfd98469e0ef23878eba070ccdc1ff0f4d118a06163e0ea278af356a1fc57faf"
+    },
+    "postgresql": {
+      "schemaValidated": true,
+      "migrationMatchesGeneratedDelta": true,
+      "migrationSha256": "bf270c5d942eb2ff7cb3eb9fb6b9778b21b50666df7ef2d91619080db10f67c4",
+      "applied": false,
+      "limit": "Offline schema validation only; no PostgreSQL service started"
+    }
+  },
+  "portableUpgrade": {
+    "script": "scripts/verify-provider-failure-upgrade.mjs",
+    "scriptSha256": "5f7ceb2382168e51d8ef09d74172f75474a16cad82f66db52e73d4f56427ea0e",
+    "isolatedExternalDatabase": true,
+    "success": true,
+    "engine": "SQLite",
+    "preservedRows": 4,
+    "preservedTables": [
+      "Company",
+      "CommunicationChannel",
+      "EmailDelivery"
+    ],
+    "historicalFailuresUnclassified": true,
+    "acceptedAndUncertainCommandsPreserved": true,
+    "foreignKeyErrors": 0,
+    "postgresDiffMatchesMigration": true,
+    "postgresMigrationExecuted": false,
+    "previousSchemaSha256": "7c4a4617395268d095ed0f4e0cd4dc77c8121b0c483457ecee44700567adb082",
+    "schemaSha256": "22b8138aff7fa952e6a40ad49d7be34e722fbf1334d61d2f858bb0faa8808bb4"
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T23:35:33.453Z",
+    "baseline": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+    "all": 456,
+    "desktop": 228,
+    "mobile": 228,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "coverage": {
+    "lines": {
+      "total": 436,
+      "covered": 386,
+      "skipped": 0,
+      "pct": 88.53
+    },
+    "statements": {
+      "total": 546,
+      "covered": 467,
+      "skipped": 0,
+      "pct": 85.53
+    },
+    "functions": {
+      "total": 115,
+      "covered": 103,
+      "skipped": 0,
+      "pct": 89.56
+    },
+    "branches": {
+      "total": 722,
+      "covered": 484,
+      "skipped": 0,
+      "pct": 67.03
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "intermediate": {
+    "first": {
+      "total": 72,
+      "passed": 72,
+      "failed": 0,
+      "pending": 0,
+      "files": 4,
+      "success": true
+    },
+    "expanded": {
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "pending": 0,
+      "files": 4,
+      "success": true
+    },
+    "focused": {
+      "total": 103,
+      "passed": 103,
+      "failed": 0,
+      "pending": 0,
+      "files": 4,
+      "success": true
+    },
+    "typecheck": {
+      "initialExit": 2,
+      "initialLogSha256": "6f9eea109e7d4260f460fa04204ea8438c3b583c4507fa9962b2f6f0b31eb626",
+      "resolution": "Added the persisted failure field to the explicit pre-attempt snapshot type; final exact package types passed"
+    }
+  },
+  "firstFull": {
+    "codeCommit": "adbc86d32098c77e5301b129838d1aeb391a83b5",
+    "file": "full-sqlite-provider-failure-20261021.json",
+    "sha256": "e94de5e2ced432438f693bad986f272bfc89dbca04ed2a7f3d84cf4b4ab0da9e",
+    "total": 3061,
+    "passed": 3043,
+    "failed": 18,
+    "pending": 0,
+    "files": 262,
+    "success": false,
+    "reason": "The new 2035 fake-clock fixture retained its released global sequence lease in the future, blocking 18 recovery assertions. The test now cleans up this lease; runtime assertions and timeouts unchanged.",
+    "orderedRecheck": {
+      "provider": {
+        "total": 15,
+        "passed": 15,
+        "failed": 0,
+        "pending": 0,
+        "files": 1,
+        "success": true
+      },
+      "recoveryAfter": {
+        "total": 19,
+        "passed": 19,
+        "failed": 0,
+        "pending": 0,
+        "files": 1,
+        "success": true
+      }
+    }
+  },
+  "externalSources": [
+    "https://resend.com/docs/api-reference/errors",
+    "https://learn.microsoft.com/en-us/graph/throttling",
+    "https://developers.google.com/workspace/gmail/api/guides/handle-errors"
+  ],
+  "limits": [
+    "SQLite real, provider HTTP fictional; no real sending, OAuth account or paid action",
+    "PostgreSQL schema and migration delta validated offline, not executed on PostgreSQL",
+    "Browser cases selected only; no Linux execution, remote CI or preview for this commit",
+    "Failure kind records only the last classified HTTP response, never proof that an earlier attempt was not accepted",
+    "Per-command wait; no global shared-provider-account cooldown, OAuth refresh or synchronization classification",
+    "No push, merge or deployment before GitHub Actions budget zero and paid-use stop are verified",
+    "Original remaining functional scope is not closed by passing this suite"
+  ],
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1766,
+    "historyBlobsChecked": 4483,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "documentationChecks": {
+    "observedAt": "2026-10-20T23:59:36.365Z",
+    "headChecked": "379709e76b1be245c77e5e78f603de9ab3e0484e",
+    "relativeMarkdownLinks": {
+      "observedAt": "2026-10-20T23:56:08.491Z",
+      "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+      "checked": 972,
+      "findings": []
+    },
+    "publicationLogSha256": "b40f2ebaf2de2891148e444388e06ec20701bfc20a802724b3199c2beac2a513",
+    "scope": "Reachable history before documentation commit and all current files, including staged evidence"
+  }
+}

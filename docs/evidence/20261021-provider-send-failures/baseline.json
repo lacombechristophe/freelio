@@ -1,0 +1,27 @@
+{
+  "baseline": "8987addad8f7c47ddcc5c76b4b4cab64ff15c78a",
+  "method": "Matching baseline recipe plus new three-case test, executed before implementation",
+  "reproductionSha256": "6d695f5bff77a8c12d98ed76bc87c1fc6da5b26fbd0c9ccc6d8696522e35f447",
+  "rawReportSha256": "feafa243a004c2900f7bcc24356253b3cf913abb8bb48b299e551c6d4f49b881",
+  "http": "Fictional mock only",
+  "total": 3,
+  "passed": 0,
+  "failed": 3,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    {
+      "title": "persists Retry-After and refuses a manual retry before its deadline without another HTTP request",
+      "failure": "AssertionError: expected \"vi.fn()\" to be called 1 times, but got 2 times"
+    },
+    {
+      "title": "stops repeating an invalid frozen request after a permanent provider refusal",
+      "failure": "AssertionError: expected \"vi.fn()\" to be called 1 times, but got 2 times"
+    },
+    {
+      "title": "ends a scheduled permanent refusal after the first attempt instead of queuing the same payload again",
+      "failure": "AssertionError: expected { …(27) } to match object { scheduleStatus: 'FAILED', …(2) }"
+    }
+  ]
+}

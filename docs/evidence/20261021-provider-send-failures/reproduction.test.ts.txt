@@ -1,0 +1,63 @@
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
+vi.mock("server-only", () => ({}))
+vi.mock("@/lib/audit", () => ({ logAction: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { encrypt } from "@/lib/crypto"
+import { requestContext } from "@/lib/context"
+import { sendManualEmail } from "@/lib/communications/manual-send"
+import { saveEmailDraft } from "@/lib/communications/drafts"
+import { scheduleEmailDraft, processDueScheduledEmails } from "@/lib/communications/scheduled-emails"
+
+describe.sequential("provider rejections through durable SQL commands", () => {
+  const companies: string[] = [], users: string[] = []
+  afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
+  afterAll(async () => {
+    for (const companyId of companies) {
+      await prisma.emailSendQuotaCharge.deleteMany({ where: { companyId } })
+      await prisma.emailSendQuotaState.deleteMany({ where: { companyId } })
+      await prisma.emailSendQuotaPolicy.deleteMany({ where: { companyId } })
+      await prisma.contact.deleteMany({ where: { client: { companyId } } })
+      await prisma.client.deleteMany({ where: { companyId } })
+      await prisma.company.delete({ where: { id: companyId } })
+    }
+    await prisma.user.deleteMany({ where: { id: { in: users } } })
+  })
+  async function fixture(status: number) {
+    vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2035-01-02T12:00:00Z"))
+    const company = await prisma.company.create({ data: { name: "Fictional provider failures" } }); companies.push(company.id)
+    const user = await prisma.user.create({ data: { name: "Fictional sender" } }); users.push(user.id)
+    const member = await prisma.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
+    const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictional client" } })
+    const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "Fiction", lastName: "Recipient", email: "recipient@example.test" } })
+    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider: "RESEND", emailAddress: "sender@example.test", status: "ACTIVE", visibility: "SHARED", ownerUserId: user.id,
+      credentialsEncrypted: encrypt(JSON.stringify({ mode: "BYOK", apiKey: "re_fictional_only", webhookSecret: "whsec_fictional_only" })) } })
+    await prisma.emailSendQuotaPolicy.create({ data: { companyId: company.id, channelKey: channel.id, channelId: channel.id, enabled: true, dailyRecipientLimit: 100, minuteRecipientLimit: 10 } })
+    const http = vi.fn(async () => Response.json({ name: status === 429 ? "rate_limit_exceeded" : "validation_error", message: "Fictional refusal" }, { status, headers: { "retry-after": "3600" } })); vi.stubGlobal("fetch", http)
+    const input = { companyId: company.id, userId: user.id, companyName: company.name, purpose: "SERVICE" as const, contactId: contact.id, clientId: client.id, channelId: channel.id, requestKey: crypto.randomUUID(), threadId: null, serviceTicketId: null, replyTo: null, to: contact.email!, subject: "Fictional message", html: "<p>Fiction only</p>" }
+    const asAuthor = <T>(task: () => Promise<T>) => requestContext.run({ companyId: company.id, userId: user.id, membershipId: member.id, role: "OWNER", agencyIds: null, actionPermission: "automation.write" }, task)
+    return { company, user, channel, contact, input, http, asAuthor }
+  }
+  it("persists Retry-After and refuses a manual retry before its deadline without another HTTP request", async () => {
+    const f = await fixture(429)
+    await expect(sendManualEmail(f.input)).rejects.toThrow()
+    await expect(sendManualEmail(f.input)).rejects.toThrow()
+    expect(f.http).toHaveBeenCalledTimes(1)
+    expect(await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ status: "FAILED", attempts: 1, nextAttemptAt: new Date("2035-01-02T13:00:00Z") })
+  })
+  it("stops repeating an invalid frozen request after a permanent provider refusal", async () => {
+    const f = await fixture(422)
+    await expect(sendManualEmail(f.input)).rejects.toThrow()
+    await expect(sendManualEmail(f.input)).rejects.toThrow()
+    expect(f.http).toHaveBeenCalledTimes(1)
+    expect(await prisma.emailDelivery.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ status: "DEAD_LETTER", attempts: 1, nextAttemptAt: null })
+  })
+  it("ends a scheduled permanent refusal after the first attempt instead of queuing the same payload again", async () => {
+    const f = await fixture(422)
+    const draft = await f.asAuthor(() => saveEmailDraft(f.company.id, f.user.id, { createKey: crypto.randomUUID(), purpose: "SERVICE", channelId: f.channel.id, contactId: f.contact.id, threadId: "", subject: "Fictional schedule", bodyHtml: "<p>Fiction only</p>", cc: [], bcc: [], attachmentIds: [] }))
+    const queued = await f.asAuthor(() => scheduleEmailDraft(f.company.id, f.user.id, { id: draft.id, version: draft.version, localDateTime: "2035-01-02T12:01", timezone: "UTC" }))
+    vi.setSystemTime(new Date("2035-01-02T12:01:00Z"))
+    expect(await processDueScheduledEmails({ companyId: f.company.id, now: new Date() })).toMatchObject({ sent: 0, failed: 1 })
+    expect(await prisma.emailDraft.findUniqueOrThrow({ where: { id: queued.id } })).toMatchObject({ scheduleStatus: "FAILED", scheduleAttempts: 1, scheduleNextAttemptAt: null })
+    expect(f.http).toHaveBeenCalledTimes(1)
+  })
+})

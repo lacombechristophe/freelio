@@ -4,15 +4,15 @@
 
 ## Résultat actuel
 
-Le candidat local `6481266046c5c0708ac066b095e30fdacf5d668e` ajoute le [contrôle de l’expéditeur des campagnes](evidence/20261021-campaign-send-preflight/README.md) : configuration et plafonds internes avant capture, activation et reprise, sans réservation dans le rapport. Le correctif distinct `deaa01b` refuse les identifiants Resend illisibles au lieu de leur substituer la clé de la plateforme. Les [plafonds des envois CRM](evidence/20261020-mail-send-quotas/README.md) et les contrôles précédents restent inclus. Les limites internes ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
+Le candidat local `379709e76b1be245c77e5e78f603de9ab3e0484e` ajoute la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) : délai conservé avant reprise, arrêt des refus définitifs et d’autorisation, traces d’incertitude inchangées. Le [contrôle des expéditeurs de campagne](evidence/20261021-campaign-send-preflight/README.md) et les [plafonds internes](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **3 013 tests / 260 fichiers**, aucun échec ni exclusion |
-| Campagnes, expéditeur et régressions voisines | 128 cas dans 8 suites, présents et réussis dans la même suite complète |
+| Suite SQLite, base fictive neuve | **3 061 tests / 262 fichiers**, aucun échec ni exclusion |
+| Erreurs fournisseurs et reprises voisines | 199 cas dans 10 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 6481266, 76 pages statiques, même code candidat |
-| Identité des sources de la recette | 1173 fichiers conformes au commit |
+| Build Next.js | Réussi sur adbc86d, 76 pages statiques ; code de production inchangé dans 379709e |
+| Identité des sources de la recette | 1178 fichiers conformes au commit |
 | Navigateur | 456 cas sélectionnés, 228 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
@@ -21,6 +21,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Délai fournisseur respecté et commande invalide non répétée automatiquement | [Erreurs et reprises](contrat-erreurs-fournisseurs-courriels.md) |
 | Activation suspendue si la boîte ou ses plafonds ne sont plus configurés | [Contrôle de l’expéditeur](contrat-preflight-expediteur-campagnes.md) |
 | Réservations concurrentes, attentes, annulation limitée et boîtes privées | [Plafonds internes](contrat-plafonds-envoi.md) |
 | Contenu de campagne vérifié sans interpréter les valeurs de contact comme des modèles | [Préflight et limites](contrat-preflight-contenu-campagnes.md) |
@@ -34,7 +35,7 @@ Les qualifications intermédiaires et leurs échecs conservés sont regroupés d
 ## Qualification à poursuivre
 
 1. Vérifier et consigner le plafond GitHub Actions à 0 € et l'arrêt de l'usage payant avant tout push déclenchant une nouvelle CI.
-2. Exécuter les contrôles PostgreSQL, Linux et navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
+2. Qualifier la migration additive `20261021010000_mail_provider_failure_kind`, puis les contrôles PostgreSQL, Linux et navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
 3. Recetter la preview du même code, puis examiner la fusion et la publication. Main, la branche candidate et la production restent des références distinctes.
 
 La démo garde un budget de 0 € et des données fictives en lecture seule. Stockage durable, comptes OAuth/transport réels, délivrabilité, charge, reprise après arrêt brutal et récupération distante restent des conditions d'ouverture commerciale ; aucun abonnement R2 n'est engagé.
@@ -49,6 +50,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
+| L2 : erreurs HTTP des transports CRM | [Classifiées et qualifiées localement](evidence/20261021-provider-send-failures/README.md) : échéance durable, arrêt des refus définitifs, brouillons conservés et reprises bornées. La catégorie ne prouve pas le résultat d’un appel antérieur. Limitation globale d’un compte partagé, renouvellement OAuth, synchronisation, PostgreSQL et interactions navigateur restent distincts ; ce complément ne clôt pas tout L2. |
 | MAIL-02 : état et pièces des messages entrants | Le [lot](contrat-etats-messageries-entrantes.md) est implémenté dans `d02c701` et `8a7f9a6` : history/delta, observation séparée du suivi CRM, copies conservées, reprise sans réception rejouée et pièces PDF/PNG/JPEG bornées avec ACL revérifiées. Les [preuves locales](evidence/20261020-mail-observations/README.md) couvrent aussi les reconnexions intercalées. PostgreSQL, navigateur et comptes réels restent à qualifier ; import historique exhaustif, archivage durable et analyse antivirus ne sont pas livrés. |
 | MAIL-05 : identité native des fils entrants | [Implémentée et qualifiée localement sur `1dd29ef`](evidence/20261020-native-conversations/README.md) : séparation native, préparation/acceptation et réparations, contrainte par société/boîte, anciens fils non réaffectés. Les diagnostics initiaux restent conservés. PostgreSQL, navigateur et comptes fournisseurs réels restent distincts. |
 | MAIL-04/06 : tri et suivi de la boîte de réception | [Implémentés et qualifiés localement](evidence/20261020-inbox-management/README.md) : boîte/état/attribution, archivage/restauration, prise en charge personnelle et libération administrative. Les relations étrangères sont exclues des lectures et actions. PostgreSQL et les parcours navigateur préparés restent à qualifier. Ce lot ne livre pas les quotas d’envoi ni l’archivage durable des pièces. |
