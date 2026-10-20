@@ -10,11 +10,15 @@ import { campaignSchema, campaignAssetSchema, CampaignManagementError, editCampa
 import { campaignDashboard, campaignAssets, campaignChoices, campaignSequences } from "@/lib/marketing/campaign-directory"
 import { isPublicReadOnlyDemo, DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 import { captureCampaignAudience, changeCampaignActivation, campaignAudienceReport, campaignAudienceHistory } from "@/lib/marketing/campaign-activation"
+import { readCampaignContentPreflight } from "@/lib/marketing/campaign-preflight"
 
 const cuid = z.string().cuid()
 const statusSchema = z.enum(["DRAFT", "PLANNED", "ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"])
 export async function getCampaignDashboard(input: unknown = {}) {
   return withAuth(({ companyId }) => campaignDashboard(companyId, input), "automation.read")
+}
+export async function getMarketingCampaignContentPreflight(input: unknown) {
+  return withAuth(({ companyId, userId }) => readCampaignContentPreflight(companyId, userId, input), "automation.read")
 }
 export async function getCampaignAssets(input: unknown) {
   return withAuth(({ companyId }) => campaignAssets(companyId, input), "automation.read")

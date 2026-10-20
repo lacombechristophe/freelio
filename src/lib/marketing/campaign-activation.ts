@@ -10,6 +10,7 @@ import { EmailPurposeError } from "@/lib/communications/email-purpose"
 import { nextSequenceExecution } from "@/lib/automations/schedule"
 import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
 import { CampaignManagementError, lockCampaignAudience, campaignPageSchema } from "./campaign-management"
+import { assertSequenceContentReady, CampaignContentPreflightError } from "./campaign-preflight"
 
 const id = z.string().cuid(), hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex")
 const sequenceInclude = { steps: { orderBy: { position: "asc" as const } } }
@@ -25,6 +26,7 @@ async function authorized(tx: TransactionClient, companyId: string, userId: stri
 }
 
 async function senderReady(tx: TransactionClient, companyId: string, userId: string, role: string, sequence: Sequence) {
+  assertSequenceContentReady(sequence.steps)
   if (!sequence.steps.some(step => step.type === "EMAIL")) return
   if (!sequence.senderChannelId) throw new CampaignManagementError("Choisissez une boîte expéditrice dans les réglages de la séquence avant de vérifier l’audience")
   // A capture must name a real mailbox. Platform fallback does not invent one.
@@ -174,7 +176,11 @@ async function processActivationBatch(audienceId: string, control: ProcessorLeas
     const sequence = await tx.emailSequence.findFirst({ where: { id: audience.sequenceId, companyId: audience.companyId, campaignId: audience.campaignId }, include: sequenceInclude })
     if (!campaign || !sequence || sequence.status !== "ACTIVE" || !["PLANNED", "ACTIVE"].includes(campaign.status) || (campaign.endAt && campaign.endAt <= new Date())) return pause("CAMPAGNE_OU_SEQUENCE_ARRETEE")
     if (audience.campaignHash !== campaignHash(campaign) || audience.sequenceHash !== hash(sequenceConfiguration(sequence))) return pause("CONFIGURATION_MODIFIEE")
-    try { await senderReady(tx, audience.companyId, audience.authorUserId, role, sequence) } catch (error) { if (error instanceof CampaignManagementError) return pause("EXPEDITEUR_INDISPONIBLE"); throw error }
+    try { await senderReady(tx, audience.companyId, audience.authorUserId, role, sequence) } catch (error) {
+      if (error instanceof CampaignContentPreflightError) return pause("CONTENU_INVALIDE")
+      if (error instanceof CampaignManagementError) return pause("EXPEDITEUR_INDISPONIBLE")
+      throw error
+    }
     await lockCampaignAudience(tx, audience.companyId, campaign.id, campaign.version)
     const sequenceClaim = await tx.emailSequence.updateMany({ where: { id: sequence.id, companyId: audience.companyId, campaignId: campaign.id, status: "ACTIVE", updatedAt: sequence.updatedAt }, data: { updatedAt: new Date() } })
     if (sequenceClaim.count !== 1) throw new CampaignManagementError("La séquence a changé pendant l’inscription")

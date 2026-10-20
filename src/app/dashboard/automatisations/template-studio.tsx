@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Archive, CheckCircle2, FileText, Mail, Monitor, Plus, Search, Smartphone, Sparkles, TriangleAlert } from "lucide-react"
+import { EMAIL_TEMPLATE_VARIABLES as variables } from "@/lib/communications/email-template-variables"
 
 import { archiveEmailTemplate, createEmailTemplate, updateEmailTemplate, getAutomationTemplates } from "@/actions/automations"
 import { useStudioPage, StudioPagination } from "./studio-pagination"
@@ -15,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { HelpTip } from "@/components/ui/help-tip"
 import { Input } from "@/components/ui/input"
 
-const variables = ["{{contact.firstName}}", "{{contact.lastName}}", "{{contact.email}}", "{{lead.projectType}}", "{{lead.city}}", "{{company.name}}"]
+
 const categoryLabels: Record<string, string> = { NURTURE: "Suivi commercial", QUOTE: "Devis", SERVICE: "Service", EVENT: "Actualité" }
 
 export function TemplateStudio({ data, pending, run }: { data: AutomationData; pending: boolean; run: AutomationRunner }) {

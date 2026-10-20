@@ -1,6 +1,6 @@
 import "server-only"
 import { toPlainText } from "@react-email/render"
-import { sanitizeSequenceEmailHtml } from "@/lib/automations/email"
+import { sanitizeSequenceEmailHtml } from "./email-sanitize"
 
 export function emailPlainText(html: string) {
   return toPlainText(html, { wordwrap: false, selectors: [{ selector: "a", options: { linkBrackets: ["[", "]"] } }] })

@@ -13,6 +13,7 @@ import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing
 import { lockCampaignAudience, CampaignManagementError } from "@/lib/marketing/campaign-management"
 import { assertManualMarketingConsent, marketingAuthorizationSchema } from "@/lib/communications/marketing-consent"
 import { EmailPurposeError } from "@/lib/communications/email-purpose"
+import { EmailContentPreflightError } from "@/lib/communications/email-preflight"
 
 type ProgressionSequence = SequenceSchedule & { steps: Array<{ id: string; position: number; delayHours: number }> }
 
@@ -332,6 +333,18 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       const failedDelivery = await prisma.emailDelivery.findUnique({ where: { enrollmentId_stepId: { enrollmentId: enrollment.id, stepId: step.id } }, select: { id: true, status: true, attempts: true, maxAttempts: true } })
       if (failedDelivery && ["SENT", "DELIVERED", "OPENED", "CLICKED"].includes(failedDelivery.status)) {
         await prisma.emailDelivery.updateMany({ where: { id: failedDelivery.id }, data: { error: `Historique à réparer : ${message}` } })
+        summary.failed += 1
+        continue
+      }
+      if (error instanceof EmailContentPreflightError) {
+        const held = await prisma.$transaction(async tx => {
+          await control.assertOwned(tx)
+          const saved = await tx.emailDelivery.updateMany({ where: { enrollmentId: enrollment.id, stepId: step.id, status: { in: ["SCHEDULED", "SENDING", "FAILED"] } },
+            data: { status: "DEAD_LETTER", error: message, nextAttemptAt: null, deadLetteredAt: new Date() } })
+          await tx.emailSequenceEnrollment.updateMany({ where: { id: enrollment.id, status: "ACTIVE", nextStepPosition: step.position }, data: { status: "PAUSED", stopReason: `Contenu invalide : ${message}`, nextSendAt: null } })
+          return saved.count
+        })
+        summary.deadLettered += held
         summary.failed += 1
         continue
       }

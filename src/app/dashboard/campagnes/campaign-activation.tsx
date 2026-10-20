@@ -3,11 +3,12 @@ import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Rocket } from "lucide-react"
 import { toast } from "sonner"
-import { controlMarketingCampaignActivation, getMarketingCampaignAudienceReport, getMarketingCampaignAudienceHistory, verifyMarketingCampaignAudience } from "@/actions/campaigns"
+import { controlMarketingCampaignActivation, getMarketingCampaignAudienceReport, getMarketingCampaignAudienceHistory, getMarketingCampaignContentPreflight, verifyMarketingCampaignAudience } from "@/actions/campaigns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { CampaignChoiceSelect } from "./campaign-management"
+import { CampaignContentReportView, type CampaignContentReport } from "./campaign-content-report"
 
 type Campaign = NonNullable<Awaited<ReturnType<typeof import("@/actions/campaigns").getCampaignDashboard>>>["campaigns"][number]
 const labels: Record<string, string> = {
@@ -17,6 +18,7 @@ const labels: Record<string, string> = {
   PREUVE_ADRESSE_ABSENTE: "Preuve liée à l’adresse absente", PREUVE_ADRESSE_INVALIDE: "Preuve liée à l’adresse invalide ou retirée", DEJA_INSCRIT: "Déjà inscrit",
   ADRESSE_OU_CONTACT_MODIFIE: "Adresse ou contact modifié", DROITS_RETIRES: "Droits d’activation retirés", CAMPAGNE_OU_SEQUENCE_ARRETEE: "Campagne ou séquence arrêtée",
   CONFIGURATION_MODIFIEE: "Configuration modifiée : rétablissez la configuration vérifiée ou clôturez l’inscription restante avant une nouvelle vérification", EXPEDITEUR_INDISPONIBLE: "Boîte expéditrice indisponible",
+  CONTENU_INVALIDE: "Contenu de séquence invalide : clôturez l’inscription restante puis vérifiez une nouvelle audience",
   LOT_INTERROMPU: "Lot interrompu : reprise disponible sans recommencer les inscriptions", CAPTURE_INCOMPLETE: "Capture incomplète : contrôle administrateur requis",
 }
 
@@ -24,6 +26,7 @@ export function CampaignActivation({ campaign }: { campaign: Campaign }) {
   const [report, setReport] = useState<Awaited<ReturnType<typeof getMarketingCampaignAudienceReport>> | null>(null)
   const [search, setSearch] = useState(""), [page, setPage] = useState(1), [attempt, setAttempt] = useState(0), [error, setError] = useState("")
   const [loadError, setLoadError] = useState("")
+  const [contentReport, setContentReport] = useState<CampaignContentReport | null>(null)
   const [audienceId, setAudienceId] = useState<string | undefined>(), [reason, setReason] = useState("")
   const [historyOpen, setHistoryOpen] = useState(false), [historyPage, setHistoryPage] = useState(1)
   const [history, setHistory] = useState<Awaited<ReturnType<typeof getMarketingCampaignAudienceHistory>> | null>(null), [historyError, setHistoryError] = useState("")
@@ -63,7 +66,7 @@ export function CampaignActivation({ campaign }: { campaign: Campaign }) {
   }
   return <div className="mt-4 space-y-3 rounded-[10px] border bg-muted/25 p-3">
     <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Rocket className="size-4" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Activer l’audience</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Vérifiez une audience complète et figée, puis inscrivez-la par lots. La prospection exige une preuve de consentement liée à l’adresse exacte.</p></div></div>
-    <form className="flex flex-col gap-2 sm:flex-row" onSubmit={event => {
+    <form className="flex flex-col gap-2 sm:flex-row" onChange={event => { if (event.target instanceof HTMLSelectElement && event.target.name === "launchSequenceId") setContentReport(null) }} onSubmit={event => {
       event.preventDefault(); const data = new FormData(event.currentTarget)
       startTransition(async () => { try {
         const result = await verifyMarketingCampaignAudience({ campaignId: campaign.id, version: campaign.version, sequenceId: data.get("launchSequenceId") })
@@ -72,8 +75,19 @@ export function CampaignActivation({ campaign }: { campaign: Campaign }) {
         setPage(1); setSearch(""); setReason(""); setHistoryPage(1); setError(""); toast.success("Audience vérifiée sans inscription."); refreshed()
       } catch (error) { setError(error instanceof Error ? error.message : "Vérification impossible") } })
     }}><CampaignChoiceSelect kind="SEQUENCE" name="launchSequenceId" label={`Séquence de diffusion pour ${campaign.name}`} campaignId={campaign.id} attachedOnly defaultValue={campaign.sequences.find(sequence => sequence.status === "ACTIVE")?.id} defaultLabel={campaign.sequences.find(sequence => sequence.status === "ACTIVE")?.name} required disabled={pending} />
+      <Button type="button" variant="outline" demoMutation={false} disabled={pending} onClick={event => {
+        const data = new FormData(event.currentTarget.form!)
+        setContentReport(null)
+        if (!data.get("launchSequenceId")) { setError("Choisissez une séquence avant de vérifier son contenu."); return }
+        startTransition(async () => { try {
+          const result = await getMarketingCampaignContentPreflight({ campaignId: campaign.id, sequenceId: data.get("launchSequenceId") })
+          if (!result) throw new Error("Contrôle du contenu impossible")
+          setContentReport(result); setError("")
+        } catch (error) { setError(error instanceof Error ? error.message : "Contrôle du contenu impossible") } })
+      }}>Vérifier le contenu</Button>
       <Button demoMutation type="submit" disabled={pending || !["PLANNED", "ACTIVE"].includes(campaign.status) || !!report?.activeAudienceId} className="shrink-0"><Rocket />Vérifier l’audience</Button>
     </form>
+    {contentReport ? <CampaignContentReportView report={contentReport} /> : null}
     <Button variant="outline" size="sm" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>Captures antérieures</Button>
     {historyOpen ? <div className="space-y-2">
       {historyError ? <p role="alert" className="text-xs">{historyError}</p> : null}
