@@ -12,7 +12,7 @@ import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
-import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { assertSchedulingSlotFree, lockSchedulingMembers, schedulingMemberWhere, SchedulingError } from "@/lib/scheduling/resource-slots"
 import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
 import { diagnosticSteps, diagnosticStringList, equipmentWarrantyStatus, scoreDiagnosticGuide } from "@/lib/operations/service-diagnostics"
 import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
@@ -480,39 +480,10 @@ function renderServiceMacro(value: string, variables: Record<string, string>) {
   return Object.entries(variables).reduce((rendered, [name, replacement]) => rendered.replaceAll(`{{${name}}}`, replacement), value)
 }
 
-async function findInterventionSlotConflict({
-  companyId,
-  assignedMembershipId,
-  scheduledStart,
-  scheduledEnd,
-  excludeInterventionId,
-}: {
-  companyId: string
-  assignedMembershipId: string | null
-  scheduledStart: Date
-  scheduledEnd: Date | null
-  excludeInterventionId?: string
-}) {
-  if (!assignedMembershipId) return null
-  const effectiveEnd = scheduledEnd ?? new Date(scheduledStart.getTime() + 60 * 60 * 1_000)
-  const possibleConflicts = await prisma.fieldIntervention.findMany({
-    where: {
-      companyId,
-      assignedMembershipId,
-      status: { not: "CANCELED" },
-      id: excludeInterventionId ? { not: excludeInterventionId } : undefined,
-      scheduledStart: { lt: effectiveEnd },
-      OR: [{ scheduledEnd: { gt: scheduledStart } }, { scheduledEnd: null, scheduledStart: { gt: new Date(scheduledStart.getTime() - 60 * 60 * 1_000) } }],
-    },
-    select: { id: true, title: true, scheduledStart: true, scheduledEnd: true },
-    orderBy: { scheduledStart: "asc" },
-  })
-  const conflict = possibleConflicts.find((item) => planningSlotsOverlap({ scheduledStart, scheduledEnd }, item))
-  if (conflict) {
-    const date = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Paris" }).format(conflict.scheduledStart)
-    return `Conflit de planning avec « ${conflict.title} » le ${date}.`
-  }
-  return null
+function schedulingFailure(error: unknown): { success: false; error: string } {
+  if (error instanceof SchedulingError) return { success: false, error: error.message }
+  if (error && typeof error === "object" && "code" in error && error.code === "P2034") return { success: false, error: "Le planning a changé. Rechargez puis réessayez ; votre saisie est conservée." }
+  throw error
 }
 
 export async function getOperationsDashboard() {
@@ -1253,8 +1224,6 @@ export async function createFieldIntervention(input: unknown) {
       throw new AssetLifecycleError("Intervenant introuvable")
     const scheduledStart = new Date(data.scheduledStart)
     const scheduledEnd = data.scheduledEnd ? new Date(data.scheduledEnd) : null
-    const conflict = await findInterventionSlotConflict({ companyId, assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd })
-    if (conflict) return { success: false as const, error: conflict }
     const intervention = await prisma.$transaction(async tx => {
       const activeSite = await lockActiveSite(tx, companyId, data.siteId, agencyIds)
       const scope = operationsDashboardScope(companyId, agencyIds)
@@ -1266,6 +1235,11 @@ export async function createFieldIntervention(input: unknown) {
       }
       if (data.projectId && !await tx.project.findFirst({ where: { ...scope.project, id: data.projectId, clientId: activeSite.clientId,
         OR: [{ siteId: null }, { siteId: data.siteId }] }, select: { id: true } })) throw new AssetLifecycleError("Chantier introuvable ou incompatible avec le site")
+      await lockSchedulingMembers(tx, companyId, [data.assignedMembershipId])
+      if (data.assignedMembershipId) {
+        if (!await tx.membership.findFirst({ where: { ...schedulingMemberWhere(companyId, agencyIds), id: data.assignedMembershipId }, select: { id: true } })) throw new SchedulingError("Membre de l’équipe introuvable ou inaccessible.")
+        await assertSchedulingSlotFree(tx, { companyId, membershipId: data.assignedMembershipId, start: scheduledStart, end: scheduledEnd ?? new Date(scheduledStart.getTime() + 3_600_000) })
+      }
       return tx.fieldIntervention.create({
         data: {
           companyId,
@@ -1277,15 +1251,15 @@ export async function createFieldIntervention(input: unknown) {
     })
     revalidateOperations()
     return { success: true as const, id: intervention.id }
-  }, "operations.write")
+  }, "operations.write").catch(schedulingFailure)
 }
 
 export async function rescheduleFieldIntervention(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const data = interventionPlanningSchema.parse(input)
     const intervention = await prisma.fieldIntervention.findFirst({
-      where: { id: data.interventionId, companyId },
-      select: { id: true, status: true },
+      where: { id: data.interventionId, ...operationsDashboardScope(companyId, agencyIds).intervention },
+      select: { id: true, status: true, siteId: true, assignedMembershipId: true, updatedAt: true },
     })
     if (!intervention) throw new Error("Intervention introuvable")
     if (["CANCELED", "COMPLETED"].includes(intervention.status)) throw new Error("Une intervention terminée ou annulée ne peut pas être replanifiée")
@@ -1293,28 +1267,23 @@ export async function rescheduleFieldIntervention(input: unknown) {
       throw new Error("Intervenant introuvable")
     const scheduledStart = new Date(data.scheduledStart)
     const scheduledEnd = new Date(data.scheduledEnd)
-    const conflict = await findInterventionSlotConflict({
-      companyId,
-      assignedMembershipId: data.assignedMembershipId,
-      scheduledStart,
-      scheduledEnd,
-      excludeInterventionId: intervention.id,
-    })
-    if (conflict) return { success: false as const, error: conflict }
-    await prisma.fieldIntervention.update({
-      where: { id: intervention.id },
-      data: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd },
-    })
-    await logAction({
-      userId,
-      action: "UPDATE_FIELD_INTERVENTION_PLAN",
-      resource: "FIELD_INTERVENTION",
-      resourceId: intervention.id,
-      payload: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd },
-    })
+    await prisma.$transaction(async tx => {
+      await lockActiveSite(tx, companyId, intervention.siteId, agencyIds)
+      await lockSchedulingMembers(tx, companyId, [intervention.assignedMembershipId, data.assignedMembershipId])
+      if (data.assignedMembershipId) {
+        if (!await tx.membership.findFirst({ where: { ...schedulingMemberWhere(companyId, agencyIds), id: data.assignedMembershipId }, select: { id: true } })) throw new SchedulingError("Membre de l’équipe introuvable ou inaccessible.")
+        await assertSchedulingSlotFree(tx, { companyId, membershipId: data.assignedMembershipId, start: scheduledStart, end: scheduledEnd, excludeInterventionId: intervention.id })
+      }
+      const changed = await tx.fieldIntervention.updateMany({ where: { ...operationsDashboardScope(companyId, agencyIds).intervention, id: intervention.id,
+        updatedAt: intervention.updatedAt, status: { notIn: ["CANCELED", "COMPLETED"] } }, data: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd,
+          updatedAt: new Date(Math.max(Date.now(), intervention.updatedAt.getTime() + 1)) } })
+      if (changed.count !== 1) throw new SchedulingError("Cette intervention a changé. Rechargez le planning ; votre saisie est conservée.")
+      await tx.auditLog.create({ data: { userId, action: "UPDATE_FIELD_INTERVENTION_PLAN", resource: "FIELD_INTERVENTION", resourceId: intervention.id,
+        payload: { assignedMembershipId: data.assignedMembershipId, scheduledStart: scheduledStart.toISOString(), scheduledEnd: scheduledEnd.toISOString() } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     return { success: true as const }
-  }, "operations.write")
+  }, "operations.write").catch(schedulingFailure)
 }
 
 export async function createMaintenanceContract(input: unknown) {
@@ -2847,20 +2816,23 @@ export async function updateInterventionStatus(interventionId: string, status: "
     const parsed = z.object({ interventionId: id, status: z.enum(["PLANNED", "EN_ROUTE", "IN_PROGRESS", "CANCELED"]) }).parse({ interventionId, status })
     const scope = operationsDashboardScope(companyId, agencyIds)
     const where = { id: parsed.interventionId, ...scope.intervention }
-    const intervention = await prisma.fieldIntervention.findFirst({ where, select: { id: true } })
+    const intervention = await prisma.fieldIntervention.findFirst({ where, select: { id: true, siteId: true, assignedMembershipId: true, scheduledStart: true, scheduledEnd: true, updatedAt: true } })
     if (!intervention) throw new Error("Intervention introuvable")
-    const updated = await prisma.fieldIntervention.updateMany({
-      where,
-      data: {
-        status: parsed.status,
-        startedAt: parsed.status === "IN_PROGRESS" ? new Date() : undefined,
-      },
-    })
-    if (updated.count !== 1) throw new Error("Intervention introuvable")
+    await prisma.$transaction(async tx => {
+      if (parsed.status !== "CANCELED") await lockActiveSite(tx, companyId, intervention.siteId, agencyIds)
+      await lockSchedulingMembers(tx, companyId, [intervention.assignedMembershipId])
+      if (parsed.status !== "CANCELED" && intervention.assignedMembershipId) {
+        await assertSchedulingSlotFree(tx, { companyId, membershipId: intervention.assignedMembershipId, start: intervention.scheduledStart,
+          end: intervention.scheduledEnd ?? new Date(intervention.scheduledStart.getTime() + 3_600_000), excludeInterventionId: intervention.id })
+      }
+      const updated = await tx.fieldIntervention.updateMany({ where: { ...where, updatedAt: intervention.updatedAt },
+        data: { status: parsed.status, startedAt: parsed.status === "IN_PROGRESS" ? new Date() : undefined, updatedAt: new Date(Math.max(Date.now(), intervention.updatedAt.getTime() + 1)) } })
+      if (updated.count !== 1) throw new Error("Intervention introuvable")
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     revalidatePath(`/dashboard/service/interventions/${intervention.id}`)
     return { success: true as const }
-  }, "operations.write")
+  }, "operations.write").catch(schedulingFailure)
 }
 
 export async function resolveInterventionReservation(reservationId: string) {

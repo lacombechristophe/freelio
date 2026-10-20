@@ -52,6 +52,7 @@ import { calendarDayKey } from "@/lib/calendar-days"
 import { formatCentsToEuro } from "@/lib/billing"
 import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/shared/page-header"
+import { PortalBookingCalendar } from "./portal-booking-calendar"
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED"
 type GoalScope = "DAY" | "WEEK" | "MONTH" | "YEAR"
@@ -517,7 +518,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                     </div>
                     <div className="mt-3 space-y-1.5">
                       {dayTasks.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Libre</p>
+                        <p className="text-xs text-muted-foreground">Aucune tâche</p>
                       ) : (
                         dayTasks.slice(0, 3).map((task) => (
                           <div key={task.id} className="rounded-md border border-border/80 bg-card/70 px-2 py-1.5">
@@ -536,6 +537,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
                 )
               })}
             </div>
+            <PortalBookingCalendar initialDay={dateKey(data.periods.weekStart, data.timeZone)} />
           </CardContent>
         </Card>
       </div>

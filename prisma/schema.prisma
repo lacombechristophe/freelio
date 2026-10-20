@@ -318,6 +318,7 @@ model Membership {
 
   assignedTickets                   ServiceTicket[]           @relation("TicketAssignee")
   assignedInterventions             FieldIntervention[]       @relation("InterventionAssignee")
+  portalAppointments                ClientPortalAppointmentRequest[] @relation("PortalAppointmentAssignee")
   ownedOpportunities                Opportunity[]             @relation("OpportunityOwner")
   approvedPurchaseOrders            PurchaseOrder[]           @relation("PurchaseOrderApprover")
   assignedProjectMilestones         ProjectMilestone[]        @relation("ProjectMilestoneAssignee")
@@ -642,10 +643,16 @@ model ClientPortalAppointmentRequest {
   notes            String?
   status           String    @default("PENDING")
   response         String?
+  assignedMembershipId String?
+  assignedMembership Membership? @relation("PortalAppointmentAssignee", fields: [assignedMembershipId], references: [id], onDelete: SetNull)
+  scheduledStart   DateTime?
+  scheduledEnd     DateTime?
+  confirmedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([companyId, clientId, status, preferredStart], map: "ClientPortalAppointmentRequest_company_client_status_start_idx")
+  @@index([companyId, assignedMembershipId, status, scheduledStart], map: "PortalAppointment_member_status_start_idx")
 }
 
 model ClientActivity {

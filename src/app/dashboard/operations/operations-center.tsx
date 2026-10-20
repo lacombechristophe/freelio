@@ -210,7 +210,9 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
 
   function mutate(message: string, operation: () => Promise<unknown>) {
     startTransition(async () => {
-      try { await operation(); setOrdersRevision(current => current + 1); toast.success(message); router.refresh() }
+      try { const result = await operation(); if (result && typeof result === "object" && "success" in result && result.success === false) {
+        toast.error("error" in result && typeof result.error === "string" ? result.error : "Mise à jour impossible."); return
+      } setOrdersRevision(current => current + 1); toast.success(message); router.refresh() }
       catch (error) { toast.error(error instanceof Error ? error.message : "Mise à jour impossible.") }
     })
   }

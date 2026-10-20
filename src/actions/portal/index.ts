@@ -7,6 +7,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { createPortalToken, hashPortalToken } from "@/lib/portal/session"
 import prisma from "@/lib/prisma"
+import { changePortalAppointment } from "@/actions/portal-bookings"
 
 const cuid = z.string().cuid()
 const accessSchema = z.object({
@@ -81,25 +82,6 @@ export async function sendTeamPortalMessage(input: unknown) {
   }, "crm.write")
 }
 
-const appointmentUpdateSchema = z.object({
-  id: cuid,
-  status: z.enum(["PENDING", "CONFIRMED", "DECLINED", "CANCELLED", "COMPLETED"]),
-  response: z.string().trim().max(1_000).optional().default(""),
-})
-
 export async function updateClientPortalAppointment(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
-    const data = appointmentUpdateSchema.parse(input)
-    const appointment = await prisma.clientPortalAppointmentRequest.findFirst({ where: { id: data.id, companyId, client: { companyId } }, select: { id: true, clientId: true } })
-    if (!appointment) throw new Error("Demande de rendez-vous introuvable")
-    const updated = await prisma.clientPortalAppointmentRequest.updateMany({
-      where: { id: appointment.id, companyId, clientId: appointment.clientId, client: { companyId } },
-      data: { status: data.status, response: data.response || null },
-    })
-    if (updated.count !== 1) throw new Error("Demande de rendez-vous introuvable")
-    await logAction({ userId, action: "UPDATE_CLIENT_PORTAL_APPOINTMENT", resource: "CLIENT_PORTAL_APPOINTMENT", resourceId: appointment.id, payload: { clientId: appointment.clientId, status: data.status } })
-    revalidatePath(`/dashboard/clients/${appointment.clientId}`)
-    revalidatePath("/portal")
-    return { success: true as const }
-  }, "crm.write")
+  return changePortalAppointment(input)
 }

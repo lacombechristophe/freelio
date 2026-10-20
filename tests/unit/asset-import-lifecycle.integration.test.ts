@@ -7,6 +7,7 @@ vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { importMigrationRun } from "@/actions/migrations"
+import * as slots from "@/lib/scheduling/resource-slots"
 
 const db = new PrismaClient()
 const kinds = ["projects", "equipments", "tickets", "interventions", "maintenance_contracts"] as const
@@ -22,6 +23,7 @@ describe.sequential("asset imports retain raw data when a new reference is deact
       sourceObjectType: targetModel, sourceRecordId: targetModel, targetModel, targetRecordId })) })
   })
   afterEach(async () => {
+    vi.restoreAllMocks()
     if (fixture) {
       await db.externalIdMap.deleteMany({ where: { companyId: fixture.companyId } })
       await db.migrationRun.deleteMany({ where: { companyId: fixture.companyId } })
@@ -107,5 +109,39 @@ describe.sequential("asset imports retain raw data when a new reference is deact
     await db.customerSite.update({ where: { id: fixture.site.id }, data: { archivedAt } })
     await expect(importMigrationRun(runId)).resolves.toMatchObject({ imported: 1 })
     expect((await db.customerSite.findUniqueOrThrow({ where: { id: fixture.site.id } })).archivedAt).toEqual(archivedAt)
+  })
+  it.each(["overlap", "adjacent"])("checks %s CRM capacity when refreshing an assigned imported intervention", async kind => {
+    const start = new Date("2031-01-05T14:00:00.000Z"), end = new Date("2031-01-05T15:00:00.000Z")
+    const source = await stage("interventions", { status: "PLANNED", scheduled_end: end.toISOString() })
+    await db.externalIdMap.create({ data: { companyId: fixture.companyId, provider: "EXTRABAT", sourceObjectType: "interventions", sourceRecordId: "import-one", targetModel: "FieldIntervention", targetRecordId: fixture.positive.interventions } })
+    const booking = await db.clientPortalAppointmentRequest.create({ data: { companyId: fixture.companyId, clientId: fixture.site.clientId,
+      subject: "Fictional previously reserved CRM appointment", status: "CONFIRMED", preferredStart: start, assignedMembershipId: fixture.member.id,
+      scheduledStart: kind === "overlap" ? start : end, scheduledEnd: new Date(end.getTime() + 3_600_000) } })
+    const before = await db.fieldIntervention.findUniqueOrThrow({ where: { id: fixture.positive.interventions } })
+    if (kind === "overlap") {
+      await expect(importMigrationRun(runId)).rejects.toThrow("déjà occupé")
+      expect(await db.fieldIntervention.findUniqueOrThrow({ where: { id: before.id } })).toEqual(before)
+      expect(await db.sourceRecord.findUniqueOrThrow({ where: { id: source.id } })).toEqual(source)
+      expect((await db.migrationRun.findUniqueOrThrow({ where: { id: runId } })).status).toBe("FAILED")
+    } else {
+      await expect(importMigrationRun(runId)).resolves.toMatchObject({ imported: 1, rejected: 0 })
+      expect(await db.fieldIntervention.findUniqueOrThrow({ where: { id: before.id } })).toMatchObject({ scheduledStart: start, scheduledEnd: end, assignedMembershipId: fixture.member.id })
+    }
+    expect(await db.clientPortalAppointmentRequest.findUniqueOrThrow({ where: { id: booking.id } })).toEqual(booking)
+  })
+  it("refuses an import whose assigned resource changed after its initial read", async () => {
+    const source = await stage("interventions", { status: "PLANNED" })
+    await db.externalIdMap.create({ data: { companyId: fixture.companyId, provider: "EXTRABAT", sourceObjectType: "interventions", sourceRecordId: "import-one", targetModel: "FieldIntervention", targetRecordId: fixture.positive.interventions } })
+    const before = await db.fieldIntervention.findUniqueOrThrow({ where: { id: fixture.positive.interventions } })
+    const original = slots.lockSchedulingMembers
+    vi.spyOn(slots, "lockSchedulingMembers").mockImplementationOnce(async (tx, companyId, ids) => {
+      await original(tx, companyId, ids)
+      // Deterministic interleaving inside this record's transaction, not a
+      // claim of contention across independent database connections.
+      await tx.fieldIntervention.update({ where: { id: before.id }, data: { assignedMembershipId: null } })
+    })
+    await expect(importMigrationRun(runId)).rejects.toThrow("planning de cette intervention a changé")
+    expect(await db.fieldIntervention.findUniqueOrThrow({ where: { id: before.id } })).toEqual(before)
+    expect(await db.sourceRecord.findUniqueOrThrow({ where: { id: source.id } })).toEqual(source)
   })
 })

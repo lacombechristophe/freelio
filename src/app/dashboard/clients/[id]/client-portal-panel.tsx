@@ -2,14 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { CalendarClock, Check, Copy, KeyRound, MessageSquare, ShieldCheck, X } from "lucide-react"
+import { CalendarClock, Copy, KeyRound, MessageSquare, ShieldCheck, X } from "lucide-react"
 import { toast } from "sonner"
 
 import {
   createClientPortalAccess,
   revokeClientPortalAccess,
   sendTeamPortalMessage,
-  updateClientPortalAppointment,
 } from "@/actions/portal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PortalAppointments } from "./portal-appointments"
 
 type Contact = { id: string; firstName: string; lastName: string; email: string | null }
 type PortalAccess = {
@@ -36,26 +36,6 @@ type PortalMessage = {
   readAt: string | null
   createdAt: string
 }
-type Appointment = {
-  id: string
-  subject: string
-  preferredStart: string
-  alternativeStart: string | null
-  durationMinutes: number
-  notes: string | null
-  status: string
-  response: string | null
-  createdAt: string
-}
-
-const appointmentLabels: Record<string, string> = {
-  PENDING: "À traiter",
-  CONFIRMED: "Confirmé",
-  DECLINED: "Refusé",
-  CANCELLED: "Annulé",
-  COMPLETED: "Terminé",
-}
-
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
 }
@@ -71,13 +51,15 @@ export function ClientPortalPanel({
   contacts,
   accesses,
   messages,
-  appointments,
+  timeZone,
+  canManage,
 }: {
   clientId: string
   contacts: Contact[]
   accesses: PortalAccess[]
   messages: PortalMessage[]
-  appointments: Appointment[]
+  timeZone: string
+  canManage: boolean
 }) {
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
@@ -86,12 +68,7 @@ export function ClientPortalPanel({
   const [validityDays, setValidityDays] = React.useState("30")
   const [oneTimeUrl, setOneTimeUrl] = React.useState("")
   const [reply, setReply] = React.useState("")
-  const [appointmentDrafts, setAppointmentDrafts] = React.useState(() =>
-    Object.fromEntries(appointments.map((appointment) => [appointment.id, {
-      status: appointment.status,
-      response: appointment.response ?? "",
-    }]))
-  )
+
 
   function run(task: () => Promise<void>) {
     startTransition(() => {
@@ -195,20 +172,7 @@ export function ClientPortalPanel({
 
           <div>
             <div className="flex items-center gap-2"><CalendarClock className="size-4 text-primary" /><h3 className="text-sm font-semibold">Demandes de rendez-vous</h3></div>
-            <div className="mt-3 space-y-3">
-              {appointments.length === 0 ? <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Aucune demande reçue.</p> : appointments.map((appointment) => {
-                const draft = appointmentDrafts[appointment.id] ?? { status: appointment.status, response: appointment.response ?? "" }
-                return <div key={appointment.id} className="rounded-xl border p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold">{appointment.subject}</p><p className="mt-1 text-xs text-muted-foreground">Souhaité le {formatDate(appointment.preferredStart)} · {appointment.durationMinutes} min</p>{appointment.alternativeStart && <p className="mt-0.5 text-xs text-muted-foreground">Alternative : {formatDate(appointment.alternativeStart)}</p>}</div><Badge variant="secondary">{appointmentLabels[appointment.status] ?? appointment.status}</Badge></div>
-                  {appointment.notes && <p className="mt-3 rounded-lg bg-muted/50 p-3 text-sm leading-5">{appointment.notes}</p>}
-                  <div className="mt-3 grid gap-2 sm:grid-cols-[150px_1fr_auto]">
-                    <select aria-label={`Statut du rendez-vous ${appointment.subject}`} value={draft.status} onChange={(event) => setAppointmentDrafts((current) => ({ ...current, [appointment.id]: { ...draft, status: event.target.value } }))} className="h-10 rounded-[10px] border border-input bg-card px-3 text-sm"><option value="PENDING">À traiter</option><option value="CONFIRMED">Confirmer</option><option value="DECLINED">Refuser</option><option value="CANCELLED">Annuler</option><option value="COMPLETED">Terminé</option></select>
-                    <Input aria-label={`Réponse au rendez-vous ${appointment.subject}`} value={draft.response} onChange={(event) => setAppointmentDrafts((current) => ({ ...current, [appointment.id]: { ...draft, response: event.target.value } }))} placeholder="Message au client (heure, consignes…)" maxLength={1000} />
-                    <Button demoMutation variant="outline" disabled={isPending} onClick={() => run(async () => { await updateClientPortalAppointment({ id: appointment.id, ...draft }); toast.success("Demande mise à jour."); router.refresh() })}><Check />Enregistrer</Button>
-                  </div>
-                </div>
-              })}
-            </div>
+            <PortalAppointments clientId={clientId} timeZone={timeZone} canManage={canManage} />
           </div>
         </section>
       </CardContent>

@@ -31,6 +31,8 @@ describe.sequential("Portal access and actions reject incoherent tenant and cont
     foreignCompanyId = (await prisma.company.create({ data: { name: "Fictional foreign portal relations" } })).id
     session.userId = (await prisma.user.create({ data: { email: `portal-relations-${randomUUID()}@example.test` } })).id
     membershipId = (await prisma.membership.create({ data: { companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    const agency = await prisma.agency.create({ data: { companyId, name: "Fictional portal agency", code: "PORTAL" } })
+    await prisma.agencyMembership.create({ data: { membershipId, agencyId: agency.id } })
     clientId = (await prisma.client.create({ data: { companyId, name: "Fictional portal client" } })).id
     otherClientId = (await prisma.client.create({ data: { companyId, name: "Fictional other portal client" } })).id
     foreignClientId = (await prisma.client.create({ data: { companyId: foreignCompanyId, name: "Fictional foreign portal client" } })).id
@@ -119,14 +121,16 @@ describe.sequential("Portal access and actions reject incoherent tenant and cont
       await prisma.clientPortalAppointmentRequest.update({ where: { id: request.id }, data: { clientId: foreignClientId } })
       return result
     }) as typeof prisma.clientPortalAppointmentRequest.findFirst)
-    await expect(updateClientPortalAppointment({ id: request.id, status: "CONFIRMED" })).rejects.toThrow("Demande de rendez-vous introuvable")
+    await expect(updateClientPortalAppointment({ id: request.id, status: "CONFIRMED", expectedUpdatedAt: request.updatedAt.toISOString(),
+      assignedMembershipId: membershipId, scheduledLocalStart: `${new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10)}T10:00`, timeZone: "Europe/Paris" })).rejects.toThrow("Demande de rendez-vous introuvable")
     expect(await prisma.clientPortalAppointmentRequest.findUniqueOrThrow({ where: { id: request.id } })).toMatchObject({ clientId: foreignClientId, status: "PENDING", response: null })
     expect(await audits()).toBe(0)
   })
   it.each(["OWNER", "ADMIN", "SALES"])("preserves coherent confirmation and revocation for %s", async role => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role } })
     const request = await appointment(), { row, token } = await access({ contactId: ownContactId })
-    await updateClientPortalAppointment({ id: request.id, status: "CONFIRMED", response: "Fictional accepted response" })
+    await updateClientPortalAppointment({ id: request.id, status: "CONFIRMED", response: "Fictional accepted response", expectedUpdatedAt: request.updatedAt.toISOString(),
+      assignedMembershipId: membershipId, scheduledLocalStart: `${new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10)}T10:00`, timeZone: "Europe/Paris" })
     expect(await prisma.clientPortalAppointmentRequest.findUniqueOrThrow({ where: { id: request.id } })).toMatchObject({ status: "CONFIRMED", response: "Fictional accepted response" })
     await revokeClientPortalAccess(row.id)
     expect(await getPortalAccessFromToken(token)).toBeNull()

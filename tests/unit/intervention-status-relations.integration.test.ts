@@ -90,12 +90,13 @@ describe.sequential("intervention state changes preserve relation boundaries", (
     expect(results.filter(result => "alreadyResolved" in result && result.alreadyResolved)).toHaveLength(1)
     expect(await db.auditLog.count({ where: { userId: fixture.user.id, resourceId: reservationId, action: "RESOLVE_INTERVENTION_RESERVATION" } })).toBe(1)
   })
-  it("rechecks intervention relations in the state update", async () => {
-    const original = prisma.fieldIntervention.updateMany.bind(prisma.fieldIntervention)
-    const delegate: { updateMany(args: Parameters<typeof original>[0]): Promise<Awaited<ReturnType<typeof original>>> } = prisma.fieldIntervention
-    vi.spyOn(delegate, "updateMany").mockImplementationOnce(async args => {
+  it("rechecks intervention relations between initial lookup and transactional update", async () => {
+    const original = prisma.fieldIntervention.findFirst.bind(prisma.fieldIntervention)
+    const delegate: { findFirst(args: Parameters<typeof original>[0]): Promise<Awaited<ReturnType<typeof original>>> } = prisma.fieldIntervention
+    vi.spyOn(delegate, "findFirst").mockImplementationOnce(async args => {
+      const observed = await original(args)
       await db.fieldIntervention.update({ where: { id: fixture.positive.interventions }, data: { ticketId: fixture.negative.tickets } })
-      return original(args)
+      return observed
     })
     await expect(updateInterventionStatus(fixture.positive.interventions, "IN_PROGRESS")).rejects.toThrow("Intervention introuvable")
     expect(await db.fieldIntervention.findUniqueOrThrow({ where: { id: fixture.positive.interventions } })).toMatchObject({ ticketId: fixture.negative.tickets, status: "PLANNED", startedAt: null })

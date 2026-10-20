@@ -226,13 +226,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           readAt: message.readAt?.toISOString() ?? null,
           createdAt: message.createdAt.toISOString(),
         }))}
-        appointments={client.portalAppointmentRequests.map((appointment) => ({
-          ...appointment,
-          preferredStart: appointment.preferredStart.toISOString(),
-          alternativeStart: appointment.alternativeStart?.toISOString() ?? null,
-          createdAt: appointment.createdAt.toISOString(),
-          updatedAt: appointment.updatedAt.toISOString(),
-        }))}
+        timeZone={client.serviceTimezone}
+        canManage={client.access.crmWrite}
       />
 
 </> },

@@ -51,6 +51,7 @@ import { readMigrationArtifact, storeMigrationArtifact } from "@/lib/migrations/
 import { assertWarehouseEmpty, lockActiveWarehouses } from "@/lib/operations/warehouses"
 import { lockActiveSite, lockActiveEquipment, lockActiveAssetProduct, closedProjectStatuses, closedTicketStatuses,
   closedInterventionStatuses, closedMaintenanceStatuses } from "@/lib/operations/asset-lifecycle"
+import { assertSchedulingSlotFree, lockSchedulingMembers } from "@/lib/scheduling/resource-slots"
 import { testExtrabatConnection, type ExtrabatConnectionConfig } from "@/lib/migrations/extrabat"
 import { migrationDatabase as prisma, withMigrationRecordTransaction } from "@/lib/migrations/database"
 import { reconcileImportedTarget } from "@/lib/migrations/reconciliation"
@@ -1109,7 +1110,7 @@ export async function importMigrationRun(runId: string) {
           } else if (kind === "INTERVENTION") {
             const candidate = interventionCandidate(payload)
             const mapping = await findMappedTarget(companyId, run.provider, record.sourceId, "FieldIntervention", record.objectType)
-            const existing = mapping ? await prisma.fieldIntervention.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true, ticketId: true, projectId: true, status: true } }) : null
+            const existing = mapping ? await prisma.fieldIntervention.findFirst({ where: { id: mapping.targetRecordId, companyId }, select: { id: true, siteId: true, ticketId: true, projectId: true, status: true, assignedMembershipId: true, updatedAt: true } }) : null
             const ticketId = await mappedTargetFromAssociations(companyId, run.provider, payload, "ticket", "ServiceTicket")
             const projectId = await mappedTargetFromAssociations(companyId, run.provider, payload, "project", "Project")
             let siteId = existing?.siteId ?? await mappedTargetFromAssociations(companyId, run.provider, payload, "site", "CustomerSite")
@@ -1128,9 +1129,18 @@ export async function importMigrationRun(runId: string) {
               }
               if (projectId && !await prisma.project.findFirst({ where: { id: projectId, companyId, clientId: site.clientId, OR: [{ siteId: null }, { siteId }] }, select: { id: true } })) throw new Error("Chantier source incompatible avec le site")
             }
-            const intervention = existing
-              ? await prisma.fieldIntervention.update({ where: { id: existing.id }, data: { ...candidate, siteId, ticketId, projectId } })
-              : await prisma.fieldIntervention.create({ data: { companyId, siteId, ticketId, projectId, ...candidate } })
+            if (existing?.assignedMembershipId) {
+              await lockSchedulingMembers(prisma, companyId, [existing.assignedMembershipId])
+              if (candidate.status !== "CANCELED") await assertSchedulingSlotFree(prisma, { companyId, membershipId: existing.assignedMembershipId,
+                start: candidate.scheduledStart, end: candidate.scheduledEnd ?? new Date(candidate.scheduledStart.getTime() + 3_600_000), excludeInterventionId: existing.id })
+            }
+            let intervention: { id: string }
+            if (existing) {
+              const changed = await prisma.fieldIntervention.updateMany({ where: { id: existing.id, companyId, updatedAt: existing.updatedAt, assignedMembershipId: existing.assignedMembershipId },
+                data: { ...candidate, siteId, ticketId, projectId, updatedAt: new Date(Math.max(Date.now(), existing.updatedAt.getTime() + 1)) } })
+              if (changed.count !== 1) throw new Error("Le planning de cette intervention a changé. Rechargez le lot avant de réessayer.")
+              intervention = existing
+            } else intervention = await prisma.fieldIntervention.create({ data: { companyId, siteId, ticketId, projectId, ...candidate } })
             targetModel = "FieldIntervention"
             targetRecordId = intervention.id
           } else if (kind === "MAINTENANCE_CONTRACT") {

@@ -62,7 +62,7 @@ describe.sequential("client detail preserves document permissions and nested ten
     expect(client!.invoices.map(row => row.number).sort()).toEqual(["OTHER", "PERMITTED"])
     expect(client!.contracts.map(row => row.number).sort()).toEqual(["OTHER", "PERMITTED"])
     expect(client!.totalRevenueCents).toBe(200)
-    expect(client!.access).toEqual({ sales: true, finance: true, salesWrite: true })
+    expect(client!.access).toEqual({ sales: true, finance: true, salesWrite: true, crmWrite: true })
   })
   it("keeps Accounting reads within its currently assigned agency", async () => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "ACCOUNTING" } })
@@ -80,7 +80,7 @@ describe.sequential("client detail preserves document permissions and nested ten
     expect(client!.invoices).toEqual([])
     expect(client!.totalRevenueCents).toBeNull()
     expect(client!.totalUnpaidCents).toBeNull()
-    expect(client!.access).toEqual({ sales: false, finance: false, salesWrite: false })
+    expect(client!.access).toEqual({ sales: false, finance: false, salesWrite: false, crmWrite: false })
   })
   it("preserves Sales documents and writing rights without returning financial amounts or invoices", async () => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } })
@@ -90,7 +90,7 @@ describe.sequential("client detail preserves document permissions and nested ten
     expect(client!.invoices).toEqual([])
     expect(client!.totalRevenueCents).toBeNull()
     expect(client!.totalUnpaidCents).toBeNull()
-    expect(client!.access).toEqual({ sales: true, finance: false, salesWrite: true })
+    expect(client!.access).toEqual({ sales: true, finance: false, salesWrite: true, crmWrite: true })
   })
   it("preserves Viewer document reads without giving Sales writing rights", async () => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "VIEWER" } })
@@ -98,7 +98,7 @@ describe.sequential("client detail preserves document permissions and nested ten
     expect(client!.quotes.map(row => row.number)).toEqual(["PERMITTED"])
     expect(client!.invoices.map(row => row.number)).toEqual(["PERMITTED"])
     expect(client!.totalRevenueCents).toBe(100)
-    expect(client!.access).toEqual({ sales: true, finance: true, salesWrite: false })
+    expect(client!.access).toEqual({ sales: true, finance: true, salesWrite: false, crmWrite: false })
   })
   it.each(["inactive", "unassigned"])("rereads %s agency access rather than retaining old document visibility", async condition => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "ACCOUNTING" } })

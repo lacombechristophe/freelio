@@ -10,19 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import type { PortalAppointment } from "@/lib/scheduling/appointment"
 
 type Message = { id: string; direction: string; authorName: string; body: string; createdAt: string }
-type Appointment = {
-  id: string
-  subject: string
-  preferredStart: string
-  alternativeStart: string | null
-  durationMinutes: number
-  notes: string | null
-  status: string
-  response: string | null
-}
-
 const statusLabels: Record<string, string> = {
   PENDING: "En attente de réponse",
   CONFIRMED: "Confirmé",
@@ -31,8 +21,8 @@ const statusLabels: Record<string, string> = {
   COMPLETED: "Terminé",
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+function formatDate(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value))
 }
 
 async function postJson(url: string, body: unknown) {
@@ -46,7 +36,19 @@ async function postJson(url: string, body: unknown) {
   return payload
 }
 
-export function PortalWorkspace({ messages, appointments }: { messages: Message[]; appointments: Appointment[] }) {
+export function PortalWorkspace({ messages, initialAppointments, timeZone }: { messages: Message[]; initialAppointments: { items: PortalAppointment[]; page: number; total: number }; timeZone: string }) {
+  const [appointments, setAppointments] = React.useState(initialAppointments)
+  const [appointmentsLoading, setAppointmentsLoading] = React.useState(false)
+  const [appointmentsError, setAppointmentsError] = React.useState("")
+  async function loadAppointments(page: number) {
+    setAppointmentsLoading(true); setAppointmentsError("")
+    try {
+      const response = await fetch(`/api/portal/appointments?page=${page}`, { cache: "no-store" })
+      if (!response.ok) throw new Error()
+      setAppointments(await response.json())
+    } catch { setAppointmentsError("Rendez-vous indisponibles. Actualisez pour réessayer.") }
+    finally { setAppointmentsLoading(false) }
+  }
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const [message, setMessage] = React.useState("")
@@ -72,7 +74,7 @@ export function PortalWorkspace({ messages, appointments }: { messages: Message[
         <div className="mt-5 max-h-[360px] space-y-3 overflow-y-auto rounded-xl bg-muted/30 p-3">
           {messages.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">La conversation est vide.</p> : messages.map((item) => (
             <div key={item.id} className={`max-w-[90%] rounded-xl px-3.5 py-3 ${item.direction === "CUSTOMER" ? "ml-auto bg-primary text-primary-foreground" : "border bg-white"}`}>
-              <div className="flex items-center justify-between gap-3 text-[11px] opacity-75"><span>{item.authorName}</span><time>{formatDate(item.createdAt)}</time></div>
+              <div className="flex items-center justify-between gap-3 text-[11px] opacity-75"><span>{item.authorName}</span><time>{formatDate(item.createdAt, timeZone)}</time></div>
               <p className="mt-1 whitespace-pre-wrap text-sm leading-5">{item.body}</p>
             </div>
           ))}
@@ -89,13 +91,17 @@ export function PortalWorkspace({ messages, appointments }: { messages: Message[
           <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarPlus className="size-5" /></span>
           <div><h2 className="font-semibold">Rendez-vous</h2><p className="text-sm text-muted-foreground">Proposez deux créneaux ; l’équipe vous confirme ici.</p></div>
         </div>
-        {appointments.length > 0 && <div className="mt-5 space-y-2">{appointments.slice(0, 5).map((appointment) => (
+        {appointments.items.length > 0 && <div className="mt-5 space-y-2">{appointments.items.map((appointment) => (
           <div key={appointment.id} className="rounded-xl border p-3.5">
-            <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm font-semibold">{appointment.subject}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(appointment.preferredStart)} · {appointment.durationMinutes} min</p></div><Badge variant="secondary">{statusLabels[appointment.status] ?? appointment.status}</Badge></div>
+            <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm font-semibold">{appointment.subject}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(appointment.preferredStart, timeZone)} · {appointment.durationMinutes} min</p></div><Badge variant="secondary">{statusLabels[appointment.status] ?? appointment.status}</Badge></div>
+            {appointment.scheduledStart && appointment.scheduledEnd ? <p className="mt-2 text-sm">{appointment.status === "CANCELLED" ? "Ancien créneau" : "Créneau réservé"} : {formatDate(appointment.scheduledStart, timeZone)} – {formatDate(appointment.scheduledEnd, timeZone)} · {appointment.member ?? "Membre historique indisponible"}</p> : ["CONFIRMED", "COMPLETED"].includes(appointment.status) && <p className="mt-2 text-sm">Confirmation historique — aucun créneau réservé n’a été conservé.</p>}
             {appointment.response && <p className="mt-3 rounded-lg bg-muted/50 p-3 text-sm leading-5"><span className="font-medium">Réponse de l’équipe :</span> {appointment.response}</p>}
           </div>
         ))}</div>}
-        <form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); run(async () => { await postJson("/api/portal/appointments", { subject, preferredStart, alternativeStart, durationMinutes, notes }); setSubject(""); setPreferredStart(""); setAlternativeStart(""); setNotes(""); toast.success("Demande transmise."); router.refresh() }) }}>
+        <p className="mt-3 text-xs text-muted-foreground">Horaires dans le fuseau {timeZone}. Une préférence n’est pas une réservation.</p>
+        {appointmentsError && <p role="alert">{appointmentsError}</p>}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs"><Button variant="outline" size="sm" disabled={appointmentsLoading || appointments.page <= 1} onClick={() => void loadAppointments(appointments.page - 1)}>Page précédente</Button><span>{appointments.total} demandes · page {appointments.page}</span><Button variant="outline" size="sm" disabled={appointmentsLoading || appointments.page * 25 >= appointments.total} onClick={() => void loadAppointments(appointments.page + 1)}>Page suivante</Button><Button variant="outline" size="sm" disabled={appointmentsLoading} onClick={() => void loadAppointments(appointments.page)}>Actualiser les rendez-vous</Button></div>
+        <form className="mt-5 grid gap-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); run(async () => { await postJson("/api/portal/appointments", { subject, preferredStart, alternativeStart, durationMinutes, notes, timeZone }); setSubject(""); setPreferredStart(""); setAlternativeStart(""); setNotes(""); toast.success("Demande transmise."); await loadAppointments(1); router.refresh() }) }}>
           <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="appointment-subject">Objet du rendez-vous</Label><Input id="appointment-subject" value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={3} maxLength={160} placeholder="Ex. Validation technique, visite sur site…" /></div>
           <div className="space-y-1.5"><Label htmlFor="preferred-start">Créneau souhaité</Label><Input id="preferred-start" type="datetime-local" value={preferredStart} onChange={(event) => setPreferredStart(event.target.value)} required /></div>
           <div className="space-y-1.5"><Label htmlFor="alternative-start">Autre créneau</Label><Input id="alternative-start" type="datetime-local" value={alternativeStart} onChange={(event) => setAlternativeStart(event.target.value)} /></div>

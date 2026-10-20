@@ -23,7 +23,11 @@ function useMutation() {
   function mutate(operation: () => Promise<unknown>, success: string) {
     startTransition(async () => {
       try {
-        await operation();
+        const result = await operation();
+        if (result && typeof result === "object" && "success" in result && result.success === false) {
+          toast.error("error" in result && typeof result.error === "string" ? result.error : "Mise à jour impossible.");
+          return;
+        }
         toast.success(success);
         router.refresh();
       } catch (error) {

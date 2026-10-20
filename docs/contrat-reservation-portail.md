@@ -12,7 +12,7 @@ Les anciens états « Confirmé » sans réservation sont signalés comme histor
 
 Deux rendez-vous CRM d’un même membre ne peuvent pas se chevaucher. Les créneaux terrain du membre doivent également être pris en compte, dans les deux sens. L’écriture de ces deux parcours doit utiliser le même verrou de ressource ; une vérification avant transaction ne suffit pas. Les bornes sont semi-ouvertes : la fin d’un rendez-vous peut coïncider avec le début du suivant.
 
-Le contrôle d’une donnée privée retourne un refus générique, sans son titre ni l’identité de son client. Un calendrier distant n’est pas présenté comme disponible en temps réel sans lecture fournisseur qualifiée. Les limites de la copie locale et de sa dernière synchronisation sont explicites ; la confirmation locale ne promet aucun événement distant créé.
+Le contrôle d’une donnée privée retourne un refus générique, sans son titre ni l’identité de son client. La réservation contrôle les rendez-vous CRM et interventions du membre. Les tâches Organisation sans ressource affectée et les calendriers distants ne sont pas des sources de disponibilité pour ce lot ; cette limite est affichée avant confirmation. La confirmation locale ne promet aucun événement distant créé.
 
 ## Parcours
 
@@ -24,4 +24,6 @@ Le lecteur du calendrier reste filtré par société et périmètre autorisé. L
 
 Les suites doivent vérifier accès, versions, fuseaux et changement d’heure, durée invalide, ressource suspendue, deux réservations concurrentes, conflit terrain dans les deux sens, annulation/replanification et échec transactionnel. Une recette navigateur doit parcourir demande, confirmation, calendrier, consultation publique du résultat et annulation. SQLite ne remplace pas la qualification concurrente PostgreSQL.
 
-Ce document fixe le comportement à réaliser ; il ne certifie pas sa présence actuelle. L’action historique de confirmation se limite encore au statut et à la réponse de la demande.
+L’implémentation ajoute quatre champs facultatifs aux demandes existantes, un verrou partagé de membre et des lecteurs paginés par 25. Les anciennes confirmations restent sans réservation ; aucun remplissage automatique n’est réalisé. L’export ICS contient les nouveaux créneaux en UTC, sans les transformer en échéances à la journée. La préférence saisie dans le portail est interprétée dans le fuseau affiché de la société ; une heure ambiguë ou inexistante est refusée.
+
+La recette locale et la qualification PostgreSQL/navigateur sont des preuves distinctes. La présence de ce contrat ne certifie pas la réussite des critères de sortie.

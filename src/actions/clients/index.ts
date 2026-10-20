@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { ClientActivitySchema, ClientNextActionSchema, ClientSchema, ContactSchema } from "@/lib/validations"
 import { boundedPageSize } from "@/lib/pagination"
 import { hasPermission } from "@/lib/permissions"
+import { portalAppointmentScope } from "@/lib/scheduling/resource-slots"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 
 export async function getClients(cursor?: string, limit: number = 20) {
@@ -118,7 +119,7 @@ export async function getClientById(id: string) {
           },
         },
         portalMessages: { orderBy: { createdAt: "asc" }, take: 100 },
-        portalAppointmentRequests: { orderBy: { createdAt: "desc" }, take: 50 },
+        portalAppointmentRequests: { where: portalAppointmentScope(companyId, agencyIds), orderBy: { createdAt: "desc" }, take: 50 },
       },
     })
     if (!client) return null
@@ -136,7 +137,8 @@ export async function getClientById(id: string) {
     const totalRevenueCents = paidAgg ? paidAgg._sum.totalHtCents ?? 0 : null
     const totalUnpaidCents = unpaidAgg ? (unpaidAgg._sum.totalTtcCents ?? 0) - (unpaidAgg._sum.paidAmountCents ?? 0) : null
 
-    return { ...client, relationScore: canReadFinance && agencyIds === null ? client.relationScore : null, renewalAmountCents: canReadFinance ? client.renewalAmountCents : null, totalRevenueCents, totalUnpaidCents, access: { sales: canReadSales, finance: canReadFinance, salesWrite: hasPermission(role, "sales.write") } }
+    const company = await tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    return { ...client, serviceTimezone: company.serviceTimezone, relationScore: canReadFinance && agencyIds === null ? client.relationScore : null, renewalAmountCents: canReadFinance ? client.renewalAmountCents : null, totalRevenueCents, totalUnpaidCents, access: { sales: canReadSales, finance: canReadFinance, salesWrite: hasPermission(role, "sales.write"), crmWrite: hasPermission(role, "crm.write") } }
   }, { isolationLevel: "Serializable" }), "crm.read")
 }
 
