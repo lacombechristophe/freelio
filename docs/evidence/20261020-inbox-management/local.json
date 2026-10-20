@@ -1,0 +1,287 @@
+{
+  "schema": "freelio.inbox-management-local.v1",
+  "observedAt": "2026-10-20T19:43:11.672Z",
+  "codeCommit": "f4fcbc1693bdb5ff7a166814c1610bad0b0f33f3",
+  "source": {
+    "observedAt": "2026-10-20T19:42:23.667Z",
+    "commit": "f4fcbc1693bdb5ff7a166814c1610bad0b0f33f3",
+    "filesCompared": 1157,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "57c74642fe9c75bcadb6bdec45196e7959d577e238633e6bda93e6bfbb948ac0",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-inbox-management-qualified-20261020.json",
+    "sha256": "1b99cdcd76a6a255301d93353bac85a2b556b8592c66b00114c2c80487709568",
+    "success": true,
+    "total": 2917,
+    "passed": 2917,
+    "failed": 0,
+    "pending": 0,
+    "files": 253,
+    "failedCases": []
+  },
+  "focused": {
+    "file": "Freelio-inbox-projections-qualified-20261020.json",
+    "sha256": "888481b47a1ad503eab5eba154504107160ceac309a7c949addfb6c841012efa",
+    "success": true,
+    "total": 53,
+    "passed": 53,
+    "failed": 0,
+    "pending": 0,
+    "files": 7,
+    "suites": [
+      {
+        "file": "communication-dashboard.integration.test.ts",
+        "status": "passed",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "file": "inbox-management.integration.test.ts",
+        "status": "passed",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "inbox-reader.integration.test.ts",
+        "status": "passed",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "inbox-relations.integration.test.ts",
+        "status": "passed",
+        "passed": 7,
+        "failed": 0
+      },
+      {
+        "file": "mailbox-access.integration.test.ts",
+        "status": "passed",
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "file": "member-mailbox-offboarding.integration.test.ts",
+        "status": "passed",
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "file": "scheduled-emails.integration.test.ts",
+        "status": "passed",
+        "passed": 10,
+        "failed": 0
+      }
+    ]
+  },
+  "firstFullCandidate": {
+    "codeCommit": "2103dec7daba920cdad2025be099fc42eaa87e41",
+    "report": {
+      "file": "full-sqlite-inbox-management-final-20261020.json",
+      "sha256": "998e39302191cc34a4fc9338ac19423457440f354aa454f3a7625957c305caf2",
+      "success": false,
+      "total": 2917,
+      "passed": 2916,
+      "failed": 1,
+      "pending": 0,
+      "files": 253,
+      "failedCases": [
+        {
+          "file": "scheduled-emails.integration.test.ts",
+          "name": "private frozen schedules, cancellation and durable dispatch keeps the selected reply parent when a new incoming message arrives after scheduling",
+          "status": "failed"
+        }
+      ]
+    },
+    "log": {
+      "file": "Freelio-full-sqlite-inbox-management-final-20261020.log",
+      "sha256": "893a4fa70fd6bd4eaa266529205dcf13fd17c3b8d32b0abd7fa53da74685bff9"
+    },
+    "source": {
+      "observedAt": "2026-10-20T19:09:10.139Z",
+      "commit": "2103dec7daba920cdad2025be099fc42eaa87e41",
+      "filesCompared": 1157,
+      "mismatches": [],
+      "gitTreeRecordsSha256": "0d756d59bf3b8d1a4948e9d5efb82c1deff0d7cfedfb6321337cb728b851d44e",
+      "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+      "excluded": [
+        "docs/**",
+        "CONTRIBUTING.md",
+        ".env and .env.*"
+      ],
+      "limits": [
+        "Compares recipe source with Git, not runtime behavior",
+        "Dependencies and generated output are outside this source identity"
+      ]
+    },
+    "failure": "Prisma rejects where inside the required EmailMessage.thread projection during scheduled reply preparation",
+    "correction": "Required thread remains protected by its parent message predicate; optional relations and lists still receive nested filters; no assertion, timeout or permission relaxed"
+  },
+  "earlierManagementChecks": {
+    "file": "Freelio-inbox-management-focused-20261020.json",
+    "sha256": "5e5211e20be56daba4c0ba65f699c20fbe1bca3d594a9c68080d9c07a93d4670",
+    "success": true,
+    "total": 40,
+    "passed": 40,
+    "failed": 0,
+    "pending": 0,
+    "files": 5,
+    "suites": [
+      {
+        "file": "communication-dashboard.integration.test.ts",
+        "status": "passed",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "file": "email-drafts.integration.test.ts",
+        "status": "passed",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "inbox-management.integration.test.ts",
+        "status": "passed",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "inbox-reader.integration.test.ts",
+        "status": "passed",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "remote-mail-fixture.integration.test.ts",
+        "status": "passed",
+        "passed": 1,
+        "failed": 0
+      }
+    ]
+  },
+  "fixtureCorrections": [
+    {
+      "file": "Freelio-inbox-relations-baseline-20261020.json",
+      "sha256": "1b88c923a7f2306263c03546d3eec6778d8b56d97a04dc2b209e176008e91c58",
+      "note": "Initial diagnostic could not create its incomplete Contact fixture; not evidence of the product defect"
+    },
+    {
+      "file": "Freelio-inbox-relations-reproduction-20261020.json",
+      "sha256": "b2cb6adc1c610f9e5786d46c5865999708233abb143cd525b540a557bcec1ea0",
+      "note": "Six assertions reproduced the defect, but cleanup also failed; the subsequent seven-case fresh reproduction is authoritative"
+    },
+    {
+      "file": "Freelio-inbox-relations-fixed-20261020.json",
+      "sha256": "cb16d3a3deeaa3c61e782847a79563245846de5e9499504ce5878ebada8974d4",
+      "note": "42 assertions passed but suite failed during fixture cleanup"
+    },
+    {
+      "file": "Freelio-inbox-relations-focused-20261020.json",
+      "sha256": "acc6032bb5db566fb189f8b92e902eced13b63aee01d1e9ea8b400235b14297b",
+      "note": "43 assertions passed but suite failed during fixture cleanup; explicit removal of fictional clients fixed it"
+    }
+  ],
+  "checks": {
+    "types": {
+      "exitCode": 0,
+      "file": "Freelio-inbox-qualified-types-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eslint": {
+      "exitCode": 0,
+      "file": "Freelio-inbox-qualified-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oxlint": {
+      "exitCode": 0,
+      "file": "Freelio-inbox-qualified-oxlint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build": {
+      "exitCode": 0,
+      "file": "Freelio-inbox-qualified-build-20261020.log",
+      "sha256": "3e9c1107bbb0b6b71fb0382016494629794423a4f8c79b4e3ea3d7a861a06479"
+    }
+  },
+  "coverage": {
+    "scope": "Six configured modules only, not application-wide coverage",
+    "metrics": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T19:27:48.625Z",
+    "baseline": "f4fcbc1693bdb5ff7a166814c1610bad0b0f33f3",
+    "all": 456,
+    "desktop": 228,
+    "mobile": 228,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "publication": {
+    "file": "Freelio-inbox-qualified-publication-20261020.log",
+    "sha256": "9eab54bdaaae348dfc0ceb19c428699a1742f61b46201e32a4331968b0f2dd62",
+    "exitCode": 0,
+    "scope": "Current tracked content and Git history"
+  },
+  "limits": [
+    "SQLite real; authentication/cache mocked as specified in each suite",
+    "No provider account, message sent, installation, schema change or original data copied",
+    "Full SQL suite ran after build and publication scan completed",
+    "Browser cases listed only, not executed",
+    "PostgreSQL, Linux/runtime and browser require qualification of this exact commit",
+    "No push, new CI, merge or deployment; GitHub Actions zero-spending guard remains unverified",
+    "Sending quotas, real provider acceptance, deliverability and production load are not qualified by this inbox lot"
+  ]
+}
