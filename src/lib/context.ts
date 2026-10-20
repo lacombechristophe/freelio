@@ -11,6 +11,7 @@ export type RequestContext = {
   actionPermission?: Permission
   timeInvoiceClaimId?: string
   timeInvoiceReleaseId?: string
+  oauthCredentialRefreshChannelId?: string
 }
 
 const globalForContext = globalThis as typeof globalThis & {

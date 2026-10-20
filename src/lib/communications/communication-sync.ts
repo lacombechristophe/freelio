@@ -4,10 +4,13 @@ import { CalendarReconnectRequiredError, syncOAuthCalendarChannel } from "@/lib/
 import { syncOAuthEmailChannel } from "@/lib/communications/email-sync"
 import { EMAIL_OAUTH_PROVIDERS } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
-import { storeChannelSyncState } from "@/lib/communications/sync-state"
+import { channelConfig, storeChannelSyncState } from "@/lib/communications/sync-state"
 import { MailReconnectRequiredError } from "@/lib/communications/capabilities"
 
 export async function syncOAuthCommunicationChannel(companyId: string, channelId: string) {
+  const connection = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channelId, companyId }, select: { config: true } })
+  const value = channelConfig(connection.config).mailSyncGeneration
+  const generation = typeof value === "string" ? value : "legacy"
   type CapabilityResult = { examined: number; imported: number; complete: boolean; status: "SYNCED" | "CONTINUING" | "FAILED" | "RECONNECT_REQUIRED" | "DISABLED"; error: string | null }
   async function syncCapability(task: () => Promise<{ examined: number; imported: number; complete: boolean; disabled?: boolean }>, key: "emailSyncStatus" | "calendarSyncStatus"): Promise<CapabilityResult> {
     let result: CapabilityResult
@@ -17,12 +20,13 @@ export async function syncOAuthCommunicationChannel(companyId: string, channelId
     } catch (error) {
       result = { examined: 0, imported: 0, complete: false, status: error instanceof CalendarReconnectRequiredError || error instanceof MailReconnectRequiredError ? "RECONNECT_REQUIRED" : "FAILED", error: (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500) }
     }
-    await storeChannelSyncState(companyId, channelId, key, { status: result.status, error: result.error, checkedAt: new Date().toISOString() })
+    await storeChannelSyncState(companyId, channelId, key, { status: result.status, error: result.error, checkedAt: new Date().toISOString() }, undefined, { mailGeneration: generation })
     return result
   }
   const email = await syncCapability(() => syncOAuthEmailChannel(companyId, channelId), "emailSyncStatus")
   const calendar = await syncCapability(() => syncOAuthCalendarChannel(companyId, channelId), "calendarSyncStatus")
-  await prisma.communicationChannel.updateMany({ where: { id: channelId, companyId }, data: { lastError: [email.error, calendar.error].filter(Boolean).join(" ; ") || null } })
+  await storeChannelSyncState(companyId, channelId, "calendarSyncStatus", { status: calendar.status, error: calendar.error, checkedAt: new Date().toISOString() }, undefined,
+    { mailGeneration: generation, lastError: [email.error, calendar.error].filter(Boolean).join(" ; ") || null })
   return { email, calendar }
 }
 

@@ -1,4 +1,5 @@
 import "server-only"
+import { getContext, requestContext } from "@/lib/context"
 
 import { z } from "zod"
 import { createHash } from "node:crypto"
@@ -113,7 +114,9 @@ export async function validOAuthCredentials(channel: ActiveChannel) {
     const latestCredentials = readOAuthCredentials(latest)
     if (latestCredentials.refreshToken !== credentials.refreshToken || latestCredentials.accessToken !== credentials.accessToken) throw new Error("La connexion OAuth a changé pendant le renouvellement")
     const merged = { ...latestCredentials, ...updated, calendarCursor: latestCredentials.calendarCursor, calendarCursorKind: latestCredentials.calendarCursorKind }
-    const stored = await prisma.communicationChannel.updateMany({ where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: latest.credentialsEncrypted }, data: { credentialsEncrypted: encrypt(JSON.stringify(merged)), lastError: null } })
+    const context = getContext()
+    const save = () => prisma.communicationChannel.updateMany({ where: { id: channel.id, status: "ACTIVE", credentialsEncrypted: latest.credentialsEncrypted }, data: { credentialsEncrypted: encrypt(JSON.stringify(merged)), lastError: null } })
+    const stored = context ? await requestContext.run({ ...context, oauthCredentialRefreshChannelId: channel.id }, async () => await save()) : await save()
     if (stored.count === 1) return merged
   }
   throw new Error("Le renouvellement OAuth nécessite une reprise")

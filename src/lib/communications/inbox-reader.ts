@@ -2,6 +2,7 @@ import "server-only"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { remoteMailView } from "./remote-mail-view"
 
 export const inboxQuerySchema = z.object({
   page: z.number().int().min(1).max(100_000).default(1),
@@ -13,13 +14,13 @@ const PAGE_SIZE = 50
 const MESSAGE_PAGE_SIZE = 25
 export const messageReadSelect = {
   id: true, direction: true, purpose: true, provider: true, fromAddress: true, toAddresses: true, ccAddresses: true,
-  subject: true, bodyHtml: true, bodyText: true, attachments: true, status: true, sentAt: true, receivedAt: true, createdAt: true,
+  subject: true, bodyHtml: true, bodyText: true, attachments: true, remoteObservation: true, status: true, sentAt: true, receivedAt: true, createdAt: true,
   events: { select: { id: true, type: true, occurredAt: true }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }] },
 } satisfies Prisma.EmailMessageSelect
 type SelectedMessage = Prisma.EmailMessageGetPayload<{ select: typeof messageReadSelect }>
 
 function messageDto(message: SelectedMessage) {
-  return { ...message, sentAt: message.sentAt?.toISOString() ?? null, receivedAt: message.receivedAt?.toISOString() ?? null,
+  return { ...message, remoteObservation: remoteMailView(message.remoteObservation), sentAt: message.sentAt?.toISOString() ?? null, receivedAt: message.receivedAt?.toISOString() ?? null,
     createdAt: message.createdAt.toISOString(), events: message.events.toReversed().map((event) => ({ ...event, occurredAt: event.occurredAt.toISOString() })) }
 }
 

@@ -148,6 +148,14 @@ const prismaClientSingleton = () => {
           // to refuse a partial release; no foreign row or identifier is returned.
           const timeInvoiceReleaseCount = model === "TimeEntry" && operation === "count" && context?.actionPermission === "finance.write" &&
             hasPermission(context.role, "finance.write") && typeof context.timeInvoiceReleaseId === "string" && mutableArgs.where?.invoiceId === context.timeInvoiceReleaseId
+          // An authorized mailbox read may refresh only that channel's encrypted
+          // credentials through the provider's CAS. It cannot edit its settings.
+          const oauthCredentialRefresh = model === "CommunicationChannel" && operation === "updateMany" && context &&
+            ["automation.read", "automation.write"].includes(context.actionPermission || "") && hasPermission(context.role, "automation.read") &&
+            typeof context.oauthCredentialRefreshChannelId === "string" && mutableArgs.where?.id === context.oauthCredentialRefreshChannelId &&
+            mutableArgs.where?.status === "ACTIVE" && typeof mutableArgs.where?.credentialsEncrypted === "string" &&
+            profileFields.length === 2 && profileFields.includes("credentialsEncrypted") && profileFields.includes("lastError") &&
+            typeof mutableArgs.data.credentialsEncrypted === "string" && mutableArgs.data.lastError === null
 
           if (
             context &&
@@ -158,6 +166,7 @@ const prismaClientSingleton = () => {
             !orderBillingUpdate &&
             !timeInvoiceClaim &&
             !timeInvoiceRelease &&
+            !oauthCredentialRefresh &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)

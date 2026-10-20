@@ -5,6 +5,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { hashPassword } from "../src/lib/auth/password-core.ts"
 import { encrypt } from "../src/lib/crypto.ts"
 import { seedCatalogueAssets } from "./seed-catalogue-assets.mjs"
+import { seedRemoteMail } from "./seed-remote-mail.mjs"
 import { seedDocumentRelations } from "./seed-document-relations.mjs"
 import { seedRecurringInvoices } from "./seed-recurring-invoices.mjs"
 import { seedOperationsOrderFinance } from "./seed-operations-order-finance.mjs"
@@ -348,5 +349,6 @@ try {
     const id = `cuiqainboxmessage${String(index).padStart(9, "0")}`
     await prisma.emailMessage.upsert({ where: { id }, update: {}, create: { id, companyId, threadId: longThread.id, direction: "INBOUND", provider: "RESEND", fromAddress: "fixture@example.test", toAddresses: [mailbox.emailAddress], subject: `UIQA History ${String(index).padStart(3, "0")}`, bodyText: `Fictitious message ${index}`, createdAt: new Date(Date.UTC(2020, 0, 1, 0, index)), status: "RECEIVED" } })
   }
+  await seedRemoteMail(prisma, companyId, user.id)
   console.log("QA fixtures ready: directories, documents, signed contract, supplier, purchase, migration and paginated inbox.")
 } finally { await prisma.$disconnect() }

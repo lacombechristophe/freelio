@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
+import { randomUUID } from "node:crypto"
 
 import { logAction } from "@/lib/audit"
 import { encrypt } from "@/lib/crypto"
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
             scope: tokens.scope || "",
             expiresAt: expiresAt.toISOString(),
           })),
-          config: { mode: "OAUTH", accountDisplayName: identity.displayName, grantedScopes: (tokens.scope || "").split(" ").filter(Boolean) },
+          config: { mode: "OAUTH", accountDisplayName: identity.displayName, grantedScopes: (tokens.scope || "").split(" ").filter(Boolean), mailSyncGeneration: randomUUID() },
           lastError: null,
           lastSyncAt: null,
         },

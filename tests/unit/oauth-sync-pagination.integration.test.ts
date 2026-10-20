@@ -39,6 +39,15 @@ describe.sequential("bounded and resumable provider pagination on SQL", () => {
     const occurredAt = new Date(Date.now() - 10 * 86_400_000).toISOString()
     vi.stubGlobal("fetch", vi.fn(async (input: URL | string) => {
       const url = new URL(String(input))
+      if (provider === "GOOGLE" && url.pathname.endsWith("/profile")) return Response.json({ historyId: "100" })
+      if (provider === "GOOGLE" && url.pathname.endsWith("/history")) return Response.json({ history: [], historyId: "101" })
+      if (provider === "MICROSOFT" && /\/mailFolders\/(inbox|sentitems)$/.test(url.pathname)) return Response.json({ id: url.pathname.split("/").at(-1), displayName: "Fictional folder" })
+      if (provider === "MICROSOFT" && url.pathname.endsWith("/attachments")) return Response.json({ value: [] })
+      if (provider === "MICROSOFT" && /\/me\/messages\/[^/]+$/.test(url.pathname)) {
+        const id = url.pathname.split("/").at(-1)!
+        return Response.json({ id, subject: id, from: { emailAddress: { address: id.startsWith("SENT-") ? channel.emailAddress : `${id}@example.test` } }, toRecipients: [], parentFolderId: id.startsWith("SENT-") ? "sentitems" : "inbox",
+          body: { contentType: "text", content: "Fixture" }, receivedDateTime: occurredAt, sentDateTime: occurredAt, isRead: false })
+      }
       if (provider === "GOOGLE" && /\/messages\/[^/]+$/.test(url.pathname)) {
         const id = url.pathname.split("/").at(-1)!
         return Response.json({ id, internalDate: String(new Date(occurredAt).getTime()), labelIds: ["UNREAD"], payload: { mimeType: "text/plain", body: { data: Buffer.from("Fictitious message").toString("base64url") }, headers: [{ name: "From", value: `${id}@example.test` }, { name: "Subject", value: id }] } })
@@ -49,14 +58,16 @@ describe.sequential("bounded and resumable provider pagination on SQL", () => {
       const next = ids.length === 50 ? page + 1 : null
       if (provider === "GOOGLE") return Response.json({ messages: ids.map((id) => ({ id })), ...(next === null ? {} : { nextPageToken: String(next) }) })
       const continuation = new URL(url); continuation.searchParams.set("page", String(next))
-      return Response.json({ value: ids.map((id) => ({ id, subject: id, from: { emailAddress: { address: `${id}@example.test` } }, body: { contentType: "text", content: "Fixture" }, receivedDateTime: occurredAt, sentDateTime: occurredAt, isRead: false })), ...(next === null ? {} : { "@odata.nextLink": continuation.toString() }) })
+      expect(url.searchParams.has("$filter")).toBe(false)
+      return Response.json({ value: ids.map(id => ({ id })), ...(next === null ? { "@odata.deltaLink": `${url.origin}${url.pathname}?$deltatoken=fictional-final-${folder}` } : { "@odata.nextLink": continuation.toString() }) })
     }))
     const first = await syncOAuthEmailChannel(company.id, channel.id)
     expect(first.complete).toBe(false)
     expect((await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })).lastSyncAt).toBeNull()
-    const second = await syncOAuthEmailChannel(company.id, channel.id)
-    expect(second.complete).toBe(true)
-    expect(first.imported + second.imported).toBe(302)
+    let last = first, imported = first.imported
+    for (let i = 0; i < 12 && !last.complete; i++) { last = await syncOAuthEmailChannel(company.id, channel.id); imported += last.imported }
+    expect(last.complete).toBe(true)
+    expect(imported).toBe(302)
     expect(await prisma.emailMessage.count({ where: { companyId: company.id } })).toBe(302)
     await syncOAuthEmailChannel(company.id, channel.id)
     await syncOAuthEmailChannel(company.id, channel.id)
@@ -96,7 +107,7 @@ describe.sequential("bounded and resumable provider pagination on SQL", () => {
     expect(result.email.status).toBe("FAILED")
     expect(result.calendar.status).toBe("SYNCED")
     expect(cursors.get(channel.id)).toBe("calendar-only-success")
-    expect((await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })).lastError).toContain("Mail unavailable")
+    expect((await prisma.communicationChannel.findUniqueOrThrow({ where: { id: channel.id } })).lastError).toContain("503")
   })
 
   it("makes no provider call for disabled capabilities and reports them honestly", async () => {

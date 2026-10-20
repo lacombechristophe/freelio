@@ -26,4 +26,22 @@ La démo sans R2 ne prétend pas archiver durablement ces pièces. Toute copie p
 
 ## Critères de sortie
 
-La qualification doit couvrir SQL réel et HTTP fournisseur simulé : lu/non lu, déplacement, suppression confirmée, erreur 403/429/5xx, expiration de checkpoint, pagination interrompue et rejouée, ancien message, pièces multiples/refusées et boîte privée. Un parcours navigateur doit distinguer suivi CRM et observation fournisseur. Les limites de compte réel et de stockage restent annoncées. Ce contrat prépare le lot ; sa présence ne signifie pas que ces critères sont déjà réussis.
+La qualification couvre SQL réel et HTTP fournisseur simulé : lu/non lu, déplacement, disparition confirmée par un GET 404, erreur 403/429/5xx, expiration de checkpoint, pagination interrompue et rejouée, ancien message, pièces multiples/refusées et boîte privée. Le parcours `communications-remote-state.spec.ts` distingue suivi CRM et observation fournisseur. Sa sélection ne vaut pas exécution navigateur ; les résultats et limites sont consignés séparément dans la recette.
+
+## Implémentation et limites
+
+`EmailMessage.remoteObservation` est un JSON nullable validé avant stockage et projection. L'ajout ne réécrit ni les corps, ni les destinataires, ni les états historiques. Les messages existants sans observation restent inconnus. `oauth-mail-reader.ts` lit les protocoles, `email-sync.ts` reprend le travail et `remote-mail-persistence.ts` distingue première réception et simple observation.
+
+Le worker traite au plus quatre lots de 50 identifiants par appel. Une grosse page Gmail conserve sa liste et sa position avant de progresser ; le checkpoint fournisseur n'avance qu'après traitement de toute la page. Les enveloppes JSON sont bornées, les curseurs à 20 000 caractères et une page de travail à 50 000 identifiants. Un dépassement refuse la page ; il ne la tronque pas et ne prouve pas la complétude d'une boîte volumineuse. Les limites d'exécution et la charge de vrais comptes restent à mesurer.
+
+Le delta Graph parcourt les métadonnées des dossiers Réception et Envoyés sans filtre de date. Seuls les nouveaux corps de la fenêtre d'import sont copiés. Les anciens messages déjà copiés, y compris déplacés hors de ces dossiers, sont relus par identifiant à chaque tour terminé. Cette stratégie ne découvre pas tous les anciens messages d'une boîte ou d'un dossier arbitraire. Les libellés Gmail et dossiers Microsoft sont des observations horodatées, sans écriture distante.
+
+Une reconnexion change la génération du travail ; les anciens checkpoints et résumés ne peuvent pas remplacer ceux de la nouvelle connexion. Le téléchargement d'une pièce autorisée peut renouveler le jeton de sa boîte par comparaison atomique des secrets chiffrés. Cette capacité ne donne aucun droit général de modification de la connexion ou de la société.
+
+Les pièces restent chez le fournisseur. PDF, PNG et JPEG sont téléchargeables jusqu'à 5 Mo, après vérification du type, de la taille, de la signature et de la correspondance des métadonnées. Les accès société, boîte et adhésion sont revérifiés après lecture. Aucun antivirus, archivage durable, copie R2 ni compte fournisseur réel n'est qualifié par ces contrôles. La démo publique refuse toute lecture fournisseur.
+
+## Reproduction locale isolée
+
+Dans une copie sans `.env`, installer préalablement les dépendances du dépôt, définir une URL SQLite fictive et les secrets de recette, puis préparer cette base avec `npm run db:prepare:dev`. Exécuter `npm run test:unit`, `npm run typecheck`, `npm run lint` et `npm run build`. Ces commandes écrivent dans la base et les sorties de cette copie ; ne pas les diriger vers une instance utilisée.
+
+`node scripts/verify-mail-observation-upgrade.mjs` crée lui-même une nouvelle base externe et vérifie la conservation des colonnes historiques. La fixture `seed-remote-mail.mjs`, appelée par la recette UI, ne contient ni jeton ni connexion active. Les appels HTTP des suites `oauth-mail-*` et `incoming-attachment.integration.test.ts` sont simulés ; PostgreSQL, Chromium et comptes réels constituent des qualifications distinctes.

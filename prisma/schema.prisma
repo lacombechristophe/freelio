@@ -1265,6 +1265,7 @@ model EmailMessage {
   bodyHtml          String?
   bodyText          String?
   attachments       Json?
+  remoteObservation Json? // Provider state; never the local CRM workflow or an archived attachment.
   status            String       @default("SENT")
   sentAt            DateTime?
   receivedAt        DateTime?
