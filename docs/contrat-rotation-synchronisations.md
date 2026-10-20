@@ -16,6 +16,8 @@ L'API et le worker transmettent le contrôle de leur verrou commun. Sa propriét
 
 La synchronisation manuelle garde son parcours explicite. Les dates de succès mail, états de capacité et checkpoints ne sont pas réinterprétés. L'ancien planificateur mail sans appelant est retiré ; les deux points d'entrée automatiques utilisent le même planificateur.
 
+Un bilan comportant des échecs renvoie HTTP 503 avec ses compteurs conservés, afin que le cron utilisant `curl --fail-with-body` ne présente pas un succès. Un lot réussi ou un verrou déjà occupé reste en HTTP 200 ; un appel sans secret valide reste refusé avant traitement.
+
 ## Qualification
 
 Les tests vérifient rotation, sociétés distinctes, échecs, continuation, horloge figée/reculée, sélection périmée, perte de verrou, durée et limite de lot. Deux parcours supplémentaires conservent les vrais traitements SQL et cryptographiques avec HTTP Google/Graph simulé. `node scripts/verify-sync-attempt-upgrade.mjs` vérifie une base historique fictive, l'index SQLite et le diff PostgreSQL. L'exécution PostgreSQL réelle, les fournisseurs réels, la charge et les quotas restent des qualifications distinctes.

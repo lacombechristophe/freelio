@@ -10,7 +10,7 @@ async function processSync(request: Request) {
     return Response.json({ error: "Accès refusé" }, { status: 401, headers: { "cache-control": "no-store" } })
   }
   const result = await withProcessorLease("communication-sync", control => syncDueOAuthCommunicationChannels(10, control))
-  return Response.json(result.acquired ? result.value : { examined: 0, synced: 0, messagesImported: 0, calendarEventsImported: 0, calendarReconnectRequired: 0, failed: 0, skipped: "PROCESSOR_BUSY" }, { headers: { "cache-control": "no-store" } })
+  return Response.json(result.acquired ? result.value : { examined: 0, synced: 0, messagesImported: 0, calendarEventsImported: 0, calendarReconnectRequired: 0, failed: 0, skipped: "PROCESSOR_BUSY" }, { status: result.acquired && result.value.failed > 0 ? 503 : 200, headers: { "cache-control": "no-store" } })
 }
 
 export async function GET(request: Request) {
