@@ -4,15 +4,15 @@
 
 ## Résultat actuel
 
-Le candidat local `3046a1179c2ecf624b1fb6fcc52ea8c6a83fd78a` ajoute les [plafonds internes des envois CRM](evidence/20261020-mail-send-quotas/README.md) : réservation atomique par boîte, limites explicites, attentes sans perte de la saisie et reprise conservatrice. Le [préflight du contenu](evidence/20261020-campaign-content/README.md) et les [conversations protégées](evidence/20261020-inbox-management/README.md) restent inclus. Les limites internes ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
+Le candidat local `6481266046c5c0708ac066b095e30fdacf5d668e` ajoute le [contrôle de l’expéditeur des campagnes](evidence/20261021-campaign-send-preflight/README.md) : configuration et plafonds internes avant capture, activation et reprise, sans réservation dans le rapport. Le correctif distinct `deaa01b` refuse les identifiants Resend illisibles au lieu de leur substituer la clé de la plateforme. Les [plafonds des envois CRM](evidence/20261020-mail-send-quotas/README.md) et les contrôles précédents restent inclus. Les limites internes ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **2 989 tests / 259 fichiers**, aucun échec ni exclusion |
-| Plafonds et régressions voisines | 157 cas dans 13 suites, présents et réussis dans la même suite complète |
+| Suite SQLite, base fictive neuve | **3 013 tests / 260 fichiers**, aucun échec ni exclusion |
+| Campagnes, expéditeur et régressions voisines | 128 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 3046a11, 76 pages statiques, même code candidat |
-| Identité des sources de la recette | 1171 fichiers conformes au commit |
+| Build Next.js | Réussi sur 6481266, 76 pages statiques, même code candidat |
+| Identité des sources de la recette | 1173 fichiers conformes au commit |
 | Navigateur | 456 cas sélectionnés, 228 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
@@ -21,6 +21,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Activation suspendue si la boîte ou ses plafonds ne sont plus configurés | [Contrôle de l’expéditeur](contrat-preflight-expediteur-campagnes.md) |
 | Réservations concurrentes, attentes, annulation limitée et boîtes privées | [Plafonds internes](contrat-plafonds-envoi.md) |
 | Contenu de campagne vérifié sans interpréter les valeurs de contact comme des modèles | [Préflight et limites](contrat-preflight-contenu-campagnes.md) |
 | Filtres combinés, archives conservées et attribution concurrente | [Gestion des conversations](contrat-tri-conversations.md) |
@@ -51,7 +52,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | MAIL-02 : état et pièces des messages entrants | Le [lot](contrat-etats-messageries-entrantes.md) est implémenté dans `d02c701` et `8a7f9a6` : history/delta, observation séparée du suivi CRM, copies conservées, reprise sans réception rejouée et pièces PDF/PNG/JPEG bornées avec ACL revérifiées. Les [preuves locales](evidence/20261020-mail-observations/README.md) couvrent aussi les reconnexions intercalées. PostgreSQL, navigateur et comptes réels restent à qualifier ; import historique exhaustif, archivage durable et analyse antivirus ne sont pas livrés. |
 | MAIL-05 : identité native des fils entrants | [Implémentée et qualifiée localement sur `1dd29ef`](evidence/20261020-native-conversations/README.md) : séparation native, préparation/acceptation et réparations, contrainte par société/boîte, anciens fils non réaffectés. Les diagnostics initiaux restent conservés. PostgreSQL, navigateur et comptes fournisseurs réels restent distincts. |
 | MAIL-04/06 : tri et suivi de la boîte de réception | [Implémentés et qualifiés localement](evidence/20261020-inbox-management/README.md) : boîte/état/attribution, archivage/restauration, prise en charge personnelle et libération administrative. Les relations étrangères sont exclues des lectures et actions. PostgreSQL et les parcours navigateur préparés restent à qualifier. Ce lot ne livre pas les quotas d’envoi ni l’archivage durable des pièces. |
-| L7 : préflight du contenu de campagne | [Implémenté et qualifié localement](evidence/20261020-campaign-content/README.md) : contenu retenu, variables et liens, rapport en lecture seule, recontrôle des activations et arrêt sans transport sur erreur définitive. Les plafonds internes sont désormais appliqués à l’envoi ; leur intégration au préflight, les domaines et plafonds fournisseur restent ouverts ; PostgreSQL et interactions navigateur restent à qualifier. |
+| L7 : préflight de campagne | Contenu et liens [qualifiés localement](evidence/20261020-campaign-content/README.md), puis [boîte et plafonds internes](evidence/20261021-campaign-send-preflight/README.md) : rôle courant, identifiants lisibles, scopes mail/brouillons, configuration explicite, pause/reprise sans répétition et capacité observée sans réservation. Domaines authentifiés, plafonds fournisseur, test sur destinataire autorisé et métriques restent ouverts ; PostgreSQL et interactions navigateur restent à qualifier. |
 | OPS-03 : progression des boîtes à synchroniser | [Rotation et supervision qualifiées localement](evidence/20261020-sync-fairness/README.md) : ordre persistant distinct du succès, anciennes valeurs nulles prioritaires, réservation comparée avant traitement, horloge reculée, sociétés distinctes et contrôle du verrou. L'API signale les échecs au cron et les reprises restent confiées aux traitements durables. Les [plafonds par boîte](evidence/20261020-mail-send-quotas/README.md) sont qualifiés localement ; charge, comptes réels et qualification distante restent distincts. |
 | CAL-01 : progression de la fenêtre calendrier | [Implémentée dans `1194b51`](evidence/20261020-calendar-window/README.md) : fenêtre associée au checkpoint chiffré, renouvellement paginé, anciennes copies conservées, transactions et génération de connexion. SQL/HTTP simulé qualifiés localement ; PostgreSQL et comptes réels distincts. |
 | CRM-01 : cycle de vie des référentiels | Fournisseurs dispose d'édition/désactivation qualifiées. Les [dépôts](gestion-depots.md), [sites et équipements](gestion-sites-equipements.md) disposent de leurs parcours locaux d’édition et d’activité, avec protections transactionnelles et historiques conservés. Le [transfert complet d’agence avec audit](transfert-dossier-site.md) est implémenté. La [suite complète de 2 664 cas](evidence/20261020-site-transfers/README.md) passe sur `ae1b02f` ; qualification PostgreSQL et navigateur des nouveaux parcours encore requise. |
