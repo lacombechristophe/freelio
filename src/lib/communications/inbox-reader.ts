@@ -40,7 +40,7 @@ export async function readInboxPage(companyId: string, input: InboxQuery = {}) {
       { subject: { contains: query.search } }, { client: { name: { contains: query.search } } },
       { contact: { OR: [{ firstName: { contains: query.search } }, { lastName: { contains: query.search } }, { email: { contains: query.search } }] } },
       { leadCapture: { OR: [{ firstName: { contains: query.search } }, { lastName: { contains: query.search } }, { email: { contains: query.search } }] } },
-      { messages: { some: { OR: [{ fromAddress: { contains: query.search } }, { bodyText: { contains: query.search } }] } } },
+      { messages: { some: { companyId, OR: [{ fromAddress: { contains: query.search } }, { bodyText: { contains: query.search } }] } } },
     ] } : {}),
   }
   return prisma.$transaction(async (tx) => {
