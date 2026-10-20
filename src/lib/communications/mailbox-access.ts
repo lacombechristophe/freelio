@@ -38,7 +38,10 @@ export function scopeMailboxIncludes(model: string, args: Record<string, any>, c
     for (const field of definition?.fields || []) {
       if (field.kind !== "object" || !projection[field.name]) continue
       const scope = mailboxScope(field.type, context)
-      if (scope) {
+      // Prisma cannot filter a required to-one projection. EmailMessage's own
+      // predicate already checks its mandatory thread, including nested messages.
+      const requiredThread = model === "EmailMessage" && field.name === "thread"
+      if (scope && !requiredThread) {
         const nested = projection[field.name] === true ? {} : projection[field.name]
         const and = nested.where?.AND
         nested.where = { ...nested.where, AND: [...(Array.isArray(and) ? and : and ? [and] : []), scope] }

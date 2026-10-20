@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import prisma from "@/lib/prisma"
+import { requestContext } from "@/lib/context"
 import { getCommunicationInboxPage, getPreviousCommunicationMessages, updateEmailThread, updateCommunicationThreadAssignment } from "@/actions/communications"
 
 const companies: string[] = [], users: string[] = []
@@ -19,14 +20,14 @@ async function fixture(role = "OWNER") {
   const own = await prisma.company.create({ data: { name: "Fictional inbox relations" } }), foreign = await prisma.company.create({ data: { name: "Foreign inbox relations" } })
   companies.push(own.id, foreign.id)
   const user = await prisma.user.create({ data: { name: "Fictional inbox reader" } }); users.push(user.id)
-  await prisma.membership.create({ data: { companyId: own.id, userId: user.id, role, status: "ACTIVE" } })
+  const membership = await prisma.membership.create({ data: { companyId: own.id, userId: user.id, role, status: "ACTIVE" } })
   const channel = await prisma.communicationChannel.create({ data: { companyId: own.id, provider: "RESEND", emailAddress: "own@example.test", visibility: "SHARED" } })
   const foreignChannel = await prisma.communicationChannel.create({ data: { companyId: foreign.id, provider: "RESEND", emailAddress: "foreign@example.test", visibility: "SHARED" } })
   const client = await prisma.client.create({ data: { companyId: foreign.id, name: "FOREIGN-INBOX-CLIENT" } })
   const contact = await prisma.contact.create({ data: { clientId: client.id, firstName: "FOREIGN-INBOX-CONTACT", lastName: "Fiction" } })
   const lead = await prisma.leadCapture.create({ data: { companyId: foreign.id, firstName: "FOREIGN-INBOX-LEAD", lastName: "Fiction", email: "foreign@example.test", privacyAccepted: true, fingerprint: own.id } })
   session.companyId = own.id; session.userId = user.id
-  return { own, foreign, user, channel, foreignChannel, client, contact, lead }
+  return { own, foreign, user, membership, channel, foreignChannel, client, contact, lead }
 }
 describe.sequential("inbox relations on real SQL", () => {
   it.each(["channelId", "clientId", "contactId", "leadCaptureId"] as const)("refuses a local thread with foreign %s without mutation or audit", async key => {
@@ -41,7 +42,7 @@ describe.sequential("inbox relations on real SQL", () => {
     expect(await prisma.emailThread.findUnique({ where: { id: thread.id } })).toMatchObject({ status: "OPEN", assignedUserId: null })
     expect(await prisma.auditLog.count({ where: { resourceId: thread.id } })).toBe(0)
   })
-  it.each(["OWNER", "ADMIN", "SALES"])("excludes foreign messages and events from %s projections, search and pagination", async role => {
+  it.each(["OWNER", "ADMIN", "SALES"] as const)("excludes foreign messages and events from %s projections, search and pagination", async role => {
     const f = await fixture(role)
     const thread = await prisma.emailThread.create({ data: { companyId: f.own.id, channelId: f.channel.id, subject: "Coherent thread" } })
     const message = await prisma.emailMessage.create({ data: { companyId: f.own.id, threadId: thread.id, direction: "INBOUND", provider: "RESEND", fromAddress: "own@example.test", toAddresses: [], subject: "Own message" } })
@@ -53,5 +54,10 @@ describe.sequential("inbox relations on real SQL", () => {
     expect(page.threads[0].messages[0].events).toEqual([])
     expect((await getCommunicationInboxPage({ search: "FOREIGN-INBOX-BODY" })).total).toBe(0)
     await expect(getPreviousCommunicationMessages({ threadId: thread.id, beforeMessageId: foreignMessage.id })).rejects.toThrow("Message de pagination introuvable")
+    await requestContext.run({ companyId: f.own.id, userId: f.user.id, membershipId: f.membership.id, role, agencyIds: null, actionPermission: "automation.read" }, async () => {
+      const select = { id: true, thread: { select: { id: true, providerConversationId: true } } } as const
+      expect(await prisma.emailMessage.findFirst({ where: { id: message.id }, select })).toMatchObject({ id: message.id, thread: { id: thread.id } })
+      expect(await prisma.emailMessage.findFirst({ where: { id: foreignMessage.id }, select })).toBeNull()
+    })
   })
 })
