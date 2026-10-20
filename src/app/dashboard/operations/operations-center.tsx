@@ -6,6 +6,7 @@ import { SupplierPicker } from "@/components/shared/supplier-picker"
 import { useClientChoices } from "@/components/shared/client-choice"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { OperationsProductChoice, useOperationsProductChoices } from "@/components/shared/operations-product-choice"
+import { AssetChoice, useAssetChoices } from "@/components/shared/asset-choice"
 import Link from "next/link"
 import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -13,15 +14,10 @@ import { toast } from "sonner"
 import { uploadResourceFile } from "@/lib/client-file-upload"
 
 import {
-  createCustomerSite,
   createCustomerOrder,
   createInvoiceFromCustomerOrder,
-  createMaintenanceContract,
   createDeliveryNote,
-  createEquipment,
-  createFieldIntervention,
   createProduct,
-  createServiceTicket,
   createStockMovement,
   createStockTransfer,
   createSupplier,
@@ -33,6 +29,8 @@ import {
   signDeliveryNote,
   updateInterventionStatus,
 } from "@/actions/operations"
+import { addCustomerSite as createCustomerSite, addEquipment as createEquipment, addServiceTicket as createServiceTicket,
+  addFieldIntervention as createFieldIntervention, addMaintenanceContract as createMaintenanceContract } from "@/actions/asset-commands"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,6 +80,10 @@ function value(form: FormData, name: string) {
 
 function optional(form: FormData, name: string) {
   return value(form, name) || undefined
+}
+
+function assetSaved(result: { success: boolean; error?: string }) {
+  if (!result.success) throw new Error(result.error || "Enregistrement impossible. Votre saisie est conservée.")
 }
 
 function isoDate(form: FormData, name: string) {
@@ -178,22 +180,19 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
     const form = new FormData(formElement)
     startTransition(async () => {
       try {
-        if (createKind === "SITE") await createCustomerSite({ clientId: value(form, "clientId"), agencyId: optional(form, "agencyId"), label: value(form, "label"), kind: value(form, "kind") || "INSTALLATION", address1: value(form, "address1"), postalCode: optional(form, "postalCode"), city: optional(form, "city"), latitude: optional(form, "latitude"), longitude: optional(form, "longitude"), accessNotes: optional(form, "notes") })
+        if (createKind === "SITE") assetSaved(await createCustomerSite({ clientId: value(form, "clientId"), agencyId: optional(form, "agencyId"), label: value(form, "label"), kind: value(form, "kind") || "INSTALLATION", address1: value(form, "address1"), postalCode: optional(form, "postalCode"), city: optional(form, "city"), latitude: optional(form, "latitude"), longitude: optional(form, "longitude"), accessNotes: optional(form, "notes") }))
         else if (createKind === "SUPPLIER") await createSupplier({ name: value(form, "name"), code: optional(form, "code"), contactName: optional(form, "contactName"), email: optional(form, "email"), phone: optional(form, "phone"), address: optional(form, "address"), paymentTerms: optional(form, "paymentTerms"), deliveryDays: optional(form, "deliveryDays") })
         else if (createKind === "PRODUCT") await createProduct({ sku: value(form, "sku"), label: value(form, "label"), supplierId: optional(form, "supplierId"), manufacturer: optional(form, "manufacturer"), family: optional(form, "family"), unit: value(form, "unit") || "unité", purchasePriceCents: cents(form, "purchasePrice"), salePriceCents: cents(form, "salePrice"), stockTracked: true })
         else if (createKind === "WAREHOUSE") await createWarehouse({ agencyId: optional(form, "agencyId"), name: value(form, "name"), code: value(form, "code"), address: optional(form, "address") })
-        else if (createKind === "EQUIPMENT") await createEquipment({ siteId: value(form, "siteId"), productId: optional(form, "productId"), label: value(form, "label"), category: optional(form, "category"), manufacturer: optional(form, "manufacturer"), model: optional(form, "model"), serialNumber: optional(form, "serialNumber"), installedAt: isoDate(form, "installedAt"), warrantyUntil: isoDate(form, "warrantyUntil"), notes: optional(form, "notes") })
-        else if (createKind === "TICKET") await createServiceTicket({ clientId: value(form, "clientId"), siteId: optional(form, "siteId"), equipmentId: optional(form, "equipmentId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), description: value(form, "description"), type: value(form, "type") || "SAV", priority: value(form, "priority") || "NORMAL", dueAt: isoDate(form, "dueAt"), requiredSkill: optional(form, "requiredSkill"), territory: optional(form, "territory") })
+        else if (createKind === "EQUIPMENT") assetSaved(await createEquipment({ siteId: value(form, "siteId"), productId: optional(form, "productId"), label: value(form, "label"), category: optional(form, "category"), manufacturer: optional(form, "manufacturer"), model: optional(form, "model"), serialNumber: optional(form, "serialNumber"), installedAt: isoDate(form, "installedAt"), warrantyUntil: isoDate(form, "warrantyUntil"), notes: optional(form, "notes") }))
+        else if (createKind === "TICKET") assetSaved(await createServiceTicket({ clientId: value(form, "clientId"), siteId: optional(form, "siteId"), equipmentId: optional(form, "equipmentId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), description: value(form, "description"), type: value(form, "type") || "SAV", priority: value(form, "priority") || "NORMAL", dueAt: isoDate(form, "dueAt"), requiredSkill: optional(form, "requiredSkill"), territory: optional(form, "territory") }))
         else if (createKind === "INTERVENTION") {
           const result = await createFieldIntervention({ ticketId: optional(form, "ticketId"), projectId: optional(form, "projectId"), siteId: value(form, "siteId"), assignedMembershipId: optional(form, "assignedMembershipId"), title: value(form, "title"), type: value(form, "type") || "SAV", scheduledStart: isoDate(form, "scheduledStart"), scheduledEnd: isoDate(form, "scheduledEnd") })
           if (!result.success) throw new Error(result.error)
         }
         else if (createKind === "MAINTENANCE") {
           const result = await createMaintenanceContract({ clientId: value(form, "clientId"), siteId: value(form, "siteId"), label: value(form, "label"), startDate: value(form, "startDate"), endDate: optional(form, "endDate"), frequency: value(form, "frequency") || "ANNUAL", nextVisitAt: optional(form, "nextVisitAt"), priceCents: cents(form, "price"), autoInvoice: form.get("autoInvoice") === "on", tvaRate: Number(value(form, "tvaRate") || "20"), invoiceDueDays: Number(value(form, "invoiceDueDays") || "30"), equipmentIds: optional(form, "equipmentId") ? [value(form, "equipmentId")] : [], notes: optional(form, "notes") })
-          setSourceData((current) => ({
-            ...current,
-            contracts: [result.contract, ...current.contracts.filter((item) => item.id !== result.contract.id)],
-          }))
+          assetSaved(result)
         }
         else if (createKind === "STOCK") await createStockMovement({ warehouseId: value(form, "warehouseId"), productId: value(form, "productId"), projectId: optional(form, "projectId"), type: value(form, "type"), quantity: Number(value(form, "quantity")), unitCostCents: cents(form, "unitCost"), reference: optional(form, "reference"), notes: optional(form, "notes") })
         else if (createKind === "TRANSFER") await createStockTransfer({ fromWarehouseId: value(form, "fromWarehouseId"), toWarehouseId: value(form, "toWarehouseId"), productId: value(form, "productId"), quantity: Number(value(form, "quantity")), reference: optional(form, "reference"), notes: optional(form, "notes") })
@@ -675,19 +674,36 @@ function InterventionMaterialForm({ data, pending, onCancel, onSubmit }: { data:
 function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; data: OperationsData; pending: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
   const [clientId, setClientId] = useState("")
   const [productId, setProductId] = useState("")
+  const [siteId, setSiteId] = useState("")
+  const [equipmentId, setEquipmentId] = useState("")
   const hasClient = ["SITE", "TICKET", "MAINTENANCE", "CUSTOMER_ORDER"].includes(kind)
   const hasProduct = ["EQUIPMENT", "STOCK", "TRANSFER", "CUSTOMER_ORDER", "RESERVATION"].includes(kind)
+  const hasSite = ["EQUIPMENT", "TICKET", "INTERVENTION", "MAINTENANCE"].includes(kind)
+  const hasEquipment = ["TICKET", "MAINTENANCE"].includes(kind)
   const choices = useClientChoices(clientId, undefined, hasClient)
   const productChoices = useOperationsProductChoices(productId, kind === "TRANSFER", hasProduct)
+  const siteChoices = useAssetChoices("site", siteId, { enabled: hasSite && (!hasClient || Boolean(clientId)), clientId: hasClient ? clientId : undefined })
+  const equipmentChoices = useAssetChoices("equipment", equipmentId, { enabled: hasEquipment && Boolean(clientId) && (kind !== "MAINTENANCE" || Boolean(siteId)), clientId, siteId })
   const { retry } = choices
   const productRetry = productChoices.retry
+  const siteRetry = siteChoices.retry
+  const equipmentRetry = equipmentChoices.retry
   useEffect(() => { if (hasClient) retry() }, [data, hasClient, retry])
   useEffect(() => { if (hasProduct) productRetry() }, [data, hasProduct, productRetry])
+  useEffect(() => { if (hasSite) siteRetry() }, [data, hasSite, siteRetry])
+  useEffect(() => { if (hasEquipment) equipmentRetry() }, [data, hasEquipment, equipmentRetry])
   const blocked = pending || Boolean(hasClient && clientId && !choices.ready) || Boolean(hasProduct && productId && !productChoices.ready)
+    || Boolean(hasSite && siteId && !siteChoices.ready) || Boolean(hasEquipment && equipmentId && !equipmentChoices.ready)
   const productRequired = !["EQUIPMENT", "CUSTOMER_ORDER"].includes(kind)
   const productLabel = kind === "EQUIPMENT" ? "Produit catalogue" : kind === "TRANSFER" ? "Produit suivi" : "Produit"
   const productField = <Field label={productLabel} name="productId" required={productRequired}>
     <OperationsProductChoice choices={productChoices} name="productId" onChange={setProductId} required={productRequired} disabled={pending} />
+  </Field>
+  const siteField = <Field label="Site" name="siteId" required={kind !== "TICKET"}>
+    <AssetChoice choices={siteChoices} name="siteId" required={kind !== "TICKET"} disabled={pending} onChange={setSiteId} />
+  </Field>
+  const equipmentField = <Field label={kind === "MAINTENANCE" ? "Équipement couvert" : "Équipement"} name="equipmentId">
+    <AssetChoice choices={equipmentChoices} name="equipmentId" disabled={pending} onChange={setEquipmentId} />
   </Field>
   const clientField = <Field label="Client" name="clientId" required>
     <Input aria-label="Rechercher un client" placeholder="Rechercher un client…" maxLength={200} value={choices.search} disabled={pending} onChange={event => choices.searchFor(event.target.value)} />
@@ -698,17 +714,16 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
     </select>
     <DirectoryPagination total={choices.total} page={choices.page} pending={choices.busy || pending} error={choices.error} onPage={choices.goToPage} onRetry={choices.retry} />
   </Field>
-  return <form onReset={() => { setClientId(""); setProductId("") }} onSubmit={event => {
+  return <form onReset={() => { setClientId(""); setProductId(""); setSiteId(""); setEquipmentId("") }} onSubmit={event => {
     if (blocked) { event.preventDefault(); return }
     onSubmit(event)
   }} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    {renderForm(kind, data, clientField, productField)}
+    {renderForm(kind, data, clientField, productField, siteField, equipmentField)}
     <div className="flex items-end"><Button demoMutation type="submit" disabled={blocked} className="w-full sm:w-auto">{pending ? <Loader2 className="animate-spin" /> : <Plus />}Enregistrer</Button></div>
   </form>
 }
 
-function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNode, productField: ReactNode) {
-  const sites = <>{data.sites.map((site) => <option key={site.id} value={site.id}>{site.client.name} · {site.label}</option>)}</>
+function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNode, productField: ReactNode, siteField: ReactNode, equipmentField: ReactNode) {
   const projects = <>{data.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</>
   const members = <>{data.members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</>
   const agencies = <>{data.agencies.map((agency) => <option key={agency.id} value={agency.id}>{agency.name}{agency.isDefault ? " · principale" : ""}</option>)}</>
@@ -716,10 +731,10 @@ function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNo
   if (kind === "SUPPLIER") return <><Field label="Nom" name="name" required><Input id="name" name="name" required /></Field><Field label="Code" name="code"><Input id="code" name="code" /></Field><Field label="Contact" name="contactName"><Input id="contactName" name="contactName" /></Field><Field label="E-mail" name="email"><Input id="email" name="email" type="email" /></Field><Field label="Téléphone" name="phone"><Input id="phone" name="phone" maxLength={40} /></Field><Field label="Adresse" name="address"><Input id="address" name="address" maxLength={2000} /></Field><Field label="Conditions de paiement" name="paymentTerms"><Input id="paymentTerms" name="paymentTerms" maxLength={2000} /></Field><Field label="Délai de livraison (jours)" name="deliveryDays"><Input id="deliveryDays" name="deliveryDays" type="number" min="0" max="365" /></Field></>
   if (kind === "PRODUCT") return <><Field label="Référence / SKU" name="sku" required><Input id="sku" name="sku" required /></Field><Field label="Produit" name="label" required><Input id="label" name="label" required /></Field><Field label="Fournisseur" name="supplierId"><SupplierPicker name="supplierId" label="Fournisseur du produit" /></Field><Field label="Famille" name="family"><Input id="family" name="family" placeholder="Pompe, filtration, traitement…" /></Field><Field label="Coût HT (€)" name="purchasePrice"><Input id="purchasePrice" name="purchasePrice" inputMode="decimal" /></Field><Field label="Prix de vente HT (€)" name="salePrice"><Input id="salePrice" name="salePrice" inputMode="decimal" /></Field></>
   if (kind === "WAREHOUSE") return <><Field label="Agence" name="agencyId"><NativeSelect name="agencyId">{agencies}</NativeSelect></Field><Field label="Nom du dépôt" name="name" required><Input id="name" name="name" required /></Field><Field label="Code" name="code" required><Input id="code" name="code" required /></Field><Field label="Adresse" name="address"><Input id="address" name="address" /></Field></>
-  if (kind === "EQUIPMENT") return <><Field label="Site" name="siteId" required><NativeSelect name="siteId" required>{sites}</NativeSelect></Field><Field label="Équipement" name="label" required><Input id="label" name="label" required /></Field>{productField}<Field label="N° de série" name="serialNumber"><Input id="serialNumber" name="serialNumber" /></Field><Field label="Installé le" name="installedAt"><Input id="installedAt" name="installedAt" type="date" /></Field><Field label="Garantie jusqu'au" name="warrantyUntil"><Input id="warrantyUntil" name="warrantyUntil" type="date" /></Field></>
-  if (kind === "TICKET") return <>{clientField}<Field label="Site" name="siteId"><NativeSelect name="siteId">{sites}</NativeSelect></Field><Field label="Équipement" name="equipmentId"><NativeSelect name="equipmentId">{data.equipments.map((equipment) => <option key={equipment.id} value={equipment.id}>{equipment.site.client.name} · {equipment.label}</option>)}</NativeSelect></Field><Field label="Assigné à (vide = routage auto)" name="assignedMembershipId"><NativeSelect name="assignedMembershipId">{members}</NativeSelect></Field><Field label="Objet" name="title" required><Input id="title" name="title" required /></Field><Field label="Description" name="description" required><Input id="description" name="description" required /></Field><Field label="Compétence" name="requiredSkill"><Input id="requiredSkill" name="requiredSkill" maxLength={80} placeholder="Déduite de l’équipement si vide" /></Field><Field label="Zone" name="territory"><Input id="territory" name="territory" maxLength={80} placeholder="Déduite du site si vide" /></Field><Field label="Priorité" name="priority"><NativeSelect name="priority"><option value="NORMAL">Normale</option><option value="HIGH">Haute</option><option value="URGENT">Urgente</option><option value="LOW">Faible</option></NativeSelect></Field><Field label="Échéance" name="dueAt"><Input id="dueAt" name="dueAt" type="datetime-local" /></Field></>
-  if (kind === "INTERVENTION") return <><Field label="Site" name="siteId" required><NativeSelect name="siteId" required>{sites}</NativeSelect></Field><Field label="Ticket SAV" name="ticketId"><NativeSelect name="ticketId">{data.tickets.map((ticket) => <option key={ticket.id} value={ticket.id}>{ticket.number} · {ticket.title}</option>)}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Intervenant" name="assignedMembershipId"><NativeSelect name="assignedMembershipId">{members}</NativeSelect></Field><Field label="Objet" name="title" required><Input id="title" name="title" required /></Field><Field label="Début" name="scheduledStart" required><Input id="scheduledStart" name="scheduledStart" type="datetime-local" required /></Field><Field label="Fin prévue" name="scheduledEnd"><Input id="scheduledEnd" name="scheduledEnd" type="datetime-local" /></Field></>
-  if (kind === "MAINTENANCE") return <>{clientField}<Field label="Site" name="siteId" required><NativeSelect name="siteId" required>{sites}</NativeSelect></Field><Field label="Libellé du contrat" name="label" required><Input id="label" name="label" required placeholder="Entretien annuel couverture" /></Field><Field label="Équipement couvert" name="equipmentId"><NativeSelect name="equipmentId">{data.equipments.map((equipment) => <option key={equipment.id} value={equipment.id}>{equipment.site.client.name} · {equipment.label}</option>)}</NativeSelect></Field><Field label="Début" name="startDate" required><Input id="startDate" name="startDate" type="date" required /></Field><Field label="Fin" name="endDate"><Input id="endDate" name="endDate" type="date" /></Field><Field label="Fréquence" name="frequency"><NativeSelect name="frequency"><option value="ANNUAL">Annuelle</option><option value="BIANNUAL">Semestrielle</option><option value="QUARTERLY">Trimestrielle</option><option value="MONTHLY">Mensuelle</option></NativeSelect></Field><Field label="Prochaine visite" name="nextVisitAt"><Input id="nextVisitAt" name="nextVisitAt" type="date" /></Field><Field label="Prix HT (€)" name="price"><Input id="price" name="price" inputMode="decimal" /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Échéance facture (jours)" name="invoiceDueDays"><Input id="invoiceDueDays" name="invoiceDueDays" type="number" min="0" max="365" defaultValue="30" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm sm:col-span-2"><input name="autoInvoice" type="checkbox" className="mt-0.5 size-4" /><span><strong className="block">Facturation automatique</strong><span className="mt-1 block text-xs text-muted-foreground">Crée un modèle récurrent aligné sur la fréquence du contrat.</span></span></label></>
+  if (kind === "EQUIPMENT") return <>{siteField}<Field label="Équipement" name="label" required><Input id="label" name="label" required /></Field>{productField}<Field label="N° de série" name="serialNumber"><Input id="serialNumber" name="serialNumber" /></Field><Field label="Installé le" name="installedAt"><Input id="installedAt" name="installedAt" type="date" /></Field><Field label="Garantie jusqu'au" name="warrantyUntil"><Input id="warrantyUntil" name="warrantyUntil" type="date" /></Field></>
+  if (kind === "TICKET") return <>{clientField}{siteField}{equipmentField}<Field label="Assigné à (vide = routage auto)" name="assignedMembershipId"><NativeSelect name="assignedMembershipId">{members}</NativeSelect></Field><Field label="Objet" name="title" required><Input id="title" name="title" required /></Field><Field label="Description" name="description" required><Input id="description" name="description" required /></Field><Field label="Compétence" name="requiredSkill"><Input id="requiredSkill" name="requiredSkill" maxLength={80} placeholder="Déduite de l’équipement si vide" /></Field><Field label="Zone" name="territory"><Input id="territory" name="territory" maxLength={80} placeholder="Déduite du site si vide" /></Field><Field label="Priorité" name="priority"><NativeSelect name="priority"><option value="NORMAL">Normale</option><option value="HIGH">Haute</option><option value="URGENT">Urgente</option><option value="LOW">Faible</option></NativeSelect></Field><Field label="Échéance" name="dueAt"><Input id="dueAt" name="dueAt" type="datetime-local" /></Field></>
+  if (kind === "INTERVENTION") return <>{siteField}<Field label="Ticket SAV" name="ticketId"><NativeSelect name="ticketId">{data.tickets.map((ticket) => <option key={ticket.id} value={ticket.id}>{ticket.number} · {ticket.title}</option>)}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Intervenant" name="assignedMembershipId"><NativeSelect name="assignedMembershipId">{members}</NativeSelect></Field><Field label="Objet" name="title" required><Input id="title" name="title" required /></Field><Field label="Début" name="scheduledStart" required><Input id="scheduledStart" name="scheduledStart" type="datetime-local" required /></Field><Field label="Fin prévue" name="scheduledEnd"><Input id="scheduledEnd" name="scheduledEnd" type="datetime-local" /></Field></>
+  if (kind === "MAINTENANCE") return <>{clientField}{siteField}<Field label="Libellé du contrat" name="label" required><Input id="label" name="label" required placeholder="Entretien annuel couverture" /></Field>{equipmentField}<Field label="Début" name="startDate" required><Input id="startDate" name="startDate" type="date" required /></Field><Field label="Fin" name="endDate"><Input id="endDate" name="endDate" type="date" /></Field><Field label="Fréquence" name="frequency"><NativeSelect name="frequency"><option value="ANNUAL">Annuelle</option><option value="BIANNUAL">Semestrielle</option><option value="QUARTERLY">Trimestrielle</option><option value="MONTHLY">Mensuelle</option></NativeSelect></Field><Field label="Prochaine visite" name="nextVisitAt"><Input id="nextVisitAt" name="nextVisitAt" type="date" /></Field><Field label="Prix HT (€)" name="price"><Input id="price" name="price" inputMode="decimal" /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Échéance facture (jours)" name="invoiceDueDays"><Input id="invoiceDueDays" name="invoiceDueDays" type="number" min="0" max="365" defaultValue="30" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm sm:col-span-2"><input name="autoInvoice" type="checkbox" disabled={!data.canAutomateMaintenanceBilling} className="mt-0.5 size-4" /><span><strong className="block">Facturation automatique</strong><span className="mt-1 block text-xs text-muted-foreground">{data.canAutomateMaintenanceBilling ? "Crée un modèle récurrent aligné sur la fréquence du contrat." : "Accès Finance en écriture requis."}</span></span></label></>
   if (kind === "STOCK") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Mouvement" name="type" required><NativeSelect name="type" required><option value="IN">Entrée</option><option value="OUT">Sortie</option><option value="RESERVE">Réserver chantier</option><option value="RELEASE">Libérer réservation</option><option value="CONSUME">Consommer</option><option value="ADJUST">Ajustement signé</option></NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" required defaultValue="1" /></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" /></Field></>
   if (kind === "TRANSFER") return <><Field label="Dépôt de départ" name="fromWarehouseId" required><NativeSelect name="fromWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Dépôt d’arrivée" name="toWarehouseId" required><NativeSelect name="toWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" step="1" defaultValue="1" required /></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" placeholder="Bon interne, véhicule…" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" placeholder="Motif ou consigne logistique" /></Field></>
   if (kind === "CUSTOMER_ORDER") return <>{clientField}<Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field>{productField}<Field label="Libellé" name="label" required><Input id="label" name="label" required /></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" required /></Field><Field label="Prix unitaire HT (€)" name="unitPrice" required><Input id="unitPrice" name="unitPrice" inputMode="decimal" required /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Acompte (€)" name="deposit"><Input id="deposit" name="deposit" inputMode="decimal" /></Field><Field label="Pose prévue" name="expectedInstallationAt"><Input id="expectedInstallationAt" name="expectedInstallationAt" type="date" /></Field></>

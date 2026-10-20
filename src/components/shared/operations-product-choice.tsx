@@ -8,7 +8,7 @@ import { DirectoryPagination } from "@/components/shared/directory-pagination"
 type Choices = Awaited<ReturnType<typeof getOperationsProductChoices>>
 type ProductOption = NonNullable<Choices["selected"]>
 
-export function useOperationsProductChoices(value: string, stockTrackedOnly = false, enabled = true) {
+export function useOperationsProductChoices(value: string, stockTrackedOnly = false, enabled = true, equipmentId?: string) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [revision, setRevision] = useState(0)
@@ -16,17 +16,17 @@ export function useOperationsProductChoices(value: string, stockTrackedOnly = fa
   const [loading, startTransition] = useTransition()
   const [lookup, setLookup] = useState<{ key: string; data: Choices | null; error: boolean } | null>(null)
   const [selected, setSelected] = useState<ProductOption>()
-  const key = JSON.stringify([value, search, page, stockTrackedOnly, revision])
+  const key = JSON.stringify([value, search, page, stockTrackedOnly, revision, equipmentId])
   const fresh = lookup?.key === key
   useEffect(() => {
     if (!enabled || fresh) return
     let current = true
     const timer = setTimeout(() => startTransition(async () => {
       try {
-        const data = await getOperationsProductChoices({ selectedId: value || undefined, search, page, stockTrackedOnly })
+        const data = await getOperationsProductChoices({ selectedId: value || undefined, search, page, stockTrackedOnly, equipmentId })
         if (current) {
           setPage(data.page)
-          setLookup({ key: JSON.stringify([value, search, data.page, stockTrackedOnly, revision]), data, error: false })
+          setLookup({ key: JSON.stringify([value, search, data.page, stockTrackedOnly, revision, equipmentId]), data, error: false })
           if (data.selected) setSelected(data.selected)
         }
       } catch {
@@ -34,7 +34,7 @@ export function useOperationsProductChoices(value: string, stockTrackedOnly = fa
       }
     }), 200)
     return () => { current = false; clearTimeout(timer) }
-  }, [enabled, fresh, key, value, search, page, stockTrackedOnly, revision])
+  }, [enabled, fresh, key, value, search, page, stockTrackedOnly, revision, equipmentId])
   const busy = enabled && (loading || !fresh)
   const ready = enabled && fresh && !lookup?.error && Boolean(value && lookup?.data?.selected?.id === value)
   const error = fresh && (Boolean(lookup?.error) || Boolean(value && !ready))
