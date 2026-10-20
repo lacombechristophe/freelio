@@ -13,6 +13,7 @@ export const remoteMailObservationSchema = z.object({
 export type RemoteMailObservation = z.infer<typeof remoteMailObservationSchema>
 export type RemoteMailAttachment = z.infer<typeof remoteAttachmentSchema>
 export type ExternalMailMessage = {
+  providerConversationId?: string | null;
   providerId: string; direction: "INBOUND" | "OUTBOUND"; internetMessageId: string | null; inReplyTo: string | null;
   from: string; to: string[]; cc: string[]; bcc: string[]; subject: string; bodyHtml: string | null; bodyText: string | null;
   occurredAt: Date; unread: boolean; draft: boolean; observation: RemoteMailObservation;

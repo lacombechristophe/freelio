@@ -1,4 +1,5 @@
 import "server-only"
+import { providerConversationId as readProviderConversationId } from "./conversation-identity"
 import { Prisma } from "@prisma/client"
 import { getContext, requestContext } from "@/lib/context"
 import { channelConfig } from "./sync-state"
@@ -161,13 +162,15 @@ export async function storeOAuthCalendarCursor(channel: ActiveChannel, cursor: s
 }
 
 export type EmailProviderState = {
+  providerConversationId?: string | null
   provider?: string | null
   channelId?: string | null
   providerDraftId?: string | null
   providerMessageId?: string | null
 }
 
-export type PreparedEmailProviderState = Required<Pick<EmailProviderState, "provider" | "channelId" | "providerDraftId" | "providerMessageId">>
+export type PreparedEmailProviderState = Required<Pick<EmailProviderState, "provider" | "channelId" | "providerDraftId" | "providerMessageId">> & Pick<EmailProviderState, "providerConversationId">
+export type SentEmailProviderResult = { provider: string; providerId: string; providerDraftId: string | null; providerMessageId: string | null; providerConversationId?: string | null; channelId: string; from: string }
 
 function deterministicMessageId(idempotencyKey: string) {
   const local = idempotencyKey.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120) || "message"
@@ -226,7 +229,7 @@ export async function sendEmailThroughChannel(input: {
   resume?: EmailProviderState
   onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
   beforeDispatch?: () => Promise<void>
-}) {
+}): Promise<SentEmailProviderResult> {
   input = { ...input, to: emailAddressSchema.parse(input.to), cc: copyRecipientsSchema.parse(input.cc || []), bcc: copyRecipientsSchema.parse(input.bcc || []) }
   validateRecipients(input.to, input.cc, input.bcc)
   emailAttachmentsSchema.parse(input.attachments || [])
@@ -269,7 +272,7 @@ export async function sendEmailThroughChannel(input: {
     })
     const payload = await response.json().catch(() => ({})) as { id?: string; message?: string }
     if (!response.ok || !payload.id) throw new Error(payload.message || `Envoi refusé (${response.status})`)
-    return { provider: "RESEND", providerId: payload.id, providerDraftId: null, providerMessageId: payload.id, channelId: channel.id, from }
+    return { provider: "RESEND", providerId: payload.id, providerDraftId: null, providerMessageId: payload.id, providerConversationId: null, channelId: channel.id, from }
   }
 
   const provider = channel.provider as EmailOAuthProvider
@@ -280,6 +283,7 @@ export async function sendEmailThroughChannel(input: {
     throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser les brouillons et la reprise des envois")
   }
   const accessToken = credentials.accessToken
+  let conversationId = readProviderConversationId(input.resume?.providerConversationId)
   if (provider === "GOOGLE") {
     const headers = { authorization: `Bearer ${accessToken}`, "content-type": "application/json" }
     let draftId = input.resume?.providerDraftId || null
@@ -295,11 +299,11 @@ export async function sendEmailThroughChannel(input: {
     if (!draftId) {
       const query = new URLSearchParams({ q: `rfc822msgid:${messageId}`, labelIds: "SENT", maxResults: "2" })
       const sentCheck = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${query}`, { headers })
-      const sentPayload = await sentCheck.json().catch(() => ({})) as { messages?: Array<{ id: string }>; nextPageToken?: string; error?: { message?: string } }
+      const sentPayload = await sentCheck.json().catch(() => ({})) as { messages?: Array<{ id: string; threadId?: string }>; nextPageToken?: string; error?: { message?: string } }
       if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Google refusée (${sentCheck.status})`)
       if ((sentPayload.messages?.length || 0) > 1 || sentPayload.nextPageToken) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
       const alreadySentId = sentPayload.messages?.[0]?.id
-      if (alreadySentId) return { provider, providerId: `${channel.id}:${alreadySentId}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
+      if (alreadySentId) return { provider, providerId: `${channel.id}:${alreadySentId}`, providerDraftId: null, providerMessageId: messageId, providerConversationId: readProviderConversationId(sentPayload.messages![0].threadId) || conversationId, channelId: channel.id, from }
       if (persistedDraftDisappeared) throw new Error("État d’envoi Google incertain : vérification différée avant toute nouvelle création")
 
       let nativeThreadId: string | undefined
@@ -310,6 +314,7 @@ export async function sendEmailThroughChannel(input: {
         const originalResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(remoteReplyId!)}?${metadataQuery}`, { headers })
         const original = await originalResponse.json().catch(() => ({})) as { id?: string; threadId?: string; payload?: { headers?: Array<{ name: string; value: string }> } }
         if (!originalResponse.ok || original.id !== remoteReplyId || !original.threadId) throw new Error("Message Gmail d’origine introuvable ; aucune réponse créée")
+        if (reply.providerConversationId && original.threadId !== reply.providerConversationId) throw new Error("La conversation distante diffère de la réponse préparée")
         const header = (name: string) => original.payload?.headers?.find(item => item.name.toLowerCase() === name.toLowerCase())?.value || ""
         const replyTo = header("Reply-To") || header("From")
         mimeHeaders = { ...input.headers, ...replyHeaders(reply, { internetMessageId: header("Message-ID"), subject: header("Subject"), references: header("References"),
@@ -319,48 +324,51 @@ export async function sendEmailThroughChannel(input: {
       const raw = Buffer.from(mimeMessage({ from, to: input.to, cc: input.cc, bcc: input.bcc, replyTo: input.replyTo, subject: input.subject, html: input.html, text: input.text, messageId, headers: mimeHeaders, attachments: input.attachments }), "utf8").toString("base64url")
       await beforeDispatch()
       const draftResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", { method: "POST", headers, body: JSON.stringify({ message: { raw, ...(nativeThreadId ? { threadId: nativeThreadId } : {}) } }) })
-      const draft = await draftResponse.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
+      const draft = await draftResponse.json().catch(() => ({})) as { id?: string; message?: { threadId?: string }; error?: { message?: string } }
       if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du brouillon Google refusée (${draftResponse.status})`)
       draftId = draft.id
-      await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
+      conversationId = readProviderConversationId(draft.message?.threadId) || readProviderConversationId(nativeThreadId)
+      await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId })
     }
     await beforeDispatch()
     const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts/send", { method: "POST", headers, body: JSON.stringify({ id: draftId }) })
-    const payload = await response.json().catch(() => ({})) as { id?: string; error?: { message?: string } }
+    const payload = await response.json().catch(() => ({})) as { id?: string; threadId?: string; error?: { message?: string } }
     if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Envoi Google refusé (${response.status})`)
-    return { provider, providerId: `${channel.id}:${payload.id}`, providerDraftId: draftId, providerMessageId: messageId, channelId: channel.id, from }
+    return { provider, providerId: `${channel.id}:${payload.id}`, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: readProviderConversationId(payload.threadId) || conversationId, channelId: channel.id, from }
   }
 
   const graphHeaders = { authorization: `Bearer ${accessToken}`, Prefer: 'IdType="ImmutableId"' }
   let draftId = input.resume?.providerDraftId || null
   let persistedDraftDisappeared = false
   if (draftId) {
-    const check = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}?$select=id,isDraft,internetMessageId`, { headers: graphHeaders })
+    const check = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(draftId)}?$select=id,isDraft,internetMessageId,conversationId`, { headers: graphHeaders })
     if (check.status === 404) {
       persistedDraftDisappeared = true
       draftId = null
     }
     else {
-      const state = await check.json().catch(() => ({})) as { id?: string; isDraft?: boolean; error?: { message?: string } }
+      const state = await check.json().catch(() => ({})) as { id?: string; isDraft?: boolean; conversationId?: string; error?: { message?: string } }
       if (!check.ok) throw new Error(state.error?.message || `Vérification Microsoft refusée (${check.status})`)
-      if (state.isDraft === false) return { provider, providerId: `${channel.id}:${state.id || draftId}`, providerDraftId: draftId, providerMessageId: messageId, channelId: channel.id, from }
+      conversationId = readProviderConversationId(state.conversationId) || conversationId
+      if (state.isDraft === false) return { provider, providerId: `${channel.id}:${state.id || draftId}`, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId, channelId: channel.id, from }
     }
   }
   if (!draftId) {
     const filter = `internetMessageId eq '${messageId.replaceAll("'", "''")}'`
-    const query = new URLSearchParams({ "$filter": filter, "$select": "id,isDraft,internetMessageId", "$top": "1" })
+    const query = new URLSearchParams({ "$filter": filter, "$select": "id,isDraft,internetMessageId,conversationId", "$top": "1" })
     const sentCheck = await fetch(`https://graph.microsoft.com/v1.0/me/messages?${query}`, { headers: graphHeaders })
-    const sentPayload = await sentCheck.json().catch(() => ({})) as { value?: Array<{ id: string; isDraft?: boolean }>; error?: { message?: string } }
+    const sentPayload = await sentCheck.json().catch(() => ({})) as { value?: Array<{ id: string; isDraft?: boolean; conversationId?: string }>; error?: { message?: string } }
     if (!sentCheck.ok) throw new Error(sentPayload.error?.message || `Vérification Microsoft refusée (${sentCheck.status})`)
     const existing = sentPayload.value?.find((message) => message.isDraft === false)
-    if (existing) return { provider, providerId: `${channel.id}:${existing.id}`, providerDraftId: null, providerMessageId: messageId, channelId: channel.id, from }
+    if (existing) return { provider, providerId: `${channel.id}:${existing.id}`, providerDraftId: null, providerMessageId: messageId, providerConversationId: readProviderConversationId(existing.conversationId) || conversationId, channelId: channel.id, from }
     if (persistedDraftDisappeared) throw new Error("État d’envoi Microsoft incertain : vérification différée avant toute nouvelle création")
 
     let mimeHeaders = input.headers
     if (reply) {
-      const originalResponse = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(remoteReplyId!)}?$select=id,internetMessageId,subject,replyTo,from`, { headers: graphHeaders })
-      const original = await originalResponse.json().catch(() => ({})) as { id?: string; internetMessageId?: string; subject?: string; replyTo?: Array<{ emailAddress?: { address?: string } }>; from?: { emailAddress?: { address?: string } } }
+      const originalResponse = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(remoteReplyId!)}?$select=id,internetMessageId,subject,replyTo,from,conversationId`, { headers: graphHeaders })
+      const original = await originalResponse.json().catch(() => ({})) as { id?: string; conversationId?: string; internetMessageId?: string; subject?: string; replyTo?: Array<{ emailAddress?: { address?: string } }>; from?: { emailAddress?: { address?: string } } }
       if (!originalResponse.ok || original.id !== remoteReplyId) throw new Error("Message Microsoft d’origine introuvable ; aucune réponse créée")
+      if (reply.providerConversationId && original.conversationId !== reply.providerConversationId) throw new Error("La conversation distante diffère de la réponse préparée")
       mimeHeaders = { ...input.headers, ...replyHeaders(reply, { internetMessageId: original.internetMessageId || "", subject: original.subject || "", replyTo: original.replyTo?.length ? original.replyTo.map(item => item.emailAddress?.address || "") : [original.from?.emailAddress?.address || ""] }, input.to) }
     }
     const raw = Buffer.from(mimeMessage({ from, to: input.to, cc: input.cc, bcc: input.bcc, replyTo: input.replyTo, subject: input.subject, html: input.html, text: input.text, messageId, headers: mimeHeaders }), "utf8").toString("base64")
@@ -370,14 +378,15 @@ export async function sendEmailThroughChannel(input: {
       headers: { ...graphHeaders, "content-type": "text/plain" },
       body: raw,
     })
-    const draft = await draftResponse.json().catch(() => ({})) as { id?: string; internetMessageId?: string; error?: { message?: string } }
+    const draft = await draftResponse.json().catch(() => ({})) as { id?: string; internetMessageId?: string; conversationId?: string; error?: { message?: string } }
     if (!draftResponse.ok || !draft.id) throw new Error(draft.error?.message || `Création du message Microsoft refusée (${draftResponse.status})`)
     draftId = draft.id
+    conversationId = readProviderConversationId(draft.conversationId)
     if (draft.internetMessageId) {
       if (!validInternetMessageId(draft.internetMessageId)) throw new Error("Référence Internet du brouillon Microsoft invalide")
       messageId = draft.internetMessageId
     }
-    await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId })
+    await input.onPrepared?.({ provider, channelId: channel.id, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId })
   }
   if (input.attachments?.length) await prepareGraphAttachments(draftId, graphHeaders, input.attachments, beforeDispatch)
   await beforeDispatch()
@@ -389,5 +398,5 @@ export async function sendEmailThroughChannel(input: {
     const payload = await response.json().catch(() => ({})) as { error?: { message?: string } }
     throw new Error(payload.error?.message || `Envoi Microsoft refusé (${response.status})`)
   }
-  return { provider, providerId: `${channel.id}:${draftId}`, providerDraftId: draftId, providerMessageId: messageId, channelId: channel.id, from }
+  return { provider, providerId: `${channel.id}:${draftId}`, providerDraftId: draftId, providerMessageId: messageId, providerConversationId: conversationId, channelId: channel.id, from }
 }

@@ -68,13 +68,15 @@ describe.sequential("human sequence recovery uses real authorization and SQL wit
     http.mockImplementation(async (url, init) => {
       expect(init?.method).toBe("GET")
       if (new URL(String(url)).pathname.endsWith("/messages")) return Response.json({ messages: [{ id: "fiction-sequence-sent" }] })
-      return Response.json({ id: "fiction-sequence-sent", labelIds: ["SENT"], payload: { headers: [{ name: "Message-ID", value: f.delivery.providerMessageId }, { name: "From", value: f.payload.from }] } })
+      return Response.json({ id: "fiction-sequence-sent", threadId: "fictional-sequence-native", labelIds: ["SENT"], payload: { headers: [{ name: "Message-ID", value: f.delivery.providerMessageId }, { name: "From", value: f.payload.from }] } })
     })
     expect(await f.recover("CHECK")).toMatchObject({ outcome: "ACCEPTED" })
     expect(await f.recover("REPAIR", { version: 2 })).toMatchObject({ success: true })
     expect(http).toHaveBeenCalledTimes(2)
     expect(await prisma.emailMessage.findUniqueOrThrow({ where: { deliveryId: f.delivery.id } })).toMatchObject({ providerId: `${f.channel.id}:fiction-sequence-sent`, purpose: null })
     expect((await prisma.emailSequenceEnrollment.findUniqueOrThrow({ where: { id: f.enrollment.id } })).status).toBe("PAUSED")
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toMatchObject({ providerConversationId: "fictional-sequence-native" })
+    expect(await prisma.emailThread.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ providerConversationId: "fictional-sequence-native" })
   })
   it("retains a late positive proof after closure without repairing or reactivating the stopped occurrence", async () => {
     const f = await fixture("MICROSOFT")

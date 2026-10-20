@@ -5,14 +5,17 @@ import type { ActiveChannel } from "./email-provider"
 import type { EmailOAuthProvider } from "@/lib/integrations/email-oauth"
 import prisma from "@/lib/prisma"
 import { remoteMailObservationSchema, type ExternalMailMessage } from "./remote-mail-types"
+import { providerConversationId } from "./conversation-identity"
 function bounded(value: string | null | undefined, max = 100_000) { return value ? value.slice(0, max) : null }
 function normalizedAddress(value: string) { return (value.match(/<([^>]+)>/)?.[1] || value).trim().toLowerCase() }
 
 export async function persistRemoteMail(companyId: string, channel: ActiveChannel, message: ExternalMailMessage, emitReception: boolean) {
   const provider = channel.provider as EmailOAuthProvider
-  const exists = await prisma.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider, providerId: message.providerId } }, select: { id: true } })
+  const nativeId = providerConversationId(message.providerConversationId)
+  const exists = await prisma.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId, provider, providerId: message.providerId } }, select: { id: true, thread: { select: { providerConversationId: true } } } })
   const observation = remoteMailObservationSchema.parse(message.observation)
   if (exists) {
+    if (nativeId && exists.thread.providerConversationId && nativeId !== exists.thread.providerConversationId) throw new Error("La référence fournisseur a changé de conversation ; historique conservé")
     const updated = await prisma.emailMessage.updateMany({ where: { id: exists.id, companyId, thread: { companyId, channelId: channel.id } }, data: { remoteObservation: observation } })
     if (updated.count !== 1) throw new Error("Référence fournisseur liée à une autre messagerie")
     return false
@@ -20,7 +23,7 @@ export async function persistRemoteMail(companyId: string, channel: ActiveChanne
   const counterparty = message.direction === "INBOUND" ? normalizedAddress(message.from) : normalizedAddress(message.to[0] || "")
   const party = counterparty ? await resolveEmailParty(companyId, counterparty) : { contactId: null, clientId: null, leadCaptureId: null }
   const eventId = await prisma.$transaction(async (tx) => {
-    const thread = await getOrCreateEmailThread({ companyId, channelId: channel.id, subject: message.subject, ...party, inReplyTo: message.inReplyTo, occurredAt: message.occurredAt }, tx)
+    const thread = await getOrCreateEmailThread({ companyId, channelId: channel.id, providerConversationId: message.providerConversationId ?? null, subject: message.subject, ...party, inReplyTo: message.inReplyTo, occurredAt: message.occurredAt }, tx)
     const stored = await tx.emailMessage.create({ data: {
       companyId,
       threadId: thread.id,

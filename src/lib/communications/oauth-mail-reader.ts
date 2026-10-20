@@ -1,4 +1,5 @@
 import "server-only"
+import { providerConversationId } from "./conversation-identity"
 import { readBodyBytes } from "@/lib/http-body"
 import { providerFetch, safeMicrosoftContinuation } from "@/lib/integrations/provider-fetch"
 import type { ActiveChannel } from "./email-provider"
@@ -25,7 +26,7 @@ export function microsoftMailContinuation(value: string, folder?: string) {
   return safe
 }
 export type GmailPart = { partId?: string; filename?: string; mimeType?: string; body?: { data?: string; attachmentId?: string; size?: number }; parts?: GmailPart[]; headers?: Array<{ name: string; value: string }> }
-export type GmailMessage = { id: string; internalDate?: string; labelIds?: string[]; payload?: GmailPart }
+export type GmailMessage = { id: string; threadId?: string; internalDate?: string; labelIds?: string[]; payload?: GmailPart }
 function gmailHeader(message: GmailMessage, name: string) { return message.payload?.headers?.find(header => header.name.toLowerCase() === name.toLowerCase())?.value || "" }
 function gmailParts(root: GmailPart | undefined) {
   const result: GmailPart[] = [], stack = root ? [{ part: root, depth: 0 }] : []
@@ -61,12 +62,12 @@ export function parseGmailMessage(channel: ActiveChannel, message: GmailMessage,
   attachments.forEach((file, index) => { if (!file.id) file.id = `unsupported-${index}` })
   const labels = message.labelIds || [], from = gmailHeader(message, "From")
   return { providerId: `${channel.id}:${message.id}`, direction: labels.includes("SENT") || address(from) === channel.emailAddress.toLowerCase() ? "OUTBOUND" : "INBOUND",
-    internetMessageId: gmailHeader(message, "Message-ID") || null, inReplyTo: gmailHeader(message, "In-Reply-To") || null, from,
+    providerConversationId: providerConversationId(message.threadId), internetMessageId: gmailHeader(message, "Message-ID") || null, inReplyTo: gmailHeader(message, "In-Reply-To") || null, from,
     to: addresses(gmailHeader(message, "To")), cc: addresses(gmailHeader(message, "Cc")), bcc: addresses(gmailHeader(message, "Bcc")),
     subject: gmailHeader(message, "Subject") || "Sans objet", bodyHtml: text("text/html"), bodyText: text("text/plain"), occurredAt: occurred(Number(message.internalDate)), unread: labels.includes("UNREAD"), draft: labels.includes("DRAFT"),
     observation: { presence: "PRESENT", read: !labels.includes("UNREAD"), folderIds: labels, folderNames: labels.filter(id => id !== "UNREAD").map(id => gmailLabelNames[id] || labelsById.get(id) || `Libellé ${id}`), checkedAt: new Date().toISOString(), attachments, attachmentsComplete: true } }
 }
-export type GraphMessage = { id: string; internetMessageId?: string; subject?: string; parentFolderId?: string; body?: { contentType?: string; content?: string }; bodyPreview?: string;
+export type GraphMessage = { id: string; conversationId?: string; internetMessageId?: string; subject?: string; parentFolderId?: string; body?: { contentType?: string; content?: string }; bodyPreview?: string;
   from?: { emailAddress?: { name?: string; address?: string } }; toRecipients?: Array<{ emailAddress?: { name?: string; address?: string } }>;
   ccRecipients?: Array<{ emailAddress?: { name?: string; address?: string } }>; bccRecipients?: Array<{ emailAddress?: { name?: string; address?: string } }>;
   receivedDateTime?: string; sentDateTime?: string; isRead?: boolean; isDraft?: boolean; hasAttachments?: boolean }
@@ -93,7 +94,7 @@ export async function readRemoteMail(channel: ActiveChannel, id: string, token: 
   const encodedId = mailResourceId(id)
   const google = channel.provider === "GOOGLE"
   const url = google ? `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodedId}?format=full`
-    : `https://graph.microsoft.com/v1.0/me/messages/${encodedId}?$select=id,internetMessageId,subject,body,bodyPreview,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,sentDateTime,isRead,isDraft,parentFolderId,hasAttachments`
+    : `https://graph.microsoft.com/v1.0/me/messages/${encodedId}?$select=id,conversationId,internetMessageId,subject,body,bodyPreview,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,sentDateTime,isRead,isDraft,parentFolderId,hasAttachments`
   const response = await providerFetch(url, { headers: mailHeaders(token), signal, cache: "no-store" })
   if (response.status === 404) return null
   if (google) {
@@ -116,7 +117,7 @@ export async function readRemoteMail(channel: ActiveChannel, id: string, token: 
   }
   // Inline files may exist even when Graph's hasAttachments is false.
   const attachments = await graphAttachmentMetadata(id, token, signal)
-  return { providerId: `${channel.id}:${id}`, direction: outbound ? "OUTBOUND" : "INBOUND", internetMessageId: message.internetMessageId || null, inReplyTo: null,
+  return { providerId: `${channel.id}:${id}`, providerConversationId: providerConversationId(message.conversationId), direction: outbound ? "OUTBOUND" : "INBOUND", internetMessageId: message.internetMessageId || null, inReplyTo: null,
     from, to: (message.toRecipients || []).map(graphAddress).filter(Boolean), cc: (message.ccRecipients || []).map(graphAddress).filter(Boolean), bcc: (message.bccRecipients || []).map(graphAddress).filter(Boolean),
     subject: message.subject || "Sans objet", bodyHtml: message.body?.contentType?.toLowerCase() === "html" ? message.body.content?.slice(0, 100_000) || null : null,
     bodyText: (message.body?.contentType?.toLowerCase() === "text" ? message.body.content : message.bodyPreview)?.slice(0, 100_000) || null,

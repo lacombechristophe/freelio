@@ -2,12 +2,14 @@ import "server-only"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { canonicalEmailSubject } from "@/lib/communications/threads"
+import { providerConversationIdSchema } from "./conversation-identity"
 
 export function validInternetMessageId(value: string | null | undefined): value is string {
   return !!value && value.length <= 900 && [...value].every(char => char.charCodeAt(0) >= 33 && char.charCodeAt(0) !== 127) && /^<[^\s<>@]+@[^\s<>@]+>$/.test(value)
 }
 
 export const replyContextSchema = z.object({
+  providerConversationId: providerConversationIdSchema.nullable().optional(),
   messageId: z.string().cuid(),
   provider: z.enum(["GOOGLE", "MICROSOFT", "RESEND"]),
   providerId: z.string().max(2000).nullable(),
@@ -21,12 +23,12 @@ export async function freezeReplyContext(companyId: string, threadId: string | n
   if (!threadId) return null
   // Reply to the latest received message; fall back to an outgoing-only thread.
   const message = await prisma.emailMessage.findFirst({ where: { companyId, threadId }, orderBy: [{ direction: "asc" }, { createdAt: "desc" }, { id: "desc" }],
-    select: { id: true, provider: true, providerId: true, internetMessageId: true, subject: true, direction: true } })
+    select: { id: true, provider: true, providerId: true, internetMessageId: true, subject: true, direction: true, thread: { select: { providerConversationId: true } } } })
   if (!message || message.provider !== provider) throw new Error("La référence du message d’origine est absente ou incompatible ; synchronisez la conversation")
   if (canonicalEmailSubject(subject) !== canonicalEmailSubject(message.subject)) throw new Error("L’objet de la réponse doit conserver celui de la conversation")
   if (message.internetMessageId && !validInternetMessageId(message.internetMessageId)) throw new Error("Référence Internet du message invalide")
   if (!message.internetMessageId) throw new Error("Référence Internet du message absente ; réconciliation de l’historique nécessaire")
-  return replyContextSchema.parse({ ...message, messageId: message.id })
+  return replyContextSchema.parse({ ...message, messageId: message.id, providerConversationId: message.thread.providerConversationId })
 }
 
 export function replyMailboxAddresses(value: string) {
@@ -40,7 +42,8 @@ export function replyMailboxAddresses(value: string) {
 
 export async function assertReplyContext(companyId: string, threadId: string, reply: ReplyContext) {
   const message = await prisma.emailMessage.findFirst({ where: { companyId, threadId, id: reply.messageId, provider: reply.provider,
-    providerId: reply.providerId, internetMessageId: reply.internetMessageId, subject: reply.subject, direction: reply.direction }, select: { id: true } })
+    providerId: reply.providerId, internetMessageId: reply.internetMessageId, subject: reply.subject, direction: reply.direction,
+    ...(reply.providerConversationId !== undefined ? { thread: { providerConversationId: reply.providerConversationId } } : {}) }, select: { id: true } })
   if (!message) throw new Error("Le message d’origine a changé depuis la préparation ; vérifiez la conversation")
 }
 

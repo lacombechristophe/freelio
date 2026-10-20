@@ -62,6 +62,39 @@ describe("OAuth email crash recovery", () => {
     return { id: randomUUID(), name: "facture fictive.pdf", size: bytes.length, type: "application/pdf" as const, sha256: createHash("sha256").update(bytes).digest("hex"), relativePath: "local:private/fiction/email-draft/fiction/file.pdf", bytes }
   }
 
+  it.each(["GOOGLE", "MICROSOFT"] as const)("retains %s native identity from preparation through acceptance and a resumed draft", async provider => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel(provider))
+    const native = "fictional/native+conversation==", prepared = vi.fn()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { messages: [] } : { value: [] }))
+      .mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { id: "draft", message: { threadId: native } } : { id: "draft", conversationId: native }))
+      .mockResolvedValueOnce(provider === "GOOGLE" ? Response.json({ id: "sent", threadId: native }) : new Response(null, { status: 202 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const sent = await sendEmailThroughChannel({ ...baseInput, onPrepared: prepared })
+    expect(sent.providerConversationId).toBe(native)
+    expect(prepared).toHaveBeenCalledWith(expect.objectContaining({ providerDraftId: "draft", providerConversationId: native }))
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { id: "draft", message: { threadId: native } } : { id: "draft", isDraft: true, conversationId: native }))
+      .mockResolvedValueOnce(provider === "GOOGLE" ? Response.json({ id: "sent", threadId: native }) : new Response(null, { status: 202 }))
+    const resumed = await sendEmailThroughChannel({ ...baseInput, resume: { provider, channelId: channel(provider).id, providerDraftId: "draft", providerMessageId: "<prepared@example.test>", providerConversationId: native } })
+    expect(resumed.providerConversationId).toBe(native)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.filter(call => call[1]?.method === "POST")).toHaveLength(1)
+  })
+
+  it.each(["GOOGLE", "MICROSOFT"] as const)("reads %s accepted native identity without resending", async provider => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel(provider))
+    const native = "fictional-accepted-conversation"
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(provider === "GOOGLE" ? { messages: [{ id: "sent", threadId: native }] } : { id: "sent", isDraft: false, conversationId: native }))
+    vi.stubGlobal("fetch", fetchMock)
+    const sent = await sendEmailThroughChannel({ ...baseInput, resume: provider === "MICROSOFT" ? { provider, channelId: channel(provider).id, providerDraftId: "sent", providerMessageId: "<prepared@example.test>" } : undefined })
+    expect(sent.providerConversationId).toBe(native)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][1]?.method).toBeUndefined()
+  })
+
   it.each(["GOOGLE", "RESEND"] as const)("submits verified attachment bytes using the %s envelope", async provider => {
     const file = attachment()
     prismaMock.communicationChannel.findFirst.mockResolvedValue({ ...channel("GOOGLE"), provider })
@@ -298,7 +331,7 @@ describe("OAuth email crash recovery", () => {
     return provider === "GOOGLE" ? { id: "original-id", threadId: "native-thread", payload: { headers: [
       { name: "Message-ID", value: "<original@example.test>" }, { name: "Subject", value: baseInput.subject },
       { name: "References", value: "<root@example.test>" }, { name: "From", value: `"Client, Fiction" <${replyTo}>` },
-    ] } } : { id: "original-id", internetMessageId: "<original@example.test>", subject: baseInput.subject, from: { emailAddress: { address: replyTo } } }
+    ] } } : { id: "original-id", conversationId: "native-thread", internetMessageId: "<original@example.test>", subject: baseInput.subject, from: { emailAddress: { address: replyTo } } }
   }
 
   it.each(["GOOGLE", "MICROSOFT"] as const)("creates a native %s reply, preserving its MIME references and prepared identity", async provider => {
@@ -306,11 +339,12 @@ describe("OAuth email crash recovery", () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { messages: [] } : { value: [] }))
       .mockResolvedValueOnce(Response.json(metadata(provider)))
-      .mockResolvedValueOnce(Response.json({ id: "native-draft", internetMessageId: "<graph-assigned@example.test>" }, { status: 201 }))
+      .mockResolvedValueOnce(Response.json({ id: "native-draft", internetMessageId: "<graph-assigned@example.test>", conversationId: "native-thread", message: { threadId: "native-thread" } }, { status: 201 }))
       .mockResolvedValueOnce(provider === "GOOGLE" ? Response.json({ id: "native-sent" }) : new Response(null, { status: 202 }))
     vi.stubGlobal("fetch", fetchMock)
     const prepared = vi.fn().mockResolvedValue(undefined)
-    const result = await sendEmailThroughChannel({ ...baseInput, subject: `Re: ${baseInput.subject}`, reply: reply(provider), onPrepared: prepared })
+    const result = await sendEmailThroughChannel({ ...baseInput, subject: `Re: ${baseInput.subject}`, reply: { ...reply(provider), providerConversationId: "native-thread" }, onPrepared: prepared })
+    expect(result.providerConversationId).toBe("native-thread")
     const creation = fetchMock.mock.calls[2]
     const mime = provider === "GOOGLE" ? Buffer.from(JSON.parse(String(creation[1]?.body)).message.raw, "base64url").toString("utf8") : Buffer.from(String(creation[1]?.body), "base64").toString("utf8")
     expect(mime).toContain("In-Reply-To: <original@example.test>\r\n")
@@ -325,6 +359,15 @@ describe("OAuth email crash recovery", () => {
     }
     expect(prepared).toHaveBeenCalledWith(expect.objectContaining({ providerDraftId: "native-draft", providerMessageId: result.providerMessageId }))
     expect(prepared.mock.invocationCallOrder[0]).toBeLessThan(fetchMock.mock.invocationCallOrder[3])
+  })
+
+  it.each(["GOOGLE", "MICROSOFT"] as const)("refuses a changed %s native reply identity before creating or sending", async provider => {
+    prismaMock.communicationChannel.findFirst.mockResolvedValue(channel(provider))
+    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(provider === "GOOGLE" ? { messages: [] } : { value: [] })).mockResolvedValueOnce(Response.json(metadata(provider)))
+    vi.stubGlobal("fetch", fetchMock)
+    await expect(sendEmailThroughChannel({ ...baseInput, reply: { ...reply(provider), providerConversationId: "other-native" } })).rejects.toThrow("conversation distante")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.every(call => !call[1]?.method || call[1].method === "GET")).toBe(true)
   })
 
   it.each(["GOOGLE", "MICROSOFT"] as const)("rejects a %s parent from another mailbox or with injected headers before HTTP", async provider => {

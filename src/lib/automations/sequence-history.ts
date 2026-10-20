@@ -18,6 +18,7 @@ export async function ensureSequenceHistory(deliveryId: string, companyId: strin
   if (!delivery.provider || !delivery.providerId || !delivery.sentAt) throw new Error("Référence d’envoi absente ; réconciliation nécessaire")
   const payload = sequencePayloadSchema.parse(delivery.payload)
   await recordOutgoingEmail({ companyId, deliveryId, channelId: delivery.channelId, contactId: delivery.contactId, leadCaptureId: delivery.leadCaptureId,
+    providerConversationId: delivery.providerConversationId,
     provider: delivery.provider, providerId: delivery.providerId, internetMessageId: validInternetMessageId(delivery.providerMessageId) ? delivery.providerMessageId : null,
     from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: delivery.sentAt, purpose: delivery.purpose })
 }

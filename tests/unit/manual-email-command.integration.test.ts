@@ -69,6 +69,24 @@ describe.sequential("manual email durable command on SQL", () => {
     expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
   })
 
+  it("keeps OAuth native identity through preparation, acceptance and a failed journal repair", async () => {
+    const { input, channel } = await fixture(), native = "fictional-manual-native"
+    await prisma.communicationChannel.update({ where: { id: channel.id }, data: { provider: "GOOGLE" } })
+    vi.mocked(sendEmailThroughChannel).mockImplementationOnce(async command => {
+      await command.onPrepared?.({ provider: "GOOGLE", channelId: channel.id, providerDraftId: "draft", providerMessageId: "<native-command@example.test>", providerConversationId: native })
+      expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: command.idempotencyKey } })).toMatchObject({ status: "SENDING", providerConversationId: native })
+      return { provider: "GOOGLE", providerId: `${channel.id}:sent`, providerDraftId: "draft", providerMessageId: "<native-command@example.test>", providerConversationId: native, channelId: channel.id, from: "sender@example.test" }
+    })
+    vi.mocked(recordOutgoingEmail).mockRejectedValueOnce(new Error("Fictional native journal outage"))
+    await expect(sendManualEmail(input)).rejects.toThrow("native journal outage")
+    const delivery = await prisma.emailDelivery.findUniqueOrThrow({ where: { companyId_requestKey: { companyId: input.companyId, requestKey: input.requestKey } } })
+    expect(delivery).toMatchObject({ status: "SENT", providerConversationId: native })
+    const message = await sendManualEmail(input)
+    expect(await prisma.emailThread.findUniqueOrThrow({ where: { id: message.threadId } })).toMatchObject({ channelId: channel.id, providerConversationId: native })
+    expect(sendEmailThroughChannel).toHaveBeenCalledTimes(1)
+    expect(await prisma.emailMessage.count({ where: { deliveryId: delivery.id } })).toBe(1)
+  })
+
   it("freezes plain text before transport and reuses it after a converter change or an ambiguous attempt", async () => {
     const { input } = await fixture()
     const text = emailContent.emailPlainText(input.html)

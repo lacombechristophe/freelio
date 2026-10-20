@@ -109,7 +109,7 @@ export async function sendManualEmail(input: ManualSendInput) {
           reply: payload.reply || undefined,
           cc: payload.cc, bcc: payload.bcc,
           attachments,
-          resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId },
+          resume: { provider: current.provider, channelId: payload.channelId, providerDraftId: current.providerDraftId, providerMessageId: current.providerMessageId, providerConversationId: current.providerConversationId },
           beforeDispatch: async () => {
             await control.assertOwned()
             await input.beforeDispatch?.()
@@ -125,7 +125,7 @@ export async function sendManualEmail(input: ManualSendInput) {
             if (saved.count !== 1) throw new Error("La préparation de l’envoi n’a pas pu être persistée")
           },
         })
-        await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENT", provider: sent.provider, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, sentAt: new Date(), error: null } })
+        await prisma.emailDelivery.update({ where: { id: deliveryId }, data: { status: "SENT", provider: sent.provider, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt: new Date(), error: null } })
       } catch (error) {
         // Provider errors may quote a hidden recipient. The shared delivery
         // journal must never disclose a Bcc address through its error text.
@@ -138,7 +138,7 @@ export async function sendManualEmail(input: ManualSendInput) {
     // History can be repaired independently of transport acceptance. A SQL
     // failure here must never turn a confirmed send into another remote send.
     return recordOutgoingEmail({ companyId: input.companyId, channelId: accepted.channelId, threadId: payload.threadId, clientId: payload.clientId, contactId: payload.contactId, deliveryId,
-      provider: accepted.provider!, providerId: accepted.providerId, purpose: payload.purpose || null, internetMessageId: validInternetMessageId(accepted.providerMessageId) ? accepted.providerMessageId : null,
+      provider: accepted.provider!, providerId: accepted.providerId, providerConversationId: accepted.providerConversationId, purpose: payload.purpose || null, internetMessageId: validInternetMessageId(accepted.providerMessageId) ? accepted.providerMessageId : null,
       inReplyTo: payload.reply?.internetMessageId, from: payload.from, to: [payload.to], cc: payload.cc, bcc: payload.bcc, attachments: attachmentMetadata(payload.attachments || []), subject: payload.subject, bodyHtml: payload.renderedHtml || payload.html, bodyText: payload.text, sentAt: accepted.sentAt || undefined })
   })
   if (!lease.acquired) throw new Error("Cet envoi est déjà en cours ; actualisez son résultat avant de réessayer")

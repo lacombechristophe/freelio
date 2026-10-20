@@ -281,6 +281,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
           channelId: delivery.channelId,
           providerDraftId: delivery.providerDraftId,
           providerMessageId: delivery.providerMessageId,
+          providerConversationId: delivery.providerConversationId,
         },
         onPrepared: async (prepared) => {
           await control.assertOwned()
@@ -294,7 +295,7 @@ async function processDueSequenceEmailsUnlocked(control: ProcessorLeaseControl, 
       const sentAt = new Date()
       // Transport acceptance is durable before any history/progression work.
       // Failed history leaves this enrollment at the same step for SQL repair.
-      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, payload: { ...frozen, from: sent.from }, provider: sent.provider, channelId: sent.channelId === "platform" ? null : sent.channelId, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, sentAt, nextAttemptAt: null, deadLetteredAt: null, error: null } })
+      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", subject: sent.subject, payload: { ...frozen, from: sent.from }, provider: sent.provider, channelId: sent.channelId === "platform" ? null : sent.channelId, providerId: sent.providerId, providerDraftId: sent.providerDraftId, providerMessageId: sent.providerMessageId, providerConversationId: sent.providerConversationId, sentAt, nextAttemptAt: null, deadLetteredAt: null, error: null } })
       summary.sent += 1
       await ensureSequenceHistory(delivery.id, enrollment.sequence.companyId)
       const progressed = progressionData(enrollment.sequence, step.id, sentAt)

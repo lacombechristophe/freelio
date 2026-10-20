@@ -91,17 +91,19 @@ describe.sequential("human recovery of frozen manual email commands on real SQL"
       expect(init?.method).toBe("GET")
       const target = new URL(String(url))
       if (target.pathname.endsWith("/messages")) { expect(target.searchParams.get("labelIds")).toBe("SENT"); return Response.json({ messages: [{ id: "fiction-sent" }] }) }
-      return Response.json({ id: "fiction-sent", labelIds: ["SENT"], payload: { headers: [{ name: "Message-ID", value: f.delivery.providerMessageId }, { name: "From", value: f.prepared.payload.from }] } })
+      return Response.json({ id: "fiction-sent", threadId: "fictional-gmail-conversation", labelIds: ["SENT"], payload: { headers: [{ name: "Message-ID", value: f.delivery.providerMessageId }, { name: "From", value: f.prepared.payload.from }] } })
     })
     await f.recover("CHECK")
     expect(http).toHaveBeenCalledTimes(2)
     await f.recover("REPAIR", { version: 2 })
     expect(http).toHaveBeenCalledTimes(2)
     expect(await prisma.emailMessage.findUniqueOrThrow({ where: { deliveryId: f.delivery.id } })).toMatchObject({ providerId: `${f.channel.id}:fiction-sent`, purpose: "SERVICE", bccAddresses: f.input.bcc })
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toMatchObject({ providerConversationId: "fictional-gmail-conversation" })
+    expect(await prisma.emailThread.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ providerConversationId: "fictional-gmail-conversation" })
   })
   it("distinguishes a Microsoft draft from a sent immutable reference", async () => {
     const f = await fixture("MICROSOFT")
-    const message = { id: f.delivery.providerDraftId, internetMessageId: f.delivery.providerMessageId, from: { emailAddress: { address: "sender@example.test" } }, isDraft: true }
+    const message = { id: f.delivery.providerDraftId, conversationId: "fictional-graph-conversation", internetMessageId: f.delivery.providerMessageId, from: { emailAddress: { address: "sender@example.test" } }, isDraft: true }
     http.mockImplementation(async (_url?: string | URL | Request, init?: RequestInit) => { expect(init?.method).toBe("GET"); return Response.json(message) })
     expect(await f.recover("CHECK")).toMatchObject({ outcome: "DRAFT" })
     await expect(f.recover("REPAIR", { version: 2 })).rejects.toThrow("Aucune preuve")
@@ -109,6 +111,8 @@ describe.sequential("human recovery of frozen manual email commands on real SQL"
     expect(await f.recover("CHECK", { version: 2 })).toMatchObject({ outcome: "ACCEPTED" })
     await f.recover("REPAIR", { version: 3 })
     expect(http).toHaveBeenCalledTimes(2)
+    expect(await prisma.emailDelivery.findUniqueOrThrow({ where: { id: f.delivery.id } })).toMatchObject({ providerConversationId: "fictional-graph-conversation" })
+    expect(await prisma.emailThread.findFirstOrThrow({ where: { companyId: f.company.id } })).toMatchObject({ providerConversationId: "fictional-graph-conversation" })
   })
   it.each([403, 404, 429])("keeps HTTP %i unavailable and never exposes the provider error containing hidden addresses", async status => {
     const f = await fixture("GOOGLE")

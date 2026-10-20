@@ -1,4 +1,5 @@
 import "server-only"
+import { providerConversationIdSchema } from "./conversation-identity"
 import { z } from "zod"
 import { activeCommunicationChannel, readOAuthCredentials } from "./email-provider"
 import { readResendCredentials } from "./provider-credentials"
@@ -7,7 +8,7 @@ import { validInternetMessageId } from "./reply-context"
 import { providerFetch } from "@/lib/integrations/provider-fetch"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 
-export type RecoveryObservation = { outcome: "ACCEPTED"; providerId: string; providerMessageId: string | null } | { outcome: "UNKNOWN" | "DRAFT" | "UNAVAILABLE" }
+export type RecoveryObservation = { outcome: "ACCEPTED"; providerId: string; providerMessageId: string | null; providerConversationId?: string | null } | { outcome: "UNKNOWN" | "DRAFT" | "UNAVAILABLE" }
 type FrozenProviderReference = { companyId: string; channelId: string; provider: string; providerId: string | null; providerDraftId: string | null; providerMessageId: string | null; from: string; to: string }
 const address = (value: string) => (value.match(/<([^<>]+)>$/)?.[1] || value).trim().toLowerCase()
 const remoteId = z.string().min(1).max(2048).refine(value => !/[\r\n]/.test(value))
@@ -41,16 +42,16 @@ export async function inspectManualEmailProvider(input: FrozenProviderReference,
       if (!listed.success || listed.data.messages.length !== 1 || listed.data.nextPageToken) return { outcome: "UNKNOWN" }
       const id = listed.data.messages[0].id
       const metadata = new URLSearchParams({ format: "metadata" }); metadata.append("metadataHeaders", "Message-ID"); metadata.append("metadataHeaders", "From")
-      const message = z.object({ id: remoteId, labelIds: z.array(z.string()), payload: z.object({ headers: z.array(z.object({ name: z.string(), value: z.string() })) }) }).safeParse(await get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?${metadata}`, headers))
+      const message = z.object({ id: remoteId, threadId: providerConversationIdSchema.optional(), labelIds: z.array(z.string()), payload: z.object({ headers: z.array(z.object({ name: z.string(), value: z.string() })) }) }).safeParse(await get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?${metadata}`, headers))
       if (!message.success || message.data.id !== id || !message.data.labelIds.includes("SENT") || message.data.labelIds.includes("DRAFT")) return { outcome: "UNKNOWN" }
       const header = (name: string) => message.data.payload.headers.filter(value => value.name.toLowerCase() === name)
       const messageIds = header("message-id"), senders = header("from")
       if (messageIds.length !== 1 || messageIds[0].value !== input.providerMessageId || senders.length !== 1 || address(senders[0].value) !== address(input.from)) return { outcome: "UNKNOWN" }
-      return { outcome: "ACCEPTED", providerId: `${channel.id}:${id}`, providerMessageId: input.providerMessageId }
+      return { outcome: "ACCEPTED", providerId: `${channel.id}:${id}`, providerMessageId: input.providerMessageId, providerConversationId: message.data.threadId ?? null }
     }
     if (input.provider === "MICROSOFT") {
-      const select = "id,isDraft,internetMessageId,from,sentDateTime"
-      const messageSchema = z.object({ id: remoteId, isDraft: z.boolean(), internetMessageId: z.string(), from: z.object({ emailAddress: z.object({ address: z.string() }) }), sentDateTime: z.string().optional() })
+      const select = "id,isDraft,internetMessageId,from,sentDateTime,conversationId"
+      const messageSchema = z.object({ id: remoteId, conversationId: providerConversationIdSchema.optional(), isDraft: z.boolean(), internetMessageId: z.string(), from: z.object({ emailAddress: z.object({ address: z.string() }) }), sentDateTime: z.string().optional() })
       let data: unknown
       if (input.providerDraftId) {
         data = await get(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(input.providerDraftId)}?$select=${select}`, headers)
@@ -64,7 +65,7 @@ export async function inspectManualEmailProvider(input: FrozenProviderReference,
       if (!message.success || (input.providerDraftId && message.data.id !== input.providerDraftId) || message.data.internetMessageId !== input.providerMessageId || address(message.data.from.emailAddress.address) !== address(input.from)) return { outcome: "UNKNOWN" }
       if (message.data.isDraft) return { outcome: "DRAFT" }
       if (!message.data.sentDateTime || !Number.isFinite(Date.parse(message.data.sentDateTime))) return { outcome: "UNKNOWN" }
-      return { outcome: "ACCEPTED", providerId: `${channel.id}:${message.data.id}`, providerMessageId: input.providerMessageId }
+      return { outcome: "ACCEPTED", providerId: `${channel.id}:${message.data.id}`, providerMessageId: input.providerMessageId, providerConversationId: message.data.conversationId ?? null }
     }
     return { outcome: "UNAVAILABLE" }
   } catch {

@@ -1,4 +1,5 @@
 import "server-only"
+import { providerConversationIdSchema } from "@/lib/communications/conversation-identity"
 import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import prisma, { type TransactionClient } from "@/lib/prisma"
@@ -16,7 +17,7 @@ export class SequenceRecoveryError extends Error {}
 const unavailable = () => new SequenceRecoveryError("Commande de séquence inaccessible ou données historiques incomplètes")
 const conflict = () => new SequenceRecoveryError("Le résultat ou l’inscription a changé ; actualisez avant de décider")
 const identity = z.object({ id: z.string().cuid(), version: z.number().int().positive(), reason: z.string().trim().min(3).max(500).optional(), confirmed: z.boolean().optional() })
-const proofSchema = z.object({ provider: z.enum(["RESEND", "GOOGLE", "MICROSOFT"]), channelId: z.string(), providerId: z.string().min(1).max(4096), providerMessageId: z.string().nullable(), checkedAt: z.string().datetime() })
+const proofSchema = z.object({ provider: z.enum(["RESEND", "GOOGLE", "MICROSOFT"]), channelId: z.string(), providerId: z.string().min(1).max(4096), providerMessageId: z.string().nullable(), providerConversationId: providerConversationIdSchema.nullable().optional(), checkedAt: z.string().datetime() })
 
 async function readCommand(companyId: string, userId: string, id: string, db: typeof prisma | TransactionClient = prisma, write = false) {
   const context = getContext()
@@ -40,7 +41,7 @@ async function readCommand(companyId: string, userId: string, id: string, db: ty
 }
 type Command = Awaited<ReturnType<typeof readCommand>>
 function acceptedReference({ row }: Command) {
-  if (row.providerId && row.sentAt) return { providerId: row.providerId, providerMessageId: row.providerMessageId }
+  if (row.providerId && row.sentAt) return { providerId: row.providerId, providerMessageId: row.providerMessageId, providerConversationId: row.providerConversationId }
   const proof = proofSchema.safeParse(row.recoveryProof)
   const channelId = row.channelId || "platform"
   return row.recoveryOutcome === "ACCEPTED" && proof.success && proof.data.provider === row.provider && proof.data.channelId === channelId
@@ -53,7 +54,7 @@ function eligible(command: Command) {
 const inconclusiveOutcome = (command: Command) => command.row.recoveryOutcome === "ACCEPTED" ? "UNKNOWN" : command.row.recoveryOutcome || "UNKNOWN"
 const unchanged = ({ row }: Command): Prisma.EmailDeliveryWhereInput => ({ id: row.id, companyId: row.companyId, sequenceId: row.sequenceId, enrollmentId: row.enrollmentId, stepId: row.stepId, leadCaptureId: row.leadCaptureId, contactId: row.contactId,
   recipientEmail: row.recipientEmail, subject: row.subject, purpose: row.purpose, recoveryVersion: row.recoveryVersion, updatedAt: row.updatedAt, status: row.status, provider: row.provider, channelId: row.channelId,
-  providerId: row.providerId, providerDraftId: row.providerDraftId, providerMessageId: row.providerMessageId, payload: { equals: row.payload as Prisma.InputJsonValue }, sentAt: row.sentAt, closedAt: row.closedAt })
+  providerId: row.providerId, providerDraftId: row.providerDraftId, providerMessageId: row.providerMessageId, providerConversationId: row.providerConversationId, payload: { equals: row.payload as Prisma.InputJsonValue }, sentAt: row.sentAt, closedAt: row.closedAt })
 
 export async function sequenceRecoveryState(companyId: string, userId: string, id: string) {
   try {
@@ -82,7 +83,7 @@ export async function recoverSequenceEmail(companyId: string, userId: string, in
       if (operation === "CLOSE" && proof) throw new SequenceRecoveryError("Une acceptation est connue ; réparez l’historique sans relancer")
       // Persist the thread before the atomic history write: mailbox ACLs resolve
       // message.threadId through the committed view, including for ordinary members.
-      const thread = operation === "REPAIR" ? await getOrCreateEmailThread({ companyId, channelId: row.channelId, contactId: row.contactId, leadCaptureId: row.leadCaptureId, subject: payload.subject, occurredAt: row.sentAt || checkedAt }) : null
+      const thread = operation === "REPAIR" ? await getOrCreateEmailThread({ companyId, channelId: row.channelId, providerConversationId: proof?.providerConversationId ?? (row.provider === "RESEND" ? undefined : null), contactId: row.contactId, leadCaptureId: row.leadCaptureId, subject: payload.subject, occurredAt: row.sentAt || checkedAt }) : null
       await prisma.$transaction(async tx => {
         await control.assertOwned(tx)
         await readCommand(companyId, userId, row.id, tx, true)
@@ -93,15 +94,15 @@ export async function recoverSequenceEmail(companyId: string, userId: string, in
         if (claimed.count !== 1) throw conflict()
         const change: Prisma.EmailDeliveryUpdateManyMutationInput = { recoveryVersion: { increment: 1 } }
         if (operation === "CHECK" && observation) Object.assign(change, { recoveryCheckedAt: checkedAt, recoveryOutcome: observation.outcome,
-          ...(observation.outcome === "ACCEPTED" ? { recoveryProof: { provider: row.provider, channelId: row.channelId || "platform", providerId: observation.providerId, providerMessageId: observation.providerMessageId, checkedAt: checkedAt.toISOString() } } : {}) })
+          ...(observation.outcome === "ACCEPTED" ? { recoveryProof: { provider: row.provider, channelId: row.channelId || "platform", providerId: observation.providerId, providerMessageId: observation.providerMessageId, providerConversationId: observation.providerConversationId ?? null, checkedAt: checkedAt.toISOString() } } : {}) })
         if (operation === "CLOSE") Object.assign(change, { closedAt: checkedAt, closedByUserId: userId, closureReason: data.reason!, nextAttemptAt: null })
-        if (operation === "REPAIR" && proof) Object.assign(change, { providerId: proof.providerId, providerMessageId: proof.providerMessageId, sentAt: row.sentAt || checkedAt, recoveryOutcome: "ACCEPTED", nextAttemptAt: null, ...(!row.sentAt ? { status: "SENT" } : {}) })
+        if (operation === "REPAIR" && proof) Object.assign(change, { providerId: proof.providerId, providerMessageId: proof.providerMessageId, providerConversationId: proof.providerConversationId ?? null, sentAt: row.sentAt || checkedAt, recoveryOutcome: "ACCEPTED", nextAttemptAt: null, ...(!row.sentAt ? { status: "SENT" } : {}) })
         const saved = await tx.emailDelivery.updateMany({ where: unchanged(command), data: change })
         if (saved.count !== 1) throw conflict()
         let messageId: string | undefined
         if (operation === "REPAIR" && proof && thread) {
           const message = await recordOutgoingEmail({ companyId, deliveryId: row.id, threadId: thread.id, channelId: row.channelId, contactId: row.contactId, leadCaptureId: row.leadCaptureId,
-            provider: row.provider!, providerId: proof.providerId, purpose: row.purpose, internetMessageId: validInternetMessageId(proof.providerMessageId) ? proof.providerMessageId : null,
+            provider: row.provider!, providerId: proof.providerId, providerConversationId: proof.providerConversationId, purpose: row.purpose, internetMessageId: validInternetMessageId(proof.providerMessageId) ? proof.providerMessageId : null,
             from: payload.from, to: [payload.to], subject: payload.subject, bodyHtml: payload.html, sentAt: row.sentAt || checkedAt }, tx).catch(() => { throw new SequenceRecoveryError("Historique non rapprochable : original et preuve conservés, aucun nouvel envoi") })
           const eventStatuses = ["SENT", "DELIVERED", "OPENED", "CLICKED", "DELAYED", "BOUNCED", "COMPLAINED"]
           if (row.sentAt && eventStatuses.includes(row.status) && (!message.lastEventAt || Boolean(row.lastEventAt && row.lastEventAt >= message.lastEventAt)) && emailEventCanReplaceAtSameTime(message.status, row.status)) await tx.emailMessage.update({ where: { id: message.id }, data: { status: row.status, lastEventAt: row.lastEventAt } })
