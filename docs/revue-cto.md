@@ -32,6 +32,8 @@ Terminer par une preuve technique concrète : l’archive d’une facture persis
 
 **Comment reprendre un envoi après un incident ?** La commande et la boîte sont figées avant le transport ; les brouillons fournisseurs et les pièces déjà reçues sont rapprochés avant reprise. Une acceptation confirmée et la réparation du journal SQL sont deux états distincts. Montrer une injection de panne reproductible ; annoncer que les HTTP simulés ne qualifient pas un compte fournisseur réel, ni un « exactement une fois » universel.
 
+**Que signifie « lu » dans Communications ?** La lecture locale sert au suivi CRM. Une observation Gmail/Outlook possède sa date et reste indépendante : elle ne réouvre pas un dossier clos et ne lance pas une nouvelle réception. Montrer un message déplacé ou disparu dont la copie reste conservée, puis une reprise interrompue sans doublon. Les pièces sont lues chez le fournisseur avec contrôle d'accès et de contenu ; elles ne constituent pas une archive durable. Les [preuves locales](evidence/20261020-mail-observations/README.md) utilisent HTTP simulé et ne certifient aucun compte réel.
+
 **Que reste-t-il avant de déployer le candidat ?** CI du SHA candidat, audit complet des dépendances, migration/configuration du runtime et recette hébergée de cette nouvelle version. La démo publique livrée conserve une portée fictive en lecture seule ; elle ne qualifie ni envois réels ni traitements permanents. Pour un usage commercial restent notamment la charge, les ressources, le stockage/limiteur réels et la récupération distante. Le budget de 0 € ne permet aucun abonnement non approuvé.
 
 ## Critère pour une présentation privée
