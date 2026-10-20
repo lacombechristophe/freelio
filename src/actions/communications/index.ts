@@ -10,6 +10,7 @@ import { emailPurposeSchema, assertPurposeRecipients, EmailPurposeError } from "
 import { prepareManualMarketingContent } from "@/lib/communications/marketing-consent"
 import { getEmailSignature, saveEmailSignature, EmailSignatureConflict } from "@/lib/communications/signatures"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import { readResendCredentials } from "@/lib/communications/provider-credentials"
 import { sendManualEmail } from "@/lib/communications/manual-send"
 import { syncOAuthCommunicationChannel } from "@/lib/communications/communication-sync"
@@ -199,7 +200,7 @@ export async function deleteCommunicationDraft(input: unknown) {
 const cuid = z.string().cuid()
 
 export async function getCommunicationDashboard() {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, role }) => {
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
     const inboxRead = readInboxPage(companyId)
     // Prisma starts SQLite interactive reads with BEGIN IMMEDIATE.
@@ -221,6 +222,7 @@ export async function getCommunicationDashboard() {
       company,
       signature,
       signatureOwnerId: userId,
+      access: { write: hasPermission(role, "automation.write"), manage: hasPermission(role, "company.manage") },
       channels: channels.map(({ credentialsEncrypted, config, ...channel }) => ({
         ...channel,
         hasCredentials: Boolean(credentialsEncrypted),
