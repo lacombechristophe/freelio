@@ -42,7 +42,7 @@ Une commande annulée, brouillon ou entièrement livrée n’est plus proposée,
 
 Une recherche en cours, une erreur ou une référence devenue indisponible conserve les autres saisies et bloque la sauvegarde ; la reprise ne remplace pas une sélection par le premier résultat. Le [complément de qualification](evidence/20261021-delivery-choices/README.md) distingue SQL exécuté, source vérifiée et interactions navigateur préparées.
 
-Les choix de commande des réservations de stock et les autres choix de chantier restent des compléments distincts. L’édition d’une commande confirmée, l’annulation après livraison et la réparation des références/scellements historiques restent ouvertes. PostgreSQL natif, concurrence entre processus, rendu Linux et interactions navigateur du candidat restent à qualifier. Aucun envoi externe ni service de signature fournisseur n’est déclenché par ces commandes.
+Les [choix de commande et de chantier des réservations](evidence/20261021-reservation-choices/README.md) sont qualifiés localement ; les autres choix de chantier restent des compléments distincts. L’édition d’une commande confirmée, l’annulation après livraison et la réparation des références/scellements historiques restent ouvertes. PostgreSQL natif, concurrence entre processus, rendu Linux et interactions navigateur du candidat restent à qualifier. Aucun envoi externe ni service de signature fournisseur n’est déclenché par ces commandes.
 
 ## Rendu PDF natif et impression
 

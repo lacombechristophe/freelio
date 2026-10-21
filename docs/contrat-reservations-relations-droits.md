@@ -27,3 +27,9 @@ Avant libération ou consommation, la réservation est relue avec son périmètr
 Création, libération et consommation écrivent leur audit dans la transaction métier. Un refus d’insertion de cet audit annule réservation, mouvement, solde et éventuel passage de la commande en préparation. Le cycle création/libération puis création/consommation produit quatre mouvements et quatre audits. Une erreur Prisma de sérialisation est signalée comme stock modifié ; le scénario de cette erreur reste simulé dans la recette SQLite.
 
 Les commandes et leurs présentations sont conservées. Ce complément ne modifie pas la politique d’annulation/clôture des commandes, ne libère aucun ancien stock automatiquement et ne répare pas les rattachements historiques. Les sélecteurs, la qualification concurrente PostgreSQL et le parcours navigateur préparé restent distincts. Aucune migration ni aucun envoi externe.
+
+## Choix de commande et de chantier — 21 octobre
+
+Les deux champs de création disposent de recherche, total et pages de 25 sur leur périmètre autorisé. La sélection est relue séparément de la page et de la recherche ; les autres saisies restent montées. Une recherche en cours, une erreur ou une sélection non vérifiée bloque l’enregistrement quand cette référence est choisie, sans la remplacer par le premier résultat. Au moins un rattachement reste obligatoire. Les réponses obsolètes sont ignorées et une actualisation des données relance la vérification.
+
+Les filtres d’état et le périmètre global du formulaire sont conservés ; la politique serveur d’allocation n’est pas modifiée. Les [preuves](evidence/20261021-reservation-choices/README.md) distinguent les 29 contrôles SQL des interactions navigateur préparées. Les autres usages du chargement général de chantiers restent distincts.
