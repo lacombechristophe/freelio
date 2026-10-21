@@ -1,0 +1,304 @@
+{
+  "schema": "freelio.delivery-seal-local.v1",
+  "observedAt": "2026-10-21T10:03:54.938Z",
+  "codeCommit": "3662492517adeac981523a65095abd7e8d26bd98",
+  "productionCodeCommit": "c74504317350f215200e0710f6afe91aa71f4b89",
+  "source": {
+    "observedAt": "2026-10-21T09:56:53.013Z",
+    "commit": "3662492517adeac981523a65095abd7e8d26bd98",
+    "filesCompared": 1196,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "496af0287747287553dd9b2085159e4576ca8144541ac88aa47e1fc8dc417578",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-delivery-20261021.json",
+    "sha256": "0547185374299bf6e247027ecb3a21983d28c5cd32d70ecfc60b57906b2dc1fa",
+    "passed": 3268,
+    "failed": 0,
+    "pending": 0,
+    "total": 3268,
+    "files": 268,
+    "success": true,
+    "failedCases": [],
+    "freshDatabase": true,
+    "database": "verification-delivery-full-20261021.db",
+    "coverageEnabled": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 268,
+    "executedFiles": 268,
+    "identityMatch": true,
+    "recordsSha256": "3ddc50e667906e23113fb2c6e421030c7f448933b19303c9989050fe95a7d5ea"
+  },
+  "focusedWithinFull": [
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "passed": 43,
+      "status": "passed"
+    },
+    {
+      "file": "operations-client-choices.integration.test.ts",
+      "passed": 28,
+      "status": "passed"
+    },
+    {
+      "file": "operations-product-choices.integration.test.ts",
+      "passed": 46,
+      "status": "passed"
+    }
+  ],
+  "focused": {
+    "file": "delivery-focused-final-20261021.json",
+    "sha256": "bed00273144ba498cc6e6fff66da9aece2fa8dba6d17562294aaea3484c80e39",
+    "passed": 112,
+    "failed": 0,
+    "pending": 0,
+    "total": 112,
+    "files": 3,
+    "success": true,
+    "failedCases": []
+  },
+  "finalBindingCases": {
+    "file": "delivery-binding-final-20261021.json",
+    "sha256": "349767bc2b01641100533bfd6a456f2a9d7b04c2a28b7cd85a232877c53c1898",
+    "passed": 43,
+    "failed": 0,
+    "pending": 0,
+    "total": 43,
+    "files": 1,
+    "success": true,
+    "failedCases": []
+  },
+  "checks": [
+    {
+      "check": "typegen",
+      "log": "delivery-typegen-20261021.log",
+      "codeCommit": "c74504317350f215200e0710f6afe91aa71f4b89",
+      "exit": 0,
+      "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084"
+    },
+    {
+      "check": "types",
+      "log": "delivery-types-binding-final-20261021.log",
+      "codeCommit": "3662492517adeac981523a65095abd7e8d26bd98",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint-whole-project",
+      "log": "delivery-eslint-20261021.log",
+      "codeCommit": "c74504317350f215200e0710f6afe91aa71f4b89",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint-final-test",
+      "log": "delivery-eslint-binding-final-20261021.log",
+      "codeCommit": "3662492517adeac981523a65095abd7e8d26bd98",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "build",
+      "log": "delivery-build-20261021.log",
+      "codeCommit": "c74504317350f215200e0710f6afe91aa71f4b89",
+      "exit": 0,
+      "sha256": "491d2d2cac3b23e7c634a647250d64320a3f1ab3dc3840a839519e7077c47a34"
+    },
+    {
+      "check": "postgres-schema-offline-validation",
+      "log": "delivery-postgres-validate-20261021.log",
+      "codeCommit": "c74504317350f215200e0710f6afe91aa71f4b89",
+      "exit": 0,
+      "sha256": "5f9e8688bbce02243c41157309b7fbffabe3f90ab6b49cec34f415e21b3fb3ab"
+    }
+  ],
+  "oxlint": {
+    "file": "delivery-oxlint-final-20261021.json",
+    "files": 1073,
+    "rules": 21,
+    "diagnostics": [],
+    "sha256": "5fd25deab89cfc51111d3425160e5dac4ba7875144cfb031d2a3f76f9ccef26f"
+  },
+  "upgrade": {
+    "file": "delivery-upgrade-final-20261021.json",
+    "sha256": "3041dd49fe2a52e81a2d8b4372548c7713d2480eb0728141d6690d30b7223b07",
+    "success": true,
+    "engine": "SQLite",
+    "preservedRows": 8,
+    "preservedTables": [
+      "Company",
+      "Client",
+      "CustomerOrder",
+      "CustomerOrderLine",
+      "DeliveryNote",
+      "DeliveryNoteLine"
+    ],
+    "historicalSignaturesPreserved": true,
+    "historicalDocumentsNotInvented": true,
+    "foreignKeyErrors": 0,
+    "postgresDiffMatchesMigration": true,
+    "postgresMigrationExecuted": false,
+    "previousSchemaSha256": "a4e9453afe797bd0f98a31aa3a1729aaf175867ef5d9415eaab38d74c89c38a4",
+    "schemaSha256": "d6a3b74bcd1b0c5d7081834ee0aedfed26712c00d917d5d735ad404f9120ee4b",
+    "databaseFile": "historical.db"
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "scope": "Existing deterministic coverage gate, not application-wide coverage",
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "observedAt": "2026-10-21T09:51:50.470Z",
+    "baseline": "c74504317350f215200e0710f6afe91aa71f4b89",
+    "all": 460,
+    "desktop": 230,
+    "mobile": 230,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ],
+    "executed": false,
+    "appliesToFinalCommit": "Only unit tests changed after the production commit"
+  },
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1794,
+    "historyBlobsChecked": 4557,
+    "placeholdersExcluded": 1,
+    "findings": [],
+    "throughCommit": "c74504317350f215200e0710f6afe91aa71f4b89",
+    "excludesFinalTestAndDocumentation": true
+  },
+  "retainedDiagnostics": [
+    {
+      "file": "delivery-focused-20261021.json",
+      "sha256": "444a4ffaf31386e85be015346c6410aa3b0aa876c24f06a36d49276c380588d8",
+      "passed": 95,
+      "failed": 1,
+      "pending": 0,
+      "total": 96,
+      "files": 3,
+      "success": false,
+      "failedCases": [
+        {
+          "file": "operations-client-choices.integration.test.ts",
+          "title": "creates order with the 501st company client and retains its business fields"
+        }
+      ],
+      "explanation": "A client-choice fixture expected 20% VAT while its company used the exempt default. Made VAT applicability explicit in unit/native fixture setup, kept the original TTC expectation and added a separate exemption test."
+    },
+    {
+      "stage": "offline-migration-diff",
+      "exit": 1,
+      "explanation": "The initial two-statement PostgreSQL SQL was equivalent, but did not match the strict canonical Prisma diff. Versioned SQL now uses its combined ALTER TABLE form."
+    }
+  ],
+  "limits": [
+    "SQL uses real transactions, authorization and route handling with session/cache mocked",
+    "Font preparation and native PDF generation are mocked or forbidden in the SQL fixture",
+    "The encrypted HTML capture and its resources are sealed; PDF bytes are generated on demand, not archived",
+    "No historical capture is inferred from a legacy digest",
+    "The final commit changes only tests after the production build",
+    "PostgreSQL native migration, multi-process concurrency, Linux and browser execution remain unqualified",
+    "No server/container launch, provider send, push, new remote CI, merge or deployment"
+  ],
+  "purchaseWithinFull": [
+    {
+      "file": "purchase-choices.integration.test.ts",
+      "passed": 35
+    },
+    {
+      "file": "purchase-creation-integrity.integration.test.ts",
+      "passed": 24
+    },
+    {
+      "file": "purchase-directory.integration.test.ts",
+      "passed": 22
+    },
+    {
+      "file": "purchase-draft-lifecycle.integration.test.ts",
+      "passed": 51
+    },
+    {
+      "file": "purchase-inspection-returns.integration.test.ts",
+      "passed": 8
+    },
+    {
+      "file": "purchase-stock-integrity.integration.test.ts",
+      "passed": 35
+    },
+    {
+      "file": "purchase-transitions.integration.test.ts",
+      "passed": 48
+    },
+    {
+      "file": "warehouse-stock-lifecycle.integration.test.ts",
+      "passed": 16
+    }
+  ],
+  "finalPublication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1798,
+    "historyBlobsChecked": 0,
+    "placeholdersExcluded": 0,
+    "findings": []
+  },
+  "markdownLinks": {
+    "observedAt": "2026-10-21T10:05:03.318Z",
+    "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+    "checked": 1020,
+    "findings": []
+  }
+}
