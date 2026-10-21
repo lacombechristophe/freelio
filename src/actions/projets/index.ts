@@ -17,6 +17,7 @@ import { calendarDayKey } from "@/lib/calendar-days"
 import { Prisma } from "@prisma/client"
 
 const PROJECT_CHANGED_MESSAGE = "Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée."
+const TEMPLATE_CHANGED_MESSAGE = "Le modèle de chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée."
 
 async function lockWorkspaceProject(tx: TransactionClient, context: AuthContext, id: string) {
   const project = await tx.project.findFirst({ where: { id, ...operationsDashboardScope(context.companyId, context.agencyIds).project },
@@ -28,10 +29,10 @@ async function lockWorkspaceProject(tx: TransactionClient, context: AuthContext,
   return project
 }
 
-function assertWorkspaceRevision(current: Date | null, expected: string | null) {
+function assertWorkspaceRevision(current: Date | null, expected: string | null, message = PROJECT_CHANGED_MESSAGE) {
   if (current === null && expected === null) return
   const parsed = typeof expected === "string" ? new Date(expected) : new Date(NaN)
-  if (!current || !Number.isFinite(parsed.getTime()) || current.getTime() !== parsed.getTime()) throw new Error(PROJECT_CHANGED_MESSAGE)
+  if (!current || !Number.isFinite(parsed.getTime()) || current.getTime() !== parsed.getTime()) throw new Error(message)
 }
 
 async function mutationProject(tx: TransactionClient, context: AuthContext, id: string, expectedUpdatedAt: string) {
@@ -88,11 +89,11 @@ export async function getProjects(cursor?: string, limit: number = 20) {
 }
 
 export async function getProjectTemplates() {
-  return withAuth(async ({ companyId, agencyIds }) =>
-    prisma.projectTemplate.findMany({
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const templates = await prisma.projectTemplate.findMany({
       where: { companyId },
       include: {
-        steps: { include: { dependsOnStep: { select: { id: true, title: true } } }, orderBy: { order: "asc" } },
+        steps: { orderBy: [{ order: "asc" }, { id: "asc" }] },
         _count: { select: { projects: { where: {
           companyId, client: { companyId },
           ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }),
@@ -100,9 +101,17 @@ export async function getProjectTemplates() {
         } } } },
       },
       orderBy: [{ active: "desc" }, { name: "asc" }],
-    }),
-    "operations.read",
-  )
+    })
+    return templates.map(template => {
+      const steps = new Map(template.steps.map(step => [step.id, step]))
+      return { ...template, steps: template.steps.map(step => {
+        const dependency = step.dependsOnStepId ? steps.get(step.dependsOnStepId) : undefined
+        return { ...step, dependsOnStepId: dependency?.id ?? null,
+          dependsOnStep: dependency ? { id: dependency.id, title: dependency.title } : null,
+          dependencyUnavailable: Boolean(step.dependsOnStepId && !dependency) }
+      }) }
+    })
+  }, "operations.read")
 }
 
 export async function getProjectById(id: string) {
@@ -190,25 +199,29 @@ export async function createProjectTemplate(input: unknown) {
         })
         stepIds.push(createdStep.id)
       }
+      await tx.auditLog.create({ data: { userId, action: "CREATE_PROJECT_TEMPLATE", resource: "PROJECT_TEMPLATE",
+        resourceId: created.id, payload: { name: created.name, stepCount: data.steps.length } } })
       return created
-    })
-    await logAction({
-      userId,
-      action: "CREATE_PROJECT_TEMPLATE",
-      resource: "PROJECT_TEMPLATE",
-      resourceId: template.id,
-      payload: { name: template.name, stepCount: data.steps.length },
-    })
+    }, { isolationLevel: "Serializable" })
     revalidatePath("/dashboard/projets")
     return { success: true as const, id: template.id }
   }, "operations.write")
 }
 
-export async function setProjectTemplateActive(templateId: string, active: boolean) {
-  return withAuth(async ({ companyId }) => {
-    const template = await prisma.projectTemplate.findFirst({ where: { id: templateId, companyId }, select: { id: true } })
-    if (!template) throw new Error("Modèle de chantier introuvable")
-    await prisma.projectTemplate.update({ where: { id: template.id }, data: { active } })
+export async function setProjectTemplateActive(templateId: string, active: boolean, expectedUpdatedAt: string) {
+  return withAuth(async ({ companyId, userId }) => {
+    const target = z.boolean().parse(active)
+    await prisma.$transaction(async tx => {
+      const template = await tx.projectTemplate.findFirst({ where: { id: templateId, companyId }, select: { id: true, active: true, updatedAt: true } })
+      if (!template) throw new Error("Modèle de chantier introuvable")
+      assertWorkspaceRevision(template.updatedAt, expectedUpdatedAt, TEMPLATE_CHANGED_MESSAGE)
+      if (template.active === target) return
+      const changed = await tx.projectTemplate.updateMany({ where: { id: template.id, companyId, updatedAt: template.updatedAt, active: template.active },
+        data: { active: target, updatedAt: nextProjectRevision(template.updatedAt) } })
+      if (changed.count !== 1) throw new Error(TEMPLATE_CHANGED_MESSAGE)
+      await tx.auditLog.create({ data: { userId, action: "UPDATE_PROJECT_TEMPLATE_STATUS", resource: "PROJECT_TEMPLATE", resourceId: template.id,
+        payload: { active: target, previousActive: template.active, previousUpdatedAt: template.updatedAt.toISOString() } } })
+    }, { isolationLevel: "Serializable" })
     revalidatePath("/dashboard/projets")
     return { success: true as const }
   }, "operations.write")
@@ -225,12 +238,21 @@ export async function createProject(data: unknown) {
           ? tx.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })
           : tx.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
         validated.projectTemplateId
-          ? tx.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: { order: "asc" } } } })
+          ? tx.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: [{ order: "asc" }, { id: "asc" }] } } })
           : null,
       ])
       if (!client) throw new Error("Client introuvable")
       if (validated.agencyId && !agency) throw new Error("Agence introuvable ou inactive")
       if (validated.projectTemplateId && !template) throw new Error("Modèle de chantier introuvable ou inactif")
+      if (template) {
+        const previousSteps = new Map<string, number>()
+        for (const step of template.steps) {
+          if (step.dependsOnStepId && (!previousSteps.has(step.dependsOnStepId) || previousSteps.get(step.dependsOnStepId)! >= step.order)) {
+            throw new Error("Les étapes de ce modèle de chantier nécessitent une vérification.")
+          }
+          previousSteps.set(step.id, step.order)
+        }
+      }
       const requestedStartDate = atNoon(validated.startDate || undefined)
       const company = template && !requestedStartDate ? await tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } }) : null
       const startDate = requestedStartDate || (company ? atNoon(calendarDayKey(new Date(), company.serviceTimezone)) : null)

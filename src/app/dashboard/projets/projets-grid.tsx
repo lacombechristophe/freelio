@@ -72,10 +72,12 @@ export function ProjetsGrid({
   initial,
   templates,
   agencies,
+  canManageTemplates,
 }: {
   initial: Directory
   templates: ProjectTemplateOption[]
   agencies: Array<{ id: string; name: string; code: string; isDefault: boolean }>
+  canManageTemplates: boolean
 }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
@@ -187,7 +189,7 @@ export function ProjetsGrid({
         <Button demoMutation onClick={() => setCreateOpen(true)}><Plus />Nouveau chantier</Button>
       </div>
 
-      <ProjectTemplateDialog open={templatesOpen} onOpenChange={setTemplatesOpen} templates={templates} />
+      <ProjectTemplateDialog open={templatesOpen} onOpenChange={setTemplatesOpen} templates={templates} canWrite={canManageTemplates} />
       <ProjectFormDialog open={createOpen} onOpenChange={setCreateOpen} templates={templates} agencies={agencies} />
       {editTarget && (
         <ProjectFormDialog
