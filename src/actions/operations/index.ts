@@ -29,6 +29,7 @@ import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
+import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
 
 const id = z.string().cuid()
@@ -354,7 +355,11 @@ const purchaseAcknowledgementSchema = z.object({
     .string()
     .trim()
     .min(1)
-    .refine((value) => !Number.isNaN(Date.parse(value)), "Date fournisseur invalide"),
+    .refine(value => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+      const date = new Date(`${value}T00:00:00Z`)
+      return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+    }, "Date fournisseur invalide"),
 })
 
 const purchaseIssueResolutionSchema = z.object({
@@ -1564,78 +1569,39 @@ export async function createPurchaseOrder(input: unknown) {
 }
 
 export async function submitPurchaseOrder(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, userId }) => {
-    const parsedId = id.parse(purchaseOrderId)
-    const order = await prisma.purchaseOrder.findFirst({
-      where: { id: parsedId, companyId, status: "DRAFT" },
-      select: { id: true, number: true, _count: { select: { lines: true } } },
-    })
-    if (!order) throw new Error("Commande brouillon introuvable")
-    if (!order._count.lines) throw new Error("La commande ne contient aucune ligne")
-    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "DRAFT" }, data: { status: "PENDING_APPROVAL", submittedAt: new Date() } })
-    if (claimed.count !== 1) throw new Error("La commande a déjà changé d’état")
-    await logAction({ userId, action: "SUBMIT_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
+  return withAuth(async context => {
+    const result = await transitionPurchaseOrder(context, { kind: "submit", id: id.parse(purchaseOrderId) })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${purchaseOrderId}`)
+    return result
   }, "operations.write")
 }
 
 export async function approvePurchaseOrder(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, userId, membershipId }) => {
-    const parsedId = id.parse(purchaseOrderId)
-    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "PENDING_APPROVAL" }, select: { id: true, number: true, totalHtCents: true } })
-    if (!order) throw new Error("Commande en attente d’approbation introuvable")
-    const claimed = await prisma.purchaseOrder.updateMany({
-      where: { id: order.id, companyId, status: "PENDING_APPROVAL" },
-      data: { status: "APPROVED", approvedAt: new Date(), approvedByMembershipId: membershipId },
-    })
-    if (claimed.count !== 1) throw new Error("La commande a déjà été traitée")
-    await logAction({
-      userId,
-      action: "APPROVE_PURCHASE_ORDER",
-      resource: "PURCHASE_ORDER",
-      resourceId: order.id,
-      payload: { number: order.number, totalHtCents: order.totalHtCents },
-    })
+  return withAuth(async context => {
+    const result = await transitionPurchaseOrder(context, { kind: "approve", id: id.parse(purchaseOrderId) })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${purchaseOrderId}`)
+    return result
   }, "purchases.approve")
 }
 
 export async function sendPurchaseOrder(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, userId }) => {
-    const parsedId = id.parse(purchaseOrderId)
-    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "APPROVED" }, select: { id: true, number: true } })
-    if (!order) throw new Error("La commande doit être approuvée avant envoi")
-    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "APPROVED" }, data: { status: "SENT", sentAt: new Date() } })
-    if (claimed.count !== 1) throw new Error("La commande a déjà été envoyée")
-    await logAction({ userId, action: "SEND_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
+  return withAuth(async context => {
+    const result = await transitionPurchaseOrder(context, { kind: "send", id: id.parse(purchaseOrderId) })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${purchaseOrderId}`)
+    return result
   }, "operations.write")
 }
 
 export async function acknowledgePurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
     const data = purchaseAcknowledgementSchema.parse(input)
-    const order = await prisma.purchaseOrder.findFirst({
-      where: { id: data.purchaseOrderId, companyId, status: { in: ["SENT", "ACKNOWLEDGED"] } },
-      select: { id: true, number: true },
-    })
-    if (!order) throw new Error("Commande envoyée introuvable")
-    await prisma.purchaseOrder.update({
-      where: { id: order.id },
-      data: { status: "ACKNOWLEDGED", acknowledgedAt: new Date(), supplierReference: data.supplierReference, confirmedExpectedAt: new Date(data.confirmedExpectedAt) },
-    })
-    await logAction({
-      userId,
-      action: "ACKNOWLEDGE_PURCHASE_ORDER",
-      resource: "PURCHASE_ORDER",
-      resourceId: order.id,
-      payload: { number: order.number, supplierReference: data.supplierReference, confirmedExpectedAt: data.confirmedExpectedAt },
-    })
+    const result = await transitionPurchaseOrder(context, { kind: "acknowledge", id: data.purchaseOrderId, supplierReference: data.supplierReference, confirmedExpectedAt: data.confirmedExpectedAt })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${data.purchaseOrderId}`)
+    return result
   }, "operations.write")
 }
 
