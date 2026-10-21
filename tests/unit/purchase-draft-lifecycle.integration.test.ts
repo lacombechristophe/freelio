@@ -53,10 +53,10 @@ describe.sequential("Supplier draft editing and pre-transmission cancellation", 
   afterEach(async () => {
     vi.restoreAllMocks(); vi.unstubAllEnvs()
     await prisma.auditLog.deleteMany({ where: { userId: session.userId } })
-    await prisma.purchaseOrder.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.purchaseOrder.deleteMany({ where: { companyId: { in: [session.companyId, otherCompanyId] } } })
     await prisma.project.update({ where: { id: projectId }, data: { clientId, agencyId, status: "ACTIVE" } })
     await prisma.product.update({ where: { id: productId }, data: { active: true } })
-    await prisma.supplier.updateMany({ where: { companyId: session.companyId }, data: { active: true } })
+    await prisma.supplier.updateMany({ where: { id: { in: [supplierId, otherSupplierId] } }, data: { companyId: session.companyId, active: true } })
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } })
   })
   afterAll(async () => {
@@ -190,8 +190,6 @@ describe.sequential("Supplier draft editing and pre-transmission cancellation", 
     expect(await drafts.updatePurchaseDraft(input(order))).toMatchObject({ success: false })
     expect(await drafts.cancelPurchaseDraft({ id: order.id, revision: order.draftRevision, reason: "Fictional cancellation", confirmed: true })).toMatchObject({ success: false })
     expect(await snapshot(order.id)).toEqual(before)
-    if (kind === "foreign company") await prisma.purchaseOrder.update({ where: { id: order.id }, data: { companyId: session.companyId } })
-    if (kind === "foreign supplier") await prisma.supplier.update({ where: { id: supplierId }, data: { companyId: session.companyId } })
   })
   it.each(["sent timestamp", "received quantity", "credited quantity"])("preserves contradictory historical drafts with %s", async kind => {
     const order = await seed()
@@ -212,11 +210,22 @@ describe.sequential("Supplier draft editing and pre-transmission cancellation", 
   it.each(["edit", "cancel"])("rolls back the %s when its audit cannot be written", async kind => {
     const order = await seed(), before = await snapshot(order.id)
     // Fail the real SQL insert, after the business writes in the transaction.
-    await prisma.$executeRawUnsafe(`CREATE TRIGGER "fictional_purchase_audit_failure" BEFORE INSERT ON "AuditLog" WHEN NEW."action" IN ('UPDATE_PURCHASE_ORDER', 'CANCEL_PURCHASE_ORDER') BEGIN SELECT RAISE(ABORT, 'Fictional audit failure'); END`)
+    const sqlite = process.env.DATABASE_URL?.startsWith("file:")
+    if (sqlite) await prisma.$executeRawUnsafe(`CREATE TRIGGER "fictional_purchase_audit_failure" BEFORE INSERT ON "AuditLog" WHEN NEW."action" IN ('UPDATE_PURCHASE_ORDER', 'CANCEL_PURCHASE_ORDER') BEGIN SELECT RAISE(ABORT, 'Fictional audit failure'); END`)
+    else {
+      await prisma.$executeRawUnsafe(`CREATE FUNCTION fictional_purchase_audit_failure() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'Fictional audit failure'; END; $$ LANGUAGE plpgsql`)
+      await prisma.$executeRawUnsafe(`CREATE TRIGGER fictional_purchase_audit_failure BEFORE INSERT ON "AuditLog" FOR EACH ROW WHEN (NEW."action" IN ('UPDATE_PURCHASE_ORDER', 'CANCEL_PURCHASE_ORDER')) EXECUTE FUNCTION fictional_purchase_audit_failure()`)
+    }
     try {
       const operation = kind === "edit" ? drafts.updatePurchaseDraft(input(order)) : drafts.cancelPurchaseDraft({ id: order.id, revision: order.draftRevision, reason: "Fictional cancellation", confirmed: true })
       await expect(operation).rejects.toThrow()
-    } finally { await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS "fictional_purchase_audit_failure"') }
+    } finally {
+      if (sqlite) await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS "fictional_purchase_audit_failure"')
+      else {
+        await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS fictional_purchase_audit_failure ON "AuditLog"')
+        await prisma.$executeRawUnsafe('DROP FUNCTION IF EXISTS fictional_purchase_audit_failure()')
+      }
+    }
     expect(await snapshot(order.id)).toEqual(before)
   })
   it("rejects mutation in the public read-only demo", async () => {
