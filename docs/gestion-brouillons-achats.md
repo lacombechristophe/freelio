@@ -20,4 +20,20 @@ La suite SQL [purchase-draft-lifecycle.integration.test.ts](../tests/unit/purcha
 
 Le [scénario navigateur](../tests/e2e/purchase-creation-integrity.spec.ts) prépare création, édition, refus d’une ancienne révision avec saisie conservée et annulation motivée sur desktop et mobile. Sa présence ou sa sélection ne prouve pas son exécution. Les résultats du candidat doivent être reliés au [registre de qualification](completude-recette-20261003.md).
 
-Ce lot ne livre pas la modification d’une commande soumise, le retrait d’une transmission fournisseur, l’annulation d’une réception, ni la pagination complète de la liste des achats. Ces parcours demandent leurs propres règles et preuves. Aucune migration ni dépendance supplémentaire n’est nécessaire.
+## Historique et synthèse
+
+La liste générale recherche avant pagination dans les numéros, fournisseurs, chantiers, références fournisseur, libellés des lignes et références produit. Le filtre d’état se combine à la recherche et au filtre d’agence. Les pages contiennent 25 commandes, avec un tri stable par date puis identifiant ; une page devenue vide est ramenée à la dernière page disponible.
+
+Le compteur d’achats actifs porte sur tout le périmètre autorisé, indépendamment de la page et de la recherche. Il conserve la définition existante : tous les états sauf `RECEIVED` et `CANCELED`. La synthèse présente au plus cinq achats actifs, avec le total explicite ; des commandes fermées plus récentes ne les masquent plus. Un filtre d’agence exclut les approvisionnements généraux sans chantier. Seuls Owner/Admin les consultent sans ce filtre.
+
+Les fenêtres de création, modification, accusé, réception et retour sont conservées indépendamment des cartes paginées. Une actualisation de la liste ne remplace pas leur saisie ni la révision capturée à l’ouverture. Les erreurs de lecture gardent la recherche et le filtre ; la pagination propose une reprise. Ce comportement est préparé dans le scénario navigateur et demande encore son exécution.
+
+## Soumission, approbation et accusé fournisseur
+
+Les quatre transitions partagent le périmètre des lecteurs : société, fournisseur, produits, approbateur, client/site du chantier et agences. `operations.write` reste nécessaire pour soumettre, marquer envoyée ou enregistrer l’accusé ; `purchases.approve` permet l’approbation, y compris pour Comptabilité sans droit général de modification des achats.
+
+La version préparée couvre aussi les lignes. La transaction relit cette version et les références, puis revendique l’état et la date de modification avant de créer l’audit. Une réception terminée pendant la préparation de l’accusé reste réceptionnée ; une modification de ligne qui ne touche pas le parent est également détectée. Des traces de réception, d’anomalie ou de retour contredisant l’état empêchent ces transitions. Un échec de l’audit annule la transition. L’accusé exige un jour canonique `YYYY-MM-DD`, sans normalisation d’un jour impossible.
+
+Les suites [historique complet](../tests/unit/purchase-directory.integration.test.ts) et [transitions](../tests/unit/purchase-transitions.integration.test.ts) couvrent ces règles avec SQL réel. Les intercalages déterministes placent une modification SQL achevée entre préparation et transaction ; ils ne représentent pas une mesure de charge ni une qualification de concurrence native PostgreSQL. Les [preuves du complément](evidence/20261021-purchase-workflow/README.md) distinguent les diagnostics initiaux, la suite complète et les parcours non exécutés.
+
+La modification d’une commande soumise, le retrait d’une transmission fournisseur et l’annulation d’une réception restent des parcours distincts. Aucune migration ni dépendance supplémentaire n’est nécessaire pour ces compléments.

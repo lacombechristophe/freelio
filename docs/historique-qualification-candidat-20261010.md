@@ -171,3 +171,8 @@ Le stockage durable, les comptes OAuth/transport réels, la délivrabilité, la 
 ## 21 octobre — brouillons et annulation des achats
 
 Les brouillons deviennent modifiables depuis Opérations et le dossier achat. L’annulation motivée conserve numéro, lignes et approbation, avant transmission seulement ; les rôles, références et révisions sont contrôlés dans la transaction avec l’audit. Le [contrat](gestion-brouillons-achats.md) fixe les limites. Le code 86485f2 et le complément de test b780638 sont [qualifiés localement](evidence/20261021-purchase-drafts/README.md) : 3 112 tests SQLite / 263 fichiers, 110 cas voisins, types/lints et build de 76 pages. Les 456 cas navigateur sont sélectionnés seulement. PostgreSQL, CI distante, déploiement et liste complète des achats restent ouverts.
+
+
+## 21 octobre — historique et transitions des achats
+
+`be2a4ef` remplace le plafond général de 100 achats par une recherche et un filtre d’état paginés, et calcule le compteur et les cinq aperçus sur tout le périmètre autorisé. `cd91aa4` recontrôle références et version lors de la soumission, approbation, transmission déclarée et accusé ; l’audit partage la transaction. Les [preuves](evidence/20261021-purchase-workflow/README.md) conservent le diagnostic de plafond, 34 échecs sur les 44 cas initiaux de transition et deux échecs de filtre d’agence de la première implémentation. La suite finale sur SQLite neuve passe **3 182 tests / 265 fichiers**, dont 180 cas achat ; types, deux lints et build de 76 pages passent, avec 1185 fichiers source conformes. Les 456 cas navigateur sont sélectionnés seulement. PostgreSQL, CI distante, déploiement et autres parcours L8/L9 restent distincts ; aucun push de ces compléments.
