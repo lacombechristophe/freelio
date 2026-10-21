@@ -1259,7 +1259,7 @@ test("lead, consent withdrawal, order, billing and reserved stock flow", async (
   await page.locator('[data-slot="card"]').filter({ has: page.getByRole("combobox", { name: "Type d’opération", exact: true }) }).getByRole("button", { name: "Enregistrer", exact: true }).click()
   await expect(page.getByText("Bon de livraison enregistré.")).toBeVisible()
   await page.getByRole("tab", { name: "Commandes" }).click()
-  const deliverySection = page.getByText("Derniers bons de livraison").locator("..").locator("..")
+  const deliverySection = page.getByRole("region", { name: "Bons de livraison", exact: true })
   await deliverySection.getByRole("button", { name: "Faire signer" }).click()
   await page.getByLabel("Nom du réceptionnaire").fill("Camille Piscine")
   await page.getByText("Le réceptionnaire confirme les quantités indiquées").click()
