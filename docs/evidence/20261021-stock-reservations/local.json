@@ -1,0 +1,294 @@
+{
+  "schema": "freelio.stock-reservation-local.v1",
+  "observedAt": "2026-10-21T14:48:22.859Z",
+  "codeCommit": "6e2f41b4e0d9f6386a38a5f1f85b0f1ffb4fd351",
+  "source": {
+    "observedAt": "2026-10-21T14:37:47.842Z",
+    "commit": "6e2f41b4e0d9f6386a38a5f1f85b0f1ffb4fd351",
+    "filesCompared": 1204,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "9c7365891aacb77200685b5b15747a439280c2b05719df9d70093e08eed39b2d",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-stock-reservation-20261021.json",
+    "sha256": "02a8859f210680eb6f77fb7f7fad60db1f7cbd27dbde1f459bbccd08a259fbe3",
+    "passed": 3337,
+    "failed": 0,
+    "pending": 0,
+    "total": 3337,
+    "files": 271,
+    "success": true,
+    "freshDatabase": true,
+    "database": "verification-stock-reservation-full-20261021.db",
+    "coverageEnabled": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 271,
+    "executedFiles": 271,
+    "identityMatch": true,
+    "recordsSha256": "3701700741e8b47f210eaa31b8e7a26377ada53ed24b06783cb4d6860ca230de"
+  },
+  "focused": {
+    "file": "stock-reservation-focused-clean-20261021.json",
+    "sha256": "d95d396aa4ad4307a76a451248c687f41f733be6d8c04733c8aa83e4543ff0d5",
+    "passed": 130,
+    "failed": 0,
+    "pending": 0,
+    "total": 130,
+    "files": 6,
+    "success": true
+  },
+  "focusedWithinFull": [
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "passed": 43
+    },
+    {
+      "file": "delivery-choices.integration.test.ts",
+      "passed": 29
+    },
+    {
+      "file": "stock-reservation-concurrency.integration.test.ts",
+      "passed": 12
+    },
+    {
+      "file": "stock-reservation-integrity.integration.test.ts",
+      "passed": 18
+    },
+    {
+      "file": "stock-reservation-scope.integration.test.ts",
+      "passed": 12
+    },
+    {
+      "file": "warehouse-stock-lifecycle.integration.test.ts",
+      "passed": 16
+    }
+  ],
+  "initialFocused": {
+    "file": "stock-reservation-focused-20261021.json",
+    "sha256": "01bc97b208442f62381c22e9c635645c30066010f0441fa5902c1c8cad2cdfaa",
+    "passed": 122,
+    "failed": 0,
+    "pending": 0,
+    "total": 122,
+    "files": 6,
+    "success": true
+  },
+  "checks": [
+    {
+      "check": "typegen",
+      "log": "stock-reservation-typegen-qualified-20261021.log",
+      "exit": 0,
+      "sha256": "adba4af9194e10e47dda75ff0fd0f8c2b756474896d0eba5612799c527ff372a"
+    },
+    {
+      "check": "types",
+      "log": "stock-reservation-types-final-20261021.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint-whole-project",
+      "log": "stock-reservation-eslint-20261021.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint-final-test",
+      "log": "stock-reservation-eslint-final-test-20261021.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "build",
+      "log": "stock-reservation-build-20261021.log",
+      "exit": 0,
+      "sha256": "0782e50f876f47793c2e3cc2d9545c520b75d583f4082e13a60b88e51873347d"
+    }
+  ],
+  "oxlint": {
+    "file": "stock-reservation-oxlint-final-20261021.json",
+    "files": 1081,
+    "rules": 21,
+    "diagnostics": [],
+    "sha256": "7333ab19210667c6581d6c4dd699f3034c14bcda2226108ce850b2afb1b24c91"
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "scope": "Configured deterministic modules, not the entire application",
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "observedAt": "2026-10-21T14:37:50.719Z",
+    "baseline": "6e2f41b4e0d9f6386a38a5f1f85b0f1ffb4fd351",
+    "all": 464,
+    "desktop": 232,
+    "mobile": 232,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ],
+    "executed": false,
+    "scope": "Playwright selection only; generic Chromium PDF tests are reported separately"
+  },
+  "retainedDiagnostics": [
+    {
+      "file": "stock-reservation-focused-final-20261021.json",
+      "sha256": "163c036fbd4039f4c89f6c9aa119567a32d8f04c37d00c1a9d320d357165b49e",
+      "passed": 127,
+      "failed": 3,
+      "pending": 0,
+      "total": 130,
+      "files": 6,
+      "success": false,
+      "explanation": "The three P2034 injection tests could not spy on the dynamic Prisma transaction property. A proxy injects the same rejection; business assertions unchanged."
+    },
+    {
+      "file": "stock-reservation-types-20261021.log",
+      "exit": 2,
+      "errors": 4,
+      "sha256": "41bba8e6f1ddbf0b4225ae2ad4ffe9ef737869717f22245346c0031a0755e758",
+      "explanation": "Async fixture spies expose awaited row promises rather than Prisma fluent relation promises. Narrowed the test delegate interfaces without casts or disabled checks."
+    },
+    {
+      "file": "stock-reservation-oxlint-20261021.json",
+      "exit": 1,
+      "diagnostics": [
+        {
+          "message": "Do not assign to the variable `module`.",
+          "code": "next(no-assign-module-variable)",
+          "severity": "error",
+          "url": "https://oxc.rs/docs/guide/usage/linter/rules/nextjs/no-assign-module-variable.html",
+          "help": "See https://nextjs.org/docs/messages/no-assign-module-variable",
+          "filename": "tests/unit/stock-reservation-integrity.integration.test.ts",
+          "labels": [
+            {
+              "span": {
+                "offset": 561,
+                "length": 6,
+                "line": 11,
+                "column": 9
+              }
+            }
+          ]
+        }
+      ],
+      "sha256": "b44106d154a7734dbcfd5b9360da1759db29f884de0168feef8b02a8809b6b66",
+      "explanation": "Renamed a local test binding from module to prismaModule; production unchanged."
+    }
+  ],
+  "limits": [
+    "SQL, current memberships, mutations and audit-failure triggers are real; session/cache are mocked",
+    "The three P2034 cases simulate the error, not a native PostgreSQL serialization race",
+    "A stored quantity is deliberately changed in SQL while its timestamp is retained; no reservation-edit feature is implied",
+    "SQLite concurrency coverage does not establish native PostgreSQL or multi-process behavior",
+    "Final test-only local binding rename is covered by final type, ESLint and whole-project Oxlint checks",
+    "No change to order cancellation/closure policies, selector completeness or automatic historical repair",
+    "No migration, Playwright execution, local server/container launch, push, new remote CI, provider send or financial-setting change"
+  ],
+  "pdfFoundationWithinFull": {
+    "file": "pdf-generator.integration.test.ts",
+    "passed": 4,
+    "realHeadlessChromiumCases": 3,
+    "preLaunchCancellationCases": 1,
+    "scope": "Generic renderer, remote-resource refusal and abort cleanup; not business document or application E2E qualification"
+  },
+  "purchaseWithinFull": [
+    {
+      "file": "purchase-choices.integration.test.ts",
+      "passed": 35
+    },
+    {
+      "file": "purchase-creation-integrity.integration.test.ts",
+      "passed": 24
+    },
+    {
+      "file": "purchase-directory.integration.test.ts",
+      "passed": 22
+    },
+    {
+      "file": "purchase-draft-lifecycle.integration.test.ts",
+      "passed": 51
+    },
+    {
+      "file": "purchase-inspection-returns.integration.test.ts",
+      "passed": 8
+    },
+    {
+      "file": "purchase-stock-integrity.integration.test.ts",
+      "passed": 35
+    },
+    {
+      "file": "purchase-transitions.integration.test.ts",
+      "passed": 48
+    },
+    {
+      "file": "warehouse-stock-lifecycle.integration.test.ts",
+      "passed": 16
+    }
+  ],
+  "finalPublication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1815,
+    "historyBlobsChecked": 0,
+    "placeholdersExcluded": 0,
+    "findings": []
+  },
+  "markdownLinks": {
+    "observedAt": "2026-10-21T14:49:30.314Z",
+    "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+    "checked": 1050,
+    "findings": []
+  }
+}
