@@ -166,3 +166,8 @@ Le stockage durable, les comptes OAuth/transport réels, la délivrabilité, la 
 ## Erreurs fournisseurs — 21 octobre 2026
 
 `adbc86d` classe les réponses HTTP du transport, conserve les échéances de reprise et arrête les refus nécessitant une correction. `379709e` isole l’horloge de la fixture et ajoute le vérificateur de migration, sans changement de production. Trois diagnostics avant correction et le premier passage complet sont [conservés avec les preuves](evidence/20261021-provider-send-failures/README.md). La suite finale sur SQLite neuve passe **3061 tests dans 262 fichiers**, sans échec ni exclusion ; types, lints et build de 76 pages passent, avec 1178 fichiers source conformes. La migration ajoute une catégorie nullable sans reclasser l’historique. Son application PostgreSQL, le navigateur et la CI du candidat restent à qualifier ; aucun push ni déploiement de ce complément.
+
+
+## 21 octobre — brouillons et annulation des achats
+
+Les brouillons deviennent modifiables depuis Opérations et le dossier achat. L’annulation motivée conserve numéro, lignes et approbation, avant transmission seulement ; les rôles, références et révisions sont contrôlés dans la transaction avec l’audit. Le [contrat](gestion-brouillons-achats.md) fixe les limites. Le code 86485f2 et le complément de test b780638 sont [qualifiés localement](evidence/20261021-purchase-drafts/README.md) : 3 112 tests SQLite / 263 fichiers, 110 cas voisins, types/lints et build de 76 pages. Les 456 cas navigateur sont sélectionnés seulement. PostgreSQL, CI distante, déploiement et liste complète des achats restent ouverts.

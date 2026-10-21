@@ -4,15 +4,15 @@
 
 ## Résultat actuel
 
-Le candidat local `379709e76b1be245c77e5e78f603de9ab3e0484e` ajoute la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) : délai conservé avant reprise, arrêt des refus définitifs et d’autorisation, traces d’incertitude inchangées. Le [contrôle des expéditeurs de campagne](evidence/20261021-campaign-send-preflight/README.md) et les [plafonds internes](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
+Le candidat local `b780638e186d99c7f65e6776babee87fc15ccad0` ajoute l’[édition des brouillons et l’annulation avant transmission des achats](evidence/20261021-purchase-drafts/README.md), avec révision affichée, droits et audit transactionnel. La [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) reste incluse : délai conservé avant reprise, arrêt des refus définitifs et d’autorisation, traces d’incertitude inchangées. Le [contrôle des expéditeurs de campagne](evidence/20261021-campaign-send-preflight/README.md) et les [plafonds internes](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **3 061 tests / 262 fichiers**, aucun échec ni exclusion |
-| Erreurs fournisseurs et reprises voisines | 199 cas dans 10 suites, présents et réussis dans la même suite complète |
+| Suite SQLite, base fictive neuve | **3 112 tests / 263 fichiers**, aucun échec ni exclusion |
+| Achats : brouillons, création et choix | 110 cas dans 3 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur adbc86d, 76 pages statiques ; code de production inchangé dans 379709e |
-| Identité des sources de la recette | 1178 fichiers conformes au commit |
+| Build Next.js | Réussi sur 86485f2, 76 pages statiques ; seul le test de rollback change ensuite dans b780638 |
+| Identité des sources de la recette | 1180 fichiers conformes au commit |
 | Navigateur | 456 cas sélectionnés, 228 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
@@ -21,6 +21,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Brouillon achat corrigé sans écrasement ; annulation motivée sans suppression avant transmission | [Règles et limites](gestion-brouillons-achats.md) |
 | Délai fournisseur respecté et commande invalide non répétée automatiquement | [Erreurs et reprises](contrat-erreurs-fournisseurs-courriels.md) |
 | Activation suspendue si la boîte ou ses plafonds ne sont plus configurés | [Contrôle de l’expéditeur](contrat-preflight-expediteur-campagnes.md) |
 | Réservations concurrentes, attentes, annulation limitée et boîtes privées | [Plafonds internes](contrat-plafonds-envoi.md) |
@@ -50,6 +51,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
+| L8 : cycle des achats fournisseur | [Édition et annulation avant transmission qualifiées localement](evidence/20261021-purchase-drafts/README.md). État, lignes, droits et audit sont transactionnels ; une ancienne saisie est refusée. Liste générale toujours limitée à 100 commandes ; annulation après transmission, qualification PostgreSQL et interactions navigateur restent distinctes. |
 | L2 : erreurs HTTP des transports CRM | [Classifiées et qualifiées localement](evidence/20261021-provider-send-failures/README.md) : échéance durable, arrêt des refus définitifs, brouillons conservés et reprises bornées. La catégorie ne prouve pas le résultat d’un appel antérieur. Limitation globale d’un compte partagé, renouvellement OAuth, synchronisation, PostgreSQL et interactions navigateur restent distincts ; ce complément ne clôt pas tout L2. |
 | MAIL-02 : état et pièces des messages entrants | Le [lot](contrat-etats-messageries-entrantes.md) est implémenté dans `d02c701` et `8a7f9a6` : history/delta, observation séparée du suivi CRM, copies conservées, reprise sans réception rejouée et pièces PDF/PNG/JPEG bornées avec ACL revérifiées. Les [preuves locales](evidence/20261020-mail-observations/README.md) couvrent aussi les reconnexions intercalées. PostgreSQL, navigateur et comptes réels restent à qualifier ; import historique exhaustif, archivage durable et analyse antivirus ne sont pas livrés. |
 | MAIL-05 : identité native des fils entrants | [Implémentée et qualifiée localement sur `1dd29ef`](evidence/20261020-native-conversations/README.md) : séparation native, préparation/acceptation et réparations, contrainte par société/boîte, anciens fils non réaffectés. Les diagnostics initiaux restent conservés. PostgreSQL, navigateur et comptes fournisseurs réels restent distincts. |
