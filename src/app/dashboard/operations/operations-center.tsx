@@ -51,6 +51,7 @@ import { getPurchaseOrderSummary } from "@/actions/purchase-directory"
 import { StockDirectory } from "./stock-directory"
 import { useOperationsDirectory } from "./use-operations-directory"
 import { MaintenanceRenewalPanel } from "./_components/maintenance-renewal-panel"
+import { ReservationReferenceChoice, useReservationChoices } from "./reservation-reference-choice"
 
 const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
 
@@ -696,6 +697,8 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
   const [equipmentId, setEquipmentId] = useState("")
   const [deliveryOrderId, setDeliveryOrderId] = useState("")
   const [deliveryLineId, setDeliveryLineId] = useState("")
+  const [reservationOrderId, setReservationOrderId] = useState("")
+  const [reservationProjectId, setReservationProjectId] = useState("")
   const hasClient = ["SITE", "TICKET", "MAINTENANCE", "CUSTOMER_ORDER"].includes(kind)
   const hasProduct = ["EQUIPMENT", "STOCK", "TRANSFER", "CUSTOMER_ORDER", "RESERVATION"].includes(kind)
   const hasSite = ["EQUIPMENT", "TICKET", "INTERVENTION", "MAINTENANCE"].includes(kind)
@@ -706,6 +709,8 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
   const equipmentChoices = useAssetChoices("equipment", equipmentId, { enabled: hasEquipment && Boolean(clientId) && (kind !== "MAINTENANCE" || Boolean(siteId)), clientId, siteId })
   const deliveryOrders = useDeliveryChoices("order", deliveryOrderId, "", kind === "DELIVERY")
   const deliveryLines = useDeliveryChoices("line", deliveryLineId, deliveryOrderId, kind === "DELIVERY" && deliveryOrders.ready)
+  const reservationOrders = useReservationChoices("order", reservationOrderId, kind === "RESERVATION", data.generatedAt)
+  const reservationProjects = useReservationChoices("project", reservationProjectId, kind === "RESERVATION", data.generatedAt)
   const { retry } = choices
   const productRetry = productChoices.retry
   const siteRetry = siteChoices.retry
@@ -720,6 +725,7 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
   const blocked = pending || Boolean(hasClient && clientId && !choices.ready) || Boolean(hasProduct && productId && !productChoices.ready)
     || Boolean(hasSite && siteId && !siteChoices.ready) || Boolean(hasEquipment && equipmentId && !equipmentChoices.ready)
     || Boolean(kind === "DELIVERY" && (!deliveryOrders.ready || !deliveryLines.ready))
+    || Boolean(kind === "RESERVATION" && ((!reservationOrderId && !reservationProjectId) || (reservationOrderId && !reservationOrders.ready) || (reservationProjectId && !reservationProjects.ready)))
   const productRequired = !["EQUIPMENT", "CUSTOMER_ORDER"].includes(kind)
   const productLabel = kind === "EQUIPMENT" ? "Produit catalogue" : kind === "TRANSFER" ? "Produit suivi" : "Produit"
   const productField = <Field label={productLabel} name="productId" required={productRequired}>
@@ -746,16 +752,20 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
     <Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0" step="any" max={deliveryLines.selected?.remainingQuantity ?? undefined} defaultValue="1" required /></Field>
     <Field label="Réceptionnaire" name="recipientName"><Input id="recipientName" name="recipientName" /></Field>
   </>
-  return <form onReset={() => { setClientId(""); setProductId(""); setSiteId(""); setEquipmentId(""); setDeliveryOrderId(""); setDeliveryLineId(""); deliveryOrders.searchFor(""); deliveryLines.searchFor("") }} onSubmit={event => {
+  const reservationFields = <>
+    <Field label="Commande client" name="customerOrderId"><ReservationReferenceChoice choices={reservationOrders} name="customerOrderId" disabled={pending} onChange={setReservationOrderId} /></Field>
+    <Field label="Chantier" name="projectId"><ReservationReferenceChoice choices={reservationProjects} name="projectId" disabled={pending} onChange={setReservationProjectId} /></Field>
+  </>
+  return <form onReset={() => { setClientId(""); setProductId(""); setSiteId(""); setEquipmentId(""); setDeliveryOrderId(""); setDeliveryLineId(""); deliveryOrders.searchFor(""); deliveryLines.searchFor(""); setReservationOrderId(""); setReservationProjectId(""); reservationOrders.searchFor(""); reservationProjects.searchFor("") }} onSubmit={event => {
     if (blocked) { event.preventDefault(); return }
     onSubmit(event)
   }} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    {renderForm(kind, data, clientField, productField, siteField, equipmentField, deliveryFields)}
+    {renderForm(kind, data, clientField, productField, siteField, equipmentField, deliveryFields, reservationFields)}
     <div className="flex items-end"><Button demoMutation type="submit" disabled={blocked} className="w-full sm:w-auto">{pending ? <Loader2 className="animate-spin" /> : <Plus />}Enregistrer</Button></div>
   </form>
 }
 
-function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNode, productField: ReactNode, siteField: ReactNode, equipmentField: ReactNode, deliveryFields: ReactNode) {
+function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNode, productField: ReactNode, siteField: ReactNode, equipmentField: ReactNode, deliveryFields: ReactNode, reservationFields: ReactNode) {
   const projects = <>{data.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</>
   const members = <>{data.members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</>
   const agencies = <>{data.agencies.map((agency) => <option key={agency.id} value={agency.id}>{agency.name}{agency.isDefault ? " · principale" : ""}</option>)}</>
@@ -770,7 +780,7 @@ function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNo
   if (kind === "STOCK") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Mouvement" name="type" required><NativeSelect name="type" required><option value="IN">Entrée</option><option value="OUT">Sortie</option><option value="RESERVE">Réserver chantier</option><option value="RELEASE">Libérer réservation</option><option value="CONSUME">Consommer</option><option value="ADJUST">Ajustement signé</option></NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" required defaultValue="1" /></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" /></Field></>
   if (kind === "TRANSFER") return <><Field label="Dépôt de départ" name="fromWarehouseId" required><NativeSelect name="fromWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Dépôt d’arrivée" name="toWarehouseId" required><NativeSelect name="toWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" step="1" defaultValue="1" required /></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" placeholder="Bon interne, véhicule…" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" placeholder="Motif ou consigne logistique" /></Field></>
   if (kind === "CUSTOMER_ORDER") return <>{clientField}<Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field>{productField}<Field label="Libellé" name="label" required><Input id="label" name="label" required /></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" required /></Field><Field label="Prix unitaire HT (€)" name="unitPrice" required><Input id="unitPrice" name="unitPrice" inputMode="decimal" required /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Acompte (€)" name="deposit"><Input id="deposit" name="deposit" inputMode="decimal" /></Field><Field label="Pose prévue" name="expectedInstallationAt"><Input id="expectedInstallationAt" name="expectedInstallationAt" type="date" /></Field></>
-  if (kind === "RESERVATION") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required /></Field><Field label="Commande client" name="customerOrderId"><NativeSelect name="customerOrderId">{data.customerOrders.filter((order) => !["DELIVERED", "COMPLETED", "CANCELLED"].includes(order.status)).map((order) => <option key={order.id} value={order.id}>{order.number} · {order.client.name}</option>)}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field></>
+  if (kind === "RESERVATION") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required /></Field>{reservationFields}</>
   if (kind === "DELIVERY") return deliveryFields
   return null
 }
