@@ -30,6 +30,7 @@ import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupp
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
 import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
+import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder } from "@/lib/operations/purchase-stock"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
 
 const id = z.string().cuid()
@@ -1848,14 +1849,12 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
 }
 
 export async function receivePurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = goodsReceiptSchema.parse(input)
     const [warehouse, line] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
-      prisma.purchaseOrderLine.findFirst({
-        where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } },
-        include: { purchaseOrder: { select: { id: true, number: true, status: true } }, product: { select: { id: true } } },
-      }),
+      readPurchaseStockLine(prisma, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES"]),
     ])
     if (!warehouse) throw new Error("Dépôt introuvable")
     if (!line) throw new Error("Ligne de commande fournisseur introuvable")
@@ -1873,12 +1872,15 @@ export async function receivePurchaseOrder(input: unknown) {
     const receipt = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
+          const freshLine = await readPurchaseStockLine(tx, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES"])
+          if (!freshLine || purchaseStockLineRevision(freshLine) !== purchaseStockLineRevision(line)) throw new Error(purchaseStockChanged)
+          await lockPurchaseStockOrder(tx, context, freshLine.purchaseOrder)
           await lockActiveWarehouses(tx, companyId, [data.warehouseId])
-    const last = await readCompanyDocumentNumbers(() => tx.goodsReceipt.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-          if (acceptedQuantity) {
+          const last = await readCompanyDocumentNumbers(() => tx.goodsReceipt.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+          {
             const claimedLine = await tx.purchaseOrderLine.updateMany({
               where: {
-                id: line.id,
+                id: line.id, purchaseOrderId: data.purchaseOrderId, productId: line.productId, quantity: line.quantity, unitPriceCents: line.unitPriceCents,
                 receivedQuantity: line.receivedQuantity,
                 creditedQuantity: line.creditedQuantity,
               },
@@ -1948,37 +1950,27 @@ export async function receivePurchaseOrder(input: unknown) {
             select: { quantity: true, receivedQuantity: true, creditedQuantity: true },
           })
           const complete = orderLines.every((orderLine) => orderLine.receivedQuantity + orderLine.creditedQuantity >= orderLine.quantity)
-          const openIssues = await tx.purchaseIssue.count({ where: { purchaseOrderId: data.purchaseOrderId, status: { not: "RESOLVED" } } })
+          const openIssues = await tx.purchaseIssue.count({ where: { companyId, purchaseOrderId: data.purchaseOrderId, status: { not: "RESOLVED" } } })
           await tx.purchaseOrder.update({
             where: { id: data.purchaseOrderId },
             data: { status: complete ? (openIssues ? "RECEIVED_WITH_ISSUES" : "RECEIVED") : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null },
           })
+          await tx.auditLog.create({ data: { userId, action: "RECEIVE_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: data.purchaseOrderId,
+            payload: { receiptId: created.id, acceptedQuantity, rejectedQuantity: data.rejectedQuantity, issueType: data.issueType } } })
           return created
-        }),
+        }, { isolationLevel: "Serializable" }),
       { label: "la réception fournisseur" },
     )
-    await logAction({
-      userId,
-      action: "RECEIVE_PURCHASE_ORDER",
-      resource: "PURCHASE_ORDER",
-      resourceId: data.purchaseOrderId,
-      payload: { receiptId: receipt.id, acceptedQuantity, rejectedQuantity: data.rejectedQuantity, issueType: data.issueType },
-    })
     revalidateOperations()
     return { success: true as const, id: receipt.id, number: receipt.number }
   }, "operations.write")
 }
 
 export async function resolvePurchaseIssue(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = purchaseIssueResolutionSchema.parse(input)
-    const issue = await prisma.purchaseIssue.findFirst({
-      where: { id: data.issueId, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
-      include: {
-        goodsReceiptLine: { include: { goodsReceipt: { select: { warehouseId: true, number: true } } } },
-        purchaseOrderLine: { select: { id: true, quantity: true, receivedQuantity: true, creditedQuantity: true, unitPriceCents: true } },
-      },
-    })
+    const issue = await readPurchaseStockIssue(prisma, context, data.issueId)
     if (!issue) throw new Error("Anomalie fournisseur introuvable ou déjà résolue")
     if (data.resolution === "ACCEPTED" && !issue.goodsReceiptLine) throw new Error("Réception source introuvable")
     const remaining = issue.purchaseOrderLine.quantity - issue.purchaseOrderLine.receivedQuantity - issue.purchaseOrderLine.creditedQuantity
@@ -1987,17 +1979,20 @@ export async function resolvePurchaseIssue(input: unknown) {
     }
 
     await prisma.$transaction(async (tx) => {
+      const fresh = await readPurchaseStockIssue(tx, context, data.issueId)
+      if (!fresh || purchaseStockRevision(fresh) !== purchaseStockRevision(issue)) throw new Error(purchaseStockChanged)
+      await lockPurchaseStockOrder(tx, context, fresh.purchaseOrder)
       if (data.resolution === "ACCEPTED") await lockActiveWarehouses(tx, companyId, [issue.goodsReceiptLine!.goodsReceipt.warehouseId])
       const nextStatus = data.resolution === "REPLACEMENT" ? "WAITING_REPLACEMENT" : "RESOLVED"
       const claimed = await tx.purchaseIssue.updateMany({
-        where: { id: issue.id, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
+        where: { id: issue.id, companyId, status: issue.status, updatedAt: issue.updatedAt },
         data: { status: nextStatus, resolution: data.notes, resolvedAt: nextStatus === "RESOLVED" ? new Date() : null },
       })
       if (claimed.count !== 1) throw new Error("Anomalie déjà traitée")
       if (data.resolution === "CREDIT") {
         const claimedLine = await tx.purchaseOrderLine.updateMany({
           where: {
-            id: issue.purchaseOrderLineId,
+            id: issue.purchaseOrderLineId, purchaseOrderId: issue.purchaseOrderId, productId: issue.productId, quantity: issue.purchaseOrderLine.quantity, unitPriceCents: issue.purchaseOrderLine.unitPriceCents,
             receivedQuantity: issue.purchaseOrderLine.receivedQuantity,
             creditedQuantity: issue.purchaseOrderLine.creditedQuantity,
           },
@@ -2008,7 +2003,7 @@ export async function resolvePurchaseIssue(input: unknown) {
         const warehouseId = issue.goodsReceiptLine!.goodsReceipt.warehouseId
         const claimedLine = await tx.purchaseOrderLine.updateMany({
           where: {
-            id: issue.purchaseOrderLineId,
+            id: issue.purchaseOrderLineId, purchaseOrderId: issue.purchaseOrderId, productId: issue.productId, quantity: issue.purchaseOrderLine.quantity, unitPriceCents: issue.purchaseOrderLine.unitPriceCents,
             receivedQuantity: issue.purchaseOrderLine.receivedQuantity,
             creditedQuantity: issue.purchaseOrderLine.creditedQuantity,
           },
@@ -2041,37 +2036,25 @@ export async function resolvePurchaseIssue(input: unknown) {
         select: { quantity: true, receivedQuantity: true, creditedQuantity: true },
       })
       const complete = orderLines.every((line) => line.receivedQuantity + line.creditedQuantity >= line.quantity)
-      const openIssues = await tx.purchaseIssue.count({ where: { purchaseOrderId: issue.purchaseOrderId, status: { not: "RESOLVED" } } })
+      const openIssues = await tx.purchaseIssue.count({ where: { companyId, purchaseOrderId: issue.purchaseOrderId, status: { not: "RESOLVED" } } })
       await tx.purchaseOrder.update({
         where: { id: issue.purchaseOrderId },
         data: { status: complete ? (openIssues ? "RECEIVED_WITH_ISSUES" : "RECEIVED") : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null },
       })
-    })
-    await logAction({
-      userId,
-      action: "RESOLVE_PURCHASE_ISSUE",
-      resource: "PURCHASE_ISSUE",
-      resourceId: issue.id,
-      payload: { resolution: data.resolution, purchaseOrderId: issue.purchaseOrderId, quantity: issue.quantity },
-    })
+      await tx.auditLog.create({ data: { userId, action: "RESOLVE_PURCHASE_ISSUE", resource: "PURCHASE_ISSUE", resourceId: issue.id,
+        payload: { resolution: data.resolution, purchaseOrderId: issue.purchaseOrderId, quantity: issue.quantity } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
 }
 
 export async function createSupplierReturn(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = supplierReturnSchema.parse(input)
     const [line, warehouse] = await Promise.all([
-      prisma.purchaseOrderLine.findFirst({
-        where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } },
-        include: {
-          purchaseOrder: { select: { supplierId: true, number: true } },
-          product: { select: { id: true } },
-          receiptLines: { where: { goodsReceipt: { warehouseId: data.warehouseId } }, select: { acceptedQuantity: true } },
-          supplierReturns: { where: { warehouseId: data.warehouseId }, select: { quantity: true } },
-        },
-      }),
+      readPurchaseStockLine(prisma, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES", "RECEIVED"]),
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
     ])
     if (!line?.product || !warehouse) throw new Error("Ligne produit ou dépôt introuvable")
@@ -2082,6 +2065,7 @@ export async function createSupplierReturn(input: unknown) {
     const supplierReturn = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
+          await lockPurchaseStockOrder(tx, context, line.purchaseOrder)
           await lockActiveWarehouses(tx, companyId, [data.warehouseId])
           // A no-op update takes a row lock. The following re-read therefore includes
           // returns committed by another concurrent request before validating the cap.
@@ -2090,14 +2074,8 @@ export async function createSupplierReturn(input: unknown) {
             data: { creditedQuantity: { increment: 0 } },
           })
           if (lockedLine.count !== 1) throw new Error("Ligne fournisseur introuvable")
-          const freshLine = await tx.purchaseOrderLine.findUnique({
-            where: { id: line.id },
-            include: {
-              receiptLines: { where: { goodsReceipt: { warehouseId: data.warehouseId } }, select: { acceptedQuantity: true } },
-              supplierReturns: { where: { warehouseId: data.warehouseId }, select: { quantity: true } },
-            },
-          })
-          if (!freshLine) throw new Error("Ligne fournisseur introuvable")
+          const freshLine = await readPurchaseStockLine(tx, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES", "RECEIVED"])
+          if (!freshLine || purchaseStockLineRevision(freshLine) !== purchaseStockLineRevision(line)) throw new Error(purchaseStockChanged)
           const freshReceived = freshLine.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity, 0)
           const freshReturned = freshLine.supplierReturns.reduce((sum, item) => sum + item.quantity, 0)
           if (data.quantity > freshReceived - freshReturned) throw new Error("La quantité retournée dépasse la quantité reçue dans ce dépôt")
@@ -2125,7 +2103,7 @@ export async function createSupplierReturn(input: unknown) {
               notes: `Retour fournisseur · ${data.reason}`,
             },
           })
-          return tx.supplierReturn.create({
+          const created = await tx.supplierReturn.create({
             data: {
               companyId,
               purchaseOrderId: data.purchaseOrderId,
@@ -2141,34 +2119,32 @@ export async function createSupplierReturn(input: unknown) {
               notes: data.notes,
             },
           })
-        }),
+          await tx.auditLog.create({ data: { userId, action: "CREATE_SUPPLIER_RETURN", resource: "SUPPLIER_RETURN", resourceId: created.id,
+            payload: { number: created.number, purchaseOrderId: data.purchaseOrderId, quantity: data.quantity } } })
+          return created
+        }, { isolationLevel: "Serializable" }),
       { label: "le retour fournisseur" },
     )
-    await logAction({
-      userId,
-      action: "CREATE_SUPPLIER_RETURN",
-      resource: "SUPPLIER_RETURN",
-      resourceId: supplierReturn.id,
-      payload: { number: supplierReturn.number, purchaseOrderId: data.purchaseOrderId, quantity: data.quantity },
-    })
     revalidateOperations()
     return { success: true as const, id: supplierReturn.id, number: supplierReturn.number }
   }, "operations.write")
 }
 
 export async function creditSupplierReturn(supplierReturnId: string, creditReference: string) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = z.object({ supplierReturnId: id, creditReference: z.string().trim().min(1).max(120) }).parse({ supplierReturnId, creditReference })
-    const supplierReturn = await prisma.supplierReturn.findFirst({ where: { id: data.supplierReturnId, companyId, status: "SHIPPED" }, select: { id: true, number: true } })
+    const supplierReturn = await readPurchaseStockReturn(prisma, context, data.supplierReturnId)
     if (!supplierReturn) throw new Error("Retour fournisseur expédié introuvable")
-    await prisma.supplierReturn.update({ where: { id: supplierReturn.id }, data: { status: "CREDITED", creditedAt: new Date(), creditReference: data.creditReference } })
-    await logAction({
-      userId,
-      action: "CREDIT_SUPPLIER_RETURN",
-      resource: "SUPPLIER_RETURN",
-      resourceId: supplierReturn.id,
-      payload: { number: supplierReturn.number, creditReference: data.creditReference },
-    })
+    await prisma.$transaction(async tx => {
+      const fresh = await readPurchaseStockReturn(tx, context, data.supplierReturnId)
+      if (!fresh || purchaseStockRevision(fresh) !== purchaseStockRevision(supplierReturn)) throw new Error(purchaseStockChanged)
+      await lockPurchaseStockOrder(tx, context, fresh.purchaseOrder)
+      const claimed = await tx.supplierReturn.updateMany({ where: { id: supplierReturn.id, companyId, status: "SHIPPED", updatedAt: supplierReturn.updatedAt }, data: { status: "CREDITED", creditedAt: new Date(), creditReference: data.creditReference } })
+      if (claimed.count !== 1) throw new Error(purchaseStockChanged)
+      await tx.auditLog.create({ data: { userId, action: "CREDIT_SUPPLIER_RETURN", resource: "SUPPLIER_RETURN", resourceId: supplierReturn.id,
+        payload: { number: supplierReturn.number, creditReference: data.creditReference } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
