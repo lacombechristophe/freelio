@@ -24,9 +24,17 @@ function coherentOrder(order: OrderRelations) {
     && (!order.quote || order.quote.clientId === order.clientId && (!order.quote.projectId || order.quote.projectId === order.projectId))
 }
 
+export function deliverableOrderWhere(context: Context) {
+  return { ...operationsDashboardScope(context.companyId, context.agencyIds).customerOrder, status: { notIn: ["CANCELED", "CANCELLED", "DRAFT", "DELIVERED"] } }
+}
+
+export async function readCustomerDeliveryOrder(db: TransactionClient, context: Context, id: string) {
+  const order = await db.customerOrder.findFirst({ where: { id, ...deliverableOrderWhere(context) }, include: relations })
+  return order && coherentOrder(order) ? order : null
+}
+
 export async function readCustomerDeliveryLine(db: TransactionClient, context: Context, orderId: string, lineId: string) {
-  const scope = operationsDashboardScope(context.companyId, context.agencyIds)
-  const line = await db.customerOrderLine.findFirst({ where: { id: lineId, customerOrderId: orderId, customerOrder: { ...scope.customerOrder, status: { notIn: ["CANCELED", "CANCELLED", "DRAFT", "DELIVERED"] } } },
+  const line = await db.customerOrderLine.findFirst({ where: { id: lineId, customerOrderId: orderId, customerOrder: deliverableOrderWhere(context) },
     include: { customerOrder: { include: relations } },
   })
   return line && coherentOrder(line.customerOrder) ? line : null

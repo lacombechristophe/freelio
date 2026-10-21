@@ -7,6 +7,7 @@ import { useClientChoices } from "@/components/shared/client-choice"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { OperationsProductChoice, useOperationsProductChoices } from "@/components/shared/operations-product-choice"
 import { AssetChoice, useAssetChoices } from "@/components/shared/asset-choice"
+import { DeliveryChoice, useDeliveryChoices } from "@/components/shared/delivery-choice"
 import Link from "next/link"
 import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -693,6 +694,8 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
   const [productId, setProductId] = useState("")
   const [siteId, setSiteId] = useState("")
   const [equipmentId, setEquipmentId] = useState("")
+  const [deliveryOrderId, setDeliveryOrderId] = useState("")
+  const [deliveryLineId, setDeliveryLineId] = useState("")
   const hasClient = ["SITE", "TICKET", "MAINTENANCE", "CUSTOMER_ORDER"].includes(kind)
   const hasProduct = ["EQUIPMENT", "STOCK", "TRANSFER", "CUSTOMER_ORDER", "RESERVATION"].includes(kind)
   const hasSite = ["EQUIPMENT", "TICKET", "INTERVENTION", "MAINTENANCE"].includes(kind)
@@ -701,16 +704,22 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
   const productChoices = useOperationsProductChoices(productId, kind === "TRANSFER", hasProduct)
   const siteChoices = useAssetChoices("site", siteId, { enabled: hasSite && (!hasClient || Boolean(clientId)), clientId: hasClient ? clientId : undefined })
   const equipmentChoices = useAssetChoices("equipment", equipmentId, { enabled: hasEquipment && Boolean(clientId) && (kind !== "MAINTENANCE" || Boolean(siteId)), clientId, siteId })
+  const deliveryOrders = useDeliveryChoices("order", deliveryOrderId, "", kind === "DELIVERY")
+  const deliveryLines = useDeliveryChoices("line", deliveryLineId, deliveryOrderId, kind === "DELIVERY" && deliveryOrders.ready)
   const { retry } = choices
   const productRetry = productChoices.retry
   const siteRetry = siteChoices.retry
   const equipmentRetry = equipmentChoices.retry
+  const deliveryOrderRetry = deliveryOrders.retry
+  const deliveryLineRetry = deliveryLines.retry
   useEffect(() => { if (hasClient) retry() }, [data, hasClient, retry])
   useEffect(() => { if (hasProduct) productRetry() }, [data, hasProduct, productRetry])
   useEffect(() => { if (hasSite) siteRetry() }, [data, hasSite, siteRetry])
   useEffect(() => { if (hasEquipment) equipmentRetry() }, [data, hasEquipment, equipmentRetry])
+  useEffect(() => { if (kind === "DELIVERY") { deliveryOrderRetry(); deliveryLineRetry() } }, [data, kind, deliveryOrderRetry, deliveryLineRetry])
   const blocked = pending || Boolean(hasClient && clientId && !choices.ready) || Boolean(hasProduct && productId && !productChoices.ready)
     || Boolean(hasSite && siteId && !siteChoices.ready) || Boolean(hasEquipment && equipmentId && !equipmentChoices.ready)
+    || Boolean(kind === "DELIVERY" && (!deliveryOrders.ready || !deliveryLines.ready))
   const productRequired = !["EQUIPMENT", "CUSTOMER_ORDER"].includes(kind)
   const productLabel = kind === "EQUIPMENT" ? "Produit catalogue" : kind === "TRANSFER" ? "Produit suivi" : "Produit"
   const productField = <Field label={productLabel} name="productId" required={productRequired}>
@@ -731,16 +740,22 @@ function CreationForm({ kind, data, pending, onSubmit }: { kind: CreateKind; dat
     </select>
     <DirectoryPagination total={choices.total} page={choices.page} pending={choices.busy || pending} error={choices.error} onPage={choices.goToPage} onRetry={choices.retry} />
   </Field>
-  return <form onReset={() => { setClientId(""); setProductId(""); setSiteId(""); setEquipmentId("") }} onSubmit={event => {
+  const deliveryFields = <>
+    <Field label="Commande client" name="customerOrderId" required><DeliveryChoice choices={deliveryOrders} name="customerOrderId" disabled={pending} onChange={id => { setDeliveryOrderId(id); setDeliveryLineId(""); deliveryLines.searchFor("") }} /></Field>
+    <Field label="Ligne livrée" name="customerOrderLineId" required><DeliveryChoice choices={deliveryLines} name="customerOrderLineId" disabled={pending} onChange={setDeliveryLineId} /></Field>
+    <Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0" step="any" max={deliveryLines.selected?.remainingQuantity ?? undefined} defaultValue="1" required /></Field>
+    <Field label="Réceptionnaire" name="recipientName"><Input id="recipientName" name="recipientName" /></Field>
+  </>
+  return <form onReset={() => { setClientId(""); setProductId(""); setSiteId(""); setEquipmentId(""); setDeliveryOrderId(""); setDeliveryLineId(""); deliveryOrders.searchFor(""); deliveryLines.searchFor("") }} onSubmit={event => {
     if (blocked) { event.preventDefault(); return }
     onSubmit(event)
   }} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    {renderForm(kind, data, clientField, productField, siteField, equipmentField)}
+    {renderForm(kind, data, clientField, productField, siteField, equipmentField, deliveryFields)}
     <div className="flex items-end"><Button demoMutation type="submit" disabled={blocked} className="w-full sm:w-auto">{pending ? <Loader2 className="animate-spin" /> : <Plus />}Enregistrer</Button></div>
   </form>
 }
 
-function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNode, productField: ReactNode, siteField: ReactNode, equipmentField: ReactNode) {
+function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNode, productField: ReactNode, siteField: ReactNode, equipmentField: ReactNode, deliveryFields: ReactNode) {
   const projects = <>{data.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</>
   const members = <>{data.members.map((member) => <option key={member.id} value={member.id}>{member.user.name || member.user.email}</option>)}</>
   const agencies = <>{data.agencies.map((agency) => <option key={agency.id} value={agency.id}>{agency.name}{agency.isDefault ? " · principale" : ""}</option>)}</>
@@ -756,6 +771,6 @@ function renderForm(kind: CreateKind, data: OperationsData, clientField: ReactNo
   if (kind === "TRANSFER") return <><Field label="Dépôt de départ" name="fromWarehouseId" required><NativeSelect name="fromWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field><Field label="Dépôt d’arrivée" name="toWarehouseId" required><NativeSelect name="toWarehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" step="1" defaultValue="1" required /></Field><Field label="Référence" name="reference"><Input id="reference" name="reference" placeholder="Bon interne, véhicule…" /></Field><Field label="Notes" name="notes"><Input id="notes" name="notes" placeholder="Motif ou consigne logistique" /></Field></>
   if (kind === "CUSTOMER_ORDER") return <>{clientField}<Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field>{productField}<Field label="Libellé" name="label" required><Input id="label" name="label" required /></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" required /></Field><Field label="Prix unitaire HT (€)" name="unitPrice" required><Input id="unitPrice" name="unitPrice" inputMode="decimal" required /></Field><Field label="TVA (%)" name="tvaRate"><Input id="tvaRate" name="tvaRate" type="number" min="0" max="100" step="0.1" defaultValue="20" /></Field><Field label="Acompte (€)" name="deposit"><Input id="deposit" name="deposit" inputMode="decimal" /></Field><Field label="Pose prévue" name="expectedInstallationAt"><Input id="expectedInstallationAt" name="expectedInstallationAt" type="date" /></Field></>
   if (kind === "RESERVATION") return <><Field label="Dépôt" name="warehouseId" required><NativeSelect name="warehouseId" required>{data.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</NativeSelect></Field>{productField}<Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="1" defaultValue="1" required /></Field><Field label="Commande client" name="customerOrderId"><NativeSelect name="customerOrderId">{data.customerOrders.filter((order) => !["DELIVERED", "COMPLETED", "CANCELLED"].includes(order.status)).map((order) => <option key={order.id} value={order.id}>{order.number} · {order.client.name}</option>)}</NativeSelect></Field><Field label="Chantier" name="projectId"><NativeSelect name="projectId">{projects}</NativeSelect></Field></>
-  if (kind === "DELIVERY") return <><Field label="Commande client" name="customerOrderId" required><NativeSelect name="customerOrderId" required>{data.customerOrders.filter((order) => !["DELIVERED", "CANCELLED"].includes(order.status)).map((order) => <option key={order.id} value={order.id}>{order.number} · {order.client.name}</option>)}</NativeSelect></Field><Field label="Ligne livrée" name="customerOrderLineId" required><NativeSelect name="customerOrderLineId" required>{data.customerOrders.flatMap((order) => order.lines.filter((line) => line.deliveredQuantity < line.quantity).map((line) => <option key={line.id} value={line.id}>{order.number} · {line.label} · reste {line.quantity - line.deliveredQuantity}</option>))}</NativeSelect></Field><Field label="Quantité" name="quantity" required><Input id="quantity" name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" required /></Field><Field label="Réceptionnaire" name="recipientName"><Input id="recipientName" name="recipientName" /></Field></>
+  if (kind === "DELIVERY") return deliveryFields
   return null
 }
