@@ -4,22 +4,23 @@
 
 ## Résultat actuel
 
-Le candidat local `f14d982ac65f29675b2b376bffe9858a7a81c293` complète les [choix Commande/Chantier des réservations](evidence/20261021-reservation-choices/README.md). La [qualification des PDF réels des bons](evidence/20261021-delivery-pdf/README.md) porte sur une source inchangée. Il recontrôle les [réservations de stock et leur audit dans la transaction](evidence/20261021-stock-reservations/README.md). Les [choix Commande/Ligne](evidence/20261021-delivery-choices/README.md) et l’[historique des bons](evidence/20261021-delivery-directory/README.md) restent complets. Les [protections des commandes et captures signées](evidence/20261021-delivery-seals/README.md) restent incluses : références et versions recontrôlées, quantités décimales bornées, audit transactionnel et contenu signé conservé. La capture HTML est chiffrée ; les octets PDF sont produits à la demande.
+Le candidat local `9a2e6e6af93d92c7febb08f244a518abc3308ee5` protège les [mutations des chantiers, leur audit et les versions affichées](evidence/20261021-project-lifecycle/README.md). Les [choix Commande/Chantier des réservations](evidence/20261021-reservation-choices/README.md) restent complets. La [qualification des PDF réels des bons](evidence/20261021-delivery-pdf/README.md) porte sur une source inchangée. Il recontrôle les [réservations de stock et leur audit dans la transaction](evidence/20261021-stock-reservations/README.md). Les [choix Commande/Ligne](evidence/20261021-delivery-choices/README.md) et l’[historique des bons](evidence/20261021-delivery-directory/README.md) restent complets. Les [protections des commandes et captures signées](evidence/20261021-delivery-seals/README.md) restent incluses : références et versions recontrôlées, quantités décimales bornées, audit transactionnel et contenu signé conservé. La capture HTML est chiffrée ; les octets PDF sont produits à la demande.
 
 Les [réceptions et inspections fournisseur](evidence/20261021-purchase-stock/README.md), l’[historique complet et les validations](evidence/20261021-purchase-workflow/README.md), l’[édition et l’annulation avant transmission](evidence/20261021-purchase-drafts/README.md), la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) et les [plafonds internes d’envoi](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **3 369 tests / 273 fichiers**, aucun échec ni exclusion |
+| Suite SQLite, base fictive neuve | **3 406 tests / 274 fichiers**, aucun échec ni exclusion |
+| Chantiers : cycle de vie, version et choix Client | 37 cas dédiés et 49 voisins dans trois suites, présents et réussis dans la même suite complète |
 | Réservations, dépôts et lecteurs de commandes | 130 cas dans 6 suites, présents et réussis dans la même suite complète |
 | Choix de commande et de chantier des réservations | 29 cas dédiés et 42 voisins dans quatre suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur f14d982, 76 pages statiques |
-| Identité des sources de la recette | 1210 fichiers conformes au commit |
+| Build Next.js | Réussi sur 9a2e6e6, 76 pages statiques |
+| Identité des sources de la recette | 1212 fichiers conformes au commit |
 | Générateur PDF : socle | Quatre contrôles réussis, dont trois sur Chromium réel ; documents métier distincts |
 | Bons de livraison : PDF natifs | Trois cas réussis ; 37 contrôles hors ligne du lot PDF, sur une source inchangée |
-| Playwright | 466 cas sélectionnés, 233 par surface ; **non exécutés** |
+| Playwright | 468 cas sélectionnés, 234 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
 
@@ -27,6 +28,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Mutations de chantier et audit atomiques ; version affichée vérifiée ; purge physique distinguée du commit SQL | [Chantiers et limites](evidence/20261021-project-lifecycle/README.md) |
 | Réservation et références relues dans la transaction, sans mouvement ou état validé après refus d’audit | [Stock et audit](evidence/20261021-stock-reservations/README.md) |
 | Commande et ligne de livraison retrouvées hors page, sans substituer une référence devenue indisponible | [Choix complets](evidence/20261021-delivery-choices/README.md) |
 | Historique des bons retrouvé au-delà de 100 ; recherche, état et agence combinés avant pagination | [Liste complète](evidence/20261021-delivery-directory/README.md) |
