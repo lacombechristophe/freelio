@@ -54,7 +54,8 @@ describe.sequential("Customer orders and delivery seals on real SQL", () => {
   afterEach(async () => {
     vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllEnvs()
     await prisma.auditLog.deleteMany({ where: { userId: session.userId } }); await prisma.deliveryNote.deleteMany({ where: { companyId: session.companyId } }); await prisma.customerOrder.deleteMany({ where: { companyId: session.companyId } })
-    await prisma.project.update({ where: { id: projectId }, data: { clientId, agencyId, status: "ACTIVE" } })
+    await prisma.project.update({ where: { id: projectId }, data: { clientId, agencyId, siteId: null, status: "ACTIVE" } })
+    await prisma.customerSite.deleteMany({ where: { companyId: session.companyId } })
     await prisma.product.update({ where: { id: productId }, data: { active: true, supplierId } })
     await prisma.membership.update({ where: { id: memberId }, data: { role: "OWNER" } })
     await prisma.company.update({ where: { id: session.companyId }, data: { name: "Original fictional sender", isTvaApplicable: true } })
@@ -70,19 +71,29 @@ describe.sequential("Customer orders and delivery seals on real SQL", () => {
     expect(await prisma.customerOrder.findUniqueOrThrow({ where: { id: result.id } })).toMatchObject({ totalHtCents: 33, totalTvaCents: 7, totalTtcCents: 40 })
     expect(await prisma.auditLog.count({ where: { userId: session.userId, action: "CREATE_CUSTOMER_ORDER" } })).toBe(1)
   })
-  it.each(["foreign supplier", "inactive product", "completed project"])("refuses new orders using %s", async kind => {
+  it.each(["foreign supplier", "inactive product", "completed project", "different site client"])("refuses new orders using %s", async kind => {
     if (kind === "foreign supplier") await prisma.product.update({ where: { id: productId }, data: { supplierId: foreignSupplierId } })
     if (kind === "inactive product") await prisma.product.update({ where: { id: productId }, data: { active: false } })
     if (kind === "completed project") await prisma.project.update({ where: { id: projectId }, data: { status: "COMPLETED" } })
+    if (kind === "different site client") {
+      const other = await prisma.client.create({ data: { companyId: session.companyId, name: "Other site client" } })
+      const site = await prisma.customerSite.create({ data: { companyId: session.companyId, clientId: other.id, label: "Other client site", address1: "Fictional other address" } })
+      await prisma.project.update({ where: { id: projectId }, data: { siteId: site.id } })
+    }
     const before = await snapshot(); await expect(createCustomerOrder(input())).rejects.toThrow(); expect(await snapshot()).toEqual(before)
   })
   for (const operation of ["deliver", "sign", "preview"] as const) {
-    it.each(["foreign client", "foreign product", "foreign supplier", "different project client"])(`${operation}: rejects %s`, async kind => {
+    it.each(["foreign client", "foreign product", "foreign supplier", "different project client", "different site client"])(`${operation}: rejects %s`, async kind => {
       const f = await seed()
       if (kind === "foreign client") await prisma.customerOrder.update({ where: { id: f.order.id }, data: { clientId: foreignClientId } })
       if (kind === "foreign product") await prisma.customerOrderLine.update({ where: { id: f.line.id }, data: { productId: foreignProductId } })
       if (kind === "foreign supplier") await prisma.product.update({ where: { id: productId }, data: { supplierId: foreignSupplierId } })
       if (kind === "different project client") await prisma.project.update({ where: { id: projectId }, data: { clientId: (await prisma.client.create({ data: { companyId: session.companyId, name: "Other local client" } })).id } })
+      if (kind === "different site client") {
+        const other = await prisma.client.create({ data: { companyId: session.companyId, name: "Other site client" } })
+        const site = await prisma.customerSite.create({ data: { companyId: session.companyId, clientId: other.id, label: "Other client site", address1: "Fictional other address" } })
+        await prisma.project.update({ where: { id: projectId }, data: { siteId: site.id } })
+      }
       const before = await snapshot()
       if (operation === "preview") { const response = await preview(f.note.id); expect(response.status).toBe(404); expect(await response.text()).not.toContain("FOREIGN-DELIVERY") }
       else await expect(operation === "deliver" ? deliver(f) : sign(f.note.id)).rejects.toThrow()
@@ -201,6 +212,14 @@ describe.sequential("Customer orders and delivery seals on real SQL", () => {
     const f = await seed()
     await prisma.deliveryNoteLine.update({ where: { id: f.note.lines[0].id }, data: { quantity: 0.0001 } })
     expect(await (await preview(f.note.id)).text()).toContain("<td>0,0001</td>")
+  })
+  it("refuses a valid encrypted capture copied from another note together with its hash", async () => {
+    const f = await seed(), other = await seed()
+    await sign(f.note.id); await sign(other.note.id)
+    const original = await prisma.deliveryNote.findUniqueOrThrow({ where: { id: f.note.id } })
+    await prisma.deliveryNote.update({ where: { id: other.note.id }, data: { signedDocument: original.signedDocument, signatureSha256: original.signatureSha256, signedAt: original.signedAt } })
+    expect((await preview(other.note.id)).status).toBe(409)
+    expect((await preview(f.note.id)).status).toBe(200)
   })
   it.each(["2030-02-31", "2031-02-29T12:00:00Z", "not-a-date"])("refuses an impossible installation date: %s", async expectedInstallationAt => {
     const before = await snapshot()
