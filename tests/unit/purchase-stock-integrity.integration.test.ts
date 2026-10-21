@@ -105,6 +105,23 @@ describe.sequential("Supplier stock writes preserve scoped references and atomic
       vi.stubEnv("DEMO_ACCESS_MODE", "readonly")
       await expect(execute(command, f)).rejects.toThrow("lecture seule"); expect(await snapshot()).toEqual(before)
     })
+    it(`${command}: rechecks a client changed after preparation`, async () => {
+      const f = await seed(), before = await snapshot()
+      const change = () => prisma.project.update({ where: { id: projectId }, data: { clientId: foreignClientId } })
+      if (command === "receipt" || command === "return") {
+        const read = prisma.purchaseOrderLine.findFirst.bind(prisma.purchaseOrderLine)
+        vi.spyOn(prisma.purchaseOrderLine, "findFirst").mockImplementationOnce((async args => { const row = await read(args); await change(); return row }) as typeof read)
+      } else if (command === "issue") {
+        const read = prisma.purchaseIssue.findFirst.bind(prisma.purchaseIssue)
+        vi.spyOn(prisma.purchaseIssue, "findFirst").mockImplementationOnce((async args => { const row = await read(args); await change(); return row }) as typeof read)
+      } else {
+        const read = prisma.supplierReturn.findFirst.bind(prisma.supplierReturn)
+        vi.spyOn(prisma.supplierReturn, "findFirst").mockImplementationOnce((async args => { const row = await read(args); await change(); return row }) as typeof read)
+      }
+      await expect(execute(command, f)).rejects.toThrow()
+      expect(await snapshot()).toEqual(before)
+      expect((await prisma.project.findUniqueOrThrow({ where: { id: projectId } })).clientId).toBe(foreignClientId)
+    })
     it(`${command}: rolls back stock, documents and counters when audit insertion fails`, async () => {
       const f = await seed(), before = await snapshot(), sqlite = process.env.DATABASE_URL?.startsWith("file:")
       const action = { receipt: "RECEIVE_PURCHASE_ORDER", issue: "RESOLVE_PURCHASE_ISSUE", return: "CREATE_SUPPLIER_RETURN", credit: "CREDIT_SUPPLIER_RETURN" }[command]
@@ -148,5 +165,18 @@ describe.sequential("Supplier stock writes preserve scoped references and atomic
     const saved = await snapshot()
     expect(saved[0]).toMatchObject([{ status: "CANCELED", lines: [{ receivedQuantity: 4 }] }])
     expect(saved[1]).toHaveLength(1); expect(saved[6]).toEqual([])
+  })
+  it("credits a return once when two prepared requests compete", async () => {
+    const f = await seed(), read = prisma.supplierReturn.findFirst.bind(prisma.supplierReturn)
+    let arrived = 0, release!: () => void
+    const ready = new Promise<void>(resolve => { release = resolve })
+    const interleaved = (async (args: Parameters<typeof read>[0]) => { const row = await read(args); if (++arrived === 2) release(); await ready; return row }) as typeof read
+    vi.spyOn(prisma.supplierReturn, "findFirst").mockImplementationOnce(interleaved).mockImplementationOnce(interleaved)
+    const results = await Promise.allSettled([creditSupplierReturn(f.returned.id, "FIRST"), creditSupplierReturn(f.returned.id, "SECOND")])
+    expect(arrived).toBe(2)
+    expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1)
+    expect(results.filter(result => result.status === "rejected")).toHaveLength(1)
+    expect(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(1)
+    expect(await prisma.inventoryItem.findFirstOrThrow({ where: { companyId: session.companyId } })).toMatchObject({ quantity: 20 })
   })
 })

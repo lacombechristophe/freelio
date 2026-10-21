@@ -20,13 +20,20 @@ export async function readPurchaseStockLine(db: TransactionClient, context: Cont
     where: { id: input.purchaseOrderLineId, purchaseOrderId: input.purchaseOrderId, purchaseOrder: { ...scope.purchaseOrder, status: { in: statuses } } },
     include: {
       purchaseOrder: true, product: { select: { id: true } },
-      receiptLines: { where: { goodsReceipt: { ...scope.goodsReceipt, purchaseOrderId: input.purchaseOrderId, warehouseId: input.warehouseId } }, orderBy: { id: "asc" }, select: { id: true, productId: true, quantity: true, acceptedQuantity: true, rejectedQuantity: true } },
+      receiptLines: { where: { goodsReceipt: { ...scope.goodsReceipt, purchaseOrderId: input.purchaseOrderId, warehouseId: input.warehouseId } }, orderBy: { id: "asc" }, select: { id: true, productId: true, quantity: true, acceptedQuantity: true, rejectedQuantity: true,
+        issues: { where: { companyId: context.companyId, purchaseOrderId: input.purchaseOrderId, purchaseOrderLineId: input.purchaseOrderLineId, status: "RESOLVED", resolutionKind: "ACCEPTED" }, select: { productId: true, quantity: true } },
+      } },
       supplierReturns: { where: { ...scope.supplierReturn, purchaseOrderId: input.purchaseOrderId, warehouseId: input.warehouseId }, orderBy: { id: "asc" }, select: { id: true, productId: true, quantity: true } },
     },
   })
   if (!line) return null
+  if (line.receiptLines.some(item => item.productId === line.productId && (item.quantity <= 0 || item.acceptedQuantity < 0 || item.rejectedQuantity < 0 || item.acceptedQuantity + item.rejectedQuantity > item.quantity || item.issues.some(issue => issue.quantity <= 0 || issue.productId !== line.productId)))) return null
+  const receipts = line.receiptLines.filter(item => item.productId === line.productId).map(item => ({ ...item,
+    inspectedQuantity: item.issues.filter(issue => issue.productId === line.productId).reduce((sum, issue) => sum + issue.quantity, 0),
+  }))
+  if (receipts.some(item => item.inspectedQuantity < 0 || item.inspectedQuantity > item.rejectedQuantity)) return null
   return { ...line,
-    receiptLines: line.receiptLines.filter(item => item.productId === line.productId),
+    receiptLines: receipts,
     supplierReturns: line.supplierReturns.filter(item => item.productId === line.productId),
   }
 }
@@ -43,12 +50,26 @@ export async function readPurchaseStockIssue(db: TransactionClient, context: Con
   const scope = operationsDashboardScope(context.companyId, context.agencyIds)
   const issue = await db.purchaseIssue.findFirst({
     where: { id, ...scope.purchaseIssue, purchaseOrder: scope.purchaseOrder, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
-    include: { purchaseOrder: true, purchaseOrderLine: true, goodsReceiptLine: { include: { goodsReceipt: true } } },
+    include: { purchaseOrder: true, purchaseOrderLine: true, goodsReceiptLine: { include: { goodsReceipt: true,
+      issues: { where: { status: "RESOLVED" }, orderBy: { id: "asc" }, select: { companyId: true, purchaseOrderId: true, purchaseOrderLineId: true, productId: true, quantity: true, resolutionKind: true } },
+    } } },
   })
   if (!issue || issue.quantity <= 0 || issue.purchaseOrderLine.purchaseOrderId !== issue.purchaseOrderId || issue.productId !== issue.purchaseOrderLine.productId) return null
   const source = issue.goodsReceiptLine
   if (source && (source.goodsReceipt.purchaseOrderId !== issue.purchaseOrderId || source.purchaseOrderLineId !== issue.purchaseOrderLineId || source.productId !== issue.productId)) return null
   return issue
+}
+
+export function assertPurchaseInspectionCapacity(issue: NonNullable<Awaited<ReturnType<typeof readPurchaseStockIssue>>>) {
+  const source = issue.goodsReceiptLine
+  if (!source) throw new Error("Réception source introuvable")
+  let accepted = 0
+  for (const resolved of source.issues) {
+    if (resolved.companyId !== issue.companyId || resolved.purchaseOrderId !== issue.purchaseOrderId || resolved.purchaseOrderLineId !== issue.purchaseOrderLineId || resolved.productId !== issue.productId || resolved.quantity <= 0) throw new Error("Historique de contrôle de la réception incohérent")
+    if (!resolved.resolutionKind || !["ACCEPTED", "CREDIT", "OTHER"].includes(resolved.resolutionKind)) throw new Error("Historique de contrôle incomplet : vérifiez la réception avant une nouvelle acceptation.")
+    if (resolved.resolutionKind === "ACCEPTED") accepted += resolved.quantity
+  }
+  if (accepted + issue.quantity > source.rejectedQuantity) throw new Error("La quantité acceptée après contrôle dépasse la quantité initialement rejetée")
 }
 
 export async function readPurchaseStockReturn(db: TransactionClient, context: Context, id: string) {

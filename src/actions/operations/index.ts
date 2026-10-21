@@ -30,7 +30,7 @@ import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupp
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
 import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
-import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder } from "@/lib/operations/purchase-stock"
+import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder, assertPurchaseInspectionCapacity } from "@/lib/operations/purchase-stock"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
 
 const id = z.string().cuid()
@@ -1973,6 +1973,7 @@ export async function resolvePurchaseIssue(input: unknown) {
     const issue = await readPurchaseStockIssue(prisma, context, data.issueId)
     if (!issue) throw new Error("Anomalie fournisseur introuvable ou déjà résolue")
     if (data.resolution === "ACCEPTED" && !issue.goodsReceiptLine) throw new Error("Réception source introuvable")
+    if (data.resolution === "ACCEPTED") assertPurchaseInspectionCapacity(issue)
     const remaining = issue.purchaseOrderLine.quantity - issue.purchaseOrderLine.receivedQuantity - issue.purchaseOrderLine.creditedQuantity
     if (["CREDIT", "ACCEPTED"].includes(data.resolution) && issue.quantity > remaining) {
       throw new Error("Le reliquat a déjà été couvert ; clôturez l’anomalie avec une autre résolution")
@@ -1982,11 +1983,12 @@ export async function resolvePurchaseIssue(input: unknown) {
       const fresh = await readPurchaseStockIssue(tx, context, data.issueId)
       if (!fresh || purchaseStockRevision(fresh) !== purchaseStockRevision(issue)) throw new Error(purchaseStockChanged)
       await lockPurchaseStockOrder(tx, context, fresh.purchaseOrder)
+      if (data.resolution === "ACCEPTED") assertPurchaseInspectionCapacity(fresh)
       if (data.resolution === "ACCEPTED") await lockActiveWarehouses(tx, companyId, [issue.goodsReceiptLine!.goodsReceipt.warehouseId])
       const nextStatus = data.resolution === "REPLACEMENT" ? "WAITING_REPLACEMENT" : "RESOLVED"
       const claimed = await tx.purchaseIssue.updateMany({
         where: { id: issue.id, companyId, status: issue.status, updatedAt: issue.updatedAt },
-        data: { status: nextStatus, resolution: data.notes, resolvedAt: nextStatus === "RESOLVED" ? new Date() : null },
+        data: { status: nextStatus, resolutionKind: data.resolution, resolution: data.notes, resolvedAt: nextStatus === "RESOLVED" ? new Date() : null },
       })
       if (claimed.count !== 1) throw new Error("Anomalie déjà traitée")
       if (data.resolution === "CREDIT") {
@@ -2058,7 +2060,7 @@ export async function createSupplierReturn(input: unknown) {
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
     ])
     if (!line?.product || !warehouse) throw new Error("Ligne produit ou dépôt introuvable")
-    const receivedInWarehouse = line.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity, 0)
+    const receivedInWarehouse = line.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity + item.inspectedQuantity, 0)
     const alreadyReturned = line.supplierReturns.reduce((sum, item) => sum + item.quantity, 0)
     if (data.quantity > receivedInWarehouse - alreadyReturned) throw new Error("La quantité retournée dépasse la quantité reçue dans ce dépôt")
     const prefix = buildYearlyDocumentPrefix("RET-", "RET-")
@@ -2076,7 +2078,7 @@ export async function createSupplierReturn(input: unknown) {
           if (lockedLine.count !== 1) throw new Error("Ligne fournisseur introuvable")
           const freshLine = await readPurchaseStockLine(tx, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES", "RECEIVED"])
           if (!freshLine || purchaseStockLineRevision(freshLine) !== purchaseStockLineRevision(line)) throw new Error(purchaseStockChanged)
-          const freshReceived = freshLine.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity, 0)
+          const freshReceived = freshLine.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity + item.inspectedQuantity, 0)
           const freshReturned = freshLine.supplierReturns.reduce((sum, item) => sum + item.quantity, 0)
           if (data.quantity > freshReceived - freshReturned) throw new Error("La quantité retournée dépasse la quantité reçue dans ce dépôt")
 

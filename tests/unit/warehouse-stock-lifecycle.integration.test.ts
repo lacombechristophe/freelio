@@ -28,7 +28,7 @@ describe.sequential("stock writers recheck the active warehouse inside their tra
     await db.inventoryItem.create({ data: { companyId: fixture.companyId, warehouseId, productId, quantity: 10 } })
     await db.purchaseOrder.update({ where: { id: fixture.purchase.id }, data: { status: "SENT" } })
     await db.purchaseOrderLine.update({ where: { id: fixture.line.id }, data: { quantity: 20, receivedQuantity: 5 } })
-    await db.goodsReceiptLine.update({ where: { id: fixture.goodReceiptLine.id }, data: { quantity: 5, acceptedQuantity: 5 } })
+    await db.goodsReceiptLine.update({ where: { id: fixture.goodReceiptLine.id }, data: { quantity: 6, acceptedQuantity: 5, rejectedQuantity: 1 } })
   })
   afterEach(async () => {
     vi.restoreAllMocks()

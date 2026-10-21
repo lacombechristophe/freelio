@@ -2399,14 +2399,15 @@ model PurchaseIssue {
   productId           String?
   product             Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
 
-  type       String
-  quantity   Int
-  status     String    @default("OPEN")
-  notes      String?
-  resolution String?
-  resolvedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  type           String
+  quantity       Int
+  status         String    @default("OPEN")
+  notes          String?
+  resolutionKind String?
+  resolution     String?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([companyId, status, createdAt])
   @@index([purchaseOrderId])
