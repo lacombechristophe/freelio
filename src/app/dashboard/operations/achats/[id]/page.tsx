@@ -12,6 +12,7 @@ import {
 
 import { getPurchaseOrderDetail } from "@/actions/operations";
 import { PurchaseOrderRecordActions } from "@/app/dashboard/operations/_components/record-actions";
+import { PurchaseDraftControls } from "@/app/dashboard/operations/purchase-order-dialog";
 import {
   DefinitionList,
   EmptyRecord,
@@ -131,11 +132,10 @@ export default async function PurchaseOrderDetailPage({
         }
       />
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-        <PurchaseOrderRecordActions
-          id={order.id}
-          status={order.status}
-          canApprove={order.canApprovePurchases}
-        />
+        <div className="flex flex-wrap gap-2">
+          <PurchaseOrderRecordActions id={order.id} status={order.status} canApprove={order.canApprovePurchases} canManage={order.canManagePurchases} />
+          <PurchaseDraftControls order={order} canManage={order.canManagePurchases} canApprove={order.canApprovePurchases} />
+        </div>
         <Link
           href="/dashboard/operations?tab=stock"
           className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"

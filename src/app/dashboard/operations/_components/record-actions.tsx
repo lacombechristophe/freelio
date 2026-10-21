@@ -235,16 +235,18 @@ export function PurchaseOrderRecordActions({
   id,
   status,
   canApprove,
+  canManage,
 }: {
   id: string;
   status: string;
   canApprove: boolean;
+  canManage: boolean;
 }) {
   const { pending, mutate } = useMutation();
   return (
     <div className="flex flex-wrap gap-2">
-      {status === "DRAFT" && (
-        <Button
+      {status === "DRAFT" && canManage && (
+        <Button demoMutation
           disabled={pending}
           onClick={() =>
             mutate(
@@ -268,8 +270,8 @@ export function PurchaseOrderRecordActions({
           Approuver
         </Button>
       )}
-      {status === "APPROVED" && (
-        <Button
+      {status === "APPROVED" && canManage && (
+        <Button demoMutation
           disabled={pending}
           onClick={() =>
             mutate(() => sendPurchaseOrder(id), "Commande marquée envoyée.")

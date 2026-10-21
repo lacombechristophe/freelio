@@ -28,6 +28,7 @@ import { lockActiveSite, lockActiveEquipment, lockActiveAssetProduct } from "@/l
 import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
+import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -657,7 +658,7 @@ export async function getOperationsDashboard() {
       sites,
       stock,
       warehouses,
-      purchaseOrders,
+      purchaseOrders: purchaseOrders.map(order => ({ ...order, draftRevision: purchaseDraftRevision(order) })),
       equipments,
       tickets,
       interventions,
@@ -679,6 +680,7 @@ export async function getOperationsDashboard() {
       deliveryNotes,
       stockTransfers,
       canApprovePurchases: hasPermission(role, "purchases.approve"),
+      canManagePurchases: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(),
       canBillOrders: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
       canAutomateMaintenanceBilling: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
     }
@@ -1007,7 +1009,7 @@ export async function getPurchaseOrderDetail(purchaseOrderId: string) {
         supplierReturns: { where: scope.supplierReturn, include: { product: true, warehouse: true }, orderBy: { shippedAt: "desc" } },
       },
     })
-    return order ? { ...order, canApprovePurchases: hasPermission(role, "purchases.approve") } : null
+    return order ? { ...order, draftRevision: purchaseDraftRevision(order), canManagePurchases: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(), canApprovePurchases: hasPermission(role, "purchases.approve") } : null
   }, "operations.read")
 }
 
