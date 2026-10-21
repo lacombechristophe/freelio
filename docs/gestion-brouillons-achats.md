@@ -1,4 +1,4 @@
-# Brouillons et annulation des achats fournisseur
+# Commandes fournisseur : brouillons, réceptions et retours
 
 Une commande brouillon peut être corrigée depuis sa carte Opérations ou son dossier : fournisseur, chantier, livraison souhaitée, instructions et lignes. Le numéro reste identique. Une ligne conservée garde son identifiant et sa référence d’import ; ses prix négociés ne sont pas remplacés par le prix du catalogue. La recherche et la pagination des choix restent disponibles.
 
@@ -36,4 +36,16 @@ La version préparée couvre aussi les lignes. La transaction relit cette versio
 
 Les suites [historique complet](../tests/unit/purchase-directory.integration.test.ts) et [transitions](../tests/unit/purchase-transitions.integration.test.ts) couvrent ces règles avec SQL réel. Les intercalages déterministes placent une modification SQL achevée entre préparation et transaction ; ils ne représentent pas une mesure de charge ni une qualification de concurrence native PostgreSQL. Les [preuves du complément](evidence/20261021-purchase-workflow/README.md) distinguent les diagnostics initiaux, la suite complète et les parcours non exécutés.
 
-La modification d’une commande soumise, le retrait d’une transmission fournisseur et l’annulation d’une réception restent des parcours distincts. Aucune migration ni dépendance supplémentaire n’est nécessaire pour ces compléments.
+## Réceptions, contrôles et retours
+
+Réceptionner, traiter une anomalie, expédier un retour et rattacher un avoir exigent `operations.write`. Les références sont relues dans la transaction : commande, ligne, fournisseur, produit, client du chantier, dépôt et agences. Une anomalie et sa réception source doivent désigner la même ligne et la même commande ; un retour doit correspondre à son fournisseur, son produit et son mouvement de sortie. Une commande annulée pendant la préparation ne peut pas être réactivée par une réception.
+
+Le verrou de commande précède ceux des dépôts et des lignes. Les quantités et le stock sont revendiqués conditionnellement, puis l’audit est inséré dans la même transaction. Si cet audit échoue, documents, mouvements, stock et compteurs sont restaurés. Deux demandes préparées pour le même avoir ne produisent qu’une validation et un audit. Les intercalages et l’exécution SQLite sont testés ; la concurrence native PostgreSQL reste à qualifier.
+
+La décision `PurchaseIssue.resolutionKind` distingue désormais `ACCEPTED`, `CREDIT`, `REPLACEMENT` et `OTHER`, tout en conservant les notes libres. L’acceptation après contrôle ajoute du stock une seule fois et reste bornée par la quantité initialement rejetée. Le retour additionne les quantités initialement acceptées et les acceptations après contrôle prouvées, pour la même ligne, le même produit et le même dépôt, puis soustrait les retours déjà expédiés. Un avoir ou une autre clôture n’ajoute pas de biens physiques.
+
+Les observations de livraison restent inchangées : quantité livrée, acceptée et rejetée ne sont pas réécrites après contrôle. La migration additive `20261021020000_purchase_issue_resolution_kind` laisse les anciennes décisions à `NULL` ; ni les notes, ni un écart de stock ne sont interprétés comme une preuve d’acceptation. Des décisions historiques incomplètes empêchent une nouvelle acceptation sur la même réception. Leur réparation et l’intégration rétroactive de pièces anciennement acceptées demandent une preuve séparée.
+
+Les suites [écritures et audit](../tests/unit/purchase-stock-integrity.integration.test.ts) et [inspection puis retour](../tests/unit/purchase-inspection-returns.integration.test.ts) vérifient ces règles. [verify-purchase-inspection-upgrade.mjs](../scripts/verify-purchase-inspection-upgrade.mjs) prépare sa propre base SQLite externe, contrôle la conservation des lignes et compare hors ligne le diff PostgreSQL à la migration. Le [parcours navigateur](../tests/e2e/purchase-inspection-return.spec.ts) utilise une société fictive indépendante ; sa présence ne prouve pas son exécution.
+
+La modification d’une commande soumise, le retrait d’une transmission fournisseur, l’annulation d’une réception et la réparation historique restent des parcours distincts. Ces corrections n’ajoutent ni dépendance, ni envoi fournisseur.

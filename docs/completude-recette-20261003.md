@@ -4,16 +4,16 @@
 
 ## Résultat actuel
 
-Le candidat local `cd91aa41805f8667e625e3f2803b15147716ac60` complète l’[historique et les transitions des achats](evidence/20261021-purchase-workflow/README.md) : recherche sans plafond, compteur complet, références recontrôlées et état/audit transactionnels. L’[édition et l’annulation avant transmission](evidence/20261021-purchase-drafts/README.md) restent incluses, ainsi que la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md), le [contrôle des expéditeurs](evidence/20261021-campaign-send-preflight/README.md) et les [plafonds internes](evidence/20261020-mail-send-quotas/README.md). Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
+Le candidat local `3d4941cc8b64370bc82cdd1b0c40842392816cf0` protège les [réceptions, inspections, retours et avoirs fournisseur](evidence/20261021-purchase-stock/README.md) : références recontrôlées, audit transactionnel et retour des pièces acceptées après contrôle, sans réécrire la livraison. La décision explicite est nullable pour l’ancien historique. L’[historique complet et les validations](evidence/20261021-purchase-workflow/README.md), l’[édition et l’annulation avant transmission](evidence/20261021-purchase-drafts/README.md), la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) et les [plafonds internes d’envoi](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **3 182 tests / 265 fichiers**, aucun échec ni exclusion |
-| Achats : historique, transitions, brouillons, création et choix | 180 cas dans 5 suites, présents et réussis dans la même suite complète |
+| Suite SQLite, base fictive neuve | **3 225 tests / 267 fichiers**, aucun échec ni exclusion |
+| Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur cd91aa4, 76 pages statiques |
-| Identité des sources de la recette | 1185 fichiers conformes au commit |
-| Navigateur | 456 cas sélectionnés, 228 par surface ; **non exécutés** |
+| Build Next.js | Réussi sur 3d4941c, 76 pages statiques |
+| Identité des sources de la recette | 1191 fichiers conformes au commit |
+| Navigateur | 458 cas sélectionnés, 229 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
 
@@ -21,6 +21,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Réception/retour sans références étrangères ni audit partiel ; inspection acceptée retournable une seule fois | [Écritures et inspection](evidence/20261021-purchase-stock/README.md) |
 | Achat ancien retrouvable, compteur complet et validation sans écrasement ni audit partiel | [Historique et transitions](evidence/20261021-purchase-workflow/README.md) |
 | Brouillon achat corrigé sans écrasement ; annulation motivée sans suppression avant transmission | [Règles et limites](gestion-brouillons-achats.md) |
 | Délai fournisseur respecté et commande invalide non répétée automatiquement | [Erreurs et reprises](contrat-erreurs-fournisseurs-courriels.md) |
@@ -37,7 +38,7 @@ Les qualifications intermédiaires et leurs échecs conservés sont regroupés d
 ## Qualification à poursuivre
 
 1. Vérifier et consigner le plafond GitHub Actions à 0 € et l'arrêt de l'usage payant avant tout push déclenchant une nouvelle CI.
-2. Qualifier la migration additive `20261021010000_mail_provider_failure_kind`, puis les contrôles PostgreSQL, Linux et navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
+2. Qualifier les migrations additives `20261021010000_mail_provider_failure_kind` et `20261021020000_purchase_issue_resolution_kind`, puis les contrôles PostgreSQL, Linux et navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
 3. Recetter la preview du même code, puis examiner la fusion et la publication. Main, la branche candidate et la production restent des références distinctes.
 
 La démo garde un budget de 0 € et des données fictives en lecture seule. Stockage durable, comptes OAuth/transport réels, délivrabilité, charge, reprise après arrêt brutal et récupération distante restent des conditions d'ouverture commerciale ; aucun abonnement R2 n'est engagé.
@@ -52,7 +53,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
-| L8 : cycle des achats fournisseur | [Historique complet et transitions qualifiés localement](evidence/20261021-purchase-workflow/README.md), en complément de l’édition et de l’annulation avant transmission : recherche/état/agence, total complet, version des lignes, audit atomique et accusé sans écrasement d’une réception. Modification après soumission, annulation après transmission/réception, qualification PostgreSQL et interactions navigateur restent distinctes. |
+| L8 : cycle des achats fournisseur | [Réceptions, inspections, retours et avoirs qualifiés localement](evidence/20261021-purchase-stock/README.md), en complément de l’historique complet, des validations, de l’édition et de l’annulation avant transmission : stock, décisions et audit atomiques, acceptations bornées et observations de livraison conservées. Modification après soumission, annulation après transmission/réception, réparation des décisions historiques inconnues, PostgreSQL et interactions navigateur restent distincts. |
 | L2 : erreurs HTTP des transports CRM | [Classifiées et qualifiées localement](evidence/20261021-provider-send-failures/README.md) : échéance durable, arrêt des refus définitifs, brouillons conservés et reprises bornées. La catégorie ne prouve pas le résultat d’un appel antérieur. Limitation globale d’un compte partagé, renouvellement OAuth, synchronisation, PostgreSQL et interactions navigateur restent distincts ; ce complément ne clôt pas tout L2. |
 | MAIL-02 : état et pièces des messages entrants | Le [lot](contrat-etats-messageries-entrantes.md) est implémenté dans `d02c701` et `8a7f9a6` : history/delta, observation séparée du suivi CRM, copies conservées, reprise sans réception rejouée et pièces PDF/PNG/JPEG bornées avec ACL revérifiées. Les [preuves locales](evidence/20261020-mail-observations/README.md) couvrent aussi les reconnexions intercalées. PostgreSQL, navigateur et comptes réels restent à qualifier ; import historique exhaustif, archivage durable et analyse antivirus ne sont pas livrés. |
 | MAIL-05 : identité native des fils entrants | [Implémentée et qualifiée localement sur `1dd29ef`](evidence/20261020-native-conversations/README.md) : séparation native, préparation/acceptation et réparations, contrainte par société/boîte, anciens fils non réaffectés. Les diagnostics initiaux restent conservés. PostgreSQL, navigateur et comptes fournisseurs réels restent distincts. |
