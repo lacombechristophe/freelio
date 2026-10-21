@@ -18,7 +18,7 @@ function formatEuro(cents: number) {
 }
 
 function formatDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
 }
 
 function formatDuration(sec: number) {
@@ -80,10 +80,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <ProjectWorkspace
         projectId={project.id}
-        milestones={project.milestones.map((item) => ({ id: item.id, title: item.title, description: item.description, kind: item.kind, status: item.status, plannedStartAt: item.plannedStartAt?.toISOString() ?? null, dueDate: item.dueDate?.toISOString() ?? null, durationDays: item.durationDays, dependsOnId: item.dependsOnId, dependsOn: item.dependsOn, assignedMembershipId: item.assignedMembershipId, assignedMembership: item.assignedMembership }))}
-        acceptanceItems={project.acceptanceItems.map((item) => ({ id: item.id, title: item.title, status: item.status, dueDate: item.dueDate?.toISOString() ?? null }))}
+        canWrite={project.access.operationsWrite}
+        milestones={project.milestones.map((item) => ({ id: item.id, updatedAt: item.updatedAt.toISOString(), title: item.title, description: item.description, kind: item.kind, status: item.status, plannedStartAt: item.plannedStartAt?.toISOString() ?? null, dueDate: item.dueDate?.toISOString() ?? null, durationDays: item.durationDays, dependsOnId: item.dependsOnId, dependsOn: item.dependsOn, assignedMembershipId: item.assignedMembershipId, assignedMembership: item.assignedMembership, dependencyUnavailable: item.dependencyUnavailable, assigneeUnavailable: item.assigneeUnavailable, templateUnavailable: item.templateUnavailable }))}
+        acceptanceItems={project.acceptanceItems.map((item) => ({ id: item.id, updatedAt: item.updatedAt.toISOString(), title: item.title, status: item.status, dueDate: item.dueDate?.toISOString() ?? null }))}
         files={project.files.map((file) => ({ id: file.id, name: file.name, size: file.size, type: file.type, createdAt: file.createdAt.toISOString() }))}
         profile={project.technicalProfile ? {
+          updatedAt: project.technicalProfile.updatedAt.toISOString(),
           surveyStatus: project.technicalProfile.surveyStatus as "DRAFT" | "SURVEYED" | "VALIDATED",
           surveyedAt: project.technicalProfile.surveyedAt?.toISOString() ?? null,
           surveyedBy: project.technicalProfile.surveyedBy,

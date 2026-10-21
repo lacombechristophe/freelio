@@ -81,6 +81,8 @@ export const ClientNextActionSchema = z.object({
   date: z.string().optional().or(z.literal("")),
 })
 
+const CalendarDateSchema = z.union([z.iso.date({ error: "Date invalide" }), z.literal("")])
+
 export const ProjectSchema = z.object({
   clientId: EntityIdSchema,
   agencyId: EntityIdSchema.optional().or(z.literal("")),
@@ -89,8 +91,8 @@ export const ProjectSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   worksiteType: z.string().trim().max(80).optional().or(z.literal("")),
   budgetCents: z.number().int().nonnegative(),
-  startDate: z.string().optional().or(z.literal("")),
-  endDate: z.string().optional().or(z.literal("")),
+  startDate: CalendarDateSchema.optional(),
+  endDate: CalendarDateSchema.optional(),
   status: z.enum(["ACTIVE", "COMPLETED", "ARCHIVED"]).optional(),
 })
 
@@ -98,8 +100,8 @@ export const ProjectMilestoneSchema = z.object({
   title: z.string().trim().min(2).max(180),
   description: z.string().trim().max(1000).optional().or(z.literal("")),
   kind: z.enum(["MILESTONE", "TASK", "CHECKPOINT"]).default("MILESTONE"),
-  plannedStartAt: z.string().optional().or(z.literal("")),
-  dueDate: z.string().optional().or(z.literal("")),
+  plannedStartAt: CalendarDateSchema.optional(),
+  dueDate: CalendarDateSchema.optional(),
   durationDays: z.coerce.number().int().min(0).max(365).default(1),
   dependsOnId: EntityIdSchema.optional().or(z.literal("")),
   assignedMembershipId: EntityIdSchema.optional().or(z.literal("")),
@@ -128,7 +130,7 @@ export const ProjectTemplateSchema = z.object({
 
 export const ProjectAcceptanceSchema = z.object({
   title: z.string().trim().min(2).max(220),
-  dueDate: z.string().optional().or(z.literal("")),
+  dueDate: CalendarDateSchema.optional(),
 })
 
 const profileText = (max: number) => z.preprocess((value) => (value == null ? "" : value), z.string().trim().max(max))
@@ -137,7 +139,7 @@ const profileMeasurement = (max: number) => z.preprocess((value) => (value == nu
 
 export const ProjectTechnicalProfileSchema = z.object({
   surveyStatus: z.preprocess((value) => value ?? "DRAFT", z.enum(["DRAFT", "SURVEYED", "VALIDATED"])),
-  surveyedAt: profileText(10),
+  surveyedAt: profileText(10).pipe(CalendarDateSchema),
   surveyedBy: profileText(160),
   poolShape: profileText(80),
   poolLengthMm: profileMeasurement(100_000),
