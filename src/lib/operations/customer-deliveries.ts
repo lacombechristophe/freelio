@@ -19,7 +19,7 @@ export const deliveryChanged = "La commande ou le bon de livraison a changé. Re
 export function deliveryRevision(value: unknown) { return hash(JSON.stringify(value)) }
 
 type OrderRelations = { clientId: string; projectId: string | null; project: { clientId: string; site: { clientId: string } | null } | null; quote: { clientId: string; projectId: string | null } | null }
-function coherentOrder(order: OrderRelations) {
+export function coherentCustomerOrder(order: OrderRelations) {
   return (!order.project || order.project.clientId === order.clientId && (!order.project.site || order.project.site.clientId === order.clientId))
     && (!order.quote || order.quote.clientId === order.clientId && (!order.quote.projectId || order.quote.projectId === order.projectId))
 }
@@ -30,14 +30,14 @@ export function deliverableOrderWhere(context: Context) {
 
 export async function readCustomerDeliveryOrder(db: TransactionClient, context: Context, id: string) {
   const order = await db.customerOrder.findFirst({ where: { id, ...deliverableOrderWhere(context) }, include: relations })
-  return order && coherentOrder(order) ? order : null
+  return order && coherentCustomerOrder(order) ? order : null
 }
 
 export async function readCustomerDeliveryLine(db: TransactionClient, context: Context, orderId: string, lineId: string) {
   const line = await db.customerOrderLine.findFirst({ where: { id: lineId, customerOrderId: orderId, customerOrder: deliverableOrderWhere(context) },
     include: { customerOrder: { include: relations } },
   })
-  return line && coherentOrder(line.customerOrder) ? line : null
+  return line && coherentCustomerOrder(line.customerOrder) ? line : null
 }
 
 export async function readDeliveryRecord(db: TransactionClient, context: Context, id: string) {
@@ -48,7 +48,7 @@ export async function readDeliveryRecord(db: TransactionClient, context: Context
       lines: { orderBy: { id: "asc" }, include: { customerOrderLine: { select: { customerOrderId: true, productId: true } } } },
     },
   })
-  if (!note || !coherentOrder(note.customerOrder) || note.projectId && note.projectId !== note.customerOrder.projectId) return null
+  if (!note || !coherentCustomerOrder(note.customerOrder) || note.projectId && note.projectId !== note.customerOrder.projectId) return null
   if (note.lines.some(line => !Number.isFinite(line.quantity) || line.quantity <= 0 || line.customerOrderLine && (line.customerOrderLine.customerOrderId !== note.customerOrderId || line.customerOrderLine.productId !== line.productId))) return null
   return note
 }

@@ -4,7 +4,8 @@ import { calendarPeriods } from "@/lib/calendar-days"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { withAuth, AuthorizationError } from "@/lib/auth-wrapper"
+import { withAuth, AuthorizationError, type AuthContext } from "@/lib/auth-wrapper"
+import type { StockReservation } from "@prisma/client"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { messageReadSelect } from "@/lib/communications/inbox-reader"
 import { logAction } from "@/lib/audit"
@@ -24,12 +25,12 @@ import { readStockDirectory } from "@/lib/operations/stock-directory"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 import { lockActiveWarehouses } from "@/lib/operations/warehouses"
 import { lockActiveSite, lockActiveEquipment, lockActiveAssetProduct } from "@/lib/operations/asset-lifecycle"
-import prisma from "@/lib/prisma"
+import prisma, { type TransactionClient } from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
-import { readCustomerDeliveryLine, readDeliveryRecord, lockCustomerDeliveryOrder, deliveryRevision, deliveryChanged, nextDeliveredQuantity, prepareDeliverySeal, readDeliverySeal } from "@/lib/operations/customer-deliveries"
+import { readCustomerDeliveryLine, readDeliveryRecord, lockCustomerDeliveryOrder, deliveryRevision, deliveryChanged, nextDeliveredQuantity, prepareDeliverySeal, readDeliverySeal, coherentCustomerOrder } from "@/lib/operations/customer-deliveries"
 import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
 import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder, assertPurchaseInspectionCapacity } from "@/lib/operations/purchase-stock"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
@@ -2152,24 +2153,37 @@ export async function creditSupplierReturn(supplierReturnId: string, creditRefer
   }, "operations.write")
 }
 
-async function stockReservationReferences(companyId: string, projectId?: string | null, customerOrderId?: string | null) {
+async function stockReservationReferences(db: TransactionClient, context: Pick<AuthContext, "companyId" | "agencyIds">, projectId?: string | null, customerOrderId?: string | null) {
+  const scope = operationsDashboardScope(context.companyId, context.agencyIds)
   const [project, order] = await Promise.all([
-    projectId ? prisma.project.findFirst({ where: { id: projectId, companyId, client: { companyId } }, select: { id: true } }) : null,
-    customerOrderId ? prisma.customerOrder.findFirst({
-      where: { id: customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
-      select: { id: true, clientId: true, project: { select: { clientId: true } } },
+    projectId ? db.project.findFirst({ where: { id: projectId, ...scope.project }, select: { id: true, clientId: true, site: { select: { clientId: true } } } }) : null,
+    customerOrderId ? db.customerOrder.findFirst({
+      where: { id: customerOrderId, ...scope.customerOrder },
+      select: { id: true, clientId: true, projectId: true, project: { select: { clientId: true, site: { select: { clientId: true } } } }, quote: { select: { clientId: true, projectId: true } } },
     }) : null,
   ])
-  return { project, customerOrder: order && (!order.project || order.project.clientId === order.clientId) ? order : null }
+  return { project: project && (!project.site || project.site.clientId === project.clientId) ? project : null, customerOrder: order && coherentCustomerOrder(order) ? order : null }
+}
+
+function assertFreshStockReservation(current: StockReservation | null, previous: StockReservation): asserts current is StockReservation {
+  const fields = ["warehouseId", "productId", "projectId", "customerOrderId", "quantity", "notes"] as const
+  if (!current || current.updatedAt.getTime() !== previous.updatedAt.getTime() || fields.some(field => current[field] !== previous[field])) throw new Error("Réservation active introuvable")
+}
+
+function stockTransactionFailure(error: unknown): never {
+  if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new Error("Le stock a changé. Rechargez la page puis réessayez ; votre saisie est conservée.")
+  throw error
 }
 
 export async function reserveStock(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = reservationSchema.parse(input)
+    const scope = operationsDashboardScope(companyId, context.agencyIds)
     const [warehouse, product, { project, customerOrder }] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
-      prisma.product.findFirst({ where: { id: data.productId, companyId, active: true }, select: { id: true } }),
-      stockReservationReferences(companyId, data.projectId, data.customerOrderId),
+      prisma.product.findFirst({ where: { id: data.productId, ...scope.product, active: true }, select: { id: true } }),
+      stockReservationReferences(prisma, context, data.projectId, data.customerOrderId),
     ])
     if (!warehouse || !product) throw new Error("Dépôt ou produit introuvable")
     if (data.projectId && !project) throw new Error("Chantier introuvable")
@@ -2178,6 +2192,13 @@ export async function reserveStock(input: unknown) {
 
     const reservation = await prisma.$transaction(async (tx) => {
       await lockActiveWarehouses(tx, companyId, [data.warehouseId])
+      const [freshProduct, references] = await Promise.all([
+        tx.product.findFirst({ where: { id: data.productId, ...scope.product, active: true }, select: { id: true } }),
+        stockReservationReferences(tx, context, data.projectId, data.customerOrderId),
+      ])
+      if (!freshProduct) throw new Error("Dépôt ou produit introuvable")
+      if (data.projectId && !references.project) throw new Error("Chantier introuvable")
+      if (data.customerOrderId && !references.customerOrder) throw new Error("Commande client introuvable")
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId: data.productId } } })
       if (!current) throw new Error("Aucun stock disponible pour ce produit")
       const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "RESERVE", movementQuantity: data.quantity })
@@ -2201,21 +2222,28 @@ export async function reserveStock(input: unknown) {
           notes: data.notes,
         },
       })
+      await tx.auditLog.create({ data: { userId, action: "CREATE_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: created.id,
+        payload: { quantity: created.quantity, productId: created.productId, warehouseId: created.warehouseId, projectId: created.projectId, customerOrderId: created.customerOrderId } } })
       return created
-    })
+    }, { isolationLevel: "Serializable" }).catch(stockTransactionFailure)
     revalidateOperations()
     return { success: true as const, id: reservation.id }
   }, "operations.write")
 }
 
 export async function releaseStockReservation(reservationId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
-    const references = await stockReservationReferences(companyId, reservation.projectId, reservation.customerOrderId)
+    const references = await stockReservationReferences(prisma, context, reservation.projectId, reservation.customerOrderId)
     if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
+      const currentReservation = await tx.stockReservation.findFirst({ where: { id: reservation.id, ...operationsDashboardScope(companyId, context.agencyIds).reservation, status: "ACTIVE" } })
+      assertFreshStockReservation(currentReservation, reservation)
+      const freshReferences = await stockReservationReferences(tx, context, reservation.projectId, reservation.customerOrderId)
+      if ((reservation.projectId && !freshReferences.project) || (reservation.customerOrderId && !freshReferences.customerOrder)) throw new Error("Réservation active introuvable")
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
         data: { status: "RELEASED", releasedAt: new Date() },
@@ -2243,20 +2271,27 @@ export async function releaseStockReservation(reservationId: string) {
           notes: reservation.notes,
         },
       })
-    })
+      await tx.auditLog.create({ data: { userId, action: "RELEASE_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: reservation.id,
+        payload: { quantity: reservation.quantity, productId: reservation.productId, warehouseId: reservation.warehouseId } } })
+    }, { isolationLevel: "Serializable" }).catch(stockTransactionFailure)
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
 }
 
 export async function consumeStockReservation(reservationId: string) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
-    const references = await stockReservationReferences(companyId, reservation.projectId, reservation.customerOrderId)
+    const references = await stockReservationReferences(prisma, context, reservation.projectId, reservation.customerOrderId)
     if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
+      const currentReservation = await tx.stockReservation.findFirst({ where: { id: reservation.id, ...operationsDashboardScope(companyId, context.agencyIds).reservation, status: "ACTIVE" } })
+      assertFreshStockReservation(currentReservation, reservation)
+      const freshReferences = await stockReservationReferences(tx, context, reservation.projectId, reservation.customerOrderId)
+      if ((reservation.projectId && !freshReferences.project) || (reservation.customerOrderId && !freshReferences.customerOrder)) throw new Error("Réservation active introuvable")
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
         data: { status: "CONSUMED", releasedAt: new Date() },
@@ -2290,14 +2325,9 @@ export async function consumeStockReservation(reservationId: string) {
           data: { status: "IN_PREPARATION" },
         })
       }
-    })
-    await logAction({
-      userId,
-      action: "CONSUME_STOCK_RESERVATION",
-      resource: "STOCK_RESERVATION",
-      resourceId: reservation.id,
-      payload: { quantity: reservation.quantity, productId: reservation.productId },
-    })
+      await tx.auditLog.create({ data: { userId, action: "CONSUME_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: reservation.id,
+        payload: { quantity: reservation.quantity, productId: reservation.productId } } })
+    }, { isolationLevel: "Serializable" }).catch(stockTransactionFailure)
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
