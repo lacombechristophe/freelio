@@ -9,6 +9,29 @@ import { removeLocalFile } from "@/lib/local-files"
 import { boundedPageSize } from "@/lib/pagination"
 import { hasPermission } from "@/lib/permissions"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
+import type { TransactionClient } from "@/lib/prisma"
+import type { AuthContext } from "@/lib/auth-wrapper"
+import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
+
+async function mutationProject(tx: TransactionClient, context: AuthContext, id: string) {
+  const project = await tx.project.findFirst({ where: { id, ...operationsDashboardScope(context.companyId, context.agencyIds).project },
+    include: { site: { select: { clientId: true } }, projectTemplate: { select: { companyId: true } } } })
+  if (!project || project.site && project.site.clientId !== project.clientId || project.projectTemplate && project.projectTemplate.companyId !== context.companyId) throw new Error("Projet introuvable")
+  const claimed = await tx.project.updateMany({ where: { id, companyId: context.companyId, updatedAt: project.updatedAt }, data: { updatedAt: project.updatedAt } })
+  if (claimed.count !== 1) throw new Error("Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.")
+  return project
+}
+
+const nextProjectRevision = (previous: Date) => new Date(Math.max(Date.now(), previous.getTime() + 1))
+
+function ownsProjectFile(url: string, companyId: string, projectId: string) {
+  if (![companyId, projectId].every(id => /^[a-zA-Z0-9_-]+$/.test(id))) return false
+  const prefix = `${companyId}/project/${projectId}/`
+  const key = url.startsWith("local:") ? url.slice(6) : url.startsWith("r2:") ? url.slice(3) : ""
+  if (!key.startsWith(prefix)) return false
+  const name = key.slice(prefix.length)
+  return Boolean(name && name !== "." && name !== ".." && !/[\\/\u0000:]/.test(name))
+}
 
 function atNoon(value: string | undefined) {
   return value ? new Date(`${value}T12:00:00`) : null
@@ -141,168 +164,114 @@ export async function setProjectTemplateActive(templateId: string, active: boole
 }
 
 export async function createProject(data: unknown) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const validated = ProjectSchema.parse(data)
-    const [client, agency, template] = await Promise.all([
-      prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
-      validated.agencyId
-        ? prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })
-        : prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
-      validated.projectTemplateId
-        ? prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: { order: "asc" } } } })
-        : null,
-    ])
-    if (!client) throw new Error("Client introuvable")
-    if (validated.agencyId && !agency) throw new Error("Agence introuvable ou inactive")
-    if (validated.projectTemplateId && !template) throw new Error("Modèle de chantier introuvable ou inactif")
-    const requestedStartDate = atNoon(validated.startDate || undefined)
-    const startDate =
-      requestedStartDate ||
-      (template
-        ? (() => {
-            const today = new Date()
-            today.setHours(12, 0, 0, 0)
-            return today
-          })()
-        : null)
-    const endDate = atNoon(validated.endDate || undefined) || (startDate && template?.defaultDurationDays ? addCalendarDays(startDate, template.defaultDurationDays) : null)
-    const project = await prisma.$transaction(async (tx) => {
-      const created = await tx.project.create({
-        data: {
-          companyId,
-          clientId: validated.clientId,
-          agencyId: agency?.id || null,
-          projectTemplateId: template?.id || null,
-          name: validated.name,
-          description: validated.description || null,
-          status: validated.status || "ACTIVE",
-          worksiteType: validated.worksiteType || template?.worksiteType || null,
-          budgetCents: validated.budgetCents,
-          startDate,
-          endDate,
-        },
-      })
+    const project = await prisma.$transaction(async tx => {
+      const [client, agency, template] = await Promise.all([
+        tx.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }),
+        validated.agencyId
+          ? tx.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })
+          : tx.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
+        validated.projectTemplateId
+          ? tx.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId, active: true }, include: { steps: { orderBy: { order: "asc" } } } })
+          : null,
+      ])
+      if (!client) throw new Error("Client introuvable")
+      if (validated.agencyId && !agency) throw new Error("Agence introuvable ou inactive")
+      if (validated.projectTemplateId && !template) throw new Error("Modèle de chantier introuvable ou inactif")
+      const requestedStartDate = atNoon(validated.startDate || undefined)
+      const startDate = requestedStartDate || (template ? (() => { const today = new Date(); today.setHours(12, 0, 0, 0); return today })() : null)
+      const endDate = atNoon(validated.endDate || undefined) || (startDate && template?.defaultDurationDays ? addCalendarDays(startDate, template.defaultDurationDays) : null)
+      const created = await tx.project.create({ data: {
+        companyId, clientId: validated.clientId, agencyId: agency?.id || null, projectTemplateId: template?.id || null,
+        name: validated.name, description: validated.description || null, status: validated.status || "ACTIVE",
+        worksiteType: validated.worksiteType || template?.worksiteType || null, budgetCents: validated.budgetCents, startDate, endDate,
+      } })
       if (template?.steps.length) {
         const milestoneIds = new Map<string, string>()
         for (const step of template.steps) {
           const plannedStartAt = addCalendarDays(startDate || new Date(), step.offsetDays)
-          const milestone = await tx.projectMilestone.create({
-            data: {
-              projectId: created.id,
-              templateStepId: step.id,
-              title: step.title,
-              description: step.description,
-              kind: step.kind,
-              plannedStartAt,
-              dueDate: addCalendarDays(plannedStartAt, step.durationDays),
-              durationDays: step.durationDays,
-              order: step.order,
-              dependsOnId: step.dependsOnStepId ? milestoneIds.get(step.dependsOnStepId) || null : null,
-            },
-          })
+          const milestone = await tx.projectMilestone.create({ data: { projectId: created.id, templateStepId: step.id, title: step.title,
+            description: step.description, kind: step.kind, plannedStartAt, dueDate: addCalendarDays(plannedStartAt, step.durationDays),
+            durationDays: step.durationDays, order: step.order, dependsOnId: step.dependsOnStepId ? milestoneIds.get(step.dependsOnStepId) || null : null } })
           milestoneIds.set(step.id, milestone.id)
         }
       }
+      await tx.auditLog.create({ data: { userId, action: "CREATE_PROJECT", resource: "PROJECT", resourceId: created.id, payload: { name: created.name } } })
       return created
-    })
-    await logAction({
-      userId,
-      action: "CREATE_PROJECT",
-      resource: "PROJECT",
-      resourceId: project.id,
-      payload: { name: project.name },
-    })
+    }, { isolationLevel: "Serializable" })
     revalidatePath("/dashboard/projets")
     return project
-  })
+  }, "operations.write")
 }
 
 export async function updateProject(id: string, data: unknown) {
-  return await withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const validated = ProjectSchema.parse(data)
-    const existing = await prisma.project.findFirst({ where: { id, companyId } })
-    if (!existing) throw new Error("Projet introuvable")
-    if (!(await prisma.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } }))) throw new Error("Client introuvable")
-    if (validated.agencyId && !(await prisma.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })))
-      throw new Error("Agence introuvable ou inactive")
-    if (validated.projectTemplateId && !(await prisma.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId }, select: { id: true } })))
-      throw new Error("Modèle de chantier introuvable")
-
-    const project = await prisma.project.update({
-      where: { id },
-      data: {
-        clientId: validated.clientId,
-        agencyId: validated.agencyId || existing.agencyId,
-        projectTemplateId: validated.projectTemplateId || null,
-        name: validated.name,
-        description: validated.description || null,
-        status: validated.status,
-        worksiteType: validated.worksiteType || null,
-        budgetCents: validated.budgetCents,
-        startDate: atNoon(validated.startDate || undefined),
-        endDate: atNoon(validated.endDate || undefined),
-      },
-    })
-    await logAction({
-      userId,
-      action: "UPDATE_PROJECT",
-      resource: "PROJECT",
-      resourceId: id,
-      payload: { name: project.name },
-    })
-    revalidatePath("/dashboard/projets")
-    revalidatePath(`/dashboard/projets/${id}`)
+    const project = await prisma.$transaction(async tx => {
+      const existing = await mutationProject(tx, context, id)
+      if (!await tx.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })) throw new Error("Client introuvable")
+      if (existing.site && existing.site.clientId !== validated.clientId) throw new Error("Le site du chantier appartient à un autre client. Conservez son client actuel.")
+      if (validated.agencyId && !await tx.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })) throw new Error("Agence introuvable ou inactive")
+      if (validated.projectTemplateId && !await tx.projectTemplate.findFirst({ where: { id: validated.projectTemplateId, companyId }, select: { id: true } })) throw new Error("Modèle de chantier introuvable")
+      if (validated.clientId !== existing.clientId) {
+        const linked = await tx.project.findUniqueOrThrow({ where: { id }, select: { _count: { select: { quotes: true, invoices: true, customerOrders: true, recurringInvoices: true, interventions: true, expenses: true } } } })
+        if (Object.values(linked._count).some(count => count > 0) || await tx.timeEntry.count({ where: { projectId: id, invoiceId: { not: null } } })) throw new Error("Ce chantier possède des documents ou opérations liés. Conservez son client actuel.")
+      }
+      const updated = await tx.project.update({ where: { id }, data: {
+        clientId: validated.clientId, agencyId: validated.agencyId || existing.agencyId, projectTemplateId: validated.projectTemplateId || null,
+        name: validated.name, description: validated.description || null, status: validated.status, worksiteType: validated.worksiteType || null,
+        budgetCents: validated.budgetCents, startDate: atNoon(validated.startDate || undefined), endDate: atNoon(validated.endDate || undefined), updatedAt: nextProjectRevision(existing.updatedAt),
+      } })
+      await tx.auditLog.create({ data: { userId, action: "UPDATE_PROJECT", resource: "PROJECT", resourceId: id, payload: { name: updated.name } } })
+      return updated
+    }, { isolationLevel: "Serializable" })
+    revalidatePath("/dashboard/projets"); revalidatePath("/dashboard/projets/" + id)
     return project
-  })
+  }, "operations.write")
 }
 
 export async function deleteProject(id: string) {
-  return await withAuth(async ({ companyId, userId }) => {
-    const existing = await prisma.project.findFirst({
-      where: { id, companyId },
-      include: {
-        _count: { select: { invoices: true, quotes: true, timeEntries: true } },
-        files: { select: { url: true } },
-      },
-    })
-    if (!existing) throw new Error("Projet introuvable")
-
-    const { _count } = existing
-    if (_count.invoices > 0 || _count.quotes > 0) {
-      const parts: string[] = []
-      if (_count.invoices > 0) parts.push(`${_count.invoices} facture(s)`)
-      if (_count.quotes > 0) parts.push(`${_count.quotes} devis`)
-      throw new Error(`Impossible de supprimer ce projet : ${parts.join(", ")} lié(s). Archivez-le plutôt.`)
-    }
-
-    // TimeEntries don't cascade — delete them first.
-    if (_count.timeEntries > 0) {
-      await prisma.timeEntry.deleteMany({ where: { projectId: id } })
-    }
-
-    await prisma.project.delete({ where: { id } })
-    await Promise.all(existing.files.map((file) => removeLocalFile(file.url)))
-    await logAction({
-      userId,
-      action: "DELETE_PROJECT",
-      resource: "PROJECT",
-      resourceId: id,
-      payload: { name: existing.name },
-    })
+  return withAuth(async context => {
+    const { companyId, userId } = context
+    const files = await prisma.$transaction(async tx => {
+      const existing = await mutationProject(tx, context, id)
+      const relations = await tx.project.findUniqueOrThrow({ where: { id }, select: {
+        _count: { select: { invoices: true, quotes: true, customerOrders: true, purchaseOrders: true, stockReservations: true, stockMovements: true,
+          deliveryNotes: true, recurringInvoices: true, interventions: true, expenses: true, organisationTasks: true } },
+        files: { select: { id: true, name: true, url: true, size: true, type: true, sha256: true } },
+      } })
+      if (Object.values(relations._count).some(count => count > 0) || await tx.timeEntry.count({ where: { projectId: id, invoiceId: { not: null } } })) throw new Error("Ce chantier possède des documents ou opérations liés. Archivez-le plutôt.")
+      if (relations.files.some(file => !ownsProjectFile(file.url, companyId, id))) throw new Error("La référence d’un fichier du chantier est incohérente. Sa suppression nécessite une vérification.")
+      await tx.projectFile.deleteMany({ where: { projectId: id } })
+      await tx.timeEntry.deleteMany({ where: { projectId: id, invoiceId: null } })
+      await tx.project.delete({ where: { id } })
+      await tx.auditLog.create({ data: { userId, action: "DELETE_PROJECT", resource: "PROJECT", resourceId: id, payload: { companyId, name: existing.name, files: relations.files } } })
+      return relations.files
+    }, { isolationLevel: "Serializable" })
+    const cleanup = await Promise.allSettled(files.map(file => removeLocalFile(file.url)))
+    const pendingFiles = files.filter((_, index) => cleanup[index].status === "rejected")
+    if (pendingFiles.length) await logAction({ userId, action: "DELETE_PROJECT_FILE_CLEANUP_FAILED", resource: "PROJECT", resourceId: id, payload: { companyId, files: pendingFiles } })
     revalidatePath("/dashboard/projets")
-    return { ok: true }
-  })
+    return { ok: true, pendingFileCount: pendingFiles.length }
+  }, "operations.write")
 }
 
 export async function archiveProject(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    const existing = await prisma.project.findFirst({ where: { id, companyId } })
-    if (!existing) throw new Error("Projet introuvable")
-    await prisma.project.update({ where: { id }, data: { status: "ARCHIVED" } })
-    revalidatePath("/dashboard/projets")
+  return withAuth(async context => {
+    await prisma.$transaction(async tx => {
+      const existing = await mutationProject(tx, context, id)
+      if (existing.status === "ARCHIVED") return
+      await tx.project.update({ where: { id }, data: { status: "ARCHIVED", updatedAt: nextProjectRevision(existing.updatedAt) } })
+      await tx.auditLog.create({ data: { userId: context.userId, action: "ARCHIVE_PROJECT", resource: "PROJECT", resourceId: id, payload: { name: existing.name, previousStatus: existing.status } } })
+    }, { isolationLevel: "Serializable" })
+    revalidatePath("/dashboard/projets"); revalidatePath("/dashboard/projets/" + id)
     return { ok: true }
-  })
+  }, "operations.write")
 }
+
 
 export async function createProjectMilestone(projectId: string, data: unknown) {
   return withAuth(async ({ companyId }) => {

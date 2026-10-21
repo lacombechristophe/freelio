@@ -126,8 +126,9 @@ export function ProjetsGrid({
     if (!confirmed) return
 
     try {
-      await deleteProject(id)
-      toast.success("Projet supprimé.")
+      const result = await deleteProject(id)
+      if (result.pendingFileCount) toast.warning("Projet supprimé. Certains fichiers restent à purger ; leurs références sont conservées dans l’audit.")
+      else toast.success("Projet supprimé.")
       router.refresh()
     } catch (error: unknown) {
       toast.error(errorMessage(error))
