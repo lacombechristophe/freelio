@@ -1,0 +1,110 @@
+{
+  "schema": "freelio.project-workspace-baseline.v1",
+  "initial": {
+    "productionCommit": "bee583a6c73f97c12039503d1beeec1f0f3acc16",
+    "file": "project-workspace-baseline-20261021.json",
+    "sha256": "d134007edc5704c8635f15eddbb87ca0bf91fa515b69361aa716e77b81ab908d",
+    "passed": 0,
+    "failed": 24,
+    "pending": 0,
+    "total": 24,
+    "files": 1,
+    "success": false,
+    "failures": [
+      "Project workspace integrity on isolated SQL refuses to create milestone through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back create milestone if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to change milestone status through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back change milestone status if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to plan milestone through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back plan milestone if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to delete milestone through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back delete milestone if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to create acceptance through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back create acceptance if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to change acceptance status through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back change acceptance status if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to delete acceptance through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back delete acceptance if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL refuses to save technical profile through a project linked to a foreign client",
+      "Project workspace integrity on isolated SQL rolls back save technical profile if its audit cannot be inserted",
+      "Project workspace integrity on isolated SQL does not disclose a foreign dependency in the project reader",
+      "Project workspace integrity on isolated SQL does not disclose a foreign assignee in the project reader",
+      "Project workspace integrity on isolated SQL does not disclose a foreign template on an own project",
+      "Project workspace integrity on isolated SQL validates the milestone status at runtime",
+      "Project workspace integrity on isolated SQL validates the acceptance status at runtime",
+      "Project workspace integrity on isolated SQL rejects an impossible milestone date without normalizing it",
+      "Project workspace integrity on isolated SQL rejects an impossible acceptance date without normalizing it",
+      "Project workspace integrity on isolated SQL rejects an impossible survey date without normalizing it"
+    ],
+    "source": {
+      "file": "baseline-probe.test.ts.txt",
+      "sha256": "153f12cd26fae5c1f9a4dd1c5e0c54bf0bd12f9bcd612c3d5b84ef0f3b8d6b9a"
+    },
+    "classification": "24 failed assertions across eight foreign-client mutation cases, eight audit failures, three reader cases, two runtime enums and three impossible dates; not 24 independent vulnerabilities. Final mutation tests supply valid displayed revisions so refusal cannot be explained by a missing token."
+  },
+  "dateDisplay": {
+    "file": "project-workspace-day-baseline-20261021.json",
+    "sha256": "565e16bb472f60e9c0e8757cfc2cb3de57bde24f7ae74ca4391f271f904aeb52",
+    "passed": 1,
+    "failed": 1,
+    "pending": 2,
+    "total": 4,
+    "files": 1,
+    "success": false,
+    "failures": [
+      "Project workspace static render keeps the registered calendar day when rendered in Pacific/Kiritimati"
+    ],
+    "scope": "React static render, two date-only timezone witnesses, two other tests filtered; workspace implementation in progress before explicit UTC display, no application browser"
+  },
+  "cascade": {
+    "file": "project-workspace-cascade-observed-20261021.json",
+    "sha256": "a08e876fabe962e96cfa8082ad8a80688911528b8b2aa4def4b2689a79da8015",
+    "passed": 0,
+    "failed": 2,
+    "pending": 66,
+    "total": 68,
+    "files": 1,
+    "success": false,
+    "failures": [
+      "Project workspace integrity on isolated SQL does not detach an incoming dependency belonging to another project",
+      "Project workspace integrity on isolated SQL does not detach an incoming dependency belonging to another company"
+    ],
+    "observationLog": {
+      "file": "project-workspace-cascade-observed-20261021.log",
+      "sha256": "d23c6c9110607e3955ef357b691b0697cce2d52cd714b0a82a66ae3a7b52f068",
+      "removedReferences": 2
+    },
+    "observed": {
+      "field": "dependsOnId",
+      "before": "Owned prerequisite identifier",
+      "after": null
+    },
+    "scope": "Own project deletion also detached a dependent in another project or company through SET NULL. SQL states are read after deletion before assertion; workspace changes were in progress. Both child and parent deletion now share the check."
+  },
+  "templateStep": {
+    "file": "project-workspace-step-baseline-20261021.json",
+    "sha256": "75cb18f12e1230b8a826638fa4d5e6dbce42bbc6db6cb777da19e92c8790c7b2",
+    "passed": 170,
+    "failed": 2,
+    "pending": 0,
+    "total": 172,
+    "files": 5,
+    "success": false,
+    "failures": [
+      "Project workspace integrity on isolated SQL rejects a foreign template step during milestone read",
+      "Project workspace integrity on isolated SQL rejects a foreign template step during milestone update"
+    ],
+    "scope": "Two remaining read/write defects on foreign template steps during qualification; 170 other cases passed. A transitive dependency case was added afterward."
+  },
+  "harnessFailure": {
+    "file": "project-workspace-expanded-20261021.json",
+    "sha256": "04e857167e7e02fe185001e7ddc9399216f9ecf9a8cb40ef77f382dda8094ee4",
+    "passed": 148,
+    "failed": 16,
+    "pending": 0,
+    "total": 164,
+    "files": 5,
+    "success": false,
+    "scope": "Attempting vi.spyOn on the extended Prisma proxy $transaction failed before action execution. Replaced by a spy on requestContext.run plus unchanged SQL state assertions; not 16 product defects."
+  }
+}

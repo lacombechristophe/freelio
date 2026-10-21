@@ -60,7 +60,7 @@ Les nouveaux liens de contrat figent contenu compilé, coordonnées et ressource
 
 Le propriétaire a fixé un budget de 0 € pour l’instant. La [démo en lecture seule livrée début octobre](livraison-demo-vercel-20261003.md) possède sa qualification datée. Le candidat de complétude dispose depuis le 10 octobre d'une preview de branche distincte de la production : PostgreSQL fictif, rôle lecteur, Upstash configuré par le propriétaire, stockage persistant désactivé après son refus de R2. Les [résultats et défauts de cette preview](qualification-demo-sans-stockage-20261010.md) restent liés au commit testé. Un palier gratuit ne sera pas présenté comme un runtime disponible et récupérable tant que ses limitations ne sont pas qualifiées.
 
-Le dépôt contient aussi des changements de présentation antérieurs à cette stabilisation. La référence de livraison doit être revue par lots et reliée à la CI avant partage. Le 9 octobre, le propriétaire a choisi de conserver pour l’instant le dépôt public sans licence de redistribution du code propre. Une présentation privée peut montrer les preuves locales en annonçant précisément leur portée.
+Le dépôt contient aussi des changements de présentation antérieurs à cette stabilisation. La référence de livraison doit être revue par lots et reliée à la CI avant partage. Le propriétaire a choisi le 9 octobre de conserver pour l’instant l’absence de licence de redistribution du code propre. Le dépôt est privé lors du contrôle du 21 octobre ; aucune visibilité n’a été modifiée pendant cette qualification. Une présentation privée peut montrer les preuves locales en annonçant précisément leur portée.
 
 ## D10 — Finalité explicite des courriels manuels
 

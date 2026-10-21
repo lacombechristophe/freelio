@@ -1,6 +1,8 @@
 # Inventaire des dépendances et licences
 
-État courant du candidat : les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json) donnent zéro vulnérabilité dans les audits production et complet. Les résultats datés ci-dessous conservent les anciens lockfiles, leurs alertes et leurs corrections ; ils ne remplacent pas cette référence.
+Le 21 octobre, un nouvel audit du candidat signale des avis Vite dans l’outillage de test. Après sa mise à jour, un second audit signale aussi Vitest. Le correctif `4a7a241` fixe Vite à 8.3.3 et relève Vitest ainsi que son module de couverture à 4.1.12. Les [preuves de l’outillage](evidence/20261021-test-toolchain/README.md) conservent les audits avant/après et le périmètre installé : 27 paquets de développement changent, aucun paquet de production. Les audits locaux production et complet du lockfile corrigé sont à zéro ; aucune nouvelle CI ne qualifie encore ce code. Ce résultat daté ne garantit pas l’absence de futurs avis.
+
+Les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json), alors sans alerte, sont une référence historique. Les résultats ci-dessous conservent les anciens lockfiles, leurs alertes et leurs corrections.
 
 Le lockfile est la référence des versions réellement installées. `node scripts/inventory-dependencies.mjs` produit un inventaire JSON reproductible, avec SHA-256 du lockfile, métadonnées de licence, dépendances de développement et éléments à examiner manuellement. Les métadonnées npm ne constituent pas une validation des droits de redistribution.
 
@@ -10,7 +12,7 @@ L’audit npm du même lockfile, répété le 2 octobre 2026, ne signale aucune 
 
 État distinct du candidat au 5 octobre : les CI récentes trouvent huit alertes hautes de développement et aucune alerte de production. L’avis [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), revérifié ce jour, indique aucune version corrigée pour braces. Le contrôle complet reste bloquant, sans exclusion ni seuil abaissé. Les résultats exacts et les versions du code sont consignés dans la [recette récente](completude-recette-20261003.md) ; le résultat historique ci-dessus ne qualifie pas le lockfile courant.
 
-Le dépôt est public. Le 9 octobre 2026, le propriétaire a choisi de conserver pour l’instant l’absence de licence de redistribution du code propre. L’inventaire n’autorise pas implicitement une publication open source. Les notices de bibliothèques et la provenance des assets doivent accompagner un partage public. La qualification d’un service Redis managé inclut les conditions de son fournisseur et de la version utilisée ; le conteneur Redis de recette n’est pas une décision d’hébergement.
+Le dépôt est privé lors du contrôle du 21 octobre 2026. Le propriétaire a choisi le 9 octobre de conserver pour l’instant l’absence de licence de redistribution du code propre ; ce choix reste appliqué. L’inventaire n’autorise pas implicitement une publication open source. Les notices de bibliothèques et la provenance des assets doivent accompagner un partage public. La qualification d’un service Redis managé inclut les conditions de son fournisseur et de la version utilisée ; le conteneur Redis de recette n’est pas une décision d’hébergement.
 
 La livraison Vercel du 2 octobre ajoute `@sparticuz/chromium` 152.0.0, déclaré MIT. Son binaire Chromium et ses composants demandent leur propre examen de notices ; la métadonnée npm ne suffit pas. Le [nouvel inventaire](evidence/20261002-hosted/dependencies.json) identifie ce lockfile ; l'inventaire précédent reste une preuve historique.
 
