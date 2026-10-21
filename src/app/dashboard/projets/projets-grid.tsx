@@ -30,6 +30,7 @@ import { ProjectTemplateDialog, type ProjectTemplateOption } from "./project-tem
 
 type Project = {
   id: string
+  updatedAt: Date | string
   name: string
   description?: string | null
   status: string
@@ -106,9 +107,9 @@ export function ProjetsGrid({
   const visible = fresh && !result.error ? result.data : null
   const filtered = visible?.items ?? []
 
-  async function handleArchive(id: string) {
+  async function handleArchive(project: Project) {
     try {
-      await archiveProject(id)
+      await archiveProject(project.id, new Date(project.updatedAt).toISOString())
       toast.success("Projet archivé.")
       router.refresh()
     } catch (error: unknown) {
@@ -116,9 +117,9 @@ export function ProjetsGrid({
     }
   }
 
-  async function handleDelete(id: string, name: string) {
+  async function handleDelete(project: Project) {
     const confirmed = await confirmDialog({
-      title: `Supprimer « ${name} » ?`,
+      title: `Supprimer « ${project.name} » ?`,
       description: "Cette action est irréversible.",
       confirmLabel: "Supprimer",
       destructive: true,
@@ -126,7 +127,7 @@ export function ProjetsGrid({
     if (!confirmed) return
 
     try {
-      const result = await deleteProject(id)
+      const result = await deleteProject(project.id, new Date(project.updatedAt).toISOString())
       if (result.pendingFileCount) toast.warning("Projet supprimé. Certains fichiers restent à purger ; leurs références sont conservées dans l’audit.")
       else toast.success("Projet supprimé.")
       router.refresh()
@@ -148,8 +149,8 @@ export function ProjetsGrid({
           <DropdownMenuItem demoMutation onClick={() => setEditTarget(project)}>Modifier</DropdownMenuItem>
           <DropdownMenuItem demoMutation onClick={() => router.push(`/dashboard/temps?project=${project.id}`)}>Ajouter du temps</DropdownMenuItem>
           <DropdownMenuSeparator />
-          {project.status !== "ARCHIVED" && <DropdownMenuItem demoMutation onClick={() => handleArchive(project.id)}>Archiver</DropdownMenuItem>}
-          <DropdownMenuItem demoMutation className="text-destructive focus:text-destructive" onClick={() => handleDelete(project.id, project.name)}>Supprimer</DropdownMenuItem>
+          {project.status !== "ARCHIVED" && <DropdownMenuItem demoMutation onClick={() => handleArchive(project)}>Archiver</DropdownMenuItem>}
+          <DropdownMenuItem demoMutation className="text-destructive focus:text-destructive" onClick={() => handleDelete(project)}>Supprimer</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     )

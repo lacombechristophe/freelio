@@ -98,7 +98,7 @@ describe.sequential("Project client choices cover the full company with a minima
     await prisma.membership.update({ where: { id: membershipId }, data: { role } })
     expect((await getProjectClientChoices({ search: "DERNIER" })).items[0].id).toBe(lastClientId)
     const created = await createProject(payload())
-    await updateProject(created.id, { ...payload(), description: "Fictional edited description" })
+    await updateProject(created.id, { ...payload(), description: "Fictional edited description" }, created.updatedAt.toISOString())
     expect(await prisma.project.findUniqueOrThrow({ where: { id: created.id } })).toMatchObject({ clientId: lastClientId, agencyId, budgetCents: 12345, description: "Fictional edited description" })
   })
   it("revalidates a foreign choice during creation without a project or audit", async () => {

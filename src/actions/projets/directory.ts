@@ -56,7 +56,7 @@ export async function getProjectDirectory(input: unknown = {}) {
         where, take: DIRECTORY_PAGE_SIZE, skip: (page - 1) * DIRECTORY_PAGE_SIZE,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
-          id: true, name: true, description: true, status: true, budgetCents: true, consumedCents: true,
+          id: true, name: true, description: true, status: true, updatedAt: true, budgetCents: true, consumedCents: true,
           startDate: true, endDate: true, clientId: true, agencyId: true, projectTemplateId: true, worksiteType: true,
           client: { select: { id: true, name: true } }, agency: { select: { id: true, name: true, code: true } },
         },

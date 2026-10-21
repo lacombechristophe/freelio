@@ -24,6 +24,7 @@ import type { ProjectTemplateOption } from "./project-template-dialog"
 
 type Project = {
   id: string
+  updatedAt: Date | string
   name: string
   description?: string | null
   status: string
@@ -148,7 +149,7 @@ export function ProjectFormDialog({
         status: form.status as "ACTIVE" | "COMPLETED" | "ARCHIVED",
       }
       if (project) {
-        await updateProject(project.id, payload)
+        await updateProject(project.id, payload, new Date(project.updatedAt).toISOString())
         toast.success("Projet mis à jour.")
       } else {
         await createProject(payload)

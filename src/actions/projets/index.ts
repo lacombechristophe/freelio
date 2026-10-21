@@ -13,12 +13,17 @@ import type { TransactionClient } from "@/lib/prisma"
 import type { AuthContext } from "@/lib/auth-wrapper"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 
-async function mutationProject(tx: TransactionClient, context: AuthContext, id: string) {
+const PROJECT_CHANGED_MESSAGE = "Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée."
+
+async function mutationProject(tx: TransactionClient, context: AuthContext, id: string, expectedUpdatedAt: string) {
+  const expected = typeof expectedUpdatedAt === "string" ? new Date(expectedUpdatedAt) : new Date(NaN)
+  if (!Number.isFinite(expected.getTime())) throw new Error(PROJECT_CHANGED_MESSAGE)
   const project = await tx.project.findFirst({ where: { id, ...operationsDashboardScope(context.companyId, context.agencyIds).project },
     include: { site: { select: { clientId: true } }, projectTemplate: { select: { companyId: true } } } })
   if (!project || project.site && project.site.clientId !== project.clientId || project.projectTemplate && project.projectTemplate.companyId !== context.companyId) throw new Error("Projet introuvable")
-  const claimed = await tx.project.updateMany({ where: { id, companyId: context.companyId, updatedAt: project.updatedAt }, data: { updatedAt: project.updatedAt } })
-  if (claimed.count !== 1) throw new Error("Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.")
+  if (project.updatedAt.getTime() !== expected.getTime()) throw new Error(PROJECT_CHANGED_MESSAGE)
+  const claimed = await tx.project.updateMany({ where: { id, companyId: context.companyId, updatedAt: expected }, data: { updatedAt: project.updatedAt } })
+  if (claimed.count !== 1) throw new Error(PROJECT_CHANGED_MESSAGE)
   return project
 }
 
@@ -206,12 +211,12 @@ export async function createProject(data: unknown) {
   }, "operations.write")
 }
 
-export async function updateProject(id: string, data: unknown) {
+export async function updateProject(id: string, data: unknown, expectedUpdatedAt: string) {
   return withAuth(async context => {
     const { companyId, userId } = context
     const validated = ProjectSchema.parse(data)
     const project = await prisma.$transaction(async tx => {
-      const existing = await mutationProject(tx, context, id)
+      const existing = await mutationProject(tx, context, id, expectedUpdatedAt)
       if (!await tx.client.findFirst({ where: { id: validated.clientId, companyId }, select: { id: true } })) throw new Error("Client introuvable")
       if (existing.site && existing.site.clientId !== validated.clientId) throw new Error("Le site du chantier appartient à un autre client. Conservez son client actuel.")
       if (validated.agencyId && !await tx.agency.findFirst({ where: { id: validated.agencyId, companyId, active: true }, select: { id: true } })) throw new Error("Agence introuvable ou inactive")
@@ -233,11 +238,11 @@ export async function updateProject(id: string, data: unknown) {
   }, "operations.write")
 }
 
-export async function deleteProject(id: string) {
+export async function deleteProject(id: string, expectedUpdatedAt: string) {
   return withAuth(async context => {
     const { companyId, userId } = context
     const files = await prisma.$transaction(async tx => {
-      const existing = await mutationProject(tx, context, id)
+      const existing = await mutationProject(tx, context, id, expectedUpdatedAt)
       const relations = await tx.project.findUniqueOrThrow({ where: { id }, select: {
         _count: { select: { invoices: true, quotes: true, customerOrders: true, purchaseOrders: true, stockReservations: true, stockMovements: true,
           deliveryNotes: true, recurringInvoices: true, interventions: true, expenses: true, organisationTasks: true } },
@@ -259,10 +264,10 @@ export async function deleteProject(id: string) {
   }, "operations.write")
 }
 
-export async function archiveProject(id: string) {
+export async function archiveProject(id: string, expectedUpdatedAt: string) {
   return withAuth(async context => {
     await prisma.$transaction(async tx => {
-      const existing = await mutationProject(tx, context, id)
+      const existing = await mutationProject(tx, context, id, expectedUpdatedAt)
       if (existing.status === "ARCHIVED") return
       await tx.project.update({ where: { id }, data: { status: "ARCHIVED", updatedAt: nextProjectRevision(existing.updatedAt) } })
       await tx.auditLog.create({ data: { userId: context.userId, action: "ARCHIVE_PROJECT", resource: "PROJECT", resourceId: id, payload: { name: existing.name, previousStatus: existing.status } } })
