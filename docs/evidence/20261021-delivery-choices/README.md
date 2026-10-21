@@ -1,0 +1,13 @@
+# Choix de commande et de ligne pour livrer
+
+Code : `a00a94941201f43297171989abd7d51a02f9dc89`. La [règle du formulaire](../../commandes-livraisons-scellement.md#choix-de-commande-et-de-ligne) fixe les références, états et comportements attendus.
+
+Le [diagnostic](baseline.json) reproduit un plafond : 152 commandes autorisées, seulement 150 chargées. L’ancien mélange des lignes de plusieurs commandes est distingué comme observation de code ; l’action refusait déjà leur mauvais rattachement. Le formulaire lit désormais deux choix paginés à 25, avec validation séparée de la sélection et lignes limitées à la commande choisie.
+
+La [recette locale](local.json) passe **3 319 tests dans 270 fichiers**, sans échec ni exclusion, sur une SQLite fictive neuve. Les 29 cas dédiés et 65 voisins sont présents dans cette même exécution ; le manifeste correspond exactement aux fichiers suivis et ses 1 202 fichiers source au commit. Types, génération des routes, deux lints et build de 76 pages passent. Les 88 premiers contrôles passaient ; six cas sont ajoutés pour les petites quantités, reliquats invalides et site d’un autre client.
+
+SQL vérifie 152 commandes et 151 lignes, pages sans doublon, recherche avant pagination, sélection hors recherche/page, ligne d’un autre parent, annulation, fin du reliquat, agences révoquées, références étrangères, sélection incohérente, données minimales et démo sans mutation. Le reliquat décimal reste exact et les quantités inférieures au centième restent disponibles. Les choix indisponibles ne sont ni réparés ni remplacés automatiquement.
+
+Le [parcours préparé](../../../tests/e2e/delivery-choices.spec.ts) utilise une société et un utilisateur fictifs indépendants par essai, la connexion normale, sept pages de commandes/lignes, une panne réseau contrôlée, la conservation de la saisie, un changement explicite de commande et une annulation intercalée, puis une livraison de 0,0001. **462 cas sélectionnés, 231 par surface ; aucun navigateur exécuté.** Il ne constitue pas une preuve d’interaction déjà réussie.
+
+Reproduction dans une copie isolée déjà installée avec secrets fictifs et DATABASE_URL SQLite neuve : `node scripts/prepare-dev-database.mjs`, puis `node node_modules/vitest/vitest.mjs run --coverage --no-file-parallelism --reporter=json --outputFile=recette.json`. Couverture limitée aux six modules configurés. PostgreSQL, Linux, PDF natif, navigateur, CI distante et déploiement restent à qualifier ; pas de migration ni d’envoi externe. Choix des réservations de stock, autres choix de chantier et réparation historique restent des compléments distincts.

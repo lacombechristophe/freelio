@@ -4,17 +4,19 @@
 
 ## Résultat actuel
 
-Le candidat local `60ecedc541be15e7c4ed3a2f9789fac5eeb20e2f` complète l’[historique des bons de livraison](evidence/20261021-delivery-directory/README.md) et conserve les protections des [commandes client, livraisons et captures signées](evidence/20261021-delivery-seals/README.md) : références et versions recontrôlées, quantités décimales bornées, audit transactionnel et contenu signé conservé. La capture HTML est chiffrée ; les octets PDF sont produits à la demande. Les [réceptions et inspections fournisseur](evidence/20261021-purchase-stock/README.md), l’[historique complet et les validations](evidence/20261021-purchase-workflow/README.md), l’[édition et l’annulation avant transmission](evidence/20261021-purchase-drafts/README.md), la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) et les [plafonds internes d’envoi](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
+Le candidat local `a00a94941201f43297171989abd7d51a02f9dc89` complète les [choix Commande/Ligne du formulaire de livraison](evidence/20261021-delivery-choices/README.md) et l’[historique des bons](evidence/20261021-delivery-directory/README.md). Les [protections des commandes et captures signées](evidence/20261021-delivery-seals/README.md) restent incluses : références et versions recontrôlées, quantités décimales bornées, audit transactionnel et contenu signé conservé. La capture HTML est chiffrée ; les octets PDF sont produits à la demande.
+
+Les [réceptions et inspections fournisseur](evidence/20261021-purchase-stock/README.md), l’[historique complet et les validations](evidence/20261021-purchase-workflow/README.md), l’[édition et l’annulation avant transmission](evidence/20261021-purchase-drafts/README.md), la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) et les [plafonds internes d’envoi](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite, base fictive neuve | **3 290 tests / 269 fichiers**, aucun échec ni exclusion |
-| Livraisons et annuaires : intégrité, historique, droits | 84 cas dans 3 suites, présents et réussis dans la même suite complète |
+| Suite SQLite, base fictive neuve | **3 319 tests / 270 fichiers**, aucun échec ni exclusion |
+| Livraisons : intégrité, historique et choix de références | 94 cas dans 3 suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 60ecedc, 76 pages statiques |
-| Identité des sources de la recette | 1198 fichiers conformes au commit |
-| Navigateur | 460 cas sélectionnés, 230 par surface ; **non exécutés** |
+| Build Next.js | Réussi sur a00a949, 76 pages statiques |
+| Identité des sources de la recette | 1202 fichiers conformes au commit |
+| Navigateur | 462 cas sélectionnés, 231 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
 
@@ -22,6 +24,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Commande et ligne de livraison retrouvées hors page, sans substituer une référence devenue indisponible | [Choix complets](evidence/20261021-delivery-choices/README.md) |
 | Historique des bons retrouvé au-delà de 100 ; recherche, état et agence combinés avant pagination | [Liste complète](evidence/20261021-delivery-directory/README.md) |
 | Livraison sans reliquat décimal ni référence étrangère ; capture signée conservée et liée à son bon | [Commandes et capture](evidence/20261021-delivery-seals/README.md) |
 | Réception/retour sans références étrangères ni audit partiel ; inspection acceptée retournable une seule fois | [Écritures et inspection](evidence/20261021-purchase-stock/README.md) |
@@ -56,7 +59,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
-| L8 : commandes client et livraisons | [Création, quantités et capture signée qualifiées localement](evidence/20261021-delivery-seals/README.md). Les anciennes empreintes sans capture ne permettent pas de régénérer le document. [Historique des bons complet qualifié localement](evidence/20261021-delivery-directory/README.md) ; choix Commande/Ligne du formulaire encore plafonnés, édition après confirmation, annulation après livraison et réparation historique restent distinctes ; PostgreSQL, PDF natif et navigateur restent à qualifier. |
+| L8 : commandes client et livraisons | [Création, quantités et capture signée qualifiées localement](evidence/20261021-delivery-seals/README.md). Les anciennes empreintes sans capture ne permettent pas de régénérer le document. [Historique des bons complet qualifié localement](evidence/20261021-delivery-directory/README.md) ; [choix Commande/Ligne complets qualifiés localement](evidence/20261021-delivery-choices/README.md). Choix des réservations de stock, autres choix de chantier, édition après confirmation, annulation après livraison et réparation historique restent distincts ; PostgreSQL, PDF natif et navigateur restent à qualifier. |
 | L8 : cycle des achats fournisseur | [Réceptions, inspections, retours et avoirs qualifiés localement](evidence/20261021-purchase-stock/README.md), en complément de l’historique complet, des validations, de l’édition et de l’annulation avant transmission : stock, décisions et audit atomiques, acceptations bornées et observations de livraison conservées. Modification après soumission, annulation après transmission/réception, réparation des décisions historiques inconnues, PostgreSQL et interactions navigateur restent distincts. |
 | L2 : erreurs HTTP des transports CRM | [Classifiées et qualifiées localement](evidence/20261021-provider-send-failures/README.md) : échéance durable, arrêt des refus définitifs, brouillons conservés et reprises bornées. La catégorie ne prouve pas le résultat d’un appel antérieur. Limitation globale d’un compte partagé, renouvellement OAuth, synchronisation, PostgreSQL et interactions navigateur restent distincts ; ce complément ne clôt pas tout L2. |
 | MAIL-02 : état et pièces des messages entrants | Le [lot](contrat-etats-messageries-entrantes.md) est implémenté dans `d02c701` et `8a7f9a6` : history/delta, observation séparée du suivi CRM, copies conservées, reprise sans réception rejouée et pièces PDF/PNG/JPEG bornées avec ACL revérifiées. Les [preuves locales](evidence/20261020-mail-observations/README.md) couvrent aussi les reconnexions intercalées. PostgreSQL, navigateur et comptes réels restent à qualifier ; import historique exhaustif, archivage durable et analyse antivirus ne sont pas livrés. |
