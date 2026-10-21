@@ -24,7 +24,7 @@ function dateTime(value: Date | null | undefined) {
 }
 
 function quantity(value: number) {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 }).format(value)
+  return new Intl.NumberFormat("fr-FR", { maximumSignificantDigits: 17 }).format(value)
 }
 
 export function renderDeliveryNoteHtml(doc: DeliveryDocument) {

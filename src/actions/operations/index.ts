@@ -1,6 +1,5 @@
 "use server"
 
-import { createHash } from "node:crypto"
 import { calendarPeriods } from "@/lib/calendar-days"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -29,6 +28,8 @@ import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { readCustomerDeliveryLine, readDeliveryRecord, lockCustomerDeliveryOrder, deliveryRevision, deliveryChanged, nextDeliveredQuantity, prepareDeliverySeal, readDeliverySeal } from "@/lib/operations/customer-deliveries"
 import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
 import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder, assertPurchaseInspectionCapacity } from "@/lib/operations/purchase-stock"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
@@ -313,7 +314,12 @@ const interventionMaterialSchema = z.object({
 const customerOrderSchema = z.object({
   clientId: id,
   projectId: optionalId,
-  expectedInstallationAt: dateInput,
+  expectedInstallationAt: z.string().trim().optional().transform(value => value || null).refine(value => {
+    if (!value) return true
+    const day = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+    if (!day || !Number.isFinite(new Date(value).getTime())) return false
+    return new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) === day
+  }, "Date de pose invalide").transform(value => value ? new Date(value) : null),
   notes: optionalText,
   productId: optionalId,
   label: z.string().trim().min(2).max(200),
@@ -631,6 +637,7 @@ export async function getOperationsDashboard() {
       }),
       prisma.deliveryNote.findMany({
         where: scope.deliveryNote,
+        omit: { signedDocument: true },
         include: { customerOrder: { include: { client: { select: { name: true } }, project: { select: { agencyId: true } } } }, lines: true },
         orderBy: { createdAt: "desc" },
         take: 100,
@@ -679,6 +686,7 @@ export async function getOperationsDashboard() {
       stockTransfers,
       canApprovePurchases: hasPermission(role, "purchases.approve"),
       canManagePurchases: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(),
+      canManageDeliveries: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(),
       canBillOrders: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
       canAutomateMaintenanceBilling: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
     }
@@ -1607,43 +1615,35 @@ export async function acknowledgePurchaseOrder(input: unknown) {
 }
 
 export async function createCustomerOrder(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId, agencyIds } = context
     const data = customerOrderSchema.parse(input)
-    const [client, project, product] = await Promise.all([
-      prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
-      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId, clientId: data.clientId }, select: { id: true } }) : null,
-      data.productId ? prisma.product.findFirst({ where: { id: data.productId, companyId }, select: { id: true } }) : null,
-    ])
-    if (!client) throw new Error("Client introuvable")
-    if (data.projectId && !project) throw new Error("Le chantier n'appartient pas à ce client")
-    if (data.productId && !product) throw new Error("Produit introuvable")
-
-    const totalHtCents = data.quantity * data.unitPriceCents
-    const totalTvaCents = Math.round((totalHtCents * data.tvaRate) / 100)
-    if (data.depositCents > totalHtCents + totalTvaCents) throw new Error("L'acompte dépasse le total de la commande")
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    if (agencyIds !== null && !data.projectId) throw new Error("Un chantier accessible est requis pour cette commande")
     const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
-    const order = await withDocumentNumberRetry(
-      async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.customerOrder.create({
-          data: {
-            companyId,
-            clientId: data.clientId,
-            projectId: data.projectId,
-            number: nextDocumentNumber(last, prefix),
-            acceptedAt: new Date(),
-            expectedInstallationAt: data.expectedInstallationAt,
-            notes: data.notes,
-            totalHtCents,
-            totalTvaCents,
-            totalTtcCents: totalHtCents + totalTvaCents,
-            depositCents: data.depositCents,
-            lines: { create: { productId: data.productId, label: data.label, quantity: data.quantity, unitPriceCents: data.unitPriceCents, tvaRate: data.tvaRate } },
-          },
-        })
-      },
-      { label: "la commande client" },
-    )
+    const order = await withDocumentNumberRetry(async () => {
+      const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+      return prisma.$transaction(async tx => {
+        const [client, project, product, company] = await Promise.all([
+          tx.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
+          data.projectId ? tx.project.findFirst({ where: { id: data.projectId, ...scope.project, clientId: data.clientId, status: "ACTIVE" }, select: { id: true, site: { select: { clientId: true } } } }) : null,
+          data.productId ? tx.product.findFirst({ where: { id: data.productId, ...scope.product, active: true }, select: { id: true } }) : null,
+          tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { isTvaApplicable: true } }),
+        ])
+        if (!client) throw new Error("Client introuvable")
+        if (data.projectId && (!project || project.site && project.site.clientId !== data.clientId)) throw new Error("Le chantier n'appartient pas à ce client ou n’est plus actif")
+        if (data.productId && !product) throw new Error("Produit introuvable ou inactif")
+        const tvaRate = company.isTvaApplicable ? data.tvaRate : 0
+        const totals = calculateCommercialDocument([{ ...data, tvaRate }])
+        if (data.depositCents > totals.totalTtcCents) throw new Error("L'acompte dépasse le total de la commande")
+        const created = await tx.customerOrder.create({ data: { companyId, clientId: data.clientId, projectId: data.projectId, number: nextDocumentNumber(last, prefix), acceptedAt: new Date(),
+          expectedInstallationAt: data.expectedInstallationAt, notes: data.notes, totalHtCents: totals.totalHtCents, totalTvaCents: totals.totalTvaCents, totalTtcCents: totals.totalTtcCents, depositCents: data.depositCents,
+          lines: { create: { productId: data.productId, label: data.label, quantity: data.quantity, unitPriceCents: data.unitPriceCents, tvaRate } },
+        } })
+        await tx.auditLog.create({ data: { userId, action: "CREATE_CUSTOMER_ORDER", resource: "CUSTOMER_ORDER", resourceId: created.id, payload: { number: created.number, totalHtCents: totals.totalHtCents, totalTtcCents: totals.totalTtcCents } } })
+        return created
+      }, { isolationLevel: "Serializable" })
+    }, { label: "la commande client" })
     revalidateOperations()
     return { success: true as const, id: order.id, number: order.number }
   }, "operations.write")
@@ -2304,88 +2304,59 @@ export async function consumeStockReservation(reservationId: string) {
 }
 
 export async function createDeliveryNote(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = deliveryNoteSchema.parse(input)
-    const line = await prisma.customerOrderLine.findFirst({
-      where: { id: data.customerOrderLineId, customerOrderId: data.customerOrderId, customerOrder: { companyId } },
-      include: { customerOrder: { select: { id: true, projectId: true } } },
-    })
+    const line = await readCustomerDeliveryLine(prisma, context, data.customerOrderId, data.customerOrderLineId)
     if (!line) throw new Error("Ligne de commande client introuvable")
-    const remaining = line.quantity - line.deliveredQuantity
-    if (data.quantity > remaining) throw new Error(`La quantité dépasse le reliquat de ${remaining}`)
-
+    nextDeliveredQuantity(line, data.quantity)
     const prefix = buildYearlyDocumentPrefix("BL-", "BL-")
-    const note = await withDocumentNumberRetry(
-      async () =>
-        prisma.$transaction(async (tx) => {
-    const last = await readCompanyDocumentNumbers(() => tx.deliveryNote.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-          const claimedLine = await tx.customerOrderLine.updateMany({
-            where: { id: line.id, deliveredQuantity: line.deliveredQuantity },
-            data: { deliveredQuantity: { increment: data.quantity } },
-          })
-          if (claimedLine.count !== 1) throw new Error("Le reliquat de livraison a changé. Rechargez la page puis réessayez.")
-          const created = await tx.deliveryNote.create({
-            data: {
-              companyId,
-              customerOrderId: data.customerOrderId,
-              projectId: line.customerOrder.projectId,
-              number: nextDocumentNumber(last, prefix),
-              status: "DELIVERED",
-              deliveredAt: new Date(),
-              recipientName: data.recipientName,
-              notes: data.notes,
-              lines: { create: { customerOrderLineId: line.id, productId: line.productId, label: line.label, quantity: data.quantity } },
-            },
-          })
-          const orderLines = await tx.customerOrderLine.findMany({ where: { customerOrderId: data.customerOrderId }, select: { quantity: true, deliveredQuantity: true } })
-          if (orderLines.every((orderLine) => orderLine.deliveredQuantity >= orderLine.quantity)) {
-            await tx.customerOrder.update({ where: { id: data.customerOrderId }, data: { status: "DELIVERED" } })
-          }
-          return created
-        }),
-      { label: "le bon de livraison" },
-    )
+    const note = await withDocumentNumberRetry(async () => prisma.$transaction(async tx => {
+      const fresh = await readCustomerDeliveryLine(tx, context, data.customerOrderId, data.customerOrderLineId)
+      if (!fresh || deliveryRevision(fresh) !== deliveryRevision(line)) throw new Error(deliveryChanged)
+      await lockCustomerDeliveryOrder(tx, context, fresh.customerOrder)
+      const deliveredQuantity = nextDeliveredQuantity(fresh, data.quantity)
+      const last = await readCompanyDocumentNumbers(() => tx.deliveryNote.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+      const claimed = await tx.customerOrderLine.updateMany({ where: { id: line.id, customerOrderId: data.customerOrderId, quantity: line.quantity, deliveredQuantity: line.deliveredQuantity, productId: line.productId }, data: { deliveredQuantity } })
+      if (claimed.count !== 1) throw new Error(deliveryChanged)
+      const created = await tx.deliveryNote.create({ data: { companyId, customerOrderId: data.customerOrderId, projectId: line.customerOrder.projectId, number: nextDocumentNumber(last, prefix), status: "DELIVERED", deliveredAt: new Date(), recipientName: data.recipientName, notes: data.notes,
+        lines: { create: { customerOrderLineId: line.id, productId: line.productId, label: line.label, quantity: data.quantity } },
+      } })
+      const lines = await tx.customerOrderLine.findMany({ where: { customerOrderId: data.customerOrderId }, select: { quantity: true, deliveredQuantity: true } })
+      if (lines.every(item => item.deliveredQuantity >= item.quantity)) await tx.customerOrder.update({ where: { id: data.customerOrderId }, data: { status: "DELIVERED" } })
+      await tx.auditLog.create({ data: { userId, action: "CREATE_DELIVERY_NOTE", resource: "DELIVERY_NOTE", resourceId: created.id, payload: { number: created.number, customerOrderId: data.customerOrderId, quantity: data.quantity } } })
+      return created
+    }, { isolationLevel: "Serializable" }), { label: "le bon de livraison" })
     revalidateOperations()
     return { success: true as const, id: note.id, number: note.number }
   }, "operations.write")
 }
 
 export async function signDeliveryNote(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = deliverySignatureSchema.parse(input)
-    const note = await prisma.deliveryNote.findFirst({
-      where: { id: data.deliveryNoteId, companyId },
-      include: { lines: { orderBy: { id: "asc" } } },
-    })
+    const note = await readDeliveryRecord(prisma, context, data.deliveryNoteId)
     if (!note) throw new Error("Bon de livraison introuvable")
-    if (note.signedAt && note.signatureSha256) return { success: true as const, alreadySigned: true, signatureSha256: note.signatureSha256 }
-    const signedAt = new Date()
-    const signatureSha256 = createHash("sha256")
-      .update(
-        JSON.stringify({
-          deliveryNoteId: note.id,
-          number: note.number,
-          customerOrderId: note.customerOrderId,
-          recipientName: data.recipientName,
-          signedAt: signedAt.toISOString(),
-          lines: note.lines.map((line) => ({ id: line.id, label: line.label, quantity: line.quantity })),
-        }),
-      )
-      .digest("hex")
-    const signed = await prisma.deliveryNote.updateMany({
-      where: { id: note.id, companyId, signedAt: null },
-      data: { status: "SIGNED", recipientName: data.recipientName, signedAt, signatureSha256 },
-    })
-    if (signed.count !== 1) throw new Error("Ce bon de livraison a déjà été signé")
-    await logAction({
-      userId,
-      action: "SIGN_DELIVERY_NOTE",
-      resource: "DELIVERY_NOTE",
-      resourceId: note.id,
-      payload: { number: note.number, recipientName: data.recipientName, signatureSha256 },
-    })
+    if (note.signedAt || note.status === "SIGNED" || note.signatureSha256) {
+      readDeliverySeal({ ...note, clientId: note.customerOrder.clientId })
+      if (note.recipientName !== data.recipientName) throw new Error("Ce bon de livraison a déjà été signé par un autre réceptionnaire")
+      return { success: true as const, alreadySigned: true, signatureSha256: note.signatureSha256! }
+    }
+    if (note.status !== "DELIVERED" || !note.deliveredAt || !note.lines.length) throw new Error("Le bon doit être livré avant sa signature")
+    const signedAt = new Date(), seal = await prepareDeliverySeal(note, data.recipientName, signedAt)
+    await prisma.$transaction(async tx => {
+      const fresh = await readDeliveryRecord(tx, context, note.id)
+      if (!fresh || deliveryRevision(fresh) !== deliveryRevision(note)) throw new Error(deliveryChanged)
+      await lockCustomerDeliveryOrder(tx, context, fresh.customerOrder)
+      const claimed = await tx.deliveryNote.updateMany({ where: { id: note.id, companyId, status: "DELIVERED", signedAt: null, updatedAt: note.updatedAt },
+        data: { status: "SIGNED", recipientName: data.recipientName, signedAt, ...seal },
+      })
+      if (claimed.count !== 1) throw new Error(deliveryChanged)
+      await tx.auditLog.create({ data: { userId, action: "SIGN_DELIVERY_NOTE", resource: "DELIVERY_NOTE", resourceId: note.id, payload: { number: note.number, recipientName: data.recipientName, signatureSha256: seal.signatureSha256, sealVersion: 1 } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
-    return { success: true as const, signatureSha256 }
+    return { success: true as const, signatureSha256: seal.signatureSha256 }
   }, "operations.write")
 }
 

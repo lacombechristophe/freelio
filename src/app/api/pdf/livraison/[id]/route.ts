@@ -5,6 +5,7 @@ import { renderDeliveryNoteHtml } from "@/lib/pdf/delivery-render"
 import { generatePdfFromHtml } from "@/lib/pdf/generator"
 import prisma from "@/lib/prisma"
 import { withRouteAuth } from "@/lib/route-auth"
+import { readDeliveryRecord, readDeliverySeal } from "@/lib/operations/customer-deliveries"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -12,16 +13,13 @@ export const dynamic = "force-dynamic"
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   return withRouteAuth("operations.read", async (context) => {
     const { id } = await params
-    const note = await prisma.deliveryNote.findFirst({
-      where: { id, companyId: context.companyId },
-      include: {
-        company: true,
-        customerOrder: { include: { client: true, project: { include: { site: true } } } },
-        lines: { orderBy: { id: "asc" } },
-      },
-    })
+    const note = await readDeliveryRecord(prisma, context, id)
     if (!note) return NextResponse.json({ error: "Bon de livraison introuvable" }, { status: 404 })
-    const html = renderDeliveryNoteHtml({
+    let html: string
+    if (note.signedAt || note.status === "SIGNED" || note.signatureSha256) {
+      try { html = readDeliverySeal({ ...note, clientId: note.customerOrder.clientId }) }
+      catch (error) { return NextResponse.json({ error: error instanceof Error && error.message === "Archive historique indisponible" ? error.message : "Capture du bon de livraison illisible ou altérée" }, { status: 409 }) }
+    } else html = renderDeliveryNoteHtml({
       number: note.number,
       status: note.status,
       deliveredAt: note.deliveredAt,

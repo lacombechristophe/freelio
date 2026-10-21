@@ -24,7 +24,7 @@ describe.sequential("Operations complete client choices on real SQL", () => {
     return Promise.all([prisma.customerSite.count({ where }), prisma.serviceTicket.count({ where }), prisma.maintenanceContract.count({ where }), prisma.customerOrder.count({ where }), prisma.auditLog.count({ where: { userId: session.userId } })])
   }
   beforeAll(async () => {
-    session.companyId = (await prisma.company.create({ data: { name: "Fictional Operations complete client choices" } })).id
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional Operations complete client choices", isTvaApplicable: true } })).id
     otherCompanyId = (await prisma.company.create({ data: { name: "Foreign fictional Operations choice" } })).id
     session.userId = (await prisma.user.create({ data: { email: `operations-choice-${randomUUID()}@example.test` } })).id
     memberId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id

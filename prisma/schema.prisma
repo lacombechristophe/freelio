@@ -2315,6 +2315,8 @@ model DeliveryNote {
   recipientName   String?
   signedAt        DateTime?
   signatureSha256 String?
+  signedDocument  String?
+  sealVersion     Int?
   notes           String?
 
   lines DeliveryNoteLine[]
