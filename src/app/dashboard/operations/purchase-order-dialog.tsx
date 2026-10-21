@@ -92,33 +92,48 @@ function PurchaseOrderForm({ revision, onSuccess, draft }: { revision: unknown; 
   </form>
 }
 
-export function PurchaseDraftControls({ order, canManage, canApprove }: { order: Draft; canManage: boolean; canApprove: boolean }) {
+export type PurchaseDraftTarget = { order: Draft; action: "edit" | "cancel" }
+
+export function PurchaseDraftControls({ order, canManage, canApprove, onOpen }: { order: Draft; canManage: boolean; canApprove: boolean; onOpen?: (target: PurchaseDraftTarget) => void }) {
+  const [target, setTarget] = React.useState<PurchaseDraftTarget | null>(null)
+  const open = onOpen || setTarget
+  return <>
+    {canManage && order.status === "DRAFT" ? <Button demoMutation size="sm" variant="outline" onClick={() => open({ order, action: "edit" })}>Modifier le brouillon</Button> : null}
+    {canManage && (["DRAFT", "PENDING_APPROVAL"].includes(order.status) || order.status === "APPROVED" && canApprove) ? <Button demoMutation size="sm" variant="outline" onClick={() => open({ order, action: "cancel" })}>Annuler la commande</Button> : null}
+    <PurchaseDraftDialogs target={target} onClose={() => setTarget(null)} />
+  </>
+}
+
+export function PurchaseDraftDialogs({ target, onClose }: { target: PurchaseDraftTarget | null; onClose: () => void }) {
+  if (!target) return null
+  return <PurchaseDraftDialog key={`${target.order.id}-${target.action}`} target={target} onClose={onClose} />
+}
+
+function PurchaseDraftDialog({ target, onClose }: { target: PurchaseDraftTarget; onClose: () => void }) {
   const router = useRouter()
   // Capture the displayed revision on opening. A refresh must not silently make
   // an old form eligible to overwrite a newer version.
-  const [editing, setEditing] = React.useState<Draft | null>(null)
-  const [canceling, setCanceling] = React.useState<Draft | null>(null)
+  const [snapshot] = React.useState(target)
+  const canceling = snapshot.order
   const [reason, setReason] = React.useState("")
   const [confirmed, setConfirmed] = React.useState(false)
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState("")
   async function cancel(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!canceling || pending || !confirmed) return
+    if (pending || !confirmed) return
     setPending(true); setError("")
     try {
       const result = await cancelPurchaseDraft({ id: canceling.id, revision: canceling.draftRevision, reason, confirmed })
       if (!result.success) { setError(result.error); return }
       toast.success(`Commande ${canceling.number} annulée.`)
-      setCanceling(null); router.refresh()
+      onClose(); router.refresh()
     } catch (error) { setError(error instanceof Error ? error.message : "Annulation impossible.") }
     finally { setPending(false) }
   }
   return <>
-    {canManage && order.status === "DRAFT" ? <Button demoMutation size="sm" variant="outline" onClick={() => setEditing(order)}>Modifier le brouillon</Button> : null}
-    {canManage && (["DRAFT", "PENDING_APPROVAL"].includes(order.status) || order.status === "APPROVED" && canApprove) ? <Button demoMutation size="sm" variant="outline" onClick={() => { setCanceling(order); setReason(""); setConfirmed(false); setError("") }}>Annuler la commande</Button> : null}
-    <PurchaseOrderDialog open={Boolean(editing)} onOpenChange={open => { if (!open) setEditing(null) }} revision={order.draftRevision} draft={editing || undefined} />
-    <Dialog open={Boolean(canceling)} onOpenChange={open => { if (!open && !pending) setCanceling(null) }}>
+    <PurchaseOrderDialog open={snapshot.action === "edit"} onOpenChange={open => { if (!open) onClose() }} revision={snapshot.order.draftRevision} draft={snapshot.order} />
+    <Dialog open={snapshot.action === "cancel"} onOpenChange={open => { if (!open && !pending) onClose() }}>
       <DialogContent><DialogHeader><DialogTitle>Annuler {canceling?.number}</DialogTitle></DialogHeader>
         <form className="space-y-4" onSubmit={cancel}>
           <p className="text-sm text-muted-foreground">La commande et ses lignes seront conservées. Cette action ne contacte pas le fournisseur et n’annule aucune livraison.</p>

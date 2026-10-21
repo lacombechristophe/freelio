@@ -29,6 +29,7 @@ import prisma from "@/lib/prisma"
 import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
 import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
 import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
+import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -510,6 +511,7 @@ export async function getOperationsDashboard() {
       reservations,
       deliveryNotes,
       stockTransfers,
+      purchaseSummary,
     ] = await Promise.all([
       prisma.agency.findMany({
         where: { ...scope.agency, active: true },
@@ -527,19 +529,7 @@ export async function getOperationsDashboard() {
         where: { ...scope.warehouse, active: true },
         orderBy: { name: "asc" },
       }),
-      prisma.purchaseOrder.findMany({
-        where: scope.purchaseOrder,
-        include: {
-          supplier: { select: { name: true } },
-          project: { select: { name: true, agencyId: true } },
-          approvedByMembership: { include: { user: { select: { name: true, email: true } } } },
-          lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { where: scope.supplierReturn, select: { quantity: true } } }, orderBy: { order: "asc" } },
-          issues: { where: scope.purchaseIssue, include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } },
-          supplierReturns: { where: scope.supplierReturn, include: { product: { select: { label: true } }, warehouse: { select: { name: true, agencyId: true } } }, orderBy: { createdAt: "desc" } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
+      readPurchaseOrderDirectory(companyId, agencyIds, { search: "", page: 1, status: "ALL" }),
       prisma.equipment.findMany({
         where: scope.equipment,
         include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } },
@@ -649,6 +639,7 @@ export async function getOperationsDashboard() {
         orderBy: { happenedAt: "desc" },
         take: 100,
       }),
+      readPurchaseOrderSummary(companyId, agencyIds),
     ])
     return {
       generatedAt: now.toISOString(),
@@ -658,7 +649,8 @@ export async function getOperationsDashboard() {
       sites,
       stock,
       warehouses,
-      purchaseOrders: purchaseOrders.map(order => ({ ...order, draftRevision: purchaseDraftRevision(order) })),
+      purchaseOrders: purchaseOrders.items,
+      purchaseSummary,
       equipments,
       tickets,
       interventions,
