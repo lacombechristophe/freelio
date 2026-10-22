@@ -15,6 +15,9 @@ export default defineConfig({
   reporter: process.env.CI ? "line" : "list",
   use: {
     baseURL,
+    // A missing field must fail before consuming the whole multi-step test budget.
+    actionTimeout: 30_000,
+    navigationTimeout: 60_000,
     storageState: "playwright/.auth/user.json",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
