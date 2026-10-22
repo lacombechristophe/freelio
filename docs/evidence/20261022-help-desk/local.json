@@ -1,0 +1,253 @@
+{
+  "schema": "freelio.help-desk-local.v1",
+  "observedAt": "2026-10-22T19:00:23.148Z",
+  "codeCommit": "6ae02861c36df5dea89d1fb98f8b5465fc3a3ea3",
+  "source": {
+    "observedAt": "2026-10-22T19:00:22.759Z",
+    "commit": "6ae02861c36df5dea89d1fb98f8b5465fc3a3ea3",
+    "filesCompared": 1248,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "a511b318840f34e82bdfc29ac0296f8bf98031b08430d10ef301f9e13ea89b4c",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ]
+  },
+  "full": {
+    "file": "help-desk-full-20261022.json",
+    "sha256": "777c444362c3600f30ae6212d5e5ebae015232744f48978fe1b3fea230a4f1a0",
+    "passed": 3823,
+    "failed": 0,
+    "pending": 0,
+    "files": 289,
+    "success": true,
+    "exitCode": 0,
+    "freshDatabase": true,
+    "database": "help-desk-full-20261022.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "help-desk-qualified-20261022.json",
+    "sha256": "08ff9c5afed44e0c90151eb3ce2e12ec05139cb43fb074c8595781a8b0b7e0b5",
+    "passed": 194,
+    "failed": 0,
+    "pending": 0,
+    "files": 9,
+    "success": true,
+    "exitCode": 0
+  },
+  "dedicated": {
+    "sqlPassed": 30,
+    "staticServerRenderPassed": 2,
+    "recoveredBaselineCases": 9
+  },
+  "nativeManifest": {
+    "expectedFiles": 289,
+    "executedFiles": 289,
+    "identityMatch": true
+  },
+  "checks": [
+    {
+      "check": "types",
+      "file": "help-desk-qualified-types-20261022.log",
+      "sha256": "4a8d4d0901c23c59e21490fa658266c117b8a1e5b5f02b4ac9c4735a1e7ad843",
+      "exitCode": 0
+    },
+    {
+      "check": "lint",
+      "file": "help-desk-qualified-lint-20261022.log",
+      "sha256": "3a29a01bb576f7ab5e3b61642eb5440c8fcf43da172d8fe84dcc1a8d1d7653df",
+      "exitCode": 0
+    },
+    {
+      "check": "build",
+      "file": "help-desk-build-20261022.log",
+      "sha256": "1ef03b9fd28775622f255cc8980d467792918161d0245ca7ab19126ae1c7c5f9",
+      "exitCode": 0
+    }
+  ],
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "browser": {
+    "file": "help-desk-browser-list-20261022.json",
+    "sha256": "c3426152f19f178cf3423b2556b302b359de132194fc8e47bf1b4d29001ba31f",
+    "selected": 510,
+    "desktop": 255,
+    "mobile": 255,
+    "executed": false,
+    "newCases": [
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Main Help Desk searches and pages the complete authorized queue",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Main Help Desk retains a responsible choice outside search and uses company time",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Main Help Desk searches and pages the complete authorized queue",
+        "project": "mobile"
+      },
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Main Help Desk retains a responsible choice outside search and uses company time",
+        "project": "mobile"
+      }
+    ]
+  },
+  "authoringChecks": [
+    {
+      "file": "help-desk-types-20261022.log",
+      "sha256": "2182631643b1c238a121c2b153f8a99be730f317c5a0c1c086fadfa38092b7d2",
+      "exitCode": 2,
+      "explanation": "TypeScript inferred only numeric values from a spread plus computed key. Explicitly type the query-link map as Record<string,string|number>; no runtime behavior change."
+    }
+  ],
+  "iterations": [
+    {
+      "stage": "first fix",
+      "file": "help-desk-focused-20261022.json",
+      "sha256": "15ff57ad89e2c403406a831ff76db39d64c6a012315302b440583aa716494f20",
+      "passed": 11,
+      "failed": 0,
+      "pending": 0,
+      "files": 1,
+      "success": true
+    },
+    {
+      "stage": "expanded SQL and SLA",
+      "file": "help-desk-expanded-20261022.json",
+      "sha256": "f0aebb3fb91c958643abba57064edaa9f1c2589e2f92bcb8660a3231b5a3df9c",
+      "passed": 41,
+      "failed": 0,
+      "pending": 0,
+      "files": 2,
+      "success": true
+    }
+  ],
+  "semantics": {
+    "authorization": "service.read before the business reader, current active membership and agency access; shared explicit scopes for roots, nested intervention counters and member workload",
+    "read": "One Serializable snapshot and one asOf/timezone; all matching SLA sources scanned in batches of250, minimal sort keys retained, only25 ticket identities and25 responsible members returned",
+    "ordering": "Known priorities URGENT/HIGH/NORMAL/LOW, unknown priorities after them, then computed resolution deadline, request date and ID",
+    "totals": "Metrics cover all matching accessible tickets before pagination. Member workload covers all active accessible tickets independently of the ticket filters.",
+    "navigation": "Search and independent ticket/member pagination; selected authorized member retained outside its page/search; filters reset the ticket page, each page link preserves the other page and all filters; company timezone explicitly used by SSR"
+  },
+  "runtimeScope": "Real SQLite, fresh membership/domain/agency checks, real relations and counts, no writes from the reader; session and Next cache mocked. Two React static server renders test filter links and server timezone independence, not browser interactions.",
+  "limits": [
+    "Sorting retains one minimal key per matching ticket: memory/CPU grow with the accessible filtered portfolio. No large-volume, SLO, native PostgreSQL or multi-instance qualification",
+    "Interactive browser, Linux, remote CI and exact hosted SHA remain unqualified",
+    "Other root-cache selectors and maintenance signature/economic coupling remain separate",
+    "No schema, dependency, installation, role matrix, SLA algorithm, license, provider send, billing or repository visibility change"
+  ],
+  "remote": {
+    "checkedAt": "2026-10-22T18:49:41.7319969Z",
+    "repositoryPrivate": true,
+    "ownerType": "User",
+    "pullRequest": "https://github.com/lacombechristophe/freelio/pull/8",
+    "state": "OPEN",
+    "head": "8d2232385f8cfcca9006d5e56ecdb3794485610c",
+    "pushed": false,
+    "newCI": false,
+    "merged": false,
+    "deployed": false,
+    "gate": "GitHub Actions zero budget and paid-use stop not attested; no new remote writes"
+  },
+  "finalPublication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1924,
+    "historyBlobsChecked": 0,
+    "placeholdersExcluded": 0,
+    "findings": [],
+    "report": "Freelio-help-desk-publication-20261022.json",
+    "sha256": "1fa5003caba87b84cea053ad8fd914e5e167832db48a247f45ee2ef7b0c5d152",
+    "scope": "Current tracked files including staged evidence; not a historical secret scan or a guarantee of absence of secrets"
+  },
+  "markdownLinks": {
+    "observedAt": "2026-10-22T19:00:25.046Z",
+    "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+    "checked": 1192,
+    "findings": [],
+    "report": "Freelio-help-desk-links-20261022.json",
+    "sha256": "864ce6a4bd44d894f63cd6119b3d0839ef2891f1a8a3b02ebfe15b2b3b778727"
+  }
+}

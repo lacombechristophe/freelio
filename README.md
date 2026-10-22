@@ -69,7 +69,7 @@ npm run test:e2e
 
 Les tests d’intégration et fixtures écrivent et suppriment des données : utiliser exclusivement une base isolée. `npm run verify` prépare la base configurée avant les contrôles ; il n’est pas destiné à un environnement partagé. Les E2E nécessitent leur propre jeu de données ; leur réussite ne se déduit pas d’un build.
 
-Les [résultats courants](docs/completude-recette-20261003.md) identifient le commit, les deux CI, les contrôles exécutés et les exclusions. La [carte des preuves](docs/carte-des-preuves.md) relie chaque risque à ses tests. Le candidat de la PR #8 dispose d'une preview de branche ; il reste distinct de main et de la production. La [recette hébergée sans stockage](docs/qualification-demo-sans-stockage-20261010.md) précise son périmètre et ses défauts ouverts.
+Les [résultats courants](docs/completude-recette-20261003.md) distinguent le candidat local, la tête distante de la PR #8 et les contrôles exécutés sur chaque version. La [carte des preuves](docs/carte-des-preuves.md) relie les risques à leurs tests et limites. Une ancienne CI ou preview ne qualifie pas les changements locaux suivants ; la [recette hébergée sans stockage](docs/qualification-demo-sans-stockage-20261010.md) reste une référence datée. La branche main et la production restent des références distinctes.
 
 Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 
