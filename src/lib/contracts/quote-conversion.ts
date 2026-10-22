@@ -74,7 +74,7 @@ export async function prepareQuoteContract(context: AuthContext, quoteId: string
       } })
       return contract
     }, { isolationLevel: "Serializable" })
-  }, { label: "le contrat issu du devis" })
+  }, { label: "le contrat issu du devis", retryTransactionConflicts: true })
   try { return await prepare() }
   catch (error) {
     if (!isUniqueConstraintConflict(error, "sourceQuoteId")) throw error

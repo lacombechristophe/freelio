@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { withAuth, AuthorizationError, type AuthContext } from "@/lib/auth-wrapper"
 import { requestContext } from "@/lib/context"
+import { isTransactionConflict } from "@/lib/transaction-conflicts"
 import type { StockReservation } from "@prisma/client"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { messageReadSelect } from "@/lib/communications/inbox-reader"
@@ -2067,7 +2068,7 @@ function assertFreshStockReservation(current: StockReservation | null, previous:
 }
 
 function stockTransactionFailure(error: unknown): never {
-  if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new Error("Le stock a changé. Rechargez la page puis réessayez ; votre saisie est conservée.")
+  if (isTransactionConflict(error)) throw new Error("Le stock a changé. Rechargez la page puis réessayez ; votre saisie est conservée.")
   throw error
 }
 

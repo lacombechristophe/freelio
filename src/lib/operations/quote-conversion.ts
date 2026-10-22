@@ -81,7 +81,7 @@ export async function convertAcceptedQuote(context: AuthContext, input: Input) {
         return { success: true as const, id: order.id, number: order.number, existing: false as const }
       })
     }, { isolationLevel: "Serializable" })
-  }, { label: "la commande issue du devis" })
+  }, { label: "la commande issue du devis", retryTransactionConflicts: true })
   try { return await convert() }
   catch (error) {
     if (!isUniqueConstraintConflict(error, "quoteId")) throw error

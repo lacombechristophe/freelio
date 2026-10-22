@@ -1,4 +1,5 @@
 import { getContext, requestContext } from "@/lib/context"
+import { isTransactionConflict } from "@/lib/transaction-conflicts"
 
 export const DOCUMENT_NUMBER_MAX_RETRIES = 20
 
@@ -57,7 +58,7 @@ export function isUniqueConstraintConflict(error: unknown, field: string, accept
 
 export async function withDocumentNumberRetry<T>(
   operation: () => Promise<T>,
-  options: { maxRetries?: number; label?: string } = {}
+  options: { maxRetries?: number; label?: string; retryTransactionConflicts?: boolean } = {}
 ) {
   const maxRetries = options.maxRetries ?? DOCUMENT_NUMBER_MAX_RETRIES
   let lastConflict: unknown
@@ -66,7 +67,9 @@ export async function withDocumentNumberRetry<T>(
     try {
       return await operation()
     } catch (error) {
-      if (!isDocumentNumberConflict(error) || attempt === maxRetries - 1) {
+      // Opt in only for operations whose effects are wholly inside a transaction.
+      const retryable = isDocumentNumberConflict(error) || options.retryTransactionConflicts && isTransactionConflict(error)
+      if (!retryable || attempt === maxRetries - 1) {
         throw error
       }
       lastConflict = error

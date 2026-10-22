@@ -238,7 +238,7 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
           { isolationLevel: "Serializable" },
         )
       },
-      { label: "la proposition de renouvellement" },
+      { label: "la proposition de renouvellement", retryTransactionConflicts: true },
     )
     revalidatePath("/dashboard/contrats")
     revalidatePath("/dashboard/operations")

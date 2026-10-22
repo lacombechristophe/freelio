@@ -6,6 +6,7 @@ import prisma, { type TransactionClient } from "@/lib/prisma"
 import { getContext } from "@/lib/context"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { hasPermission, normalizeCompanyRole } from "@/lib/permissions"
+import { isTransactionConflict } from "@/lib/transaction-conflicts"
 import { copyRecipientsSchema, emailAddressSchema, validateRecipients } from "./recipients"
 
 const channelKeySchema = z.union([z.literal("platform"), z.string().cuid()])
@@ -89,8 +90,9 @@ async function serializable<T>(operation: (tx: Tx) => Promise<T>): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     try { return await prisma.$transaction(operation, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }) }
     catch (error) {
-      const retryable = error instanceof QuotaStateConflict || error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code)
-      if (!retryable || attempt >= 4) throw error
+      const retryable = error instanceof QuotaStateConflict || isTransactionConflict(error) || error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+      if (!retryable || attempt >= 9) throw error
+      await new Promise(resolve => setTimeout(resolve, Math.min(10 * (attempt + 1), 50)))
     }
   }
 }

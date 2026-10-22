@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
-type ReadGate = { model: "inventoryItem" | "stockReservation"; arrived: number; values: unknown[]; wait: Promise<void>; release: () => void }
+type ReadGate = { model: "warehouse" | "stockReservation"; arrived: number; values: unknown[]; wait: Promise<void>; release: () => void }
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 const coordination = vi.hoisted(() => ({ gate: null as ReadGate | null }))
 vi.mock("server-only", () => ({}))
@@ -10,10 +10,10 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/prisma", async importOriginal => {
   const prismaModule = await importOriginal<typeof import("@/lib/prisma")>()
   const real = prismaModule.default, transaction = real.$transaction.bind(real)
-  function delegate(model: ReadGate["model"], target: typeof real.inventoryItem | typeof real.stockReservation) {
+  function delegate(model: ReadGate["model"], target: typeof real.warehouse | typeof real.stockReservation) {
     return new Proxy(target, { get(object, key) {
       const operation = Reflect.get(object, key)
-      if (key !== (model === "inventoryItem" ? "findUnique" : "findFirst")) return operation
+      if (key !== "findFirst") return operation
       return async (...args: unknown[]) => {
         const result = await Reflect.apply(operation, object, args)
         const gate = coordination.gate
@@ -27,7 +27,7 @@ vi.mock("@/lib/prisma", async importOriginal => {
     } })
   }
   const scheduled = (callback: Parameters<typeof transaction>[0], options?: Parameters<typeof transaction>[1]) => transaction(tx => callback(new Proxy(tx, {
-    get(target, key) { return key === "inventoryItem" ? delegate("inventoryItem", target.inventoryItem) : Reflect.get(target, key) },
+    get(target, key) { return key === "warehouse" ? delegate("warehouse", target.warehouse) : Reflect.get(target, key) },
   })), options)
   return { ...prismaModule, default: new Proxy(real, { get(target, key) {
     if (key === "$transaction") return scheduled
@@ -107,7 +107,10 @@ describe.sequential("stock reservation concurrency preserves persisted balances 
     } finally { release(); clearTimeout(deadline); coordination.gate = null }
   }
   it.each([5, 6, 10])("keeps two concurrent %i-unit reservations within ten available units", async quantity => {
-    const results = await concurrent("inventoryItem", { quantity: 10, reservedQuantity: 0 }, [() => reserve(quantity), () => reserve(quantity)])
+    // Both requests reach the same warehouse before its row lock. Waiting at
+    // inventory reads would deadlock the harness behind that existing lock.
+    const warehouse = await prisma.warehouse.findUniqueOrThrow({ where: { id: warehouseId } })
+    const results = await concurrent("warehouse", { updatedAt: warehouse.updatedAt }, [() => reserve(quantity), () => reserve(quantity)])
     const persisted = await balance()
     expect(persisted.reservations.length).toBe(results.filter(result => result.status === "fulfilled").length)
     expect(persisted.current.reservedQuantity).toBe(quantity * persisted.reservations.length)
