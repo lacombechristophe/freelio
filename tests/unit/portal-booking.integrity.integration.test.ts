@@ -108,6 +108,19 @@ describe.sequential("CRM bookings share capacity with field work", () => {
     }
     expect(result).toMatchObject({ success: false, error: expect.stringContaining("déjà occupé") })
   })
+  it.each(["create", "reschedule"])("returns invalid %s dates without changing a booking or exposing validation details", async kind => {
+    const row = await field()
+    for (const scheduledEnd of ["fictional invalid date", new Date(instant().getTime() - 3_600_000).toISOString()]) {
+      const slot = { assignedMembershipId: memberId, scheduledStart: instant().toISOString(), scheduledEnd }
+      const result = kind === "create"
+        ? await createFieldIntervention({ ...slot, siteId, title: "Fictional invalid booking" })
+        : await rescheduleFieldIntervention({ ...slot, interventionId: row.id })
+      expect(result).toEqual({ success: false, error: "Créneau invalide. Vérifiez les dates de début et de fin." })
+      expect(await db.fieldIntervention.findUniqueOrThrow({ where: { id: row.id } })).toEqual(row)
+      expect(await db.fieldIntervention.count({ where: { companyId: session.companyId } })).toBe(1)
+      expect(await db.auditLog.count({ where: { userId: session.userId } })).toBe(0)
+    }
+  })
   it("uses one hour for a field interval without an end and permits its exact end", async () => {
     const row = await field(); await db.fieldIntervention.update({ where: { id: row.id }, data: { scheduledEnd: null } })
     await expect(changePortalAppointment(input(await request()))).rejects.toThrow("déjà occupé")

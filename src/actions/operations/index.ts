@@ -509,6 +509,7 @@ function renderServiceMacro(value: string, variables: Record<string, string>) {
 
 function schedulingFailure(error: unknown): { success: false; error: string } {
   if (error instanceof SchedulingError) return { success: false, error: error.message }
+  if (error instanceof z.ZodError) return { success: false, error: "Créneau invalide. Vérifiez les dates de début et de fin." }
   if (error && typeof error === "object" && "code" in error && error.code === "P2034") return { success: false, error: "Le planning a changé. Rechargez puis réessayez ; votre saisie est conservée." }
   throw error
 }
