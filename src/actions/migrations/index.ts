@@ -1277,7 +1277,10 @@ export async function importMigrationRun(runId: string) {
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_RECEIPT_WITHOUT_REFERENCE", message: "Réception conservée en zone brute mais non importée : commande, dépôt ou produit non associé." })
               return
             }
-            const purchaseLine = await prisma.purchaseOrderLine.findFirst({ where: { purchaseOrderId, OR: [{ productId }, { productId: null }] }, orderBy: { order: "asc" } })
+            // Prefer the actual product over a free line, then break equal
+            // display positions by id so a replay cannot move the receipt.
+            const purchaseLine = await prisma.purchaseOrderLine.findFirst({ where: { purchaseOrderId, productId }, orderBy: [{ order: "asc" }, { id: "asc" }] })
+              ?? await prisma.purchaseOrderLine.findFirst({ where: { purchaseOrderId, productId: null }, orderBy: [{ order: "asc" }, { id: "asc" }] })
             if (!purchaseLine) {
               rejected.set(record.objectType, (rejected.get(record.objectType) ?? 0) + 1)
               issues.push({ severity: "WARNING", objectType: record.objectType, sourceId: record.sourceId, code: "IMPORT_RECEIPT_WITHOUT_LINE", message: "Réception conservée en zone brute : aucune ligne de commande fournisseur cible." })

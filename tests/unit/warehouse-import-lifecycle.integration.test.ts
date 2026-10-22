@@ -48,6 +48,11 @@ describe.sequential("imports respect warehouse activity and retain rejected raw 
     const record = await stage(kind)
     await expect(importMigrationRun(runId)).resolves.toMatchObject({ imported: 1, rejected: 0 })
     const first = await db.sourceRecord.findUniqueOrThrow({ where: { id: record.id } })
+    if (kind === "goods_receipts") {
+      const receipt = await db.goodsReceiptLine.findFirstOrThrow({ where: { goodsReceiptId: first.targetRecordId! }, include: { purchaseOrderLine: true } })
+      expect(receipt.purchaseOrderLine).toMatchObject({ productId: fixture.goodMovement.productId })
+      expect(await db.purchaseOrderLine.findMany({ where: { purchaseOrderId: fixture.purchase.id, productId: null }, select: { receivedQuantity: true } })).toEqual([{ receivedQuantity: 0 }])
+    }
     const snapshot = await stockSnapshot()
     await expect(importMigrationRun(runId)).resolves.toMatchObject({ imported: 1, rejected: 0 })
     expect((await db.sourceRecord.findUniqueOrThrow({ where: { id: record.id } })).targetRecordId).toBe(first.targetRecordId)
