@@ -20,6 +20,26 @@ Le seed UI local s’arrête sur son garde-fou de nom de base avant ses mutation
 
 Pour reproduire la suite ciblée, préparer une base fictive neuve dans une copie installée et lancer Vitest avec `--no-file-parallelism` sur `mutation-result`, `project-lifecycle-integrity`, `project-workspace-integrity`, `project-template-integrity`, `maintenance-settings-integrity`, `operations-details-relations` et `project-workspace-view`, avec leurs suffixes de fichiers. Exécuter types, lint et build séparément.
 
+## CI de df22623
+
+Le [run 39865613270](https://github.com/lacombechristophe/freelio/actions/runs/39865613270) est terminé. Sa [preuve compacte](ci-df22623.json) identifie le commit de branche et le merge temporaire testé, dont les arbres sont identiques.
+
+- PostgreSQL : **72 migrations**, **3 933 tests réussis**, une exclusion propre à la sauvegarde SQLite ; aucun échec SQL.
+- Chaque runner UI : **3 934 tests SQLite / 293 fichiers**, types, lint, couverture, build et audits npm réussis. Aucun avis de vulnérabilité signalé.
+- Linux : les **neuf contrôles natifs** réussissent.
+- Navigateurs : six échecs desktop et trois mobiles consignés ; les runners s’arrêtent à la limite de 45 minutes après **179/259** et **129/259** scénarios commencés. Ces nombres ne sont pas des nombres de réussites. Les scénarios restants ne sont pas qualifiés.
+- Les uploads restent refusés pour quota GitHub. Ce run n’est pas une CI verte.
+
+## Correctifs après ce run
+
+Le candidat `64f8e7da0e4d6a09fffb21ba8b70eb64cab9508e` corrige le refus des créneaux invalides : les erreurs de validation des actions de création/replanification reviennent comme un message métier fixe, sans détails Zod. Les autres exceptions restent propagées. Les contrôles de droits, conflits, transactions et audits sont conservés.
+
+La [recette locale](planning-local.json) reproduit d’abord deux échecs, puis passe **130 tests dans quatre fichiers**, dont deux nouvelles régressions couvrant quatre chemins invalides. Elle vérifie la conservation du créneau et l’absence de nouvelle écriture ou d’audit. Types, ESLint et build propre de 76 pages passent ; 1 261 fichiers de source sont comparés au commit, sans écart. Dépendances et schéma source restent inchangés.
+
+Les scénarios utilisent désormais le libellé réel de l’équipement et le marqueur obligatoire du choix de commande. Le client hors page est recherché avant sélection. Le retour mobile depuis un brouillon vérifie la liste déjà ouverte, sans chercher un bouton réservé au détail du fil. Le conflit attend le message générique actuel, qui protège l’identité du dossier occupé ; le compteur vide d’achats attend « 0 résultats ».
+
+Les actions navigateur sont bornées à 30 secondes, les navigations à 60 secondes ; le budget normal du scénario reste de quatre minutes. Le job dispose de 60 minutes pour inclure préparation, installation de Chromium et audit des routes. Les **518 cas / 104 fichiers** restent sélectionnés, sans exécution locale. Ces changements ne suppriment aucune assertion ni contrôle CI.
+
 ## Livraison
 
-La CI du nouveau candidat reste requise. Quota d’artefacts et refus APT du précédent runner restent distincts ; aucun contrôle n’est ignoré. Le propriétaire poursuit sans navigateur local : migrations distantes et recette authentifiée de la preview restent non vérifiées. Main, production, offre GitHub, visibilité, licence et budget sont inchangés.
+La CI du nouveau candidat reste requise. Le propriétaire poursuit sans navigateur local : migrations distantes et recette authentifiée de la preview restent non vérifiées. Main, production, offre GitHub, visibilité, licence et budget sont inchangés.
