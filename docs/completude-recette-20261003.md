@@ -4,7 +4,7 @@
 
 ## Résultat actuel
 
-Le candidat `be58e1fb5f94450f5f5fe461edabdea32f8f42b2` traite les [défauts révélés par PostgreSQL](evidence/20261022-postgres-compatibility/README.md) : reprise bornée des transactions annulées, rattachement stable des réceptions et coordination correcte du test de stock. Ses 246 tests ciblés SQLite, types, lint et build passent ; sa propre suite PostgreSQL reste à exécuter en CI.
+Le candidat `6274f54f04d37a05f00b64fad988bc0609a0cb40` contient les [corrections des défauts révélés par PostgreSQL](evidence/20261022-postgres-compatibility/README.md) : reprise bornée des transactions annulées, rattachement stable des réceptions et coordination correcte du test de stock. La nouvelle CI confirme 3 925 tests PostgreSQL réussis, une exclusion propre à SQLite et 72 migrations appliquées ; le runner desktop passe 3 926 tests SQLite, types, lint et build. Les neuf contrôles Linux passent aussi. Cette qualification reste rouge : Chromium n’a pas pu être installé sur le runner desktop (dépôt APT Microsoft HTTP 403), les E2E mobiles ont été interrompus après cinq échecs consignés et les uploads restent refusés pour quota. La [preuve native](evidence/20261022-postgres-compatibility/ci-6274f54.json) et le [diagnostic UI précédent](evidence/20261022-postgres-compatibility/ui-diagnostic-9f09bd5.json) conservent les SHA, étapes et limites.
 
 La dernière suite locale complète ci-dessous appartient au socle `55b5ac5a5460cc4a5fc93bcbd7c3d44dffdb6ff9`, avec la [mise à niveau Next.js 16.4.2](evidence/20261022-next-security/README.md). Le [choix Ticket SAV](evidence/20261022-intervention-tickets/README.md), les [accords de renouvellement](evidence/20261022-maintenance-signing/README.md) et les corrections précédentes restent inclus. Les constats critiques de la version 16.3.8 sont conservés comme diagnostics datés, pas comme état du nouveau lockfile.
 
@@ -116,7 +116,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | Calendrier et connecteurs avancés | Invitations, disponibilité, conflits, récurrences, Microsoft personnel, préférences multicanal et connecteurs supplémentaires restent des extensions distinctes ; les comptes fournisseurs réels ne sont pas qualifiés. |
 | Exploitation et présentation du candidat | CI complète et preuves natives du SHA retenu, migrations/configuration et recette du déploiement exact sont requises avant fusion. Charge, récupération distante, stockage durable, délivrabilité et traitement permanent sont des conditions supplémentaires d'ouverture commerciale. |
 
-Le dépôt GitHub est privé lors du contrôle du 22 octobre. La vérification des protections de branche/rulesets reste ouverte. Le budget Actions du compte est observé à 0 $, avec usage bloqué ; les minutes incluses et le quota d’artefacts restent distincts. Aucune visibilité, offre ou limite financière n'est modifiée. La démo garde son budget de 0 € et sa portée fictive en lecture seule.
+Le dépôt GitHub est privé lors du contrôle du 22 octobre. Les API de protections de branche et de rulesets répondent HTTP 403, avec une demande de changement d’offre pour un dépôt privé ; aucune protection effective n’est attestée. Le budget Actions du compte est observé à 0 $, avec usage bloqué ; les minutes incluses et le quota d’artefacts restent distincts. Aucune visibilité, offre ou limite financière n'est modifiée. La démo garde son budget de 0 € et sa portée fictive en lecture seule.
 
 ## Portée et historique
 
