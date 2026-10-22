@@ -46,9 +46,9 @@ jobs:
           retention-days: 14
   quality-and-e2e:
     runs-on: ubuntu-latest
-    # Each surface gets its own runner and fictional database. A single run
-    # reached the 45 minute deadline before completing both surfaces.
-    timeout-minutes: 45
+    # Each surface owns its database. Leave room for the build, browser install
+    # and exhaustive route audit; individual browser actions have bounded waits.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
