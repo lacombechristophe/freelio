@@ -18,6 +18,8 @@ import type { QuoteStatus } from "@/lib/quotes/workflow"
 
 type QuoteStatusActionsProps = {
   quoteId: string
+  orderConversionRevision: string
+  canPrepareOrder: boolean
   status: string
   hasOrder?: boolean
   hasContract?: boolean
@@ -28,11 +30,12 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "L’action n’a pas pu être terminée."
 }
 
-export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
+export function QuoteStatusActions({ quoteId, orderConversionRevision, canPrepareOrder, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [pending, setPending] = React.useState(false)
   const [launchOpen, setLaunchOpen] = React.useState(false)
+  const [launchRevision, setLaunchRevision] = React.useState(orderConversionRevision)
   const [includeContract, setIncludeContract] = React.useState(!hasContract)
   const launchUnavailable = Object.values(unavailableRelations).some(Boolean)
 
@@ -66,7 +69,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
 
     setPending(true)
     try {
-      const order = await convertQuoteToCustomerOrder({ quoteId, depositRate, expectedInstallationAt })
+      const order = await convertQuoteToCustomerOrder({ quoteId, depositRate, expectedInstallationAt, expectedRevision: launchRevision })
       if (includeContract) await createContractFromQuote(quoteId)
       toast.success(order.existing ? `Le dossier ${order.number} était déjà préparé.` : `Commande ${order.number} et chantier préparés.`)
       setLaunchOpen(false)
@@ -128,7 +131,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
           </Button>
         ) : null}
         {status === "ACCEPTED" && !hasOrder ? (
-          <Button demoMutation disabled={pending || launchUnavailable} onClick={() => setLaunchOpen(true)}>
+          <Button demoMutation disabled={pending || !canPrepareOrder || launchUnavailable} onClick={() => { setLaunchRevision(orderConversionRevision); setLaunchOpen(true) }}>
             <FileCheck2 />
             Lancer le dossier
           </Button>
@@ -178,20 +181,20 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
               <div className="space-y-2">
                 <Label htmlFor="depositRate">Acompte prévu</Label>
                 <div className="relative">
-                  <Input id="depositRate" name="depositRate" type="number" min="0" max="100" step="0.5" defaultValue="30" className="pr-9" />
+                  <Input id="depositRate" name="depositRate" disabled={pending} type="number" min="0" max="100" step="0.5" defaultValue="30" className="pr-9" />
                   <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">%</span>
                 </div>
-                <p className="text-xs leading-5 text-muted-foreground">Prépare la facture d’acompte sans l’émettre automatiquement.</p>
+                <p className="text-xs leading-5 text-muted-foreground">Fixe l’acompte à facturer depuis la commande, sans émission automatique.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="expectedInstallationAt">Pose souhaitée</Label>
-                <Input id="expectedInstallationAt" name="expectedInstallationAt" type="date" />
+                <Input id="expectedInstallationAt" name="expectedInstallationAt" disabled={pending} type="date" />
                 <p className="text-xs leading-5 text-muted-foreground">Indicative : à confirmer avec l’équipe et le fabricant.</p>
               </div>
             </div>
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/35 p-4">
-              <Checkbox aria-label="Préparer aussi le contrat de fourniture et pose" checked={includeContract} onCheckedChange={(checked) => setIncludeContract(checked === true)} />
+              <Checkbox disabled={pending} aria-label="Préparer aussi le contrat de fourniture et pose" checked={includeContract} onCheckedChange={(checked) => setIncludeContract(checked === true)} />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold">Préparer aussi le contrat de fourniture et pose</span>
                 <span className="mt-1 block text-xs leading-5 text-muted-foreground">Le modèle métier reprend le devis, le relevé technique, la réception, les garanties et les règles de sécurité.</span>
@@ -201,7 +204,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
 
           <DialogFooter>
             <Button type="button" variant="outline" disabled={pending} onClick={() => setLaunchOpen(false)}>Annuler</Button>
-            <Button type="submit" form="launch-quote-folder" disabled={pending}>
+            <Button type="submit" form="launch-quote-folder" disabled={pending || !canPrepareOrder}>
               {pending ? <LoaderCircle className="animate-spin" /> : <FileCheck2 />}
               Préparer le dossier
             </Button>

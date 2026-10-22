@@ -34,6 +34,7 @@ import { readCustomerDeliveryLine, readDeliveryRecord, lockCustomerDeliveryOrder
 import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
 import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder, assertPurchaseInspectionCapacity } from "@/lib/operations/purchase-stock"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
+import { convertAcceptedQuote } from "@/lib/operations/quote-conversion"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -332,6 +333,7 @@ const customerOrderSchema = z.object({
 
 const quoteToCustomerOrderSchema = z.object({
   quoteId: id,
+  expectedRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   depositRate: z.coerce.number().min(0).max(100).default(0),
   expectedInstallationAt: z
     .union([z.string().date(), z.literal("")])
@@ -1651,111 +1653,13 @@ export async function createCustomerOrder(input: unknown) {
 }
 
 export async function convertQuoteToCustomerOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
     const data = quoteToCustomerOrderSchema.parse(typeof input === "string" ? { quoteId: input } : input)
-    const quote = await prisma.quote.findFirst({
-      where: { id: data.quoteId, companyId },
-      include: {
-        customerOrder: { select: { id: true, number: true } },
-        versions: {
-          orderBy: { version: "desc" },
-          take: 1,
-          include: { sections: { orderBy: { order: "asc" }, include: { lines: { orderBy: { order: "asc" } } } } },
-        },
-      },
-    })
-    if (!quote) throw new Error("Devis introuvable")
-    if (quote.projectId && !await prisma.project.findFirst({ where: { id: quote.projectId, companyId, clientId: quote.clientId, client: { companyId } }, select: { id: true } })) throw new Error("Référence liée indisponible")
-    if (quote.customerOrder) {
-      const existing = await prisma.customerOrder.findFirst({
-        where: { id: quote.customerOrder.id, companyId, clientId: quote.clientId, client: { companyId }, project: { companyId, clientId: quote.clientId } },
-        select: { id: true, number: true },
-      })
-      if (!existing) throw new Error("Référence liée indisponible")
-      return { success: true as const, id: existing.id, number: existing.number, existing: true as const }
-    }
-    if (quote.status !== "ACCEPTED") throw new Error("Enregistrez l’accord du client avant de lancer la commande")
-    const version = quote.versions[0]
-    if (!version) throw new Error("Le devis ne contient aucune version")
-    const lines = version.sections.flatMap((section) => section.lines)
-    if (!lines.length) throw new Error("Le devis ne contient aucune ligne")
-
-    const depositCents = Math.round((version.totalTtcCents * data.depositRate) / 100)
-
-    const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
-    let order
-    try {
-      order = await withDocumentNumberRetry(
-        async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-          return prisma.$transaction(async (tx) => {
-            const projectId =
-              quote.projectId ??
-              (
-                await tx.project.create({
-                  data: {
-                    companyId,
-                    clientId: quote.clientId,
-                    name: `Chantier · ${quote.object}`,
-                    description: `Créé depuis le devis ${quote.number}`,
-                    worksiteType: "INSTALLATION",
-                    worksiteStage: "COMMANDE_CONFIRMEE",
-                    budgetCents: version.totalHtCents,
-                    startDate: new Date(),
-                  },
-                  select: { id: true },
-                })
-              ).id
-            const created = await tx.customerOrder.create({
-              data: {
-                companyId,
-                clientId: quote.clientId,
-                projectId,
-                quoteId: quote.id,
-                number: nextDocumentNumber(last, prefix),
-                status: "CONFIRMED",
-                acceptedAt: new Date(),
-                expectedInstallationAt: data.expectedInstallationAt,
-                totalHtCents: version.totalHtCents,
-                totalTvaCents: version.totalTvaCents,
-                totalTtcCents: version.totalTtcCents,
-                depositCents,
-                lines: {
-                  create: lines.map((line, index) => ({
-                    productId: line.productId,
-                    label: line.label,
-                    description: line.description,
-                    quantity: line.quantity,
-                    unitPriceCents: line.unitPriceCents,
-                    tvaRate: line.tvaRate,
-                    order: index,
-                  })),
-                },
-              },
-            })
-            await tx.quote.update({ where: { id: quote.id }, data: { projectId } })
-            return created
-          })
-        },
-        { label: "la commande issue du devis" },
-      )
-    } catch (error) {
-      if (!isUniqueConstraintConflict(error, "quoteId")) throw error
-      const concurrentOrder = await prisma.customerOrder.findFirst({ where: { companyId, quoteId: quote.id }, select: { id: true, number: true } })
-      if (!concurrentOrder) throw error
-      return { success: true as const, id: concurrentOrder.id, number: concurrentOrder.number, existing: true as const }
-    }
-    await logAction({
-      userId,
-      action: "CREATE_CUSTOMER_ORDER",
-      resource: "CUSTOMER_ORDER",
-      resourceId: order.id,
-      payload: { quoteId: quote.id, number: order.number, depositRate: data.depositRate, depositCents },
-    })
+    const result = await convertAcceptedQuote(context, data)
     revalidateOperations()
     revalidatePath("/dashboard/devis")
-    revalidatePath(`/dashboard/devis/${quote.id}`)
-    return { success: true as const, id: order.id, number: order.number, existing: false as const }
+    revalidatePath(`/dashboard/devis/${data.quoteId}`)
+    return result
   }, "sales.write")
 }
 

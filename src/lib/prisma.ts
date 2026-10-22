@@ -137,6 +137,11 @@ const prismaClientSingleton = () => {
           // Finance claims billing only; it cannot edit the operational order.
           const orderBillingUpdate = model === "CustomerOrder" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
             hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "billingStatus"
+          // Sales may create only the dossier claimed by the accepted-quote action.
+          // This grants no general operational update, deletion, stock or invoice access.
+          const quoteOrderCreation = model === "CustomerOrder" && operation === "create" && context?.actionPermission === "sales.write" && hasPermission(context.role, "sales.write") &&
+            context.quoteOrderCreation && mutableArgs.data?.companyId === context.companyId && mutableArgs.data?.clientId === context.quoteOrderCreation.clientId &&
+            mutableArgs.data.quoteId === context.quoteOrderCreation.quoteId
           // This capability is scoped to the draft just created by the Finance action.
           const timeInvoiceClaim = model === "TimeEntry" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
             hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "invoiceId" &&
@@ -164,6 +169,7 @@ const prismaClientSingleton = () => {
             !hasPermission(context.role, requiredPermission) &&
             !serviceProfileUpdate &&
             !orderBillingUpdate &&
+            !quoteOrderCreation &&
             !timeInvoiceClaim &&
             !timeInvoiceRelease &&
             !oauthCredentialRefresh &&

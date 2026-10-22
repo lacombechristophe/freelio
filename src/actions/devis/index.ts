@@ -15,6 +15,7 @@ import { boundedPageSize } from "@/lib/pagination"
 import { CONTRACT_TEMPLATE_PRESETS } from "@/lib/contracts/templates"
 import { assertQuoteStatusTransition, quoteStatusDates, type QuoteStatus } from "@/lib/quotes/workflow"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
+import { quoteOrderRevision } from "@/lib/operations/quote-order-source"
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
@@ -104,6 +105,8 @@ export async function getQuoteById(id: string) {
     ])
     return {
       ...quote, projectId: project?.id ?? null, project, generatedContract,
+      orderConversionRevision: quoteOrderRevision(quote),
+      canPrepareOrder: hasPermission(role, "sales.write"),
       customerOrder: customerOrder ? { ...customerOrder, billingStatus: canReadFinance ? customerOrder.billingStatus : null, invoices: canReadFinance ? customerOrder.invoices : [] } : null,
       canReadFinance,
       unavailableRelations: { project: Boolean(quote.projectId && !project), customerOrder: Boolean(quote.customerOrder && !customerOrder), generatedContract: Boolean(quote.generatedContract && !generatedContract) },
