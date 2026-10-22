@@ -117,6 +117,7 @@ export async function createOperationsDashboardFixture(db: PrismaClient) {
     await db.expense.deleteMany({ where })
     await db.fieldIntervention.deleteMany({ where })
     await db.serviceTicket.deleteMany({ where })
+    await db.maintenanceContract.updateMany({ where, data: { currentRenewalProposalId: null, acceptedRenewalProposalId: null } })
     await db.contract.deleteMany({ where })
     await db.recurringInvoice.deleteMany({ where })
     await db.maintenanceContract.deleteMany({ where })

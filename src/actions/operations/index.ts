@@ -20,6 +20,7 @@ import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
 import { readHelpDeskDashboard } from "@/lib/operations/help-desk"
+import { assertAcceptedMaintenanceAgreement } from "@/lib/contracts/maintenance-agreements"
 import { hasPermission } from "@/lib/permissions"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
@@ -620,6 +621,7 @@ export async function getOperationsDashboard() {
       }),
       prisma.maintenanceContract.findMany({
         where: scope.contract,
+        omit: { currentRenewalProposalId: true, acceptedRenewalProposalId: true },
         include: {
           client: { select: { name: true } },
           site: { select: { label: true, agencyId: true } },
@@ -1432,6 +1434,7 @@ export async function renewMaintenanceContract(contractId: string, expectedRevis
             const site = await lockActiveSite(transaction, companyId, contract.siteId, agencyIds)
             if (site.clientId !== contract.clientId) throw new AssetLifecycleError("Site du contrat incompatible avec le client")
             await lockActiveEquipment(transaction, companyId, contract.siteId, contract.equipments.map(item => item.equipmentId), agencyIds)
+            await assertAcceptedMaintenanceAgreement(transaction, prepared)
             const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
             const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
             if (!Number.isSafeInteger(nextPriceCents) || nextPriceCents > 2147483647) throw new AssetLifecycleError("Le montant du renouvellement dépasse la capacité de calcul.")

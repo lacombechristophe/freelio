@@ -53,6 +53,7 @@ describe.sequential("frozen contract signing and durable private archives", () =
       await prisma.company.delete({ where: { id: companyId } })
     }
     for (const file of paths) await removeLocalFile(file).catch(() => undefined)
+    await prisma.auditLog.deleteMany({ where: { userId: { in: users } } })
     await prisma.user.deleteMany({ where: { id: { in: users } } })
   })
   async function fixture() {

@@ -2869,7 +2869,11 @@ model MaintenanceContract {
   renewedFromId    String?
   renewedFrom      MaintenanceContract?           @relation("MaintenanceContractRenewal", fields: [renewedFromId], references: [id], onDelete: SetNull)
   renewedContracts MaintenanceContract[]          @relation("MaintenanceContractRenewal")
-  renewalProposals Contract[]
+  renewalProposals Contract[] @relation("MaintenanceRenewalProposals")
+  currentRenewalProposalId String? @unique
+  currentRenewalProposal Contract? @relation("CurrentMaintenanceRenewal", fields: [currentRenewalProposalId], references: [id], onDelete: Restrict)
+  acceptedRenewalProposalId String? @unique
+  acceptedRenewalProposal Contract? @relation("AcceptedMaintenanceRenewal", fields: [acceptedRenewalProposalId], references: [id], onDelete: Restrict)
   equipments       MaintenanceContractEquipment[]
   interventions    FieldIntervention[]
   recurringInvoice RecurringInvoice?
@@ -3169,7 +3173,10 @@ model Contract {
   amendments       Contract[] @relation("ContractAmendments")
 
   maintenanceContractId String?
-  maintenanceContract   MaintenanceContract? @relation(fields: [maintenanceContractId], references: [id], onDelete: Restrict)
+  maintenanceContract   MaintenanceContract? @relation("MaintenanceRenewalProposals", fields: [maintenanceContractId], references: [id], onDelete: Restrict)
+  maintenanceRenewalTerms String? // Versioned conditions captured when preparing the structured proposal
+  currentForMaintenance MaintenanceContract? @relation("CurrentMaintenanceRenewal")
+  acceptedForMaintenance MaintenanceContract? @relation("AcceptedMaintenanceRenewal")
 
   amendmentReason String?
   effectiveAt     DateTime?

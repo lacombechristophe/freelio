@@ -38,7 +38,8 @@ export function interventionDirectoryInclude(scope: Scope, companyId: string) {
 }
 export function maintenanceDirectoryInclude(scope: Scope, companyId: string) {
   return { client: { select: { name: true } }, site: { select: { label: true, agencyId: true } }, recurringInvoice: { select: { id: true, isActive: true } },
-    renewedFrom: { select: { id: true, number: true } }, renewalProposals: { where: { companyId, client: { companyId } }, select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
+    renewedFrom: { select: { id: true, number: true } }, renewalProposals: { where: { companyId, client: { companyId }, status: { in: ["DRAFT", "SENT", "SIGNED"] } }, select: { id: true, number: true, status: true }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
+    currentRenewalProposal: { select: { id: true, number: true, status: true, clientId: true, maintenanceContractId: true } },
     _count: { select: { equipments: { where: { equipment: scope.equipment } }, renewedContracts: { where: scope.contract } } },
   } as const satisfies Prisma.MaintenanceContractInclude
 }
@@ -105,14 +106,17 @@ export async function readOperationsMaintenanceDirectory(context: AuthContext, i
   return prisma.$transaction(async tx => {
     await checkServiceAgency(tx, context, query.agencyId)
     const total = await tx.maintenanceContract.count({ where }), page = pageNumber(query.page, total)
-    const items = await tx.maintenanceContract.findMany({ where, include: maintenanceDirectoryInclude(scope, context.companyId), skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }, { id: "asc" }] })
+    const items = await tx.maintenanceContract.findMany({ where, omit: { currentRenewalProposalId: true, acceptedRenewalProposalId: true }, include: maintenanceDirectoryInclude(scope, context.companyId), skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }, { id: "asc" }] })
     const sources = await readMaintenanceRenewalSources(tx, context, items.map(item => item.id))
     const writable = !isPublicReadOnlyDemo()
-    return { total, page, items: items.map(contract => ({ ...contract,
+    return { total, page, items: items.map(contract => {
+      const { currentRenewalProposal, ...record } = contract
+      const current = currentRenewalProposal?.clientId === contract.clientId && currentRenewalProposal.maintenanceContractId === contract.id ? currentRenewalProposal : null
+      return { ...record, renewalProposals: current ? [{ id: current.id, number: current.number, status: current.status }] : contract.renewalProposals,
       renewalRevision: sources.get(contract.id)!.revision,
       canManageRenewal: writable && hasPermission(context.role, "service.write"),
       canCreateRenewalProposal: writable && hasPermission(context.role, "sales.write"),
       canRenew: writable && hasPermission(context.role, "service.write") && hasPermission(context.role, "operations.write") && (!(contract.autoInvoice || contract.recurringInvoice?.isActive) || hasPermission(context.role, "finance.write")),
-    })) }
+    } }) }
   }, { isolationLevel: "Serializable" })
 }

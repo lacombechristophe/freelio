@@ -27,6 +27,8 @@ export function operationsDashboardScope(companyId: string, agencyIds: AgencyAcc
   const contract = { ...maintenance, AND: [
     { OR: [{ renewedFromId: null }, { renewedFrom: maintenance }] },
     { OR: [{ recurringInvoice: { is: null } }, { recurringInvoice: recurring }] },
+    { OR: [{ currentRenewalProposalId: null }, { currentRenewalProposal: { companyId, client: { companyId } } }] },
+    { OR: [{ acceptedRenewalProposalId: null }, { acceptedRenewalProposal: { companyId, client: { companyId } } }] },
   ] } satisfies Prisma.MaintenanceContractWhereInput
   const intervention = { companyId, site, AND: [
     { OR: [{ ticketId: null }, { ticket }] },

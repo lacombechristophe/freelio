@@ -19,9 +19,9 @@ const snapshotSchema = z.object({
   number: z.string(), title: z.string(), content: z.string(), clientName: z.string(),
   validFrom: z.string().nullable(), validUntil: z.string().nullable(), html: z.string(),
   company: z.object({ name: z.string(), logo: z.string().nullable(), brandColor: z.string() }),
-  source: z.object({ content: z.string(), title: z.string(), number: z.string(), clientId: z.string(), kind: z.string(), validFrom: z.string().nullable(), validUntil: z.string().nullable(), maintenanceContractId: z.string().nullable() }),
+  source: z.object({ content: z.string(), title: z.string(), number: z.string(), clientId: z.string(), kind: z.string(), validFrom: z.string().nullable(), validUntil: z.string().nullable(), maintenanceContractId: z.string().nullable(), maintenanceRenewalTerms: z.string().nullable().optional() }),
 })
-const signedSchema = z.object({ version: z.literal(1), contractId: z.string().cuid(), companyId: z.string(), clientId: z.string().cuid(), html: z.string(), content: z.string(), documentHash: z.string().regex(/^[a-f0-9]{64}$/), signedAt: z.string().datetime() })
+const signedSchema = z.object({ version: z.literal(1), contractId: z.string().cuid(), companyId: z.string(), clientId: z.string().cuid(), html: z.string(), content: z.string(), documentHash: z.string().regex(/^[a-f0-9]{64}$/), signedAt: z.string().datetime(), maintenanceRenewalTerms: z.string().nullable().optional() })
 export type ContractForSnapshot = Prisma.ContractGetPayload<{ include: { client: { include: { contacts: true } }; company: true } }>
 export type ContractArchiveReference = { id: string; companyId: string; clientId: string; status: string; signedDocument: string | null; pdfUrl: string | null; pdfHash: string | null; archiveStatus: string | null }
 
@@ -41,7 +41,7 @@ export async function prepareContractSnapshot(contract: ContractForSnapshot, sig
     number: contract.number, title: contract.title, content, clientName: contract.client.name,
     validFrom: contract.validFrom?.toISOString() ?? null, validUntil: contract.validUntil?.toISOString() ?? null, html,
     company: { name: contract.company.name, logo: html.match(/<img src="(data:[^"]+)"/)?.[1] ?? null, brandColor: contract.company.brandColor },
-    source: { content: contract.content, title: contract.title, number: contract.number, clientId: contract.clientId, kind: contract.kind, validFrom: contract.validFrom?.toISOString() ?? null, validUntil: contract.validUntil?.toISOString() ?? null, maintenanceContractId: contract.maintenanceContractId } })
+    source: { content: contract.content, title: contract.title, number: contract.number, clientId: contract.clientId, kind: contract.kind, validFrom: contract.validFrom?.toISOString() ?? null, validUntil: contract.validUntil?.toISOString() ?? null, maintenanceContractId: contract.maintenanceContractId, maintenanceRenewalTerms: contract.maintenanceRenewalTerms } })
   const serialized = JSON.stringify(snapshot)
   return { documentSnapshot: encrypt(serialized), documentHash: digest(serialized), snapshot }
 }
@@ -64,7 +64,7 @@ export function sealContractSnapshot(snapshot: ReturnType<typeof readContractSna
   const html = snapshot.html.replace(CONTRACT_SIGNATURE_SLOT, signatureMarkup({ signatures: [signature] }))
     .replace(CONTRACT_STATUS_SLOT, "Sign&eacute;").replace('data-status="sent"', 'data-status="signed"')
   if (Buffer.byteLength(html) > 6 * 1024 * 1024) throw new Error("Le contrat signé dépasse 6 Mo")
-  return encrypt(JSON.stringify(signedSchema.parse({ version: 1, contractId: snapshot.contractId, companyId: snapshot.companyId, clientId: snapshot.clientId, html, content: snapshot.content, documentHash, signedAt: signature.signedAt.toISOString() })))
+  return encrypt(JSON.stringify(signedSchema.parse({ version: 1, contractId: snapshot.contractId, companyId: snapshot.companyId, clientId: snapshot.clientId, html, content: snapshot.content, documentHash, signedAt: signature.signedAt.toISOString(), maintenanceRenewalTerms: snapshot.source.maintenanceRenewalTerms })))
 }
 
 export function previewContractSnapshot(snapshot: ReturnType<typeof readContractSnapshot>) {

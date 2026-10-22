@@ -44,6 +44,11 @@ describe("asset form replies at the Server Action boundary", () => {
     expect(await actions.createAssetMaintenanceProposal("fictional contract", "b".repeat(64))).toEqual({ success: false, error: "Le contrat a changé pendant la préparation de la proposition." })
     expect(commands.createMaintenanceRenewalProposal).toHaveBeenCalledWith("fictional contract", "b".repeat(64))
   })
+  it("forwards the proposal explicitly selected for replacement", async () => {
+    commands.createMaintenanceRenewalProposal.mockResolvedValueOnce({ id: "fictional successor", status: "DRAFT" })
+    expect(await actions.createAssetMaintenanceProposal("fictional contract", "b".repeat(64), "fictional previous proposal")).toEqual({ id: "fictional successor", status: "DRAFT" })
+    expect(commands.createMaintenanceRenewalProposal).toHaveBeenCalledWith("fictional contract", "b".repeat(64), "fictional previous proposal")
+  })
   it.each([new AuthorizationError("Accès refusé"), new Error(DEMO_READ_ONLY_MESSAGE)])("returns a known access refusal", async error => {
     commands.updateCustomerSite.mockRejectedValueOnce(error)
     expect(await actions.saveSite({})).toEqual({ success: false, error: error.message })

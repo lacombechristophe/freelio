@@ -104,7 +104,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
               <Plus className="h-4 w-4" /> Créer un avenant
             </Link>
           )}
-          <ContractStatusActions contractId={contract.id} status={contract.status} />
+          <ContractStatusActions contractId={contract.id} status={contract.status} kind={contract.kind} />
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useConfirm } from "@/components/shared/confirm-provider"
 import { indexedMaintenancePrice, maintenanceRenewalWindow } from "@/lib/operations/maintenance-renewal"
 
 type OperationsData = Awaited<ReturnType<typeof import("@/actions/operations").getOperationsMaintenanceDirectory>>
@@ -30,6 +31,7 @@ function date(value: Date | string | null) {
 
 export function MaintenanceRenewalPanel({ contract, onOpenChange, onSaved }: { contract: Contract; onOpenChange?: (open: boolean) => void; onSaved?: () => void }) {
   const router = useRouter()
+  const confirmDialog = useConfirm()
   const [pending, startTransition] = useTransition()
   const [dirty, setDirty] = useState(false)
   const window = maintenanceRenewalWindow(contract.endDate, contract.noticeDays)
@@ -50,9 +52,19 @@ export function MaintenanceRenewalPanel({ contract, onOpenChange, onSaved }: { c
 
   function openProposal() {
     if (proposal) return router.push(`/dashboard/contrats/${proposal.id}`)
-    startTransition(() => void createAssetMaintenanceProposal(contract.id, contract.renewalRevision)
+    prepareProposal()
+  }
+
+  function prepareProposal(supersedesProposalId?: string) {
+    startTransition(() => void createAssetMaintenanceProposal(contract.id, contract.renewalRevision, supersedesProposalId)
       .then((created) => { if ("error" in created) return toast.error(created.error); router.push(`/dashboard/contrats/${created.id}`) })
       .catch((error) => toast.error(error instanceof Error ? error.message : "Proposition impossible.")))
+  }
+
+  async function replaceProposal() {
+    if (!proposal || !(await confirmDialog({ title: "Préparer une nouvelle proposition ?", confirmLabel: "Préparer le brouillon",
+      description: proposal.status === "SIGNED" ? "Le document signé restera conservé. Toute nouvelle condition devra recevoir un nouvel accord." : "La proposition en attente sera classée et son lien révoqué. Un nouveau brouillon sera préparé, sans envoi automatique." }))) return
+    prepareProposal(proposal.id)
   }
 
   return <details className="group" onToggle={event => onOpenChange?.(event.currentTarget.open)}>
@@ -77,6 +89,7 @@ export function MaintenanceRenewalPanel({ contract, onOpenChange, onSaved }: { c
         <label className="flex items-center gap-3 self-end rounded-lg border bg-background px-3 py-2.5 text-sm"><input name="autoRenew" disabled={!contract.canManageRenewal || pending} type="checkbox" defaultChecked={contract.autoRenew} className="size-4" />Autoriser le renouvellement automatique</label>
         <div className="lg:col-span-2"><Label htmlFor={`renewal-notes-${contract.id}`}>Notes de renouvellement</Label><Textarea id={`renewal-notes-${contract.id}`} name="renewalNotes" disabled={!contract.canManageRenewal || pending} rows={3} maxLength={5_000} defaultValue={contract.renewalNotes || ""} className="mt-1.5" placeholder="Échanges, conditions proposées, objections ou accord client…" /></div>
         <div className="flex flex-wrap gap-2 lg:col-span-2"><Button demoMutation type="submit" variant="outline" disabled={pending || !contract.canManageRenewal}>{pending ? <Loader2 className="animate-spin" /> : <Save />}Enregistrer le renouvellement</Button><Button demoMutation={!proposal} type="button" variant="outline" disabled={pending || (!proposal && (!contract.canCreateRenewalProposal || dirty)) || !contract.endDate || contract.renewalStatus === "DECLINED"} title={dirty ? "Enregistrez les paramètres modifiés avant de poursuivre" : !contract.endDate ? "Renseignez une date de fin" : "Préparer le document à faire signer"} onClick={openProposal}>{pending ? <Loader2 className="animate-spin" /> : <FileSignature />}{proposal ? "Ouvrir la proposition" : "Créer la proposition"}</Button><Button demoMutation type="button" disabled={pending || !canRenew} title={dirty ? "Enregistrez les paramètres modifiés avant de poursuivre" : !contract.endDate ? "Renseignez une date de fin" : contract.renewalStatus === "DECLINED" ? "Le renouvellement est refusé" : !canRenew ? "Un accord client ou le renouvellement automatique est requis" : "Créer le nouveau terme"} onClick={() => run(() => renewAssetMaintenance(contract.id, contract.renewalRevision), "Contrat renouvelé et nouveau terme créé.")}>{pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}Créer le nouveau terme</Button></div>
+        {proposal && <div className="lg:col-span-2"><Button demoMutation type="button" variant="outline" disabled={pending || dirty || !contract.canCreateRenewalProposal || !contract.endDate || contract.renewalStatus === "DECLINED"} onClick={replaceProposal}>Nouvelle proposition</Button></div>}
         {dirty && <p className="text-xs text-muted-foreground lg:col-span-2">Enregistrez les paramètres modifiés avant de créer une proposition ou un nouveau terme.</p>}
       </form>}
     </div>

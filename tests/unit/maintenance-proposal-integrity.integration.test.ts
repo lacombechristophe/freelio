@@ -78,7 +78,9 @@ describe.sequential("Maintenance proposals retain their displayed source and man
     await db.membership.update({ where: { id: fixture.member.id }, data: { role: "SALES" } })
     const source = await displayed(), before = await current(), result = await propose(source.id, source.revision)
     expect(await db.contract.findUniqueOrThrow({ where: { id: result.id } })).toMatchObject({ status: "DRAFT", maintenanceContractId: source.id })
-    expect(await current()).toEqual(before)
+    const saved = await current()
+    expect(saved).toEqual({ ...before, currentRenewalProposalId: result.id, updatedAt: saved.updatedAt })
+    expect(saved.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime())
   })
   it("identifies the indexed price as HT rather than promising that price TTC", async () => {
     const source = await displayed(), result = await propose(source.id, source.revision)
@@ -171,7 +173,9 @@ describe.sequential("Maintenance proposals retain their displayed source and man
     expect(results[0].id).toBe(results[1].id)
     expect(await db.contract.count({ where: { maintenanceContractId: source.id } })).toBe(1)
     expect(await db.auditLog.count({ where: { userId: session.userId, action: "CREATE_MAINTENANCE_RENEWAL_PROPOSAL" } })).toBe(1)
-    expect(await current()).toEqual(before)
+    const saved = await current()
+    expect(saved).toEqual({ ...before, currentRenewalProposalId: results[0].id, updatedAt: saved.updatedAt })
+    expect(saved.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime())
   })
   it("requires an end date and preserves the source on refusal", async () => {
     await db.maintenanceContract.update({ where: { id: fixture.positive.contracts }, data: { endDate: null } })

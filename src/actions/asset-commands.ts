@@ -34,4 +34,4 @@ export async function addServiceTicket(input: unknown) { return reply(() => oper
 export async function addFieldIntervention(input: unknown) { return reply(() => operations.createFieldIntervention(input)) }
 export async function addMaintenanceContract(input: unknown) { return reply(() => operations.createMaintenanceContract(input)) }
 export async function renewAssetMaintenance(contractId: string, expectedRevision: string) { return reply(() => operations.renewMaintenanceContract(contractId, expectedRevision)) }
-export async function createAssetMaintenanceProposal(contractId: string, expectedRevision: string) { return reply(() => createMaintenanceRenewalProposal(contractId, expectedRevision)) }
+export async function createAssetMaintenanceProposal(contractId: string, expectedRevision: string, supersedesProposalId?: string) { return reply(() => supersedesProposalId === undefined ? createMaintenanceRenewalProposal(contractId, expectedRevision) : createMaintenanceRenewalProposal(contractId, expectedRevision, supersedesProposalId)) }
