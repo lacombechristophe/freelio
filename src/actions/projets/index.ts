@@ -77,12 +77,13 @@ export async function getProjects(cursor?: string, limit: number = 20) {
   return await withAuth(async ({ companyId, role, agencyIds }) => {
     const pageSize = boundedPageSize(limit, 20, 100)
     const projects = await prisma.project.findMany({
-      where: { companyId, client: { companyId } },
+      where: { ...operationsDashboardScope(companyId, agencyIds).project,
+        OR: [{ projectTemplateId: null }, { projectTemplate: { companyId } }] },
       take: pageSize,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       include: { client: true, agency: { select: { id: true, name: true, code: true } }, projectTemplate: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     })
     return projects.map(project => ({ ...project, client: clientWithAccessibleMetrics(project.client, { role, agencyIds }) }))
   }, "operations.read")
