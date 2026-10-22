@@ -7,6 +7,7 @@ import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import * as management from "@/actions/asset-management"
 import * as operations from "@/actions/operations"
 import { transferCustomerSite } from "@/actions/site-transfers"
+import { createMaintenanceRenewalProposal } from "@/actions/contrats"
 
 // The existing commands own authorization and their transaction. This boundary
 // returns expected failures as data so production Server Actions can display them.
@@ -33,3 +34,4 @@ export async function addServiceTicket(input: unknown) { return reply(() => oper
 export async function addFieldIntervention(input: unknown) { return reply(() => operations.createFieldIntervention(input)) }
 export async function addMaintenanceContract(input: unknown) { return reply(() => operations.createMaintenanceContract(input)) }
 export async function renewAssetMaintenance(contractId: string, expectedRevision: string) { return reply(() => operations.renewMaintenanceContract(contractId, expectedRevision)) }
+export async function createAssetMaintenanceProposal(contractId: string, expectedRevision: string) { return reply(() => createMaintenanceRenewalProposal(contractId, expectedRevision)) }

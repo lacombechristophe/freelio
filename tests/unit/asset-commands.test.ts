@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const commands = vi.hoisted(() => ({ updateCustomerSite: vi.fn(), updateEquipment: vi.fn(), setCustomerSiteActive: vi.fn(), setEquipmentActive: vi.fn(),
-  createCustomerSite: vi.fn(), createEquipment: vi.fn(), createServiceTicket: vi.fn(), createFieldIntervention: vi.fn(), createMaintenanceContract: vi.fn(), renewMaintenanceContract: vi.fn(), transferCustomerSite: vi.fn() }))
+  createCustomerSite: vi.fn(), createEquipment: vi.fn(), createServiceTicket: vi.fn(), createFieldIntervention: vi.fn(), createMaintenanceContract: vi.fn(), renewMaintenanceContract: vi.fn(), transferCustomerSite: vi.fn(), createMaintenanceRenewalProposal: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: vi.fn() }))
 vi.mock("@/actions/asset-management", () => commands)
 vi.mock("@/actions/operations", () => commands)
 vi.mock("@/actions/site-transfers", () => commands)
+vi.mock("@/actions/contrats", () => commands)
 import { AuthorizationError } from "@/lib/auth-wrapper"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
@@ -37,6 +38,11 @@ describe("asset form replies at the Server Action boundary", () => {
     commands.renewMaintenanceContract.mockRejectedValueOnce(new AssetLifecycleError("Le contrat a changé."))
     expect(await actions.renewAssetMaintenance("fictional contract", "a".repeat(64))).toEqual({ success: false, error: "Le contrat a changé." })
     expect(commands.renewMaintenanceContract).toHaveBeenCalledWith("fictional contract", "a".repeat(64))
+  })
+  it("passes the displayed proposal revision and preserves its expected refusal", async () => {
+    commands.createMaintenanceRenewalProposal.mockRejectedValueOnce(new AssetLifecycleError("Le contrat a changé pendant la préparation de la proposition."))
+    expect(await actions.createAssetMaintenanceProposal("fictional contract", "b".repeat(64))).toEqual({ success: false, error: "Le contrat a changé pendant la préparation de la proposition." })
+    expect(commands.createMaintenanceRenewalProposal).toHaveBeenCalledWith("fictional contract", "b".repeat(64))
   })
   it.each([new AuthorizationError("Accès refusé"), new Error(DEMO_READ_ONLY_MESSAGE)])("returns a known access refusal", async error => {
     commands.updateCustomerSite.mockRejectedValueOnce(error)

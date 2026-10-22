@@ -45,6 +45,14 @@ async function login(page: Page, email: string, kind: Kind) {
   await page.waitForFunction(() => document.documentElement.dataset.appHydrated === "true")
 }
 
+async function maintenancePanel(page: Page, fixture: Awaited<ReturnType<typeof setup>>) {
+  await login(page, fixture.email, "maintenance")
+  await page.getByRole("textbox", { name: "Rechercher un contrat d’entretien", exact: true }).fill(fixture.title)
+  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
+  await panel.locator("summary").click()
+  return panel
+}
+
 for (const entry of [
   { kind: "sav", heading: "Tickets SAV", search: "Rechercher un ticket SAV" },
   { kind: "planning", heading: "Planning terrain", search: "Rechercher une intervention" },
@@ -134,9 +142,7 @@ test("An Operations reader cannot start, reschedule or attach files to an interv
 
 test("Service saves maintenance renewal settings with one audit and no general operational rights", async ({ page }, info) => {
   const fixture = await setup(info.project.name, "maintenance", "SERVICE")
-  await login(page, fixture.email, "maintenance")
-  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
-  await panel.locator("summary").click()
+  const panel = await maintenancePanel(page, fixture)
   await panel.getByLabel("Préavis (jours)").fill("45")
   await panel.getByLabel("Notes de renouvellement").fill("Fictional Service renewal agreement")
   await panel.getByRole("button", { name: "Enregistrer le renouvellement", exact: true }).click()
@@ -148,9 +154,7 @@ test("Service saves maintenance renewal settings with one audit and no general o
 
 test("A stale maintenance form keeps its input and does not overwrite a newer decision", async ({ page }, info) => {
   const fixture = await setup(info.project.name, "maintenance")
-  await login(page, fixture.email, "maintenance")
-  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
-  await panel.locator("summary").click()
+  const panel = await maintenancePanel(page, fixture)
   await panel.getByLabel("Préavis (jours)").fill("45")
   await panel.getByLabel("Notes de renouvellement").fill("Fictional unsaved note to preserve")
   const current = await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })
@@ -170,9 +174,7 @@ test("Maintenance renewal creates one successor, moves billing and records its a
   const source = await database.maintenanceContract.update({ where: { id: fixture.id }, data: { priceCents: 10000, indexationRate: 2, renewalStatus: "ACCEPTED" } })
   const oldBilling = await database.recurringInvoice.create({ data: { companyId: fixture.companyId, clientId: source.clientId,
     maintenanceContractId: source.id, label: "Fictional browser billing", frequency: "ANNUALLY", nextGenDate: new Date("2031-01-02"), template: {} } })
-  await login(page, fixture.email, "maintenance")
-  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
-  await panel.locator("summary").click()
+  const panel = await maintenancePanel(page, fixture)
   await panel.getByLabel("Notes de renouvellement").fill("Fictional unsaved renewal condition")
   await expect(panel.getByRole("button", { name: "Créer le nouveau terme", exact: true })).toBeDisabled()
   await expect(panel.getByRole("button", { name: "Créer la proposition", exact: true })).toBeDisabled()
@@ -191,9 +193,7 @@ test("Maintenance renewal creates one successor, moves billing and records its a
 test("Maintenance renewal rejects a stale billing policy and keeps the open form", async ({ page }, info) => {
   const fixture = await setup(info.project.name, "maintenance")
   await database.maintenanceContract.update({ where: { id: fixture.id }, data: { priceCents: 10000, renewalStatus: "ACCEPTED", renewalNotes: "Fictional stored renewal condition" } })
-  await login(page, fixture.email, "maintenance")
-  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
-  await panel.locator("summary").click()
+  const panel = await maintenancePanel(page, fixture)
   const company = await database.company.findUniqueOrThrow({ where: { id: fixture.companyId } })
   await database.company.update({ where: { id: company.id }, data: { isTvaApplicable: !company.isTvaApplicable } })
   await panel.getByRole("button", { name: "Créer le nouveau terme", exact: true }).click()
@@ -201,5 +201,34 @@ test("Maintenance renewal rejects a stale billing policy and keeps the open form
   await expect(panel.getByLabel("Notes de renouvellement")).toHaveValue("Fictional stored renewal condition")
   expect(await database.maintenanceContract.count({ where: { renewedFromId: fixture.id } })).toBe(0)
   expect((await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })).status).toBe("ACTIVE")
+  expect(await database.auditLog.count({ where: { resourceId: fixture.id } })).toBe(0)
+})
+
+test("Maintenance proposal lets Commercial prepare an audited draft with HT prices", async ({ page }, info) => {
+  const fixture = await setup(info.project.name, "maintenance", "SALES")
+  const source = await database.maintenanceContract.update({ where: { id: fixture.id }, data: { priceCents: 10000, indexationRate: 2 } })
+  const panel = await maintenancePanel(page, fixture)
+  await expect(panel.getByRole("button", { name: "Enregistrer le renouvellement", exact: true })).toBeDisabled()
+  await panel.getByRole("button", { name: "Créer la proposition", exact: true }).click()
+  await page.waitForURL(url => /^\/dashboard\/contrats\/[^/]+$/.test(url.pathname))
+  const proposal = await database.contract.findFirstOrThrow({ where: { companyId: fixture.companyId, maintenanceContractId: fixture.id } })
+  expect(proposal.status).toBe("DRAFT")
+  expect(proposal.content).toMatch(/102[^0-9]*00[^<]*HT/)
+  expect(proposal.content).not.toContain("TTC")
+  expect(await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })).toEqual(source)
+  expect(await database.auditLog.count({ where: { resourceId: proposal.id, action: "CREATE_MAINTENANCE_RENEWAL_PROPOSAL" } })).toBe(1)
+})
+
+test("Maintenance proposal refuses a stale site label and keeps its form open", async ({ page }, info) => {
+  const fixture = await setup(info.project.name, "maintenance")
+  await database.maintenanceContract.update({ where: { id: fixture.id }, data: { renewalNotes: "Fictional retained proposal condition" } })
+  const panel = await maintenancePanel(page, fixture)
+  const source = await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })
+  await database.customerSite.update({ where: { id: source.siteId }, data: { label: "Fictional renamed browser site" } })
+  await panel.getByRole("button", { name: "Créer la proposition", exact: true }).click()
+  await expect(page.locator("[data-sonner-toast]")).toContainText("Le contrat a changé pendant la préparation de la proposition")
+  await expect(panel.getByLabel("Notes de renouvellement")).toHaveValue("Fictional retained proposal condition")
+  expect(await database.contract.count({ where: { maintenanceContractId: fixture.id } })).toBe(0)
+  expect(await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })).toEqual(source)
   expect(await database.auditLog.count({ where: { resourceId: fixture.id } })).toBe(0)
 })

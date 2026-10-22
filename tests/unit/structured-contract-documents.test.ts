@@ -34,6 +34,9 @@ describe("structured contract documents", () => {
 
     expect(html).toContain("ENT-2026-001")
     expect(html).toContain("252,00 €")
+    expect(html).toContain("240,00 € HT")
+    expect(html).toContain("252,00 € HT")
+    expect(html).not.toContain("TTC")
     expect(html).toContain("90 jours")
     expect(html).toContain("signature électronique")
   })

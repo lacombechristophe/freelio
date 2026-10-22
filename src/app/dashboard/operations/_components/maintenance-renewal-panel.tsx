@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { updateMaintenanceRenewalSettings } from "@/actions/operations"
-import { renewAssetMaintenance } from "@/actions/asset-commands"
-import { createMaintenanceRenewalProposal } from "@/actions/contrats"
+import { renewAssetMaintenance, createAssetMaintenanceProposal } from "@/actions/asset-commands"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,8 +50,8 @@ export function MaintenanceRenewalPanel({ contract, onOpenChange, onSaved }: { c
 
   function openProposal() {
     if (proposal) return router.push(`/dashboard/contrats/${proposal.id}`)
-    startTransition(() => void createMaintenanceRenewalProposal(contract.id)
-      .then((created) => router.push(`/dashboard/contrats/${created.id}`))
+    startTransition(() => void createAssetMaintenanceProposal(contract.id, contract.renewalRevision)
+      .then((created) => { if ("error" in created) return toast.error(created.error); router.push(`/dashboard/contrats/${created.id}`) })
       .catch((error) => toast.error(error instanceof Error ? error.message : "Proposition impossible.")))
   }
 

@@ -1,6 +1,7 @@
 "use server"
 
 import { createHash, randomBytes } from "node:crypto"
+import { Prisma } from "@prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth, resolveAuthContext, AuthorizationError } from "@/lib/auth-wrapper"
@@ -12,6 +13,9 @@ import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumb
 import { compileContractVariables } from "@/lib/contracts/html"
 import { buildContractAmendmentContent, buildMaintenanceRenewalContent } from "@/lib/contracts/structured-documents"
 import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
+import { readMaintenanceRenewalSources } from "@/lib/operations/maintenance-renewal-source"
+import { lockActiveSite } from "@/lib/operations/asset-lifecycle"
+import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { signatureRateLimit } from "@/lib/rate-limit"
 import { headers } from "next/headers"
 import { boundedPageSize } from "@/lib/pagination"
@@ -150,63 +154,46 @@ export async function createContractAmendment(input: unknown) {
   })
 }
 
-export async function createMaintenanceRenewalProposal(maintenanceContractId: string) {
-  return withAuth(async ({ companyId, userId }) => {
+export async function createMaintenanceRenewalProposal(maintenanceContractId: string, expectedRevision: string) {
+  const changedMessage = "Le contrat a changé pendant la préparation de la proposition. Rechargez la page."
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const parsedId = z.string().cuid().parse(maintenanceContractId)
-    const maintenance = await prisma.maintenanceContract.findFirst({
-      where: { id: parsedId, companyId },
-      include: {
-        site: { select: { label: true } },
-        renewalProposals: {
-          where: { status: { in: ["DRAFT", "SENT", "SIGNED"] } },
-          select: { id: true, number: true, status: true },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-        },
-        _count: { select: { renewedContracts: true } },
-      },
-    })
-    if (!maintenance) throw new Error("Contrat d’entretien introuvable")
-    if (!maintenance.endDate) throw new Error("Renseignez une date de fin avant de préparer la proposition")
-    if (maintenance.renewalStatus === "DECLINED") throw new Error("Le renouvellement a été refusé")
-    if (maintenance.renewalStatus === "RENEWED" || maintenance._count.renewedContracts > 0) throw new Error("Ce terme a déjà été renouvelé")
-    if (maintenance.renewalProposals[0]) return maintenance.renewalProposals[0]
-
-    const term = nextMaintenanceTerm(maintenance.startDate, maintenance.endDate)
-    const nextPriceCents = indexedMaintenancePrice(maintenance.priceCents, maintenance.indexationRate)
-    const content = buildMaintenanceRenewalContent({
-      sourceNumber: maintenance.number,
-      label: maintenance.label,
-      siteLabel: maintenance.site.label,
-      nextStartDate: term.startDate,
-      nextEndDate: term.endDate,
-      currentPriceCents: maintenance.priceCents,
-      nextPriceCents,
-      indexationRate: maintenance.indexationRate,
-      frequency: maintenance.frequency,
-      noticeDays: maintenance.noticeDays,
-    })
-    const result = await withDocumentNumberRetry(
-      async () =>
-        prisma.$transaction(
+    if (!z.string().regex(/^[a-f0-9]{64}$/).safeParse(expectedRevision).success) throw new AssetLifecycleError(changedMessage)
+    const prefix = buildYearlyDocumentPrefix("REN-", "REN-")
+    const contract = await withDocumentNumberRetry(
+      async () => {
+        const last = await readCompanyDocumentNumbers(() => prisma.contract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        return prisma.$transaction(
           async (tx) => {
-            // Lock the maintenance row so concurrent clicks reuse the same active proposal.
-            await tx.maintenanceContract.update({ where: { id: maintenance.id }, data: { updatedAt: new Date() } })
+            const prepared = (await readMaintenanceRenewalSources(tx, { companyId, agencyIds }, [parsedId])).get(parsedId)
+            if (!prepared) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+            const maintenance = prepared.source
+            if (!maintenance.endDate) throw new AssetLifecycleError("Renseignez une date de fin avant de préparer la proposition")
+            if (maintenance.renewalStatus === "DECLINED") throw new AssetLifecycleError("Le renouvellement a été refusé")
+            if (maintenance.status === "RENEWED" || maintenance.renewalStatus === "RENEWED" || maintenance._count.renewedContracts > 0) throw new AssetLifecycleError("Ce terme a déjà été renouvelé")
             const activeProposal = await tx.contract.findFirst({
               where: {
+                companyId, clientId: maintenance.clientId, client: { companyId },
                 maintenanceContractId: maintenance.id,
                 status: { in: ["DRAFT", "SENT", "SIGNED"] },
               },
               select: { id: true, number: true, status: true },
-              orderBy: { createdAt: "desc" },
+              orderBy: [{ createdAt: "desc" }, { id: "asc" }],
             })
-            if (activeProposal) return { contract: activeProposal, created: false as const }
-
-            const prefix = buildYearlyDocumentPrefix("REN-", "REN-")
-            const last = await readCompanyDocumentNumbers(() => tx.contract.findMany({
-              where: { companyId, number: { startsWith: prefix } },
-              select: { number: true },
-            }))
+            if (activeProposal) return activeProposal
+            if (prepared.revision !== expectedRevision) throw new AssetLifecycleError(changedMessage)
+            const site = await lockActiveSite(tx, companyId, maintenance.siteId, agencyIds)
+            if (site.clientId !== maintenance.clientId) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+            const term = nextMaintenanceTerm(maintenance.startDate, maintenance.endDate)
+            const nextPriceCents = indexedMaintenancePrice(maintenance.priceCents, maintenance.indexationRate)
+            if (!Number.isSafeInteger(nextPriceCents) || nextPriceCents > 2147483647) throw new AssetLifecycleError("Le montant du renouvellement dépasse la capacité de calcul.")
+            // Serialize proposal creation without granting Sales operational edits
+            // or changing the source's metadata. Values and table are fixed/bound.
+            const claimed = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "updatedAt" = "updatedAt" WHERE "id" = ${maintenance.id} AND "companyId" = ${companyId} AND "updatedAt" = ${maintenance.updatedAt}`)
+            if (claimed !== 1) throw new AssetLifecycleError(changedMessage)
+            const content = buildMaintenanceRenewalContent({ sourceNumber: maintenance.number, label: maintenance.label, siteLabel: maintenance.site.label,
+              nextStartDate: term.startDate, nextEndDate: term.endDate, currentPriceCents: maintenance.priceCents, nextPriceCents,
+              indexationRate: maintenance.indexationRate, frequency: maintenance.frequency, noticeDays: maintenance.noticeDays })
             const contract = await tx.contract.create({
               data: {
                 companyId,
@@ -222,26 +209,21 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
               },
               select: { id: true, number: true, status: true },
             })
-            return { contract, created: true as const }
+            await tx.auditLog.create({ data: { userId, action: "CREATE_MAINTENANCE_RENEWAL_PROPOSAL", resource: "CONTRACT", resourceId: contract.id,
+              payload: { number: contract.number, maintenanceContractId: maintenance.id, maintenanceNumber: maintenance.number, nextPriceCents, sourceRevision: expectedRevision } } })
+            return contract
           },
           { isolationLevel: "Serializable" },
-        ),
+        )
+      },
       { label: "la proposition de renouvellement" },
     )
-    const contract = result.contract
-
-    if (result.created) {
-      await logAction({
-        userId,
-        action: "CREATE_MAINTENANCE_RENEWAL_PROPOSAL",
-        resource: "CONTRACT",
-        resourceId: contract.id,
-        payload: { number: contract.number, maintenanceContractId: maintenance.id, maintenanceNumber: maintenance.number, nextPriceCents },
-      })
-    }
     revalidatePath("/dashboard/contrats")
     revalidatePath("/dashboard/operations")
     return contract
+  }, "sales.write").catch(error => {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new AssetLifecycleError(changedMessage)
+    throw error
   })
 }
 
