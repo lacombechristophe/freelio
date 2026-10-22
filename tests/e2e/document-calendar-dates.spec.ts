@@ -65,11 +65,14 @@ for (const timezoneId of ["Pacific/Kiritimati", "America/Los_Angeles"]) {
         // Streamed server fragments can arrive outside the initial main element.
         const serverText = await page.evaluate(html => new DOMParser().parseFromString(html, "text/html").body.textContent, html)
         expect(serverText).toContain(marker)
-        expect(serverText).toContain(expected)
+        if (route.includes("tab=planning")) {
+          // The paged planning reader loads after hydration; its server shell
+          // intentionally has a loading state rather than formatted rows.
+          expect(serverText).toContain("Actualisation du planning")
+        } else expect(serverText).toContain(expected)
         await expect(page.locator("#dashboard-main")).toContainText(marker)
         await expect(page.locator("#dashboard-main")).toContainText(expected)
         if (route.includes("tab=planning")) {
-          expect(serverText).toContain("vendredi 1 janvier")
           await expect(page.locator("#dashboard-main")).toContainText("vendredi 1 janvier")
           await expect(page.locator("#dashboard-main")).toContainText("CALENDAR-FUTURE-ROUTE")
         }

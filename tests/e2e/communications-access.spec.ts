@@ -17,7 +17,7 @@ for (const role of ["operations", "service"]) {
     const record = (request: import("@playwright/test").Request) => { if (request.method() === "POST") posts.push(request.url()) }
     page.on("request", record)
     await page.locator("button[data-selected]").filter({ hasText: "UIQA Read-only Communications" }).click()
-    await expect(page.getByText("Fictional retained message", { exact: true })).toBeVisible()
+    await expect(page.getByRole("article").getByText("Fictional retained message", { exact: true })).toBeVisible()
     for (const name of ["Clore", "Répondre", "Répondre à tous", "Transférer"]) await expect(page.getByRole("button", { name, exact: true })).toBeDisabled()
     expect(posts).toEqual([])
     page.off("request", record)
@@ -40,6 +40,7 @@ for (const role of ["operations", "service"]) {
 
 test("Sales can compose but cannot configure a company connection", async ({ page }, info) => {
   await login(page, "sales", info.project.name)
+  await page.locator("button[data-selected]").filter({ hasText: "UIQA Read-only Communications" }).click()
   await expect(page.getByRole("button", { name: "Répondre", exact: true })).toBeEnabled()
   await page.getByRole("tab", { name: "Nouvel e-mail", exact: true }).click()
   await expect(page.getByLabel("Contenu HTML", { exact: true })).toBeEditable()

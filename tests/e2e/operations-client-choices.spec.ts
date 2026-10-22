@@ -42,6 +42,7 @@ for (const form of forms) {
       await container.locator("#city").fill("Paris")
     } else if (form.kind === "ticket") await container.locator("#description").fill("Fictional kept description")
     else if (form.kind === "maintenance") {
+      await client.selectOption(lastId)
       await container.locator("#siteId").selectOption(`copschoicesite${form.kind}${info.project.name}`)
       await container.locator("#startDate").fill("2030-01-02")
       await container.locator("#price").fill("123.45")
@@ -69,7 +70,9 @@ for (const form of forms) {
     await expect(choice.getByText("0 résultats", { exact: true })).toBeVisible()
     await expect(search).toHaveValue("FAIL-OPS-CHOICE"); await expect(client).toHaveValue(lastId)
     await search.fill("Client 000"); await expect(choice.getByText("1 résultat", { exact: true })).toBeVisible()
-    await client.selectOption(firstId); await expect(save).toBeEnabled()
+    await client.selectOption(firstId)
+    if (form.kind === "maintenance") await expect(save).toBeDisabled()
+    else await expect(save).toBeEnabled()
     await database.client.delete({ where: { id: firstId } })
     await search.fill("dernier"); await expect(choice.getByRole("alert")).toContainText("Impossible d’actualiser la liste.")
     await expect(save).toBeDisabled(); await expect(client).toHaveValue(firstId)

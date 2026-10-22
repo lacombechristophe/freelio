@@ -6,7 +6,7 @@ test("distinguishes recorded provider observations from local CRM state and repo
   await page.getByRole("button", { name: "Rechercher", exact: true }).click()
   await page.locator("button[data-selected]").filter({ hasText: "UIQA Remote observation" }).click()
   await expect(page.getByText("Clos", { exact: true })).toBeVisible()
-  await expect(page.getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)).toBeVisible()
+  await expect(page.getByText("Lecture, clôture, archivage et prise en charge modifient le suivi CRM dans Freelio ; la boîte distante reste inchangée.", { exact: true })).toBeVisible()
   const observed = page.locator("article").filter({ has: page.getByText("UIQA Remote observed", { exact: true }) })
   await expect(observed.getByText(/Non lu chez le fournisseur · Réception/)).toBeVisible()
   await expect(observed.getByText(/aucune archive locale durable/)).toBeVisible()

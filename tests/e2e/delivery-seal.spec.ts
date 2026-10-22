@@ -52,7 +52,7 @@ test("reserved stock, delivery and captured acknowledgement retain their history
   await expect(page.getByText("Bon de livraison enregistré.", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: "Faire signer", exact: true }).click()
   const signing = page.getByRole("dialog", { name: "Signer le bon de livraison", exact: true })
-  await signing.getByLabel("Nom du réceptionnaire", { exact: true }).fill("Fictional recipient")
+  await signing.getByLabel(/^Nom du réceptionnaire(?: \*)?$/).fill("Fictional recipient")
   await signing.getByRole("checkbox").check()
   await signing.getByRole("button", { name: "Signer et sceller", exact: true }).click()
   await expect(signing).toBeHidden()

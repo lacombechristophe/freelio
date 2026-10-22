@@ -116,12 +116,12 @@ for (const entry of [
       if (entry.kind === "planning") {
         await section.getByRole("button", { name: "Replanifier", exact: true }).click()
         const dialog = page.getByRole("dialog")
-        await dialog.getByLabel("Début", { exact: true }).fill("2030-06-20T10:00")
-        await dialog.getByLabel("Fin", { exact: true }).fill("2030-06-20T09:00")
+        await dialog.getByLabel(/^Début(?: \*)?$/).fill("2030-06-20T10:00")
+        await dialog.getByLabel(/^Fin(?: \*)?$/).fill("2030-06-20T09:00")
         await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click()
         await expect(page.locator("[data-sonner-toast]")).toContainText(/fin|créneau/i)
-        await expect(dialog.getByLabel("Début", { exact: true })).toHaveValue("2030-06-20T10:00")
-        await expect(dialog.getByLabel("Fin", { exact: true })).toHaveValue("2030-06-20T09:00")
+        await expect(dialog.getByLabel(/^Début(?: \*)?$/)).toHaveValue("2030-06-20T10:00")
+        await expect(dialog.getByLabel(/^Fin(?: \*)?$/)).toHaveValue("2030-06-20T09:00")
         await dialog.getByRole("button", { name: "Annuler", exact: true }).click()
       }
     }

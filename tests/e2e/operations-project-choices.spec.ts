@@ -17,7 +17,7 @@ for (const kind of kinds) {
     const source = await database.user.findUniqueOrThrow({ where: { email: `purchase-creation-${info.project.name}@example.test` }, select: { passwordHash: true } })
     const company = await database.company.create({ data: { name: "Fictional complete project browser choices" } })
     await database.saasSubscription.create({ data: { companyId: company.id, plan: "RESEAU", status: "ACTIVE", seatQuantity: 10 } })
-    const email = `operations-project-${kind.key}-${info.project.name}-${randomUUID()}@example.test`
+    const email = `operations-project-${kind.key.toLowerCase()}-${info.project.name}-${randomUUID()}@example.test`
     const user = await database.user.create({ data: { companyId: company.id, email, emailVerified: new Date(), passwordHash: source.passwordHash } })
     const membership = await database.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER", status: "ACTIVE" } })
     const agency = await database.agency.create({ data: { companyId: company.id, code: "PROJECT", name: "Fictional project browser agency" } })

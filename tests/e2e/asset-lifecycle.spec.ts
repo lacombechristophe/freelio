@@ -65,11 +65,11 @@ test("edits and retires assets without losing history or a refused creation form
     await composer.getByRole("textbox", { name: "Rechercher un site à rattacher", exact: true }).fill("UIQA Legacy Site")
     await expect(siteChoice.getByText("201 résultats", { exact: true })).toBeVisible()
     await expect(composer.locator("select[name=siteId]")).toHaveValue(site.id)
-    await composer.getByLabel("Équipement", { exact: true }).fill("UIQA Preserved Creation")
+    await composer.getByLabel(/^Équipement(?: \*)?$/).fill("UIQA Preserved Creation")
     await db.customerSite.update({ where: { id: site.id }, data: { archivedAt: new Date() } })
     await composer.getByRole("button", { name: "Enregistrer", exact: true }).click()
     await expect(page.getByText("Site client introuvable ou désactivé", { exact: true })).toBeVisible()
-    await expect(composer.getByLabel("Équipement", { exact: true })).toHaveValue("UIQA Preserved Creation")
+    await expect(composer.getByLabel(/^Équipement(?: \*)?$/)).toHaveValue("UIQA Preserved Creation")
     expect(await db.equipment.count({ where: { companyId: fixture.companyId, label: "UIQA Preserved Creation" } })).toBe(0)
     expect(errors).toEqual([])
   } finally {
