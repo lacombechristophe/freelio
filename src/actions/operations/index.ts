@@ -36,6 +36,7 @@ import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn,
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
 import { convertAcceptedQuote } from "@/lib/operations/quote-conversion"
 import { readOperationsProjectChoices } from "@/lib/operations/project-choices"
+import { activitySummaryQuery, readOperationsActivity } from "@/lib/operations/activity-summary"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -508,6 +509,15 @@ export async function getOperationsProjectChoices(input: unknown = {}) {
   return withAuth(context => readOperationsProjectChoices(context, input), "operations.read")
 }
 
+export async function getOperationsActivitySummary(input: unknown = {}) {
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const query = activitySummaryQuery.parse(input)
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const now = new Date()
+    return readOperationsActivity(companyId, agencyIds, now, calendarPeriods(now, company.serviceTimezone).tomorrowStart, query.agencyId)
+  }, "operations.read")
+}
+
 export async function getOperationsDashboard() {
   return withAuth(async ({ companyId, role, agencyIds }) => {
     const canReadFinance = hasPermission(role, "finance.read")
@@ -532,10 +542,13 @@ export async function getOperationsDashboard() {
       deliveryNotes,
       stockTransfers,
       purchaseSummary,
+      activity,
     ] = await Promise.all([
       prisma.agency.findMany({
         where: { ...scope.agency, active: true },
-        select: { id: true, code: true, name: true, isDefault: true },
+        select: { id: true, code: true, name: true, isDefault: true,
+          _count: { select: { customerSites: { where: scope.site }, projects: { where: { ...scope.project, status: "ACTIVE" } } } },
+        },
         orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       }),
       prisma.customerSite.findMany({
@@ -661,6 +674,7 @@ export async function getOperationsDashboard() {
         take: 100,
       }),
       readPurchaseOrderSummary(companyId, agencyIds),
+      readOperationsActivity(companyId, agencyIds, now, calendarPeriods(now, company.serviceTimezone).tomorrowStart),
     ])
     return {
       generatedAt: now.toISOString(),
@@ -672,6 +686,7 @@ export async function getOperationsDashboard() {
       warehouses,
       purchaseOrders: purchaseOrders.items,
       purchaseSummary,
+      activity,
       equipments,
       tickets,
       interventions,

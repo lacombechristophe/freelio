@@ -53,6 +53,7 @@ import { useOperationsDirectory } from "./use-operations-directory"
 import { MaintenanceRenewalPanel } from "./_components/maintenance-renewal-panel"
 import { ReservationReferenceChoice, useReservationChoices } from "./reservation-reference-choice"
 import { OperationsProjectChoice, useOperationsProjectChoices } from "./project-choice"
+import { useOperationsActivity } from "./use-operations-activity"
 
 const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
 
@@ -168,8 +169,10 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const stockSummary = stockDirectory.visible?.summary ?? sourceData.stock.summary
   const stockScope = agencyId === "ALL" ? stockSummary.all : stockSummary.byAgency[agencyId] ?? { lowStockCount: 0, criticalProducts: [], available: null, stockValueCents: null }
 
-  const openTickets = data.tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length
-  const comingInterventions = data.interventions.filter((item) => new Date(item.scheduledStart) >= new Date(data.generatedAt) && !["COMPLETED", "CANCELED"].includes(item.status)).length
+  const activityState = useOperationsActivity(agencyId, sourceData.generatedAt, sourceData.activity)
+  const activity = activityState.data
+  const openTickets = activity?.openTickets ?? null
+  const comingInterventions = activity?.comingInterventions ?? null
   const lowStock = stockScope.lowStockCount
   const summaryKey = JSON.stringify([agencyId, sourceData.generatedAt])
   const [purchaseResult, setPurchaseResult] = useState<{ key: string; data: OperationsData["purchaseSummary"] } | null>(null)
@@ -188,8 +191,8 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const purchaseSummary = agencyId === "ALL" ? sourceData.purchaseSummary : purchaseResult?.key === summaryKey && !purchaseError ? purchaseResult.data : null
   const activeOrders = purchaseSummary?.activeCount ?? null
   const stats: Array<{ icon: LucideIcon; label: string; metric: number | null; detail: string }> = [
-    { icon: Wrench, label: "SAV ouverts", metric: openTickets, detail: "À qualifier ou résoudre" },
-    { icon: CalendarDays, label: "Interventions", metric: comingInterventions, detail: "Planifiées à venir" },
+    { icon: Wrench, label: "SAV ouverts", metric: openTickets, detail: activity ? "À qualifier ou résoudre" : activityState.error ? "Actualisation impossible" : "Actualisation…" },
+    { icon: CalendarDays, label: "Interventions", metric: comingInterventions, detail: activity ? "Planifiées à venir" : activityState.error ? "Actualisation impossible" : "Actualisation…" },
     { icon: AlertTriangle, label: "Stocks bas", metric: lowStock, detail: "Disponibles ≤ seuil" },
     { icon: ClipboardList, label: "Achats actifs", metric: activeOrders, detail: purchaseSummary ? "À commander ou recevoir" : purchaseError ? "Actualisation impossible" : "Actualisation…" },
   ]
@@ -386,7 +389,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
 
       <Tabs defaultValue={(["overview", "sav", "planning", "maintenance", "orders", "stock", "assets"].includes(searchParams.get("tab") || "") ? searchParams.get("tab") : "overview") ?? "overview"} className="space-y-4">
         <TabsList className="max-w-full overflow-x-auto"><TabsTrigger value="overview"><Building2 />Vue opérations</TabsTrigger><TabsTrigger value="sav"><Wrench />SAV</TabsTrigger><TabsTrigger value="planning"><CalendarDays />Planning</TabsTrigger><TabsTrigger value="maintenance"><ClipboardCheck />Entretien</TabsTrigger><TabsTrigger value="orders"><ClipboardList />Commandes</TabsTrigger><TabsTrigger value="stock"><Boxes />Stock & achats</TabsTrigger><TabsTrigger value="assets"><PackageCheck />Sites & parc</TabsTrigger></TabsList>
-        <TabsContent value="overview"><div className="space-y-4"><OperationsOverview data={initialData} stockScope={stockScope} purchaseSummary={purchaseSummary} purchaseError={purchaseError} retryPurchases={() => setPurchaseRetry(value => value + 1)} onCreate={openComposer} /><AgencyComparison data={sourceData} stockSummary={stockSummary} selectedAgencyId={agencyId} /></div></TabsContent>
+        <TabsContent value="overview"><div className="space-y-4"><OperationsOverview data={initialData} activityState={activityState} stockScope={stockScope} purchaseSummary={purchaseSummary} purchaseError={purchaseError} retryPurchases={() => setPurchaseRetry(value => value + 1)} onCreate={openComposer} /><AgencyComparison data={sourceData} stockSummary={stockSummary} selectedAgencyId={agencyId} /></div></TabsContent>
         <TabsContent value="sav"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Tickets SAV</h2></div>{initialData.tickets.length ? <div className="divide-y">{initialData.tickets.map((ticket) => <div key={ticket.id} className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{ticket.number}</code><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge><Badge variant={ticket.status === "CLOSED" ? "secondary" : "outline"}>{TICKET_STATUS[ticket.status] ?? ticket.status}</Badge></div><Link href={`/dashboard/service/tickets/${ticket.id}`} className="mt-2 block text-sm font-semibold hover:text-primary hover:underline">{ticket.title}</Link><p className="mt-1 text-xs text-muted-foreground">{ticket.client.name}{ticket.site ? ` · ${ticket.site.label}` : ""}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""} · {ticket._count.interventions} intervention{ticket._count.interventions > 1 ? "s" : ""}</p></div><div className="flex gap-2"><Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/dashboard/service/tickets/${ticket.id}`} />}>Traiter le dossier</Button></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun ticket SAV.</p>}</section></TabsContent>
         <TabsContent value="planning">
           <div className="space-y-4">
@@ -475,19 +478,22 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   )
 }
 
-function OperationsOverview({ data, stockScope, purchaseSummary, purchaseError, retryPurchases, onCreate }: { data: OperationsData; stockScope: OperationsData["stock"]["summary"]["all"]; purchaseSummary: OperationsData["purchaseSummary"] | null; purchaseError: boolean; retryPurchases: () => void; onCreate: (kind: CreateKind) => void }) {
-  const dayEnd = new Date(data.tomorrowStart)
-  const upcomingInterventions = data.interventions
-    .filter((item) => !["COMPLETED", "CANCELED"].includes(item.status) && new Date(item.scheduledStart) < dayEnd)
-    .slice(0, 6)
-  const priorityTickets = data.tickets
-    .filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status))
-    .slice(0, 6)
+function ActivityUnavailable({ state }: { state: ReturnType<typeof useOperationsActivity> }) {
+  return <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center" role="status">
+    <p className="text-sm text-muted-foreground">{state.error ? "Actualisation impossible" : "Actualisation…"}</p>
+    {state.error ? <Button type="button" size="sm" variant="outline" onClick={state.retry}>Réessayer les indicateurs SAV</Button> : null}
+  </div>
+}
+
+function OperationsOverview({ data, activityState, stockScope, purchaseSummary, purchaseError, retryPurchases, onCreate }: { data: OperationsData; activityState: ReturnType<typeof useOperationsActivity>; stockScope: OperationsData["stock"]["summary"]["all"]; purchaseSummary: OperationsData["purchaseSummary"] | null; purchaseError: boolean; retryPurchases: () => void; onCreate: (kind: CreateKind) => void }) {
+  const activity = activityState.data
+  const upcomingInterventions = activity?.upcomingInterventions ?? []
+  const priorityTickets = activity?.priorityTickets ?? []
   const criticalProducts = stockScope.criticalProducts
   const activeOrders = purchaseSummary?.items ?? []
-  const hasPriority = upcomingInterventions.length + priorityTickets.length + criticalProducts.length + activeOrders.length > 0
+  const hasPriority = (activity?.dueInterventions ?? 0) + (activity?.openTickets ?? 0) + stockScope.lowStockCount + (purchaseSummary?.activeCount ?? 0) > 0
 
-  if (!hasPriority && purchaseSummary) {
+  if (!hasPriority && purchaseSummary && activity) {
     const quickActions: Array<{ label: string; detail: string; kind: CreateKind; icon: LucideIcon }> = [
       { label: "Planifier", detail: "Intervention terrain", kind: "INTERVENTION", icon: CalendarDays },
       { label: "Ouvrir un ticket", detail: "Demande SAV", kind: "TICKET", icon: Wrench },
@@ -500,13 +506,13 @@ function OperationsOverview({ data, stockScope, purchaseSummary, purchaseError, 
   return (
     <div className="grid gap-3 xl:grid-cols-2">
       <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
-        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">Interventions du jour</h2><p className="mt-0.5 text-xs text-muted-foreground">Créneaux arrivés ou planifiés aujourd’hui.</p></div><Badge variant="secondary">{upcomingInterventions.length}</Badge></header>
-        {upcomingInterventions.length ? <div className="divide-y">{upcomingInterventions.map((item) => <Link key={item.id} href={`/dashboard/service/interventions/${item.id}`} className="grid gap-2 px-4.5 py-3 transition-colors hover:bg-muted/35 sm:grid-cols-[64px_minmax(0,1fr)_130px] sm:items-center"><span className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: data.timeZone }).format(new Date(item.scheduledStart))}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">{item.site.client.name} · {item.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.site.label}</span></span><span className="truncate text-xs text-muted-foreground sm:text-right">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"}</span></Link>)}</div> : <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center"><p className="text-sm text-muted-foreground">Aucune intervention à traiter aujourd’hui.</p><Button type="button" size="sm" variant="outline" onClick={() => onCreate("INTERVENTION")}><CalendarDays />Planifier une intervention</Button></div>}
+        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">Interventions du jour</h2><p className="mt-0.5 text-xs text-muted-foreground">Créneaux arrivés ou planifiés aujourd’hui. {activity ? `${upcomingInterventions.length} affichée${upcomingInterventions.length > 1 ? "s" : ""} sur ${activity.dueInterventions}.` : ""}</p></div><Badge variant="secondary">{activity?.dueInterventions ?? "—"}</Badge></header>
+        {!activity ? <ActivityUnavailable state={activityState} /> : upcomingInterventions.length ? <div className="divide-y">{upcomingInterventions.map((item) => <Link key={item.id} href={`/dashboard/service/interventions/${item.id}`} className="grid gap-2 px-4.5 py-3 transition-colors hover:bg-muted/35 sm:grid-cols-[64px_minmax(0,1fr)_130px] sm:items-center"><span className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: data.timeZone }).format(new Date(item.scheduledStart))}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">{item.site.client.name} · {item.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.site.label}</span></span><span className="truncate text-xs text-muted-foreground sm:text-right">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"}</span></Link>)}</div> : <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center"><p className="text-sm text-muted-foreground">Aucune intervention à traiter aujourd’hui.</p><Button type="button" size="sm" variant="outline" onClick={() => onCreate("INTERVENTION")}><CalendarDays />Planifier une intervention</Button></div>}
       </section>
 
       <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
-        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">File SAV prioritaire</h2><p className="mt-0.5 text-xs text-muted-foreground">Tickets ouverts classés par priorité et activité récente.</p></div><Badge variant="secondary">{priorityTickets.length}</Badge></header>
-        {priorityTickets.length ? <div className="divide-y">{priorityTickets.map((ticket) => <Link key={ticket.id} href={`/dashboard/service/tickets/${ticket.id}`} className="flex items-center gap-3 px-4.5 py-3 transition-colors hover:bg-muted/35"><span className={`size-2 shrink-0 rounded-full ${ticket.priority === "URGENT" ? "bg-danger" : ticket.priority === "HIGH" ? "bg-warning" : "bg-primary"}`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{ticket.client.name} · {ticket.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{ticket.number}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""}</span></span><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge></Link>)}</div> : <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center"><p className="text-sm text-muted-foreground">Aucun ticket SAV ouvert.</p><Button type="button" size="sm" variant="outline" onClick={() => onCreate("TICKET")}><Wrench />Ouvrir un ticket</Button></div>}
+        <header className="flex items-start justify-between gap-3 border-b px-4.5 py-3.5"><div><h2 className="text-sm font-semibold">File SAV prioritaire</h2><p className="mt-0.5 text-xs text-muted-foreground">Tickets ouverts classés par priorité et activité récente. {activity ? `${priorityTickets.length} affiché${priorityTickets.length > 1 ? "s" : ""} sur ${activity.openTickets}.` : ""}</p></div><Badge variant="secondary">{activity?.openTickets ?? "—"}</Badge></header>
+        {!activity ? <ActivityUnavailable state={activityState} /> : priorityTickets.length ? <div className="divide-y">{priorityTickets.map((ticket) => <Link key={ticket.id} href={`/dashboard/service/tickets/${ticket.id}`} className="flex items-center gap-3 px-4.5 py-3 transition-colors hover:bg-muted/35"><span className={`size-2 shrink-0 rounded-full ${ticket.priority === "URGENT" ? "bg-danger" : ticket.priority === "HIGH" ? "bg-warning" : "bg-primary"}`} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{ticket.client.name} · {ticket.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{ticket.number}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""}</span></span><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge></Link>)}</div> : <div className="flex min-h-28 flex-col items-center justify-center gap-3 px-4.5 py-5 text-center"><p className="text-sm text-muted-foreground">Aucun ticket SAV ouvert.</p><Button type="button" size="sm" variant="outline" onClick={() => onCreate("TICKET")}><Wrench />Ouvrir un ticket</Button></div>}
       </section>
 
       <section className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(13,36,66,0.035)]">
@@ -528,8 +534,8 @@ function AgencyComparison({ data, stockSummary, selectedAgencyId }: { data: Oper
     return {
       ...agency,
       warehouses: warehouseIds.size,
-      sites: data.sites.filter((site) => site.agencyId === agency.id).length,
-      projects: data.projects.filter((project) => project.agencyId === agency.id).length,
+      sites: agency._count.customerSites,
+      projects: agency._count.projects,
       members: data.members.filter((member) => member.agencyMemberships.some((membership) => membership.agencyId === agency.id)).length,
       available: stockSummary.byAgency[agency.id]?.available ?? null,
       stockValueCents: stockSummary.byAgency[agency.id]?.stockValueCents ?? null,
