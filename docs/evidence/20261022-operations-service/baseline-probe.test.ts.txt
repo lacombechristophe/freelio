@@ -1,0 +1,76 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import * as service from "@/actions/operations"
+import { getOperationsDashboard } from "@/actions/operations"
+
+describe.sequential("Operations service lists exceed historical dashboard caches", () => {
+  let siteId: string, clientId: string, membershipId: string
+  let lastTicket: string, lastContract: string, currentIntervention: string
+  let dashboard: Awaited<ReturnType<typeof getOperationsDashboard>>
+  beforeAll(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2030-06-17T12:00:00Z"))
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional full service directory", serviceTimezone: "Europe/Paris" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `service-directory-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional service client" } })).id
+    siteId = (await prisma.customerSite.create({ data: { companyId: session.companyId, clientId, label: "Fictional service site", address1: "Fictional address" } })).id
+    await prisma.serviceTicket.createMany({ data: Array.from({ length: 200 }, (_, index) => ({ companyId: session.companyId, clientId, siteId, number: `NORMAL-${index}`, title: `Fictional normal ticket ${index}`, description: "Fictional description" })) })
+    lastTicket = (await prisma.serviceTicket.create({ data: { companyId: session.companyId, clientId, siteId, number: "HIGH-LAST", title: "Fictional high ticket beyond cache", description: "Fictional description", priority: "HIGH" } })).id
+    await prisma.fieldIntervention.createMany({ data: Array.from({ length: 200 }, (_, index) => ({ companyId: session.companyId, siteId, title: `Fictional historical intervention ${index}`, scheduledStart: new Date("2000-01-01T10:00:00Z"), status: "COMPLETED" })) })
+    currentIntervention = (await prisma.fieldIntervention.create({ data: { companyId: session.companyId, siteId, assignedMembershipId: membershipId, title: "Fictional current intervention beyond cache", scheduledStart: new Date("2030-06-18T10:00:00Z"), scheduledEnd: new Date("2030-06-18T11:00:00Z") } })).id
+    await prisma.maintenanceContract.createMany({ data: Array.from({ length: 200 }, (_, index) => ({ companyId: session.companyId, clientId, siteId, number: `OLD-${index}`, label: `Fictional historical maintenance ${index}`, startDate: new Date("1999-01-01"), endDate: new Date("2000-01-01") })) })
+    lastContract = (await prisma.maintenanceContract.create({ data: { companyId: session.companyId, clientId, siteId, number: "LATEST", label: "Fictional maintenance beyond cache", startDate: new Date("2030-01-01"), endDate: new Date("2031-01-01") } })).id
+    dashboard = await getOperationsDashboard()
+  })
+  afterAll(async () => {
+    vi.useRealTimers()
+    await prisma.fieldIntervention.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.serviceTicket.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.maintenanceContract.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.customerSite.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  // The preserved baseline substitutes the actual old cached arrays only when
+  // these readers are absent; final tests call the complete readers directly.
+  const api = service as unknown as Partial<Record<string, (input?: unknown) => Promise<unknown>>>
+  async function tickets(search = "") {
+    if (api.getOperationsTicketDirectory) return await api.getOperationsTicketDirectory({ search }) as { total: number; items: { id: string }[] }
+    const items = dashboard.tickets.filter(row => row.title.includes(search))
+    return { total: items.length, items }
+  }
+  async function interventions(search = "") {
+    if (api.getOperationsInterventionDirectory) return await api.getOperationsInterventionDirectory({ search }) as { items: { id: string }[] }
+    return { items: dashboard.interventions.filter(row => row.title.includes(search)) }
+  }
+  async function maintenance(search = "") {
+    if (api.getOperationsMaintenanceDirectory) return await api.getOperationsMaintenanceDirectory({ search }) as { total: number; items: { id: string }[] }
+    const items = dashboard.contracts.filter(row => row.label.includes(search))
+    return { total: items.length, items }
+  }
+  async function planning() {
+    if (api.getOperationsPlanningSummary) return await api.getOperationsPlanningSummary() as { unassigned: number; members: { id: string; interventions: number; plannedMinutes: number | null }[]; days: { count: number }[] }
+    const items = dashboard.interventions.filter(row => row.status !== "CANCELED" && row.scheduledStart >= new Date("2030-06-17T00:00:00Z"))
+    return { unassigned: 0, members: [{ id: membershipId, interventions: items.length, plannedMinutes: items.length * 60 }], days: items.length ? [{ count: items.length }] : [] }
+  }
+  it("counts all 201 tickets rather than 200 cached tickets", async () => expect((await tickets()).total).toBe(201))
+  it("finds the high-priority ticket beyond the old cache", async () => expect((await tickets("high ticket beyond cache")).items.map(row => row.id)).toEqual([lastTicket]))
+  it("finds the current intervention beyond 200 historical entries", async () => expect((await interventions("current intervention beyond cache")).items.map(row => row.id)).toEqual([currentIntervention]))
+  it("counts all 201 maintenance contracts", async () => expect((await maintenance()).total).toBe(201))
+  it("finds the maintenance contract beyond the old cache", async () => expect((await maintenance("maintenance beyond cache")).items.map(row => row.id)).toEqual([lastContract]))
+  it("shows a HIGH ticket before NORMAL tickets in the priority preview", () => expect(dashboard.activity.priorityTickets[0].id).toBe(lastTicket))
+  it("includes the current intervention in weekly capacity", async () => expect((await planning()).members.find(row => row.id === membershipId)).toMatchObject({ interventions: 1, plannedMinutes: 60 }))
+  it("includes the complete upcoming day in route totals", async () => expect((await planning()).days.reduce((sum, day) => sum + day.count, 0)).toBe(1))
+  it("keeps initially visible historical data consultable", async () => {
+    expect((await tickets("normal ticket 0")).items.length).toBeGreaterThan(0)
+    expect((await interventions("historical intervention 0")).items.length).toBeGreaterThan(0)
+    expect((await maintenance("historical maintenance 0")).items.length).toBeGreaterThan(0)
+  })
+})

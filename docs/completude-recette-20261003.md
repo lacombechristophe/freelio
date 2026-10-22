@@ -4,13 +4,14 @@
 
 ## Résultat actuel
 
-Le candidat local `8461d449f5a9a29a43e64e2ada0d92f03ab07d2d` corrige les [totaux et aperçus Opérations](evidence/20261022-operations-activity/README.md) : SAV, interventions et compteurs Sites/Chantiers des agences ne dépendent plus des caches limités. Les [choix Chantier](evidence/20261022-operations-project-choices/README.md), la [commande issue du devis](evidence/20261022-quote-order-conversion/README.md) et le [contrat optionnel](evidence/20261022-quote-contract-conversion/README.md) restent inclus.
+Le candidat local `342e1ba2c280bcb4fb05ba22568c5c75701310be` complète les [listes Service et synthèses du planning dans Opérations](evidence/20261022-operations-service/README.md) : recherche et pagination des tickets, interventions et contrats d’entretien, priorités métier, capacité et tournées indépendantes des caches. Les [totaux et aperçus Opérations](evidence/20261022-operations-activity/README.md), [choix Chantier](evidence/20261022-operations-project-choices/README.md), [commande issue du devis](evidence/20261022-quote-order-conversion/README.md) et [contrat optionnel](evidence/20261022-quote-contract-conversion/README.md) restent inclus.
 
 Les corrections précédentes restent incluses. La [carte des preuves](carte-des-preuves.md) donne leurs points d’entrée ; les résultats locaux ci-dessous qualifient ce code, dans les limites indiquées.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite avec outillage corrigé, base fictive neuve | **3 643 tests / 282 fichiers**, aucun échec ni exclusion |
+| Suite SQLite avec outillage corrigé, base fictive neuve | **3 698 tests / 284 fichiers**, aucun échec ni exclusion |
+| Listes Service, planning complet et états de pagination | 53 cas dédiés et deux rendus statiques ; 135 avec les voisins, réussis séparément et dans la suite complète |
 | Totaux et aperçus Opérations, agences et démo | 30 cas dédiés ; 141 avec les voisins, réussis séparément et dans la suite complète |
 | Choix Chantier des trois créations Opérations et gardes de démo | 32 cas dédiés ; 112 avec les voisins, réussis séparément et dans la suite complète |
 | Contrat issu du devis et reprise après création de commande | 29 cas dédiés ; 154 avec les voisins, réussis séparément et dans la suite complète |
@@ -23,12 +24,12 @@ Les corrections précédentes restent incluses. La [carte des preuves](carte-des
 | Choix de commande et de chantier des réservations | 29 cas dédiés et 42 voisins dans quatre suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 8461d44, 76 pages statiques |
-| Identité des sources de la recette | 1 233 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
+| Build Next.js | Réussi sur 342e1ba, 76 pages statiques |
+| Identité des sources de la recette | 1 241 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
 | Audits npm production et complet | Audits datés à zéro de 4a7a241 ; fichiers package et lockfile inchangés, identité vérifiée |
 | Générateur PDF : socle | Quatre contrôles réussis, dont trois sur Chromium réel ; documents métier distincts |
 | Bons de livraison : PDF natifs | Trois cas réussis ; 37 contrôles hors ligne du lot PDF, sur une source inchangée |
-| Playwright | 486 cas sélectionnés, 243 par surface ; **non exécutés** |
+| Playwright | 494 cas sélectionnés, 247 par surface ; **non exécutés** |
 
 Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
 
@@ -36,6 +37,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Tickets, Interventions et Maintenance : listes paginées ; capacité et tournées complètes ; priorité métier et état inconnu distinct du vide | [Lectures et limites](evidence/20261022-operations-service/README.md) |
 | SAV et interventions : totaux complets et six aperçus du périmètre ; comparaison des agences indépendante des caches | [Calculs et limites](evidence/20261022-operations-activity/README.md) |
 | Choix Chantier des créations : périmètre complet, racines Client/Site et sélection hors page vérifiée ; lectures de démo limitées | [Sélecteurs et limites](evidence/20261022-operations-project-choices/README.md) |
 | Contrat issu du devis : révision/date vérifiées, brouillon et audit atomiques ; résultat partiel du dossier explicite et récupérable | [Préparation et reprise](evidence/20261022-quote-contract-conversion/README.md) |
@@ -81,8 +83,8 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
-| L8 : indicateurs et listes Opérations | [Totaux SAV/Interventions, aperçus et compteurs Sites/Chantiers qualifiés localement](evidence/20261022-operations-activity/README.md). Stock et Achats conservent leurs agrégats complets existants. Les vues Tickets, Interventions, Maintenance et certains choix utilisent encore les caches de 200 : leur complétude reste distincte, comme le classement métier des priorités. PostgreSQL et interactions navigateur restent à qualifier. |
-| L8 : choix Chantier des créations Opérations | [Trois sélecteurs qualifiés localement](evidence/20261022-operations-project-choices/README.md), y compris les lectures de démo. Les interactions navigateur préparées, PostgreSQL et les autres sélecteurs restent à qualifier ; les indicateurs fondés sur le cache du tableau de bord sont distincts. |
+| L8 : indicateurs et listes Opérations | [Listes Service et planning qualifiés localement](evidence/20261022-operations-service/README.md), en complément des [totaux et aperçus](evidence/20261022-operations-activity/README.md). Priorités URGENT/HIGH/NORMAL/LOW, semaine complète et tournées bornées en aperçu. Les caches racine restent utilisés par certains choix ; le Help Desk principal et les écritures de renouvellement sont distincts. PostgreSQL et interactions navigateur restent à qualifier. |
+| L8 : choix Chantier des créations Opérations | [Trois sélecteurs qualifiés localement](evidence/20261022-operations-project-choices/README.md), y compris les lectures de démo. Les interactions navigateur préparées, PostgreSQL et les autres sélecteurs restent à qualifier ; les autres consommateurs des caches restent distincts. |
 | L8 : commandes client et livraisons | [Conversion de commande](evidence/20261022-quote-order-conversion/README.md) et [contrat optionnel](evidence/20261022-quote-contract-conversion/README.md) qualifiés localement, en deux actions avec reprise du résultat partiel. [Création, quantités et capture signée qualifiées localement](evidence/20261021-delivery-seals/README.md). Les anciennes empreintes sans capture ne permettent pas de régénérer le document. [Historique des bons complet qualifié localement](evidence/20261021-delivery-directory/README.md) ; [choix Commande/Ligne complets qualifiés localement](evidence/20261021-delivery-choices/README.md). [Références et audit des réservations qualifiés localement](evidence/20261021-stock-reservations/README.md). [Choix des réservations qualifiés localement](evidence/20261021-reservation-choices/README.md). Politiques d’annulation/clôture, édition après confirmation, annulation après livraison et réparation historique restent distincts ; [PDF natifs Windows qualifiés](evidence/20261021-delivery-pdf/README.md) ; PostgreSQL, Linux et navigateur restent à qualifier. |
 | L8 : cycle des achats fournisseur | [Réceptions, inspections, retours et avoirs qualifiés localement](evidence/20261021-purchase-stock/README.md), en complément de l’historique complet, des validations, de l’édition et de l’annulation avant transmission : stock, décisions et audit atomiques, acceptations bornées et observations de livraison conservées. Modification après soumission, annulation après transmission/réception, réparation des décisions historiques inconnues, PostgreSQL et interactions navigateur restent distincts. |
 | L2 : erreurs HTTP des transports CRM | [Classifiées et qualifiées localement](evidence/20261021-provider-send-failures/README.md) : échéance durable, arrêt des refus définitifs, brouillons conservés et reprises bornées. La catégorie ne prouve pas le résultat d’un appel antérieur. Limitation globale d’un compte partagé, renouvellement OAuth, synchronisation, PostgreSQL et interactions navigateur restent distincts ; ce complément ne clôt pas tout L2. |
