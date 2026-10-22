@@ -3,6 +3,8 @@
 import { z } from "zod"
 import { withAuth } from "@/lib/auth-wrapper"
 import { activeEquipmentReferenceWhere, activeSiteReferenceWhere } from "@/lib/operations/asset-lifecycle"
+import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
+import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import prisma from "@/lib/prisma"
 
 const querySchema = z.object({ search: z.string().trim().max(200).default(""), page: z.number().int().min(1).max(100_000).default(1),
@@ -41,6 +43,31 @@ export async function getAssetEquipmentChoices(input: unknown = {}) {
         query.selectedId ? tx.equipment.findFirst({ where: { AND: [eligible, { id: query.selectedId }] }, select }) : null,
       ])
       const option = (row: NonNullable<typeof selected>) => ({ id: row.id, label: `${row.label}${row.serialNumber ? ` · ${row.serialNumber}` : ""} · ${row.site.label}` })
+      return { items: items.map(option), selected: selected ? option(selected) : null, total, page }
+    }, { isolationLevel: "Serializable" })
+  }, "operations.read")
+}
+
+export async function getAssetTicketChoices(input: unknown = {}) {
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const query = querySchema.omit({ clientId: true }).extend({ siteId: z.string().cuid(), selectedId: z.string().cuid().optional() }).strict().parse(input)
+    return prisma.$transaction(async tx => {
+      const site = await tx.customerSite.findFirst({ where: { AND: [activeSiteReferenceWhere(companyId, agencyIds), { id: query.siteId }] }, select: { clientId: true } })
+      if (!site) throw new AssetLifecycleError("Site introuvable ou inaccessible")
+      // Match createFieldIntervention: a general ticket must belong to this
+      // client; a bound ticket and any equipment must match the selected site.
+      const eligible = { AND: [operationsDashboardScope(companyId, agencyIds).ticket, { clientId: site.clientId, status: { not: "MERGED" }, mergedIntoTicketId: null },
+        { OR: [{ siteId: null }, { siteId: query.siteId }] },
+        { OR: [{ equipmentId: null }, { equipment: { AND: [activeEquipmentReferenceWhere(companyId, agencyIds), { siteId: query.siteId }] } }] },
+      ] }
+      const where = { AND: [eligible, ...(query.search ? [{ OR: [{ number: contains(query.search) }, { title: contains(query.search) }] }] : [])] }
+      const select = { id: true, number: true, title: true } as const
+      const total = await tx.serviceTicket.count({ where }), page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
+      const [items, selected] = await Promise.all([
+        tx.serviceTicket.findMany({ where, select, skip: (page - 1) * 25, take: 25, orderBy: [{ number: "asc" }, { id: "asc" }] }),
+        query.selectedId ? tx.serviceTicket.findFirst({ where: { AND: [eligible, { id: query.selectedId }] }, select }) : null,
+      ])
+      const option = (row: NonNullable<typeof selected>) => ({ id: row.id, label: `${row.number} · ${row.title}` })
       return { items: items.map(option), selected: selected ? option(selected) : null, total, page }
     }, { isolationLevel: "Serializable" })
   }, "operations.read")

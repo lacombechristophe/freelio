@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
-import { getAssetEquipmentChoices, getAssetSiteChoices } from "@/actions/asset-choices"
+import { getAssetEquipmentChoices, getAssetSiteChoices, getAssetTicketChoices } from "@/actions/asset-choices"
 import { getSiteTransferChoices } from "@/actions/site-transfers"
 import { DirectoryPagination } from "./directory-pagination"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 type Result = Awaited<ReturnType<typeof getAssetSiteChoices>>
 type Context = { clientId?: string; siteId?: string; enabled?: boolean }
 
-export function useAssetChoices(kind: "site" | "equipment" | "agency", value: string, { clientId, siteId, enabled = true }: Context = {}) {
+export function useAssetChoices(kind: "site" | "equipment" | "agency" | "ticket", value: string, { clientId, siteId, enabled = true }: Context = {}) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [revision, setRevision] = useState(0)
@@ -26,6 +26,7 @@ export function useAssetChoices(kind: "site" | "equipment" | "agency", value: st
       try {
         const query = { search, page, selectedId: value || undefined, clientId: clientId || undefined }
         const data = kind === "agency" ? await getSiteTransferChoices({ search, page, selectedId: value || undefined, siteId })
+          : kind === "ticket" ? await getAssetTicketChoices({ search, page, selectedId: value || undefined, siteId })
           : kind === "site" ? await getAssetSiteChoices(query) : await getAssetEquipmentChoices({ ...query, siteId: siteId || undefined })
         if (current) {
           setPage(data.page)
@@ -49,7 +50,7 @@ export function useAssetChoices(kind: "site" | "equipment" | "agency", value: st
 export function AssetChoice({ choices, name, required = false, disabled = false, onChange }: {
   choices: ReturnType<typeof useAssetChoices>; name: string; required?: boolean; disabled?: boolean; onChange: (value: string) => void
 }) {
-  const noun = choices.kind === "site" ? "un site" : choices.kind === "agency" ? "une agence" : "un équipement"
+  const noun = choices.kind === "site" ? "un site" : choices.kind === "agency" ? "une agence" : choices.kind === "ticket" ? "un ticket SAV" : "un équipement"
   return <>
     <Input aria-label={`Rechercher ${noun} à rattacher`} placeholder={`Rechercher ${noun}…`} maxLength={200} value={choices.search} disabled={disabled || !choices.enabled} onChange={event => choices.searchFor(event.target.value)} />
     <select id={name} name={name} value={choices.value} required={required} disabled={disabled || !choices.enabled} onChange={event => { choices.remember(event.target.value); onChange(event.target.value) }} className="h-10 w-full rounded-[10px] border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-3 focus:ring-ring/20">
