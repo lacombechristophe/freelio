@@ -1,3 +1,4 @@
+> Cahier initial historique. Les décisions ultérieures remplacent les choix devenus obsolètes ci-dessous. Pour l’état courant, consulter le [README](README.md), la [qualification du candidat](docs/completude-recette-20261003.md) et les [décisions techniques](docs/decisions-techniques.md).
 
 ══════════════════════════════════════════════════════════
  IDENTITÉ & VISION

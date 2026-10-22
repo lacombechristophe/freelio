@@ -1,6 +1,6 @@
 # Interface Freelio
 
-CRM professionnel utilisé quotidiennement pour retrouver un dossier, préparer un devis, suivre une opportunité et encaisser une facture. Priorité à la lecture des données, aux actions explicites et au clavier. Direction retenue : claire, neutre, bleu discret, inspirée de la précision des captures Cloudflare sans reprendre sa marque.
+Objectif de conception pour la démonstration : faciliter la recherche d’un dossier, la préparation d’un devis, le suivi d’une opportunité et l’enregistrement d’un règlement fictif. Priorité à la lecture des données, aux actions explicites et au clavier. Direction retenue : claire, neutre, bleu discret, inspirée de la précision des captures Cloudflare sans reprendre sa marque.
 
 ## Fondations
 
