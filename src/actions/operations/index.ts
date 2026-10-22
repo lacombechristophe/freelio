@@ -37,6 +37,8 @@ import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/oper
 import { convertAcceptedQuote } from "@/lib/operations/quote-conversion"
 import { readOperationsProjectChoices } from "@/lib/operations/project-choices"
 import { activitySummaryQuery, readOperationsActivity } from "@/lib/operations/activity-summary"
+import { readOperationsTicketDirectory, readOperationsInterventionDirectory, readOperationsMaintenanceDirectory } from "@/lib/operations/service-directory"
+import { readOperationsPlanningSummary } from "@/lib/operations/planning-summary"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -507,6 +509,19 @@ function schedulingFailure(error: unknown): { success: false; error: string } {
 
 export async function getOperationsProjectChoices(input: unknown = {}) {
   return withAuth(context => readOperationsProjectChoices(context, input), "operations.read")
+}
+
+export async function getOperationsTicketDirectory(input: unknown = {}) {
+  return withAuth(context => readOperationsTicketDirectory(context, input), "operations.read")
+}
+export async function getOperationsInterventionDirectory(input: unknown = {}) {
+  return withAuth(context => readOperationsInterventionDirectory(context, input), "operations.read")
+}
+export async function getOperationsMaintenanceDirectory(input: unknown = {}) {
+  return withAuth(context => readOperationsMaintenanceDirectory(context, input), "operations.read")
+}
+export async function getOperationsPlanningSummary(input: unknown = {}) {
+  return withAuth(context => readOperationsPlanningSummary(context, input), "operations.read")
 }
 
 export async function getOperationsActivitySummary(input: unknown = {}) {

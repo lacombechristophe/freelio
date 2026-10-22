@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react"
 import dynamic from "next/dynamic"
 import { SupplierPicker } from "@/components/shared/supplier-picker"
 import { useClientChoices } from "@/components/shared/client-choice"
@@ -9,7 +9,7 @@ import { OperationsProductChoice, useOperationsProductChoices } from "@/componen
 import { AssetChoice, useAssetChoices } from "@/components/shared/asset-choice"
 import { DeliveryChoice, useDeliveryChoices } from "@/components/shared/delivery-choice"
 import Link from "next/link"
-import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, Navigation, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
+import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { uploadResourceFile } from "@/lib/client-file-upload"
@@ -29,6 +29,9 @@ import {
   reserveStock,
   signDeliveryNote,
   updateInterventionStatus,
+  getOperationsTicketDirectory,
+  getOperationsInterventionDirectory,
+  getOperationsMaintenanceDirectory,
 } from "@/actions/operations"
 import { addCustomerSite as createCustomerSite, addEquipment as createEquipment, addServiceTicket as createServiceTicket,
   addFieldIntervention as createFieldIntervention, addMaintenanceContract as createMaintenanceContract } from "@/actions/asset-commands"
@@ -40,8 +43,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { calendarDayKey, calendarPeriods } from "@/lib/calendar-days"
-import { planningEnd, planningSlotsOverlap, routeDistanceKm } from "@/lib/operations/planning"
+import { planningEnd } from "@/lib/operations/planning"
 import { PurchaseWorkflow } from "./purchase-workflow"
 import { AssetsDirectory } from "./assets-directory"
 import { OrdersDirectory } from "./orders-directory"
@@ -54,6 +56,8 @@ import { MaintenanceRenewalPanel } from "./_components/maintenance-renewal-panel
 import { ReservationReferenceChoice, useReservationChoices } from "./reservation-reference-choice"
 import { OperationsProjectChoice, useOperationsProjectChoices } from "./project-choice"
 import { useOperationsActivity } from "./use-operations-activity"
+import { PlanningOverview } from "./planning-overview"
+import { ServiceDirectoryControls } from "./service-directory-controls"
 
 const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
 
@@ -158,13 +162,36 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const [completionSignatureData, setCompletionSignatureData] = useState("")
   const [deliverySignId, setDeliverySignId] = useState<string | null>(null)
   const [materialInterventionId, setMaterialInterventionId] = useState<string | null>(null)
-  const [planningInterventionId, setPlanningInterventionId] = useState<string | null>(null)
+  const [planningEditor, setPlanningEditor] = useState<{ intervention: OperationsData["interventions"][number]; members: OperationsData["members"] } | null>(null)
   const [agencyId, setAgencyId] = useState("ALL")
+  const [activeTab, setActiveTab] = useState(() => ["overview", "sav", "planning", "maintenance", "orders", "stock", "assets"].includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "overview")
+  const [ticketStatus, setTicketStatus] = useState("ALL")
+  const [ticketPriority, setTicketPriority] = useState("ALL")
+  const [interventionStatus, setInterventionStatus] = useState("ALL")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
+  const [maintenanceStatus, setMaintenanceStatus] = useState("ALL")
+  const [openMaintenance, setOpenMaintenance] = useState<Record<string, OperationsData["contracts"][number]>>({})
   const [ordersRevision, setOrdersRevision] = useState(0)
   const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1")
   useEffect(() => setSourceData(serverData), [serverData])
   const data = useMemo(() => filterOperationsByAgency(sourceData, agencyId), [sourceData, agencyId])
   const initialData = data
+  type Query = { search: string; page: number; agencyId?: string }
+  const loadTickets = useCallback((query: Query) => getOperationsTicketDirectory({ ...query, status: ticketStatus, priority: ticketPriority }), [ticketStatus, ticketPriority])
+  const loadInterventions = useCallback((query: Query) => getOperationsInterventionDirectory({ ...query, status: interventionStatus, from: dateFrom || undefined, to: dateTo || undefined }), [interventionStatus, dateFrom, dateTo])
+  const loadMaintenance = useCallback((query: Query) => getOperationsMaintenanceDirectory({ ...query, status: maintenanceStatus }), [maintenanceStatus])
+  const tickets = useOperationsDirectory(agencyId, JSON.stringify([sourceData.generatedAt, ticketStatus, ticketPriority]), loadTickets, activeTab === "sav")
+  const interventions = useOperationsDirectory(agencyId, JSON.stringify([sourceData.generatedAt, interventionStatus, dateFrom, dateTo]), loadInterventions, activeTab === "planning")
+  const maintenance = useOperationsDirectory(agencyId, JSON.stringify([sourceData.generatedAt, maintenanceStatus]), loadMaintenance, activeTab === "maintenance")
+  const maintenanceRows = [...Object.values(openMaintenance), ...(maintenance.visible?.items ?? []).filter(contract => !openMaintenance[contract.id])]
+  function keepMaintenanceForm(contract: OperationsData["contracts"][number], open: boolean) {
+    setOpenMaintenance(current => {
+      if (open) return { ...current, [contract.id]: current[contract.id] ?? contract }
+      if (!current[contract.id]) return current
+      const next = { ...current }; delete next[contract.id]; return next
+    })
+  }
   const stockDirectory = useOperationsDirectory(agencyId, sourceData.generatedAt, getOperationsStockDirectory)
   const stockSummary = stockDirectory.visible?.summary ?? sourceData.stock.summary
   const stockScope = agencyId === "ALL" ? stockSummary.all : stockSummary.byAgency[agencyId] ?? { lowStockCount: 0, criticalProducts: [], available: null, stockValueCents: null }
@@ -343,19 +370,19 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
 
   function submitInterventionPlanning(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!planningInterventionId) return
+    if (!planningEditor) return
     const form = new FormData(event.currentTarget)
     startTransition(async () => {
       try {
         const result = await rescheduleFieldIntervention({
-          interventionId: planningInterventionId,
+          interventionId: planningEditor.intervention.id,
           assignedMembershipId: optional(form, "planningAssignedMembershipId"),
           scheduledStart: isoDate(form, "planningScheduledStart"),
           scheduledEnd: isoDate(form, "planningScheduledEnd"),
         })
         if (!result.success) throw new Error(result.error)
         toast.success("Intervention replanifiée.")
-        setPlanningInterventionId(null)
+        setPlanningEditor(null)
         router.refresh()
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Replanification impossible.")
@@ -387,19 +414,26 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
       </Card>
       </details>
 
-      <Tabs defaultValue={(["overview", "sav", "planning", "maintenance", "orders", "stock", "assets"].includes(searchParams.get("tab") || "") ? searchParams.get("tab") : "overview") ?? "overview"} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={value => setActiveTab(value ?? "overview")} className="space-y-4">
         <TabsList className="max-w-full overflow-x-auto"><TabsTrigger value="overview"><Building2 />Vue opérations</TabsTrigger><TabsTrigger value="sav"><Wrench />SAV</TabsTrigger><TabsTrigger value="planning"><CalendarDays />Planning</TabsTrigger><TabsTrigger value="maintenance"><ClipboardCheck />Entretien</TabsTrigger><TabsTrigger value="orders"><ClipboardList />Commandes</TabsTrigger><TabsTrigger value="stock"><Boxes />Stock & achats</TabsTrigger><TabsTrigger value="assets"><PackageCheck />Sites & parc</TabsTrigger></TabsList>
         <TabsContent value="overview"><div className="space-y-4"><OperationsOverview data={initialData} activityState={activityState} stockScope={stockScope} purchaseSummary={purchaseSummary} purchaseError={purchaseError} retryPurchases={() => setPurchaseRetry(value => value + 1)} onCreate={openComposer} /><AgencyComparison data={sourceData} stockSummary={stockSummary} selectedAgencyId={agencyId} /></div></TabsContent>
-        <TabsContent value="sav"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Tickets SAV</h2></div>{initialData.tickets.length ? <div className="divide-y">{initialData.tickets.map((ticket) => <div key={ticket.id} className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{ticket.number}</code><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge><Badge variant={ticket.status === "CLOSED" ? "secondary" : "outline"}>{TICKET_STATUS[ticket.status] ?? ticket.status}</Badge></div><Link href={`/dashboard/service/tickets/${ticket.id}`} className="mt-2 block text-sm font-semibold hover:text-primary hover:underline">{ticket.title}</Link><p className="mt-1 text-xs text-muted-foreground">{ticket.client.name}{ticket.site ? ` · ${ticket.site.label}` : ""}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""} · {ticket._count.interventions} intervention{ticket._count.interventions > 1 ? "s" : ""}</p></div><div className="flex gap-2"><Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/dashboard/service/tickets/${ticket.id}`} />}>Traiter le dossier</Button></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun ticket SAV.</p>}</section></TabsContent>
+        <TabsContent value="sav"><section className="overflow-hidden rounded-xl border bg-card"><ServiceDirectoryControls title="Tickets SAV" searchLabel="Rechercher un ticket SAV" directory={tickets}>
+          <select aria-label="État des tickets SAV" value={ticketStatus} onChange={event => { setTicketStatus(event.target.value); tickets.setPage(1) }} className="h-10 rounded-[10px] border bg-background px-3 text-sm"><option value="ALL">Tous les états</option><option value="ACTIVE">Ouverts et en traitement</option>{Object.entries(TICKET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+          <select aria-label="Priorité des tickets SAV" value={ticketPriority} onChange={event => { setTicketPriority(event.target.value); tickets.setPage(1) }} className="h-10 rounded-[10px] border bg-background px-3 text-sm"><option value="ALL">Toutes les priorités</option>{Object.entries(PRIORITY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+        </ServiceDirectoryControls>{tickets.visible ? tickets.visible.items.length ? <div className="divide-y">{tickets.visible.items.map((ticket) => <div key={ticket.id} className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{ticket.number}</code><Badge variant={ticket.priority === "URGENT" ? "destructive" : "outline"}>{PRIORITY_LABELS[ticket.priority] ?? ticket.priority}</Badge><Badge variant={ticket.status === "CLOSED" ? "secondary" : "outline"}>{TICKET_STATUS[ticket.status] ?? ticket.status}</Badge></div><Link href={`/dashboard/service/tickets/${ticket.id}`} className="mt-2 block text-sm font-semibold hover:text-primary hover:underline">{ticket.title}</Link><p className="mt-1 text-xs text-muted-foreground">{ticket.client.name}{ticket.site ? ` · ${ticket.site.label}` : ""}{ticket.equipment ? ` · ${ticket.equipment.label}` : ""} · {ticket._count.interventions} intervention{ticket._count.interventions > 1 ? "s" : ""}</p></div><div className="flex gap-2"><Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/dashboard/service/tickets/${ticket.id}`} />}>Traiter le dossier</Button></div></div>)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun ticket SAV.</p> : null}</section></TabsContent>
         <TabsContent value="planning">
           <div className="space-y-4">
-            <CapacityOverview data={initialData} />
-            <RouteOverview data={initialData} />
+            <PlanningOverview agencyId={agencyId} revision={sourceData.generatedAt} />
             <section className="overflow-hidden rounded-xl border bg-card">
-            <div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Planning terrain</h2></div>
-            {initialData.interventions.length ? (
+            <ServiceDirectoryControls title="Planning terrain" searchLabel="Rechercher une intervention" directory={interventions}>
+              <select aria-label="État des interventions" value={interventionStatus} onChange={event => { setInterventionStatus(event.target.value); interventions.setPage(1) }} className="h-10 rounded-[10px] border bg-background px-3 text-sm"><option value="ALL">Tous les états</option>{Object.entries(INTERVENTION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <label className="space-y-1 text-xs">Du<Input type="date" aria-label="Interventions du" value={dateFrom} onChange={event => { setDateFrom(event.target.value); interventions.setPage(1) }} /></label>
+              <label className="space-y-1 text-xs">Au<Input type="date" aria-label="Interventions au" value={dateTo} onChange={event => { setDateTo(event.target.value); interventions.setPage(1) }} /></label>
+              {dateFrom && dateTo && dateFrom > dateTo ? <p role="alert" className="text-xs text-danger">La fin de période doit suivre son début.</p> : null}
+            </ServiceDirectoryControls>
+            {interventions.visible ? interventions.visible.items.length ? (
               <div className="divide-y">
-                {initialData.interventions.map((item) => (
+                {interventions.visible.items.map((item) => (
                   <article key={item.id} data-field-intervention={item.id} className="px-5 py-4">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                       <div className="min-w-0 flex-1">
@@ -412,11 +446,11 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
                         <p className="mt-1 text-xs text-muted-foreground">{item.site.client.name} · {item.site.label}{item.ticket ? ` · ${item.ticket.number}` : ""}{item.assignedMembership ? ` · ${item.assignedMembership.user.name || item.assignedMembership.user.email}` : ""}</p>
                         {item.report ? <p className="mt-2 text-xs leading-5 text-muted-foreground">Compte rendu : {item.report}</p> : null}
                         <InterventionCostSummary intervention={item} />
-                        {item.reservations.length ? <div className="mt-3 rounded-lg border border-warning/25 bg-warning/5 p-3"><p className="text-xs font-semibold">Réserves et reprises</p><div className="mt-2 space-y-2">{item.reservations.map((reservation) => <div key={reservation.id} className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{reservation.title}</span><Badge variant={reservation.status === "RESOLVED" ? "secondary" : reservation.severity === "BLOCKING" ? "destructive" : "outline"}>{reservation.status === "RESOLVED" ? "Résolue" : reservation.severity === "BLOCKING" ? "Bloquante" : reservation.severity === "MAJOR" ? "Majeure" : "Mineure"}</Badge></div>{reservation.details ? <p className="mt-1 text-muted-foreground">{reservation.details}</p> : null}</div>{reservation.status !== "RESOLVED" ? <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={() => mutate("Réserve résolue.", () => resolveInterventionReservation(reservation.id))}>Marquer résolue</Button> : null}</div>)}</div></div> : null}
+                        {item.reservations.length ? <div className="mt-3 rounded-lg border border-warning/25 bg-warning/5 p-3"><p className="text-xs font-semibold">Réserves et reprises</p><div className="mt-2 space-y-2">{item.reservations.map((reservation) => <div key={reservation.id} className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{reservation.title}</span><Badge variant={reservation.status === "RESOLVED" ? "secondary" : reservation.severity === "BLOCKING" ? "destructive" : "outline"}>{reservation.status === "RESOLVED" ? "Résolue" : reservation.severity === "BLOCKING" ? "Bloquante" : reservation.severity === "MAJOR" ? "Majeure" : "Mineure"}</Badge></div>{reservation.details ? <p className="mt-1 text-muted-foreground">{reservation.details}</p> : null}</div>{reservation.status !== "RESOLVED" ? <Button type="button" size="sm" variant="outline" disabled={isPending || !interventions.visible?.canManage} onClick={() => mutate("Réserve résolue.", () => resolveInterventionReservation(reservation.id))}>Marquer résolue</Button> : null}</div>)}</div></div> : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/dashboard/service/interventions/${item.id}`} />}>Dossier</Button>
-                        {!['COMPLETED', 'CANCELED'].includes(item.status) ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => setPlanningInterventionId(item.id)}><CalendarClock />Replanifier</Button> : null}
+                        {!['COMPLETED', 'CANCELED'].includes(item.status) ? <Button size="sm" variant="outline" disabled={isPending || !interventions.visible?.canManage} onClick={() => setPlanningEditor({ intervention: item, members: initialData.members })}><CalendarClock />Replanifier</Button> : null}
                         <label className={buttonVariants({ variant: "outline", size: "sm" })}>
                           <Upload />Ajouter une pièce
                           <input
@@ -425,13 +459,13 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
                             accept="image/jpeg,image/png,image/webp,application/pdf"
                             capture="environment"
                             aria-label={`Ajouter une pièce à ${item.title}`}
-                            disabled={isPending}
+                            disabled={isPending || !interventions.visible?.canManage}
                             onChange={(event) => uploadInterventionFile(item.id, event.currentTarget)}
                           />
                         </label>
-                        {item.status !== "CANCELED" ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => setMaterialInterventionId(item.id)}><PackageMinus />Matériel utilisé</Button> : null}
-                        {item.status === "PLANNED" ? <Button size="sm" variant="outline" disabled={isPending} onClick={() => mutate("Intervention démarrée.", () => updateInterventionStatus(item.id, "IN_PROGRESS"))}>Démarrer</Button> : null}
-                        {item.status === "IN_PROGRESS" ? <Button demoMutation size="sm" disabled={isPending} onClick={() => { setCompletionSignatureData(""); setCompletionId(item.id) }}>Clôturer</Button> : null}
+                        {item.status !== "CANCELED" ? <Button size="sm" variant="outline" disabled={isPending || !interventions.visible?.canManage} onClick={() => setMaterialInterventionId(item.id)}><PackageMinus />Matériel utilisé</Button> : null}
+                        {item.status === "PLANNED" ? <Button size="sm" variant="outline" disabled={isPending || !interventions.visible?.canManage} onClick={() => mutate("Intervention démarrée.", () => updateInterventionStatus(item.id, "IN_PROGRESS"))}>Démarrer</Button> : null}
+                        {item.status === "IN_PROGRESS" ? <Button demoMutation size="sm" disabled={isPending || !interventions.visible?.canManage} onClick={() => { setCompletionSignatureData(""); setCompletionId(item.id) }}>Clôturer</Button> : null}
                         {item.status === "COMPLETED" ? <a className={buttonVariants({ variant: "outline", size: "sm" })} href={`/api/pdf/intervention/${item.id}`} target="_blank" rel="noreferrer"><FileText />Rapport PDF</a> : null}
                       </div>
                     </div>
@@ -441,7 +475,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
                           <div key={file.id} className="inline-flex min-w-0 items-center gap-1 rounded-lg bg-muted/60 pl-2 text-xs">
                             {file.kind === "PHOTO" ? <FileImage className="size-3.5 shrink-0 text-primary" /> : <FileText className="size-3.5 shrink-0 text-primary" />}
                             <a className="max-w-52 truncate py-2 font-medium hover:underline" href={`/api/files/intervention/${file.id}`} target="_blank" rel="noreferrer">{file.name}</a>
-                            <Button type="button" size="icon-xs" variant="ghost" title={`Supprimer ${file.name}`} disabled={isPending} onClick={() => deleteInterventionFile(file.id)}><Trash2 className="text-danger" /></Button>
+                            <Button type="button" size="icon-xs" variant="ghost" title={`Supprimer ${file.name}`} disabled={isPending || !interventions.visible?.canManage} onClick={() => deleteInterventionFile(file.id)}><Trash2 className="text-danger" /></Button>
                           </div>
                         ))}
                       </div>
@@ -449,11 +483,19 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
                   </article>
                 ))}
               </div>
-            ) : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune intervention planifiée.</p>}
+            ) : <p className="px-5 py-10 text-sm text-muted-foreground">Aucune intervention planifiée.</p> : null}
             </section>
           </div>
         </TabsContent>
-        <TabsContent value="maintenance"><section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Contrats d’entretien</h2><p className="mt-1 text-xs text-muted-foreground">Visites, facturation, préavis, décisions et continuité des termes.</p></div>{initialData.contracts.length ? <div className="divide-y">{initialData.contracts.map((contract) => <MaintenanceRenewalPanel key={contract.id} contract={contract} />)}</div> : <p className="px-5 py-10 text-sm text-muted-foreground">Aucun contrat d’entretien.</p>}</section></TabsContent>
+        <TabsContent value="maintenance" keepMounted><section className="overflow-hidden rounded-xl border bg-card">
+          <ServiceDirectoryControls title="Contrats d’entretien" searchLabel="Rechercher un contrat d’entretien" directory={maintenance}>
+            <select aria-label="État des contrats d’entretien" value={maintenanceStatus} onChange={event => { setMaintenanceStatus(event.target.value); maintenance.setPage(1) }} className="h-10 rounded-[10px] border bg-background px-3 text-sm"><option value="ALL">Tous les états</option><option value="ACTIVE">Actifs</option><option value="SUSPENDED">Suspendus</option><option value="EXPIRED">Expirés</option><option value="CANCELED">Annulés</option></select>
+          </ServiceDirectoryControls>
+          {maintenanceRows.length ? <div className="divide-y">{maintenanceRows.map(contract => <div key={contract.id}>
+            {openMaintenance[contract.id] ? <p className="px-5 pt-3 text-xs text-muted-foreground">Formulaire de renouvellement conservé pendant la recherche et la pagination.</p> : null}
+            <MaintenanceRenewalPanel contract={contract} onOpenChange={open => keepMaintenanceForm(contract, open)} onSaved={() => { keepMaintenanceForm(contract, false); maintenance.retry() }} />
+          </div>)}</div> : maintenance.visible ? <p className="px-5 py-10 text-sm text-muted-foreground">Aucun contrat d’entretien.</p> : null}
+        </section></TabsContent>
         <TabsContent value="orders"><OrdersDirectory agencyId={agencyId} revision={[serverData, ordersRevision]} isPending={isPending} invoiceOrder={invoiceOrder} mutate={mutate} /><DeliveryDirectory agencyId={agencyId} revision={[serverData, ordersRevision]} isPending={isPending} onSign={setDeliverySignId} /></TabsContent>
         <TabsContent value="stock">
           <div className="space-y-5">
@@ -470,7 +512,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
         </TabsContent>
         <TabsContent value="assets"><AssetsDirectory agencyId={agencyId} revision={sourceData} /></TabsContent>
       </Tabs>
-      <Dialog open={Boolean(planningInterventionId)} onOpenChange={(open) => { if (!open) setPlanningInterventionId(null) }}><DialogContent><PlanningDialogForm intervention={initialData.interventions.find((item) => item.id === planningInterventionId)} members={initialData.members} isPending={isPending} onCancel={() => setPlanningInterventionId(null)} onSubmit={submitInterventionPlanning} /></DialogContent></Dialog>
+      <Dialog open={Boolean(planningEditor)} onOpenChange={open => { if (!open) setPlanningEditor(null) }}><DialogContent><PlanningDialogForm intervention={planningEditor?.intervention} members={planningEditor?.members ?? []} isPending={isPending} onCancel={() => setPlanningEditor(null)} onSubmit={submitInterventionPlanning} /></DialogContent></Dialog>
       <Dialog open={Boolean(completionId)} onOpenChange={(open) => { if (!open) { setCompletionId(null); setCompletionSignatureData("") } }}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl"><form onSubmit={submitCompletion} className="space-y-4"><DialogHeader><DialogTitle>Clôturer l’intervention</DialogTitle></DialogHeader><Field label="Compte rendu terrain" name="report" required><textarea id="report" name="report" required className="min-h-32 w-full rounded-lg border bg-background p-3 text-sm" placeholder="Travaux réalisés, contrôles et éventuelles réserves…" /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="Temps passé (minutes)" name="laborMinutes" required><Input id="laborMinutes" name="laborMinutes" type="number" min="0" defaultValue="60" required /></Field><Field label="Nom du client présent" name="customerName" required><Input id="customerName" name="customerName" required /></Field></div><div className="space-y-2"><p className="text-sm font-medium">Signature manuscrite du client *</p><SignatureCanvas disabled={isPending} onSave={setCompletionSignatureData} onClear={() => setCompletionSignatureData("")} />{completionSignatureData ? <Badge variant="secondary"><ShieldCheck />Signature capturée</Badge> : <p className="text-xs text-muted-foreground">Demandez au client de signer dans le cadre ci-dessus puis confirmez la signature.</p>}</div><label className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le client confirme le compte rendu et la fin de l’intervention. La signature et l’empreinte horodatée seront conservées dans le dossier.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => { setCompletionId(null); setCompletionSignatureData("") }}>Annuler</Button><Button type="submit" disabled={isPending || !completionSignatureData}>{isPending ? <Loader2 className="animate-spin" /> : null}Valider la clôture</Button></DialogFooter></form></DialogContent></Dialog>
       <Dialog open={Boolean(materialInterventionId)} onOpenChange={(open) => { if (!open) setMaterialInterventionId(null) }}><DialogContent><InterventionMaterialForm data={initialData} pending={isPending} onCancel={() => setMaterialInterventionId(null)} onSubmit={submitInterventionMaterial} /></DialogContent></Dialog>
       <Dialog open={Boolean(deliverySignId)} onOpenChange={(open) => { if (!open) setDeliverySignId(null) }}><DialogContent><form onSubmit={submitDeliverySignature} className="space-y-4"><DialogHeader><DialogTitle>Signer le bon de livraison</DialogTitle></DialogHeader><Field label="Nom du réceptionnaire" name="deliverySignatureRecipientName" required><Input id="deliverySignatureRecipientName" name="recipientName" required /></Field><label className="flex items-start gap-3 rounded-[10px] border p-3 text-sm"><input name="customerApproval" type="checkbox" required className="mt-0.5 size-4" /><span>Le réceptionnaire confirme les quantités indiquées et la réception. Le bon sera horodaté et scellé par empreinte SHA-256.</span></label><DialogFooter><Button type="button" variant="outline" onClick={() => setDeliverySignId(null)}>Annuler</Button><Button demoMutation type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <PenLine />}Signer et sceller</Button></DialogFooter></form></DialogContent></Dialog>
@@ -601,80 +643,6 @@ function PlanningDialogForm({
       <p className="text-xs leading-5 text-muted-foreground">Le créneau est vérifié avec les autres interventions de l’intervenant avant l’enregistrement.</p>
       <DialogFooter><Button type="button" variant="outline" onClick={onCancel}>Annuler</Button><Button demoMutation type="submit" disabled={isPending}>{isPending ? <Loader2 className="animate-spin" /> : <CalendarClock />}Enregistrer</Button></DialogFooter>
     </form>
-  )
-}
-
-function RouteOverview({ data }: { data: OperationsData }) {
-  const { interventions } = data
-  const { todayStart: today } = calendarPeriods(new Date(data.generatedAt), data.timeZone)
-  const upcoming = interventions
-    .filter((item) => item.status !== "CANCELED" && new Date(item.scheduledStart) >= today)
-    .sort((left, right) => new Date(left.scheduledStart).getTime() - new Date(right.scheduledStart).getTime())
-  const byDay = new Map<string, typeof upcoming>()
-  for (const intervention of upcoming) {
-    const key = calendarDayKey(intervention.scheduledStart, data.timeZone)
-    const day = byDay.get(key) ?? []
-    day.push(intervention)
-    byDay.set(key, day)
-  }
-  const days = [...byDay.entries()].slice(0, 14)
-  if (!days.length) return null
-  return (
-    <section className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b px-5 py-4"><h2 className="flex items-center gap-2 text-sm font-semibold"><Navigation className="size-4 text-primary" />Tournées à venir</h2><p className="mt-1 text-xs text-muted-foreground">Ordre chronologique par intervenant et distance à vol d’oiseau ; les trajets routiers restent à confirmer dans l’outil de navigation.</p></div>
-      <div className="grid gap-4 p-4 xl:grid-cols-2">
-        {days.map(([dayKey, items]) => {
-          const byMember = new Map<string, typeof items>()
-          for (const item of items) {
-            const key = item.assignedMembershipId ?? "unassigned"
-            const route = byMember.get(key) ?? []
-            route.push(item)
-            byMember.set(key, route)
-          }
-          let distanceKm = 0
-          let measuredLegs = 0
-          let totalLegs = 0
-          for (const route of byMember.values()) {
-            const distance = routeDistanceKm(route.map((item) => item.site))
-            distanceKm += distance.distanceKm
-            measuredLegs += distance.measuredLegs
-            totalLegs += distance.totalLegs
-          }
-          const conflicts = items.filter((item, index) => item.assignedMembershipId && items.some((other, otherIndex) => otherIndex !== index && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)))
-          return (
-            <article key={dayKey} className="overflow-hidden rounded-xl border">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/25 px-4 py-3"><div><p className="text-sm font-semibold capitalize">{new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${dayKey}T12:00:00Z`))}</p><p className="mt-0.5 text-xs text-muted-foreground">{items.length} intervention{items.length > 1 ? "s" : ""}{totalLegs ? ` · ${distanceKm.toFixed(1)} km estimés (${measuredLegs}/${totalLegs} tronçons)` : ""}</p></div>{conflicts.length ? <Badge variant="destructive">{conflicts.length} créneau{conflicts.length > 1 ? "x" : ""} en conflit</Badge> : <Badge variant="secondary">Planning cohérent</Badge>}</div>
-              <div className="divide-y">{items.map((item) => { const conflict = item.assignedMembershipId && items.some((other) => other.id !== item.id && other.assignedMembershipId === item.assignedMembershipId && planningSlotsOverlap(item, other)); return <div key={item.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 px-4 py-3"><p className="text-xs font-semibold tabular-nums">{new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: data.timeZone }).format(new Date(item.scheduledStart))}</p><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-xs font-medium">{item.title}</p>{conflict ? <Badge variant="destructive" className="h-5">Conflit</Badge> : null}</div><p className="mt-1 truncate text-[11px] text-muted-foreground">{item.assignedMembership?.user.name || item.assignedMembership?.user.email || "Non affectée"} · {item.site.label}</p></div></div>})}</div>
-            </article>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function CapacityOverview({ data }: { data: OperationsData }) {
-  const { members, interventions } = data
-  const { weekStart, weekEnd } = calendarPeriods(new Date(data.generatedAt), data.timeZone)
-  const weekly = interventions.filter((item) => {
-    const start = new Date(item.scheduledStart)
-    return start >= weekStart && start < weekEnd && item.status !== "CANCELED"
-  })
-  const rows = members.filter((member) => ["OWNER", "ADMIN", "OPERATIONS", "TECHNICIAN", "SERVICE"].includes(member.role)).map((member) => {
-    const assigned = weekly.filter((item) => item.assignedMembershipId === member.id)
-    const plannedMinutes = assigned.reduce((sum, item) => {
-      if (!item.scheduledEnd) return sum + 60
-      return sum + Math.max(15, Math.round((new Date(item.scheduledEnd).getTime() - new Date(item.scheduledStart).getTime()) / 60_000))
-    }, 0)
-    const capacity = Math.max(member.weeklyCapacityMinutes, 60)
-    return { id: member.id, name: member.user.name || member.user.email || "Membre", plannedMinutes, capacity, interventions: assigned.length, utilization: Math.round(plannedMinutes / capacity * 100) }
-  }).sort((left, right) => right.utilization - left.utilization)
-  const unassigned = weekly.filter((item) => !item.assignedMembershipId).length
-  return (
-    <section className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex flex-col gap-2 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold">Capacité de la semaine</h2><p className="mt-1 text-xs text-muted-foreground">Charge planifiée du lundi au dimanche ; une intervention sans heure de fin compte pour 1 h.</p></div>{unassigned ? <Badge variant="outline">{unassigned} non affectée{unassigned > 1 ? "s" : ""}</Badge> : null}</div>
-      {rows.length ? <div className="divide-y">{rows.map((row) => <div key={row.id} className="grid gap-3 px-5 py-3 sm:grid-cols-[minmax(160px,0.7fr)_minmax(220px,1fr)_150px] sm:items-center"><div><p className="truncate text-sm font-medium">{row.name}</p><p className="text-xs text-muted-foreground">{row.interventions} intervention{row.interventions > 1 ? "s" : ""}</p></div><div className="h-2 overflow-hidden rounded-full bg-muted" aria-label={`${row.utilization} % de capacité utilisée`}><div className={`h-full rounded-full ${row.utilization > 100 ? "bg-danger" : row.utilization >= 80 ? "bg-warning" : "bg-primary"}`} style={{ width: `${Math.min(row.utilization, 100)}%` }} /></div><p className={`text-sm font-semibold tabular-nums sm:text-right ${row.utilization > 100 ? "text-danger" : ""}`}>{Math.round(row.plannedMinutes / 6) / 10} h / {Math.round(row.capacity / 6) / 10} h</p></div>)}</div> : <p className="px-5 py-8 text-sm text-muted-foreground">Aucun membre actif.</p>}
-    </section>
   )
 }
 

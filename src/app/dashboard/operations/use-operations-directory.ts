@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react"
 
-export function useOperationsDirectory<T extends { total: number; page: number }>(agencyId: string, revision: unknown, load: (input: { search: string; page: number; agencyId?: string }) => Promise<T>) {
+export function useOperationsDirectory<T extends { total: number; page: number }>(agencyId: string, revision: unknown, load: (input: { search: string; page: number; agencyId?: string }) => Promise<T>, enabled = true) {
   const [query, setQuery] = useState({ search: "", page: 1, agencyId })
   const [retry, setRetry] = useState(0)
   const [pending, startTransition] = useTransition()
@@ -12,6 +12,7 @@ export function useOperationsDirectory<T extends { total: number; page: number }
   const key = JSON.stringify([query.search, page, agencyId, retry, revision])
   useEffect(() => { setQuery(current => ({ ...current, page: 1, agencyId })); setError(false) }, [agencyId])
   useEffect(() => {
+    if (!enabled) return
     let current = true
     const timer = setTimeout(() => startTransition(async () => {
       try {
@@ -21,9 +22,9 @@ export function useOperationsDirectory<T extends { total: number; page: number }
       } catch { if (current) setError(true) }
     }), 200)
     return () => { current = false; clearTimeout(timer) }
-  }, [query.search, page, agencyId, key, load])
+  }, [query.search, page, agencyId, key, load, enabled])
   const fresh = result?.key === key
   return { search: query.search, setSearch: (search: string) => { setQuery({ search, page: 1, agencyId }); setError(false) },
-    data: result?.data, visible: fresh && result && !error ? result.data : null, pending: pending || (!fresh && !error), error,
+    data: result?.data, visible: fresh && result && !error ? result.data : null, pending: enabled && (pending || (!fresh && !error)), error,
     page: fresh && result ? result.data.page : page, setPage: (next: number) => { setQuery(current => ({ ...current, page: next, agencyId })); setError(false) }, retry: () => { setError(false); setRetry(current => current + 1) } }
 }

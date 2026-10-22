@@ -29,7 +29,7 @@ function date(value: Date | string | null) {
   return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value)) : "Non définie"
 }
 
-export function MaintenanceRenewalPanel({ contract }: { contract: Contract }) {
+export function MaintenanceRenewalPanel({ contract, onOpenChange, onSaved }: { contract: Contract; onOpenChange?: (open: boolean) => void; onSaved?: () => void }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const window = maintenanceRenewalWindow(contract.endDate, contract.noticeDays)
@@ -44,7 +44,7 @@ export function MaintenanceRenewalPanel({ contract }: { contract: Contract }) {
         toast.error("error" in result && typeof result.error === "string" ? result.error : "Action impossible.")
         return
       }
-      toast.success(success); router.refresh()
+      toast.success(success); onSaved?.(); router.refresh()
     }).catch((error) => toast.error(error instanceof Error ? error.message : "Action impossible.")))
   }
 
@@ -55,7 +55,7 @@ export function MaintenanceRenewalPanel({ contract }: { contract: Contract }) {
       .catch((error) => toast.error(error instanceof Error ? error.message : "Proposition impossible.")))
   }
 
-  return <details className="group">
+  return <details className="group" onToggle={event => onOpenChange?.(event.currentTarget.open)}>
     <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2"><code className="text-xs font-semibold">{contract.number}</code><Badge variant="outline">{contract.status}</Badge><Badge variant={contract.renewalStatus === "DECLINED" ? "destructive" : renewed ? "secondary" : window.status === "OPEN" || window.status === "OVERDUE" ? "default" : "outline"}>{statusLabels[contract.renewalStatus] || contract.renewalStatus}</Badge>{contract.renewedFrom && <Badge variant="outline">Suite de {contract.renewedFrom.number}</Badge>}</div>
