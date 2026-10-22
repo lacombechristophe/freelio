@@ -1,16 +1,17 @@
 # Qualification du candidat Freelio
 
-État du 21 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
+État du 22 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
 
 ## Résultat actuel
 
-Le candidat local `5970c15daa987f037d3ab92653b7a48fb28ffffd` protège les [modèles de chantier : prérequis, activité, versions et audit](evidence/20261021-project-templates/README.md). Il conserve les correctifs des [avis Vite/Vitest de l’outillage](evidence/20261021-test-toolchain/README.md) et du [dossier chantier : jalons, réceptions, relevé technique, versions et audit](evidence/20261021-project-workspace/README.md), en complément du [cycle de vie du chantier](evidence/20261021-project-lifecycle/README.md). Les [choix Commande/Chantier des réservations](evidence/20261021-reservation-choices/README.md) restent complets. La [qualification des PDF réels des bons](evidence/20261021-delivery-pdf/README.md) porte sur une source inchangée. Il recontrôle les [réservations de stock et leur audit dans la transaction](evidence/20261021-stock-reservations/README.md). Les [choix Commande/Ligne](evidence/20261021-delivery-choices/README.md) et l’[historique des bons](evidence/20261021-delivery-directory/README.md) restent complets. Les [protections des commandes et captures signées](evidence/20261021-delivery-seals/README.md) restent incluses : références et versions recontrôlées, quantités décimales bornées, audit transactionnel et contenu signé conservé. La capture HTML est chiffrée ; les octets PDF sont produits à la demande.
+Le candidat local `da18fb87d6a295fa8ef17c8f03b005a357fa7771` protège aussi [l’ancien lecteur de liste des chantiers](evidence/20261022-project-list/README.md). Les [modèles de chantier : prérequis, activité, versions et audit](evidence/20261021-project-templates/README.md) restent inclus. Il conserve les correctifs des [avis Vite/Vitest de l’outillage](evidence/20261021-test-toolchain/README.md) et du [dossier chantier : jalons, réceptions, relevé technique, versions et audit](evidence/20261021-project-workspace/README.md), en complément du [cycle de vie du chantier](evidence/20261021-project-lifecycle/README.md). Les [choix Commande/Chantier des réservations](evidence/20261021-reservation-choices/README.md) restent complets. La [qualification des PDF réels des bons](evidence/20261021-delivery-pdf/README.md) porte sur une source inchangée. Il recontrôle les [réservations de stock et leur audit dans la transaction](evidence/20261021-stock-reservations/README.md). Les [choix Commande/Ligne](evidence/20261021-delivery-choices/README.md) et l’[historique des bons](evidence/20261021-delivery-directory/README.md) restent complets. Les [protections des commandes et captures signées](evidence/20261021-delivery-seals/README.md) restent incluses : références et versions recontrôlées, quantités décimales bornées, audit transactionnel et contenu signé conservé. La capture HTML est chiffrée ; les octets PDF sont produits à la demande.
 
 Les [réceptions et inspections fournisseur](evidence/20261021-purchase-stock/README.md), l’[historique complet et les validations](evidence/20261021-purchase-workflow/README.md), l’[édition et l’annulation avant transmission](evidence/20261021-purchase-drafts/README.md), la [classification des erreurs fournisseurs](evidence/20261021-provider-send-failures/README.md) et les [plafonds internes d’envoi](evidence/20261020-mail-send-quotas/README.md) restent inclus. Ces contrôles ne garantissent ni le quota fournisseur, ni la délivrabilité, ni la gratuité.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite avec outillage corrigé, base fictive neuve | **3 505 tests / 277 fichiers**, aucun échec ni exclusion |
+| Suite SQLite avec outillage corrigé, base fictive neuve | **3 520 tests / 278 fichiers**, aucun échec ni exclusion |
+| Ancien lecteur Chantiers, annuaire et lecteurs partagés | 96 cas dans trois suites, présents et réussis dans la suite complète ; 191 avec les voisins réussis séparément |
 | Modèles, dossier chantier et lecteurs voisins | 209 cas dans sept suites, dont 24 dédiés aux modèles ; réussis séparément et dans la suite complète |
 | Dossier chantier, cycle de vie et lecteurs partagés | 173 cas dans cinq suites : 71 SQL dédiés, quatre rendus statiques et 98 voisins, réussis séparément et dans la suite complète |
 | Chantiers : cycle de vie, version et choix Client | 37 cas dédiés et 49 voisins dans trois suites, présents et réussis dans la même suite complète |
@@ -18,8 +19,8 @@ Les [réceptions et inspections fournisseur](evidence/20261021-purchase-stock/RE
 | Choix de commande et de chantier des réservations | 29 cas dédiés et 42 voisins dans quatre suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 5970c15, 76 pages statiques |
-| Identité des sources de la recette | 1 217 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
+| Build Next.js | Réussi sur da18fb8, 76 pages statiques |
+| Identité des sources de la recette | 1 218 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
 | Audits npm production et complet | Audits datés à zéro de 4a7a241 ; fichiers package et lockfile inchangés, identité vérifiée |
 | Générateur PDF : socle | Quatre contrôles réussis, dont trois sur Chromium réel ; documents métier distincts |
 | Bons de livraison : PDF natifs | Trois cas réussis ; 37 contrôles hors ligne du lot PDF, sur une source inchangée |
@@ -31,6 +32,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Ancien lecteur de liste : références Modèle/Agence/Site exclues avant pagination ; ordre déterministe | [Liste et périmètre](evidence/20261022-project-list/README.md) |
 | Modèles : prérequis étrangers masqués, activité et audit atomiques, version affichée vérifiée et graphe invalide refusé avant création d’un chantier | [Modèles et limites](evidence/20261021-project-templates/README.md) |
 | Dossier chantier : droits avant lecture, références et versions relues, audit obligatoire ; dates calendaires stables | [Jalons, réceptions et relevé](evidence/20261021-project-workspace/README.md) |
 | Outillage de test corrigé sans paquet de production changé ; audits et nouvelle exécution complète | [Vite et Vitest](evidence/20261021-test-toolchain/README.md) |

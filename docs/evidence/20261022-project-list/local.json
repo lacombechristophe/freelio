@@ -1,0 +1,201 @@
+{
+  "schema": "freelio.project-list-local.v1",
+  "observedAt": "2026-10-22T00:14:02.881Z",
+  "codeCommit": "da18fb87d6a295fa8ef17c8f03b005a357fa7771",
+  "source": {
+    "observedAt": "2026-10-22T00:14:02.687Z",
+    "commit": "da18fb87d6a295fa8ef17c8f03b005a357fa7771",
+    "filesCompared": 1218,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "e7bd05845f7815644dda3fd6334e1f16cfe2c1f5d908f9020bea59f644f59dd9",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ]
+  },
+  "full": {
+    "file": "project-list-full-20261022.json",
+    "sha256": "3caf8f78a8cda4d5302d292c451417b87c932946db84320a6ffe0ef86246c635",
+    "passed": 3520,
+    "failed": 0,
+    "pending": 0,
+    "files": 278,
+    "success": true,
+    "freshDatabase": true,
+    "database": "verification-project-list-full-20261022.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "project-list-focused-final-20261022.json",
+    "sha256": "5cf032eb48ba3392590f715b2d2729aec9b64ba60f4ce23b9c4593bb0b48e793",
+    "passed": 191,
+    "failed": 0,
+    "pending": 0,
+    "files": 5,
+    "success": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 278,
+    "executedFiles": 278,
+    "identityMatch": true
+  },
+  "recoveredBaselineCases": 6,
+  "dedicatedWithinFull": [
+    {
+      "file": "project-list-relations.integration.test.ts",
+      "passed": 15
+    },
+    {
+      "file": "shared-client-readers.integration.test.ts",
+      "passed": 58
+    },
+    {
+      "file": "project-directory.integration.test.ts",
+      "passed": 23
+    }
+  ],
+  "checks": [
+    {
+      "check": "typegen",
+      "file": "project-list-typegen-20261022.log",
+      "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084",
+      "exit": 0
+    },
+    {
+      "check": "types",
+      "file": "project-list-types-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "eslint",
+      "file": "project-list-eslint-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "build",
+      "file": "project-list-build-20261022.log",
+      "sha256": "800b1e33444e7cadfff53ca2f1dbf17b7afd22827f0a28c977896e5d2bbb7e3e",
+      "exit": 0
+    }
+  ],
+  "oxlint": {
+    "file": "project-list-oxlint-20261022.json",
+    "sha256": "450d51a85f1ac2db2b2a7879d0c6c16c050105c97d39a917e943447d82d4ea75",
+    "diagnostics": [],
+    "files": 1094,
+    "rules": 21
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "file": "project-list-browser-list-20261022.json",
+    "sha256": "73ee6dfa8117d99304ec803fefef9f6f88228817da7e90b1d8ba9836ac04449d",
+    "selected": 472,
+    "desktop": 236,
+    "mobile": 236,
+    "executed": false,
+    "newCases": 0
+  },
+  "registeredActions": {
+    "observedAt": "2026-10-22T00:06:35.050Z",
+    "codeCommit": "da18fb87d6a295fa8ef17c8f03b005a357fa7771",
+    "source": "Next build server-reference-manifest.json",
+    "sha256": "010ffbaa8dae59932d7bfb2f6b087c3bfc8a54ad5c040b66475496c0b27b7ab6",
+    "entries": [
+      {
+        "exportedName": "getProjects",
+        "workers": [
+          "app/dashboard/projets/[id]/page",
+          "app/dashboard/projets/page"
+        ]
+      }
+    ],
+    "scope": "Build registration only; no action identifier, key, raw manifest, HTTP invocation or browser execution recorded"
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "limits": [
+    "Actual SQLite/actions/memberships; authentication and cache mocked",
+    "Build manifest proves action registration only, not HTTP reachability or an exploitation path",
+    "No UI call to the legacy reader was found; the visible directory has its own qualification",
+    "No historical relation rewrite, schema change, package installation, provider call, push, new CI, merge or deployment",
+    "Coverage includes only six configured modules; native PostgreSQL, Linux and application-browser qualification remain separate"
+  ]
+}
