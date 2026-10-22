@@ -112,11 +112,14 @@ const prismaClientSingleton = () => {
     query: {
       async $allOperations({ model, operation, args, query }) {
         if (!model && isPublicReadOnlyDemo()) {
-          // Raw SQL can mutate even when exposed through $queryRaw. The only
-          // supported raw read in a public demo is the readiness probe.
+          // Raw SQL can mutate even through $queryRaw. Permit only readiness
+          // or the exact SELECT constructed by the scoped project selector.
           const rawArgs = args as { sql?: string } | unknown[]
           const sql = !Array.isArray(rawArgs) && rawArgs && "sql" in rawArgs ? rawArgs.sql : Array.isArray(rawArgs) && Array.isArray(rawArgs[0]) ? rawArgs[0].join("") : undefined
-          if (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1") assertDemoMutationAllowed()
+          const context = getContext()
+          const projectRead = operation === "$queryRaw" && typeof sql === "string" && context?.actionPermission === "operations.read"
+            && context.operationsProjectReadSql === sql
+          if (!projectRead && (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1")) assertDemoMutationAllowed()
         }
         return query(args)
       },

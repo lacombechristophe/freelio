@@ -35,6 +35,7 @@ import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
 import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder, assertPurchaseInspectionCapacity } from "@/lib/operations/purchase-stock"
 import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
 import { convertAcceptedQuote } from "@/lib/operations/quote-conversion"
+import { readOperationsProjectChoices } from "@/lib/operations/project-choices"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -501,6 +502,10 @@ function schedulingFailure(error: unknown): { success: false; error: string } {
   if (error instanceof SchedulingError) return { success: false, error: error.message }
   if (error && typeof error === "object" && "code" in error && error.code === "P2034") return { success: false, error: "Le planning a changé. Rechargez puis réessayez ; votre saisie est conservée." }
   throw error
+}
+
+export async function getOperationsProjectChoices(input: unknown = {}) {
+  return withAuth(context => readOperationsProjectChoices(context, input), "operations.read")
 }
 
 export async function getOperationsDashboard() {

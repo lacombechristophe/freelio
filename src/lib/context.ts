@@ -13,6 +13,7 @@ export type RequestContext = {
   timeInvoiceReleaseId?: string
   oauthCredentialRefreshChannelId?: string
   quoteOrderCreation?: { quoteId: string; clientId: string }
+  operationsProjectReadSql?: string
 }
 
 const globalForContext = globalThis as typeof globalThis & {
