@@ -1,0 +1,46 @@
+{
+  "schema": "freelio.project-template-baseline.v1",
+  "productionCommit": "e3e61f82a6a2f1dd7d2d002fcc34b1e8a6068115",
+  "file": "project-template-baseline-cleanup-fixed-20261021.json",
+  "sha256": "6f6f3f7d980e3806e567875ae1fe16e5111339dbd449f42cea2f5e70db0191b1",
+  "passed": 0,
+  "failed": 9,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Project templates preserve their own graph, revision and audit does not return the identity or title of a prerequisite from another company",
+    "Project templates preserve their own graph, revision and audit does not treat a prerequisite from another owned template as part of this graph",
+    "Project templates preserve their own graph, revision and audit rolls back template and steps when its audit insertion is refused",
+    "Project templates preserve their own graph, revision and audit keeps the activity transition and its audit together",
+    "Project templates preserve their own graph, revision and audit preserves activity and revision when its audit insertion is refused",
+    "Project templates preserve their own graph, revision and audit refuses an activity transition from an obsolete displayed revision",
+    "Project templates preserve their own graph, revision and audit refuses to instantiate a template with a foreign prerequisite without silently clearing it",
+    "Project templates preserve their own graph, revision and audit refuses to instantiate a template with a cycle prerequisite without silently clearing it",
+    "Project templates preserve their own graph, revision and audit refuses to instantiate a template with a later prerequisite without silently clearing it"
+  ],
+  "source": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "5f2155689544c66e6d6969ad81495797dea8d9b54426f2bbf9539dfe4501a27b"
+  },
+  "log": {
+    "file": "project-template-baseline-cleanup-fixed-20261021.log",
+    "sha256": "d8bff1661a6e143bfcca7c34beeb97c6bddc7ace31277845902d35c3d0622c06"
+  },
+  "scope": "Nine failed assertions: foreign and other-template prerequisites, non-atomic/missing audits, obsolete revision and three malformed graphs. Not nine independent vulnerabilities. Mutations read actual SQL state after the call; no refusal caused only by an absent version token.",
+  "initialHarnessFailure": {
+    "file": "project-template-baseline-20261021.json",
+    "sha256": "a374b9bd0e14c303167244b56c21d1c5a43007bc90f743ed15dfdbc596cd4a8c",
+    "passed": 0,
+    "failed": 9,
+    "pending": 0,
+    "files": 1,
+    "success": false,
+    "log": {
+      "file": "project-template-baseline-20261021.log",
+      "sha256": "444b602e7c1efae90864fb02d970d9f274578cca4d3eac2435dda0250d5a6d2e"
+    },
+    "sourceSha256": "e24db305c9ec3645dd58cf914aece5991ee8374ad09c4bd14fa4a780a043f90b",
+    "scope": "Same nine product assertions failed; afterAll additionally attempted to delete the company before its restricted client. Cleanup order fixed, no production code changed, then rerun on a new database. The cleanup failure is not a tenth product defect."
+  }
+}
