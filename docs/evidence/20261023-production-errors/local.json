@@ -1,0 +1,409 @@
+{
+  "schema": "freelio.production-errors-local.v1",
+  "observedAt": "2026-10-22T22:30:16.284Z",
+  "codeCommit": "84821820314fc2846bac3c43d5a277b869294e05",
+  "productCommit": "3906b88d8fd6107614104c0647993a18272f018f",
+  "source": {
+    "schema": "freelio.production-errors-source.v1",
+    "observedAt": "2026-10-22T22:26:08.764Z",
+    "commit": "84821820314fc2846bac3c43d5a277b869294e05",
+    "baselineCommit": "bf2ce15ed50c58da9b5609c0ee085ca23324b2e9",
+    "filesCompared": 1261,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "61fdb913a7466729b2881bdd1fe2a27c0dee6132e61af440980fe3ae4dcf9a10",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed; only leading v on matching Upstash installed versions is normalized",
+    "normalizedLineEndings": [
+      "prisma/postgresql/migrations/20261004040000_signed_contract_archives/migration.sql",
+      "prisma/postgresql/migrations/20261007010000_workflow_waits/migration.sql",
+      "scripts/seed-ui-redesign.mjs",
+      "src/actions/automations/index.ts",
+      "src/actions/clients/index.ts",
+      "src/app/dashboard/automatisations/automation-center.tsx",
+      "src/app/dashboard/automatisations/delivery-journal.tsx",
+      "src/app/dashboard/automatisations/workflow-studio.tsx",
+      "src/app/dashboard/clients/[id]/client-portal-panel.tsx",
+      "src/app/dashboard/clients/[id]/page.tsx",
+      "src/app/dashboard/communications/communication-center.tsx",
+      "src/app/dashboard/operations/orders-directory.tsx",
+      "src/app/dashboard/operations/purchase-order-dialog.tsx",
+      "src/app/portal/page.tsx",
+      "src/app/portal/portal-workspace.tsx",
+      "src/lib/automations/sequence-retry-safety.ts",
+      "src/lib/automations/sequences.ts",
+      "src/lib/communications/email-sync.ts",
+      "src/lib/communications/manual-recovery.ts",
+      "src/lib/communications/remote-mail-persistence.ts",
+      "tests/e2e/sequence-retry-safety.spec.ts",
+      "tests/e2e/workflow-waits.spec.ts",
+      "tests/unit/client-read-scope.integration.test.ts",
+      "tests/unit/incoming-attachment.integration.test.ts",
+      "tests/unit/order-billing-references.integration.test.ts",
+      "tests/unit/order-billing-roles.integration.test.ts",
+      "tests/unit/order-billing-stale-balance.integration.test.ts",
+      "tests/unit/sequence-history.integration.test.ts",
+      "tests/unit/sequence-retry-safety.integration.test.ts"
+    ],
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "packageFilesMatchManaged": true,
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "packageSha256": "050edacdc0508954f9e8c655e361dd90a31c8ae5089d4ed28da3935e15d82a98",
+      "lockSha256": "f5820e0356cbd6754c5bcc98bcbff4d114d7476f4920db7ad868cd654304ef49",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ],
+      "missingRequiredPackages": [],
+      "missingOptionalPackages": [
+        "node_modules/@emnapi/core",
+        "node_modules/@emnapi/wasi-threads",
+        "node_modules/@esbuild/aix-ppc64",
+        "node_modules/@esbuild/android-arm",
+        "node_modules/@esbuild/android-arm64",
+        "node_modules/@esbuild/android-x64",
+        "node_modules/@esbuild/darwin-arm64",
+        "node_modules/@esbuild/darwin-x64",
+        "node_modules/@esbuild/freebsd-arm64",
+        "node_modules/@esbuild/freebsd-x64",
+        "node_modules/@esbuild/linux-arm",
+        "node_modules/@esbuild/linux-arm64",
+        "node_modules/@esbuild/linux-ia32",
+        "node_modules/@esbuild/linux-loong64",
+        "node_modules/@esbuild/linux-mips64el",
+        "node_modules/@esbuild/linux-ppc64",
+        "node_modules/@esbuild/linux-riscv64",
+        "node_modules/@esbuild/linux-s390x",
+        "node_modules/@esbuild/linux-x64",
+        "node_modules/@esbuild/netbsd-arm64",
+        "node_modules/@esbuild/netbsd-x64",
+        "node_modules/@esbuild/openbsd-arm64",
+        "node_modules/@esbuild/openbsd-x64",
+        "node_modules/@esbuild/openharmony-arm64",
+        "node_modules/@esbuild/sunos-x64",
+        "node_modules/@esbuild/win32-arm64",
+        "node_modules/@esbuild/win32-ia32",
+        "node_modules/@img/sharp-darwin-arm64",
+        "node_modules/@img/sharp-darwin-x64",
+        "node_modules/@img/sharp-freebsd-wasm32",
+        "node_modules/@img/sharp-libvips-darwin-arm64",
+        "node_modules/@img/sharp-libvips-darwin-x64",
+        "node_modules/@img/sharp-libvips-linux-arm",
+        "node_modules/@img/sharp-libvips-linux-arm64",
+        "node_modules/@img/sharp-libvips-linux-ppc64",
+        "node_modules/@img/sharp-libvips-linux-riscv64",
+        "node_modules/@img/sharp-libvips-linux-s390x",
+        "node_modules/@img/sharp-libvips-linux-x64",
+        "node_modules/@img/sharp-libvips-linuxmusl-arm64",
+        "node_modules/@img/sharp-libvips-linuxmusl-x64",
+        "node_modules/@img/sharp-linux-arm",
+        "node_modules/@img/sharp-linux-arm64",
+        "node_modules/@img/sharp-linux-ppc64",
+        "node_modules/@img/sharp-linux-riscv64",
+        "node_modules/@img/sharp-linux-s390x",
+        "node_modules/@img/sharp-linux-x64",
+        "node_modules/@img/sharp-linuxmusl-arm64",
+        "node_modules/@img/sharp-linuxmusl-x64",
+        "node_modules/@img/sharp-webcontainers-wasm32",
+        "node_modules/@img/sharp-win32-arm64",
+        "node_modules/@img/sharp-win32-ia32",
+        "node_modules/@msgpackr-extract/msgpackr-extract-darwin-arm64",
+        "node_modules/@msgpackr-extract/msgpackr-extract-darwin-x64",
+        "node_modules/@msgpackr-extract/msgpackr-extract-linux-arm",
+        "node_modules/@msgpackr-extract/msgpackr-extract-linux-arm64",
+        "node_modules/@msgpackr-extract/msgpackr-extract-linux-x64",
+        "node_modules/@napi-rs/wasm-runtime",
+        "node_modules/@next/swc-darwin-arm64",
+        "node_modules/@next/swc-darwin-x64",
+        "node_modules/@next/swc-linux-arm64-gnu",
+        "node_modules/@next/swc-linux-arm64-musl",
+        "node_modules/@next/swc-linux-x64-gnu",
+        "node_modules/@next/swc-linux-x64-musl",
+        "node_modules/@next/swc-win32-arm64-msvc",
+        "node_modules/@oxlint/binding-android-arm-eabi",
+        "node_modules/@oxlint/binding-android-arm64",
+        "node_modules/@oxlint/binding-darwin-arm64",
+        "node_modules/@oxlint/binding-darwin-x64",
+        "node_modules/@oxlint/binding-freebsd-x64",
+        "node_modules/@oxlint/binding-linux-arm-gnueabihf",
+        "node_modules/@oxlint/binding-linux-arm-musleabihf",
+        "node_modules/@oxlint/binding-linux-arm64-gnu",
+        "node_modules/@oxlint/binding-linux-arm64-musl",
+        "node_modules/@oxlint/binding-linux-ppc64-gnu",
+        "node_modules/@oxlint/binding-linux-riscv64-gnu",
+        "node_modules/@oxlint/binding-linux-riscv64-musl",
+        "node_modules/@oxlint/binding-linux-s390x-gnu",
+        "node_modules/@oxlint/binding-linux-x64-gnu",
+        "node_modules/@oxlint/binding-linux-x64-musl",
+        "node_modules/@oxlint/binding-openharmony-arm64",
+        "node_modules/@oxlint/binding-win32-arm64-msvc",
+        "node_modules/@oxlint/binding-win32-ia32-msvc",
+        "node_modules/@rolldown/binding-android-arm-eabi",
+        "node_modules/@rolldown/binding-android-arm64",
+        "node_modules/@rolldown/binding-darwin-arm64",
+        "node_modules/@rolldown/binding-darwin-x64",
+        "node_modules/@rolldown/binding-freebsd-x64",
+        "node_modules/@rolldown/binding-linux-arm-gnueabihf",
+        "node_modules/@rolldown/binding-linux-arm64-gnu",
+        "node_modules/@rolldown/binding-linux-arm64-musl",
+        "node_modules/@rolldown/binding-linux-ppc64-gnu",
+        "node_modules/@rolldown/binding-linux-s390x-gnu",
+        "node_modules/@rolldown/binding-linux-x64-gnu",
+        "node_modules/@rolldown/binding-linux-x64-musl",
+        "node_modules/@rolldown/binding-openharmony-arm64",
+        "node_modules/@rolldown/binding-win32-arm64-msvc",
+        "node_modules/@tailwindcss/oxide-android-arm64",
+        "node_modules/@tailwindcss/oxide-darwin-arm64",
+        "node_modules/@tailwindcss/oxide-darwin-x64",
+        "node_modules/@tailwindcss/oxide-freebsd-x64",
+        "node_modules/@tailwindcss/oxide-linux-arm-gnueabihf",
+        "node_modules/@tailwindcss/oxide-linux-arm64-gnu",
+        "node_modules/@tailwindcss/oxide-linux-arm64-musl",
+        "node_modules/@tailwindcss/oxide-linux-x64-gnu",
+        "node_modules/@tailwindcss/oxide-linux-x64-musl",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/core",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/runtime",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/wasi-threads",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@napi-rs/wasm-runtime",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@tybys/wasm-util",
+        "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/tslib",
+        "node_modules/@tailwindcss/oxide-win32-arm64-msvc",
+        "node_modules/@tybys/wasm-util",
+        "node_modules/@unrs/resolver-binding-android-arm-eabi",
+        "node_modules/@unrs/resolver-binding-android-arm64",
+        "node_modules/@unrs/resolver-binding-darwin-arm64",
+        "node_modules/@unrs/resolver-binding-darwin-x64",
+        "node_modules/@unrs/resolver-binding-freebsd-x64",
+        "node_modules/@unrs/resolver-binding-linux-arm-gnueabihf",
+        "node_modules/@unrs/resolver-binding-linux-arm-musleabihf",
+        "node_modules/@unrs/resolver-binding-linux-arm64-gnu",
+        "node_modules/@unrs/resolver-binding-linux-arm64-musl",
+        "node_modules/@unrs/resolver-binding-linux-ppc64-gnu",
+        "node_modules/@unrs/resolver-binding-linux-riscv64-gnu",
+        "node_modules/@unrs/resolver-binding-linux-riscv64-musl",
+        "node_modules/@unrs/resolver-binding-linux-s390x-gnu",
+        "node_modules/@unrs/resolver-binding-linux-x64-gnu",
+        "node_modules/@unrs/resolver-binding-linux-x64-musl",
+        "node_modules/@unrs/resolver-binding-wasm32-wasi",
+        "node_modules/@unrs/resolver-binding-win32-arm64-msvc",
+        "node_modules/@unrs/resolver-binding-win32-ia32-msvc",
+        "node_modules/fsevents",
+        "node_modules/lightningcss-android-arm64",
+        "node_modules/lightningcss-darwin-arm64",
+        "node_modules/lightningcss-darwin-x64",
+        "node_modules/lightningcss-freebsd-x64",
+        "node_modules/lightningcss-linux-arm-gnueabihf",
+        "node_modules/lightningcss-linux-arm64-gnu",
+        "node_modules/lightningcss-linux-arm64-musl",
+        "node_modules/lightningcss-linux-x64-gnu",
+        "node_modules/lightningcss-linux-x64-musl",
+        "node_modules/lightningcss-win32-arm64-msvc",
+        "node_modules/playwright/node_modules/fsevents",
+        "node_modules/vite/node_modules/lightningcss-android-arm64",
+        "node_modules/vite/node_modules/lightningcss-darwin-arm64",
+        "node_modules/vite/node_modules/lightningcss-darwin-x64",
+        "node_modules/vite/node_modules/lightningcss-freebsd-x64",
+        "node_modules/vite/node_modules/lightningcss-linux-arm-gnueabihf",
+        "node_modules/vite/node_modules/lightningcss-linux-arm64-gnu",
+        "node_modules/vite/node_modules/lightningcss-linux-arm64-musl",
+        "node_modules/vite/node_modules/lightningcss-linux-x64-gnu",
+        "node_modules/vite/node_modules/lightningcss-linux-x64-musl",
+        "node_modules/vite/node_modules/lightningcss-win32-arm64-msvc"
+      ],
+      "versions": {
+        "node_modules/next": "16.4.2",
+        "node_modules/@next/env": "16.4.2",
+        "node_modules/sharp": "0.35.5",
+        "node_modules/prisma": "6.12.0",
+        "node_modules/@prisma/client": "6.12.0"
+      },
+      "installedSwc": [
+        {
+          "name": "@next/swc-win32-x64-msvc",
+          "version": "16.4.2"
+        }
+      ]
+    },
+    "lockDelta": {
+      "baselineCommit": "bf2ce15ed50c58da9b5609c0ee085ca23324b2e9",
+      "changedEntries": [
+        "",
+        "node_modules/@next/env",
+        "node_modules/@next/swc-darwin-arm64",
+        "node_modules/@next/swc-darwin-x64",
+        "node_modules/@next/swc-linux-arm64-gnu",
+        "node_modules/@next/swc-linux-arm64-musl",
+        "node_modules/@next/swc-linux-x64-gnu",
+        "node_modules/@next/swc-linux-x64-musl",
+        "node_modules/@next/swc-win32-arm64-msvc",
+        "node_modules/@next/swc-win32-x64-msvc",
+        "node_modules/next"
+      ],
+      "allowedChangedEntries": [
+        "",
+        "node_modules/@next/env",
+        "node_modules/@next/swc-darwin-arm64",
+        "node_modules/@next/swc-darwin-x64",
+        "node_modules/@next/swc-linux-arm64-gnu",
+        "node_modules/@next/swc-linux-arm64-musl",
+        "node_modules/@next/swc-linux-x64-gnu",
+        "node_modules/@next/swc-linux-x64-musl",
+        "node_modules/@next/swc-win32-arm64-msvc",
+        "node_modules/@next/swc-win32-x64-msvc",
+        "node_modules/next"
+      ],
+      "onlyNextFamilyChanged": true,
+      "otherResolutionsUnchanged": true,
+      "sharpConstraint": {
+        "before": "^0.35.4",
+        "after": "^0.35.5",
+        "installed": "0.35.5",
+        "resolutionUnchanged": true
+      }
+    },
+    "limits": [
+      "Source and package version identity do not prove runtime behavior",
+      "Only tracked Git files outside the stated exclusions are compared; extra recipe files are not inventoried",
+      "Absent optional packages for other platforms are not installed-version comparisons",
+      "Native PostgreSQL, Linux, application browser and hosted qualification remain separate"
+    ]
+  },
+  "dependenciesAndSchemaUnchangedSince": "6274f54f04d37a05f00b64fad988bc0609a0cb40",
+  "sqlite": {
+    "database": "production-errors-focused-20261023.db",
+    "fresh": true,
+    "passed": 217,
+    "failed": 0,
+    "pending": 0,
+    "files": 7,
+    "newTransportCases": 5,
+    "newSqlCases": 3,
+    "report": {
+      "file": "Freelio-production-errors-focused-20261023.json",
+      "sha256": "4a4a41c19e7261b521eaffb5b829e198229ee664a0819a55d2499c2ef91694d1"
+    },
+    "suites": [
+      {
+        "file": "tests/unit/maintenance-settings-integrity.integration.test.ts",
+        "passed": 31
+      },
+      {
+        "file": "tests/unit/mutation-result.test.ts",
+        "passed": 5
+      },
+      {
+        "file": "tests/unit/operations-details-relations.integration.test.ts",
+        "passed": 42
+      },
+      {
+        "file": "tests/unit/project-lifecycle-integrity.integration.test.ts",
+        "passed": 40
+      },
+      {
+        "file": "tests/unit/project-template-integrity.integration.test.ts",
+        "passed": 24
+      },
+      {
+        "file": "tests/unit/project-workspace-integrity.integration.test.ts",
+        "passed": 71
+      },
+      {
+        "file": "tests/unit/project-workspace-view.test.ts",
+        "passed": 4
+      }
+    ]
+  },
+  "checks": [
+    {
+      "kind": "focused_sqlite",
+      "file": "Freelio-production-errors-focused-20261023.log",
+      "exitCode": 0,
+      "sha256": "1d8e3d2714aa3f84936a38510190c4412593e539c3e9d22c1c93dd3ee4f183b6"
+    },
+    {
+      "kind": "typecheck",
+      "file": "Freelio-production-errors-types-20261023.log",
+      "exitCode": 0,
+      "sha256": "4a8d4d0901c23c59e21490fa658266c117b8a1e5b5f02b4ac9c4735a1e7ad843"
+    },
+    {
+      "kind": "lint_final",
+      "file": "Freelio-production-errors-lint-final-20261023.log",
+      "exitCode": 0,
+      "sha256": "3a29a01bb576f7ab5e3b61642eb5440c8fcf43da172d8fe84dcc1a8d1d7653df"
+    },
+    {
+      "kind": "production_build_final",
+      "file": "Freelio-production-errors-build-final-20261023.log",
+      "exitCode": 0,
+      "sha256": "ffefbc309c0b2b14b711ee072e195ec45e4ba2f7ebde5b4f2590a5f227021b1f"
+    },
+    {
+      "kind": "e2e_lint",
+      "file": "Freelio-ui-corrections-lint-20261023.log",
+      "exitCode": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "kind": "e2e_list_only",
+      "file": "Freelio-ui-corrections-list-20261023.log",
+      "exitCode": 0,
+      "sha256": "9565f46bad49d1352e14e69e615fa109cb0ceb6bd2e35b18cf2e41fdfff0e3fc"
+    },
+    {
+      "kind": "fixture_ui_seed_guard",
+      "file": "Freelio-ui-fixtures-20261023.log",
+      "exitCode": 1,
+      "sha256": "806e234d82ed46dc400b52a2df2d6cbb53eeb030b715130d3be46933eb98ae7c"
+    }
+  ],
+  "build": {
+    "exitCode": 0,
+    "next": "16.4.2",
+    "staticPages": 76,
+    "freshBuildDirectory": true
+  },
+  "playwright": {
+    "selected": 518,
+    "files": 104,
+    "executedLocally": false
+  },
+  "fixtures": {
+    "database": "browser-fixtures-20261023.db",
+    "fresh": true,
+    "preparationExitCode": 0,
+    "initialSeedExitCode": 0,
+    "uiSeedExitCode": 1,
+    "uiSeedApplied": false,
+    "guard": "Use the isolated redesign database or the isolated CI recipe.",
+    "guardChanged": false
+  },
+  "applicationUiAccess": {
+    "localBrowserEnabled": false,
+    "userChoice": "Continue without browser access",
+    "hostedMigrationStateVerified": false,
+    "authenticatedHostedRecipeExecuted": false
+  },
+  "limits": [
+    "The full SQLite/PostgreSQL suite and Linux/runtime UI of this code still require CI.",
+    "Earlier native results belong to 6274f54; this proof does not extend them to new code.",
+    "Playwright listing and lint do not execute a browser path.",
+    "No provider account, deployment promotion, billing, visibility or license change."
+  ]
+}

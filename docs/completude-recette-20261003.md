@@ -1,8 +1,10 @@
 # Qualification du candidat Freelio
 
-État du 22 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
+État du 23 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
 
 ## Résultat actuel
+
+Le candidat `84821820314fc2846bac3c43d5a277b869294e05` traite les [refus masqués en production et les scénarios navigateur](evidence/20261023-production-errors/README.md). Sa recette locale passe 217 tests ciblés, types, lint et build ; les 518 E2E sont sélectionnés sans exécution locale. Sa propre CI complète reste requise. Le propriétaire poursuit sans navigateur local : migrations distantes et recette authentifiée restent non vérifiées.
 
 Le candidat `6274f54f04d37a05f00b64fad988bc0609a0cb40` contient les [corrections des défauts révélés par PostgreSQL](evidence/20261022-postgres-compatibility/README.md) : reprise bornée des transactions annulées, rattachement stable des réceptions et coordination correcte du test de stock. La nouvelle CI confirme 3 925 tests PostgreSQL réussis, une exclusion propre à SQLite et 72 migrations appliquées ; le runner desktop passe 3 926 tests SQLite, types, lint et build. Les neuf contrôles Linux passent aussi. Cette qualification reste rouge : Chromium n’a pas pu être installé sur le runner desktop (dépôt APT Microsoft HTTP 403), les E2E mobiles ont été interrompus après cinq échecs consignés et les uploads restent refusés pour quota. La [preuve native](evidence/20261022-postgres-compatibility/ci-6274f54.json) et le [diagnostic UI précédent](evidence/20261022-postgres-compatibility/ui-diagnostic-9f09bd5.json) conservent les SHA, étapes et limites.
 
