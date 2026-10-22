@@ -1,0 +1,26 @@
+{
+  "schema": "freelio.operations-project-choice-baseline.v1",
+  "baselineCodeCommit": "faf2f066eb0ea3d6d1bbf73d637088ea02abbe04",
+  "file": "operations-project-choice-baseline-20261022.json",
+  "sha256": "1c59e6559f4e3b68dfcc7304af6caa0eead31f831ef4584ae9fc0c07759d4a1c",
+  "passed": 1,
+  "failed": 3,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Operations project choices exceed the initial dashboard cache makes all 301 eligible projects reachable instead of the first 300",
+    "Operations project choices exceed the initial dashboard cache finds a project beyond the initial dashboard cache by name",
+    "Operations project choices exceed the initial dashboard cache keeps the selected project outside the visible page and search"
+  ],
+  "source": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "e0ad88e27bd0c80eeb7f9d253e666d51632cff3547a0d77311fcda2b3658b864"
+  },
+  "log": {
+    "file": "operations-project-choice-baseline-20261022.log",
+    "sha256": "70c44ffc8d134b8679006974bd63848e1db2360bbb226a0b961288c0025b875a"
+  },
+  "classification": "Three failed consumer assertions on one 300-project cache ceiling, plus one positive initially-visible choice. Not three independent vulnerabilities.",
+  "adapter": "Baseline source is the actual getOperationsDashboard().projects used by the three native selects. The preserved probe normalizes that cached array or the replacement reader to the same paged result shape. The final dedicated suite calls the new reader directly. Neither version executes the application UI."
+}
