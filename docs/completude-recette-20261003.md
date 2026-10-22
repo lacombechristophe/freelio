@@ -4,11 +4,13 @@
 
 ## Résultat actuel
 
-Le candidat local `55b5ac5a5460cc4a5fc93bcbd7c3d44dffdb6ff9` intègre la [mise à niveau Next.js 16.4.2](evidence/20261022-next-security/README.md), avec de nouveaux audits et une nouvelle exécution complète. Le [choix Ticket SAV](evidence/20261022-intervention-tickets/README.md), les [accords de renouvellement](evidence/20261022-maintenance-signing/README.md) et les corrections précédentes restent inclus. Les constats critiques de la version 16.3.8 sont conservés comme diagnostics datés, pas comme état du nouveau lockfile.
+Le candidat `be58e1fb5f94450f5f5fe461edabdea32f8f42b2` traite les [défauts révélés par PostgreSQL](evidence/20261022-postgres-compatibility/README.md) : reprise bornée des transactions annulées, rattachement stable des réceptions et coordination correcte du test de stock. Ses 246 tests ciblés SQLite, types, lint et build passent ; sa propre suite PostgreSQL reste à exécuter en CI.
+
+La dernière suite locale complète ci-dessous appartient au socle `55b5ac5a5460cc4a5fc93bcbd7c3d44dffdb6ff9`, avec la [mise à niveau Next.js 16.4.2](evidence/20261022-next-security/README.md). Le [choix Ticket SAV](evidence/20261022-intervention-tickets/README.md), les [accords de renouvellement](evidence/20261022-maintenance-signing/README.md) et les corrections précédentes restent inclus. Les constats critiques de la version 16.3.8 sont conservés comme diagnostics datés, pas comme état du nouveau lockfile.
 
 Les corrections précédentes restent incluses. La [carte des preuves](carte-des-preuves.md) donne leurs points d’entrée ; les résultats locaux ci-dessous qualifient ce code, dans les limites indiquées.
 
-| Contrôle local sur ce code | Résultat |
+| Contrôle local sur le socle 55b5ac5 | Résultat |
 | --- | --- |
 | Suite SQLite avec outillage corrigé, base fictive neuve | **3 913 tests / 292 fichiers**, aucun échec ni exclusion |
 | Choix Ticket SAV de Nouvelle intervention | 47 cas SQL ; 230 avec les voisins, réussis séparément et dans la suite complète |
@@ -39,7 +41,7 @@ Les corrections précédentes restent incluses. La [carte des preuves](carte-des
 
 Une exécution de la version précédente ab42ad1 a dépassé cinq secondes sur une réponse Google ; les trois cas passent isolément puis dans une nouvelle suite complète, sans changement de code, d’assertion ou de délai. Le [rapport reste conservé](evidence/20261022-maintenance-settings/README.md) et sa cause n’est pas établie. Le présent lot ne prétend pas la corriger.
 
-Ce dossier établit la qualification locale avant publication de cette série. La dernière tête distante observée pendant cette recette était `8d2232385f8cfcca9006d5e56ecdb3794485610c`, avec des uploads refusés pour quota. Les contrôles distants du candidat poussé sont à lire dans la [PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks), en vérifiant leur SHA : une ancienne CI ou preview ne qualifie pas les compléments suivants.
+Le [run de 9f09bd5](https://github.com/lacombechristophe/freelio/actions/runs/39855959357) exécute les migrations et les neuf contrôles natifs Linux, mais sa suite PostgreSQL compte dix échecs, 3 902 réussites et une exclusion historique. Les uploads échouent aussi pour quota, malgré le nettoyage des 269 archives déjà autorisé et terminé. La preview de cette tête est READY après correction de l’attribution GitHub ; ses migrations distantes et parcours authentifiés ne sont pas qualifiés par ce seul état. Les contrôles du candidat corrigé sont à lire dans la [PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks), en vérifiant leur SHA. Aucune fusion ni publication en production n’est revendiquée.
 
 ## Corrections récentes
 

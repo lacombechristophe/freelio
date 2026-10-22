@@ -1,0 +1,153 @@
+{
+  "schema": "freelio.postgres-compatibility.v1",
+  "observedAt": "2026-10-22T21:38:00.020Z",
+  "codeCommit": "be58e1fb5f94450f5f5fe461edabdea32f8f42b2",
+  "commits": {
+    "transactions": "48d510d5c8cb412dc0bea8bd4586ac6ebc6362e0",
+    "receipt": "2720a02554b03ad55428a8774522f01be048fd40",
+    "volume": "be58e1fb5f94450f5f5fe461edabdea32f8f42b2"
+  },
+  "before": {
+    "sha": "9f09bd562407053e22c3f57b47944775cfeb3f6f",
+    "run": 39855959357,
+    "url": "https://github.com/lacombechristophe/freelio/actions/runs/39855959357",
+    "postgres": {
+      "job": 120094813489,
+      "passed": 3902,
+      "failed": 10,
+      "skipped": 1,
+      "files": 292,
+      "failures": [
+        "tests/unit/email-send-quotas.integration.test.ts > internal mailbox send quotas on SQL > keeps the limit under concurrent different commands and identical retries",
+        "tests/unit/maintenance-proposal-integrity.integration.test.ts > Maintenance proposals retain their displayed source and mandatory audit > serializes two preparations into one draft and one audit",
+        "tests/unit/maintenance-signing-integrity.integration.test.ts > Maintenance signature and subsequent term preserve the agreed economics > serializes replacement retries into one new proposal",
+        "tests/unit/operations-service-directory.integration.test.ts > Operations service lists exceed historical dashboard caches > reads 10001 same-day slots without returning an unbounded route payload",
+        "tests/unit/quote-contract-conversion.integration.test.ts > Accepted quote contract keeps the displayed source and mandatory audit > prepares one contract and one audit for two same-source callers",
+        "tests/unit/quote-order-conversion.integration.test.ts > Accepted quote conversion keeps the source, order, project and audit consistent > creates only one dossier when two callers launch the same displayed source",
+        "tests/unit/stock-reservation-concurrency.integration.test.ts > stock reservation concurrency preserves persisted balances and movements > keeps two concurrent 5-unit reservations within ten available units",
+        "tests/unit/stock-reservation-concurrency.integration.test.ts > stock reservation concurrency preserves persisted balances and movements > keeps two concurrent 6-unit reservations within ten available units",
+        "tests/unit/stock-reservation-concurrency.integration.test.ts > stock reservation concurrency preserves persisted balances and movements > keeps two concurrent 10-unit reservations within ten available units",
+        "tests/unit/warehouse-import-lifecycle.integration.test.ts > imports respect warehouse activity and retain rejected raw records > imports and replays a coherent goods_receipts without duplicates"
+      ],
+      "logSha256": "5d02d027b1d81f0ada54b69db10dbc96bfc1f6934b667e4f8d68808c86169cee"
+    },
+    "linux": {
+      "job": 120094813492,
+      "nativeChecksPassed": 9,
+      "artifactUploadFailed": true,
+      "logSha256": "96475e9e9cfb1c5005fddf9e92e478247ed7a1a6e0e06ddc775b843168349c3b"
+    }
+  },
+  "local": {
+    "database": "pg-conflicts-focused-20261022.db",
+    "freshDatabase": true,
+    "reports": [
+      {
+        "file": "pg-conflicts-focused-20261022.json",
+        "sha256": "d5d48c7ea1732125c74b035a753edf0ea70e2f97bc0024a7980a3948a3815d65",
+        "passed": 246,
+        "files": 10,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "file": "pg-conflicts-import-final-20261022.json",
+        "sha256": "133cf605f8819b9552d31e1b63782943cd8580f5abafea945b5326811aa73242",
+        "passed": 7,
+        "files": 1,
+        "failed": 0,
+        "pending": 0
+      }
+    ],
+    "checks": [
+      {
+        "file": "pg-conflicts-types-final-20261022.log",
+        "sha256": "4a8d4d0901c23c59e21490fa658266c117b8a1e5b5f02b4ac9c4735a1e7ad843",
+        "exitCode": 0
+      },
+      {
+        "file": "pg-conflicts-lint-20261022.log",
+        "sha256": "3a29a01bb576f7ab5e3b61642eb5440c8fcf43da172d8fe84dcc1a8d1d7653df",
+        "exitCode": 0
+      },
+      {
+        "file": "pg-conflicts-build-20261022.log",
+        "sha256": "6f9586d77a327831debfd5e46f1acab40d80d9955adda27a03d766fe57249c63",
+        "exitCode": 0
+      }
+    ],
+    "terminalExits": {
+      "codeCommit": "be58e1fb5f94450f5f5fe461edabdea32f8f42b2",
+      "observedAt": "2026-10-22T21:37:58.540Z",
+      "focused": 0,
+      "importFinal": 0,
+      "typesFinal": 0,
+      "lint": 0,
+      "build": 0,
+      "terminalSessions": {
+        "focused": 96319,
+        "importFinal": 83450,
+        "typesFinal": 56969,
+        "lint": 47641,
+        "build": 32662
+      },
+      "initialTypes": {
+        "exitCode": 2,
+        "reason": "Nullable relation assertion in new test; corrected to assert the relation object, then types and import suite replayed."
+      }
+    },
+    "source": {
+      "compared": 1257,
+      "mismatches": 0,
+      "installedVersions": 710,
+      "installedMismatches": 0,
+      "reportSha256": "3bbf7a99fc0f70bd88e0413ca7639d5ab0bcca5ff4a03d31dc88bbe0d6ce9b9d"
+    },
+    "fullSuiteExecutedAfterTheseChanges": false,
+    "nativePostgresExecutedAfterTheseChanges": false
+  },
+  "scope": {
+    "transactionRetries": "Opt-in, bounded replay of complete SQL transactions for three document preparations; quota retries bounded with delay. Only Prisma P2034 or P2010 with PostgreSQL 40001/40P01; no replay for timeouts, unknown connection result, provider calls, or ordinary numbering callers.",
+    "stock": "Existing warehouse lock retained. Test barrier moved before this lock; stored balance, movement and single terminal-effect assertions retained. Stock conflicts keep the existing refusal message.",
+    "receipts": "Exact product line preferred over a free line, then order/id ties made deterministic. Actual receipt reference and untouched free line asserted before replay.",
+    "volume": "Same 10,001-row read and bounded response assertions; per-test 30s includes bulk fixture insertion on PostgreSQL. Measured read excludes fixture construction; no SLO claim."
+  },
+  "artifacts": {
+    "authorizedCleanup": {
+      "observedAt": "2026-10-22T21:34:29.773Z",
+      "repository": "lacombechristophe/freelio",
+      "authorizedCount": 269,
+      "receiptComplete": true,
+      "previouslyDeleted": 256,
+      "previouslyMissing": 13,
+      "authorizedStillPresent": [],
+      "activeArtifactCount": 292,
+      "activeBytes": 7189706,
+      "manifestSha256": "ba39c5434535ef1fb98d53286fa1c1a7207b3031f70df598aacc464410deb3b2",
+      "remoteMutationThisReview": false,
+      "conclusion": "Authorized 269 archive cleanup already complete. No remaining authorized deletion; retained native evidence not removed. Storage quota still refused on 9f09bd5 CI."
+    },
+    "scope": "No additional deletion, billing change or artifact upload gate weakening. Quota refusal is separate from functional failures."
+  },
+  "limits": [
+    "SQLite and mocked boundary tests do not qualify PostgreSQL retry behavior. New native CI is required.",
+    "Previous 3,913-test full run belongs to 55b5ac5. This patch adds 13 cases, but no new full result is claimed here.",
+    "Browser, PostgreSQL, Linux and hosted migrations must qualify the pushed version separately."
+  ],
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1951,
+    "historyBlobsChecked": 0,
+    "placeholdersExcluded": 0,
+    "findings": [],
+    "sha256": "dd99c04815c7e1868d4190b5199dbdc82525b3b8ba33ab2fd619e53cc033ced4",
+    "scope": "Current tracked/staged files only; not historical secret absence"
+  },
+  "relativeMarkdownLinks": {
+    "observedAt": "2026-10-22T21:38:43.381Z",
+    "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+    "checked": 1229,
+    "findings": [],
+    "sha256": "d3b2ee6bf0cbf06d91dd2855d0a63bff1861d66a251daa5ef1631e5396e73dfd"
+  }
+}
