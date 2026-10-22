@@ -17,6 +17,9 @@ import { getHelpDeskDashboard } from "@/actions/operations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
+import { helpDeskQuery } from "@/lib/operations/help-desk";
+import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query";
+import { Input } from "@/components/ui/input";
 
 const PRIORITY: Record<string, string> = {
   LOW: "Faible",
@@ -33,20 +36,22 @@ const STATUS: Record<string, string> = {
   CLOSED: "Clos",
 };
 
-function formatDate(value: Date) {
+function formatDate(value: Date, timeZone: string) {
   return new Intl.DateTimeFormat("fr-FR", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone,
   }).format(value);
 }
 function queryHref(
-  current: Record<string, string | undefined>,
+  current: Record<string, string | number>,
   key: string,
   value: string,
 ) {
   const query = new URLSearchParams();
-  for (const [name, item] of Object.entries({ ...current, [key]: value }))
-    if (item && (item !== "ALL" || name === "status")) query.set(name, item);
+  const next: Record<string, string | number> = { ...current, ...(!["page", "memberPage"].includes(key) ? { page: 1 } : {}), [key]: value };
+  for (const [name, item] of Object.entries(next))
+    if (item && (item !== "ALL" || name === "status")) query.set(name, String(item));
   return `/dashboard/service/help-desk${query.size ? `?${query}` : ""}`;
 }
 
@@ -56,33 +61,21 @@ export default async function HelpDeskPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
-  const selected = {
+  const parsed = helpDeskQuery.safeParse({
     status: typeof raw.status === "string" ? raw.status : "ACTIVE",
     priority: typeof raw.priority === "string" ? raw.priority : "ALL",
     assignedMembershipId:
       typeof raw.assignedMembershipId === "string"
         ? raw.assignedMembershipId
         : "ALL",
-  };
-  const data = await getHelpDeskDashboard(selected);
-  const now = new Date();
-  const breached = data.tickets.filter(
-    (ticket) =>
-      ticket.targetAt < now && !["RESOLVED", "CLOSED"].includes(ticket.status),
-  ).length;
-  const urgent = data.tickets.filter(
-    (ticket) =>
-      ticket.priority === "URGENT" &&
-      !["RESOLVED", "CLOSED"].includes(ticket.status),
-  ).length;
-  const firstResponseBreached = data.tickets.filter(
-    (ticket) => !ticket.firstRespondedAt && ticket.firstResponseTargetAt < now && !["RESOLVED", "CLOSED"].includes(ticket.status),
-  ).length;
-  const unassigned = data.tickets.filter(
-    (ticket) =>
-      !ticket.assignedMembershipId &&
-      !["RESOLVED", "CLOSED"].includes(ticket.status),
-  ).length;
+    search: typeof raw.search === "string" ? raw.search : "",
+    page: typeof raw.page === "string" ? Number(raw.page) : 1,
+    memberSearch: typeof raw.memberSearch === "string" ? raw.memberSearch : "",
+    memberPage: typeof raw.memberPage === "string" ? Number(raw.memberPage) : 1,
+  });
+  const data = await getHelpDeskDashboard(parsed.success ? parsed.data : {});
+  const selected = data.filters, now = data.asOf;
+  const { breached, urgent, firstResponseBreached, unassigned } = data.metrics;
 
   return (
     <div className="workspace-page">
@@ -117,11 +110,11 @@ export default async function HelpDeskPage({
         <Metric
           icon={Wrench}
           label="En attente client"
-          value={data.tickets.filter((ticket) => ticket.status === "WAITING").length}
+          value={data.metrics.waiting}
           detail="Horloge SLA suspendue"
         />
       </section>
-      <details className="group/filters rounded-xl border bg-card" open={selected.status !== "ACTIVE" || selected.priority !== "ALL" || selected.assignedMembershipId !== "ALL"}>
+      <details className="group/filters rounded-xl border bg-card" open={selected.status !== "ACTIVE" || selected.priority !== "ALL" || selected.assignedMembershipId !== "ALL" || Boolean(selected.memberSearch)}>
         <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
           <SlidersHorizontal className="size-4 text-muted-foreground" />
           <span className="font-medium">Ajuster les filtres</span>
@@ -161,6 +154,11 @@ export default async function HelpDeskPage({
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
               Responsable
             </p>
+            <form className="mb-3 flex gap-2" action="/dashboard/service/help-desk" method="get">
+              {Object.entries(selected).filter(([key]) => !["memberSearch", "memberPage"].includes(key)).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
+              <Input name="memberSearch" aria-label="Rechercher un responsable" defaultValue={selected.memberSearch} maxLength={200} />
+              <Button type="submit" variant="outline">Rechercher</Button>
+            </form>
             <div className="flex flex-wrap gap-2">
               <FilterLink
                 active={selected.assignedMembershipId === "ALL"}
@@ -183,7 +181,10 @@ export default async function HelpDeskPage({
                   {member.name} · {member.openTickets}/{member.capacity}{member.available ? "" : " · indisponible"}
                 </FilterLink>
               ))}
+              {!["ALL", "UNASSIGNED"].includes(selected.assignedMembershipId) && !data.members.some(member => member.id === selected.assignedMembershipId) && <FilterLink active href={queryHref(selected, "assignedMembershipId", selected.assignedMembershipId)}>{data.selectedMember?.name || "Responsable indisponible"} · choix actuel</FilterLink>}
             </div>
+            <Paging label="Pagination des responsables" total={data.memberTotal} page={data.memberPage} href={value => queryHref(selected, "memberPage", String(value))} />
+            <p className="mt-2 text-xs text-muted-foreground">Charges sur les tickets actifs accessibles, indépendamment des filtres.</p>
           </div>
           <p className="border-t pt-3 text-xs leading-5 text-muted-foreground">Les délais suivent les heures et jours ouverts de Paramètres → Service. Une échéance manuelle remplace l’objectif de résolution ; le statut En attente suspend les horloges.</p>
         </div>
@@ -193,11 +194,16 @@ export default async function HelpDeskPage({
           <div>
             <h2 className="text-sm font-semibold">File de traitement</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              {data.tickets.length} ticket(s) correspondant aux filtres.
+              {data.total} ticket(s) correspondant aux filtres.
             </p>
           </div>
           <Badge variant="outline">Tri priorité · délai · ancienneté</Badge>
         </div>
+        <form className="flex gap-2 border-b px-5 py-4" action="/dashboard/service/help-desk" method="get">
+          {Object.entries(selected).filter(([key]) => !["search", "page"].includes(key)).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
+          <Input name="search" aria-label="Rechercher un ticket" defaultValue={selected.search} maxLength={200} />
+          <Button type="submit" variant="outline">Rechercher</Button>
+        </form>
         {data.tickets.length ? (
           <div className="divide-y">
             {data.tickets.map((ticket) => {
@@ -260,7 +266,7 @@ export default async function HelpDeskPage({
                     <p className="mt-1 text-xs text-muted-foreground">
                       {ticket._count.interventions} intervention(s)
                     </p>
-                    <p className={`mt-1 text-xs ${firstResponseLate ? "text-destructive" : "text-muted-foreground"}`}>{ticket.firstRespondedAt ? `Réponse le ${formatDate(ticket.firstRespondedAt)}` : `1re réponse avant ${formatDate(ticket.firstResponseTargetAt)}`}</p>
+                    <p className={`mt-1 text-xs ${firstResponseLate ? "text-destructive" : "text-muted-foreground"}`}>{ticket.firstRespondedAt ? `Réponse le ${formatDate(ticket.firstRespondedAt, data.timeZone)}` : `1re réponse avant ${formatDate(ticket.firstResponseTargetAt, data.timeZone)}`}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -269,7 +275,7 @@ export default async function HelpDeskPage({
                     <p
                       className={`mt-1 text-sm font-semibold ${isBreached ? "text-destructive" : ""}`}
                     >
-                      {formatDate(ticket.targetAt)}
+                      {formatDate(ticket.targetAt, data.timeZone)}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {isBreached
@@ -295,6 +301,7 @@ export default async function HelpDeskPage({
             </p>
           </div>
         )}
+        <div className="border-t px-5 py-4"><Paging label="Pagination des tickets" total={data.total} page={data.page} href={value => queryHref(selected, "page", String(value))} /></div>
       </section>
       <div className="grid gap-4 lg:grid-cols-3">
         <Advice icon={Headphones} title="Qualifier avant de planifier">
@@ -312,6 +319,15 @@ export default async function HelpDeskPage({
       </div>
     </div>
   );
+}
+
+function Paging({ label, total, page, href }: { label: string; total: number; page: number; href: (page: number) => string }) {
+  const pages = Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE));
+  return <nav aria-label={label} className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+    <span>{total} résultat(s) · Page {page} sur {pages}</span>
+    {page > 1 ? <FilterLink active={false} href={href(page - 1)}>Page précédente</FilterLink> : <span aria-disabled="true">Page précédente</span>}
+    {page < pages ? <FilterLink active={false} href={href(page + 1)}>Page suivante</FilterLink> : <span aria-disabled="true">Page suivante</span>}
+  </nav>;
 }
 
 function Metric({

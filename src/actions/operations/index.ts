@@ -19,6 +19,7 @@ import { diagnosticSteps, diagnosticStringList, equipmentWarrantyStatus, scoreDi
 import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
+import { readHelpDeskDashboard } from "@/lib/operations/help-desk"
 import { hasPermission } from "@/lib/permissions"
 import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
 import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
@@ -1061,71 +1062,8 @@ export async function getPurchaseOrderDetail(purchaseOrderId: string) {
 }
 
 export async function getHelpDeskDashboard(input: unknown = {}) {
-  return withAuth(async ({ companyId }) => {
-    const parsedFilters = z
-      .object({
-        status: z.enum(["ACTIVE", "OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED", "ALL"]).default("ACTIVE"),
-        priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT", "ALL"]).default("ALL"),
-        assignedMembershipId: z.union([id, z.literal("ALL"), z.literal("UNASSIGNED")]).default("ALL"),
-      })
-      .safeParse(input)
-    const filters = parsedFilters.success ? parsedFilters.data : { status: "ACTIVE" as const, priority: "ALL" as const, assignedMembershipId: "ALL" as const }
-    const activeStatuses = ["OPEN", "QUALIFIED", "PLANNED", "WAITING"]
-    const [tickets, company] = await Promise.all([
-      prisma.serviceTicket.findMany({
-        where: {
-          companyId,
-          status: filters.status === "ACTIVE" ? { in: activeStatuses } : filters.status === "ALL" ? { not: "MERGED" } : filters.status,
-          priority: filters.priority === "ALL" ? undefined : filters.priority,
-          assignedMembershipId: filters.assignedMembershipId === "ALL" ? undefined : filters.assignedMembershipId === "UNASSIGNED" ? null : filters.assignedMembershipId,
-        },
-        include: {
-          client: { select: { id: true, name: true } },
-          site: { select: { id: true, label: true, city: true } },
-          equipment: { select: { id: true, label: true, warrantyUntil: true } },
-          assignedMembership: { include: { user: { select: { name: true, email: true } } } },
-          _count: { select: { interventions: true } },
-        },
-        orderBy: [{ priority: "desc" }, { dueAt: "asc" }, { requestedAt: "asc" }],
-        take: 500,
-      }),
-      prisma.company.findUnique({
-        where: { id: companyId },
-        select: {
-          serviceTimezone: true,
-          serviceDayStart: true,
-          serviceDayEnd: true,
-          serviceWorkdays: true,
-          serviceHolidays: true,
-          serviceFirstResponseHours: true,
-          serviceResolutionHours: true,
-        },
-      }),
-    ])
-    const members = await prisma.membership.findMany({
-      where: { companyId, status: "ACTIVE" },
-      include: { user: { select: { name: true, email: true } }, _count: { select: { assignedTickets: { where: { status: { in: activeStatuses } } } } } },
-      orderBy: { createdAt: "asc" },
-    })
-    return {
-      filters,
-      members: members.map((member) => ({
-        id: member.id,
-        name: member.user.name || member.user.email || "Membre",
-        openTickets: member._count.assignedTickets,
-        capacity: member.serviceTicketCapacity,
-        available: member.serviceAvailable,
-      })),
-      tickets: tickets.map((ticket) => {
-        const policy = serviceSlaPolicy(company)
-        const resolution = serviceResolutionTarget(ticket, policy)
-        const firstResponse = serviceFirstResponseTarget(ticket, policy)
-        return { ...ticket, targetAt: resolution.targetAt, slaSource: resolution.source, firstResponseTargetAt: firstResponse.targetAt }
-      }),
-    }
-  }, "service.read")
+  return withAuth(context => readHelpDeskDashboard(context, input), "service.read")
 }
-
 export async function createCustomerSite(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = siteSchema.parse(input)
