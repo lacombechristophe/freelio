@@ -1,0 +1,214 @@
+{
+  "schema": "freelio.quote-order-local.v1",
+  "observedAt": "2026-10-22T00:39:25.846Z",
+  "codeCommit": "6ac806173d267189c93e914446f052eb8544b1af",
+  "source": {
+    "observedAt": "2026-10-22T00:39:25.655Z",
+    "commit": "6ac806173d267189c93e914446f052eb8544b1af",
+    "filesCompared": 1222,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "dfafeee23b400ad0ad64270c8521d95b163e42910d7eae4e949a312bb1709f11",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ]
+  },
+  "full": {
+    "file": "quote-order-full-20261022.json",
+    "sha256": "f2ac9be8ad8b8a33a7279efcd29bbed0066b5819569d76d129dc6bec74fa4f61",
+    "passed": 3552,
+    "failed": 0,
+    "pending": 0,
+    "files": 279,
+    "success": true,
+    "freshDatabase": true,
+    "database": "verification-quote-order-full-20261022.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "quote-order-final-focused-20261022.json",
+    "sha256": "b76de7fc35f346a2d3585d73647efb8df2367453089f6c27b285a2b1a0baaab1",
+    "passed": 114,
+    "failed": 0,
+    "pending": 0,
+    "files": 4,
+    "success": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 279,
+    "executedFiles": 279,
+    "identityMatch": true
+  },
+  "recoveredBaselineCases": 5,
+  "dedicatedWithinFull": [
+    {
+      "file": "quote-order-conversion.integration.test.ts",
+      "passed": 32
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "passed": 43
+    },
+    {
+      "file": "document-read-scope.integration.test.ts",
+      "passed": 33
+    },
+    {
+      "file": "permissions.test.ts",
+      "passed": 6
+    }
+  ],
+  "checks": [
+    {
+      "check": "typegen",
+      "file": "quote-order-typegen-confirmed-20261022.log",
+      "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084",
+      "exit": 0
+    },
+    {
+      "check": "types",
+      "file": "quote-order-types-confirmed-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "eslint",
+      "file": "quote-order-eslint-confirmed-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "build",
+      "file": "quote-order-build-20261022.log",
+      "sha256": "5ac57fa15a869d9053f771cf789aab06a4aeff1017a7ad9b63cb846373f57312",
+      "exit": 0,
+      "staticPages": 76
+    }
+  ],
+  "oxlint": {
+    "file": "quote-order-oxlint-confirmed-20261022.json",
+    "sha256": "a51ea2862c04a8e3cd0bbed9bb3dc35d2ef00af99752c5d05a4ddf9785022bf6",
+    "exit": 0,
+    "diagnostics": [],
+    "files": 1098,
+    "rules": 21
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "file": "quote-order-browser-list-20261022.json",
+    "sha256": "b6613479f557ac46baa87fb33e5eac0c7c372be038afb16218b2d25e60a898b1",
+    "selected": 474,
+    "desktop": 237,
+    "mobile": 237,
+    "executed": false,
+    "newCases": [
+      {
+        "file": "quote-order-conversion.spec.ts",
+        "title": "Commercial launches an accepted quote once and keeps input after a stale source",
+        "project": "desktop"
+      },
+      {
+        "file": "quote-order-conversion.spec.ts",
+        "title": "Commercial launches an accepted quote once and keeps input after a stale source",
+        "project": "mobile"
+      }
+    ]
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "behavior": [
+    "Accepted quote, chosen current version, displayed revision and coherent relations are rechecked in one serializable transaction before order creation",
+    "New order, optional Owner/Admin project/link and mandatory audits commit or roll back together",
+    "Accepted amounts and fractional quantities are preserved, including an inactive own product or a changed company VAT setting; no catalog repricing",
+    "The Commercial role may create only the order claimed by this action; no general project/order update, deletion, stock or invoice permission is added",
+    "An agency-limited role needs an existing accessible project; no agency is silently assigned",
+    "A coherent existing order is returned unchanged on replay, without another audit; two same-process SQLite callers created one dossier",
+    "Generated project dates use the company calendar and installation dates remain calendar dates",
+    "The UI retains its launch revision and form values on refusal; controls are frozen during submission; deposit text no longer claims an invoice was created"
+  ],
+  "limits": [
+    "SQLite/actions/memberships are real; authentication and cache are mocked",
+    "Two same-process SQLite callers and controlled changes before the transaction do not qualify PostgreSQL contention or changes between independent connections",
+    "The optional contract action remains a separate follow-up; no invoice, signature or provider send is performed by this conversion",
+    "Historical quote acceptance snapshots, order editing/cancellation after confirmation or delivery, and historical repair remain separate",
+    "Coverage includes only six configured modules; the two new application-browser cases were selected but not executed",
+    "Native PostgreSQL, Linux, compiled HTTP invocation and hosted preview remain to qualify on this commit",
+    "No schema/dependency change, installation, provider call, push, new CI, merge or deployment"
+  ]
+}
