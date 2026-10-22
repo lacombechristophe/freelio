@@ -42,10 +42,14 @@ for (const form of forms) {
       await container.locator("#city").fill("Paris")
     } else if (form.kind === "ticket") await container.locator("#description").fill("Fictional kept description")
     else if (form.kind === "maintenance") {
+      await search.fill("dernier")
+      await expect(choice.getByText("1 résultat", { exact: true })).toBeVisible()
       await client.selectOption(lastId)
       await container.locator("#siteId").selectOption(`copschoicesite${form.kind}${info.project.name}`)
       await container.locator("#startDate").fill("2030-01-02")
       await container.locator("#price").fill("123.45")
+      await search.fill("")
+      await expect(choice.getByText("501 résultats", { exact: true })).toBeVisible()
     } else {
       await container.locator("#quantity").fill("2")
       await container.locator("#unitPrice").fill("123.45")

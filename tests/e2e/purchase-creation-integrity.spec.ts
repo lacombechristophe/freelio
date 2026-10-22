@@ -63,7 +63,7 @@ test("purchase drafts preserve input, reject stale edits and retain canceled his
   await expect(directory.getByRole("status")).toHaveText("1 résultat")
   await expect(directory.getByRole("link", { name: order.number, exact: true })).toBeVisible()
   await directory.getByLabel("État de l’achat", { exact: true }).selectOption("RECEIVED")
-  await expect(directory.getByRole("status")).toHaveText("0 résultat")
+  await expect(directory.getByRole("status")).toHaveText("0 résultats")
   await directory.getByLabel("État de l’achat", { exact: true }).selectOption("DRAFT")
   await expect(directory.getByRole("status")).toHaveText("1 résultat")
   await directory.getByRole("button", { name: "Modifier le brouillon", exact: true }).click()
