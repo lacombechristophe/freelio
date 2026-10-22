@@ -4,7 +4,7 @@
 
 ## Résultat actuel
 
-Le candidat local `2500e807fc40ba2416af749da13573d9d6aa0fff` remplace la source tronquée du choix Ticket SAV de « Nouvelle intervention » par un [lecteur dédié complet](evidence/20261022-intervention-tickets/README.md), filtré par site et droits. Les [accords de renouvellement](evidence/20261022-maintenance-signing/README.md) et les corrections précédentes restent inclus. La qualification fonctionnelle ci-dessous porte sur Next.js 16.3.8 ; son audit critique du 22 octobre bloque la publication en attendant une mise à niveau qualifiée.
+Le candidat local `55b5ac5a5460cc4a5fc93bcbd7c3d44dffdb6ff9` intègre la [mise à niveau Next.js 16.4.2](evidence/20261022-next-security/README.md), avec de nouveaux audits et une nouvelle exécution complète. Le [choix Ticket SAV](evidence/20261022-intervention-tickets/README.md), les [accords de renouvellement](evidence/20261022-maintenance-signing/README.md) et les corrections précédentes restent inclus. Les constats critiques de la version 16.3.8 sont conservés comme diagnostics datés, pas comme état du nouveau lockfile.
 
 Les corrections précédentes restent incluses. La [carte des preuves](carte-des-preuves.md) donne leurs points d’entrée ; les résultats locaux ci-dessous qualifient ce code, dans les limites indiquées.
 
@@ -30,16 +30,16 @@ Les corrections précédentes restent incluses. La [carte des preuves](carte-des
 | Choix de commande et de chantier des réservations | 29 cas dédiés et 42 voisins dans quatre suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 2500e80 avec Next.js 16.3.8, 76 pages statiques |
+| Build Next.js | Réussi sur 55b5ac5 avec Next.js 16.4.2, 76 pages statiques ; ancien dossier de build écarté |
 | Identité des sources de la recette | 1 256 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
-| Audits npm production et complet | Le 22 octobre : un paquet Next.js 16.3.8 de sévérité critique, trois avis ; exit 1 dans les deux rapports JSON. Les anciens audits à zéro restent datés. Mise à niveau qualifiée requise avant publication |
+| Audits npm production et complet | Nouveaux rapports du 22 octobre sur Next.js 16.4.2 : zéro vulnérabilité signalée, exit 0 dans les deux cas. Les rapports critiques 16.3.8 restent conservés ; aucune autre résolution de paquet ne change |
 | Générateur PDF : socle | Quatre contrôles réussis, dont trois sur Chromium réel ; documents métier distincts |
 | Bons de livraison : PDF natifs | Trois cas réussis ; 37 contrôles hors ligne du lot PDF, sur une source inchangée |
 | Playwright | 518 cas sélectionnés, 259 par surface ; **non exécutés** |
 
 Une exécution de la version précédente ab42ad1 a dépassé cinq secondes sur une réponse Google ; les trois cas passent isolément puis dans une nouvelle suite complète, sans changement de code, d’assertion ou de délai. Le [rapport reste conservé](evidence/20261022-maintenance-settings/README.md) et sa cause n’est pas établie. Le présent lot ne prétend pas la corriger.
 
-Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ecdb3794485610c` : ses contrôles fonctionnels passent, mais les deux CI échouent sur les uploads refusés pour quota. Le résultat d'une ancienne CI ou preview ne qualifie pas les compléments locaux.
+Ce dossier établit la qualification locale avant publication de cette série. La dernière tête distante observée pendant cette recette était `8d2232385f8cfcca9006d5e56ecdb3794485610c`, avec des uploads refusés pour quota. Les contrôles distants du candidat poussé sont à lire dans la [PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks), en vérifiant leur SHA : une ancienne CI ou preview ne qualifie pas les compléments suivants.
 
 ## Corrections récentes
 
@@ -79,9 +79,9 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 Les qualifications intermédiaires et leurs échecs conservés sont regroupés dans l'[historique](historique-qualification-candidat-20261010.md#compléments-du-13-au-20-octobre-2026). Chaque preuve reste attachée à son commit.
 
-## Qualification à poursuivre
+## Contrôles de livraison
 
-1. Corriger les trois avis Next.js du 22 octobre et qualifier le nouveau lockfile avant tout push. Le [budget Actions](evidence/20261022-intervention-tickets/actions-budget.json) a été observé à 0 $/0 $, « Usage blocked », sans changement de réglage : le manque de preuve de plafond est résolu, sans attester le quota des minutes incluses ni des artefacts. Next.js 16.4.2 est préparé hors du candidat ; aucune mise à niveau installée ou qualifiée n’est revendiquée ici.
+1. Les gardes locales de dépendances et de budget sont satisfaites : [Next.js 16.4.2 qualifié](evidence/20261022-next-security/README.md), [budget Actions](evidence/20261022-intervention-tickets/actions-budget.json) observé à 0 $/0 $, « Usage blocked », sans changement de réglage. Cette observation ne garantit pas le quota des minutes incluses ni des artefacts.
 2. Qualifier les migrations additives `20261021010000_mail_provider_failure_kind`, `20261021020000_purchase_issue_resolution_kind`, `20261021030000_delivery_note_seal` et `20261022010000_maintenance_renewal_terms`, puis les contrôles PostgreSQL, de l’image Linux (dont les PDF métier) et du navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
 3. Recetter la preview du même code, puis examiner la fusion et la publication. Main, la branche candidate et la production restent des références distinctes.
 
