@@ -4,13 +4,14 @@
 
 ## Résultat actuel
 
-Le candidat local `a699be73bae7104956e2102f6f3f9d587d8e2d96` lie les [signatures de renouvellement d’entretien](evidence/20261022-maintenance-signing/README.md) aux conditions capturées : contrôle avant lien, signature et nouveau terme, remplacement explicite sans effacer les accords signés, audit transactionnel et références internes omises des réponses de l’annuaire et du tableau de bord Opérations. Le [Centre de support](evidence/20261022-help-desk/README.md), les propositions, les réglages, la bascule de facturation et les corrections précédentes restent inclus.
+Le candidat local `2500e807fc40ba2416af749da13573d9d6aa0fff` remplace la source tronquée du choix Ticket SAV de « Nouvelle intervention » par un [lecteur dédié complet](evidence/20261022-intervention-tickets/README.md), filtré par site et droits. Les [accords de renouvellement](evidence/20261022-maintenance-signing/README.md) et les corrections précédentes restent inclus. La qualification fonctionnelle ci-dessous porte sur Next.js 16.3.8 ; son audit critique du 22 octobre bloque la publication en attendant une mise à niveau qualifiée.
 
 Les corrections précédentes restent incluses. La [carte des preuves](carte-des-preuves.md) donne leurs points d’entrée ; les résultats locaux ci-dessous qualifient ce code, dans les limites indiquées.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite avec outillage corrigé, base fictive neuve | **3 866 tests / 291 fichiers**, aucun échec ni exclusion |
+| Suite SQLite avec outillage corrigé, base fictive neuve | **3 913 tests / 292 fichiers**, aucun échec ni exclusion |
+| Choix Ticket SAV de Nouvelle intervention | 47 cas SQL ; 230 avec les voisins, réussis séparément et dans la suite complète |
 | Signature de renouvellement, conditions convenues et conservation historique | 35 cas SQL ; 340 avec les voisins, réussis séparément et dans la suite complète |
 | Centre de support : périmètre, file complète, liens et fuseau | 30 cas SQL et deux rendus serveur ; 194 avec les voisins, réussis séparément et dans la suite complète |
 | Création de proposition, source affichée, droits Sales et audit obligatoire | 30 cas dédiés ; 246 avec les voisins, réussis séparément et dans la suite complète |
@@ -29,12 +30,12 @@ Les corrections précédentes restent incluses. La [carte des preuves](carte-des
 | Choix de commande et de chantier des réservations | 29 cas dédiés et 42 voisins dans quatre suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur a699be7, 76 pages statiques |
-| Identité des sources de la recette | 1 254 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
-| Audits npm production et complet | Audits datés à zéro de 4a7a241 ; fichiers package et lockfile inchangés, identité vérifiée |
+| Build Next.js | Réussi sur 2500e80 avec Next.js 16.3.8, 76 pages statiques |
+| Identité des sources de la recette | 1 256 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
+| Audits npm production et complet | Le 22 octobre : un paquet Next.js 16.3.8 de sévérité critique, trois avis ; exit 1 dans les deux rapports JSON. Les anciens audits à zéro restent datés. Mise à niveau qualifiée requise avant publication |
 | Générateur PDF : socle | Quatre contrôles réussis, dont trois sur Chromium réel ; documents métier distincts |
 | Bons de livraison : PDF natifs | Trois cas réussis ; 37 contrôles hors ligne du lot PDF, sur une source inchangée |
-| Playwright | 514 cas sélectionnés, 257 par surface ; **non exécutés** |
+| Playwright | 518 cas sélectionnés, 259 par surface ; **non exécutés** |
 
 Une exécution de la version précédente ab42ad1 a dépassé cinq secondes sur une réponse Google ; les trois cas passent isolément puis dans une nouvelle suite complète, sans changement de code, d’assertion ou de délai. Le [rapport reste conservé](evidence/20261022-maintenance-settings/README.md) et sa cause n’est pas établie. Le présent lot ne prétend pas la corriger.
 
@@ -44,6 +45,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Choix Ticket SAV : recherche et pagination complètes pour le site vérifié, sélection conservée et refus sans perte de saisie | [Contrat distinct et limites](evidence/20261022-intervention-tickets/README.md) |
 | Signature de renouvellement : conditions capturées, nouvelle signature requise après changement, capture initiale conservée | [Accords et limites](evidence/20261022-maintenance-signing/README.md) |
 | Centre de support : références et compteurs société/agence, priorités et délais réels, pages et totaux complets | [File et limites](evidence/20261022-help-desk/README.md) |
 | Proposition d’entretien : source affichée et site versionnés, création/audit atomiques, rôle Commercial et tarifs HT | [Proposition et limites](evidence/20261022-maintenance-proposal/README.md) |
@@ -79,7 +81,7 @@ Les qualifications intermédiaires et leurs échecs conservés sont regroupés d
 
 ## Qualification à poursuivre
 
-1. Vérifier et consigner le plafond GitHub Actions à 0 € et l'arrêt de l'usage payant avant tout push déclenchant une nouvelle CI.
+1. Corriger les trois avis Next.js du 22 octobre et qualifier le nouveau lockfile avant tout push. Le [budget Actions](evidence/20261022-intervention-tickets/actions-budget.json) a été observé à 0 $/0 $, « Usage blocked », sans changement de réglage : le manque de preuve de plafond est résolu, sans attester le quota des minutes incluses ni des artefacts. Next.js 16.4.2 est préparé hors du candidat ; aucune mise à niveau installée ou qualifiée n’est revendiquée ici.
 2. Qualifier les migrations additives `20261021010000_mail_provider_failure_kind`, `20261021020000_purchase_issue_resolution_kind`, `20261021030000_delivery_note_seal` et `20261022010000_maintenance_renewal_terms`, puis les contrôles PostgreSQL, de l’image Linux (dont les PDF métier) et du navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
 3. Recetter la preview du même code, puis examiner la fusion et la publication. Main, la branche candidate et la production restent des références distinctes.
 
@@ -95,9 +97,9 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
-| L8 : indicateurs et listes Opérations | [Listes Service et planning](evidence/20261022-operations-service/README.md), [totaux et aperçus](evidence/20261022-operations-activity/README.md), puis [Centre de support principal](evidence/20261022-help-desk/README.md) qualifiés localement. File complète, priorités métier et compteurs du périmètre ; responsables recherchables et paginés. Certains sélecteurs utilisent encore les caches racine. Le classement SLA conserve les clés de tous les résultats ; charge, mémoire sur grand portefeuille, PostgreSQL et interactions navigateur restent à qualifier. |
+| L8 : indicateurs et listes Opérations | [Listes Service et planning](evidence/20261022-operations-service/README.md), [totaux et aperçus](evidence/20261022-operations-activity/README.md), puis [Centre de support principal](evidence/20261022-help-desk/README.md) qualifiés localement. File complète, priorités métier et compteurs du périmètre ; responsables recherchables et paginés. Les références examinées des formulaires de création utilisent des lecteurs dédiés, dont le [Ticket SAV](evidence/20261022-intervention-tickets/README.md). Agence, Membre et Dépôt sont lus sans plafond take ; les plans prévoient 2/10/30 sièges et 1/3/10 agences. Ce constat clôt ces sources de création seulement : les autres consommateurs des caches et les volumes historiques restent distincts. Le classement SLA conserve les clés de tous les résultats ; charge, mémoire sur grand portefeuille, PostgreSQL et interactions navigateur restent à qualifier. |
 | L8 : renouvellement d’entretien | [Réglages](evidence/20261022-maintenance-settings/README.md), [terme/facturation](evidence/20261022-maintenance-renewal/README.md), [proposition](evidence/20261022-maintenance-proposal/README.md) et [accord signé sur les conditions](evidence/20261022-maintenance-signing/README.md) qualifiés localement. Prix et conditions revérifiés aux trois transitions ; nouveau document après changement, anciens accords conservés et historique sans preuve bloqué. Migration PostgreSQL, autres politiques d’état, réparation historique, plusieurs travailleurs et interactions navigateur restent à qualifier séparément. |
-| L8 : choix Chantier des créations Opérations | [Trois sélecteurs qualifiés localement](evidence/20261022-operations-project-choices/README.md), y compris les lectures de démo. Les interactions navigateur préparées, PostgreSQL et les autres sélecteurs restent à qualifier ; les autres consommateurs des caches restent distincts. |
+| L8 : choix Chantier des créations Opérations | [Trois sélecteurs qualifiés localement](evidence/20261022-operations-project-choices/README.md), y compris les lectures de démo. Les interactions navigateur préparées et PostgreSQL restent à qualifier. Les sources des références de création examinées sont traitées, y compris le Ticket SAV ; les autres consommateurs des caches et autres sélecteurs du logiciel restent distincts. |
 | L8 : commandes client et livraisons | [Conversion de commande](evidence/20261022-quote-order-conversion/README.md) et [contrat optionnel](evidence/20261022-quote-contract-conversion/README.md) qualifiés localement, en deux actions avec reprise du résultat partiel. [Création, quantités et capture signée qualifiées localement](evidence/20261021-delivery-seals/README.md). Les anciennes empreintes sans capture ne permettent pas de régénérer le document. [Historique des bons complet qualifié localement](evidence/20261021-delivery-directory/README.md) ; [choix Commande/Ligne complets qualifiés localement](evidence/20261021-delivery-choices/README.md). [Références et audit des réservations qualifiés localement](evidence/20261021-stock-reservations/README.md). [Choix des réservations qualifiés localement](evidence/20261021-reservation-choices/README.md). Politiques d’annulation/clôture, édition après confirmation, annulation après livraison et réparation historique restent distincts ; [PDF natifs Windows qualifiés](evidence/20261021-delivery-pdf/README.md) ; PostgreSQL, Linux et navigateur restent à qualifier. |
 | L8 : cycle des achats fournisseur | [Réceptions, inspections, retours et avoirs qualifiés localement](evidence/20261021-purchase-stock/README.md), en complément de l’historique complet, des validations, de l’édition et de l’annulation avant transmission : stock, décisions et audit atomiques, acceptations bornées et observations de livraison conservées. Modification après soumission, annulation après transmission/réception, réparation des décisions historiques inconnues, PostgreSQL et interactions navigateur restent distincts. |
 | L2 : erreurs HTTP des transports CRM | [Classifiées et qualifiées localement](evidence/20261021-provider-send-failures/README.md) : échéance durable, arrêt des refus définitifs, brouillons conservés et reprises bornées. La catégorie ne prouve pas le résultat d’un appel antérieur. Limitation globale d’un compte partagé, renouvellement OAuth, synchronisation, PostgreSQL et interactions navigateur restent distincts ; ce complément ne clôt pas tout L2. |
@@ -112,7 +114,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | Calendrier et connecteurs avancés | Invitations, disponibilité, conflits, récurrences, Microsoft personnel, préférences multicanal et connecteurs supplémentaires restent des extensions distinctes ; les comptes fournisseurs réels ne sont pas qualifiés. |
 | Exploitation et présentation du candidat | CI complète et preuves natives du SHA retenu, migrations/configuration et recette du déploiement exact sont requises avant fusion. Charge, récupération distante, stockage durable, délivrabilité et traitement permanent sont des conditions supplémentaires d'ouverture commerciale. |
 
-Le dépôt GitHub est privé lors du contrôle du 22 octobre. La vérification des protections de branche/rulesets et du plafond de dépenses n'est pas clôturée. Aucune visibilité, offre ou limite financière n'est modifiée. La démo garde son budget de 0 € et sa portée fictive en lecture seule.
+Le dépôt GitHub est privé lors du contrôle du 22 octobre. La vérification des protections de branche/rulesets reste ouverte. Le budget Actions du compte est observé à 0 $, avec usage bloqué ; les minutes incluses et le quota d’artefacts restent distincts. Aucune visibilité, offre ou limite financière n'est modifiée. La démo garde son budget de 0 € et sa portée fictive en lecture seule.
 
 ## Portée et historique
 
