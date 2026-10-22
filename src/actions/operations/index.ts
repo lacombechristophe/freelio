@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { withAuth, AuthorizationError, type AuthContext } from "@/lib/auth-wrapper"
+import { requestContext } from "@/lib/context"
 import type { StockReservation } from "@prisma/client"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"
 import { messageReadSelect } from "@/lib/communications/inbox-reader"
@@ -233,6 +234,7 @@ const maintenanceContractSchema = z.object({
 
 const maintenanceRenewalSettingsSchema = z.object({
   contractId: id,
+  expectedUpdatedAt: z.string().datetime({ offset: true }),
   noticeDays: z.coerce.number().int().min(0).max(365),
   indexationRate: z.coerce.number().min(-100).max(100),
   autoRenew: z.boolean(),
@@ -1431,25 +1433,39 @@ export async function createMaintenanceContract(input: unknown) {
 }
 
 export async function updateMaintenanceRenewalSettings(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  const changedMessage = "Ce contrat a changé. Vérifiez la version actuelle avant de réessayer."
+  return withAuth(async context => {
+    const { companyId, userId, agencyIds } = context
     const data = maintenanceRenewalSettingsSchema.parse(input)
-    const contract = await prisma.maintenanceContract.findFirst({ where: { id: data.contractId, companyId }, select: { id: true, number: true, renewalStatus: true } })
-    if (!contract) throw new Error("Contrat d’entretien introuvable")
-    if (contract.renewalStatus === "RENEWED") throw new Error("Ce terme a déjà été renouvelé")
-    await prisma.maintenanceContract.update({
-      where: { id: contract.id },
-      data: { noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew, renewalStatus: data.renewalStatus, renewalNotes: data.renewalNotes },
-    })
-    await logAction({
-      userId,
-      action: "UPDATE_MAINTENANCE_RENEWAL",
-      resource: "MAINTENANCE_CONTRACT",
-      resourceId: contract.id,
-      payload: { number: contract.number, noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew, renewalStatus: data.renewalStatus },
-    })
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    await requestContext.run({ ...context, actionPermission: "service.write", maintenanceRenewalSettings: {
+      contractId: data.contractId, expectedUpdatedAt: new Date(data.expectedUpdatedAt).toISOString(),
+    } }, () => prisma.$transaction(async tx => {
+      const where = { ...scope.contract, id: data.contractId }
+      const contract = await tx.maintenanceContract.findFirst({ where, select: { id: true, number: true, clientId: true, siteId: true,
+        status: true, renewalStatus: true, updatedAt: true, _count: { select: { renewedContracts: true } } } })
+      if (!contract || !await tx.customerSite.findFirst({ where: { ...scope.site, id: contract.siteId, clientId: contract.clientId }, select: { id: true } }))
+        throw new Error("Contrat d’entretien introuvable")
+      if (contract.status === "RENEWED" || contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0)
+        throw new Error("Ce terme a déjà été renouvelé")
+      const expectedUpdatedAt = new Date(data.expectedUpdatedAt)
+      if (contract.updatedAt.getTime() !== expectedUpdatedAt.getTime()) throw new Error(changedMessage)
+      const updatedAt = new Date(Math.max(Date.now(), contract.updatedAt.getTime() + 1))
+      const changed = await tx.maintenanceContract.updateMany({ where: { ...where, updatedAt: expectedUpdatedAt, status: { not: "RENEWED" },
+        renewalStatus: { not: "RENEWED" }, renewedContracts: { none: {} }, site: { ...scope.site, clientId: contract.clientId } },
+        data: { noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew,
+          renewalStatus: data.renewalStatus, renewalNotes: data.renewalNotes, updatedAt } })
+      if (changed.count !== 1) throw new Error(changedMessage)
+      await tx.auditLog.create({ data: { userId, action: "UPDATE_MAINTENANCE_RENEWAL", resource: "MAINTENANCE_CONTRACT", resourceId: contract.id,
+        payload: { number: contract.number, noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew,
+          renewalStatus: data.renewalStatus, previousUpdatedAt: contract.updatedAt.toISOString(), updatedAt: updatedAt.toISOString() } } })
+    }, { isolationLevel: "Serializable" }))
     revalidateOperations()
     return { success: true as const }
-  }, "service.write")
+  }, "service.write").catch(error => {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new Error(changedMessage)
+    throw error
+  })
 }
 
 export async function renewMaintenanceContract(contractId: string) {

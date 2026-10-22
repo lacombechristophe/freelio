@@ -13,6 +13,7 @@ const TENANT_READ_OPERATIONS = new Set(["aggregate", "count", "findFirst", "find
 const TENANT_CREATE_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn"])
 const TENANT_UPDATE_OPERATIONS = new Set(["update", "updateMany", "updateManyAndReturn"])
 const SERVICE_PROFILE_FIELDS = new Set(["successOwnerMembershipId", "renewalAt", "nextActionAt", "nextActionLabel", "successPlan", "expansionNotes"])
+const MAINTENANCE_RENEWAL_FIELDS = new Set(["noticeDays", "indexationRate", "autoRenew", "renewalStatus", "renewalNotes", "updatedAt"])
 
 function appendWhereScope(args: { where?: Record<string, unknown> }, scope: Record<string, unknown>) {
   const existingAnd = args.where?.AND
@@ -137,6 +138,12 @@ const prismaClientSingleton = () => {
           // Service can edit its follow-up fields, never the general client or money.
           const serviceProfileUpdate = model === "Client" && operation === "update" && context?.actionPermission === "service.write" &&
             hasPermission(context.role, "service.write") && profileFields.length > 0 && profileFields.every(field => SERVICE_PROFILE_FIELDS.has(field))
+          // Service may save only the settings and revision claimed by this action.
+          const maintenanceRenewalSettingsUpdate = model === "MaintenanceContract" && operation === "updateMany" && context?.actionPermission === "service.write" &&
+            hasPermission(context.role, "service.write") && context.maintenanceRenewalSettings &&
+            mutableArgs.where?.id === context.maintenanceRenewalSettings.contractId && mutableArgs.where.updatedAt instanceof Date &&
+            mutableArgs.where.updatedAt.toISOString() === context.maintenanceRenewalSettings.expectedUpdatedAt &&
+            profileFields.length === MAINTENANCE_RENEWAL_FIELDS.size && profileFields.every(field => MAINTENANCE_RENEWAL_FIELDS.has(field))
           // Finance claims billing only; it cannot edit the operational order.
           const orderBillingUpdate = model === "CustomerOrder" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
             hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "billingStatus"
@@ -171,6 +178,7 @@ const prismaClientSingleton = () => {
             MUTATION_OPERATIONS.has(operation) &&
             !hasPermission(context.role, requiredPermission) &&
             !serviceProfileUpdate &&
+            !maintenanceRenewalSettingsUpdate &&
             !orderBillingUpdate &&
             !quoteOrderCreation &&
             !timeInvoiceClaim &&

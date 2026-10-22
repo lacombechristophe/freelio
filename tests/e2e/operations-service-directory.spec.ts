@@ -131,3 +131,36 @@ test("An Operations reader cannot start, reschedule or attach files to an interv
   for (const name of ["Replanifier", "Démarrer", "Matériel utilisé"]) await expect(section.getByRole("button", { name, exact: true })).toBeDisabled()
   await expect(section.getByLabel(`Ajouter une pièce à ${fixture.title}`)).toBeDisabled()
 })
+
+test("Service saves maintenance renewal settings with one audit and no general operational rights", async ({ page }, info) => {
+  const fixture = await setup(info.project.name, "maintenance", "SERVICE")
+  await login(page, fixture.email, "maintenance")
+  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
+  await panel.locator("summary").click()
+  await panel.getByLabel("Préavis (jours)").fill("45")
+  await panel.getByLabel("Notes de renouvellement").fill("Fictional Service renewal agreement")
+  await panel.getByRole("button", { name: "Enregistrer le renouvellement", exact: true }).click()
+  await expect(page.locator("[data-sonner-toast]")).toContainText("Paramètres de renouvellement enregistrés.")
+  await expect.poll(async () => database.auditLog.count({ where: { resourceId: fixture.id, action: "UPDATE_MAINTENANCE_RENEWAL" } })).toBe(1)
+  const saved = await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })
+  expect(saved).toMatchObject({ noticeDays: 45, renewalNotes: "Fictional Service renewal agreement" })
+})
+
+test("A stale maintenance form keeps its input and does not overwrite a newer decision", async ({ page }, info) => {
+  const fixture = await setup(info.project.name, "maintenance")
+  await login(page, fixture.email, "maintenance")
+  const panel = page.locator("details").filter({ has: page.getByText(fixture.title, { exact: true }) })
+  await panel.locator("summary").click()
+  await panel.getByLabel("Préavis (jours)").fill("45")
+  await panel.getByLabel("Notes de renouvellement").fill("Fictional unsaved note to preserve")
+  const current = await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })
+  const newer = await database.maintenanceContract.update({ where: { id: fixture.id }, data: {
+    noticeDays: 90, renewalNotes: "Fictional newer decision", updatedAt: new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1)),
+  } })
+  await panel.getByRole("button", { name: "Enregistrer le renouvellement", exact: true }).click()
+  await expect(page.locator("[data-sonner-toast]")).toContainText("Ce contrat a changé")
+  await expect(panel.getByLabel("Préavis (jours)")).toHaveValue("45")
+  await expect(panel.getByLabel("Notes de renouvellement")).toHaveValue("Fictional unsaved note to preserve")
+  expect(await database.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.id } })).toEqual(newer)
+  expect(await database.auditLog.count({ where: { resourceId: fixture.id } })).toBe(0)
+})

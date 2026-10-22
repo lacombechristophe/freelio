@@ -13,6 +13,7 @@ export type RequestContext = {
   timeInvoiceReleaseId?: string
   oauthCredentialRefreshChannelId?: string
   quoteOrderCreation?: { quoteId: string; clientId: string }
+  maintenanceRenewalSettings?: { contractId: string; expectedUpdatedAt: string }
   operationsProjectReadSql?: string
 }
 
