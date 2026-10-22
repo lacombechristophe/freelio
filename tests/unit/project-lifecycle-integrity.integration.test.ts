@@ -8,6 +8,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/local-files", () => ({ removeLocalFile: vi.fn(async () => {}) }))
 import prisma from "@/lib/prisma"
 import { createProject, updateProject, archiveProject, deleteProject } from "@/actions/projets"
+import { updateProject as updateProjectFromBrowser } from "@/actions/projets/mutations"
 import { removeLocalFile } from "@/lib/local-files"
 
 describe.sequential("Project lifecycle integrity on real SQL", () => {
@@ -67,6 +68,27 @@ describe.sequential("Project lifecycle integrity on real SQL", () => {
       await prisma.$executeRawUnsafe('CREATE TRIGGER "fictional_project_audit_failure" BEFORE INSERT ON "AuditLog" FOR EACH ROW EXECUTE FUNCTION fictional_project_audit_failure()')
     }
   }
+
+  it("returns a stale browser refusal without overwriting the current project or adding an audit", async () => {
+    const current = await prisma.project.update({ where: { id: projectId }, data: { name: "Fictitious newer decision", updatedAt: new Date(Date.parse(revision) + 1000) } })
+    await expect(updateProjectFromBrowser(projectId, payload(), revision)).resolves.toEqual({ success: false, error: "Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée." })
+    expect(await prisma.project.findUnique({ where: { id: projectId } })).toMatchObject({ name: current.name, updatedAt: current.updatedAt })
+    expect(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(0)
+  })
+
+  it("returns the same unavailable browser message for an incoherent client relation", async () => {
+    await prisma.project.update({ where: { id: projectId }, data: { clientId: foreignClientId } })
+    await expect(updateProjectFromBrowser(projectId, payload(), revision)).resolves.toEqual({ success: false, error: "Projet introuvable" })
+    expect(await prisma.project.findUnique({ where: { id: projectId } })).toMatchObject({ clientId: foreignClientId })
+    expect(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(0)
+  })
+
+  it("does not convert an unexpected SQL failure into a browser business result", async () => {
+    await failAudit()
+    await expect(updateProjectFromBrowser(projectId, { ...payload(), name: "Fictitious rejected change" }, revision)).rejects.toThrow()
+    expect(await prisma.project.findUnique({ where: { id: projectId } })).toMatchObject({ name: payload().name, updatedAt: new Date(revision) })
+    expect(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(0)
+  })
   it("deletes a coherent project with its file metadata and unbilled time, then cleans files", async () => {
     const url = `local:${session.companyId}/project/${projectId}/fictitious-project.pdf`
     await prisma.projectFile.create({ data: { projectId, name: "Fictitious PDF", url } })

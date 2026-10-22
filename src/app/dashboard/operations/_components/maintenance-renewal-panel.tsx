@@ -5,7 +5,7 @@ import { CalendarClock, FileSignature, Loader2, RefreshCw, Save, ShieldCheck } f
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { updateMaintenanceRenewalSettings } from "@/actions/operations"
+import { updateMaintenanceRenewalSettings } from "@/actions/operations/mutations"
 import { renewAssetMaintenance, createAssetMaintenanceProposal } from "@/actions/asset-commands"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

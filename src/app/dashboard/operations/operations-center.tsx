@@ -12,6 +12,7 @@ import Link from "next/link"
 import { AlertTriangle, ArrowRightLeft, Boxes, Building2, CalendarClock, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, FileImage, FileText, Loader2, PackageCheck, PackageMinus, PenLine, Plus, ShieldCheck, Trash2, Upload, Wrench, type LucideIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import { updateInterventionStatus } from "@/actions/operations/mutations"
 import { uploadResourceFile } from "@/lib/client-file-upload"
 
 import {
@@ -28,7 +29,6 @@ import {
   resolveInterventionReservation,
   reserveStock,
   signDeliveryNote,
-  updateInterventionStatus,
   getOperationsTicketDirectory,
   getOperationsInterventionDirectory,
   getOperationsMaintenanceDirectory,

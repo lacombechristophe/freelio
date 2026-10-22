@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { createProject, updateProject } from "@/actions/projets"
+import { createProject, updateProject } from "@/actions/projets/mutations"
+import { requireSuccessfulMutation } from "@/lib/mutation-result"
 import { getProjectClientChoices } from "@/actions/projets/directory"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import type { ProjectTemplateOption } from "./project-template-dialog"
@@ -149,10 +150,10 @@ export function ProjectFormDialog({
         status: form.status as "ACTIVE" | "COMPLETED" | "ARCHIVED",
       }
       if (project) {
-        await updateProject(project.id, payload, new Date(project.updatedAt).toISOString())
+        requireSuccessfulMutation(await updateProject(project.id, payload, new Date(project.updatedAt).toISOString()))
         toast.success("Projet mis à jour.")
       } else {
-        await createProject(payload)
+        requireSuccessfulMutation(await createProject(payload))
         toast.success("Projet créé.")
       }
       onOpenChange(false)

@@ -15,7 +15,7 @@ import {
   updateProjectMilestoneStatus,
   updateProjectMilestonePlanning,
   upsertProjectTechnicalProfile,
-} from "@/actions/projets"
+} from "@/actions/projets/mutations"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

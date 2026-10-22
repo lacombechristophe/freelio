@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Workflow } from "lucide-react"
 import { toast } from "sonner"
 
-import { createProjectTemplate, setProjectTemplateActive } from "@/actions/projets"
+import { createProjectTemplate, setProjectTemplateActive } from "@/actions/projets/mutations"
+import { requireSuccessfulMutation } from "@/lib/mutation-result"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -60,14 +61,14 @@ export function ProjectTemplateDialog({ open, onOpenChange, templates, canWrite 
     event.preventDefault()
     setPending(true)
     try {
-      await createProjectTemplate({
+      requireSuccessfulMutation(await createProjectTemplate({
         name,
         description,
         worksiteType,
         defaultBudgetCents: Math.round(Number(budget || 0) * 100),
         defaultDurationDays: Number(durationDays || 0),
         steps: steps.map((step) => ({ ...step, offsetDays: Number(step.offsetDays), durationDays: Number(step.durationDays), dependsOnIndex: Number(step.dependsOnIndex) })),
-      })
+      }))
       toast.success("Modèle de chantier créé.")
       setName("")
       setDescription("")
@@ -84,7 +85,7 @@ export function ProjectTemplateDialog({ open, onOpenChange, templates, canWrite 
   async function toggle(template: ProjectTemplateOption) {
     setPending(true)
     try {
-      await setProjectTemplateActive(template.id, !template.active, new Date(template.updatedAt).toISOString())
+      requireSuccessfulMutation(await setProjectTemplateActive(template.id, !template.active, new Date(template.updatedAt).toISOString()))
       toast.success(template.active ? "Modèle désactivé." : "Modèle réactivé.")
       router.refresh()
     } catch (error) {

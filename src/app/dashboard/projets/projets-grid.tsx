@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation"
 import { Briefcase, CalendarDays, MoreHorizontal, Plus, Search, Workflow } from "lucide-react"
 import { toast } from "sonner"
 
-import { archiveProject, deleteProject } from "@/actions/projets"
+import { archiveProject, deleteProject } from "@/actions/projets/mutations"
+import { requireSuccessfulMutation } from "@/lib/mutation-result"
 import { getProjectDirectory } from "@/actions/projets/directory"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { EmptyState } from "@/components/shared/empty-state"
@@ -111,7 +112,7 @@ export function ProjetsGrid({
 
   async function handleArchive(project: Project) {
     try {
-      await archiveProject(project.id, new Date(project.updatedAt).toISOString())
+      requireSuccessfulMutation(await archiveProject(project.id, new Date(project.updatedAt).toISOString()))
       toast.success("Projet archivé.")
       router.refresh()
     } catch (error: unknown) {
@@ -129,7 +130,7 @@ export function ProjetsGrid({
     if (!confirmed) return
 
     try {
-      const result = await deleteProject(project.id, new Date(project.updatedAt).toISOString())
+      const result = requireSuccessfulMutation(await deleteProject(project.id, new Date(project.updatedAt).toISOString()))
       if (result.pendingFileCount) toast.warning("Projet supprimé. Certains fichiers restent à purger ; leurs références sont conservées dans l’audit.")
       else toast.success("Projet supprimé.")
       router.refresh()
