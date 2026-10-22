@@ -6,7 +6,7 @@ const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
-import { createEquipment, createServiceTicket, createFieldIntervention, createMaintenanceContract, renewMaintenanceContract, getOperationsDashboard } from "@/actions/operations"
+import { createEquipment, createServiceTicket, createFieldIntervention, createMaintenanceContract, renewMaintenanceContract, getOperationsDashboard, getOperationsMaintenanceDirectory } from "@/actions/operations"
 import { processDueMaintenanceVisits } from "@/lib/scheduling/business"
 
 const db = new PrismaClient()
@@ -16,6 +16,10 @@ describe.sequential("new references recheck active sites and equipment", () => {
   beforeEach(async () => { fixture = await createOperationsDashboardFixture(db); session.companyId = fixture.companyId; session.userId = fixture.user.id })
   afterEach(async () => { if (fixture) { await db.auditLog.deleteMany({ where: { userId: fixture.user.id } }); await fixture.cleanup() } })
   afterAll(async () => { await db.$disconnect() })
+  async function renew(contract: { id: string }) {
+    const source = (await getOperationsMaintenanceDirectory()).items.find(row => row.id === contract.id)!
+    return renewMaintenanceContract(contract.id, source.renewalRevision)
+  }
   function execute(command: typeof commands[number], withEquipment = false) {
     if (command === "equipment") return createEquipment({ siteId: fixture.site.id, label: "Fictional new equipment" })
     if (command === "ticket") return createServiceTicket({ clientId: fixture.site.clientId, siteId: fixture.site.id, title: "Fictional new ticket", description: "Fictional requested work",
@@ -79,7 +83,7 @@ describe.sequential("new references recheck active sites and equipment", () => {
   it.each(["OWNER", "TECHNICIAN"])("allows %s to renew an accessible term without automatic billing", async role => {
     const contract = await renewable()
     await db.membership.update({ where: { id: fixture.member.id }, data: { role } })
-    await expect(renewMaintenanceContract(contract.id)).resolves.toMatchObject({ success: true })
+    await expect(renew(contract)).resolves.toMatchObject({ success: true })
     expect(await db.maintenanceContract.count({ where: { renewedFromId: contract.id } })).toBe(1)
   })
   it.each(["site", "equipment"] as const)("refuses renewal through inactive %s without changing the old term", async kind => {
@@ -87,12 +91,12 @@ describe.sequential("new references recheck active sites and equipment", () => {
     if (kind === "site") await db.customerSite.update({ where: { id: fixture.site.id }, data: { archivedAt: new Date() } })
     else await db.equipment.update({ where: { id: fixture.positive.equipments }, data: { archivedAt: new Date() } })
     const before = await fixture.snapshot()
-    await expect(renewMaintenanceContract(contract.id)).rejects.toThrow(kind === "site" ? "Site client introuvable ou désactivé" : "Équipement introuvable, désactivé ou rattaché à un autre site")
+    await expect(renew(contract)).rejects.toThrow(kind === "site" ? "Site client introuvable ou désactivé" : "Équipement introuvable, désactivé ou rattaché à un autre site")
     expect(await fixture.snapshot()).toEqual(before)
   })
   it("requires Operations write before loading the term for renewal", async () => {
     await db.membership.update({ where: { id: fixture.member.id }, data: { role: "SERVICE" } })
-    await expect(renewMaintenanceContract("not-an-id")).rejects.toThrow("droit Opérations en écriture")
+    await expect(renewMaintenanceContract("not-an-id", "")).rejects.toThrow("droit Opérations en écriture")
   })
   it("requires Finance write before creating automatically billed maintenance", async () => {
     await db.membership.update({ where: { id: fixture.member.id }, data: { role: "TECHNICIAN" } })
@@ -107,14 +111,14 @@ describe.sequential("new references recheck active sites and equipment", () => {
       maintenanceContractId: contract.id, label: "Fictional recurring term", frequency: "ANNUALLY", nextGenDate: new Date("2031-01-02"), template: {} } })
     await db.membership.update({ where: { id: fixture.member.id }, data: { role: "TECHNICIAN" } })
     const before = await fixture.snapshot()
-    await expect(renewMaintenanceContract(contract.id)).rejects.toThrow("droit Finance en écriture")
+    await expect(renew(contract)).rejects.toThrow("droit Finance en écriture")
     expect(await fixture.snapshot()).toEqual(before)
     const dashboard = await getOperationsDashboard()
     expect(dashboard.contracts.find(row => row.id === contract.id)?.canRenew).toBe(false)
   })
   it("preserves the automatic billing flag on the next term", async () => {
     const contract = await renewable(true)
-    await renewMaintenanceContract(contract.id)
+    await renew(contract)
     expect(await db.maintenanceContract.findFirst({ where: { renewedFromId: contract.id } })).toMatchObject({ autoInvoice: true })
   })
 })

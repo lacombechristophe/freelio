@@ -10,6 +10,7 @@ import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
 import { calendarDayStart, shiftCalendarDay } from "@/lib/calendar-days"
 import { operationsDashboardScope } from "./dashboard-scope"
 import { ticketPriorityBuckets } from "./ticket-priority"
+import { readMaintenanceRenewalSources } from "./maintenance-renewal-source"
 
 const baseQuery = z.object({ search: z.string().trim().max(200).default(""), page: z.number().int().min(1).max(100000).default(1), agencyId: z.string().cuid().optional() }).strict()
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
@@ -105,8 +106,10 @@ export async function readOperationsMaintenanceDirectory(context: AuthContext, i
     await checkServiceAgency(tx, context, query.agencyId)
     const total = await tx.maintenanceContract.count({ where }), page = pageNumber(query.page, total)
     const items = await tx.maintenanceContract.findMany({ where, include: maintenanceDirectoryInclude(scope, context.companyId), skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE, orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }, { id: "asc" }] })
+    const sources = await readMaintenanceRenewalSources(tx, context, items.map(item => item.id))
     const writable = !isPublicReadOnlyDemo()
     return { total, page, items: items.map(contract => ({ ...contract,
+      renewalRevision: sources.get(contract.id)!.revision,
       canManageRenewal: writable && hasPermission(context.role, "service.write"),
       canCreateRenewalProposal: writable && hasPermission(context.role, "sales.write"),
       canRenew: writable && hasPermission(context.role, "service.write") && hasPermission(context.role, "operations.write") && (!(contract.autoInvoice || contract.recurringInvoice?.isActive) || hasPermission(context.role, "finance.write")),

@@ -40,6 +40,7 @@ import { readOperationsProjectChoices } from "@/lib/operations/project-choices"
 import { activitySummaryQuery, readOperationsActivity } from "@/lib/operations/activity-summary"
 import { readOperationsTicketDirectory, readOperationsInterventionDirectory, readOperationsMaintenanceDirectory } from "@/lib/operations/service-directory"
 import { readOperationsPlanningSummary } from "@/lib/operations/planning-summary"
+import { readMaintenanceRenewalSources } from "@/lib/operations/maintenance-renewal-source"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -1468,35 +1469,41 @@ export async function updateMaintenanceRenewalSettings(input: unknown) {
   })
 }
 
-export async function renewMaintenanceContract(contractId: string) {
+export async function renewMaintenanceContract(contractId: string, expectedRevision: string) {
+  const changedMessage = "Le contrat a changé pendant le renouvellement. Rechargez la page."
   return withAuth(async ({ companyId, userId, agencyIds, role }) => {
     if (!hasPermission(role, "operations.write")) throw new AuthorizationError("La création du nouveau terme nécessite le droit Opérations en écriture.")
     const parsedId = id.parse(contractId)
-    const [contract, company] = await Promise.all([
-      prisma.maintenanceContract.findFirst({
-        where: { id: parsedId, companyId },
-        include: { equipments: { select: { equipmentId: true } }, recurringInvoice: { select: { isActive: true } }, _count: { select: { renewedContracts: true } } },
-      }),
-      prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
-    ])
-    if (!contract || !company) throw new AssetLifecycleError("Contrat d’entretien introuvable")
-    if ((contract.autoInvoice || contract.recurringInvoice?.isActive) && !hasPermission(role, "finance.write")) throw new AuthorizationError("La facturation automatique nécessite le droit Finance en écriture.")
-    if (!contract.endDate) throw new AssetLifecycleError("Renseignez une date de fin avant de renouveler ce contrat")
-    if (contract.renewalStatus === "DECLINED") throw new AssetLifecycleError("Le renouvellement a été refusé. Modifiez d’abord la décision.")
-    if (contract.renewalStatus !== "ACCEPTED" && !contract.autoRenew)
-      throw new AssetLifecycleError("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
-    if (contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new AssetLifecycleError("Ce terme a déjà été renouvelé")
-    const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
-    const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
+    if (!z.string().regex(/^[a-f0-9]{64}$/).safeParse(expectedRevision).success) throw new AssetLifecycleError(changedMessage)
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const renewed = await withDocumentNumberRetry(
       async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(
           async (transaction) => {
+            const prepared = (await readMaintenanceRenewalSources(transaction, { companyId, agencyIds }, [parsedId])).get(parsedId)
+            if (!prepared) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+            const { source: contract, isTvaApplicable } = prepared
+            if (contract.recurringInvoice && contract.recurringInvoice.clientId !== contract.clientId) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+            if ((contract.autoInvoice || contract.recurringInvoice?.isActive) && !hasPermission(role, "finance.write")) throw new AuthorizationError("La facturation automatique nécessite le droit Finance en écriture.")
+            if (contract.status === "RENEWED" || contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new AssetLifecycleError("Ce terme a déjà été renouvelé")
+            if (prepared.revision !== expectedRevision) throw new AssetLifecycleError(changedMessage)
+            if (!contract.endDate) throw new AssetLifecycleError("Renseignez une date de fin avant de renouveler ce contrat")
+            if (contract.renewalStatus === "DECLINED") throw new AssetLifecycleError("Le renouvellement a été refusé. Modifiez d’abord la décision.")
+            if (contract.renewalStatus !== "ACCEPTED" && !contract.autoRenew) throw new AssetLifecycleError("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
             const site = await lockActiveSite(transaction, companyId, contract.siteId, agencyIds)
             if (site.clientId !== contract.clientId) throw new AssetLifecycleError("Site du contrat incompatible avec le client")
             await lockActiveEquipment(transaction, companyId, contract.siteId, contract.equipments.map(item => item.equipmentId), agencyIds)
+            const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
+            const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
+            if (!Number.isSafeInteger(nextPriceCents) || nextPriceCents > 2147483647) throw new AssetLifecycleError("Le montant du renouvellement dépasse la capacité de calcul.")
+            const updated = await transaction.maintenanceContract.updateMany({
+              where: { ...operationsDashboardScope(companyId, agencyIds).contract, id: contract.id, updatedAt: contract.updatedAt,
+                status: { not: "RENEWED" }, renewalStatus: contract.renewalStatus, renewedContracts: { none: {} } },
+              data: { status: "RENEWED", renewalStatus: "RENEWED", renewedAt: new Date(), nextVisitAt: null,
+                updatedAt: new Date(Math.max(Date.now(), contract.updatedAt.getTime() + 1)) },
+            })
+            if (updated.count !== 1) throw new AssetLifecycleError(changedMessage)
             const created = await transaction.maintenanceContract.create({
               data: {
                 companyId,
@@ -1511,7 +1518,7 @@ export async function renewMaintenanceContract(contractId: string) {
                 nextVisitAt: term.startDate,
                 priceCents: nextPriceCents,
                 autoInvoice: contract.autoInvoice,
-                tvaRate: company.isTvaApplicable ? contract.tvaRate : 0,
+                tvaRate: isTvaApplicable ? contract.tvaRate : 0,
                 invoiceDueDays: contract.invoiceDueDays,
                 notes: contract.notes,
                 noticeDays: contract.noticeDays,
@@ -1523,10 +1530,15 @@ export async function renewMaintenanceContract(contractId: string) {
                 equipments: contract.equipments.length ? { create: contract.equipments.map(({ equipmentId }) => ({ equipmentId })) } : undefined,
               },
             })
+            let recurringInvoiceId: string | null = null
+            if (contract.recurringInvoice?.isActive) {
+              const stopped = await transaction.recurringInvoice.updateMany({ where: { id: contract.recurringInvoice.id, companyId,
+                clientId: contract.clientId, maintenanceContractId: contract.id, isActive: true }, data: { isActive: false } })
+              if (stopped.count !== 1) throw new AssetLifecycleError(changedMessage)
+            }
             if (contract.recurringInvoice?.isActive && nextPriceCents > 0) {
               const recurringFrequency = contract.frequency === "BIANNUAL" ? "BIANNUALLY" : contract.frequency === "ANNUAL" ? "ANNUALLY" : contract.frequency
-              await transaction.recurringInvoice.updateMany({ where: { maintenanceContractId: contract.id, isActive: true }, data: { isActive: false } })
-              await transaction.recurringInvoice.create({
+              const recurrence = await transaction.recurringInvoice.create({
                 data: {
                   companyId,
                   clientId: contract.clientId,
@@ -1544,18 +1556,18 @@ export async function renewMaintenanceContract(contractId: string) {
                         description: `Échéance du contrat ${created.number}`,
                         quantity: 1,
                         unitPriceCents: nextPriceCents,
-                        tvaRate: company.isTvaApplicable ? contract.tvaRate : 0,
+                        tvaRate: isTvaApplicable ? contract.tvaRate : 0,
                       },
                     ],
                   },
                 },
               })
+              recurringInvoiceId = recurrence.id
             }
-            const updated = await transaction.maintenanceContract.updateMany({
-              where: { id: contract.id, companyId, renewalStatus: { not: "RENEWED" } },
-              data: { status: "RENEWED", renewalStatus: "RENEWED", renewedAt: new Date(), nextVisitAt: null },
-            })
-            if (updated.count !== 1) throw new AssetLifecycleError("Le contrat a changé pendant le renouvellement. Rechargez la page.")
+            await transaction.auditLog.create({ data: { userId, action: "RENEW_MAINTENANCE_CONTRACT", resource: "MAINTENANCE_CONTRACT", resourceId: created.id,
+              payload: { previousContractId: contract.id, previousNumber: contract.number, number: created.number, startDate: created.startDate.toISOString(),
+                endDate: created.endDate?.toISOString(), priceCents: created.priceCents, indexationRate: contract.indexationRate, sourceRevision: expectedRevision,
+                previousRecurringInvoiceId: contract.recurringInvoice?.id ?? null, recurringInvoiceId } } })
             return created
           },
           { isolationLevel: "Serializable" },
@@ -1563,25 +1575,13 @@ export async function renewMaintenanceContract(contractId: string) {
       },
       { label: "le renouvellement du contrat d’entretien" },
     )
-    await logAction({
-      userId,
-      action: "RENEW_MAINTENANCE_CONTRACT",
-      resource: "MAINTENANCE_CONTRACT",
-      resourceId: renewed.id,
-      payload: {
-        previousContractId: contract.id,
-        previousNumber: contract.number,
-        number: renewed.number,
-        startDate: renewed.startDate,
-        endDate: renewed.endDate,
-        priceCents: renewed.priceCents,
-        indexationRate: contract.indexationRate,
-      },
-    })
     revalidateOperations()
     revalidatePath("/dashboard/service/customer-success")
     return { success: true as const, id: renewed.id, number: renewed.number }
-  }, "service.write")
+  }, "service.write").catch(error => {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new AssetLifecycleError(changedMessage)
+    throw error
+  })
 }
 
 export async function createPurchaseOrder(input: unknown) {

@@ -62,6 +62,7 @@ import { ServiceDirectoryControls } from "./service-directory-controls"
 const SignatureCanvas = dynamic(() => import("@/components/shared/signature-canvas").then((module) => module.SignatureCanvas), { ssr: false })
 
 type OperationsData = Awaited<ReturnType<typeof import("@/actions/operations").getOperationsDashboard>>
+type MaintenanceContract = Awaited<ReturnType<typeof import("@/actions/operations").getOperationsMaintenanceDirectory>>["items"][number]
 type CreateKind = "TICKET" | "INTERVENTION" | "MAINTENANCE" | "SITE" | "EQUIPMENT" | "PRODUCT" | "SUPPLIER" | "WAREHOUSE" | "STOCK" | "TRANSFER" | "CUSTOMER_ORDER" | "RESERVATION" | "DELIVERY"
 
 const CREATE_LABELS: Record<CreateKind, string> = {
@@ -171,7 +172,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [maintenanceStatus, setMaintenanceStatus] = useState("ALL")
-  const [openMaintenance, setOpenMaintenance] = useState<Record<string, OperationsData["contracts"][number]>>({})
+  const [openMaintenance, setOpenMaintenance] = useState<Record<string, MaintenanceContract>>({})
   const [ordersRevision, setOrdersRevision] = useState(0)
   const [createOpen, setCreateOpen] = useState(searchParams.get("create") === "1")
   useEffect(() => setSourceData(serverData), [serverData])
@@ -185,7 +186,7 @@ export function OperationsCenter({ initialData: serverData }: { initialData: Ope
   const interventions = useOperationsDirectory(agencyId, JSON.stringify([sourceData.generatedAt, interventionStatus, dateFrom, dateTo]), loadInterventions, activeTab === "planning")
   const maintenance = useOperationsDirectory(agencyId, JSON.stringify([sourceData.generatedAt, maintenanceStatus]), loadMaintenance, activeTab === "maintenance")
   const maintenanceRows = [...Object.values(openMaintenance), ...(maintenance.visible?.items ?? []).filter(contract => !openMaintenance[contract.id])]
-  function keepMaintenanceForm(contract: OperationsData["contracts"][number], open: boolean) {
+  function keepMaintenanceForm(contract: MaintenanceContract, open: boolean) {
     setOpenMaintenance(current => {
       if (open) return { ...current, [contract.id]: current[contract.id] ?? contract }
       if (!current[contract.id]) return current

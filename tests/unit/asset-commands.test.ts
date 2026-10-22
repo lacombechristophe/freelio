@@ -20,7 +20,7 @@ describe("asset form replies at the Server Action boundary", () => {
     [actions.changeSiteActivity, commands.setCustomerSiteActive], [actions.changeEquipmentActivity, commands.setEquipmentActive],
     [actions.addCustomerSite, commands.createCustomerSite], [actions.addEquipment, commands.createEquipment],
     [actions.addServiceTicket, commands.createServiceTicket], [actions.addFieldIntervention, commands.createFieldIntervention],
-    [actions.addMaintenanceContract, commands.createMaintenanceContract], [actions.renewAssetMaintenance, commands.renewMaintenanceContract],
+    [actions.addMaintenanceContract, commands.createMaintenanceContract],
     [actions.moveSiteAgency, commands.transferCustomerSite],
   ] as const
   it.each(cases)("returns an expected refusal as serializable data for %s", async (action, command) => {
@@ -32,6 +32,11 @@ describe("asset form replies at the Server Action boundary", () => {
   it("retains the successful domain result", async () => {
     commands.updateCustomerSite.mockResolvedValueOnce({ success: true })
     expect(await actions.saveSite({})).toEqual({ success: true })
+  })
+  it("passes the displayed renewal revision and returns its expected refusal", async () => {
+    commands.renewMaintenanceContract.mockRejectedValueOnce(new AssetLifecycleError("Le contrat a changé."))
+    expect(await actions.renewAssetMaintenance("fictional contract", "a".repeat(64))).toEqual({ success: false, error: "Le contrat a changé." })
+    expect(commands.renewMaintenanceContract).toHaveBeenCalledWith("fictional contract", "a".repeat(64))
   })
   it.each([new AuthorizationError("Accès refusé"), new Error(DEMO_READ_ONLY_MESSAGE)])("returns a known access refusal", async error => {
     commands.updateCustomerSite.mockRejectedValueOnce(error)

@@ -32,4 +32,4 @@ export async function addEquipment(input: unknown) { return reply(() => operatio
 export async function addServiceTicket(input: unknown) { return reply(() => operations.createServiceTicket(input)) }
 export async function addFieldIntervention(input: unknown) { return reply(() => operations.createFieldIntervention(input)) }
 export async function addMaintenanceContract(input: unknown) { return reply(() => operations.createMaintenanceContract(input)) }
-export async function renewAssetMaintenance(contractId: string) { return reply(() => operations.renewMaintenanceContract(contractId)) }
+export async function renewAssetMaintenance(contractId: string, expectedRevision: string) { return reply(() => operations.renewMaintenanceContract(contractId, expectedRevision)) }
