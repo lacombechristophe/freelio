@@ -7,7 +7,7 @@ import { buildYearlyDocumentPrefix, isUniqueConstraintConflict, nextDocumentNumb
 import { MAX_COMMERCIAL_CENTS } from "@/lib/finance/commercial-calculation"
 import { calendarDayKey } from "@/lib/calendar-days"
 import { operationsDashboardScope } from "./dashboard-scope"
-import { quoteOrderRevision } from "./quote-order-source"
+import { quoteOrderRevision } from "@/lib/quotes/conversion-source"
 
 export const quoteConversionChanged = "Le devis a changé. Rechargez la page puis réessayez ; votre saisie est conservée."
 type Input = { quoteId: string; depositRate: number; expectedInstallationAt: Date | null; expectedRevision?: string }

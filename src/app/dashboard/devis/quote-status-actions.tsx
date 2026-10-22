@@ -19,6 +19,8 @@ import type { QuoteStatus } from "@/lib/quotes/workflow"
 type QuoteStatusActionsProps = {
   quoteId: string
   orderConversionRevision: string
+  contractConversionRevision: string
+  contractId?: string
   canPrepareOrder: boolean
   status: string
   hasOrder?: boolean
@@ -30,12 +32,13 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "L’action n’a pas pu être terminée."
 }
 
-export function QuoteStatusActions({ quoteId, orderConversionRevision, canPrepareOrder, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
+export function QuoteStatusActions({ quoteId, orderConversionRevision, contractConversionRevision, contractId, canPrepareOrder, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [pending, setPending] = React.useState(false)
   const [launchOpen, setLaunchOpen] = React.useState(false)
   const [launchRevision, setLaunchRevision] = React.useState(orderConversionRevision)
+  const [launchContractRevision, setLaunchContractRevision] = React.useState(contractConversionRevision)
   const [includeContract, setIncludeContract] = React.useState(!hasContract)
   const launchUnavailable = Object.values(unavailableRelations).some(Boolean)
 
@@ -68,23 +71,29 @@ export function QuoteStatusActions({ quoteId, orderConversionRevision, canPrepar
     const expectedInstallationAt = String(form.get("expectedInstallationAt") || "")
 
     setPending(true)
+    let preparedOrder: { number: string } | null = null
     try {
       const order = await convertQuoteToCustomerOrder({ quoteId, depositRate, expectedInstallationAt, expectedRevision: launchRevision })
-      if (includeContract) await createContractFromQuote(quoteId)
+      preparedOrder = order
+      if (includeContract) await createContractFromQuote(quoteId, launchContractRevision)
       toast.success(order.existing ? `Le dossier ${order.number} était déjà préparé.` : `Commande ${order.number} et chantier préparés.`)
       setLaunchOpen(false)
       router.refresh()
     } catch (error) {
-      toast.error(errorMessage(error))
+      toast.error(preparedOrder && includeContract ? `Commande ${preparedOrder.number} conservée. Le contrat n’a pas pu être préparé : ${errorMessage(error)}` : errorMessage(error))
     } finally {
       setPending(false)
     }
   }
 
   async function createContract() {
+    if (contractId) {
+      router.push(`/dashboard/contrats/${contractId}`)
+      return
+    }
     setPending(true)
     try {
-      const contract = await createContractFromQuote(quoteId)
+      const contract = await createContractFromQuote(quoteId, contractConversionRevision)
       toast.success(hasContract ? "Contrat déjà préparé." : "Contrat métier préparé.")
       router.push(`/dashboard/contrats/${contract.id}`)
     } catch (error) {
@@ -131,7 +140,7 @@ export function QuoteStatusActions({ quoteId, orderConversionRevision, canPrepar
           </Button>
         ) : null}
         {status === "ACCEPTED" && !hasOrder ? (
-          <Button demoMutation disabled={pending || !canPrepareOrder || launchUnavailable} onClick={() => { setLaunchRevision(orderConversionRevision); setLaunchOpen(true) }}>
+          <Button demoMutation disabled={pending || !canPrepareOrder || launchUnavailable} onClick={() => { setLaunchRevision(orderConversionRevision); setLaunchContractRevision(contractConversionRevision); setLaunchOpen(true) }}>
             <FileCheck2 />
             Lancer le dossier
           </Button>
@@ -151,7 +160,7 @@ export function QuoteStatusActions({ quoteId, orderConversionRevision, canPrepar
               </>
             ) : null}
             {status === "ACCEPTED" ? (
-              <DropdownMenuItem disabled={unavailableRelations.generatedContract} onClick={createContract} className="gap-2">
+              <DropdownMenuItem demoMutation={!hasContract} disabled={unavailableRelations.generatedContract || (!hasContract && !canPrepareOrder)} onClick={createContract} className="gap-2">
                 <ScrollText /> {hasContract ? "Ouvrir le contrat" : "Préparer le contrat"}
               </DropdownMenuItem>
             ) : null}

@@ -119,7 +119,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               </Button>
             </Link>
           )}
-          <QuoteStatusActions quoteId={quote.id} orderConversionRevision={quote.orderConversionRevision} canPrepareOrder={quote.canPrepareOrder} status={quote.status} hasOrder={Boolean(quote.customerOrder)} hasContract={Boolean(quote.generatedContract)} unavailableRelations={quote.unavailableRelations} />
+          <QuoteStatusActions quoteId={quote.id} orderConversionRevision={quote.orderConversionRevision} contractConversionRevision={quote.contractConversionRevision} contractId={quote.generatedContract?.id} canPrepareOrder={quote.canPrepareOrder} status={quote.status} hasOrder={Boolean(quote.customerOrder)} hasContract={Boolean(quote.generatedContract)} unavailableRelations={quote.unavailableRelations} />
         </div>
       </div>
 
