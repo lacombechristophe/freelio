@@ -40,6 +40,16 @@ Les scénarios utilisent désormais le libellé réel de l’équipement et le m
 
 Les actions navigateur sont bornées à 30 secondes, les navigations à 60 secondes ; le budget normal du scénario reste de quatre minutes. Le job dispose de 60 minutes pour inclure préparation, installation de Chromium et audit des routes. Les **518 cas / 104 fichiers** restent sélectionnés, sans exécution locale. Ces changements ne suppriment aucune assertion ni contrôle CI.
 
+## Suite locale complète du nouveau candidat
+
+La [suite avec couverture](local-full.json) passe sur `8c55ca4ba23c73e53c044b0ee4e860abd09754f2` : **3 936 tests / 293 fichiers**, aucun échec ni exclusion, en 625,36 secondes. La SQLite est créée neuve, distincte de celle du diagnostic ciblé, sans données existantes. Les 1 261 fichiers de source correspondent au commit ; ses sources applicatives sont identiques à celles du build de `64f8e7d`.
+
+La couverture reste limitée aux six modules configurés : calcul commercial, reprise de livraison, événements de livraison mail, ingestion/normalisation et XML Factur-X. Leurs seuils passent avec 85,53 % d’instructions, 67,03 % de branches, 89,56 % de fonctions et 88,53 % de lignes. Ces pourcentages ne représentent pas toute l’application. La relecture complète ESLint/Oxlint réussit également.
+
 ## Livraison
+
+Le [run du nouveau candidat 8c55ca4](https://github.com/lacombechristophe/freelio/actions/runs/39872058905) échoue avant le démarrage des jobs. Les quatre annotations renvoient le même message générique de facturation/plafond du compte ; aucune étape de test n’a été exécutée. La [preuve de lancement](ci-8c55ca4.json) conserve ce diagnostic distinct du quota d’artefacts des runs précédents. Ce message ne permet pas d’affirmer qu’un paiement a échoué. Aucun budget ni réglage de compte n’est modifié.
+
+La preview exacte de 8c55ca4 est READY. Ses sondes `/api/health/live` et `/api/health/ready` répondent HTTP 200 avec les statuts attendus, par GET via la CLI Vercel existante. La sonde SQL utilise `SELECT 1` ; elle ne contrôle ni migrations ni forme des tables. Aucun navigateur, import d’environnement ou secret supplémentaire n’est utilisé.
 
 La CI du nouveau candidat reste requise. Le propriétaire poursuit sans navigateur local : migrations distantes et recette authentifiée de la preview restent non vérifiées. Main, production, offre GitHub, visibilité, licence et budget sont inchangés.
