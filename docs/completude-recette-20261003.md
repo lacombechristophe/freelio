@@ -4,13 +4,14 @@
 
 ## Résultat actuel
 
-Le candidat local `6ae02861c36df5dea89d1fb98f8b5465fc3a3ea3` protège le [Centre de support principal](evidence/20261022-help-desk/README.md) : références et compteurs filtrés, file et indicateurs complets, priorités métier, responsables recherchables/paginés et fuseau de la société. Les [propositions d’entretien](evidence/20261022-maintenance-proposal/README.md), [nouveaux termes et facturation](evidence/20261022-maintenance-renewal/README.md), [réglages](evidence/20261022-maintenance-settings/README.md) et corrections précédentes restent inclus. La signature et son accord sur le futur terme restent distincts.
+Le candidat local `a699be73bae7104956e2102f6f3f9d587d8e2d96` lie les [signatures de renouvellement d’entretien](evidence/20261022-maintenance-signing/README.md) aux conditions capturées : contrôle avant lien, signature et nouveau terme, remplacement explicite sans effacer les accords signés, audit transactionnel et références internes omises des réponses de l’annuaire et du tableau de bord Opérations. Le [Centre de support](evidence/20261022-help-desk/README.md), les propositions, les réglages, la bascule de facturation et les corrections précédentes restent inclus.
 
 Les corrections précédentes restent incluses. La [carte des preuves](carte-des-preuves.md) donne leurs points d’entrée ; les résultats locaux ci-dessous qualifient ce code, dans les limites indiquées.
 
 | Contrôle local sur ce code | Résultat |
 | --- | --- |
-| Suite SQLite avec outillage corrigé, base fictive neuve | **3 823 tests / 289 fichiers**, aucun échec ni exclusion |
+| Suite SQLite avec outillage corrigé, base fictive neuve | **3 866 tests / 291 fichiers**, aucun échec ni exclusion |
+| Signature de renouvellement, conditions convenues et conservation historique | 35 cas SQL ; 340 avec les voisins, réussis séparément et dans la suite complète |
 | Centre de support : périmètre, file complète, liens et fuseau | 30 cas SQL et deux rendus serveur ; 194 avec les voisins, réussis séparément et dans la suite complète |
 | Création de proposition, source affichée, droits Sales et audit obligatoire | 30 cas dédiés ; 246 avec les voisins, réussis séparément et dans la suite complète |
 | Création du terme renouvelé et bascule de facturation | 31 cas dédiés ; 173 avec les voisins, réussis séparément et dans la suite complète |
@@ -28,12 +29,12 @@ Les corrections précédentes restent incluses. La [carte des preuves](carte-des
 | Choix de commande et de chantier des réservations | 29 cas dédiés et 42 voisins dans quatre suites, présents et réussis dans la même suite complète |
 | Achats et dépôts : écritures, inspection, historique et transitions | 239 cas dans 8 suites, présents et réussis dans la même suite complète |
 | Types, génération des routes, ESLint et Oxlint | Réussis |
-| Build Next.js | Réussi sur 6ae0286, 76 pages statiques |
-| Identité des sources de la recette | 1 248 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
+| Build Next.js | Réussi sur a699be7, 76 pages statiques |
+| Identité des sources de la recette | 1 254 fichiers conformes au commit ; 710 versions installées comparées au lockfile |
 | Audits npm production et complet | Audits datés à zéro de 4a7a241 ; fichiers package et lockfile inchangés, identité vérifiée |
 | Générateur PDF : socle | Quatre contrôles réussis, dont trois sur Chromium réel ; documents métier distincts |
 | Bons de livraison : PDF natifs | Trois cas réussis ; 37 contrôles hors ligne du lot PDF, sur une source inchangée |
-| Playwright | 510 cas sélectionnés, 255 par surface ; **non exécutés** |
+| Playwright | 514 cas sélectionnés, 257 par surface ; **non exécutés** |
 
 Une exécution de la version précédente ab42ad1 a dépassé cinq secondes sur une réponse Google ; les trois cas passent isolément puis dans une nouvelle suite complète, sans changement de code, d’assertion ou de délai. Le [rapport reste conservé](evidence/20261022-maintenance-settings/README.md) et sa cause n’est pas établie. Le présent lot ne prétend pas la corriger.
 
@@ -43,6 +44,7 @@ Ce code n'est pas poussé. La PR distante reste sur `8d2232385f8cfcca9006d5e56ec
 
 | Invariant | Point d'entrée |
 | --- | --- |
+| Signature de renouvellement : conditions capturées, nouvelle signature requise après changement, capture initiale conservée | [Accords et limites](evidence/20261022-maintenance-signing/README.md) |
 | Centre de support : références et compteurs société/agence, priorités et délais réels, pages et totaux complets | [File et limites](evidence/20261022-help-desk/README.md) |
 | Proposition d’entretien : source affichée et site versionnés, création/audit atomiques, rôle Commercial et tarifs HT | [Proposition et limites](evidence/20261022-maintenance-proposal/README.md) |
 | Nouveau terme d’entretien : source affichée complète, bascule atomique de facturation et audit ; paramètres non enregistrés protégés | [Création et limites](evidence/20261022-maintenance-renewal/README.md) |
@@ -78,7 +80,7 @@ Les qualifications intermédiaires et leurs échecs conservés sont regroupés d
 ## Qualification à poursuivre
 
 1. Vérifier et consigner le plafond GitHub Actions à 0 € et l'arrêt de l'usage payant avant tout push déclenchant une nouvelle CI.
-2. Qualifier les migrations additives `20261021010000_mail_provider_failure_kind`, `20261021020000_purchase_issue_resolution_kind` et `20261021030000_delivery_note_seal`, puis les contrôles PostgreSQL, de l’image Linux (dont les PDF métier) et du navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
+2. Qualifier les migrations additives `20261021010000_mail_provider_failure_kind`, `20261021020000_purchase_issue_resolution_kind`, `20261021030000_delivery_note_seal` et `20261022010000_maintenance_renewal_terms`, puis les contrôles PostgreSQL, de l’image Linux (dont les PDF métier) et du navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
 3. Recetter la preview du même code, puis examiner la fusion et la publication. Main, la branche candidate et la production restent des références distinctes.
 
 La démo garde un budget de 0 € et des données fictives en lecture seule. Stockage durable, comptes OAuth/transport réels, délivrabilité, charge, reprise après arrêt brutal et récupération distante restent des conditions d'ouverture commerciale ; aucun abonnement R2 n'est engagé.
@@ -94,7 +96,7 @@ Les corrections d'intégrité et les listes complètes ne suffisent pas à clore
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |
 | L8 : indicateurs et listes Opérations | [Listes Service et planning](evidence/20261022-operations-service/README.md), [totaux et aperçus](evidence/20261022-operations-activity/README.md), puis [Centre de support principal](evidence/20261022-help-desk/README.md) qualifiés localement. File complète, priorités métier et compteurs du périmètre ; responsables recherchables et paginés. Certains sélecteurs utilisent encore les caches racine. Le classement SLA conserve les clés de tous les résultats ; charge, mémoire sur grand portefeuille, PostgreSQL et interactions navigateur restent à qualifier. |
-| L8 : renouvellement d’entretien | [Réglages](evidence/20261022-maintenance-settings/README.md), [création du terme/bascule des récurrences](evidence/20261022-maintenance-renewal/README.md) et [création de proposition](evidence/20261022-maintenance-proposal/README.md) qualifiés localement. La signature, le lien entre conditions signées et décision du futur terme, les autres politiques d’état, la réparation historique, plusieurs travailleurs, PostgreSQL et interactions navigateur restent à qualifier séparément. |
+| L8 : renouvellement d’entretien | [Réglages](evidence/20261022-maintenance-settings/README.md), [terme/facturation](evidence/20261022-maintenance-renewal/README.md), [proposition](evidence/20261022-maintenance-proposal/README.md) et [accord signé sur les conditions](evidence/20261022-maintenance-signing/README.md) qualifiés localement. Prix et conditions revérifiés aux trois transitions ; nouveau document après changement, anciens accords conservés et historique sans preuve bloqué. Migration PostgreSQL, autres politiques d’état, réparation historique, plusieurs travailleurs et interactions navigateur restent à qualifier séparément. |
 | L8 : choix Chantier des créations Opérations | [Trois sélecteurs qualifiés localement](evidence/20261022-operations-project-choices/README.md), y compris les lectures de démo. Les interactions navigateur préparées, PostgreSQL et les autres sélecteurs restent à qualifier ; les autres consommateurs des caches restent distincts. |
 | L8 : commandes client et livraisons | [Conversion de commande](evidence/20261022-quote-order-conversion/README.md) et [contrat optionnel](evidence/20261022-quote-contract-conversion/README.md) qualifiés localement, en deux actions avec reprise du résultat partiel. [Création, quantités et capture signée qualifiées localement](evidence/20261021-delivery-seals/README.md). Les anciennes empreintes sans capture ne permettent pas de régénérer le document. [Historique des bons complet qualifié localement](evidence/20261021-delivery-directory/README.md) ; [choix Commande/Ligne complets qualifiés localement](evidence/20261021-delivery-choices/README.md). [Références et audit des réservations qualifiés localement](evidence/20261021-stock-reservations/README.md). [Choix des réservations qualifiés localement](evidence/20261021-reservation-choices/README.md). Politiques d’annulation/clôture, édition après confirmation, annulation après livraison et réparation historique restent distincts ; [PDF natifs Windows qualifiés](evidence/20261021-delivery-pdf/README.md) ; PostgreSQL, Linux et navigateur restent à qualifier. |
 | L8 : cycle des achats fournisseur | [Réceptions, inspections, retours et avoirs qualifiés localement](evidence/20261021-purchase-stock/README.md), en complément de l’historique complet, des validations, de l’édition et de l’annulation avant transmission : stock, décisions et audit atomiques, acceptations bornées et observations de livraison conservées. Modification après soumission, annulation après transmission/réception, réparation des décisions historiques inconnues, PostgreSQL et interactions navigateur restent distincts. |
