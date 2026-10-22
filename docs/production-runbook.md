@@ -141,6 +141,10 @@ Conserver une copie sécurisée de secours de `ENCRYPTION_KEY` et documenter les
 - fenêtre de changement annoncée ;
 - responsable du rollback disponible.
 
+Pour un déploiement Git sur Vercel, vérifier aussi que l’auteur du commit est associé au compte GitHub attendu et que ce compte est relié au propriétaire du projet. Une adresse de commit non reconnue peut bloquer le déploiement avant le build. Utiliser une adresse vérifiée du compte pour les prochains commits, puis contrôler l’attribution et le nouveau déploiement ; une nouvelle version ne demande pas de réécrire l’historique publié. La [procédure Vercel](https://vercel.com/docs/deployments/troubleshoot-project-collaboration#account-configuration) distingue ce défaut des droits de collaboration.
+
+Conserver le SHA, l’identifiant du déploiement et son état `READY`, puis vérifier l’alias avant et après la recette hébergée. Le build génère le client Prisma sans appliquer les migrations ; celles-ci suivent l’étape PostgreSQL ci-dessous avec un rôle dédié. Une réponse de readiness ne prouve ni la version Git ni l’état des migrations.
+
 ### 4.2 Vérification de l'artefact
 
 Dans un environnement propre :
