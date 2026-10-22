@@ -174,8 +174,8 @@ describe.sequential("Operations service lists exceed historical dashboard caches
     expect(day.items).toHaveLength(6)
     expect(result.members.find(row => row.id === membershipId)).toMatchObject({ interventions: 10002, plannedMinutes: 150075 })
     expect(JSON.stringify(result).length).toBeLessThan(25000)
-    console.info("PLANNING_VOLUME_OBSERVATION", JSON.stringify({ rows: 10001, durationMs: Math.round(durationMs), responseBytes: Buffer.byteLength(JSON.stringify(result)), scope: "One local SQLite read; not an SLO or PostgreSQL/load qualification" }))
-  })
+    console.info("PLANNING_VOLUME_OBSERVATION", JSON.stringify({ rows: 10001, durationMs: Math.round(durationMs), responseBytes: Buffer.byteLength(JSON.stringify(result)), scope: "One isolated database read; fixture creation excluded, not an SLO or load qualification" }))
+  }, 30_000) // Includes inserting 10,001 rows on the PostgreSQL CI service.
 })
 
 describe.sequential("Operations service directories preserve scope and current permissions", () => {
