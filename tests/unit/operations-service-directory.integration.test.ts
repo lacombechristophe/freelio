@@ -121,6 +121,16 @@ describe.sequential("Operations service lists exceed historical dashboard caches
     expect(day).toMatchObject({ count: 8, conflicts: 2 })
     expect(day.items.every(row => !row.conflict)).toBe(true)
   })
+  it("crosses batch boundaries without losing slots that share a start instant", async () => {
+    const prefix = randomUUID().replaceAll("-", "").slice(0, 20)
+    const ids = Array.from({ length: 501 }, (_, index) => `c${prefix}${String(index).padStart(4, "0")}`)
+    await prisma.fieldIntervention.createMany({ data: [...ids].reverse().map(id => ({ id, companyId: session.companyId, siteId, assignedMembershipId: membershipId,
+      title: "EXTRA-same-start", scheduledStart: new Date("2030-06-20T08:00:00Z"), scheduledEnd: new Date("2030-06-20T09:00:00Z") })) })
+    const result = await planning(), day = result.days.find(row => row.key === "2030-06-20")!
+    expect(day).toMatchObject({ count: 501, conflicts: 501, totalLegs: 500 })
+    expect(day.items.map(row => row.id)).toEqual(ids.slice(0, 6))
+    expect(result.members.find(row => row.id === membershipId)).toMatchObject({ interventions: 502, plannedMinutes: 30120 })
+  })
   it("detects a slot crossing civil midnight before the current week", async () => {
     await prisma.fieldIntervention.createMany({ data: [
       { companyId: session.companyId, siteId, assignedMembershipId: membershipId, title: "EXTRA-previous-week-night", scheduledStart: new Date("2030-06-16T21:30:00Z"), scheduledEnd: new Date("2030-06-16T23:00:00Z") },

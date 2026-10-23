@@ -28,14 +28,18 @@ export async function readOperationsPlanningSummary(context: AuthContext, input:
     const weekly = new Map(members.map(member => [member.id, { interventions: 0, minutes: BigInt(0) }]))
     const days = new Map<string, Day>()
     const overlaps = new Map<string, OverlapGroup>()
-    let unassigned = 0, cursor: string | undefined, finished = false
+    let unassigned = 0, cursor: { id: string; scheduledStart: Date } | undefined, finished = false
     const lowerBound = weekStart < todayStart ? weekStart : todayStart
     let lastVisibleEnd = todayStart.getTime()
     const where = { AND: [scope.intervention, ...(query.agencyId ? [{ site: { agencyId: query.agencyId } }] : []),
       { OR: [{ scheduledStart: { gte: new Date(lowerBound.getTime() - 3600000) } }, { scheduledStart: { lt: lowerBound }, scheduledEnd: { gt: lowerBound } }] },
     ], status: { not: "CANCELED" } }
     for (;;) {
-      const rows = await tx.fieldIntervention.findMany({ where, take: 250, ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}), orderBy: [{ scheduledStart: "asc" }, { id: "asc" }],
+      // Seek on the complete ordering: the date range remains indexable,
+      // and the id keeps slots with the same start in successive batches.
+      const rows = await tx.fieldIntervention.findMany({ where: { AND: [where, ...(cursor ? [{ OR: [
+        { scheduledStart: { gt: cursor.scheduledStart } }, { scheduledStart: cursor.scheduledStart, id: { gt: cursor.id } },
+      ] }] : [])] }, take: 250, orderBy: [{ scheduledStart: "asc" }, { id: "asc" }],
         select: { id: true, title: true, scheduledStart: true, scheduledEnd: true, assignedMembershipId: true,
           assignedMembership: { select: { user: { select: { name: true, email: true } } } },
           site: { select: { label: true, latitude: true, longitude: true, client: { select: { name: true } } } },
@@ -93,7 +97,8 @@ export async function readOperationsPlanningSummary(context: AuthContext, input:
         }
       }
       if (finished || rows.length < 250) break
-      cursor = rows[rows.length - 1].id
+      const last = rows[rows.length - 1]
+      cursor = { id: last.id, scheduledStart: last.scheduledStart }
     }
     return { generatedAt: now.toISOString(), timeZone, weekStart: weekStart.toISOString(), weekEnd: weekEnd.toISOString(), unassigned,
       members: members.map(member => {
