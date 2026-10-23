@@ -170,13 +170,17 @@ describe.sequential("Operations activity boundaries, permissions and volume on r
     expect(await summary({ agencyId })).toMatchObject({ comingInterventions: 3, dueInterventions: 2 })
   })
   it("counts 10001 extra open tickets while returning only six previews", async () => {
+    const started = performance.now()
     await prisma.serviceTicket.createMany({ data: Array.from({ length: 10001 }, (_, index) => ({ companyId: session.companyId, clientId, siteId, number: `EXTRA-${index}`, title: "Fictional volume ticket", description: "Fictional description", priority: "URGENT" })) })
+    const prepared = performance.now()
     const result = await summary({ agencyId })
+    const readMs = performance.now() - prepared
     expect(result.openTickets).toBe(10002)
     expect(result.priorityTickets).toHaveLength(6)
     expect(result.priorityTickets.every(row => row.priority === "URGENT")).toBe(true)
     expect(new Set(result.priorityTickets.map(row => row.id)).size).toBe(6)
-  })
+    console.info("ACTIVITY_VOLUME_OBSERVATION", JSON.stringify({ rows: 10001, fixtureMs: Math.round(prepared - started), readMs: Math.round(readMs), scope: "One isolated database read, not an SLO or load qualification" }))
+  }, 30_000) // Includes bulk fixture creation; the product's transaction timeout is unchanged.
   it.each([null, "invalid", { agencyId: 5 }, { agencyId: "not-a-cuid" }, { companyId: "forged" }, { agencyId: "" }])("rejects a malformed query %j", async input => {
     await expect(summary(input)).rejects.toThrow()
   })
