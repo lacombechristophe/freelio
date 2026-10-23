@@ -56,7 +56,7 @@ Contraintes :
 - PostgreSQL obligatoire en production ; R2 obligatoire pour le profil modifiable ;
 - TLS de bout en bout et bucket non public.
 
-Le dépôt fournit un Dockerfile et un Compose de développement. La recette Linux du 1er octobre a exécuté les migrations PostgreSQL 18.6, Prisma, le serveur et ses sondes, un worker Redis/BullMQ et Chromium ; le suivi CTO conserve sa portée et l’identité d’image. Le runtime de l’hébergeur reste à qualifier. `GET /api/health/live` indique la vie du processus ; `GET /api/health/ready` vérifie la base et la configuration critique. Cette sonde ne vérifie pas la disponibilité de R2/Upstash. `npm start` refuse une configuration incomplète avant d’écouter ; le conteneur lance directement Node pour transmettre les signaux.
+Le dépôt fournit un Dockerfile et un Compose de développement. La recette Linux du 1er octobre a exécuté les migrations PostgreSQL 18.6, Prisma, le serveur et ses sondes, un worker Redis/BullMQ et Chromium ; le suivi CTO conserve sa portée et l’identité d’image. Le runtime de l’hébergeur reste à qualifier. `GET /api/health/live` indique la vie du processus ; `GET /api/health/ready` vérifie connexion, colonnes Prisma, historique de migrations PostgreSQL et configuration critique. Le [contrat et sa qualification](evidence/20261023-schema-readiness/README.md) précisent la portée : présence/type/nullabilité des colonnes et checksums compatibles, sans audit des index, contraintes ou données. Le rôle applicatif doit pouvoir lire les colonnes de suivi du journal Prisma ; la sonde n’exécute aucune migration et ne répare rien. Elle ne vérifie pas la disponibilité de R2/Upstash. `npm start` refuse une configuration incomplète avant d’écouter ; le contrôle HTTP de disponibilité reste requis avant d’accepter le trafic. Le conteneur lance directement Node pour transmettre les signaux.
 
 ## 3. Secrets et variables obligatoires
 
@@ -143,7 +143,7 @@ Conserver une copie sécurisée de secours de `ENCRYPTION_KEY` et documenter les
 
 Pour un déploiement Git sur Vercel, vérifier aussi que l’auteur du commit est associé au compte GitHub attendu et que ce compte est relié au propriétaire du projet. Une adresse de commit non reconnue peut bloquer le déploiement avant le build. Utiliser une adresse vérifiée du compte pour les prochains commits, puis contrôler l’attribution et le nouveau déploiement ; une nouvelle version ne demande pas de réécrire l’historique publié. La [procédure Vercel](https://vercel.com/docs/deployments/troubleshoot-project-collaboration#account-configuration) distingue ce défaut des droits de collaboration.
 
-Conserver le SHA, l’identifiant du déploiement et son état `READY`, puis vérifier l’alias avant et après la recette hébergée. Le build génère le client Prisma sans appliquer les migrations ; celles-ci suivent l’étape PostgreSQL ci-dessous avec un rôle dédié. Une réponse de readiness ne prouve ni la version Git ni l’état des migrations.
+Conserver le SHA, l’identifiant du déploiement et son état `READY`, puis vérifier l’alias avant et après la recette hébergée. Le build génère le client Prisma sans appliquer les migrations ; celles-ci suivent l’étape PostgreSQL ci-dessous avec un rôle dédié. La sonde de disponibilité contrôle les colonnes et le journal du schéma PostgreSQL configuré. Elle ne prouve ni la version Git ni l’intégrité des index, contraintes et données ; conserver le résultat de l’étape de migration et qualifier le déploiement exact.
 
 ### 4.2 Vérification de l'artefact
 
