@@ -57,11 +57,12 @@ export async function databaseSchemaReady() {
   const url = process.env.DATABASE_URL ?? ""
   const provider = url.startsWith("file:") ? "sqlite" : url.startsWith("postgresql:") || url.startsWith("postgres:") ? "postgresql" : null
   if (!provider) return false
+  const schema = provider === "postgresql" ? new URL(url).searchParams.get("schema") || "public" : ""
   const expected = provider === "postgresql" ? await (manifest ??= readMigrationManifest(path.join(process.cwd(), "prisma/postgresql/migrations"))) : []
   return prisma.$transaction(async tx => {
-    const query = provider === "sqlite" ? sqliteColumnsQuery : postgresColumnsQuery(new URL(url).searchParams.get("schema") || "public")
+    const query = provider === "sqlite" ? sqliteColumnsQuery : postgresColumnsQuery(schema)
     const columns = await tx.$queryRaw<SchemaColumn[]>(query)
     if (!schemaColumnsMatch(Prisma.dmmf.datamodel.models, columns, provider)) return false
-    return provider === "sqlite" || migrationHistoryMatches(expected, await tx.$queryRaw<MigrationHistory[]>(migrationHistoryQuery))
+    return provider === "sqlite" || migrationHistoryMatches(expected, await tx.$queryRaw<MigrationHistory[]>(migrationHistoryQuery(schema)))
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 }

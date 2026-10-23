@@ -23,7 +23,7 @@ describe("PostgreSQL metadata orchestration without a provider connection", () =
     expect(await databaseSchemaReady()).toBe(true)
     expect(mock.query).toHaveBeenCalledTimes(2)
     expect(mock.query.mock.calls[0]![0].values).toEqual(["private_fixture"])
-    expect(mock.query.mock.calls[1]![0].sql).toContain('FROM "_prisma_migrations"')
+    expect(mock.query.mock.calls[1]![0].sql).toContain('FROM "private_fixture"."_prisma_migrations"')
     expect(mock.transaction.mock.calls[0]![1]).toEqual({ isolationLevel: "Serializable" })
   })
   it.each(["absent", "running", "modified"])("rejects an %s migration history", async state => {

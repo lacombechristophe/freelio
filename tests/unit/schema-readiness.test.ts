@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterAll, describe, expect, it, vi } from "vitest"
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
 vi.mock("server-only", () => ({}))
 import { migrationHistoryMatches, readMigrationManifest, schemaColumnsMatch, type MigrationHistory, type SchemaColumn } from "@/lib/schema-readiness"
 import { isReadinessMetadataQuery, migrationHistoryQuery, postgresColumnsQuery, sqliteColumnsQuery } from "@/lib/database-metadata-sql"
@@ -68,6 +68,7 @@ describe("Migration history readiness", () => {
 
 describe("Migration files and metadata allowlist", () => {
   const folders: string[] = []
+  afterEach(() => { vi.unstubAllEnvs() })
   afterAll(() => {
     for (const folder of folders) {
       const resolved = path.resolve(folder)
@@ -94,7 +95,8 @@ describe("Migration files and metadata allowlist", () => {
     await expect(readMigrationManifest(root)).rejects.toThrow()
   })
   it("allows only the exact typed metadata queries, never executable SQL variants", () => {
-    for (const query of [sqliteColumnsQuery, migrationHistoryQuery, postgresColumnsQuery("public")]) {
+    vi.stubEnv("DATABASE_URL", "postgresql://fictional:fictional@invalid.example.test/fictitious")
+    for (const query of [sqliteColumnsQuery, migrationHistoryQuery("public"), postgresColumnsQuery("public")]) {
       expect(isReadinessMetadataQuery("$queryRaw", query.sql)).toBe(true)
       expect(isReadinessMetadataQuery("$queryRawUnsafe", query.sql)).toBe(false)
       expect(isReadinessMetadataQuery("$executeRaw", query.sql)).toBe(false)
@@ -102,10 +104,18 @@ describe("Migration files and metadata allowlist", () => {
     }
     expect(isReadinessMetadataQuery("$queryRaw", 'SELECT * FROM "User"')).toBe(false)
   })
-  it("binds a custom PostgreSQL schema name rather than interpolating it", () => {
-    const schema = "fictional'; DROP TABLE User; --"
+  it("binds catalog scope and quotes the fixed migration table namespace", () => {
+    const schema = 'fictional"; DROP TABLE "User"; --'
     const query = postgresColumnsQuery(schema)
     expect(query.sql).not.toContain(schema)
     expect(query.values).toEqual([schema])
+    const history = migrationHistoryQuery(schema)
+    expect(history.sql).toContain('FROM "fictional""; DROP TABLE ""User""; --"."_prisma_migrations"')
+    const url = new URL("postgresql://fictional:fictional@invalid.example.test/fictitious")
+    vi.stubEnv("DATABASE_URL", url.toString())
+    expect(isReadinessMetadataQuery("$queryRaw", history.sql)).toBe(false)
+    url.searchParams.set("schema", schema); vi.stubEnv("DATABASE_URL", url.toString())
+    expect(isReadinessMetadataQuery("$queryRaw", history.sql)).toBe(true)
+    expect(isReadinessMetadataQuery("$queryRaw", migrationHistoryQuery("public").sql)).toBe(false)
   })
 })
