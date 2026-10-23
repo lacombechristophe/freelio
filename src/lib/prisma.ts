@@ -5,6 +5,7 @@ import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
 import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "./demo-policy"
 import { mailboxScope, scopeMailboxIncludes } from "./communications/mailbox-access"
 import { runSqliteTransaction, type SqliteTransactionQueue } from "./sqlite-transactions"
+import { isReadinessMetadataQuery } from "./database-metadata-sql"
 
 const MUTATION_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"])
 
@@ -113,14 +114,14 @@ const prismaClientSingleton = () => {
     query: {
       async $allOperations({ model, operation, args, query }) {
         if (!model && isPublicReadOnlyDemo()) {
-          // Raw SQL can mutate even through $queryRaw. Permit only readiness
-          // or the exact SELECT constructed by the scoped project selector.
+          // Raw SQL can mutate even through $queryRaw. Only connectivity,
+          // exact metadata probes and the scoped project selector are admitted.
           const rawArgs = args as { sql?: string } | unknown[]
           const sql = !Array.isArray(rawArgs) && rawArgs && "sql" in rawArgs ? rawArgs.sql : Array.isArray(rawArgs) && Array.isArray(rawArgs[0]) ? rawArgs[0].join("") : undefined
           const context = getContext()
           const projectRead = operation === "$queryRaw" && typeof sql === "string" && context?.actionPermission === "operations.read"
             && context.operationsProjectReadSql === sql
-          if (!projectRead && (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1")) assertDemoMutationAllowed()
+          if (!projectRead && !isReadinessMetadataQuery(operation, sql) && (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1")) assertDemoMutationAllowed()
         }
         return query(args)
       },
