@@ -14,6 +14,8 @@ La lecture PostgreSQL utilise les [catalogues de colonnes](https://www.postgresq
 
 En démo publique, seules les requêtes de métadonnées exactes sont ajoutées au garde-fou transactionnel. Les SQL arbitraires, variantes exécutables et lectures de données métier restent refusés. Le chemin de connectivité hors transaction garde son contrôle existant. Les SQL de migration sont inclus dans la trace de cette seule route Next.js.
 
+Un échec produit un événement serveur `schema_readiness_failed`, avec l'étape `migration_files`, `columns` ou `migration_history`. Un désaccord indique seulement les comptes attendus/observés ; une exception conserve un code Prisma ou système explicitement autorisé. Le message, la pile, les chemins, identifiants et valeurs de connexion ne sont jamais transmis au journal par ce diagnostic. La réponse HTTP garde son contrat minimal.
+
 ## Preuves et reproduction
 
 La [première recette de `cebe3a1`](local.json) passe 61 cas ciblés puis 4 037 tests. Une vérification complémentaire reproduit une lecture du journal non qualifiée : le test d’orchestration exige le schéma configuré et échoue avant correction. `9f9ab2b` qualifie cet identifiant et vérifie son échappement ainsi que le refus d’un autre schéma.

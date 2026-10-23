@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises"
 import path from "node:path"
 import { Prisma } from "@prisma/client"
 import prisma from "@/lib/prisma"
+import logger from "@/lib/logger"
 import { migrationHistoryQuery, postgresColumnsQuery, sqliteColumnsQuery } from "@/lib/database-metadata-sql"
 
 type Provider = "sqlite" | "postgresql"
@@ -58,11 +59,28 @@ export async function databaseSchemaReady() {
   const provider = url.startsWith("file:") ? "sqlite" : url.startsWith("postgresql:") || url.startsWith("postgres:") ? "postgresql" : null
   if (!provider) return false
   const schema = provider === "postgresql" ? new URL(url).searchParams.get("schema") || "public" : ""
-  const expected = provider === "postgresql" ? await (manifest ??= readMigrationManifest(path.join(process.cwd(), "prisma/postgresql/migrations"))) : []
-  return prisma.$transaction(async tx => {
-    const query = provider === "sqlite" ? sqliteColumnsQuery : postgresColumnsQuery(schema)
-    const columns = await tx.$queryRaw<SchemaColumn[]>(query)
-    if (!schemaColumnsMatch(Prisma.dmmf.datamodel.models, columns, provider)) return false
-    return provider === "sqlite" || migrationHistoryMatches(expected, await tx.$queryRaw<MigrationHistory[]>(migrationHistoryQuery(schema)))
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+  let phase = "migration_files"
+  try {
+    const expected = provider === "postgresql" ? await (manifest ??= readMigrationManifest(path.join(process.cwd(), "prisma/postgresql/migrations"))) : []
+    return await prisma.$transaction(async tx => {
+      phase = "columns"
+      const query = provider === "sqlite" ? sqliteColumnsQuery : postgresColumnsQuery(schema)
+      const columns = await tx.$queryRaw<SchemaColumn[]>(query)
+      if (!schemaColumnsMatch(Prisma.dmmf.datamodel.models, columns, provider)) {
+        logger.warn({ event: "schema_readiness_failed", phase, reason: "mismatch", expectedModels: Prisma.dmmf.datamodel.models.length, observedColumns: columns.length })
+        return false
+      }
+      if (provider === "sqlite") return true
+      phase = "migration_history"
+      const history = await tx.$queryRaw<MigrationHistory[]>(migrationHistoryQuery(schema))
+      const matches = migrationHistoryMatches(expected, history)
+      if (!matches) logger.warn({ event: "schema_readiness_failed", phase, reason: "mismatch", expectedMigrations: expected.length, observedMigrations: history.length })
+      return matches
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined
+    const errorCode = typeof code === "string" && /^(P\d{4}|ENOENT|EACCES|EPERM|ETIMEDOUT)$/.test(code) ? code : "unclassified"
+    logger.warn({ event: "schema_readiness_failed", phase, reason: "exception", errorCode })
+    throw error
+  }
 }
