@@ -94,6 +94,11 @@ describe("Migration files and metadata allowlist", () => {
     mkdirSync(path.join(root, "20300101000000_missing"))
     await expect(readMigrationManifest(root)).rejects.toThrow()
   })
+  it("preserves the checksum of the applied contract archive migration across checkouts", async () => {
+    const manifest = await readMigrationManifest(path.resolve("prisma/postgresql/migrations"))
+    expect(manifest.find(entry => entry.migrationName === "20261004040000_signed_contract_archives")?.checksum)
+      .toBe("f38ead0097946338f684fa3d53beb5b98fc6cb2a6251c74e985269229e0d834a")
+  })
   it("allows only the exact typed metadata queries, never executable SQL variants", () => {
     vi.stubEnv("DATABASE_URL", "postgresql://fictional:fictional@invalid.example.test/fictitious")
     for (const query of [sqliteColumnsQuery, migrationHistoryQuery("public"), postgresColumnsQuery("public")]) {

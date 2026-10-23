@@ -16,6 +16,8 @@ En démo publique, seules les requêtes de métadonnées exactes sont ajoutées 
 
 Un échec produit un événement serveur `schema_readiness_failed`, avec l'étape `migration_files`, `columns` ou `migration_history`. Un désaccord indique seulement les comptes attendus/observés ; une exception conserve un code Prisma ou système explicitement autorisé. Le message, la pile, les chemins, identifiants et valeurs de connexion ne sont jamais transmis au journal par ce diagnostic. La réponse HTTP garde son contrat minimal.
 
+La migration historique `20261004040000_signed_contract_archives` a été appliquée avec dix fins de ligne LF et une fin CRLF. Une exception ciblée dans `.gitattributes` conserve ces octets et leur SHA-256 `f38ead0097946338f684fa3d53beb5b98fc6cb2a6251c74e985269229e0d834a` lors des extractions Git. Le SQL et le journal déjà appliqué restent identiques ; les autres migrations gardent la convention LF du dépôt. Le contrôle ne tolère pas un contenu SQL modifié.
+
 ## Preuves et reproduction
 
 La [première recette de `cebe3a1`](local.json) passe 61 cas ciblés puis 4 037 tests. Une vérification complémentaire reproduit une lecture du journal non qualifiée : le test d’orchestration exige le schéma configuré et échoue avant correction. `9f9ab2b` qualifie cet identifiant et vérifie son échappement ainsi que le refus d’un autre schéma.
