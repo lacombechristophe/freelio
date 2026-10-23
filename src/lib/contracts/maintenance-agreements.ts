@@ -1,5 +1,6 @@
 import "server-only"
 
+import { sqlTimestamp } from "@/lib/sql-timestamp"
 import { Prisma, type Contract } from "@prisma/client"
 import type { AuthContext } from "@/lib/auth-wrapper"
 import type { TransactionClient } from "@/lib/prisma"
@@ -26,7 +27,7 @@ export async function checkMaintenanceProposal(tx: TransactionClient, scope: Sco
     const site = await lockActiveSite(tx, scope.companyId, source.siteId, scope.agencyIds)
     if (site.clientId !== source.clientId) throw new AssetLifecycleError("Site du contrat incompatible avec le client")
     await lockActiveEquipment(tx, scope.companyId, source.siteId, equipmentIds, scope.agencyIds)
-    const claimed = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "updatedAt" = "updatedAt" WHERE "id" = ${source.id} AND "companyId" = ${scope.companyId} AND "updatedAt" = ${source.updatedAt}`)
+    const claimed = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "updatedAt" = "updatedAt" WHERE "id" = ${source.id} AND "companyId" = ${scope.companyId} AND "updatedAt" = ${sqlTimestamp(source.updatedAt)}`)
     if (claimed !== 1) throw new AssetLifecycleError(MAINTENANCE_TERMS_CHANGED)
   } else {
     const site = await tx.customerSite.findFirst({ where: { AND: [activeSiteReferenceWhere(scope.companyId, scope.agencyIds), { id: source.siteId, clientId: source.clientId }] }, select: { id: true } })
@@ -40,7 +41,7 @@ export async function markMaintenanceProposal(tx: TransactionClient, prepared: P
   const source = prepared.source, updatedAt = new Date(Math.max(Date.now(), source.updatedAt.getTime() + 1))
   // Only the linked proposal may move this decision; no operational fields or
   // general Sales mutation capability are exposed by this fixed statement.
-  const count = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "renewalStatus" = ${decision}, "acceptedRenewalProposalId" = CASE WHEN ${decision} = 'ACCEPTED' THEN ${proposalId} ELSE "acceptedRenewalProposalId" END, "updatedAt" = ${updatedAt} WHERE "id" = ${source.id} AND "companyId" = ${source.companyId} AND "clientId" = ${source.clientId} AND "currentRenewalProposalId" = ${proposalId} AND "updatedAt" = ${source.updatedAt}`)
+  const count = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "renewalStatus" = ${decision}, "acceptedRenewalProposalId" = CASE WHEN ${decision} = 'ACCEPTED' THEN ${proposalId} ELSE "acceptedRenewalProposalId" END, "updatedAt" = ${sqlTimestamp(updatedAt)} WHERE "id" = ${source.id} AND "companyId" = ${source.companyId} AND "clientId" = ${source.clientId} AND "currentRenewalProposalId" = ${proposalId} AND "updatedAt" = ${sqlTimestamp(source.updatedAt)}`)
   if (count !== 1) throw new AssetLifecycleError(MAINTENANCE_TERMS_CHANGED)
 }
 

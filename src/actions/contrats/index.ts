@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { sqlTimestamp } from "@/lib/sql-timestamp"
 import { withAuth, resolveAuthContext, AuthorizationError } from "@/lib/auth-wrapper"
 import { hasPermission } from "@/lib/permissions"
 import { revalidatePath } from "next/cache"
@@ -201,7 +202,7 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
             if (!Number.isSafeInteger(nextPriceCents) || nextPriceCents > 2147483647) throw new AssetLifecycleError("Le montant du renouvellement dépasse la capacité de calcul.")
             // Serialize proposal creation without granting Sales operational edits
             // or changing the source's metadata. Values and table are fixed/bound.
-            const claimed = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "updatedAt" = "updatedAt" WHERE "id" = ${maintenance.id} AND "companyId" = ${companyId} AND "updatedAt" = ${maintenance.updatedAt}`)
+            const claimed = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "updatedAt" = "updatedAt" WHERE "id" = ${maintenance.id} AND "companyId" = ${companyId} AND "updatedAt" = ${sqlTimestamp(maintenance.updatedAt)}`)
             if (claimed !== 1) throw new AssetLifecycleError(changedMessage)
             const terms = captureMaintenanceRenewalTerms(maintenance, prepared.isTvaApplicable), content = maintenanceRenewalContent(terms)
             const contract = await tx.contract.create({
@@ -229,7 +230,7 @@ export async function createMaintenanceRenewalProposal(maintenanceContractId: st
             }
             const currentCondition = maintenance.currentRenewalProposalId === null ? Prisma.sql`"currentRenewalProposalId" IS NULL` : Prisma.sql`"currentRenewalProposalId" = ${maintenance.currentRenewalProposalId}`
             const updatedAt = new Date(Math.max(Date.now(), maintenance.updatedAt.getTime() + 1))
-            const assigned = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "currentRenewalProposalId" = ${contract.id}, "renewalStatus" = CASE WHEN "renewalStatus" = 'PROPOSED' THEN 'UPCOMING' ELSE "renewalStatus" END, "updatedAt" = ${updatedAt} WHERE "id" = ${maintenance.id} AND "companyId" = ${companyId} AND "clientId" = ${maintenance.clientId} AND "updatedAt" = ${maintenance.updatedAt} AND ${currentCondition}`)
+            const assigned = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "currentRenewalProposalId" = ${contract.id}, "renewalStatus" = CASE WHEN "renewalStatus" = 'PROPOSED' THEN 'UPCOMING' ELSE "renewalStatus" END, "updatedAt" = ${sqlTimestamp(updatedAt)} WHERE "id" = ${maintenance.id} AND "companyId" = ${companyId} AND "clientId" = ${maintenance.clientId} AND "updatedAt" = ${sqlTimestamp(maintenance.updatedAt)} AND ${currentCondition}`)
             if (assigned !== 1) throw new AssetLifecycleError(MAINTENANCE_TERMS_CHANGED)
             await tx.auditLog.create({ data: { userId, action: "CREATE_MAINTENANCE_RENEWAL_PROPOSAL", resource: "CONTRACT", resourceId: contract.id,
               payload: { number: contract.number, maintenanceContractId: maintenance.id, maintenanceNumber: maintenance.number, nextPriceCents, sourceRevision: expectedRevision, supersedesProposalId: activeProposal?.id ?? null } } })
@@ -361,7 +362,7 @@ export async function updateContractStatus(contractId: string, status: "DRAFT" |
         signingPath = `/sign/contracts/${token}`
       } else if (prepared?.source.currentRenewalProposalId === existing.id) {
         const source = prepared.source, revision = new Date(Math.max(Date.now(), source.updatedAt.getTime() + 1))
-        const cleared = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "currentRenewalProposalId" = NULL, "renewalStatus" = CASE WHEN "renewalStatus" = 'PROPOSED' THEN 'UPCOMING' ELSE "renewalStatus" END, "updatedAt" = ${revision} WHERE "id" = ${source.id} AND "companyId" = ${companyId} AND "currentRenewalProposalId" = ${existing.id} AND "updatedAt" = ${source.updatedAt}`)
+        const cleared = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "currentRenewalProposalId" = NULL, "renewalStatus" = CASE WHEN "renewalStatus" = 'PROPOSED' THEN 'UPCOMING' ELSE "renewalStatus" END, "updatedAt" = ${sqlTimestamp(revision)} WHERE "id" = ${source.id} AND "companyId" = ${companyId} AND "currentRenewalProposalId" = ${existing.id} AND "updatedAt" = ${sqlTimestamp(source.updatedAt)}`)
         if (cleared !== 1) throw new AssetLifecycleError(MAINTENANCE_TERMS_CHANGED)
       }
       await tx.auditLog.create({ data: { userId, action: "UPDATE_CONTRACT_STATUS", resource: "CONTRACT", resourceId: existing.id,
@@ -392,7 +393,7 @@ export async function deleteContract(id: string) {
         await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "updatedAt" = "updatedAt" WHERE "id" = ${source.id} AND "companyId" = ${companyId}`)
         if (source.currentRenewalProposalId === existing.id) {
           const revision = new Date(Math.max(Date.now(), source.updatedAt.getTime() + 1))
-          const cleared = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "currentRenewalProposalId" = NULL, "renewalStatus" = CASE WHEN "renewalStatus" = 'PROPOSED' THEN 'UPCOMING' ELSE "renewalStatus" END, "updatedAt" = ${revision} WHERE "id" = ${source.id} AND "companyId" = ${companyId} AND "currentRenewalProposalId" = ${existing.id} AND "updatedAt" = ${source.updatedAt}`)
+          const cleared = await tx.$executeRaw(Prisma.sql`UPDATE "MaintenanceContract" SET "currentRenewalProposalId" = NULL, "renewalStatus" = CASE WHEN "renewalStatus" = 'PROPOSED' THEN 'UPCOMING' ELSE "renewalStatus" END, "updatedAt" = ${sqlTimestamp(revision)} WHERE "id" = ${source.id} AND "companyId" = ${companyId} AND "currentRenewalProposalId" = ${existing.id} AND "updatedAt" = ${sqlTimestamp(source.updatedAt)}`)
           if (cleared !== 1) throw new AssetLifecycleError(MAINTENANCE_TERMS_CHANGED)
         }
       }

@@ -208,6 +208,12 @@ jobs:
       - name: Appliquer les migrations PostgreSQL
         run: npm run db:deploy:postgres
 
+      - name: Exercer un fuseau PostgreSQL non UTC
+        run: |
+          node node_modules/prisma/build/index.js db execute --schema prisma/postgresql/schema.prisma --stdin <<'SQL'
+          ALTER DATABASE crm_test SET timezone TO 'Europe/Paris';
+          SQL
+
       - name: Exécuter les tests unitaires sur PostgreSQL
         run: npm run test:unit -- --reporter=default --reporter=json --outputFile=test-results/unit-postgres.json
 

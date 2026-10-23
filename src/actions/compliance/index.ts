@@ -1,6 +1,7 @@
 "use server"
 
 import prisma from "@/lib/prisma"
+import { sqlTimestamp } from "@/lib/sql-timestamp"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 import { Prisma } from "@prisma/client"
@@ -82,14 +83,14 @@ export async function anonymizeAccount() {
       await tx.$executeRaw`DELETE FROM "Notification" WHERE "userId" = ${userId}`
       await tx.$executeRaw`DELETE FROM "EmailSignature" WHERE "authorUserId" = ${userId}`
       const now = new Date()
-      await tx.$executeRaw`UPDATE "Membership" SET "status" = 'INACTIVE', "updatedAt" = ${now} WHERE "userId" = ${userId}`
+      await tx.$executeRaw`UPDATE "Membership" SET "status" = 'INACTIVE', "updatedAt" = ${sqlTimestamp(now)} WHERE "userId" = ${userId}`
       await tx.$executeRaw`UPDATE "CommunicationChannel" SET "status" = 'PENDING', "credentialsEncrypted" = NULL,
         "oauthNonceHash" = NULL, "oauthAttemptId" = NULL, "oauthExpiresAt" = NULL, "oauthStartedByUserId" = NULL,
         "config" = '{"mode":"DISCONNECTED"}', "lastSyncAt" = NULL, "syncAttemptCursor" = NULL,
-        "lastError" = 'Déconnectée de Freelio ; l’accès fournisseur reste à révoquer', "updatedAt" = ${now}
+        "lastError" = 'Déconnectée de Freelio ; l’accès fournisseur reste à révoquer', "updatedAt" = ${sqlTimestamp(now)}
         WHERE "ownerUserId" = ${userId}`
       await tx.$executeRaw`UPDATE "CommunicationChannel" SET "oauthNonceHash" = NULL, "oauthAttemptId" = NULL,
-        "oauthExpiresAt" = NULL, "oauthStartedByUserId" = NULL, "updatedAt" = ${now} WHERE "oauthStartedByUserId" = ${userId}`
+        "oauthExpiresAt" = NULL, "oauthStartedByUserId" = NULL, "updatedAt" = ${sqlTimestamp(now)} WHERE "oauthStartedByUserId" = ${userId}`
       // This audit is mandatory: failure rolls back the entire departure.
       await tx.auditLog.create({ data: { userId, action: "UPDATE_SETTINGS", resource: "USER", resourceId: userId, payload: { account: "DEACTIVATED" } } })
       return { success: true as const }

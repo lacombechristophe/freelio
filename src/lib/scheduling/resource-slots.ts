@@ -1,5 +1,6 @@
 import "server-only"
 
+import { sqlTimestamp } from "@/lib/sql-timestamp"
 import { Prisma } from "@prisma/client"
 import type { AgencyAccess } from "@/lib/agency-access"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
@@ -41,8 +42,8 @@ export async function assertSchedulingSlotFree(tx: TransactionClient, input: {
     tx.$queryRaw<Array<{ occupied: number }>>(Prisma.sql`
       SELECT 1 AS "occupied" FROM "FieldIntervention"
       WHERE "companyId" = ${companyId} AND "assignedMembershipId" = ${membershipId}
-        AND "status" <> 'CANCELED' AND "scheduledStart" < ${end}
-        AND ("scheduledEnd" > ${start} OR ("scheduledEnd" IS NULL AND "scheduledStart" > ${new Date(start.getTime() - 3_600_000)}))
+        AND "status" <> 'CANCELED' AND "scheduledStart" < ${sqlTimestamp(end)}
+        AND ("scheduledEnd" > ${sqlTimestamp(start)} OR ("scheduledEnd" IS NULL AND "scheduledStart" > ${sqlTimestamp(new Date(start.getTime() - 3_600_000))}))
         ${input.excludeInterventionId ? Prisma.sql`AND "id" <> ${input.excludeInterventionId}` : Prisma.empty} LIMIT 1`),
   ])
   if (appointment || interventions.length) {
