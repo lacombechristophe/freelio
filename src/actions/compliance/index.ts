@@ -4,13 +4,11 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
 
-/**
- * RGPD Export: Generates a complete JSON of all user data.
- * Must be completed under 10 minutes (L903).
- */
+// Account portability is separate from the administrator's company export.
+// A user's old primary company must never select the business data to return.
 export async function exportUserData() {
   return await withAuth(async ({ userId, companyId }) => {
-    const data = await prisma.user.findUnique({
+    const [account, company] = await Promise.all([prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -20,32 +18,22 @@ export async function exportUserData() {
         image: true,
         createdAt: true,
         updatedAt: true,
-        company: {
-          include: {
-            clients: { include: { contacts: true, projects: true } },
-            projects: { include: { timeEntries: true, milestones: true } },
-            quotes: { include: { versions: true } },
-            invoices: { include: { lines: true, payments: true } },
-            expenses: { include: { files: true } },
-            pipelines: { include: { opportunities: true } }
-          }
-        },
-        auditLogs: true,
+        auditLogs: { select: { id: true, action: true, createdAt: true } },
         notifications: { where: { companyId } },
       }
-    })
+    }), prisma.company.findUnique({ where: { id: companyId }, select: { id: true, name: true } })])
 
     await logAction({
       userId,
-      action: "UPDATE_SETTINGS", // Using existing enum or extending
+      action: "UPDATE_SETTINGS",
       resource: "USER",
       resourceId: userId,
-      payload: { export: "RGPD_COMPLETE" }
+      payload: { export: "ACCOUNT_DATA", companyId }
     })
 
     return {
       exportedAt: new Date().toISOString(),
-      data
+      data: account ? { ...account, company } : null
     }
   })
 }

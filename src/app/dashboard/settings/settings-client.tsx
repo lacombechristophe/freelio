@@ -205,7 +205,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
         const url = URL.createObjectURL(blob)
         const link = document.createElement("a")
         link.href = url
-        link.download = `export-rgpd-${new Date().toISOString().slice(0, 10)}.json`
+        link.download = `export-compte-${new Date().toISOString().slice(0, 10)}.json`
         document.body.appendChild(link)
         link.click()
         link.remove()
@@ -577,10 +577,10 @@ export function SettingsClient({ company, user }: { company: Company; user: User
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <p className="font-bold text-sm text-foreground">Exporter mes données</p>
-                <p className="text-xs text-muted-foreground italic">Export JSON de portabilité (RGPD Art. 20).</p>
+                <p className="text-xs text-muted-foreground italic">Profil, notifications de la société active et historique d’activité sans contenu métier.</p>
               </div>
               <Button variant="outline" className="gap-2 shrink-0" onClick={handleExport} disabled={isPending}>
-                <Download className="h-4 w-4" /> Export RGPD
+                <Download className="h-4 w-4" /> Export du compte
               </Button>
             </div>
           </CardContent>
