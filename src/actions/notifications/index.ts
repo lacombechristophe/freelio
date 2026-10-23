@@ -4,6 +4,37 @@ import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"
 import { notificationAge } from "@/lib/notification-age"
+import { parseNotificationQuery } from "@/lib/notification-query"
+import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query"
+import { Prisma } from "@prisma/client"
+
+export async function getNotificationDirectory(input: unknown = {}) {
+  return withAuth(async ({ userId, companyId }) => {
+    const query = parseNotificationQuery(input)
+    const scope = { userId, companyId }
+    const contains = { contains: query.search, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) }
+    const where: Prisma.NotificationWhereInput = {
+      ...scope,
+      ...(query.status === "ALL" ? {} : { isRead: query.status === "READ" }),
+      ...(query.search ? { OR: [{ title: contains }, { message: contains }] } : {}),
+    }
+    return prisma.$transaction(async tx => {
+      const [total, totalAll, unreadCount] = await Promise.all([
+        tx.notification.count({ where }), tx.notification.count({ where: scope }), tx.notification.count({ where: { ...scope, isRead: false } }),
+      ])
+      const page = Math.min(query.page, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE)))
+      const rows = await tx.notification.findMany({
+        where, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: (page - 1) * DIRECTORY_PAGE_SIZE, take: DIRECTORY_PAGE_SIZE,
+        select: { id: true, type: true, title: true, message: true, isRead: true, createdAt: true },
+      })
+      const referenceTime = Date.now()
+      return {
+        notifications: rows.map(row => ({ ...row, ageLabel: notificationAge(row.createdAt, referenceTime) })),
+        total, totalAll, unreadCount, query: { ...query, page },
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+  })
+}
 
 export async function getNotifications() {
   return await withAuth(async ({ userId, companyId }) => {
