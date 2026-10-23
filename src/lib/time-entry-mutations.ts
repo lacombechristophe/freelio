@@ -1,9 +1,9 @@
-import { Prisma } from "@prisma/client"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import prisma, { type TransactionClient } from "@/lib/prisma"
 import { AuthorizationError, withAuth, type AuthContext } from "@/lib/auth-wrapper"
 import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
+import { isTransactionConflict } from "@/lib/transaction-conflicts"
 
 export class TimeEntryError extends Error {}
 
@@ -26,7 +26,7 @@ export async function mutateTime<T>(action: (tx: TransactionClient, context: Aut
     } catch (error) {
       // Retry only rolled-back serialization failures; refresh authorization
       // and stored relationships before each attempt.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034" && attempt < 3) continue
+      if (isTransactionConflict(error) && attempt < 3) continue
       if (error instanceof TimeEntryError || error instanceof AuthorizationError) return { ok: false, error: error.message }
       if (error instanceof z.ZodError) return { ok: false, error: "Saisie invalide : vérifiez la durée, la date et la description." }
       if (error instanceof Error && error.message === DEMO_READ_ONLY_MESSAGE) return { ok: false, error: DEMO_READ_ONLY_MESSAGE }
