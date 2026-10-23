@@ -36,8 +36,18 @@ Les tests SQL renomment temporairement une table ou une colonne dans leur propre
 
 Un diff Prisma statique, sans connexion, produit le DDL PostgreSQL de 143 tables ; ses 1 775 colonnes correspondent aux familles de types/nullabilités attendues par le contrôle. Ce résultat ne prouve pas que les migrations versionnées ont été appliquées sur une base existante.
 
+## Mise à niveau de la démonstration Neon
+
+Le [reçu natif](native-upgrade.json) consigne une opération distincte, autorisée sur la seule base dédiée à la démo. Le diagnostic initial retrouve 62 migrations terminées, dont les noms et empreintes correspondent aux sources, et 140 tables métier / 1 728 colonnes. Un essai des onze migrations restantes atteint les contrôles finaux puis lève une exception volontaire ; une relecture indépendante confirme l'annulation complète. Le même lot est ensuite appliqué dans une instruction PostgreSQL atomique, avec ses gardes de cible et d'état initial.
+
+La relecture après validation confirme **73 migrations**, **143 tables métier / 1 775 colonnes** et les empreintes du modèle attendu. Les trois nouvelles tables de quotas reçoivent uniquement SELECT pour le lecteur existant. Celui-ci lit les 144 tables, journal compris ; sa seule exception INSERT/UPDATE/DELETE/TRUNCATE reste INSERT sur `AuditLog`. Aucun rôle, secret ou droit par défaut n'est créé, et aucune autre base n'est modifiée. Le journal indique honnêtement l'application via l'éditeur SQL, avec provenance et empreintes ; ce reçu ne prétend pas à une exécution du moteur Prisma.
+
+Un 503 subsiste après cette mise à niveau : le [diagnostic serveur et la comparaison des fichiers Git](diagnostic-local.json) identifient l'unique checksum incompatible, celui du fichier historique à fins de ligne mixtes. `fe9f6f8` préserve ses octets d'origine. Une extraction Git isolée retrouve son empreinte exacte ; les 73 fichiers Git deviennent compatibles avec le journal. Les **66 cas ciblés dans six fichiers** passent. Types et ESLint/Oxlint passent sur le correctif de diagnostic parent `7ea1158`, dont le code applicatif est inchangé par cette correction d'attribut Git. La suite complète de 4 037 tests reste celle du socle `9f9ab2b`, sans nouvelle exécution attribuée à ces deux correctifs.
+
+La [preview exacte de `fe9f6f8`](https://freelio-niag4q9kl-hyhyhyhyhytest-8931s-projects.vercel.app) termine son build et répond ensuite **HTTP 200**, avec connexion, schéma et configuration OK. Le [reçu hébergé](hosted-fe9f6f8.json) conserve l'identité du déploiement, les réponses et empreintes des logs. La vie répond aussi 200 ; le document HTML de connexion répond 200 et `/dashboard` renvoie un visiteur sans session vers `/auth/login` en 307. Ces dernières requêtes n'exécutent pas le JavaScript client et ne qualifient ni le formulaire ni les parcours authentifiés. Le pilotage navigateur a été désactivé avant cette recette ; aucun mot de passe ni cookie applicatif n'a été récupéré.
+
 ## Limites
 
 Ce contrôle ne constitue pas un audit complet de dérive : il ne vérifie pas index, clés étrangères, défauts, précision des types, collations, triggers ni contenu des données. Des colonnes historiques supplémentaires sont tolérées. SQLite est contrôlée sur sa structure ; elle n’utilise pas le journal des migrations PostgreSQL.
 
-Les migrations et le schéma réellement déployés, l’image Linux et les parcours authentifiés doivent encore être qualifiés sur le candidat. Une preview marquée READY par l’hébergeur ne remplace pas le résultat de la sonde HTTP.
+La mise à niveau de la base de démo et sa comparaison de colonnes/journal sont vérifiées nativement ; la suite applicative PostgreSQL, l'image Linux et les parcours authentifiés du candidat restent à qualifier. La CI de `fe9f6f8` est refusée avant le démarrage des quatre jobs. Une preview marquée READY par l’hébergeur ne remplace pas le résultat de la sonde HTTP.
