@@ -230,10 +230,18 @@ export function SettingsClient({ company, user }: { company: Company; user: User
   function handleDeleteAccount() {
     if (deleteConfirm !== "SUPPRIMER") return
     startTransition(async () => {
-      await anonymizeAccount()
-      setDeleteOpen(false)
-      toast.success("Votre compte a été anonymisé.")
-      router.push("/")
+      try {
+        const result = await anonymizeAccount()
+        if (!result?.success) {
+          toast.error(result?.error ?? "Suppression du compte impossible.")
+          return
+        }
+        setDeleteOpen(false)
+        toast.success("Votre profil et vos accès locaux ont été supprimés.")
+        router.push("/")
+      } catch (err) {
+        toast.error(getErrorMessage(err, "Suppression du compte impossible. Réessayez après actualisation."))
+      }
     })
   }
 
@@ -595,7 +603,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <p className="font-bold text-sm text-danger">Supprimer mon compte</p>
-                <p className="text-xs text-muted-foreground">Anonymisation RGPD (documents légaux conservés 10 ans).</p>
+                <p className="text-xs text-muted-foreground">Suppression du profil et des accès locaux ; les données partagées sont conservées.</p>
               </div>
               <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <DialogTrigger render={<Button variant="destructive" className="gap-2" />}>
@@ -605,8 +613,8 @@ export function SettingsClient({ company, user }: { company: Company; user: User
                   <DialogHeader>
                     <DialogTitle>Confirmer la suppression</DialogTitle>
                     <DialogDescription>
-                      Cette action est <strong>irréversible</strong>. Vos données personnelles seront anonymisées.
-                      Les documents légaux (factures, contrats) sont conservés 10 ans conformément à la loi.
+                      Cette action est <strong>irréversible</strong>. Votre profil sera anonymisé et vos accès locaux retirés dans toutes vos sociétés.
+                      Les dossiers partagés, documents et traces d’activité sont conservés. Révoquez aussi les autorisations auprès des services externes.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-2 py-2">
