@@ -9,7 +9,7 @@ import { logAction } from "@/lib/audit"
  * Must be completed under 10 minutes (L903).
  */
 export async function exportUserData() {
-  return await withAuth(async ({ userId }) => {
+  return await withAuth(async ({ userId, companyId }) => {
     const data = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -31,7 +31,7 @@ export async function exportUserData() {
           }
         },
         auditLogs: true,
-        notifications: true,
+        notifications: { where: { companyId } },
       }
     })
 

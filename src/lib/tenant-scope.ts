@@ -63,6 +63,7 @@ export const COMPANY_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "MarketingSegment",
   "Membership",
   "MigrationRun",
+  "Notification",
   "OrganisationGoal",
   "OrganisationTask",
   "Pipeline",

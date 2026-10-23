@@ -216,7 +216,7 @@ const EXCLUDED_MODELS = [
   { model: "PasswordResetToken", reason: "Jetons de réinitialisation exclus volontairement pour des raisons de sécurité." },
   { model: "MfaRecoveryCode", reason: "Codes de secours hachés exclus volontairement pour des raisons de sécurité." },
   { model: "ClientPortalAccess", reason: "Liens d'accès porteurs exclus ; ils doivent être réémis après une reprise." },
-  { model: "Notification", reason: "Le schéma actuel ne porte pas de companyId ; une extraction multi-tenant sûre est impossible." },
+  { model: "Notification", reason: "Notifications personnelles exclues de l'export d'entreprise ; les anciennes lignes sans société ne sont pas réattribuées." },
   { model: "ApiKey", reason: "Clés personnelles non rattachées à une entreprise et exclues volontairement." },
   { model: "EmailLog", reason: "Journal global sans companyId : export inter-entreprises interdit." },
   { model: "EReportingBatch", reason: "Lot global sans companyId : export inter-entreprises interdit." },
@@ -561,6 +561,9 @@ function validateLegacyPayload(input: unknown, companyId: string): asserts input
     throw new Error("Cette sauvegarde appartient à une autre entreprise")
   }
   if (!Array.isArray(payload.localFiles)) throw new Error("Inventaire de fichiers absent")
+  if (payload.notifications !== undefined && (!Array.isArray(payload.notifications) || payload.notifications.length > 0)) {
+    throw new Error("Restauration v2 refusée : les notifications de cette ancienne sauvegarde n’ont pas de société vérifiable. Utilisez une reprise contrôlée.")
+  }
 }
 
 async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) {
@@ -739,7 +742,6 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       await tx.service.deleteMany({ where: { companyId } })
       await tx.serviceCategory.deleteMany({ where: { companyId } })
       await tx.relanceConfig.deleteMany({ where: { companyId } })
-      await tx.notification.deleteMany({ where: { userId } })
       await tx.auditLog.deleteMany({ where: { userId } })
       await tx.apiKey.deleteMany({ where: { userId } })
 
@@ -822,7 +824,6 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       if (deliveries.length) await tx.webhookDelivery.createMany({ data: deliveries.map((row: any) => normalizeRecord(row, ["endpoint"])) })
       if (c.relanceConfig) await tx.relanceConfig.create({ data: normalizeRecord(c.relanceConfig, ["company"]) as any })
       if ((c.bankTransactions ?? []).length) await tx.bankTransaction.createMany({ data: c.bankTransactions.map((row: any) => normalizeRecord(row, ["company", "matchedPayment", "matchedExpense"])) })
-      if (payload.notifications.length) await tx.notification.createMany({ data: payload.notifications.map((row: any) => normalizeRecord(row, ["user"])) as any })
       if (payload.auditLogs.length) await tx.auditLog.createMany({ data: payload.auditLogs.map((row: any) => normalizeRecord(row, ["user"])) as any })
       if (payload.apiKeys.length) await tx.apiKey.createMany({ data: payload.apiKeys.map((row: any) => normalizeRecord(row, ["user"])) as any })
     }, { timeout: 60_000, maxWait: 10_000 })

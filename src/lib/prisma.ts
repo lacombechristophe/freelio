@@ -191,7 +191,9 @@ const prismaClientSingleton = () => {
 
           const directCompanyScope = context?.companyId && COMPANY_SCOPED_MODELS.has(model) ? { companyId: context.companyId } : null
           const relationCompanyScope = context?.companyId ? companyRelationScope(model, context.companyId, context.userId) : null
-          const tenantScope = directCompanyScope ?? relationCompanyScope
+          // Notifications belong to both a company and a personal recipient.
+          const tenantScope = directCompanyScope && relationCompanyScope
+            ? { AND: [directCompanyScope, relationCompanyScope] } : directCompanyScope ?? relationCompanyScope
 
           if (context?.companyId && tenantScope && !timeInvoiceReleaseCount) {
             if (TENANT_READ_OPERATIONS.has(operation)) {

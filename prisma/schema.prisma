@@ -245,6 +245,7 @@ model Company {
   customerHealthRules        CustomerHealthRule[]
   customerHealthSnapshots    CustomerHealthSnapshot[]
   savedViews                 SavedView[]
+  notifications              Notification[]
   crmPropertyDefinitions     CrmPropertyDefinition[]
   crmPropertyValues          CrmPropertyValue[]
   crmPropertyHistory         CrmPropertyHistory[]
@@ -3343,6 +3344,8 @@ model Notification {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id])
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   type      String // PAYMENT, SYSTEM, BILLING
   title     String
@@ -3351,6 +3354,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([companyId, userId, createdAt])
+  @@index([companyId, userId, isRead])
 }
 
 model WebhookEndpoint {

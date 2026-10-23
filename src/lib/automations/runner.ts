@@ -138,7 +138,7 @@ async function executeRun(runId: string, companyId: string, eventAt: Date, contr
           while (true) {
             const recipients = await tx.membership.findMany({ where: { companyId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] }, ...(after ? { id: { gt: after } } : {}) }, select: { id: true, userId: true }, orderBy: { id: "asc" }, take: 200 })
             if (!recipients.length) break
-            await tx.notification.createMany({ data: recipients.map(({ userId }) => ({ userId, type: "AUTOMATION", title, message: `Règle : ${run.workflow.name}` })) })
+            await tx.notification.createMany({ data: recipients.map(({ userId }) => ({ companyId, userId, type: "AUTOMATION", title, message: `Règle : ${run.workflow.name}` })) })
             count += recipients.length
             after = recipients[recipients.length - 1].id
           }

@@ -255,11 +255,11 @@ export async function capturePublicLead(rawInput: unknown, evidence: RequestEvid
     const recipients = await tx.membership.findMany({
       where: { companyId: company.id, status: "ACTIVE", role: { in: ["OWNER", "ADMIN", "SALES"] } },
       select: { userId: true },
-      take: 20,
     })
     if (recipients.length) {
       await tx.notification.createMany({
         data: recipients.map(({ userId }) => ({
+          companyId: company.id,
           userId,
           type: "LEAD_CREATED",
           title: "Nouveau prospect",

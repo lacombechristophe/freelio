@@ -9,6 +9,6 @@ export async function notifyPortalTeam(companyId: string, title: string, message
   })
   if (!memberships.length) return
   await prisma.notification.createMany({
-    data: memberships.map(({ userId }) => ({ userId, type: "PORTAL", title, message })),
+    data: memberships.map(({ userId }) => ({ companyId, userId, type: "PORTAL", title, message })),
   })
 }
