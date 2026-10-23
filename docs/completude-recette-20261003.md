@@ -1,5 +1,9 @@
 # Qualification du candidat Freelio
 
+Le candidat `4888070ec883ca8904f162ac0f775534c728d226` corrige les dates des requêtes SQL brutes dans les sessions PostgreSQL non UTC, la progression des lots du planning et la reconnaissance des transactions annulées lors des saisies de temps. La [qualification PostgreSQL native](evidence/20261023-native-postgres/README.md) conserve les échecs initiaux, les régressions avant/après correction et les résultats des bases neuves, avec leurs empreintes. Elle distingue la recette Windows de l'image Linux, des interactions navigateur et de la charge ; les réserves des reçus plus anciens restent attachées à leur code testé.
+
+Les suites complètes de ce candidat passent dans 304 fichiers : 4 052 réussites et une exclusion native SQLite sur PostgreSQL ; 4 053 réussites sans exclusion sur SQLite. Le nouvel audit du 24 octobre relève toutefois un avis Zod affectant quatre entrées npm ; son correctif de dépendances reste à installer et qualifier séparément. La réussite des tests ne clôture pas cette condition de sécurité, ni les gates CI/Linux/navigateur.
+
 État du 23 octobre 2026. [PR #8](https://github.com/lacombechristophe/freelio/pull/8), branche `codex/functional-completeness-20261003`. Le candidat, main et la production sont des références distinctes.
 
 ## Résultat actuel

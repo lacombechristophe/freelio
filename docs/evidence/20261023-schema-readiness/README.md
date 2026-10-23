@@ -51,3 +51,5 @@ La [preview exacte de `fe9f6f8`](https://freelio-niag4q9kl-hyhyhyhyhytest-8931s-
 Ce contrôle ne constitue pas un audit complet de dérive : il ne vérifie pas index, clés étrangères, défauts, précision des types, collations, triggers ni contenu des données. Des colonnes historiques supplémentaires sont tolérées. SQLite est contrôlée sur sa structure ; elle n’utilise pas le journal des migrations PostgreSQL.
 
 La mise à niveau de la base de démo et sa comparaison de colonnes/journal sont vérifiées nativement ; la suite applicative PostgreSQL, l'image Linux et les parcours authentifiés du candidat restent à qualifier. La CI de `fe9f6f8` est refusée avant le démarrage des quatre jobs. Une preview marquée READY par l’hébergeur ne remplace pas le résultat de la sonde HTTP.
+
+La [qualification native suivante](../20261023-native-postgres/README.md) teste la suite applicative de `4888070` sur une autre base PostgreSQL locale vide, migrée par le moteur Prisma. Elle conserve les défauts trouvés et corrigés ; elle ne remplace pas les contrôles Linux et navigateur du candidat.
