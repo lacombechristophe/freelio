@@ -1,0 +1,202 @@
+{
+  "schema": "freelio.account-privacy-qualification.v1",
+  "observedAt": "2026-10-23T09:31:29.914Z",
+  "candidate": "c43b2f13c36f0aff1846db70a3b5cafa558d8db0",
+  "source": {
+    "filesCompared": 1266,
+    "mismatches": 0
+  },
+  "reproduction": {
+    "notificationScope": {
+      "failed": 6,
+      "passed": 2
+    },
+    "notificationVolume": {
+      "deliveredBefore": 20,
+      "eligible": 23
+    },
+    "accountExport": {
+      "failed": 8,
+      "passed": 1
+    },
+    "departure": {
+      "failed": 3,
+      "filteredOut": 7
+    },
+    "invitation": {
+      "failed": 3,
+      "passed": 1,
+      "filteredOut": 10
+    }
+  },
+  "focused": {
+    "passed": 43,
+    "files": 5,
+    "failed": 0,
+    "skipped": 0,
+    "exitCode": 0
+  },
+  "full": {
+    "command": "npm run test:coverage",
+    "database": "account-final-full-v2-20261023.db",
+    "provider": "sqlite",
+    "createdFresh": true,
+    "existingDataCopied": false,
+    "fileParallelism": false,
+    "passed": 3972,
+    "files": 296,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 685.89,
+    "exitCode": 0
+  },
+  "coverage": {
+    "scope": "Six configured deterministic business modules, not application-wide coverage",
+    "files": [
+      "src/lib/automations/delivery-retry.ts",
+      "src/lib/communications/delivery-events.ts",
+      "src/lib/finance/commercial-calculation.ts",
+      "src/lib/migrations/ingest.ts",
+      "src/lib/migrations/normalize.ts",
+      "src/lib/pdf/facturx.ts"
+    ],
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    },
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "checks": {
+    "typecheck": "success",
+    "eslint": "success",
+    "oxlint": "success",
+    "build": {
+      "next": "16.4.2",
+      "staticPages": 76,
+      "priorBuildMovedAside": true,
+      "exitCode": 0
+    },
+    "playwright": {
+      "selected": 518,
+      "files": 104,
+      "browserInteractionsExecuted": false
+    }
+  },
+  "migrationCheck": {
+    "observedAt": "2026-10-23T08:30:41.144Z",
+    "postgres": {
+      "generatedDdlMatchesVersionedMigration": true,
+      "migration": "prisma/postgresql/migrations/20261023010000_notification_tenant_scope/migration.sql",
+      "sha256": "db27b852850bfdee7d0cdc9521fb4f6589bc6d3e1ff6d9b9a1e9c4050c21a908",
+      "appliedToPostgres": false
+    },
+    "sqlite": {
+      "upgradedFictionalDiagnosticDatabase": true,
+      "historicalRowPreserved": true,
+      "companyId": null,
+      "beforeSha256": "7e88eddf670c0c3904d2e47d6024b79a4e8a5713d229750f3a42449ce0346811",
+      "afterSha256": "7e88eddf670c0c3904d2e47d6024b79a4e8a5713d229750f3a42449ce0346811"
+    },
+    "limits": [
+      "SQLite schema upgrade is not proof of PostgreSQL migration execution.",
+      "No tenant is inferred from titles or current memberships. No shared/hosted database was accessed."
+    ]
+  },
+  "logs": [
+    {
+      "kind": "notificationScopeBefore",
+      "file": "Freelio-notifications-scope-before-20261023.log",
+      "sha256": "8db802c6d0c288a24e09007d9e26cd5fe596a6fde054fff3d4067e61a04c727f"
+    },
+    {
+      "kind": "notificationVolumeBefore",
+      "file": "Freelio-notifications-volume-reproduction-20261023.log",
+      "sha256": "47ec8438fca7b1160ca59a1513e3f98311e8ffc3b5f3c0521f4cef76cf364d16"
+    },
+    {
+      "kind": "accountExportBefore",
+      "file": "Freelio-account-export-reproduction-final-20261023.log",
+      "sha256": "327707097ffcfbc875abbda4691b11fd7b5b719d446f49206898939043d531ee"
+    },
+    {
+      "kind": "departureBefore",
+      "file": "Freelio-account-deactivation-before-20261023.log",
+      "sha256": "82042cd5cbd3c4f1b0e418f4b81aca7efb33fcbb8a59493136333fd302c4b611"
+    },
+    {
+      "kind": "invitationBefore",
+      "file": "Freelio-account-invitation-before-20261023.log",
+      "sha256": "4860803beeae982d2daadc6a8dffa106ef3c728c87fcbf2d2b3e12a0f6990196"
+    },
+    {
+      "kind": "focused",
+      "file": "Freelio-account-privacy-focused-20261023.log",
+      "sha256": "6609c40b64d13ace6d8f5a6c939780ebe79bf04b52de294d90bff9bff8fbbdaf"
+    },
+    {
+      "kind": "full",
+      "file": "Freelio-account-final-full-v2-20261023.log",
+      "sha256": "b4ad03894135e9c15440570a49afb7047398d12fe92f5590a30db16024496f8b"
+    },
+    {
+      "kind": "types",
+      "file": "Freelio-account-privacy-types-20261023.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "kind": "lint",
+      "file": "Freelio-account-privacy-lint-20261023.log",
+      "sha256": "3a29a01bb576f7ab5e3b61642eb5440c8fcf43da172d8fe84dcc1a8d1d7653df"
+    },
+    {
+      "kind": "build",
+      "file": "Freelio-account-privacy-build-20261023.log",
+      "sha256": "9e9fa992c1c9f3c0af16bc5b854c2e94bb1c442f2c252309baef72bb8a2762d8"
+    },
+    {
+      "kind": "selection",
+      "file": "Freelio-account-privacy-list-20261023.log",
+      "sha256": "9565f46bad49d1352e14e69e615fa109cb0ceb6bd2e35b18cf2e41fdfff0e3fc"
+    }
+  ],
+  "limits": [
+    "Session and cache APIs are mocked; business storage and audit-failure triggers are real SQLite.",
+    "Local concurrency checks use one process, not multiple PostgreSQL workers.",
+    "PostgreSQL migration execution, Linux and complete browser qualification remain pending for this candidate.",
+    "No provider business call, hosted database write, dependency installation or paid service.",
+    "Shared business documents and activity remain retained; this is not a complete personal-data erasure certification."
+  ]
+}
