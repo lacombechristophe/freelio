@@ -1,5 +1,24 @@
 # Qualification du candidat Freelio
 
+Le candidat applicatif `70a384b93bbda32a6b245621b079dc0cd66fef4a` réussit les quatre jobs de la [CI du 24 octobre](https://github.com/lacombechristophe/freelio/actions/runs/40111403797). Le [reçu versionné](evidence/20261024-zod-security/ci-70a384b.json) identifie les jobs, les artefacts et leurs empreintes. Le commit de fusion testé `4911836` possède le même arbre Git que `70a384b`.
+
+| Vérification | Résultat courant |
+| --- | --- |
+| SQLite | 4 071 tests réussis dans 305 fichiers, sur chacun des deux jobs de recette. |
+| PostgreSQL | 4 070 réussites et une exclusion native SQLite. |
+| Navigateur ordinateur | 260 réussites ; une exclusion réservée à la navigation compacte mobile. |
+| Navigateur mobile | 243 réussites ; 18 scénarios mutationnels réservés à l’ordinateur. |
+| Runtime Linux | Neuf contrôles réussis, dont migrations, Prisma, worker/Redis, PDF et archive de contrat. |
+| Qualité et dépendances | Types, ESLint, Oxlint, seuils de couverture ciblée, build de production et deux audits npm réussis. |
+
+La couverture chiffrée porte sur les six modules nommés dans le reçu. Les fournisseurs simulés restent simulés ; la concurrence native, la charge, la délivrabilité et les scripts de restauration gardent leurs propres preuves. Les exclusions ne sont pas comptées comme des réussites.
+
+La preview Vercel de `70a384b` est construite (`dpl_8ThWDLbmyjF8jjcgKN9LuQdsrtGu`). La démo publique reste rattachée au code `77c40cf` : sa recette authentifiée, la fusion sur main et la configuration de production restent à qualifier. Le compte fictif n’est pas fourni au harnais distant. Aucun secret n’est publié dans ce dossier.
+
+## Repères historiques
+
+Les résultats ci-dessous décrivent chaque code au moment de sa recette. Les réserves « PostgreSQL non exécuté » ou « navigateur préparé » de ces comptes rendus datés sont à lire avec le reçu courant ci-dessus.
+
 Le premier [passage de la CI après publication du dépôt](evidence/20261024-zod-security/ci-public-f3d8464.json) exécute les quatre jobs sur `f3d8464` : runtime Linux et PostgreSQL réussis, mais cinq échecs desktop et six mobile. Les exclusions restent comptées séparément. Ce résultat est conservé comme diagnostic.
 
 Les corrections `adf76c6` et `cad3c4d` associent les contrôles à leurs libellés, alignent les tests sur le comportement responsive et renvoient les refus métier des conversions de devis et des dépôts sous forme de données. Les erreurs techniques restent protégées. Types, lint, build et 146 tests ciblés passent dans la copie isolée ; la matrice complète des corrections est suivie dans les [contrôles de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks). La recette authentifiée de la preview reste distincte de cette CI.

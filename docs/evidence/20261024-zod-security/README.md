@@ -1,5 +1,11 @@
 # Qualification des dépendances et du planning
 
+Le [reçu courant de `70a384b`](ci-70a384b.json) confirme les quatre jobs verts : 4 071 tests SQLite, 4 070 PostgreSQL et une exclusion SQLite, 260 parcours ordinateur et 243 mobile, avec dix-neuf exclusions navigateur explicites. Neuf contrôles Linux, types, lint, build et audits réussissent. L’arbre Git du commit de fusion testé est identique à celui de `70a384b` ; les artefacts et leurs empreintes sont consignés. La recette authentifiée hébergée et la production restent distinctes.
+
+## Qualification du socle et premiers passages publics
+
+Les sections suivantes conservent leurs versions et limites historiques.
+
 Le [premier passage de la CI publique](ci-public-f3d8464.json) conserve un résultat distinct : runtime et suite PostgreSQL réussis, 255 tests desktop et 237 mobile réussis, mais onze échecs d’interface et dix-neuf exclusions sur les deux surfaces. Les correctifs `adf76c6` / `cad3c4d` passent ensuite 146 tests ciblés, types, lint et build ; leur matrice complète est consultable dans les [contrôles de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks). Les résultats précédents ci-dessous restent attachés au code `77c40cf`.
 
 Le candidat `77c40cf4a0015bd5e4884f79bfe621e6740ccda5` comprend la mise à jour Zod 4.6.6 / Puppeteer 25.13.0 de `10920b4` et une lecture du planning par lots de références. Les suites complètes passent sur SQLite et PostgreSQL 18.3, avec les mêmes fichiers de source. Le [reçu](local.json) conserve les résultats, les empreintes et les échecs intermédiaires. La [qualification native précédente](../20261023-native-postgres/README.md) reste attachée à son ancien lockfile.

@@ -75,6 +75,8 @@ La [preview dédiée en lecture seule](https://freelio-demo-77c40cf.vercel.app) 
 
 Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 
+Le [dernier reçu CI validé](docs/evidence/20261024-zod-security/ci-70a384b.json) porte sur `70a384b` : quatre jobs verts, dont les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le reçu conserve les exclusions et la portée des simulations ; la version de la démo publique reste identifiée séparément.
+
 ## Image et exploitation
 
 ```powershell
