@@ -1,0 +1,45 @@
+{
+  "schema": "freelio.ci-launch-qualification.v1",
+  "observedAt": "2026-10-24T01:30:16.3364973Z",
+  "head": "7cf0978c46588de98ee63651e79c1f02e0ac6f20",
+  "runId": 40050051885,
+  "url": "https://github.com/lacombechristophe/freelio/actions/runs/40050051885",
+  "status": "completed",
+  "conclusion": "failure",
+  "jobs": [
+    {
+      "name": "Intégration PostgreSQL",
+      "id": 120740516379,
+      "conclusion": "failure",
+      "steps": 0
+    },
+    {
+      "name": "Image Linux et Chromium",
+      "id": 120740516547,
+      "conclusion": "failure",
+      "steps": 0
+    },
+    {
+      "name": "quality-and-e2e (mobile)",
+      "id": 120740516599,
+      "conclusion": "failure",
+      "steps": 0
+    },
+    {
+      "name": "quality-and-e2e (desktop)",
+      "id": 120740516607,
+      "conclusion": "failure",
+      "steps": 0
+    }
+  ],
+  "annotations": [
+    {
+      "level": "failure",
+      "message": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings"
+    },
+    {
+      "level": "notice",
+      "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\""
+    }
+  ]
+}
