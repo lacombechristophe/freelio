@@ -35,6 +35,7 @@ function errorMessage(error: unknown) {
 export function QuoteStatusActions({ quoteId, orderConversionRevision, contractConversionRevision, contractId, canPrepareOrder, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
   const router = useRouter()
   const confirmDialog = useConfirm()
+  const contractChoiceLabelId = React.useId()
   const [pending, setPending] = React.useState(false)
   const [launchOpen, setLaunchOpen] = React.useState(false)
   const [launchRevision, setLaunchRevision] = React.useState(orderConversionRevision)
@@ -203,10 +204,10 @@ export function QuoteStatusActions({ quoteId, orderConversionRevision, contractC
             </div>
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/35 p-4">
-              <Checkbox disabled={pending} aria-label="Préparer aussi le contrat de fourniture et pose" checked={includeContract} onCheckedChange={(checked) => setIncludeContract(checked === true)} />
+              <Checkbox disabled={pending} aria-labelledby={contractChoiceLabelId} aria-describedby={`${contractChoiceLabelId}-description`} checked={includeContract} onCheckedChange={(checked) => setIncludeContract(checked === true)} />
               <span className="min-w-0">
-                <span className="block text-sm font-semibold">Préparer aussi le contrat de fourniture et pose</span>
-                <span className="mt-1 block text-xs leading-5 text-muted-foreground">Le modèle métier reprend le devis, le relevé technique, la réception, les garanties et les règles de sécurité.</span>
+                <span id={contractChoiceLabelId} className="block text-sm font-semibold">Préparer aussi le contrat de fourniture et pose</span>
+                <span id={`${contractChoiceLabelId}-description`} className="mt-1 block text-xs leading-5 text-muted-foreground">Le modèle métier reprend le devis, le relevé technique, la réception, les garanties et les règles de sécurité.</span>
               </span>
             </label>
           </form>

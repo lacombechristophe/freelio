@@ -34,7 +34,10 @@ for (const role of ["operations", "service"]) {
     await page.getByLabel("Recherche", { exact: true }).fill("No matching fictional conversation")
     await page.getByRole("button", { name: "Rechercher", exact: true }).click()
     await expect(page.getByText("Aucune conversation", { exact: true })).toBeVisible()
-    await expect(page.getByText("Sélectionnez une conversation.", { exact: true })).toBeVisible()
+    await expect(page.getByRole("article")).toHaveCount(0)
+    const emptyThread = page.getByText("Sélectionnez une conversation.", { exact: true })
+    if (info.project.name === "mobile") await expect(emptyThread).toBeHidden()
+    else await expect(emptyThread).toBeVisible()
   })
 }
 

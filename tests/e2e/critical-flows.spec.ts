@@ -1407,7 +1407,7 @@ test("field report and maintenance contract flow", async ({ page }, testInfo) =>
   await page.locator("select#clientId").selectOption({ label: "Client QA Piscine" })
   await page.locator("select#siteId").selectOption({ label: "Client QA Piscine · Bassin QA" })
   await page.getByLabel("Libellé du contrat").fill("Entretien annuel couverture QA")
-  await page.getByLabel("Équipement couvert").selectOption({ label: "Client QA Piscine · Couverture QA installée" })
+  await page.getByLabel("Équipement couvert").selectOption({ label: "Couverture QA installée · Bassin QA" })
   await page.getByLabel("Début").fill("2026-08-20")
   await page.getByLabel("Fin").fill("2027-08-19")
   await page.getByLabel("Prochaine visite").fill("2026-08-20")
