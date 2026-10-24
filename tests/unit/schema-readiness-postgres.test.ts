@@ -30,11 +30,12 @@ describe("PostgreSQL metadata orchestration without a provider connection", () =
     expect(mock.warn).not.toHaveBeenCalled()
   })
   it.each(["absent", "running", "modified"])("rejects an %s migration history", async state => {
+    const expectedMigrations = history.length
     if (state === "absent") history.pop()
     if (state === "running") history[0]!.finishedAt = null
     if (state === "modified") history[0]!.checksum = "f".repeat(64)
     expect(await databaseSchemaReady()).toBe(false)
-    expect(mock.warn).toHaveBeenCalledWith({ event: "schema_readiness_failed", phase: "migration_history", reason: "mismatch", expectedMigrations: 73, observedMigrations: history.length })
+    expect(mock.warn).toHaveBeenCalledWith({ event: "schema_readiness_failed", phase: "migration_history", reason: "mismatch", expectedMigrations, observedMigrations: history.length })
   })
   it("does not cache a successful database state between calls", async () => {
     expect(await databaseSchemaReady()).toBe(true)
