@@ -106,8 +106,8 @@ Les qualifications intermédiaires et leurs échecs conservés sont regroupés d
 ## Contrôles de livraison
 
 1. Les gardes locales de dépendances et de budget sont satisfaites : [Next.js 16.4.2 qualifié](evidence/20261022-next-security/README.md), [budget Actions](evidence/20261022-intervention-tickets/actions-budget.json) observé à 0 $/0 $, « Usage blocked », sans changement de réglage. Cette observation ne garantit pas le quota des minutes incluses ni des artefacts.
-2. Qualifier les migrations additives `20261021010000_mail_provider_failure_kind`, `20261021020000_purchase_issue_resolution_kind`, `20261021030000_delivery_note_seal`, `20261022010000_maintenance_renewal_terms` et `20261023010000_notification_tenant_scope`, puis les contrôles PostgreSQL, de l’image Linux (dont les PDF métier) et du navigateur sur le SHA candidat ; vérifier aussi les uploads d'artefacts, dont le quota n'est pas attesté rétabli par le nettoyage autorisé.
-3. Recetter la preview du même code, puis examiner la fusion et la publication. Main, la branche candidate et la production restent des références distinctes.
+2. Les cinq migrations additives de fin de parcours sont appliquées parmi les 73 migrations de la [recette PostgreSQL native](evidence/20261024-zod-security/local.json), puis présentes dans la [mise à niveau Neon](evidence/20261023-schema-readiness/native-upgrade.json). La suite applicative PostgreSQL du code `77c40cf` est réussie. La [restauration native complémentaire](evidence/20261024-zod-security/native-restore.json) compare 144 tables et leur schéma sur un petit corpus synthétique ; elle ne qualifie pas la reprise de l’infrastructure ou tous les modèles peuplés. Restent à exécuter l’image Linux, ses PDF métier et les parcours navigateur sur le candidat ; les uploads d’artefacts restent également à vérifier après déblocage du lancement GitHub.
+3. Les [sondes de la preview dédiée](evidence/20261024-zod-security/hosted-7cf0978.json) sont réussies sur le même code applicatif. La connexion, les trois parcours de référence et la déconnexion ne sont pas qualifiées par ces GET. Leur recette authentifiée précède l’examen de la fusion et de la publication. Main, la branche candidate et la production restent des références distinctes.
 
 La démo garde un budget de 0 € et des données fictives en lecture seule. Stockage durable, comptes OAuth/transport réels, délivrabilité, charge, reprise après arrêt brutal et récupération distante restent des conditions d'ouverture commerciale ; aucun abonnement R2 n'est engagé.
 
@@ -117,7 +117,7 @@ La démo garde un budget de 0 € et des données fictives en lecture seule. Sto
 
 ## Écarts fonctionnels encore ouverts
 
-Les corrections d'intégrité et les listes complètes ne suffisent pas à clore le [plan fonctionnel](plan-completude-fonctionnelle-20261002.md). Les points suivants restent distincts des résultats CI :
+Les corrections d'intégrité et les listes complètes ne suffisent pas à clore le [plan fonctionnel](plan-completude-fonctionnelle-20261002.md). Les lignes ci-dessous conservent les limites des recettes de chaque lot. Leur réserve PostgreSQL locale est désormais à rapprocher de la suite complète du même code `77c40cf`, qui inclut ces tests sans échec ; elle ne signifie pas que cette suite reste à exécuter. Les interactions navigateur, comptes réels, volumes supérieurs et variantes non testées restent distincts de ce résultat.
 
 | Point | Comportement actuel et prochaine condition |
 | --- | --- |

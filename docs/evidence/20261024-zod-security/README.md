@@ -28,6 +28,25 @@ La première suite PostgreSQL avec les nouvelles dépendances conserve deux éch
 
 Le test de pagination dispose de trente secondes pour ses dix lectures et leur préparation ; **le délai transactionnel du produit reste de cinq secondes**. La lecture des 10 001 créneaux prend 1 342 ms dans la recette ciblée, puis 1 009 ms dans la suite PostgreSQL complète, avec une réponse de 2 663 octets. Ce sont des observations locales isolées, sans promesse de latence ou de charge. Aucune option PostgreSQL, migration ou règle d’accès n’est modifiée pour obtenir ces résultats.
 
+## Restauration PostgreSQL native
+
+Une recette complémentaire restaure un dump natif du schéma de ce candidat dans une seconde base neuve. La source part de `template0`, reçoit les 73 migrations par Prisma et un [corpus SQL fictif](native-restore-fixture.sql) : deux sociétés, deux clients, deux factures brouillons et deux lignes, avec montants entiers, quantité fractionnaire, JSON Unicode et dates d’hiver/été. Les 144 tables, journal inclus, sont comparées ; cinq contiennent des lignes. Le [reçu de restauration](native-restore.json) conserve empreintes et codes de retour.
+
+`pg_dump` produit une archive custom sans propriétaires ni privilèges ; `pg_restore --exit-on-error --single-transaction` la restaure sans erreur. Comptages et empreintes du JSON ordonné des lignes sont identiques pour chaque table. Les dumps de schéma correspondent aussi, index, contraintes et valeurs par défaut inclus, après retrait des seuls jetons psql aléatoires de restriction et normalisation des fins de ligne. Les factures conservent 350 € HT, 70 € de TVA et 420 € TTC. Une ligne visant une facture absente est refusée avec SQLSTATE `23503` ; la transaction refusée ne change aucune empreinte.
+
+Les deux bases et les fichiers sont conservés dans l’environnement fictif local ; le cluster est arrêté après vérification de son identité. Le premier lanceur est resté en attente de sa capture de sortie après démarrage du serveur, avant toute création de base. L’arrêt du seul cluster identifié a libéré le lanceur ; la recette suivante utilise des descripteurs de journaux directs. Ce premier résultat reste conservé, sans lui attribuer un test de restauration.
+
+Les commandes natives de la recette sont les suivantes, après création de deux bases locales vides et migration/préparation du corpus synthétique dans la source. Fournir les paramètres de connexion locaux hors historique de commande et ne jamais viser la démo hébergée :
+
+```sh
+pg_dump --dbname="$SOURCE_DB" --format=custom --no-owner --no-privileges --file=synthetic.dump
+pg_restore --dbname="$TARGET_DB" --exit-on-error --single-transaction --no-owner --no-privileges synthetic.dump
+pg_dump --dbname="$SOURCE_DB" --schema-only --no-owner --no-privileges --no-comments --no-security-labels --file=source-schema.sql
+pg_dump --dbname="$TARGET_DB" --schema-only --no-owner --no-privileges --no-comments --no-security-labels --file=target-schema.sql
+```
+
+La comparaison des données utilise, pour chaque table, `count(*)` et `md5(string_agg(row_to_json(t)::text, E'\n' ORDER BY row_to_json(t)::text))`, avec chaîne vide pour une table vide, puis une empreinte SHA-256 de l’ensemble. Elle vérifie l’égalité de ce corpus, sans peupler tous les modèles. L’observation de 1 439 ms concerne seulement la commande locale `pg_restore`, pas un RTO. Aucun serveur applicatif restauré, objet R2, rôle, privilège, PITR ou plan de reprise de l’hébergeur n’est qualifié par cette recette. La restauration SQLite avec pièces reste une preuve distincte de la suite complète. Références des outils consultées le 24 octobre : [pg_dump 18](https://www.postgresql.org/docs/18/app-pgdump.html) et [pg_restore 18](https://www.postgresql.org/docs/18/app-pgrestore.html).
+
 ## Démonstration hébergée
 
 La [preview dédiée](https://freelio-demo-77c40cf.vercel.app) pointe vers un déploiement de `7cf0978`, qui contient ce code et sa documentation. Après correction des trois URL canoniques de la branche Preview et reconstruction de cette même version, les sondes anonymes `/api/health/live` et `/api/health/ready` répondent HTTP 200 ; base, schéma et configuration sont OK. Le [reçu hébergé](hosted-7cf0978.json) lie ces réponses au déploiement exact. Les trois URL sont vérifiées dans la configuration de branche ; un parcours de connexion n’est pas déduit de cette vérification.
