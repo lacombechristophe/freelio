@@ -1,4 +1,5 @@
 import { publicDemoConfigurationIssues } from "./demo-configuration"
+import { upstashRateLimitConfiguration } from "./rate-limit-configuration"
 
 const MIN_SECRET_LENGTH = 32
 
@@ -37,6 +38,7 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
     if (!hasValue(environment, name)) issues.push(name)
   }
   if (!isHttpsUrl(environment.UPSTASH_REDIS_REST_URL)) issues.push("UPSTASH_REDIS_REST_URL_HTTPS")
+  if (!upstashRateLimitConfiguration(environment)) issues.push("UPSTASH_REDIS_REST_CONFIG")
   if (environment.REQUIRE_PLATFORM_EMAIL?.trim().toLowerCase() === "true") {
     for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM"]) {
       if (!hasValue(environment, name)) issues.push(name)

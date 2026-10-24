@@ -89,6 +89,14 @@ describe("productionConfigurationIssues", () => {
     expect(productionConfigurationIssues({ ...validProductionEnvironment, AUTH_URL: "https://user:synthetic@example.test", UPSTASH_REDIS_REST_URL: "http://redis.example.test" })).toEqual(expect.arrayContaining(["AUTH_URL_HTTPS", "UPSTASH_REDIS_REST_URL_HTTPS"]))
   })
 
+  it.each([
+    { UPSTASH_REDIS_REST_URL: "https://your-url.upstash.io" },
+    { UPSTASH_REDIS_REST_TOKEN: "your-token" },
+    { UPSTASH_REDIS_REST_URL: "https://user:synthetic@redis.example.test" },
+  ])("rejects unusable rate-limit credentials even when a value is present: %j", override => {
+    expect(productionConfigurationIssues({ ...validProductionEnvironment, ...override })).toContain("UPSTASH_REDIS_REST_CONFIG")
+  })
+
   it("does not require disabled ingestion and processor secrets in the public read-only profile", () => {
     const environment = { ...validProductionEnvironment, DEMO_ACCESS_MODE: "readonly", NEXT_PUBLIC_DEMO_MODE: "true", NEXT_PUBLIC_DEMO_READ_ONLY: "true", RESEND_API_KEY: undefined, STRIPE_SECRET_KEY: undefined, CONSENT_TOKEN_SECRET: undefined, LEAD_HASH_SALT: undefined, LEAD_INGEST_SECRET: undefined, AUTOMATION_CRON_SECRET: undefined, CRON_SECRET: undefined, LEAD_ALLOWED_ORIGINS: undefined }
     expect(productionConfigurationIssues(environment)).toEqual([])

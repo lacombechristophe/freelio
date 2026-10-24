@@ -1,5 +1,7 @@
 # Qualification du candidat Freelio
 
+Le correctif courant [refuse les requêtes dont le quota Upstash n'a pas été vérifié](evidence/20261024-rate-limit/README.md). Sa qualification locale est consignée séparément ; sa nouvelle CI doit réussir avant de lui attribuer les résultats distants ci-dessous.
+
 Le candidat applicatif `70a384b93bbda32a6b245621b079dc0cd66fef4a` réussit les quatre jobs de la [CI du 24 octobre](https://github.com/lacombechristophe/freelio/actions/runs/40111403797). Le [reçu versionné](evidence/20261024-zod-security/ci-70a384b.json) identifie les jobs, les artefacts et leurs empreintes. Le commit de fusion testé `4911836` possède le même arbre Git que `70a384b`.
 
 | Vérification | Résultat courant |
