@@ -1,0 +1,159 @@
+{
+  "schema": "freelio.linux-qualification.v1",
+  "observedAt": "2026-10-24T09:32:44.725Z",
+  "head": "d35675ba1b9106697804c814ef309cb8f231fdc2",
+  "applicationCode": "77c40cf4a0015bd5e4884f79bfe621e6740ccda5",
+  "source": {
+    "files": 826,
+    "manifestSha256": "6f4b3e1aad27fbc4ef2b3a3bf20be8720066204281ca7561a5b5bfe35c31b531",
+    "trackedInputsOnly": true,
+    "realEnvironmentCopied": false,
+    "dockerfileSha256": "bb84b7ee2bb2b8520dbf21ff85d18ece2fa64a0ed56908d006a6748f52485a4a"
+  },
+  "build": {
+    "mode": "build",
+    "head": "d35675ba1b9106697804c814ef309cb8f231fdc2",
+    "image": "freelio:qualification-d35675b-f8b8156b",
+    "startedAt": "2026-10-24T09:22:53.053Z",
+    "endedAt": "2026-10-24T09:29:27.395Z",
+    "exitCode": 0,
+    "signal": null,
+    "logSha256": "2464d5414315c6ca7e87125e4232917aff60a7a1c7ac886ff7dfce4ddbe6875a"
+  },
+  "verification": {
+    "mode": "verify",
+    "head": "d35675ba1b9106697804c814ef309cb8f231fdc2",
+    "image": "freelio:qualification-d35675b-f8b8156b",
+    "startedAt": "2026-10-24T09:30:32.833Z",
+    "endedAt": "2026-10-24T09:31:11.835Z",
+    "exitCode": 0,
+    "signal": null,
+    "logSha256": "36e8f5dba489b371350c16693cd124c6e0e2152dd7b9ef03fff7b1e6b663be2b"
+  },
+  "runtimeInventory": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "v24.22.0",
+    "openssl": "3.5.8",
+    "uid": 1000,
+    "chromium": "Chromium 156.0.8078.47 built on Debian GNU/Linux 12 (bookworm)",
+    "zod": "4.6.6",
+    "puppeteer": "25.13.0",
+    "prisma": "6.12.0",
+    "installedPackageVersionsChecked": 369,
+    "mismatches": [],
+    "lockSha256": "b6fd43599ea90d24a9ddb62622da706834e09124c709afba95af4a8e524272c5"
+  },
+  "imageIdentity": {
+    "id": "sha256:c537e415d921d76bb4a7e804be840017f5acef868aaf30c44209b82a607e80f9",
+    "os": "linux",
+    "architecture": "amd64",
+    "user": "node",
+    "revisionLabel": "d35675ba1b9106697804c814ef309cb8f231fdc2"
+  },
+  "report": {
+    "schema": "freelio.container-recipe.v1",
+    "startedAt": "2026-10-24T09:30:32.890Z",
+    "image": "freelio:qualification-d35675b-f8b8156b",
+    "runtimeImages": [
+      {
+        "kind": "postgres",
+        "attempts": [
+          {
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "attempt": 1,
+            "outcome": "available"
+          }
+        ],
+        "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+        "tag": "18.6-bookworm",
+        "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+        "imageId": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c"
+      },
+      {
+        "kind": "redis",
+        "attempts": [
+          {
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "attempt": 1,
+            "outcome": "available"
+          }
+        ],
+        "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+        "tag": "7.4-bookworm",
+        "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+        "imageId": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85"
+      }
+    ],
+    "checks": [
+      "Configuration de production vide refusée avant écoute",
+      "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+      "Données fictives créées par Prisma Linux",
+      "Serveur Linux et sondes live/ready avec SQL réel",
+      "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+      "Worker BullMQ connecté à Redis, PDF de devis terminé",
+      "Worker arrêté proprement sur SIGTERM",
+      "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+      "PDF Chromium hors réseau sous utilisateur runtime"
+    ],
+    "imageId": "sha256:c537e415d921d76bb4a7e804be840017f5acef868aaf30c44209b82a607e80f9",
+    "database": {
+      "schema": "freelio.runtime-database.v1",
+      "postgres": "PostgreSQL 18.6 (Debian 18.6-1.pgdg12+2)",
+      "appliedMigrations": 73,
+      "quoteJob": "completed",
+      "pdfHash": "2390e544c93ad406b6f78bc91c4347c73c83996c7c7c7ad0e228a7a7b878db41",
+      "uid": 1000
+    },
+    "contractArchive": {
+      "schema": "freelio.runtime-contract-archive.v1",
+      "archive": "READY",
+      "attempts": 1,
+      "pdfHash": "fd6216c3a77e5e5817bfc2e444fdcc26a3bb621aec3f435475b381a39d8d527f",
+      "bytes": 246300,
+      "pages": 1,
+      "replay": "unchanged",
+      "signatureFixture": "synthetic",
+      "uid": 1000
+    },
+    "pdf": {
+      "schema": "freelio.runtime-pdf.v1",
+      "node": "v24.22.0",
+      "bytes": 14074,
+      "pages": 1
+    },
+    "success": true,
+    "exclusions": [
+      "Disponibilité réelle R2/Upstash",
+      "TLS, reverse proxy et réseau hébergé",
+      "Reprise après interruption d’un job actif",
+      "Validation SaaS commerciale"
+    ],
+    "finishedAt": "2026-10-24T09:31:11.822Z"
+  },
+  "reportSha256": "129516967d08bc15b308ec4783f8fff984c3a818c032f91367efefe54f82ca3a",
+  "cleanup": {
+    "ownContainersRemoved": true,
+    "ownNetworkRemoved": true,
+    "temporaryEnvironmentFilesRemoved": true,
+    "preexistingRunningContainersPreserved": 8,
+    "applicationImagePreserved": true,
+    "logsPreserved": true
+  },
+  "firstCopyPreflight": {
+    "stoppedBeforeBuild": true,
+    "cause": "The private-data path check also matched src/app/dashboard/data/page.tsx; corrected to root data/ only",
+    "projectCodeChanged": false
+  },
+  "limits": {
+    "applicationUnitSuiteNotRepeatedOnLinux": true,
+    "authenticatedBrowserNotExecuted": true,
+    "vercelPdfRuntimeNotQualified": true,
+    "realProvidersNotQualified": true,
+    "loadNotQualified": true,
+    "abruptJobInterruptionNotQualified": true,
+    "githubHostedCiStillSeparate": true,
+    "mainMerged": false,
+    "productionPromoted": false
+  }
+}

@@ -47,6 +47,25 @@ pg_dump --dbname="$TARGET_DB" --schema-only --no-owner --no-privileges --no-comm
 
 La comparaison des données utilise, pour chaque table, `count(*)` et `md5(string_agg(row_to_json(t)::text, E'\n' ORDER BY row_to_json(t)::text))`, avec chaîne vide pour une table vide, puis une empreinte SHA-256 de l’ensemble. Elle vérifie l’égalité de ce corpus, sans peupler tous les modèles. L’observation de 1 439 ms concerne seulement la commande locale `pg_restore`, pas un RTO. Aucun serveur applicatif restauré, objet R2, rôle, privilège, PITR ou plan de reprise de l’hébergeur n’est qualifié par cette recette. La restauration SQLite avec pièces reste une preuve distincte de la suite complète. Références des outils consultées le 24 octobre : [pg_dump 18](https://www.postgresql.org/docs/18/app-pgdump.html) et [pg_restore 18](https://www.postgresql.org/docs/18/app-pgrestore.html).
 
+## Image Linux
+
+La recette Docker de `d35675b`, qui contient le même code applicatif `77c40cf`, réussit ses **neuf contrôles**. L’image est construite depuis 826 fichiers suivis, copiés dans un dossier temporaire sans environnement ni données existantes. Le [reçu Linux](linux.json) lie les empreintes du contexte, du Dockerfile, des journaux et de l’image à ce commit. Le build propre génère 76 pages ; le lockfile reste identique et les 369 versions de paquets présents après retrait des dépendances de développement correspondent à ce lockfile.
+
+Le runtime utilise Node 24.22.0, Chromium 156.0.8078.47, OpenSSL 3.5.8, Prisma 6.12, Puppeteer 25.13.0 et Zod 4.6.6, sous l’utilisateur `node` (UID 1000). La recette vérifie :
+
+- le refus d’une configuration de production vide avant écoute ;
+- les 73 migrations sur PostgreSQL Linux 18.6 neuf et la création du corpus fictif ;
+- les sondes de vie/disponibilité du serveur, puis son arrêt SIGTERM sans kill forcé ;
+- un PDF de devis produit par le worker BullMQ connecté à Redis, puis l’arrêt propre du worker ;
+- une archive PDF privée de contrat à partir d’une signature synthétique, conservée identiquement au rejeu ;
+- un PDF Chromium sans accès réseau, exécuté sans privilèges root.
+
+La recette utilise un réseau Docker interne sans port publié. Ses conteneurs, son réseau et ses deux fichiers temporaires d’environnement sont retirés ; les huit conteneurs préexistants restent en place. L’image et les journaux sont conservés. Les versions des paquets Debian/Chromium sont celles observées lors du build, sans prétendre qu’un futur téléchargement APT les reproduira à l’identique.
+
+Pour reproduire dans une copie isolée : `docker build -t freelio:local-review .`, puis `node scripts/verify-container-runtime.mjs freelio:local-review`. Le premier préflight de copie a refusé par erreur le chemin source `src/app/dashboard/data/page.tsx` ; la vérification a été restreinte au dossier racine privé `data/` avant tout build. Aucun code produit n’est modifié pour cette reprise.
+
+Ces neuf contrôles ne sont ni une nouvelle exécution de la suite unitaire complète sous Linux, ni une recette navigateur authentifiée. R2/Upstash réels, le runtime PDF propre à Vercel, TLS/reverse proxy, la reprise d’un job interrompu et la charge restent distincts. La réussite locale ne transforme pas un run GitHub refusé avant démarrage en CI réussie.
+
 ## Démonstration hébergée
 
 La [preview dédiée](https://freelio-demo-77c40cf.vercel.app) pointe vers un déploiement de `7cf0978`, qui contient ce code et sa documentation. Après correction des trois URL canoniques de la branche Preview et reconstruction de cette même version, les sondes anonymes `/api/health/live` et `/api/health/ready` répondent HTTP 200 ; base, schéma et configuration sont OK. Le [reçu hébergé](hosted-7cf0978.json) lie ces réponses au déploiement exact. Les trois URL sont vérifiées dans la configuration de branche ; un parcours de connexion n’est pas déduit de cette vérification.
@@ -55,10 +74,10 @@ L’exception de protection Vercel concerne cet alias dédié, rattaché manuell
 
 Les cinq réglages de démonstration sont vérifiés sur la branche : lecture seule côté serveur et client, données fictives et deux pilotes de stockage désactivés. Aucun nom de secret fournisseur interdit n’est présent dans ce périmètre ; aucune valeur de secret fournisseur n’est lue. Les paramètres de production et la visibilité GitHub restent inchangés.
 
-La [CI de `7cf0978`](https://github.com/lacombechristophe/freelio/actions/runs/40050051885) est refusée avant démarrage pour facturation/plafond GitHub. Le [reçu CI](ci-7cf0978.json) confirme quatre jobs et zéro étape exécutée. Cette condition n’est pas un échec de test applicatif ; elle laisse néanmoins la qualification Linux et E2E du candidat ouverte.
+La [CI de `7cf0978`](https://github.com/lacombechristophe/freelio/actions/runs/40050051885) est refusée avant démarrage pour facturation/plafond GitHub. Le [reçu CI](ci-7cf0978.json) confirme quatre jobs et zéro étape exécutée. Le message générique ne prouve ni carte enregistrée ni paiement refusé. La recette Docker locale ci-dessus apporte sa propre preuve Linux ; la CI distante et les E2E restent ouverts.
 
 ## Reproduction et limites
 
 Dans une copie installée avec ce lockfile, un client Prisma correspondant à la base de test et un binaire Chromium explicitement choisi, exécuter les commandes de la [CI](../../../.github/workflows/ci.yml). Utiliser une base fictive isolée : les intégrations écrivent et suppriment leurs propres fixtures. Les cas PDF sont `pdf-generator.integration.test.ts`, `delivery-pdf-native.integration.test.ts`, `pdf-print-layout.test.ts`, `pdf-image-security.test.ts` et `pdf-render.test.ts`.
 
-Ces contrôles Windows et HTTP ne qualifient pas le binaire Chromium Linux de l’image ou de Vercel, les interactions navigateur authentifiées, la charge ou un fournisseur réel. Zéro avis signalé est un résultat daté du registre npm, pas une garantie d’absence de vulnérabilité. L’ancien [run CI de `10920b4`](https://github.com/lacombechristophe/freelio/actions/runs/40043461170) et sa preview protégée restent des observations historiques, distinctes des contrôles ci-dessus. Main et production ne sont pas promus par cette recette.
+Les rendus Windows et Docker/Linux sont qualifiés dans leurs périmètres respectifs ; le binaire Chromium de Vercel, les interactions navigateur authentifiées, la charge et les fournisseurs réels ne le sont pas. Zéro avis signalé est un résultat daté du registre npm, pas une garantie d’absence de vulnérabilité. L’ancien [run CI de `10920b4`](https://github.com/lacombechristophe/freelio/actions/runs/40043461170) et sa preview protégée restent des observations historiques, distinctes des contrôles ci-dessus. Main et production ne sont pas promus par cette recette.
