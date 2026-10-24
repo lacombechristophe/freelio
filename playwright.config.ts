@@ -42,7 +42,7 @@ export default defineConfig({
         VERCEL: "0",
         UPSTASH_REDIS_REST_URL: "your-url",
         UPSTASH_REDIS_REST_TOKEN: "your-token",
-        PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "e2e-company",
+        PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "ce2ecompany000000000000001",
         PUBLIC_PRIVACY_NOTICE_URL: process.env.PUBLIC_PRIVACY_NOTICE_URL ?? "https://example.test/conformite",
         LEAD_ALLOWED_ORIGINS: process.env.LEAD_ALLOWED_ORIGINS ?? "https://example.test",
       },

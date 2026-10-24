@@ -295,7 +295,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
       // Banking fixtures intentionally have no historical PDF archive. Audit a
       // seeded draft, independently of invoices created by desktop workflows.
       const invoice = await database.invoice.findUniqueOrThrow({
-        where: { companyId_number: { companyId: "e2e-company", number: "UIQA-054" } },
+        where: { companyId_number: { companyId: "ce2ecompany000000000000001", number: "UIQA-054" } },
         select: { id: true, status: true, lockedAt: true },
       })
       expect(invoice.status).toBe("DRAFT")

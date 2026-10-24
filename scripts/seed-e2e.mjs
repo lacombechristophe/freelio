@@ -4,12 +4,13 @@ import { hashPassword } from "../src/lib/auth/password-core.ts"
 const { PrismaClient } = await import("@prisma/client")
 
 const prisma = new PrismaClient()
+// Keep the fictional company ID valid for frozen contract terms as well.
 const email = process.env.E2E_USER_EMAIL || "qa-crm@example.com"
 const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
 
 async function main() {
   const passwordHash = await hashPassword(password)
-  const existingCompany = await prisma.company.findUnique({ where: { id: "e2e-company" }, select: { id: true } })
+  const existingCompany = await prisma.company.findUnique({ where: { id: "ce2ecompany000000000000001" }, select: { id: true } })
   if (existingCompany) {
     const user = await prisma.user.upsert({
       where: { email },
@@ -27,7 +28,7 @@ async function main() {
 
   const company = await prisma.company.create({
     data: {
-      id: "e2e-company",
+      id: "ce2ecompany000000000000001",
       name: "Entreprise QA",
       fullName: "Entreprise QA",
       siret: "99999999900024",

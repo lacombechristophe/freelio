@@ -61,7 +61,7 @@ jobs:
       ENCRYPTION_KEY: ci-encryption-secret-longer-than-thirty-two-characters
       LEAD_HASH_SALT: ci-lead-hash-salt-longer-than-thirty-two-characters
       SCHEDULER_CRON_SECRET: ci-scheduler-secret-longer-than-thirty-two-characters
-      PUBLIC_LEAD_COMPANY_ID: e2e-company
+      PUBLIC_LEAD_COMPANY_ID: ce2ecompany000000000000001
       LEAD_ALLOWED_ORIGINS: https://example.test
       E2E_USER_EMAIL: qa-crm@example.com
       PUBLIC_APP_URL: http://127.0.0.1:3000

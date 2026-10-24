@@ -6,7 +6,7 @@ const { default: prisma } = await import("../src/lib/prisma.ts")
 const { enqueueAutomationEvent, dispatchAutomationEvent } = await import("../src/lib/automations/engine.ts")
 const ActualDate = Date
 try {
-  const workflow = await prisma.automationWorkflow.findUniqueOrThrow({ where: { companyId_name: { companyId: "e2e-company", name } } })
+  const workflow = await prisma.automationWorkflow.findUniqueOrThrow({ where: { companyId_name: { companyId: "ce2ecompany000000000000001", name } } })
   if (workflow.status !== "ACTIVE") throw new Error("The fictional workflow must be published")
   const eventKey = `fictional-wait:${workflow.id}`
   let eventId
