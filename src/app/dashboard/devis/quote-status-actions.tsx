@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { CheckCircle2, FileCheck2, LoaderCircle, ScrollText, Send, Trash2, XCircle } from "lucide-react"
 
-import { createContractFromQuote, deleteQuote, updateQuoteStatus } from "@/actions/devis"
-import { convertQuoteToCustomerOrder } from "@/actions/operations"
+import { deleteQuote, updateQuoteStatus } from "@/actions/devis"
+import { prepareQuoteContract, prepareQuoteOrder } from "@/actions/quote-commands"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,7 +29,7 @@ type QuoteStatusActionsProps = {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "L’action n’a pas pu être terminée."
+  return error instanceof Error && !("digest" in error) ? error.message : "L’action n’a pas pu être terminée."
 }
 
 export function QuoteStatusActions({ quoteId, orderConversionRevision, contractConversionRevision, contractId, canPrepareOrder, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
@@ -74,9 +74,13 @@ export function QuoteStatusActions({ quoteId, orderConversionRevision, contractC
     setPending(true)
     let preparedOrder: { number: string } | null = null
     try {
-      const order = await convertQuoteToCustomerOrder({ quoteId, depositRate, expectedInstallationAt, expectedRevision: launchRevision })
+      const order = await prepareQuoteOrder({ quoteId, depositRate, expectedInstallationAt, expectedRevision: launchRevision })
+      if ("error" in order) throw new Error(order.error)
       preparedOrder = order
-      if (includeContract) await createContractFromQuote(quoteId, launchContractRevision)
+      if (includeContract) {
+        const contract = await prepareQuoteContract(quoteId, launchContractRevision)
+        if ("error" in contract) throw new Error(contract.error)
+      }
       toast.success(order.existing ? `Le dossier ${order.number} était déjà préparé.` : `Commande ${order.number} et chantier préparés.`)
       setLaunchOpen(false)
       router.refresh()
@@ -94,7 +98,8 @@ export function QuoteStatusActions({ quoteId, orderConversionRevision, contractC
     }
     setPending(true)
     try {
-      const contract = await createContractFromQuote(quoteId, contractConversionRevision)
+      const contract = await prepareQuoteContract(quoteId, contractConversionRevision)
+      if ("error" in contract) throw new Error(contract.error)
       toast.success(hasContract ? "Contrat déjà préparé." : "Contrat métier préparé.")
       router.push(`/dashboard/contrats/${contract.id}`)
     } catch (error) {

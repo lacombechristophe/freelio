@@ -8,6 +8,7 @@ import { MAX_COMMERCIAL_CENTS } from "@/lib/finance/commercial-calculation"
 import { calendarDayKey } from "@/lib/calendar-days"
 import { operationsDashboardScope } from "./dashboard-scope"
 import { quoteOrderRevision } from "@/lib/quotes/conversion-source"
+import { QuoteConversionError } from "@/lib/quotes/conversion-error"
 
 export const quoteConversionChanged = "Le devis a changé. Rechargez la page puis réessayez ; votre saisie est conservée."
 type Input = { quoteId: string; depositRate: number; expectedInstallationAt: Date | null; expectedRevision?: string }
@@ -17,14 +18,14 @@ async function readSource(db: TransactionClient, context: AuthContext, quoteId: 
     customerOrder: { select: { id: true } },
     versions: { orderBy: [{ version: "desc" }, { id: "asc" }], include: { sections: { orderBy: [{ order: "asc" }, { id: "asc" }], include: { lines: { orderBy: [{ order: "asc" }, { id: "asc" }] } } } } },
   } })
-  if (!quote) throw new Error("Devis introuvable")
+  if (!quote) throw new QuoteConversionError("Devis introuvable")
   const scope = operationsDashboardScope(context.companyId, context.agencyIds)
   const project = quote.projectId ? await db.project.findFirst({ where: { id: quote.projectId, ...scope.project, clientId: quote.clientId,
     OR: [{ projectTemplateId: null }, { projectTemplate: { companyId: context.companyId } }] }, select: { id: true, status: true, site: { select: { clientId: true } } } }) : null
-  if (quote.projectId && (!project || project.site && project.site.clientId !== quote.clientId)) throw new Error("Référence liée indisponible")
+  if (quote.projectId && (!project || project.site && project.site.clientId !== quote.clientId)) throw new QuoteConversionError("Référence liée indisponible")
   const existing = quote.customerOrder ? await db.customerOrder.findFirst({ where: { id: quote.customerOrder.id, ...scope.customerOrder,
     quoteId: quote.id, clientId: quote.clientId, projectId: quote.projectId }, select: { id: true, number: true } }) : null
-  if (quote.customerOrder && !existing) throw new Error("Référence liée indisponible")
+  if (quote.customerOrder && !existing) throw new QuoteConversionError("Référence liée indisponible")
   return { quote, project, existing, scope }
 }
 
@@ -35,29 +36,29 @@ export async function convertAcceptedQuote(context: AuthContext, input: Input) {
     return prisma.$transaction(async tx => {
       const { quote, project, existing, scope } = await readSource(tx, context, input.quoteId)
       if (existing) return { success: true as const, ...existing, existing: true as const }
-      if (quote.status !== "ACCEPTED") throw new Error("Enregistrez l’accord du client avant de lancer la commande")
+      if (quote.status !== "ACCEPTED") throw new QuoteConversionError("Enregistrez l’accord du client avant de lancer la commande")
       const sourceRevision = quoteOrderRevision(quote)
-      if (input.expectedRevision !== sourceRevision) throw new Error(quoteConversionChanged)
-      if (project && project.status !== "ACTIVE") throw new Error("Le chantier n’est plus actif")
-      if (!project && context.agencyIds !== null) throw new Error("Sélectionnez un chantier accessible avant de lancer le dossier")
+      if (input.expectedRevision !== sourceRevision) throw new QuoteConversionError(quoteConversionChanged)
+      if (project && project.status !== "ACTIVE") throw new QuoteConversionError("Le chantier n’est plus actif")
+      if (!project && context.agencyIds !== null) throw new QuoteConversionError("Sélectionnez un chantier accessible avant de lancer le dossier")
       const version = quote.versions[0]
-      if (!version) throw new Error("Le devis ne contient aucune version")
-      if (version.version !== quote.currentVersion || quote.versions.filter(item => item.version === version.version).length !== 1) throw new Error("La version acceptée du devis doit être vérifiée.")
+      if (!version) throw new QuoteConversionError("Le devis ne contient aucune version")
+      if (version.version !== quote.currentVersion || quote.versions.filter(item => item.version === version.version).length !== 1) throw new QuoteConversionError("La version acceptée du devis doit être vérifiée.")
       const lines = version.sections.flatMap(section => section.lines)
-      if (!lines.length) throw new Error("Le devis ne contient aucune ligne")
+      if (!lines.length) throw new QuoteConversionError("Le devis ne contient aucune ligne")
       const amounts = [version.totalHtCents, version.totalTvaCents, version.totalTtcCents]
       if (amounts.some(amount => !Number.isSafeInteger(amount) || amount < 0 || amount > MAX_COMMERCIAL_CENTS)
         || version.totalHtCents + version.totalTvaCents !== version.totalTtcCents
         || lines.some(line => !Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isSafeInteger(line.unitPriceCents) || line.unitPriceCents < 0 || line.unitPriceCents > MAX_COMMERCIAL_CENTS || !Number.isFinite(line.tvaRate) || line.tvaRate < 0 || line.tvaRate > 100)) {
-        throw new Error("Les montants du devis doivent être vérifiés.")
+        throw new QuoteConversionError("Les montants du devis doivent être vérifiés.")
       }
       const productIds = [...new Set(lines.flatMap(line => line.productId ? [line.productId] : []))]
-      if (productIds.length && await tx.product.count({ where: { id: { in: productIds }, ...scope.product } }) !== productIds.length) throw new Error("Référence liée indisponible")
+      if (productIds.length && await tx.product.count({ where: { id: { in: productIds }, ...scope.product } }) !== productIds.length) throw new QuoteConversionError("Référence liée indisponible")
       // Claim the quote before creating its unique operational dossier.
       const claimed = await tx.quote.updateMany({ where: { id: quote.id, companyId: context.companyId, status: "ACCEPTED", updatedAt: quote.updatedAt, currentVersion: quote.currentVersion, projectId: quote.projectId }, data: { updatedAt: quote.updatedAt } })
-      if (claimed.count !== 1) throw new Error(quoteConversionChanged)
+      if (claimed.count !== 1) throw new QuoteConversionError(quoteConversionChanged)
       const request = getContext()
-      if (!request || request.actionPermission !== "sales.write") throw new Error("Accès commercial requis")
+      if (!request || request.actionPermission !== "sales.write") throw new QuoteConversionError("Accès commercial requis")
       return requestContext.run({ ...request, quoteOrderCreation: { quoteId: quote.id, clientId: quote.clientId } }, async () => {
         let projectId = quote.projectId
         if (!projectId) {
@@ -67,7 +68,7 @@ export async function convertAcceptedQuote(context: AuthContext, input: Input) {
             description: `Créé depuis le devis ${quote.number}`, worksiteType: "INSTALLATION", worksiteStage: "COMMANDE_CONFIRMEE", budgetCents: version.totalHtCents, startDate } })
           projectId = created.id
           const linked = await tx.quote.updateMany({ where: { id: quote.id, companyId: context.companyId, updatedAt: quote.updatedAt, projectId: null }, data: { projectId, updatedAt: new Date(Math.max(Date.now(), quote.updatedAt.getTime() + 1)) } })
-          if (linked.count !== 1) throw new Error(quoteConversionChanged)
+          if (linked.count !== 1) throw new QuoteConversionError(quoteConversionChanged)
           await tx.auditLog.create({ data: { userId: context.userId, action: "CREATE_PROJECT", resource: "PROJECT", resourceId: projectId, payload: { quoteId: quote.id, quoteVersionId: version.id } } })
         }
         const depositCents = Math.round(version.totalTtcCents * input.depositRate / 100)

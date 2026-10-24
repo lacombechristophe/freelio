@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { getWarehouseDirectory, setWarehouseActive, updateWarehouse } from "@/actions/warehouses"
+import { getWarehouseDirectory } from "@/actions/warehouses"
+import { changeWarehouseActivity, saveWarehouse } from "@/actions/warehouse-commands"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,9 +53,10 @@ export function WarehouseDirectory({ initialData }: { initialData: Directory }) 
     const { warehouse, ...values } = editor
     startSaving(async () => {
       try {
-        await updateWarehouse({ ...values, warehouseId: warehouse.id, expectedUpdatedAt: warehouse.updatedAt })
+        const reply = await saveWarehouse({ ...values, warehouseId: warehouse.id, expectedUpdatedAt: warehouse.updatedAt })
+        if ("error" in reply) { setSaveError(reply.error); return }
         setEditor(null); setSaveError(""); refresh()
-      } catch (error) { setSaveError(error instanceof Error ? error.message : "Modification impossible.") }
+      } catch { setSaveError("Modification impossible.") }
     })
   }
   function toggle() {
@@ -62,9 +64,10 @@ export function WarehouseDirectory({ initialData }: { initialData: Directory }) 
     const warehouse = confirmation
     startSaving(async () => {
       try {
-        await setWarehouseActive({ warehouseId: warehouse.id, active: !warehouse.active, expectedUpdatedAt: warehouse.updatedAt })
+        const reply = await changeWarehouseActivity({ warehouseId: warehouse.id, active: !warehouse.active, expectedUpdatedAt: warehouse.updatedAt })
+        if ("error" in reply) { setSaveError(reply.error); return }
         setConfirmation(null); setSaveError(""); refresh()
-      } catch (error) { setSaveError(error instanceof Error ? error.message : "Modification impossible.") }
+      } catch { setSaveError("Modification impossible.") }
     })
   }
   return <section className="space-y-4">

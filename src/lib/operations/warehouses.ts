@@ -2,16 +2,23 @@ import "server-only"
 
 import type { TransactionClient } from "@/lib/prisma"
 
+export class WarehouseLifecycleError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "WarehouseLifecycleError"
+  }
+}
+
 // All stock writers lock warehouse rows in the same order. Management can then
 // change their activity/agency without racing a prepared movement or receipt.
 export async function lockActiveWarehouses(tx: TransactionClient, companyId: string, ids: readonly string[]) {
   for (const id of [...new Set(ids)].sort()) {
     const where = { id, companyId, active: true, OR: [{ agencyId: null }, { agency: { companyId } }] }
     const warehouse = await tx.warehouse.findFirst({ where, select: { updatedAt: true } })
-    if (!warehouse) throw new Error("Dépôt introuvable ou inactif")
+    if (!warehouse) throw new WarehouseLifecycleError("Dépôt introuvable ou inactif")
     const locked = await tx.warehouse.updateMany({ where: { ...where, updatedAt: warehouse.updatedAt },
       data: { active: true, updatedAt: warehouse.updatedAt } })
-    if (locked.count !== 1) throw new Error("Dépôt introuvable ou inactif")
+    if (locked.count !== 1) throw new WarehouseLifecycleError("Dépôt introuvable ou inactif")
   }
 }
 
@@ -22,6 +29,6 @@ export async function assertWarehouseEmpty(tx: TransactionClient, companyId: str
     inventoryItems: { where: { OR: [{ quantity: { not: 0 } }, { reservedQuantity: { not: 0 } }] }, select: { id: true }, take: 1 },
     reservations: { where: { status: "ACTIVE" }, select: { id: true }, take: 1 },
   } })
-  if (!warehouse) throw new Error("Dépôt introuvable")
-  if (warehouse.inventoryItems.length || warehouse.reservations.length) throw new Error("Ce dépôt contient du stock ou des réservations actives. Videz-le avant de le désactiver.")
+  if (!warehouse) throw new WarehouseLifecycleError("Dépôt introuvable")
+  if (warehouse.inventoryItems.length || warehouse.reservations.length) throw new WarehouseLifecycleError("Ce dépôt contient du stock ou des réservations actives. Videz-le avant de le désactiver.")
 }

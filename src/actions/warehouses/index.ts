@@ -6,7 +6,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { hasPermission } from "@/lib/permissions"
 import { isUniqueConstraintConflict } from "@/lib/document-numbering"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
-import { assertWarehouseEmpty } from "@/lib/operations/warehouses"
+import { assertWarehouseEmpty, WarehouseLifecycleError } from "@/lib/operations/warehouses"
 import prisma from "@/lib/prisma"
 
 const id = z.string().cuid()
@@ -49,15 +49,15 @@ export async function updateWarehouse(input: unknown) {
     try {
       await prisma.$transaction(async tx => {
         const warehouse = await tx.warehouse.findFirst({ where: { id: warehouseId, ...scope } })
-        if (!warehouse) throw new Error("Dépôt introuvable")
+        if (!warehouse) throw new WarehouseLifecycleError("Dépôt introuvable")
         const changed = await tx.warehouse.updateMany({ where: { id: warehouseId, ...scope, updatedAt: new Date(expectedUpdatedAt) },
           data: { ...data, updatedAt: new Date(Math.max(Date.now(), warehouse.updatedAt.getTime() + 1)) } })
-        if (changed.count !== 1) throw new Error("Ce dépôt a changé. Rechargez la liste ; votre saisie est conservée.")
+        if (changed.count !== 1) throw new WarehouseLifecycleError("Ce dépôt a changé. Rechargez la liste ; votre saisie est conservée.")
         await tx.auditLog.create({ data: { userId, action: "UPDATE_WAREHOUSE", resource: "WAREHOUSE", resourceId: warehouseId,
           payload: { fields: (Object.keys(data) as Array<keyof typeof data>).filter(field => warehouse[field] !== data[field]) } } })
       })
     } catch (error) {
-      if (isUniqueConstraintConflict(error, "code")) throw new Error("Ce code dépôt existe déjà dans la société.")
+      if (isUniqueConstraintConflict(error, "code")) throw new WarehouseLifecycleError("Ce code dépôt existe déjà dans la société.")
       throw error
     }
     revalidateWarehouses()
@@ -71,10 +71,10 @@ export async function setWarehouseActive(input: unknown) {
     const scope = operationsDashboardScope(companyId, agencyIds).warehouse
     await prisma.$transaction(async tx => {
       const warehouse = await tx.warehouse.findFirst({ where: { id: data.warehouseId, ...scope } })
-      if (!warehouse) throw new Error("Dépôt introuvable")
+      if (!warehouse) throw new WarehouseLifecycleError("Dépôt introuvable")
       const changed = await tx.warehouse.updateMany({ where: { id: warehouse.id, ...scope, updatedAt: new Date(data.expectedUpdatedAt) },
         data: { active: data.active, updatedAt: new Date(Math.max(Date.now(), warehouse.updatedAt.getTime() + 1)) } })
-      if (changed.count !== 1) throw new Error("Ce dépôt a changé. Rechargez la liste avant de modifier son activité.")
+      if (changed.count !== 1) throw new WarehouseLifecycleError("Ce dépôt a changé. Rechargez la liste avant de modifier son activité.")
       if (!data.active) await assertWarehouseEmpty(tx, companyId, warehouse.id)
       await tx.auditLog.create({ data: { userId, action: "UPDATE_WAREHOUSE", resource: "WAREHOUSE", resourceId: warehouse.id, payload: { active: data.active } } })
     })
