@@ -66,6 +66,16 @@ Pour reproduire dans une copie isolée : `docker build -t freelio:local-review .
 
 Ces neuf contrôles ne sont ni une nouvelle exécution de la suite unitaire complète sous Linux, ni une recette navigateur authentifiée. R2/Upstash réels, le runtime PDF propre à Vercel, TLS/reverse proxy, la reprise d’un job interrompu et la charge restent distincts. La réussite locale ne transforme pas un run GitHub refusé avant démarrage en CI réussie.
 
+## Suite applicative Linux/PostgreSQL
+
+Une recette distincte complète le contrôle du runtime : la suite entière passe sous Linux avec PostgreSQL 18.6 en fuseau Europe/Paris, **4 056 réussites, aucun échec et une exclusion réservée à SQLite, dans 304 fichiers**. Le [reçu](linux-postgres.json) conserve les empreintes du rapport, des sorties et des 424 fichiers de tests/outillage ajoutés à l’image de recette. La référence est `a77295d`, dont les entrées applicatives sont inchangées depuis l’image de `d35675b` ; le code applicatif testé reste `77c40cf`.
+
+Cette image de test réutilise le runtime Linux et les dépendances de développement verrouillées déjà en cache. Elle est distincte de l’image de livraison. Les 710 versions de paquets présents correspondent au lockfile ; Prisma utilise son moteur Debian/OpenSSL 3. Les 73 migrations sont appliquées sur une base neuve, puis la suite est lancée avec `--no-file-parallelism`, sans modification des tests ni de leurs délais. Le garde réseau Node et le réseau Docker interne excluent les fournisseurs réels ; aucun serveur web n’est lancé.
+
+Les 43 cas des cinq fichiers PDF de référence sont inclus et réussis, sans exclusion. La lecture des 10 001 créneaux prend 1 309 ms avec une réponse de 2 663 octets ; cette observation locale ne constitue pas une mesure de charge. L’unique exclusion concerne la restauration native SQLite, déjà exécutée dans la suite SQLite Windows.
+
+Les conteneurs et le réseau de cette recette sont retirés après copie du rapport ; ses fichiers temporaires d’environnement sont supprimés et les huit conteneurs préexistants restent en place. Les images et les journaux sont conservés. Cette exécution locale ne qualifie pas une CI GitHub hébergée, les parcours navigateur authentifiés ou la suite SQLite sur Linux.
+
 ## Démonstration hébergée
 
 La [preview dédiée](https://freelio-demo-77c40cf.vercel.app) pointe vers un déploiement de `7cf0978`, qui contient ce code et sa documentation. Après correction des trois URL canoniques de la branche Preview et reconstruction de cette même version, les sondes anonymes `/api/health/live` et `/api/health/ready` répondent HTTP 200 ; base, schéma et configuration sont OK. Le [reçu hébergé](hosted-7cf0978.json) lie ces réponses au déploiement exact. Les trois URL sont vérifiées dans la configuration de branche ; un parcours de connexion n’est pas déduit de cette vérification.

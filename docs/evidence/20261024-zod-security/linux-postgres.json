@@ -1,0 +1,165 @@
+{
+  "schema": "freelio.linux-postgres-suite.v1",
+  "observedAt": "2026-10-24T09:56:52.833Z",
+  "head": "a77295d7a234e21e3921e17b95a1eb389aa2ec44",
+  "applicationCode": "77c40cf4a0015bd5e4884f79bfe621e6740ccda5",
+  "baseImageRevision": "d35675ba1b9106697804c814ef309cb8f231fdc2",
+  "applicationInputsUnchangedBetweenRevisions": true,
+  "testInputs": {
+    "files": 424,
+    "manifestSha256": "158b03fcc601e96cf128b47b1e605d0490df8c95a03892deec2e654dac8a2181",
+    "byteMismatches": []
+  },
+  "testImage": {
+    "tag": "freelio:unit-runtime-bbc195887aca",
+    "id": "sha256:6759e4126894c92bb77724fdd6a4cb5f7a5d30bd0f29075a012b6d10bc0002a4",
+    "baseImage": "freelio:qualification-d35675b-f8b8156b",
+    "dependenciesImage": "freelio:unit-dependencies-bbc195887aca",
+    "deliveryImageNotModified": true
+  },
+  "inventory": {
+    "node": "v24.22.0",
+    "platform": "linux",
+    "arch": "x64",
+    "uid": 1000,
+    "lockSha256": "b6fd43599ea90d24a9ddb62622da706834e09124c709afba95af4a8e524272c5",
+    "installedVersionsChecked": 710,
+    "mismatches": [],
+    "prismaEngineFiles": [
+      "libquery_engine-debian-openssl-3.0.x.so.node"
+    ]
+  },
+  "database": {
+    "postgresImageDigest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+    "version": "18.6",
+    "timezone": "Europe/Paris",
+    "newDatabase": true,
+    "migrationsAppliedByPrisma": 73,
+    "internalNetwork": true,
+    "publishedPorts": false
+  },
+  "suite": {
+    "total": 4057,
+    "passed": 4056,
+    "failed": 0,
+    "skipped": 1,
+    "files": 304,
+    "startedAt": "2026-10-24T09:46:07.951Z",
+    "endedAt": "2026-10-24T09:55:13.100Z",
+    "exitCode": 0,
+    "signal": null,
+    "stdoutSha256": "09c46a0676cf78f3298a288b671327ef523608029a0cfac616b51657dc935bc4",
+    "stderrSha256": "2c0deb763de1c5a017ce879e99d1d2e985ad9e50ccae640fd39e69c1546aa9ec",
+    "reportSha256": "689284c437ea2255f039a03debd7e4130999cab75e77f7c424c031b6ace085ad",
+    "exclusion": {
+      "file": "demo-native-backup.integration.test.ts",
+      "name": "restores a native SQLite demo snapshot with unchanged IDs, amounts and attached file bytes, and rejects tampering",
+      "status": "skipped"
+    }
+  },
+  "pdfSubset": {
+    "files": [
+      "pdf-generator.integration.test.ts",
+      "delivery-pdf-native.integration.test.ts",
+      "pdf-print-layout.test.ts",
+      "pdf-image-security.test.ts",
+      "pdf-render.test.ts"
+    ],
+    "passed": 43,
+    "failed": 0,
+    "skipped": 0,
+    "includedInCompleteSuite": true,
+    "additionalExecution": false
+  },
+  "planningObservation": {
+    "rows": 10001,
+    "durationMs": 1309,
+    "responseBytes": 2663,
+    "scope": "One isolated database read; fixture creation excluded, not an SLO or load qualification"
+  },
+  "phases": {
+    "build-dependencies": {
+      "startedAt": "2026-10-24T09:41:53.321Z",
+      "endedAt": "2026-10-24T09:44:04.465Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "b389623fc44ec101ed5f40906911e1d4d14fb58cd2c755339a5e38d2799841ff"
+    },
+    "build-test-runtime": {
+      "startedAt": "2026-10-24T09:44:04.468Z",
+      "endedAt": "2026-10-24T09:45:57.150Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "308ee37d6896d2af2ce69cc9d244f1005a78b7ad227d990618c8c4eecf737f3a"
+    },
+    "timezone": {
+      "startedAt": "2026-10-24T09:45:59.783Z",
+      "endedAt": "2026-10-24T09:46:00.082Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "20dda39d6dfe33f5fa13cf7029405edab33342ae357d42d0c38eee7713b1c115",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "migrate": {
+      "startedAt": "2026-10-24T09:46:00.085Z",
+      "endedAt": "2026-10-24T09:46:07.550Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "09544d7c178c10e228f848134c909e0dee53d06973abf78c367326c0bc9e91d0",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "copy-report": {
+      "startedAt": "2026-10-24T09:55:13.105Z",
+      "endedAt": "2026-10-24T09:55:13.273Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "cleanup": {
+    "observedAt": "2026-10-24T09:55:14.450Z",
+    "resources": [
+      {
+        "kind": "tests",
+        "startedAt": "2026-10-24T09:55:13.306Z",
+        "endedAt": "2026-10-24T09:55:13.528Z",
+        "exitCode": 0,
+        "signal": null,
+        "stdoutSha256": "98f74fa47c65e7646cc01503ec7407d87a640ab8d64e42ce664bb0484a5aede6",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "kind": "postgres",
+        "startedAt": "2026-10-24T09:55:13.532Z",
+        "endedAt": "2026-10-24T09:55:14.129Z",
+        "exitCode": 0,
+        "signal": null,
+        "stdoutSha256": "c31712adf7607e5ba196dce6f74dc234c9fe0f880db61543c9bd6a4aaeb18532",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "kind": "network",
+        "startedAt": "2026-10-24T09:55:14.133Z",
+        "endedAt": "2026-10-24T09:55:14.448Z",
+        "exitCode": 0,
+        "signal": null,
+        "stdoutSha256": "08950c93480ad1878e25e0e639634bad0832cc61fdf0b2af7f5847da0f0a5777",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "temporaryEnvironmentFilesRemoved": true,
+    "ownResourcesAbsentAfterward": true,
+    "preexistingRunningContainersPreserved": 8
+  },
+  "limits": {
+    "githubHostedRunQualified": false,
+    "authenticatedBrowserQualified": false,
+    "sqliteLinuxSuiteNotRun": true,
+    "realProvidersQualified": false,
+    "loadQualified": false,
+    "productionPromoted": false
+  }
+}
