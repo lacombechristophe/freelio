@@ -31,19 +31,46 @@ export async function readOperationsPlanningSummary(context: AuthContext, input:
     let unassigned = 0, cursor: { id: string; scheduledStart: Date } | undefined, finished = false
     const lowerBound = weekStart < todayStart ? weekStart : todayStart
     let lastVisibleEnd = todayStart.getTime()
-    const where = { AND: [scope.intervention, ...(query.agencyId ? [{ site: { agencyId: query.agencyId } }] : []),
+    const filters = [...(query.agencyId ? [{ site: { agencyId: query.agencyId } }] : []),
       { OR: [{ scheduledStart: { gte: new Date(lowerBound.getTime() - 3600000) } }, { scheduledStart: { lt: lowerBound }, scheduledEnd: { gt: lowerBound } }] },
-    ], status: { not: "CANCELED" } }
+    ]
+    const candidateWhere = { AND: [{ companyId: context.companyId,
+      ...(context.agencyIds === null ? {} : { site: { companyId: context.companyId, agency: scope.agency } }),
+    }, ...filters], status: { not: "CANCELED" } }
     for (;;) {
-      // Seek on the complete ordering: the date range remains indexable,
-      // and the id keeps slots with the same start in successive batches.
-      const rows = await tx.fieldIntervention.findMany({ where: { AND: [where, ...(cursor ? [{ OR: [
+      // Read one ordered batch, then validate its parents through bounded ID
+      // lookups. A joined graph can scan every remaining slot before LIMIT.
+      const candidates = await tx.fieldIntervention.findMany({ where: { AND: [candidateWhere, ...(cursor ? [{ OR: [
         { scheduledStart: { gt: cursor.scheduledStart } }, { scheduledStart: cursor.scheduledStart, id: { gt: cursor.id } },
       ] }] : [])] }, take: 250, orderBy: [{ scheduledStart: "asc" }, { id: "asc" }],
         select: { id: true, title: true, scheduledStart: true, scheduledEnd: true, assignedMembershipId: true,
-          assignedMembership: { select: { user: { select: { name: true, email: true } } } },
-          site: { select: { label: true, latitude: true, longitude: true, client: { select: { name: true } } } },
-        },
+          siteId: true, ticketId: true, projectId: true, maintenanceContractId: true },
+      })
+      if (!candidates.length) break
+      const parentIds = (key: "ticketId" | "projectId" | "assignedMembershipId" | "maintenanceContractId") => [...new Set(candidates.flatMap(item => {
+        const id = item[key]
+        return id ? [id] : []
+      }))]
+      const ticketIds = parentIds("ticketId"), projectIds = parentIds("projectId")
+      const membershipIds = parentIds("assignedMembershipId"), contractIds = parentIds("maintenanceContractId")
+      const [sites, tickets, projects, assignedMembers, contracts] = await Promise.all([
+        tx.customerSite.findMany({ where: { AND: [scope.site, { id: { in: [...new Set(candidates.map(item => item.siteId))] } }] }, take: 250,
+          select: { id: true, label: true, latitude: true, longitude: true, client: { select: { name: true } } } }),
+        // A ticket can be shared without a site; its intervention supplies the
+        // agency boundary. Keep that relation's scope instead of the ticket list's.
+        ticketIds.length ? tx.fieldIntervention.findMany({ where: { companyId: context.companyId, id: { in: candidates.filter(item => item.ticketId).map(item => item.id) } }, take: 250,
+          select: { ticket: { where: scope.ticket, select: { id: true } } } }) : [],
+        projectIds.length ? tx.project.findMany({ where: { AND: [scope.project, { id: { in: projectIds } }] }, take: 250, select: { id: true } }) : [],
+        membershipIds.length ? tx.membership.findMany({ where: { AND: [scope.membership, { id: { in: membershipIds } }] }, take: 250, select: { id: true, user: { select: { name: true, email: true } } } }) : [],
+        contractIds.length ? tx.maintenanceContract.findMany({ where: { AND: [scope.maintenanceReference, { id: { in: contractIds } }] }, take: 250, select: { id: true } }) : [],
+      ])
+      const sitesById = new Map(sites.map(item => [item.id, item])), membersById = new Map(assignedMembers.map(item => [item.id, item]))
+      const allowedTickets = new Set(tickets.flatMap(item => item.ticket ? [item.ticket.id] : [])), allowedProjects = new Set(projects.map(item => item.id)), allowedContracts = new Set(contracts.map(item => item.id))
+      const rows = candidates.flatMap(candidate => {
+        const site = sitesById.get(candidate.siteId), assignedMembership = candidate.assignedMembershipId ? membersById.get(candidate.assignedMembershipId) : null
+        if (!site || (candidate.assignedMembershipId && !assignedMembership) || (candidate.ticketId && !allowedTickets.has(candidate.ticketId)) ||
+          (candidate.projectId && !allowedProjects.has(candidate.projectId)) || (candidate.maintenanceContractId && !allowedContracts.has(candidate.maintenanceContractId))) return []
+        return [{ ...candidate, site, assignedMembership }]
       })
       for (const item of rows) {
         if (item.scheduledStart >= weekStart && item.scheduledStart < weekEnd) {
@@ -96,8 +123,9 @@ export async function readOperationsPlanningSummary(context: AuthContext, input:
           overlaps.set(item.assignedMembershipId, group)
         }
       }
-      if (finished || rows.length < 250) break
-      const last = rows[rows.length - 1]
+      if (finished || candidates.length < 250) break
+      // An entire candidate batch can be excluded by its linked references.
+      const last = candidates[candidates.length - 1]
       cursor = { id: last.id, scheduledStart: last.scheduledStart }
     }
     return { generatedAt: now.toISOString(), timeZone, weekStart: weekStart.toISOString(), weekEnd: weekEnd.toISOString(), unassigned,

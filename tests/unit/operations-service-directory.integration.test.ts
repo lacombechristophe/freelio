@@ -10,6 +10,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import prisma from "@/lib/prisma"
 import * as service from "@/actions/operations"
 import { getOperationsDashboard } from "@/actions/operations"
+import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 const database = new PrismaClient()
 
 describe.sequential("Operations service lists exceed historical dashboard caches", () => {
@@ -52,7 +53,7 @@ describe.sequential("Operations service lists exceed historical dashboard caches
       if (!rows.length) break
       await prisma.fieldIntervention.deleteMany({ where: { id: { in: rows.map(row => row.id) } } })
     }
-  }, 30_000) // Bounded teardown of the 10001-slot fixture; assertions keep their normal timeout.
+  }, 30_000) // Bounded teardown of the 10001-slot fixture; product transaction limits remain unchanged.
   it("counts all 201 tickets rather than 200 cached tickets", async () => expect((await tickets()).total).toBe(201))
   it("finds the high-priority ticket beyond the old cache", async () => expect((await tickets("high ticket beyond cache")).items.map(row => row.id)).toEqual([lastTicket]))
   it("finds the current intervention beyond 200 historical entries", async () => expect((await interventions("current intervention beyond cache")).items.map(row => row.id)).toEqual([currentIntervention]))
@@ -81,7 +82,7 @@ describe.sequential("Operations service lists exceed historical dashboard caches
     }
     expect(new Set(ids).size).toBe(201)
     expect(await read({ page: 100000 })).toMatchObject({ total: 201, page: 9 })
-  })
+  }, 30_000) // Ten independent page reads, each retaining the product transaction limit.
   it.each(readers)("searches the complete $name scope before pagination", async ({ read }) => {
     expect(await read({ search: "BEYOND CACHE", page: 99 })).toMatchObject({ total: 1, page: 1 })
     expect(await read({ search: "no fictitious match" })).toMatchObject({ total: 0, page: 1, items: [] })
@@ -131,6 +132,50 @@ describe.sequential("Operations service lists exceed historical dashboard caches
     expect(day.items.map(row => row.id)).toEqual(ids.slice(0, 6))
     expect(result.members.find(row => row.id === membershipId)).toMatchObject({ interventions: 502, plannedMinutes: 30120 })
   })
+  it("continues past whole batches with inaccessible parent references without counting or repairing them", async () => {
+    const foreign = await database.company.create({ data: { name: "Fictional inaccessible planning parent" } })
+    const prefix = `EXTRA-inaccessible-${foreign.id}`
+    try {
+      const client = await database.client.create({ data: { companyId: foreign.id, name: "Fictional foreign client" } })
+      const ticket = await database.serviceTicket.create({ data: { companyId: foreign.id, clientId: client.id, number: "FOREIGN-PLANNING", title: "Fictional foreign ticket", description: "Fictional fixture" } })
+      const created = await database.fieldIntervention.createMany({ data: Array.from({ length: 501 }, (_, index) => ({
+        companyId: session.companyId, siteId, assignedMembershipId: membershipId, ticketId: ticket.id, title: `${prefix}-${index}`,
+        scheduledStart: new Date("2030-06-17T08:00:00Z"), scheduledEnd: new Date("2030-06-17T09:00:00Z"),
+      })) })
+      expect(created.count).toBe(501)
+      const result = await planning()
+      expect(result.days.map(row => row.key)).toEqual(["2030-06-18"])
+      expect(result.days[0]).toMatchObject({ count: 1, conflicts: 0 })
+      expect(result.days[0].items.map(row => row.id)).toEqual([currentIntervention])
+      expect(result.members.find(row => row.id === membershipId)).toMatchObject({ interventions: 1, plannedMinutes: 60 })
+      expect(await database.fieldIntervention.count({ where: { companyId: session.companyId, ticketId: ticket.id, title: { startsWith: prefix } } })).toBe(501)
+    } finally {
+      await database.fieldIntervention.deleteMany({ where: { companyId: session.companyId, title: { startsWith: prefix } } })
+      await database.serviceTicket.deleteMany({ where: { companyId: foreign.id } })
+      await database.client.deleteMany({ where: { companyId: foreign.id } })
+      await database.company.delete({ where: { id: foreign.id } })
+    }
+  }, 30_000)
+  it.each([{ role: "OWNER", sharedTicket: false }, { role: "OPERATIONS", sharedTicket: false }, { role: "OPERATIONS", sharedTicket: true }])("matches the fully scoped SQL graph for coherent and foreign parents: %j", async ({ role, sharedTicket }) => {
+    const previous = { ...session }, fixture = await createOperationsDashboardFixture(database)
+    try {
+      session.companyId = fixture.companyId; session.userId = fixture.user.id
+      await database.membership.update({ where: { id: fixture.member.id }, data: { role } })
+      if (sharedTicket) await database.serviceTicket.update({ where: { id: fixture.ticket.id }, data: { siteId: null } })
+      await database.fieldIntervention.updateMany({ where: { companyId: fixture.companyId }, data: { scheduledStart: new Date("2030-06-20T08:00:00Z"), scheduledEnd: new Date("2030-06-20T09:00:00Z") } })
+      const expected = await database.fieldIntervention.findMany({ where: { AND: [operationsDashboardScope(fixture.companyId, role === "OWNER" ? null : [fixture.agency.id]).intervention, { status: { not: "CANCELED" } }] },
+        select: { id: true }, orderBy: [{ scheduledStart: "asc" }, { id: "asc" }] })
+      expect(expected.map(row => row.id)).toContain(fixture.positive.interventions)
+      const before = await fixture.snapshot(), result = await planning()
+      expect(result.days.map(row => row.key)).toEqual(["2030-06-20"])
+      expect(result.days[0].count).toBe(expected.length)
+      expect(result.days[0].items.map(row => row.id)).toEqual(expected.slice(0, 6).map(row => row.id))
+      expect(await fixture.snapshot()).toEqual(before)
+    } finally {
+      Object.assign(session, previous)
+      await fixture.cleanup()
+    }
+  }, 30_000)
   it("detects a slot crossing civil midnight before the current week", async () => {
     await prisma.fieldIntervention.createMany({ data: [
       { companyId: session.companyId, siteId, assignedMembershipId: membershipId, title: "EXTRA-previous-week-night", scheduledStart: new Date("2030-06-16T21:30:00Z"), scheduledEnd: new Date("2030-06-16T23:00:00Z") },
