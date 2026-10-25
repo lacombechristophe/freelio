@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { toast } from "sonner"
 import { useTheme } from "next-themes"
+import { initials } from "@/lib/initials"
 import { ChevronDown, CircleHelp, LogOut, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { clearFieldOfflineData } from "@/lib/field/offline"
@@ -22,12 +23,7 @@ import {
 export function UserMenu({ email, name, companyName }: { email?: string | null; name?: string | null; companyName?: string | null }) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const initials = (name || email || "F")
-    .split(/[\s@._-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("")
+  const avatar = initials(name || email || "F")
 
   async function handleLogout() {
     try {
@@ -44,7 +40,7 @@ export function UserMenu({ email, name, companyName }: { email?: string | null; 
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-10 gap-2 rounded-lg px-1.5 sm:pr-2" aria-label="Ouvrir le menu du compte">
-          <span className="grid size-8 place-items-center rounded-full bg-foreground text-[11px] font-semibold text-background">{initials}</span>
+          <span className="grid size-8 place-items-center rounded-full bg-foreground text-[11px] font-semibold text-background">{avatar}</span>
           <span className="hidden min-w-0 text-left xl:block">
             <span className="block max-w-28 truncate text-xs font-semibold leading-4">{name ?? "Mon compte"}</span>
             {companyName ? <span className="block max-w-28 truncate text-[10px] font-normal leading-3 text-muted-foreground">{companyName}</span> : null}

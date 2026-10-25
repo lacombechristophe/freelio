@@ -38,6 +38,7 @@ import { seedTimeInvoiceRounding } from "./seed-time-invoice-rounding.mjs"
 import { seedTimeInvoiceSnapshot } from "./seed-time-invoice-snapshot.mjs"
 import { seedTimeInvoiceRelease } from "./seed-time-invoice-release.mjs"
 import { seedDocumentPreviewScope } from "./seed-document-preview-scope.mjs"
+import { seedVisualQuality } from "./seed-visual-quality.mjs"
 
 // Only the historical disposable database or the explicitly isolated CI recipe.
 const isolatedCi = process.env.CI === "true"
@@ -50,6 +51,7 @@ try {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: "qa-crm@example.com" } })
   const companyId = user.companyId
   if (!companyId) throw new Error("Seed the QA account first.")
+  await seedVisualQuality(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedCatalogueAssets(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedDocumentRelations(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))
   await seedRecurringInvoices(prisma, await hashPassword(process.env.E2E_USER_PASSWORD || "RecetteSolide2026"))

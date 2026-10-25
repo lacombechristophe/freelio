@@ -1,5 +1,7 @@
 "use client"
 
+import { initialGlyph } from "@/lib/initials"
+
 import Link from "next/link"
 import { AlertTriangle, ArrowRight, Bot, CheckCircle2, CircleDashed, Clock3, LibraryBig, Mail, PhoneCall, Play, Send, Users, Workflow } from "lucide-react"
 
@@ -108,7 +110,7 @@ export function AutomationOverview({ data, pending, run, onNavigate }: { data: A
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        {data.leads.length ? <div className="grid md:grid-cols-2">{data.leads.slice(0, 8).map((lead) => <div key={lead.id} className="flex min-w-0 items-center gap-3 border-b px-5 py-3.5 md:odd:border-r"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">{lead.firstName.slice(0, 1)}{lead.lastName.slice(0, 1)}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{lead.firstName} {lead.lastName}</p><p className="truncate text-xs text-muted-foreground">{lead.email} · {lead.city || lead.source}</p></div>{lead.projectType && <Badge variant="outline" className="hidden max-w-44 truncate lg:inline-flex">{lead.projectType}</Badge>}</div>)}</div> : <div className="px-6 py-10 text-center"><Users className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Aucun prospect éligible</p><p className="mt-1 text-xs text-muted-foreground">Les contacts consentants apparaîtront ici dès leur capture.</p></div>}
+        {data.leads.length ? <div className="grid md:grid-cols-2">{data.leads.slice(0, 8).map((lead) => <div key={lead.id} className="flex min-w-0 items-center gap-3 border-b px-5 py-3.5 md:odd:border-r"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">{initialGlyph(lead.firstName)}{initialGlyph(lead.lastName)}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{lead.firstName} {lead.lastName}</p><p className="truncate text-xs text-muted-foreground">{lead.email} · {lead.city || lead.source}</p></div>{lead.projectType && <Badge variant="outline" className="hidden max-w-44 truncate lg:inline-flex">{lead.projectType}</Badge>}</div>)}</div> : <div className="px-6 py-10 text-center"><Users className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Aucun prospect éligible</p><p className="mt-1 text-xs text-muted-foreground">Les contacts consentants apparaîtront ici dès leur capture.</p></div>}
       </CardContent>
     </Card>
 

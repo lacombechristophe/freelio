@@ -1,5 +1,7 @@
 "use client"
 
+import { initialGlyph } from "@/lib/initials"
+
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -140,7 +142,7 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
           <Table className="min-w-[1080px]">
             <TableHeader><TableRow><TableHead>Prospect et besoin</TableHead><TableHead>Coordonnées</TableHead><TableHead>Priorité</TableHead><TableHead>Consentement</TableHead><TableHead>Reçu</TableHead><TableHead>Statut</TableHead><TableHead className="w-12"><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
             <TableBody>{visibleLeads.map((lead) => <TableRow key={lead.id}>
-              <TableCell className="min-w-64"><div className="flex items-center gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{lead.firstName.slice(0, 1)}{lead.lastName.slice(0, 1)}</span><div className="min-w-0"><p className="truncate font-semibold">{lead.firstName} {lead.lastName}</p><p className="mt-0.5 max-w-64 truncate text-xs text-muted-foreground" title={lead.message || undefined}>{lead.projectType || lead.message || "Projet à qualifier"}</p></div></div></TableCell>
+              <TableCell className="min-w-64"><div className="flex items-center gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{initialGlyph(lead.firstName)}{initialGlyph(lead.lastName)}</span><div className="min-w-0"><p className="truncate font-semibold">{lead.firstName} {lead.lastName}</p><p className="mt-0.5 max-w-64 truncate text-xs text-muted-foreground" title={lead.message || undefined}>{lead.projectType || lead.message || "Projet à qualifier"}</p></div></div></TableCell>
               <TableCell className="min-w-56"><div className="space-y-1 text-xs">{lead.email ? <a href={`mailto:${lead.email}`} className="flex items-center gap-2 hover:text-primary"><Mail className="size-3.5 text-muted-foreground" />{lead.email}</a> : null}{lead.phone ? <a href={`tel:${lead.phone}`} className="flex items-center gap-2 hover:text-primary"><Phone className="size-3.5 text-muted-foreground" />{lead.phone}</a> : null}{lead.postalCode || lead.city ? <span className="flex items-center gap-2 text-muted-foreground"><MapPin className="size-3.5" />{[lead.postalCode, lead.city].filter(Boolean).join(" ")}</span> : null}</div></TableCell>
               <TableCell><div className="flex items-center gap-2"><Badge variant={lead.score >= 60 ? "default" : "outline"}>{lead.score} pts</Badge><span className="text-xs text-muted-foreground">{lead.source}</span></div></TableCell>
               <TableCell><span className="inline-flex items-center gap-1.5 text-xs"><ShieldCheck className="size-3.5 text-muted-foreground" />{lead.marketingOptIn ? "Marketing accepté" : "Service uniquement"}</span></TableCell>
