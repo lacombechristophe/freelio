@@ -543,7 +543,7 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
+        <Card id="objectifs" tabIndex={-1} className="scroll-mt-4 target:ring-2 target:ring-ring focus-visible:outline-2 focus-visible:outline-ring">
           <CardHeader className="border-b pb-4">
             <CardTitle className="flex items-center gap-2">
               <Goal className="h-4 w-4 text-primary" />

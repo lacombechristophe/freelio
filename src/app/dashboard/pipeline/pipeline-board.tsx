@@ -345,7 +345,7 @@ export function PipelineBoard({
             </Button>
           </div>
           <div className="hidden h-8 w-px bg-border xl:block" />
-          <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-sm">
+          <div id="previsions" role="region" aria-label="Prévisions commerciales" tabIndex={-1} className="flex scroll-mt-4 flex-wrap items-center gap-x-7 gap-y-2 text-sm target:rounded-md target:ring-2 target:ring-ring focus-visible:outline-2 focus-visible:outline-ring">
             <div><span className="text-muted-foreground">Ouvert</span><span className="ml-2 font-medium tabular-nums">{formatEuro(totalValue)}</span></div>
             <div><span className="text-muted-foreground">Pondéré</span><span className="ml-2 font-medium tabular-nums text-success">{formatEuro(weightedValue)}</span></div>
             <div><span className="text-muted-foreground">Prévu ce mois</span><span className="ml-2 font-medium tabular-nums">{formatEuro(currentMonthForecast)}</span></div>
