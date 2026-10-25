@@ -23,3 +23,13 @@ La recette a révélé des différences dans les erreurs d'unicité et de transa
 L'[inventaire](dependencies.json) conserve les versions et licences déclarées. Aucun paquet existant hors Prisma n'est mis à jour. L'installation reste limitée à la recette autorisée, avec scripts npm désactivés et préparation explicite du binaire SQLite. Aucun environnement existant ou service hébergé n'est migré par ces essais.
 
 La CI du nouveau commit, les parcours navigateur distants et la connexion de la démo hébergée restent à vérifier. Le pilote pg 8 signale une dépréciation pour les requêtes concurrentes d'une transaction ; les avertissements sont conservés et ce lot ne revendique pas le support de pg 9. La récupération utilise un petit corpus fictif, sans trafic : elle ne mesure ni RTO de production, ni PITR, ni stockage distant.
+
+## Négociation TLS en démonstration publique
+
+La preview de `6b53ce2` termine son build mais répond 503, composant base en échec, alors que le témoin Prisma 6 répond 200. Le diagnostic ajouté dans `5483444` conserve uniquement des codes et catégories autorisés ; l'exception de connexion y reste non classée, sans message brut ni donnée de connexion.
+
+Le [reçu TLS](tls.json) reproduit séparément le défaut : pg transforme son socket TCP en TLS sans répéter le port. Le garde exigeait ce port et refusait cette négociation. Il mémorise maintenant la destination des sockets connectés à l'infrastructure autorisée et vérifie celle-ci lors du passage en TLS. Un socket inconnu, un autre hôte, port ou nom TLS reste refusé ; aucune vérification de certificat n'est désactivée.
+
+Le test ciblé échoue avant correction. Après correction, 47 cas voisins passent. Une PostgreSQL 18.6 neuve, sur réseau Docker interne sans port publié, reproduit aussi le refus initial puis valide quatre contrôles : SELECT natif Prisma 7, TLS confirmé par `pg_stat_ssl`, refus d'un certificat non approuvé et refus HTTP d'une origine externe. Les clés et certificats sont fictifs, les conteneurs et le réseau sont retirés. L'image qualifiée reçoit seulement le garde candidat en montage pour ce contrôle ; ce n'est pas une nouvelle qualification complète de l'image.
+
+Dans une recette installée, le test sans connexion se rejoue avec `node node_modules/vitest/vitest.mjs run tests/unit/public-demo-network.test.ts --no-file-parallelism`. La validation Neon et les parcours authentifiés restent distincts.

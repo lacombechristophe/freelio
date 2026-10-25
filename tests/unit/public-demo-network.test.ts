@@ -1,6 +1,32 @@
 import { spawnSync } from "node:child_process"
 import { expect, it } from "vitest"
 
+it("allows TLS upgrades only for a socket connected to the configured infrastructure endpoint", () => {
+  const script = `
+    const assert=require('node:assert/strict');
+    const net=require('node:net'), tls=require('node:tls');
+    // Replace transports before loading the preload: this test opens no sockets.
+    net.Socket.prototype.connect=function(){return this};
+    tls.connect=function(){return 'accepted'};
+    require('./scripts/public-demo-network.cjs');
+    for(const args of [[55442,'database.example.test'], [{host:'database.example.test',port:55442}], [[{host:'database.example.test',port:55442}]]]){
+      const socket=new net.Socket(); socket.connect(...args);
+      assert.equal(tls.connect({socket,host:'database.example.test',servername:'database.example.test'}),'accepted');
+      assert.equal(tls.connect({socket,servername:'database.example.test'}),'accepted');
+      assert.throws(()=>tls.connect({socket,host:'foreign.example.test'}), /interdit/);
+      assert.throws(()=>tls.connect({socket,host:'database.example.test',port:443}), /interdit/);
+      assert.throws(()=>tls.connect({socket,servername:'foreign.example.test'}), /interdit/);
+      socket.connect(55442,'foreign.example.test');
+      assert.throws(()=>tls.connect({socket,host:'database.example.test'}), /interdit/);
+    }
+    assert.throws(()=>tls.connect({socket:new net.Socket(),host:'database.example.test',port:55442}), /interdit/);
+    assert.equal(tls.connect({host:'database.example.test',port:55442}),'accepted');
+    assert.throws(()=>tls.connect({host:'foreign.example.test',port:55442}), /interdit/);
+  `
+  const result = spawnSync(process.execPath, ["-e", script], { cwd: process.cwd(), env: { NODE_ENV: "test", SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, DATABASE_URL: "postgresql://fake:fake@database.example.test:55442/fake" }, encoding: "utf8" })
+  expect(result.status, result.stderr).toBe(0)
+})
+
 it("blocks supplier HTTP, fetch and TCP even with a mistakenly present API key; preserves infrastructure read restrictions", () => {
   const script = `
     const assert=require('node:assert/strict');
