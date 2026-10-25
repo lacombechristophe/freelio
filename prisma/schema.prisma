@@ -2518,6 +2518,7 @@ model Equipment {
   @@unique([companyId, serialNumber])
   @@index([companyId, status])
   @@index([siteId])
+  @@index([companyId, siteId])
   @@index([companyId, archivedAt])
 }
 

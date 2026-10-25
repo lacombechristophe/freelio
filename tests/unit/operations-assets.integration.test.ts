@@ -84,6 +84,13 @@ describe.sequential("complete site and equipment directories on real SQL", () =>
     const site = (await getCustomerSiteDirectory()).items.find(item => item.id === firstSiteId)!
     expect(site._count).toEqual({ equipments: 2, serviceTickets: 1 })
   })
+  it("counts children on the final page and keeps an empty search empty", async () => {
+    const finalPage = await getCustomerSiteDirectory({ page: 999 })
+    expect(finalPage.items).toHaveLength(1)
+    expect(finalPage.items[0].label).toBe("Fictional site 200")
+    expect(finalPage.items[0]._count).toEqual({ equipments: 1, serviceTickets: 0 })
+    expect(await getCustomerSiteDirectory({ search: "No matching fictional site" })).toMatchObject({ items: [], total: 0, page: 1 })
+  })
   it.each(["OWNER", "ADMIN"])("preserves both local agencies for %s while excluding foreign relations", async role => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role } })
     expect((await getCustomerSiteDirectory()).total).toBe(202)

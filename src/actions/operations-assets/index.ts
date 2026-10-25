@@ -35,9 +35,18 @@ export async function getCustomerSiteDirectory(input: unknown = {}) {
       const page = Math.min(query.page, Math.max(1, Math.ceil(total / 25)))
       const items = await tx.customerSite.findMany({ where, skip: (page - 1) * 25, take: 25, orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
         select: { id: true, label: true, kind: true, address1: true, address2: true, postalCode: true, city: true, country: true,
-          accessNotes: true, latitude: true, longitude: true, archivedAt: true, updatedAt: true, client: { select: { name: true } }, agency: { select: { name: true } },
-          _count: { select: { equipments: { where: relations.equipment }, serviceTickets: { where: relations.ticket } } } } })
-      return { items: items.map(item => ({ ...item, archivedAt: item.archivedAt?.toISOString() ?? null, updatedAt: item.updatedAt.toISOString() })), total, page,
+          accessNotes: true, latitude: true, longitude: true, archivedAt: true, updatedAt: true, client: { select: { name: true } }, agency: { select: { name: true } } } })
+      // Count only the displayed sites, after pagination. Nested counts can make
+      // PostgreSQL aggregate the entire equipment graph before applying LIMIT.
+      const siteIds = items.map(item => item.id)
+      const equipmentCounts = siteIds.length ? await tx.equipment.groupBy({ by: ["siteId"],
+        where: { AND: [relations.equipment, { siteId: { in: siteIds } }] }, _count: { _all: true } }) : []
+      const ticketCounts = siteIds.length ? await tx.serviceTicket.groupBy({ by: ["siteId"],
+        where: { AND: [relations.ticket, { siteId: { in: siteIds } }] }, _count: { _all: true } }) : []
+      const equipmentBySite = new Map(equipmentCounts.map(row => [row.siteId, row._count._all]))
+      const ticketsBySite = new Map(ticketCounts.map(row => [row.siteId, row._count._all]))
+      return { items: items.map(item => ({ ...item, _count: { equipments: equipmentBySite.get(item.id) ?? 0, serviceTickets: ticketsBySite.get(item.id) ?? 0 },
+        archivedAt: item.archivedAt?.toISOString() ?? null, updatedAt: item.updatedAt.toISOString() })), total, page,
         canManage: hasPermission(context.role, "crm.write"), canTransfer: hasPermission(context.role, "company.manage") }
     }, { isolationLevel: "Serializable" })
   }, "operations.read")
