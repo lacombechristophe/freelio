@@ -24,7 +24,7 @@ export function publicDemoRequestAllowed(pathname: string, method: string) {
   }
   if (/^\/(portal|sign|join|feedback|consent|onboarding|dev)(\/|$)/.test(pathname)) return false
   if (pathname.startsWith("/dashboard")) {
-    if (/(^|\/)(new|edit|import)(\/|$)/.test(pathname)) return false
+    if (/(^|\/)(new|edit|import|amend)(\/|$)/.test(pathname)) return false
     // Read actions also use POST. Mutation rejection belongs in the DAL.
     return ["GET", "HEAD", "POST"].includes(method)
   }

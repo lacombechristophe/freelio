@@ -59,6 +59,11 @@ const protectedProxy = auth((request: NextAuthRequest, event: NextFetchEvent) =>
 
 export default function proxy(request: NextRequest, event: NextFetchEvent) {
   if (isPublicReadOnlyDemo() && !publicDemoRequestAllowed(request.nextUrl.pathname, request.method)) {
+    if (!request.nextUrl.pathname.startsWith("/api/") && ["GET", "HEAD"].includes(request.method)) {
+      const response = NextResponse.redirect(new URL("/demo/lecture-seule", request.url))
+      response.headers.set("Cache-Control", "no-store")
+      return response
+    }
     return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403, headers: { "Cache-Control": "no-store" } })
   }
   if (!requiresStrictCsp(request.nextUrl.pathname)) return NextResponse.next()

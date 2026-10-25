@@ -77,7 +77,7 @@ export async function Shell({ children, brand }: ShellProps) {
 
         <main id="dashboard-main" className="relative flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[1680px]">
-            {isDemoMode ? <p className="mb-3 text-xs text-muted-foreground">{DEMO_NOTICE}</p> : null}
+            {isDemoMode ? <p id="demo-notice" className="mb-3 text-xs text-muted-foreground">{DEMO_NOTICE}</p> : null}
             <AppPageTransition>{children}</AppPageTransition>
           </div>
         </main>

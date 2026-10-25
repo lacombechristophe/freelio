@@ -1,3 +1,4 @@
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Pencil, FileDown } from "lucide-react"
@@ -113,11 +114,10 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             </Button>
           </a>
           {quote.status === "DRAFT" && (
-            <Link href={`/dashboard/devis/${quote.id}/edit`}>
-              <Button variant="outline" className="gap-2">
-                <Pencil className="h-4 w-4" /> Éditer
-              </Button>
-            </Link>
+            <Button variant="outline" className="gap-2" disabled={isReadOnlyDemo} aria-describedby={isReadOnlyDemo ? "demo-notice" : undefined}
+              nativeButton={isReadOnlyDemo} render={isReadOnlyDemo ? undefined : <Link href={`/dashboard/devis/${quote.id}/edit`} />}>
+              <Pencil className="h-4 w-4" /> Éditer
+            </Button>
           )}
           <QuoteStatusActions quoteId={quote.id} orderConversionRevision={quote.orderConversionRevision} contractConversionRevision={quote.contractConversionRevision} contractId={quote.generatedContract?.id} canPrepareOrder={quote.canPrepareOrder} status={quote.status} hasOrder={Boolean(quote.customerOrder)} hasContract={Boolean(quote.generatedContract)} unavailableRelations={quote.unavailableRelations} />
         </div>
