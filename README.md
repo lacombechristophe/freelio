@@ -75,7 +75,7 @@ La [preview dédiée en lecture seule](https://freelio-demo-77c40cf.vercel.app) 
 
 Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 
-Le [dernier reçu CI validé](docs/evidence/20261024-ticket-priority/ci-916d8e0.json) porte sur `916d8e0` : quatre jobs verts, dont les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le [passage à Prisma 7](docs/evidence/20261025-prisma7/README.md) possède sa qualification locale ; sa CI reste requise. La version de la démo publique reste identifiée séparément.
+Le [dernier reçu CI validé](docs/evidence/20261024-ticket-priority/ci-916d8e0.json) porte sur `916d8e0` : quatre jobs verts, dont les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le [passage à Prisma 7](docs/evidence/20261025-prisma7/README.md) et les [lectures des annuaires](docs/evidence/20261025-asset-directories/README.md) possèdent leurs preuves locales ; les [contrôles de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks) identifient la CI du candidat publié. La version de la démo publique reste identifiée séparément.
 
 ## Image et exploitation
 

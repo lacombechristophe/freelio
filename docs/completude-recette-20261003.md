@@ -1,12 +1,12 @@
 # Qualification du candidat Freelio
 
-Le [passage à Prisma 7.10.1](evidence/20261025-prisma7/README.md) possède sa qualification locale : 4 118 réussites sur chaque moteur, avec une exclusion propre à l'autre moteur, puis build, runtime Linux, rôle lecteur et récupération native. La CI et la recette hébergée du nouveau code restent requises.
+Le [passage à Prisma 7.10.1](evidence/20261025-prisma7/README.md) possède sa qualification locale : 4 118 réussites sur chaque moteur, avec une exclusion propre à l'autre moteur, puis build, runtime Linux, rôle lecteur et récupération native. Les [contrôles de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks) donnent la CI du commit publié ; la recette hébergée reste distincte. Les [compléments des annuaires](evidence/20261025-asset-directories/README.md) passent 119 cas ciblés sur chaque moteur, avec compteurs après pagination et index société/site. Le candidat exige 75 migrations ; la base de preview en possède 73 confirmées. La répétition incrémentale est locale et ne vaut pas migration Neon.
 
 La référence précédente `916d8e0` réussit les quatre jobs de sa [CI](evidence/20261024-ticket-priority/ci-916d8e0.json) : SQLite 4 099 réussites sur chaque surface, PostgreSQL 4 098 et une exclusion native SQLite, desktop 260, mobile 243, runtime Linux neuf contrôles. L'[index SAV](evidence/20261024-ticket-priority/README.md) conserve les premiers échecs et le correctif du test de manifeste. Le [refus des quotas Upstash non vérifiés](evidence/20261024-rate-limit/README.md) appartient à cette référence qualifiée.
 
 Le candidat applicatif `70a384b93bbda32a6b245621b079dc0cd66fef4a` réussit les quatre jobs de la [CI du 24 octobre](https://github.com/lacombechristophe/freelio/actions/runs/40111403797). Le [reçu versionné](evidence/20261024-zod-security/ci-70a384b.json) identifie les jobs, les artefacts et leurs empreintes. Le commit de fusion testé `4911836` possède le même arbre Git que `70a384b`.
 
-| Vérification | Résultat courant |
+| Vérification | Résultat de `70a384b` |
 | --- | --- |
 | SQLite | 4 071 tests réussis dans 305 fichiers, sur chacun des deux jobs de recette. |
 | PostgreSQL | 4 070 réussites et une exclusion native SQLite. |
