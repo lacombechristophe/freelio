@@ -6,8 +6,12 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      vitest:
+        patterns: [vitest, "@vitest/*"]
+        update-types: [patch, minor, major]
       maintenance:
         update-types: [patch, minor]
+        exclude-patterns: [vitest, "@vitest/*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
