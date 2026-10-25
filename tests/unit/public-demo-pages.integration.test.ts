@@ -11,19 +11,22 @@ import { getPipeline } from "@/actions/pipeline"
 import { getTeamOverview } from "@/actions/team"
 import { getAgencyManagement } from "@/actions/agencies"
 import { getBillingOverview } from "@/actions/billing"
-import { getMigrationDashboard } from "@/actions/migrations"
+import { getMigrationDashboard, getMigrationRunDetails } from "@/actions/migrations"
 import { getCampaignDashboard } from "@/actions/campaigns"
 import { getRecurringInvoices } from "@/actions/factures"
+import { getCrmPropertyDefinitions } from "@/actions/crm-properties"
 import { DEFAULT_PIPELINE_STAGES } from "@/lib/pipeline-rules"
 import { Prisma } from "@/generated/prisma/client"
 import { requestContext } from "@/lib/context"
 
 describe.sequential("public demo module reads", () => {
   let membershipId: string
+  let migrationRunId: string
   beforeAll(async () => {
     session.companyId = (await prisma.company.create({ data: { name: "Fictional readonly module recipe" } })).id
     session.userId = (await prisma.user.create({ data: { email: `demo-pages-${randomUUID()}@example.test` } })).id
     membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    migrationRunId = (await prisma.migrationRun.create({ data: { companyId: session.companyId, provider: "EXTRABAT", kind: "MANUAL_ARCHIVE", status: "SIMULATED" } })).id
   })
   afterEach(async () => {
     vi.unstubAllEnvs()
@@ -41,6 +44,8 @@ describe.sequential("public demo module reads", () => {
     ["Agences", () => getAgencyManagement()], ["Abonnement", () => getBillingOverview()],
     ["Migrations", () => getMigrationDashboard()], ["Campagnes", () => getCampaignDashboard()],
     ["Récurrences", () => getRecurringInvoices()],
+    ["Propriétés personnalisées", () => getCrmPropertyDefinitions(undefined, true)],
+    ["Détail de migration", () => getMigrationRunDetails(migrationRunId)],
   ] as const
 
   it.each(reads)("renders %s without initializing or mutating business rows", async (_name, read) => {
@@ -60,6 +65,8 @@ describe.sequential("public demo module reads", () => {
   it.each([
     ["Équipe", () => getTeamOverview()], ["Agences", () => getAgencyManagement()],
     ["Migrations", () => getMigrationDashboard()],
+    ["Propriétés personnalisées", () => getCrmPropertyDefinitions(undefined, true)],
+    ["Détail de migration", () => getMigrationRunDetails(migrationRunId)],
   ] as const)("keeps the management permission for %s reads", async (_name, read) => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "VIEWER" } })
     vi.stubEnv("DEMO_ACCESS_MODE", "readonly")

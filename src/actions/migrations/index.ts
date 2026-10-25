@@ -155,7 +155,7 @@ export async function getMigrationDashboard() {
 }
 
 export async function getMigrationRunDetails(runId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withReadAuth(async ({ companyId }) => {
     const parsedId = connectionIdSchema.parse(runId)
     const run = await prisma.migrationRun.findFirst({
       where: { id: parsedId, companyId },
