@@ -8,6 +8,7 @@ test("administers marketing rules and static lists on desktop and mobile", async
   await page.getByRole("tab", { name: "Règles de score" }).click()
   const ruleForm = page.locator("form").filter({ has: page.locator('input[name="points"]') })
   await ruleForm.getByLabel("Nom", { exact: true }).fill(ruleName)
+  await ruleForm.getByLabel("Valeur", { exact: true }).selectOption({ label: "Qualifié" })
   await ruleForm.getByLabel("Points").fill("5")
   await ruleForm.getByRole("button", { name: "Ajouter", exact: true }).click()
   await expect(page.getByText("Règle créée.", { exact: true })).toBeVisible()

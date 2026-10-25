@@ -96,16 +96,10 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
             <FileDown className="h-4 w-4" /> PDF
           </a>
           {contract.status !== "SIGNED" && contract.kind === "STANDARD" && (
-            <Button variant="outline" disabled={isReadOnlyDemo} aria-describedby={isReadOnlyDemo ? "demo-notice" : undefined}
-              nativeButton={isReadOnlyDemo} render={isReadOnlyDemo ? undefined : <Link href={`/dashboard/contrats/${contract.id}/edit`} />}>
-              <Pencil className="h-4 w-4" /> Éditer
-            </Button>
+            isReadOnlyDemo ? <Button variant="outline" disabled aria-describedby="demo-notice"><Pencil className="h-4 w-4" /> Éditer</Button> : <Link href={`/dashboard/contrats/${contract.id}/edit`} className={buttonVariants({ variant: "outline" })}><Pencil className="h-4 w-4" /> Éditer</Link>
           )}
           {contract.status === "SIGNED" && contract.kind !== "MAINTENANCE_RENEWAL" && (
-            <Button variant="outline" disabled={isReadOnlyDemo} aria-describedby={isReadOnlyDemo ? "demo-notice" : undefined}
-              nativeButton={isReadOnlyDemo} render={isReadOnlyDemo ? undefined : <Link href={`/dashboard/contrats/${contract.id}/amend`} />}>
-              <Plus className="h-4 w-4" /> Créer un avenant
-            </Button>
+            isReadOnlyDemo ? <Button variant="outline" disabled aria-describedby="demo-notice"><Plus className="h-4 w-4" /> Créer un avenant</Button> : <Link href={`/dashboard/contrats/${contract.id}/amend`} className={buttonVariants({ variant: "outline" })}><Plus className="h-4 w-4" /> Créer un avenant</Link>
           )}
           <ContractStatusActions contractId={contract.id} status={contract.status} kind={contract.kind} />
         </div>

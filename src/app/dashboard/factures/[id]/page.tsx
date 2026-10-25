@@ -3,7 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Pencil, FileDown } from "lucide-react"
 import { getInvoiceById } from "@/actions/factures"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DocumentStudio } from "@/components/shared/document-studio"
@@ -114,10 +114,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             </Button>
           </a>
           {invoice.status === "DRAFT" && (
-            <Button variant="outline" className="gap-2" disabled={isReadOnlyDemo} aria-describedby={isReadOnlyDemo ? "demo-notice" : undefined}
-              nativeButton={isReadOnlyDemo} render={isReadOnlyDemo ? undefined : <Link href={`/dashboard/factures/${invoice.id}/edit`} />}>
-              <Pencil className="h-4 w-4" /> Éditer
-            </Button>
+            isReadOnlyDemo ? <Button variant="outline" className="gap-2" disabled aria-describedby="demo-notice"><Pencil className="h-4 w-4" /> Éditer</Button> : <Link href={`/dashboard/factures/${invoice.id}/edit`} className={buttonVariants({ variant: "outline", className: "gap-2" })}><Pencil className="h-4 w-4" /> Éditer</Link>
           )}
           <InvoiceActions
             invoiceId={invoice.id}
