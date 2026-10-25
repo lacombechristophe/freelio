@@ -1,0 +1,105 @@
+{
+  "observedAt": "2026-10-25T12:51:26.573998+00:00",
+  "main": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+  "mainCi": "https://github.com/lacombechristophe/freelio/actions/runs/40188633508",
+  "deployment": "dpl_Eq89NBbGYApsKVbKigxhsrEWSRhm",
+  "previousDeployment": "dpl_5jq6J42SqyVeJ1jugbYGX33VBbBq",
+  "url": "https://freelio-eight.vercel.app",
+  "explicitProductionPromotion": true,
+  "sourceRebuiltDuringPromotion": false,
+  "checks": [
+    {
+      "method": "GET",
+      "route": "/api/health/live",
+      "expectedStatus": 200,
+      "status": 200,
+      "matchesExpected": true,
+      "bodySha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288"
+    },
+    {
+      "method": "GET",
+      "route": "/api/health/ready",
+      "expectedStatus": 200,
+      "status": 200,
+      "matchesExpected": true,
+      "bodySha256": "6f6ff25cfd7c165c308a2ea1d1b61bbd40e0a79fb9f26e43f8966e83b91b9b1c",
+      "components": {
+        "database": "ok",
+        "schema": "ok",
+        "configuration": "ok"
+      },
+      "revision": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+      "matchesRevision": true,
+      "componentsReady": true
+    },
+    {
+      "method": "GET",
+      "route": "/auth/login",
+      "expectedStatus": 200,
+      "status": 200,
+      "matchesExpected": true,
+      "bodySha256": "35af2990c0a16480087664156b2e73c69550e20610fdfac013910b7ab0296cb8"
+    },
+    {
+      "method": "GET",
+      "route": "/dashboard",
+      "expectedStatus": 307,
+      "status": 307,
+      "matchesExpected": true,
+      "bodySha256": "886c0cc94b6bcded18e9c5eb89043d77ebd0416da746d8737bbd43976bb9bceb"
+    },
+    {
+      "method": "POST",
+      "route": "/api/public/leads",
+      "expectedStatus": 403,
+      "status": 403,
+      "matchesExpected": true,
+      "bodySha256": "2bc0ee147986aa619ec34f21eea7a1009da79528c8301de31708f3c3c4a0c54b"
+    },
+    {
+      "method": "GET",
+      "route": "/api/automations/process",
+      "expectedStatus": 403,
+      "status": 403,
+      "matchesExpected": true,
+      "bodySha256": "2bc0ee147986aa619ec34f21eea7a1009da79528c8301de31708f3c3c4a0c54b"
+    },
+    {
+      "method": "GET",
+      "route": "/api/integrations/email/oauth/start",
+      "expectedStatus": 403,
+      "status": 403,
+      "matchesExpected": true,
+      "bodySha256": "2bc0ee147986aa619ec34f21eea7a1009da79528c8301de31708f3c3c4a0c54b"
+    },
+    {
+      "method": "GET",
+      "route": "/api/backup/export",
+      "expectedStatus": 403,
+      "status": 403,
+      "matchesExpected": true,
+      "bodySha256": "2bc0ee147986aa619ec34f21eea7a1009da79528c8301de31708f3c3c4a0c54b"
+    },
+    {
+      "method": "GET",
+      "route": "/dashboard/devis/new",
+      "expectedStatus": 403,
+      "status": 403,
+      "matchesExpected": true,
+      "bodySha256": "2bc0ee147986aa619ec34f21eea7a1009da79528c8301de31708f3c3c4a0c54b"
+    },
+    {
+      "method": "POST",
+      "route": "/api/files/expense/fictional-absent-probe",
+      "expectedStatus": 403,
+      "status": 403,
+      "matchesExpected": true,
+      "bodySha256": "2bc0ee147986aa619ec34f21eea7a1009da79528c8301de31708f3c3c4a0c54b"
+    }
+  ],
+  "success": true,
+  "limits": [
+    "No application credentials, cookies, SQL connection strings or provider requests are exported.",
+    "Browser verification and restoration of temporary project switches are separate final gates."
+  ]
+}

@@ -4,6 +4,8 @@ Freelio est un CRM/ERP de démonstration pour une entreprise d’installation et
 
 Le périmètre courant utilise des données fictives. Le projet ne revendique pas une certification Factur-X, une conformité réglementaire globale, un SLA ni une validation exhaustive. Les capacités et limites sont décrites dans la [matrice de couverture](docs/coverage-and-external-dependencies.md).
 
+La [démo principale](https://freelio-eight.vercel.app) est hébergée en lecture seule. La [livraison du 25 octobre](docs/livraison-demo-20261025.md) identifie le main qualifié, les contrôles CI, la recette du domaine et les limites d’exploitation. Les identifiants fictifs se transmettent séparément du dépôt.
+
 ## Parcours de référence
 
 1. Client → devis versionné → facture et archive → règlement fictif.
@@ -71,7 +73,7 @@ Les tests d’intégration et fixtures écrivent et suppriment des données : ut
 
 Les [résultats courants](docs/completude-recette-20261003.md) distinguent le candidat local, la tête distante de la PR #8 et les contrôles exécutés sur chaque version. La [carte des preuves](docs/carte-des-preuves.md) relie les risques à leurs tests et limites. Une ancienne CI ou preview ne qualifie pas les changements locaux suivants ; la [recette hébergée sans stockage](docs/qualification-demo-sans-stockage-20261010.md) reste une référence datée. La branche main et la production restent des références distinctes.
 
-La [démo publique en lecture seule](https://freelio-demo-77c40cf.vercel.app) sert le code `745c51d`. Ses [preuves du 25 octobre](docs/evidence/20261025-public-demo/README.md) identifient la CI complète, les 75 migrations, la connexion, les lectures de documents/PDF et la déconnexion sur cet alias. Le nom de l’adresse est historique ; l’en-tête de révision permet de vérifier le code servi. Les [contrôles de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks) suivent les commits ultérieurs. Main et le profil Production gardent leur propre étape de livraison.
+La [livraison sur main et le domaine principal](docs/livraison-demo-20261025.md) est qualifiée séparément de l’ancien alias de candidat. Les [preuves de cet alias](docs/evidence/20261025-public-demo/README.md) restent attachées à `745c51d` ; les [reçus de main](docs/evidence/20261025-main-release/README.md) identifient la fusion, la CI après fusion et la consultation du domaine principal. L’en-tête `X-Freelio-Revision` permet d’observer la version servie. Chaque résultat reste lié à son code et à son environnement.
 
 Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 

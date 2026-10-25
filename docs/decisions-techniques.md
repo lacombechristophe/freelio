@@ -1,6 +1,6 @@
 # Décisions techniques — Freelio
 
-Référence initiale : 1er octobre 2026 ; compléments du candidat mis à jour le 6 octobre. Ce registre accompagne le [plan CTO](plan-vitrine-cto-20260930.md), le [suivi du socle](execution-cto-20261001.md) et la [recette de complétude](completude-recette-20261003.md). Une décision conservée provisoirement n’est pas une validation du support à long terme ; le candidat non fusionné ne décrit pas implicitement le runtime déployé.
+Référence initiale : 1er octobre 2026 ; compléments datés dans chaque décision. Ce registre accompagne le [plan CTO](plan-vitrine-cto-20260930.md), le [suivi du socle](execution-cto-20261001.md) et la [recette de complétude](completude-recette-20261003.md). Une décision conservée provisoirement n’est pas une validation du support à long terme. La [livraison du 25 octobre](livraison-demo-20261025.md) identifie séparément le code fusionné, sa qualification et le runtime déployé.
 
 ## D01 — Monolithe modulaire avec processus séparés
 
