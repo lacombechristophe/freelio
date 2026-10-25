@@ -14,6 +14,10 @@ npm run demo
 
 Le lanceur crée un dossier distinct sous `%TEMP%\Freelio-local-demo`, copie le code courant, prépare une SQLite neuve et crée une entreprise fictive avec six clients, six devis, six factures brouillons, six interventions, trois produits et un dépôt. Il ne copie aucun `.env`, aucune base existante ni les fichiers métier du projet. Il réutilise les dépendances installées ; le client Prisma et ses métadonnées sont générés uniquement dans la copie. Si l'installation a désactivé les scripts npm, préparer explicitement le binaire `better-sqlite3` avant cette première exécution.
 
+Trois dossiers supplémentaires relient une vente à décider, un chantier avec jalons et temps, et un SAV avec équipement et intervention. Le cockpit propose leur parcours de visite. Conversations, brouillon, segment, règle et scénario inactif complètent ces exemples. Aucun fournisseur n’est connecté ; toutes les factures restent brouillons et aucun consentement de prospection réel n’est créé.
+
+Les dates sont fixées à la préparation, sans déplacement automatique lors des visites. Pour une recette reproductible, définir `DEMO_REFERENCE_DATE` au format `AAAA-MM-JJ` avant la préparation.
+
 Le terminal affiche l’adresse locale, par défaut `http://127.0.0.1:54177`, le dossier créé et le chemin `demo-access.json`. Ce fichier contient l’adresse du compte fictif, son mot de passe aléatoire et les clés propres à cette démo. Ouvrir ce fichier localement pour se connecter ; conserver ce fichier privé avec les sauvegardes. Le terminal n’affiche pas les secrets. La connexion exige le mot de passe, y compris en développement.
 
 Le serveur écoute seulement sur `127.0.0.1`. Le lanceur transmet une liste explicite de variables aux processus : les clés fournisseur et les variables du projet ne sont pas héritées. Un garde-fou Node refuse les connexions externes, à l’exception des téléchargements publics de polices Google en HTTPS/GET sans authentification. Ce garde-fou ne constitue pas un pare-feu système. Aucun envoi métier aux fournisseurs n’est nécessaire pour cette démonstration.
@@ -31,6 +35,12 @@ npm run demo -- --resume "C:\chemin\vers\le\dossier-demo"
 La reprise actualise le code depuis ce dépôt et conserve la base et les justificatifs de la démo. Elle refuse un dossier sans marqueur de démo valide. Une réservation empêche deux serveurs ou une sauvegarde simultanée sur cette même base ; une réservation laissée par un processus terminé peut être récupérée, avec conservation de son historique.
 
 Les dossiers sont dans le répertoire temporaire Windows : les sauvegarder avant un nettoyage de ce répertoire.
+
+### Enrichir une démo existante
+
+Après sauvegarde et arrêt du serveur, depuis sa copie de travail, définir `DATABASE_URL` vers sa base dédiée puis exécuter `node scripts/seed-demo.mjs --enrich`. Cette commande affiche les ajouts prévus sans écrire. Ajouter `--apply` pour les créer. Le script vérifie la société fictive, conserve les lignes existantes et refuse une relation devenue incohérente. Les identifiants sont stables et versionnés ; un second passage ne double pas les exemples. La reprise seule ne réinitialise pas les données.
+
+Pour PostgreSQL, la base doit porter un nom `freelio_demo_*`, confirmé exactement par `DEMO_DATABASE_NAME`. Utiliser une session d’administration dédiée après sauvegarde, jamais le rôle lecteur web. Une restauration PostgreSQL doit suivre le runbook propre à cet hébergement ; la commande de restauration SQLite ci-dessous ne s’y applique pas.
 
 ## Sauvegarder et restaurer
 
