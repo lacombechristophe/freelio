@@ -10,6 +10,7 @@ export async function seedPortalRelations(prisma) {
     const company = await prisma.company.create({ data: { name: `Fictional portal relations ${surface}` } })
     const foreign = await prisma.company.create({ data: { name: `Fictional foreign portal relations ${surface}` } })
     const own = await prisma.client.create({ data: { id: `cportalrelationclient${surface}`, companyId: company.id, name: "FICTIONAL-PORTAL-OWN-PARTY" } })
+    await prisma.quote.create({ data: { companyId: company.id, clientId: own.id, number: `FICTIONAL-PORTAL-${surface}`, object: "Couverture de sécurité et mise en service du bassin — dossier de démonstration", status: "SENT" } })
     const other = await prisma.client.create({ data: { companyId: foreign.id, name: "FICTIONAL-PORTAL-FOREIGN-PARTY" } })
     const contact = await prisma.contact.create({ data: { clientId: other.id, firstName: "FICTIONAL-FOREIGN", lastName: "PORTAL-CONTACT" } })
     for (const kind of ["own", "foreignclient", "foreigncontact"]) {
