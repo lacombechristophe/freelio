@@ -1,0 +1,27 @@
+{
+  "phase": "preflight",
+  "startedAt": "2026-10-25T09:55:37.999Z",
+  "database": "freelio_demo_preview_20261010_420e34f8",
+  "checks": [
+    "Exact database and existing owner; direct endpoint with certificate validation",
+    "All existing migration names/checksums match the 75 versioned sources, including Prisma-compatible line endings",
+    "No unknown, duplicate, failed or rolled-back migration; only the two index migrations may be missing",
+    "Reader permissions unchanged and owner has both target tables"
+  ],
+  "before": {
+    "completedMigrations": 73,
+    "missing": [
+      "20261024190000_ticket_priority_order",
+      "20261025093000_equipment_company_site"
+    ],
+    "indexes": [],
+    "privileges": {
+      "reader_history": true,
+      "reader_company_update": false,
+      "owns_equipment": true,
+      "owns_tickets": true
+    }
+  },
+  "success": true,
+  "finishedAt": "2026-10-25T09:55:39.446Z"
+}

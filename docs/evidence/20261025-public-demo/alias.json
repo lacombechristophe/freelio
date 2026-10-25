@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-10-25T10:30:39.303422+00:00",
+  "alias": "freelio-demo-77c40cf.vercel.app",
+  "project": "prj_q8zNIsWtnHyuckcJT4jWsZadXEqR",
+  "beforeDeployment": "dpl_GUXTCNwBumXtR8sjwH8rAbkWLkLQ",
+  "afterDeployment": "dpl_GMcHzpUT4a4nYP6FYTYzmqucWMxZ",
+  "revision": "745c51db80464fa386b7abec90d6c9c7a5f4a647",
+  "publicHealthStatus": 200,
+  "publicRevision": "745c51db80464fa386b7abec90d6c9c7a5f4a647",
+  "components": {
+    "database": "ok",
+    "schema": "ok",
+    "configuration": "ok"
+  },
+  "finishedAt": "2026-10-25T10:30:45.446344+00:00",
+  "success": true,
+  "limits": [
+    "Moves only the existing demo alias to the fully CI-qualified Preview artifact; main and the Production environment remain unchanged.",
+    "Public password login and final browser smoke on this canonical host still require verification."
+  ]
+}
