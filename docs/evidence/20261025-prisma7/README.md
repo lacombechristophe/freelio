@@ -43,3 +43,24 @@ Le [reçu d'export](backup.json) conserve ces échecs et les corrections. Les re
 La recette révèle séparément qu'un champ générique `token` échappe au masquage récursif. `dc9487b` retire cette clé, quelle que soit sa casse, tout en conservant compteurs et empreintes métier : une régression échoue avant le correctif, puis les huit cas d'intégrité passent. Les deux échecs de volume restent visibles à ce stade ; ils ne sont pas présentés comme corrigés par le masquage.
 
 Après les deux correctifs, **17 cas passent sur SQLite et PostgreSQL 18.6**. Les données comprennent 1 001 ressources supplémentaires, plusieurs pages d'audit sur la même ressource, plus de 1 000 membres et deux sociétés avec un membre partagé. Typage et linters passent. Un build de production de 76 pages, une connexion HTTP avec un mot de passe fictif et l'export compilé réussissent : HTTP 200, les 1 001 catégories et audits témoins présents, sans doublon ni jeton porteur. Aucun navigateur local n'est lancé et le serveur de recette est arrêté ensuite. Cette recette ne remplace pas la nouvelle CI ni l'authentification de la démo hébergée.
+
+## Diagnostic de connexion et identité du déploiement
+
+Un premier contrôle de la preview `a54a8f5` répond 503 avec la base en échec ; les lectures suivantes rétablissent la connexion, avec le journal toujours à 73 migrations sur 74. Le diagnostic existant ne permet pas d'établir la cause du premier échec. Ce constat reste ouvert : un HTTP 503 seul ne prouve pas que seul le schéma est incomplet.
+
+Le [reçu de diagnostic](diagnostics.json) reproduit, sur un serveur TCP fictif en boucle locale qui ne répond pas au protocole PostgreSQL, un délai du pool sous forme d'`Error` sans code. La sonde ajoute la classe d'exception autorisée, le temps écoulé et la reconnaissance des deux messages exacts de délai du pool installé. Ces champs restent dans le journal serveur, sans message brut. Ils ne modifient ni les délais, ni les décisions de reprise ; une erreur inconnue reste inconnue.
+
+L'en-tête `X-Freelio-Revision` contient uniquement le SHA Git fourni par Vercel lorsqu'il possède le format exact de 40 caractères hexadécimaux. La réponse JSON et les conditions de disponibilité restent identiques. Ce repère permet au harnais hébergé préparé de vérifier le candidat avant la connexion et après la déconnexion ; ce harnais reste hors dépôt et non exécuté.
+
+Les 57 tests ciblés, le typage et les deux linters passent. Un build de 76 pages et un contrôle HTTP local sans navigateur vérifient l'en-tête dans le code compilé, avec un SHA fictif. La base et le modèle SQLite sont prêts ; l'absence volontaire de configuration fournisseur maintient correctement le 503. Le serveur est ensuite arrêté. Ce passage ne qualifie ni la disponibilité Neon, ni l'authentification hébergée, ni un service commercial.
+
+Pour rejouer le [témoin natif de délai](native-connect-timeout.mjs), utiliser une copie de recette installée, sans `.env` réel :
+
+```powershell
+$env:RECIPE_ISOLATED = "true"
+$env:DATABASE_URL = "postgresql://fictional:fictional@127.0.0.1:54321/fictional_timeout"
+npm run db:generate
+node --import tsx docs/evidence/20261025-prisma7/native-connect-timeout.mjs
+```
+
+La génération sélectionne PostgreSQL sans connexion. Le témoin ouvre ensuite son propre port TCP aléatoire sur `127.0.0.1`, attend le délai du pilote et ferme les sockets ; aucune base n'est contactée ou créée.
