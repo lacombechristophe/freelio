@@ -69,3 +69,5 @@ build_log.txt
 .vercel
 .env*.local
 /design-concepts/
+
+/src/generated/schema-metadata.ts

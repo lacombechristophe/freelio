@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 
 test("Accounting confirms draft deletion and retrieves its unchanged unbilled time", async ({ page }, info) => {

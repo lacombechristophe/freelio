@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -12,7 +12,7 @@ import { completeFieldInterventionForContext } from "@/lib/field/interventions"
 import { createStockMovement, createStockTransfer, reserveStock, consumeInterventionMaterial,
   receivePurchaseOrder, createSupplierReturn, resolvePurchaseIssue } from "@/actions/operations"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const commands = ["movement", "transfer", "reservation", "material", "receipt", "return"] as const
 
 describe.sequential("stock writers recheck the active warehouse inside their transaction", () => {

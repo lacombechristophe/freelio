@@ -17,7 +17,7 @@ Chaque parcours doit être relié à des tests, à une version et à ses limites
 | Élément | Choix actuel |
 | --- | --- |
 | Application | Next.js 16, React 19, TypeScript strict |
-| Données | Prisma 6 ; PostgreSQL pour l’environnement partagé, SQLite pour la démo locale |
+| Données | Prisma 7 et pilotes explicites ; PostgreSQL pour l’environnement partagé, SQLite pour la démo locale |
 | Accès | Auth.js, mots de passe, MFA, memberships et droits par domaine |
 | Documents | Puppeteer/Chromium, pdf-lib et XML Factur-X ; aucune certification globale |
 | Travaux de fond | BullMQ/Redis TCP ; Upstash REST pour la limitation distribuée |
@@ -28,15 +28,15 @@ L’architecture est un monolithe modulaire avec un processus worker séparé. L
 
 ## Démo locale isolée
 
-Prérequis : Node **24.x**, npm et les dépendances installées. Le postinstall d’une installation neuve génère Prisma et nécessite une DATABASE_URL de développement. Pour installer sans ce postinstall : `npm ci --ignore-scripts`, puis générer explicitement le client SQLite avant la première démo.
+Prérequis : Node **24.x**, npm et les dépendances installées. Le postinstall d’une installation neuve génère Prisma et nécessite une DATABASE_URL de développement. Une installation avec `npm ci --ignore-scripts` demande une préparation explicite du binaire `better-sqlite3` pour SQLite, par exemple avec `npm rebuild better-sqlite3` ; aucune installation n'est effectuée par le lanceur.
 
-Avec un client Prisma SQLite déjà généré :
+Depuis le dépôt avec ses dépendances disponibles :
 
 ```powershell
 npm run demo
 ```
 
-Le lanceur crée une nouvelle copie dans le répertoire temporaire, une SQLite neuve et un compte fictif avec mot de passe. Il ne copie aucun .env ni donnée métier du dépôt. Le terminal affiche l’adresse locale et le chemin privé des identifiants, sans afficher les secrets. Il réutilise les dépendances installées sans régénérer leur client Prisma.
+Le lanceur crée une nouvelle copie dans le répertoire temporaire, une SQLite neuve et un compte fictif avec mot de passe. Il ne copie aucun .env ni donnée métier du dépôt. Le terminal affiche l’adresse locale et le chemin privé des identifiants, sans afficher les secrets. Les dépendances sont réutilisées ; le client Prisma et ses métadonnées sont générés dans la copie.
 
 La démo locale est distincte de la démo hébergée en lecture seule. Son garde-fou Node refuse les connexions fournisseur mais permet les téléchargements publics de polices. Voir le [guide de démarrage, reprise, sauvegarde et restauration](docs/demo-local.md). La qualification Vercel et ses limites sont consignées dans le [compte rendu de livraison](docs/livraison-demo-vercel-20261003.md).
 
@@ -75,7 +75,7 @@ La [preview dédiée en lecture seule](https://freelio-demo-77c40cf.vercel.app) 
 
 Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
 
-Le [dernier reçu CI validé](docs/evidence/20261024-zod-security/ci-70a384b.json) porte sur `70a384b` : quatre jobs verts, dont les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le reçu conserve les exclusions et la portée des simulations ; la version de la démo publique reste identifiée séparément.
+Le [dernier reçu CI validé](docs/evidence/20261024-ticket-priority/ci-916d8e0.json) porte sur `916d8e0` : quatre jobs verts, dont les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le [passage à Prisma 7](docs/evidence/20261025-prisma7/README.md) possède sa qualification locale ; sa CI reste requise. La version de la démo publique reste identifiée séparément.
 
 ## Image et exploitation
 

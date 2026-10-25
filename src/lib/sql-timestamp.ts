@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
 // Prisma stores DateTime as UTC clock fields in PostgreSQL TIMESTAMP columns,
 // but binds raw Date parameters as timestamptz. An implicit conversion would

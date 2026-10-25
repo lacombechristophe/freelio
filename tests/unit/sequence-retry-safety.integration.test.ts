@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/automations/email", () => ({ renderEmailVariables: vi.fn(), prepareSequenceEmail: vi.fn(), sendSequenceEmail: vi.fn(() => { throw new Error("Unexpected fictional transport") }) }))

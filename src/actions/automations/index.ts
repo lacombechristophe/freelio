@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import { activeCommunicationChannel } from "@/lib/communications/email-provider"
 import { isDeepStrictEqual } from "node:util"

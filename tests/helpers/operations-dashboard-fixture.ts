@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@/generated/prisma/client"
 
 export const dashboardCollections = ["sites", "equipments", "tickets", "interventions", "contracts", "projects", "customerOrders", "deliveryNotes", "purchaseOrders", "goodsReceipts"] as const
 

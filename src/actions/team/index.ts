@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { assertWithinPlanLimit } from "@/lib/billing/subscription"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { lockCompanyOwnership } from "@/lib/auth/company-ownership"
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254)

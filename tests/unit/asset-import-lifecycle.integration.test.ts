@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -9,7 +9,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { importMigrationRun } from "@/actions/migrations"
 import * as slots from "@/lib/scheduling/resource-slots"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const kinds = ["projects", "equipments", "tickets", "interventions", "maintenance_contracts"] as const
 describe.sequential("asset imports retain raw data when a new reference is deactivated", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>

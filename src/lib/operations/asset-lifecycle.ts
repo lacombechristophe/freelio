@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import type { AgencyAccess } from "@/lib/agency-access"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import type { TransactionClient } from "@/lib/prisma"

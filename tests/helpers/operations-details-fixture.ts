@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@/generated/prisma/client"
 import { createOperationsDashboardFixture } from "./operations-dashboard-fixture"
 
 export async function createOperationsDetailsFixture(db: PrismaClient) {

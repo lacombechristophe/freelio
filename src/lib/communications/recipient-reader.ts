@@ -1,5 +1,5 @@
 import "server-only"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query"
 import prisma from "@/lib/prisma"

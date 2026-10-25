@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import { encrypt, decrypt, decryptSensitive } from "@/lib/crypto"
 import { storeFileBytes, readLocalFile, removeLocalFile } from "@/lib/local-files"

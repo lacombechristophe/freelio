@@ -1,6 +1,6 @@
 import "server-only"
 
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import type { AgencyAccess } from "@/lib/agency-access"
 
 // Includes do not inherit the Prisma extension's tenant/agency predicates.

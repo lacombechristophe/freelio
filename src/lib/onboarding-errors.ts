@@ -1,3 +1,5 @@
+import { uniqueConstraintTarget } from "@/lib/prisma-constraint"
+
 export const DUPLICATE_SIRET_MESSAGE =
   "Ce SIRET est déjà rattaché à un autre espace. Pour un compte de démonstration, laissez ce champ vide ; pour rejoindre l’entreprise existante, demandez une invitation."
 
@@ -17,7 +19,7 @@ export function onboardingErrorMessage(error: unknown) {
   const candidate = prismaError(error)
   if (candidate?.code !== "P2002") return GENERIC_ONBOARDING_MESSAGE
 
-  const target = candidate.meta?.target
+  const target = uniqueConstraintTarget(error)
   const fields = Array.isArray(target) ? target : typeof target === "string" ? [target] : []
   return fields.some((field) => String(field).toLowerCase().includes("siret"))
     ? DUPLICATE_SIRET_MESSAGE

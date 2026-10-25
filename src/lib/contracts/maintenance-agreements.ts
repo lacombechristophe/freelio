@@ -1,7 +1,7 @@
 import "server-only"
 
 import { sqlTimestamp } from "@/lib/sql-timestamp"
-import { Prisma, type Contract } from "@prisma/client"
+import { Prisma, type Contract } from "@/generated/prisma/client"
 import type { AuthContext } from "@/lib/auth-wrapper"
 import type { TransactionClient } from "@/lib/prisma"
 import { AssetLifecycleError } from "@/lib/operations/asset-error"

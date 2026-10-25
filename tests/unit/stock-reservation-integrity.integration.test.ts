@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -21,7 +21,7 @@ vi.mock("@/lib/prisma", async importOriginal => {
 import prisma from "@/lib/prisma"
 import { consumeStockReservation, releaseStockReservation, reserveStock } from "@/actions/operations"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const sqlite = process.env.DATABASE_URL?.startsWith("file:")
 
 describe.sequential("Stock reservation integrity on real SQL", () => {

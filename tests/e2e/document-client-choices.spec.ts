@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test, type Locator, type Page } from "@playwright/test"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 const forms = [
   { kind: "quote", route: "devis", clientLabel: "Client du devis", titleId: "object", dateId: "validUntil" },

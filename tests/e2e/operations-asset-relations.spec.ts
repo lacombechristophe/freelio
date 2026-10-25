@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 import { hashPassword } from "../../src/lib/auth/password-core"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
 test("site and equipment directories exclude foreign relations, including searched records and counters", async ({ page }, info) => {
   if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette des annuaires Sites et parc exige une SQLite fictive isolée")
-  const database = new PrismaClient()
+  const database = createDatabaseClient()
   const fixture = await createOperationsDashboardFixture(database)
   try {
     const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"

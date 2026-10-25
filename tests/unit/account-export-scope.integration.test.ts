@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -7,7 +7,7 @@ vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 import { exportUserData } from "@/actions/compliance"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Account export does not become a company-data export", () => {
   let formerCompany: string, activeCompany: string, ownNotification: string
   beforeEach(async () => {

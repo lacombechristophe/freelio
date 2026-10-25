@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 import { hashPassword } from "../../src/lib/auth/password-core"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
 test("transfers a complete site dossier with a reason, confirmation and preserved stale form", async ({ page }, info) => {
   if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette de transfert exige une SQLite fictive isolée")
-  const db = new PrismaClient(), fixture = await createOperationsDashboardFixture(db)
+  const db = createDatabaseClient(), fixture = await createOperationsDashboardFixture(db)
   try {
     const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
     await db.user.update({ where: { id: fixture.user.id }, data: { emailVerified: new Date(), passwordHash: await hashPassword(password) } })

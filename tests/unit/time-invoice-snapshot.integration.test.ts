@@ -32,7 +32,7 @@ vi.mock("@/lib/prisma", async importOriginal => {
     } })), options)
   } }) }
 })
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 import { createInvoiceFromTimeEntries, getUnbilledTimeEntries } from "@/actions/factures"
 import { updateTimeEntry } from "@/actions/temps"

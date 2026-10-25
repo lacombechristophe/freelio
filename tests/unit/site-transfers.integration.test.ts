@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -11,7 +11,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { getSiteTransferChoices, transferCustomerSite } from "@/actions/site-transfers"
 import { getCustomerSiteDirectory, getEquipmentDirectory } from "@/actions/operations-assets"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("entire site dossier transfer between agencies", () => {
   let companyId: string, foreignCompanyId: string, userId: string, memberId: string, sourceId: string, destinationId: string,
     foreignAgencyId: string, siteId: string, otherSiteId: string, projectId: string, equipmentId: string, clientId: string

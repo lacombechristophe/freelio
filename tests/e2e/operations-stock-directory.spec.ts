@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 
 test("complete stock keeps indicators, agency and open input through pagination and recovery", async ({ page }, info) => {

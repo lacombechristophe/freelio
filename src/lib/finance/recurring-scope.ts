@@ -1,5 +1,5 @@
 import "server-only"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import type { AuthContext } from "@/lib/auth-wrapper"
 
 export const recurringPageSize = 25

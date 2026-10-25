@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { describe, expect, it, vi } from "vitest"
 vi.mock("server-only", () => ({}))
 import { seedRemoteMail } from "../../scripts/seed-remote-mail.mjs"
@@ -7,7 +7,7 @@ import { readInboxPage } from "@/lib/communications/inbox-reader"
 
 describe("recorded remote-mail browser fixture", () => {
   it("is repeatable, disconnected and contains distinct local and provider states without exposing BCC", async () => {
-    const db = new PrismaClient(), company = await db.company.create({ data: { name: "Fictional browser mail fixture" } })
+    const db = createDatabaseClient(), company = await db.company.create({ data: { name: "Fictional browser mail fixture" } })
     const user = await db.user.create({ data: { email: `${randomUUID()}@example.test` } })
     try {
       await seedRemoteMail(db, company.id, user.id); await seedRemoteMail(db, company.id, user.id)

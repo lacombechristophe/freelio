@@ -12,6 +12,8 @@ const targetPath = path.join(projectRoot, "prisma", "postgresql", "schema.prisma
 const source = await readFile(sourcePath, "utf8")
 const postgres = source
   .replace('provider = "sqlite"', 'provider = "postgresql"')
+  .replace('../src/generated/prisma', '../../src/generated/prisma')
+  .replace('../src/generated/schema-metadata.ts', '../../src/generated/schema-metadata.ts')
 
 if (postgres === source) throw new Error("Impossible de produire le schéma Prisma PostgreSQL")
 await mkdir(path.dirname(targetPath), { recursive: true })

@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -11,7 +11,7 @@ import prisma from "@/lib/prisma"
 import * as service from "@/actions/operations"
 import { getOperationsDashboard } from "@/actions/operations"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
-const database = new PrismaClient()
+const database = createDatabaseClient()
 
 describe.sequential("Operations service lists exceed historical dashboard caches", () => {
   let siteId: string, clientId: string, membershipId: string

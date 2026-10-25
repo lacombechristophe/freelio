@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))
@@ -9,7 +9,7 @@ import { changePortalAppointment, getClientPortalAppointments, getPortalBookingC
 import { createFieldIntervention, rescheduleFieldIntervention, updateInterventionStatus } from "@/actions/operations"
 import { resolveBookingLocalTime } from "@/lib/scheduling/booking-time"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("CRM bookings share capacity with field work", () => {
   let clientId: string, memberId: string, secondMemberId: string, siteId: string, agencyId: string, otherAgencyId: string, foreignCompanyId: string, foreignMemberId: string
   const users: string[] = []

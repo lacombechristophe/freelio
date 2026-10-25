@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -8,7 +8,7 @@ vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, co
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { importMigrationRun } from "@/actions/migrations"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const kinds = ["stock_movements", "stock_reservations", "goods_receipts"] as const
 describe.sequential("imports respect warehouse activity and retain rejected raw records", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>

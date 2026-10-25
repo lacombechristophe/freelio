@@ -1,5 +1,6 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient, type Prisma } from "@prisma/client"
+import { type Prisma } from "@/generated/prisma/client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "", authenticated: true }))
@@ -9,7 +10,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { getAssetTicketChoices } from "@/actions/asset-choices"
 import { requestContext } from "@/lib/context"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 
 describe.sequential("New intervention ticket choices reach the complete compatible portfolio", () => {
   let membershipId: string, agencyId: string, otherAgencyId: string, clientId: string, otherClientId: string

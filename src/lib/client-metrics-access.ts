@@ -1,4 +1,4 @@
-import type { Client } from "@prisma/client"
+import type { Client } from "@/generated/prisma/client"
 import { hasPermission, type CompanyRole } from "@/lib/permissions"
 
 type ClientMetrics = Pick<Client, "totalRevenueCents" | "totalUnpaidCents" | "renewalAmountCents" | "relationScore">

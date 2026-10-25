@@ -1,8 +1,8 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { createHash } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { expect, test } from "@playwright/test"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 
 test("Compiled portal rejects incoherent links and rechecks an existing session", async ({ page }, info) => {

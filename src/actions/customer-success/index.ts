@@ -7,7 +7,7 @@ import { logAction } from "@/lib/audit"
 import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
 import { AuthorizationError, withAuth } from "@/lib/auth-wrapper"
 import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import {
   customerHealthMetricDefinitions,
   defaultCustomerHealthRules,

@@ -1,5 +1,7 @@
 # Carte des risques et preuves
 
+Le [passage à Prisma 7](evidence/20261025-prisma7/README.md) conserve les suites SQL, les dates historiques, les droits du lecteur et la récupération native. Ses preuves locales ne remplacent pas sa nouvelle CI. La [CI de `916d8e0`](evidence/20261024-ticket-priority/ci-916d8e0.json) reste la dernière référence distante entièrement qualifiée.
+
 Les fichiers ci-dessous donnent des points d’entrée pour une revue technique. Leur présence n’est pas leur résultat : la [recette de complétude](completude-recette-20261003.md) consigne les corrections récentes et leur SHA testé ; le [suivi CTO](execution-cto-20261001.md) conserve les preuves du socle. Les tests mocks vérifient une branche de code ; les tests d’intégration SQL et Chromium ajoutent des preuves sur les composants réels.
 
 La [CI courante de `70a384b`](evidence/20261024-zod-security/ci-70a384b.json) réussit les suites SQLite/PostgreSQL, les deux formats navigateur et les neuf contrôles Linux. Les portées des lignes ci-dessous restent celles de leurs recettes datées ; les mentions « non exécuté » décrivent ces passages initiaux. Les comptes fournisseurs, les scripts natifs et les déploiements conservent leurs qualifications distinctes. La recette authentifiée de la preview reste ouverte.

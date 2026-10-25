@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const session = vi.hoisted(() => ({ userId: "", companyId: "", token: "", origin: true }))
 vi.mock("server-only", () => ({}))
@@ -13,7 +13,7 @@ import { GET, POST } from "@/app/api/portal/appointments/route"
 import { GET as calendar } from "@/app/api/organisation/calendar.ics/route"
 import { resolveBookingLocalTime } from "@/lib/scheduling/booking-time"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("portal booking routes keep session, client and wall-time boundaries", () => {
   let clientId: string, otherClientId: string, memberId: string
   beforeEach(async () => {

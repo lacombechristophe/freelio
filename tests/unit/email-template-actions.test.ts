@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(), update: vi.fn(), findFirst: vi.fn(), logAction: vi.fn(), revalidatePath: vi.fn(),

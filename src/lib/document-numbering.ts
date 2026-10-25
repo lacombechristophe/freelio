@@ -1,5 +1,6 @@
 import { getContext, requestContext } from "@/lib/context"
 import { isTransactionConflict } from "@/lib/transaction-conflicts"
+import { uniqueConstraintTarget } from "@/lib/prisma-constraint"
 
 export const DOCUMENT_NUMBER_MAX_RETRIES = 20
 
@@ -48,7 +49,7 @@ export function isUniqueConstraintConflict(error: unknown, field: string, accept
 
   if (maybePrismaError.code !== "P2002") return false
 
-  const target = maybePrismaError.meta?.target
+  const target = uniqueConstraintTarget(error)
   if (!target) return acceptUnknownTarget
   if (Array.isArray(target)) return target.includes(field)
   if (typeof target === "string") return target.includes(field)

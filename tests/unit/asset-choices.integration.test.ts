@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -10,7 +10,7 @@ import { getAssetEquipmentChoices, getAssetSiteChoices } from "@/actions/asset-c
 import { getCustomerSiteDirectory, getEquipmentDirectory } from "@/actions/operations-assets"
 import { getOperationsProductChoices } from "@/actions/operations-product-choices"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("active asset choices and historical directories", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>
   let lastSiteId: string, lastEquipmentId: string, productId: string, inactiveEquipmentId: string

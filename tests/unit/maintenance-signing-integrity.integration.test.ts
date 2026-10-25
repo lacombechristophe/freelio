@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { createHash, randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))
@@ -14,7 +14,7 @@ import * as archives from "@/lib/contracts/archive"
 import { buildBackupPayload } from "@/lib/backup"
 import { verifyReversibilityExport } from "@/lib/backup-integrity"
 
-const db = new PrismaClient(), png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jskYAAAAASUVORK5CYII="
+const db = createDatabaseClient(), png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jskYAAAAASUVORK5CYII="
 const hash = (value: string | null) => value == null ? null : createHash("sha256").update(value).digest("hex")
 describe.sequential("Maintenance signature and subsequent term preserve the agreed economics", () => {
   let sourceId: string, proposalId: string, membershipId: string

@@ -1,4 +1,4 @@
-import type { LeadCapture, LeadScoringRule } from "@prisma/client"
+import type { LeadCapture, LeadScoringRule } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 
 type ScorableLead = Pick<LeadCapture, "status" | "source" | "city" | "projectType" | "marketingOptIn" | "email" | "phone" | "createdAt" | "score">

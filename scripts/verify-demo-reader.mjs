@@ -1,11 +1,11 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import assert from "node:assert/strict"
 import fs from "node:fs/promises"
 import path from "node:path"
-import { PrismaClient } from "@prisma/client"
 
 const url = new URL(process.env.DATABASE_URL || "")
 if (process.env.RECIPE_ISOLATED !== "true" || !["127.0.0.1", "localhost"].includes(url.hostname) || url.username !== "freelio_demo_reader" || !url.pathname.startsWith("/freelio_demo_")) throw Error("Le rôle lecteur et la base fictive locale sont requis")
-const client = new PrismaClient()
+const client = createDatabaseClient()
 const checks = []
 try {
   const [role] = await client.$queryRaw`SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls FROM pg_roles WHERE rolname = current_user`
@@ -20,7 +20,9 @@ try {
     'CREATE TABLE public.reader_forbidden_test (id int)',
   ]) {
     let denied = false
-    try { await client.$executeRawUnsafe(sql) } catch (error) { denied = error?.meta?.code === "42501" }
+    try { await client.$executeRawUnsafe(sql) } catch (error) {
+      denied = error?.code === "P2010" && (error.meta?.code === "42501" || error.meta?.driverAdapterError?.cause?.originalCode === "42501")
+    }
     assert(denied, "Une opération interdite n’a pas été refusée par PostgreSQL")
     checks.push(sql.split(" ")[0] + " refused by PostgreSQL (42501)")
   }

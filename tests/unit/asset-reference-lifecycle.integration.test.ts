@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -9,7 +9,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { createEquipment, createServiceTicket, createFieldIntervention, createMaintenanceContract, renewMaintenanceContract, getOperationsDashboard, getOperationsMaintenanceDirectory } from "@/actions/operations"
 import { processDueMaintenanceVisits } from "@/lib/scheduling/business"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const commands = ["equipment", "ticket", "intervention", "maintenance"] as const
 describe.sequential("new references recheck active sites and equipment", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>

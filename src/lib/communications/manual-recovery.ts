@@ -1,7 +1,7 @@
 import "server-only"
 import { providerConversationIdSchema } from "@/lib/communications/conversation-identity"
 import { z } from "zod"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import prisma, { type TransactionClient } from "@/lib/prisma"
 import { getContext } from "@/lib/context"
 import { hasPermission, normalizeCompanyRole } from "@/lib/permissions"

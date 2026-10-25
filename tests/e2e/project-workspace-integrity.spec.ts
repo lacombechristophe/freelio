@@ -1,8 +1,8 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { expect, test } from "@playwright/test"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 
 test("project workspace keeps saved state and preserves drafts after stale revisions", async ({ page }, info) => {

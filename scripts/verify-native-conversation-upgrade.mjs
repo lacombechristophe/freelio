@@ -18,7 +18,7 @@ const beforeSchema = path.join(directory, "before.prisma")
 writeFileSync(beforeSchema, previous)
 new DatabaseSync(databaseFile).close()
 function push(file) {
-  const result = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "db", "push", "--skip-generate", "--schema", file], {
+  const result = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "db", "push", "--schema", file], {
     cwd: root, windowsHide: true, encoding: "utf8", env: { ...process.env, DATABASE_URL: `file:${databaseFile.replaceAll("\\", "/")}` },
   })
   if (result.error) throw result.error
@@ -41,10 +41,10 @@ db.prepare('INSERT INTO "EmailDelivery" ("id", "companyId", "channelId", "recipi
 const tables = ["Company", "CommunicationChannel", "EmailThread", "EmailMessage", "EmailDelivery"]
 const snapshot = () => Object.fromEntries(tables.map(table => [table, db.prepare(`SELECT * FROM "${table}" ORDER BY "id"`).all().map(row => Object.fromEntries(Object.entries(row).filter(([key]) => key !== "providerConversationId")))]))
 const before = snapshot(); db.close()
-const sqliteDiff = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "migrate", "diff", "--from-schema-datamodel", beforeSchema, "--to-schema-datamodel", path.join(root, "prisma/schema.prisma"), "--script"], { cwd: root, windowsHide: true, encoding: "utf8" })
+const sqliteDiff = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "migrate", "diff", "--from-schema", beforeSchema, "--to-schema", path.join(root, "prisma/schema.prisma"), "--script"], { cwd: root, windowsHide: true, encoding: "utf8" })
 assert.equal(sqliteDiff.status, 0, sqliteDiff.stderr)
 assert.doesNotMatch(sqliteDiff.stdout, /\b(DROP|DELETE|UPDATE|RENAME)\b/i)
-const applied = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "db", "execute", "--stdin", "--schema", path.join(root, "prisma/schema.prisma")], {
+const applied = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "db", "execute", "--stdin"], {
   cwd: root, windowsHide: true, input: sqliteDiff.stdout, encoding: "utf8", env: { ...process.env, DATABASE_URL: `file:${databaseFile.replaceAll("\\", "/")}` },
 })
 assert.equal(applied.status, 0, applied.stderr)
@@ -55,7 +55,7 @@ assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), [])
 db.close()
 const postgresBefore = path.join(directory, "before-postgres.prisma")
 writeFileSync(postgresBefore, previous.replace('provider = "sqlite"', 'provider = "postgresql"'))
-const diff = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "migrate", "diff", "--from-schema-datamodel", postgresBefore, "--to-schema-datamodel", path.join(root, "prisma/postgresql/schema.prisma"), "--script"], { cwd: root, windowsHide: true, encoding: "utf8" })
+const diff = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "migrate", "diff", "--from-schema", postgresBefore, "--to-schema", path.join(root, "prisma/postgresql/schema.prisma"), "--script"], { cwd: root, windowsHide: true, encoding: "utf8" })
 assert.equal(diff.status, 0, diff.stderr)
 const normalize = value => value.replace(/^--.*$/gm, "").replace(/\s+/g, " ").trim()
 const migration = readFileSync(path.join(root, "prisma/postgresql/migrations/20261020030000_native_mail_conversations/migration.sql"), "utf8")

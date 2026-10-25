@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const session = vi.hoisted(() => ({ userId: "", companyId: "", email: "" }))
 vi.mock("server-only", () => ({}))
@@ -10,7 +10,7 @@ import { anonymizeAccount } from "@/actions/compliance"
 import { acceptTeamInvitation, updateTeamMemberRole } from "@/actions/team"
 import { createInvitationToken, hashInvitationToken } from "@/lib/team-invitations"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const sqlite = process.env.DATABASE_URL?.startsWith("file:")
 describe.sequential("Account departure preserves shared business data", () => {
   let companyA: string, companyB: string, actorId: string, successorId: string, peerId: string, actorEmail: string

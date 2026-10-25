@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import type { PurchaseOrder, PurchaseOrderLine } from "@prisma/client"
+import type { PurchaseOrder, PurchaseOrderLine } from "@/generated/prisma/client"
 
 // Include the lines: legacy imports can change them without updating the parent.
 export function purchaseDraftRevision(order: PurchaseOrder & { lines: PurchaseOrderLine[] }) {

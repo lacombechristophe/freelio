@@ -9,11 +9,12 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --fund=false
 
 FROM dependencies AS builder
-COPY tsconfig.json next.config.ts postcss.config.mjs ./
+COPY tsconfig.json next.config.ts postcss.config.mjs prisma.config.ts ./
 COPY public ./public
 COPY src ./src
 COPY prisma ./prisma
 COPY scripts/sync-prisma-schemas.mjs ./scripts/sync-prisma-schemas.mjs
+COPY scripts/generate-database-metadata.mjs ./scripts/generate-database-metadata.mjs
 COPY scripts/build-memory.mjs ./scripts/build-memory.mjs
 COPY scripts/public-demo-network.cjs ./scripts/public-demo-network.cjs
 # A schema selection URL, never a credential to an existing database.
@@ -42,7 +43,7 @@ COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/src ./src
 COPY --chown=node:node scripts ./scripts
 COPY --from=builder --chown=node:node /app/prisma ./prisma
-COPY --from=builder --chown=node:node /app/tsconfig.json /app/next.config.ts ./
+COPY --from=builder --chown=node:node /app/tsconfig.json /app/next.config.ts /app/prisma.config.ts ./
 RUN mkdir -p data .next/cache && chown -R node:node data .next/cache
 USER node
 EXPOSE 3000

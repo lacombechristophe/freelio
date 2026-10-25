@@ -1,10 +1,10 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { PrismaClient } from "@prisma/client"
 import { decrypt } from "../src/lib/crypto.ts"
 
 if (process.env.RECIPE_ISOLATED !== "true" || process.env.NODE_ENV === "production") throw Error("Une recette isolée hors production est obligatoire")
@@ -20,8 +20,8 @@ const filesRoot = path.resolve(process.cwd(), "data", "files")
 const restoredFilesRoot = path.join(root, "restored-files")
 const backup = path.join(root, "database.dump")
 const started = Date.now()
-const source = new PrismaClient({ datasources: { db: { url: sourceUrl.href } } })
-const target = new PrismaClient({ datasources: { db: { url: targetUrl.href } } })
+const source = createDatabaseClient(sourceUrl.href)
+const target = createDatabaseClient(targetUrl.href)
 function command(name, url, args) {
   const result = spawnSync(path.join(bin, process.platform === "win32" ? `${name}.exe` : name), ["-h", url.hostname, "-p", url.port || "5432", "-U", decodeURIComponent(url.username), ...args], {
     env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, PGPASSWORD: decodeURIComponent(url.password) }, encoding: "utf8", windowsHide: true, maxBuffer: 5 * 1024 * 1024,

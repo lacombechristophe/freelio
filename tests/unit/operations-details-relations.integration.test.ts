@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { createOperationsDetailsFixture } from "../helpers/operations-details-fixture"
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { getEquipmentDetail, getFieldInterventionDetail, getServiceTicketDetail, getPurchaseOrderDetail } from "@/actions/operations"
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Operations detail relations on real SQL", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDetailsFixture>>
   const readers = { equipments: getEquipmentDetail, interventions: getFieldInterventionDetail, tickets: getServiceTicketDetail, purchaseOrders: getPurchaseOrderDetail }

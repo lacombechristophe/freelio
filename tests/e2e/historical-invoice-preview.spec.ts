@@ -1,9 +1,9 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 
 test("an issued invoice without its historical archive stays readable without regenerating a PDF", async ({ page }, info) => {
   if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette Archive historique exige une SQLite fictive isolée")
-  const database = new PrismaClient()
+  const database = createDatabaseClient()
   try {
     const invoice = await database.invoice.findUniqueOrThrow({
       where: { companyId_number: { companyId: "ce2ecompany000000000000001", number: `UIQA-HISTORICAL-${info.project.name}` } },

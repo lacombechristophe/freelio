@@ -1,6 +1,6 @@
 import "server-only"
 import { randomUUID } from "node:crypto"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { requestContext } from "@/lib/context"

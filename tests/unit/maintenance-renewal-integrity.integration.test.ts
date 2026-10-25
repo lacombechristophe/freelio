@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -9,7 +9,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { getOperationsMaintenanceDirectory, renewMaintenanceContract } from "@/actions/operations"
 import * as numbering from "@/lib/document-numbering"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Maintenance renewal freezes its displayed source and commits its whole billing transition", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>
   const current = () => db.maintenanceContract.findUniqueOrThrow({ where: { id: fixture.positive.contracts } })

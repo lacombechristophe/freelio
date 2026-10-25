@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -10,7 +10,7 @@ import { updateMaintenanceRenewalSettings } from "@/actions/operations"
 import prisma from "@/lib/prisma"
 import { requestContext } from "@/lib/context"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Maintenance settings preserve the displayed revision and mandatory audit", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>, revision: string
   const input = () => ({ contractId: fixture.positive.contracts, expectedUpdatedAt: revision, noticeDays: 45, indexationRate: 2.5,

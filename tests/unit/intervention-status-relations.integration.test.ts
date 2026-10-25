@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -9,7 +9,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { resolveInterventionReservation, updateInterventionStatus } from "@/actions/operations"
 import prisma from "@/lib/prisma"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 
 describe.sequential("intervention state changes preserve relation boundaries", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>

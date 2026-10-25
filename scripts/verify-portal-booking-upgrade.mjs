@@ -26,7 +26,7 @@ const previousSchema = path.join(directory, "before.prisma")
 writeFileSync(previousSchema, previous)
 new DatabaseSync(databaseFile).close()
 function push(schemaFile) {
-  const result = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "db", "push", "--skip-generate", "--schema", schemaFile], {
+  const result = spawnSync(process.execPath, [path.join(root, "node_modules/prisma/build/index.js"), "db", "push", "--schema", schemaFile], {
     cwd: root, windowsHide: true, encoding: "utf8", env: { ...process.env, DATABASE_URL: `file:${databaseFile.replaceAll("\\", "/")}` },
   })
   if (result.error) throw result.error

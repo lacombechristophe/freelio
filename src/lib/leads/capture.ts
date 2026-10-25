@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
 import { publicLeadSchema, normalizePhone, type PublicLeadInput } from "@/lib/leads/schema"
 import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"

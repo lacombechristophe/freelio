@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 
 export type QuoteConversionSource = Prisma.QuoteGetPayload<{ include: { versions: { include: { sections: { include: { lines: true } } } } } }>
 

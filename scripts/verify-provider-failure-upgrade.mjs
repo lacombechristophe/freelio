@@ -24,7 +24,7 @@ function run(args) {
   return result.stdout
 }
 const db = new DatabaseSync(databaseFile)
-db.exec(run(["migrate", "diff", "--from-empty", "--to-schema-datamodel", beforeSchema, "--script"]))
+db.exec(run(["migrate", "diff", "--from-empty", "--to-schema", beforeSchema, "--script"]))
 db.prepare('INSERT INTO "Company" ("id", "name") VALUES (?, ?)').run("company", "Fictional failure upgrade")
 const at = Date.parse("2035-01-02T12:00:00Z")
 db.prepare('INSERT INTO "CommunicationChannel" ("id", "companyId", "provider", "emailAddress", "status", "credentialsEncrypted", "updatedAt") VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -36,7 +36,7 @@ for (const [id, status, providerId, sentAt, nextAttemptAt, attempts] of [["accep
 const tables = ["Company", "CommunicationChannel", "EmailDelivery"]
 const snapshot = () => Object.fromEntries(tables.map(table => [table, db.prepare(`SELECT * FROM "${table}" ORDER BY "id"`).all().map(row => Object.fromEntries(Object.entries(row).filter(([key]) => key !== "providerFailureKind")))]))
 const before = snapshot()
-const sqliteDiff = run(["migrate", "diff", "--from-schema-datamodel", beforeSchema, "--to-schema-datamodel", path.join(root, "prisma/schema.prisma"), "--script"])
+const sqliteDiff = run(["migrate", "diff", "--from-schema", beforeSchema, "--to-schema", path.join(root, "prisma/schema.prisma"), "--script"])
 assert.doesNotMatch(sqliteDiff, /\b(DROP|DELETE|UPDATE|RENAME)\b/i)
 db.exec(sqliteDiff)
 assert.deepEqual(snapshot(), before)
@@ -46,7 +46,7 @@ db.close()
 const postgresBefore = path.join(directory, "before-postgres.prisma"), postgresAfter = path.join(directory, "after-postgres.prisma")
 writeFileSync(postgresBefore, previous.replace('provider = "sqlite"', 'provider = "postgresql"'))
 writeFileSync(postgresAfter, schema.replace('provider = "sqlite"', 'provider = "postgresql"'))
-const postgresDiff = run(["migrate", "diff", "--from-schema-datamodel", postgresBefore, "--to-schema-datamodel", postgresAfter, "--script"])
+const postgresDiff = run(["migrate", "diff", "--from-schema", postgresBefore, "--to-schema", postgresAfter, "--script"])
 const normalize = value => value.replace(/^--.*$/gm, "").replace(/\s+/g, " ").trim()
 assert.equal(normalize(postgresDiff), normalize(readFileSync(path.join(root, "prisma/postgresql/migrations/20261021010000_mail_provider_failure_kind/migration.sql"), "utf8")))
 const hash = value => createHash("sha256").update(value).digest("hex")

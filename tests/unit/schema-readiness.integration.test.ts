@@ -1,4 +1,5 @@
-import { Prisma, PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
+import { Prisma } from "@/generated/prisma/client"
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest"
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/readiness", () => ({ productionConfigurationIssues: () => [] }))
@@ -6,7 +7,7 @@ import { GET } from "@/app/api/health/ready/route"
 import prisma from "@/lib/prisma"
 import { sqliteColumnsQuery } from "@/lib/database-metadata-sql"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Readiness checks the usable database schema", () => {
   let renamedTable = false, renamedColumn = false
   afterEach(async () => {

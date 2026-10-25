@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -11,7 +11,7 @@ import { withAuth } from "@/lib/auth-wrapper"
 import { lockActiveSite, lockActiveEquipment } from "@/lib/operations/asset-lifecycle"
 import { updateCustomerSite, updateEquipment, setCustomerSiteActive, setEquipmentActive } from "@/actions/asset-management"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("site and equipment lifecycle on isolated SQL", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>
   const site = () => db.customerSite.findUniqueOrThrow({ where: { id: fixture.site.id } })

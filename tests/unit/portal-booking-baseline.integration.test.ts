@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -8,7 +8,7 @@ vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, co
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { updateClientPortalAppointment } from "@/actions/portal"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("portal confirmation must reserve actual member capacity", () => {
   let clientId: string, memberId: string
   beforeEach(async () => {

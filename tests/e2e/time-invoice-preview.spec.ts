@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 
 test("A compiled stale preview preserves a selection hidden by a filter and succeeds only after reload", async ({ page }, info) => {

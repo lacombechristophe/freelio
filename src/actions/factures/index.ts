@@ -1,7 +1,7 @@
 "use server"
 
 import { z } from "zod"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { hasPermission } from "@/lib/permissions"
 import { recurringScope, recurringSearch, recurringPageSize } from "@/lib/finance/recurring-scope"
 import prisma from "@/lib/prisma"

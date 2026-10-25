@@ -98,6 +98,25 @@ describe.sequential("Delivery order and line choices on real SQL", () => {
     try { expect((await getDeliveryLineChoices({ customerOrderId: oldestOrderId, selectedId: oldestLineId })).selected).toMatchObject({ remainingQuantity: 0.0002 }) }
     finally { await prisma.customerOrderLine.update({ where: { id: oldestLineId }, data: { quantity: 0.3, deliveredQuantity: 0.1 } }) }
   })
+  it("retains the largest finite historical quantity without overflowing a SQL filter", async () => {
+    // A literal preserves the historical database value independently of the
+    // client parameter conversion being qualified.
+    await prisma.$executeRaw`UPDATE "CustomerOrderLine" SET "quantity" = 1.7976931348623157e308, "deliveredQuantity" = 0 WHERE "id" = ${oldestLineId}`
+    try {
+      expect(await getDeliveryOrderChoices({ selectedId: oldestOrderId })).toMatchObject({ selected: { id: oldestOrderId } })
+      expect(await getDeliveryLineChoices({ customerOrderId: oldestOrderId, selectedId: oldestLineId })).toMatchObject({ selected: { id: oldestLineId, remainingQuantity: Number.MAX_VALUE } })
+    } finally { await prisma.customerOrderLine.update({ where: { id: oldestLineId }, data: { quantity: 0.3, deliveredQuantity: 0.1 } }) }
+  })
+  it.skipIf(!process.env.DATABASE_URL?.startsWith("postgres"))("excludes PostgreSQL's non-finite historical quantities", async () => {
+    for (const value of ["Infinity", "-Infinity", "NaN"]) {
+      await prisma.$executeRaw`UPDATE "CustomerOrderLine" SET "quantity" = CAST(${value} AS DOUBLE PRECISION), "deliveredQuantity" = 0 WHERE "id" = ${oldestLineId}`
+      try { expect((await getDeliveryLineChoices({ customerOrderId: oldestOrderId, selectedId: oldestLineId })).selected).toBeNull() }
+      finally { await prisma.customerOrderLine.update({ where: { id: oldestLineId }, data: { quantity: 0.3, deliveredQuantity: 0.1 } }) }
+      await prisma.$executeRaw`UPDATE "CustomerOrderLine" SET "deliveredQuantity" = CAST(${value} AS DOUBLE PRECISION) WHERE "id" = ${oldestLineId}`
+      try { expect((await getDeliveryLineChoices({ customerOrderId: oldestOrderId, selectedId: oldestLineId })).selected).toBeNull() }
+      finally { await prisma.customerOrderLine.update({ where: { id: oldestLineId }, data: { quantity: 0.3, deliveredQuantity: 0.1 } }) }
+    }
+  })
   for (const quantities of [{ quantity: 0, deliveredQuantity: 0 }, { quantity: -1, deliveredQuantity: 0 }, { quantity: 0.3, deliveredQuantity: -0.1 }, { quantity: 0.3, deliveredQuantity: 0.4 }]) {
     it(`does not offer invalid remaining quantities ${JSON.stringify(quantities)}`, async () => {
       await prisma.customerOrderLine.update({ where: { id: oldestLineId }, data: quantities })

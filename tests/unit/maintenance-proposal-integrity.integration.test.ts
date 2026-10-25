@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -10,7 +10,7 @@ import { createMaintenanceRenewalProposal } from "@/actions/contrats"
 import { getOperationsMaintenanceDirectory } from "@/actions/operations"
 import * as numbering from "@/lib/document-numbering"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const propose = createMaintenanceRenewalProposal
 
 describe.sequential("Maintenance proposals retain their displayed source and mandatory audit", () => {

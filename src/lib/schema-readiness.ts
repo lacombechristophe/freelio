@@ -1,8 +1,9 @@
+import { databaseModels } from "@/generated/schema-metadata"
 import "server-only"
 import { createHash } from "node:crypto"
 import { readdir, readFile } from "node:fs/promises"
 import path from "node:path"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 import logger from "@/lib/logger"
 import { migrationHistoryQuery, postgresColumnsQuery, sqliteColumnsQuery } from "@/lib/database-metadata-sql"
@@ -66,8 +67,8 @@ export async function databaseSchemaReady() {
       phase = "columns"
       const query = provider === "sqlite" ? sqliteColumnsQuery : postgresColumnsQuery(schema)
       const columns = await tx.$queryRaw<SchemaColumn[]>(query)
-      if (!schemaColumnsMatch(Prisma.dmmf.datamodel.models, columns, provider)) {
-        logger.warn({ event: "schema_readiness_failed", phase, reason: "mismatch", expectedModels: Prisma.dmmf.datamodel.models.length, observedColumns: columns.length })
+      if (!schemaColumnsMatch(databaseModels, columns, provider)) {
+        logger.warn({ event: "schema_readiness_failed", phase, reason: "mismatch", expectedModels: databaseModels.length, observedColumns: columns.length })
         return false
       }
       if (provider === "sqlite") return true

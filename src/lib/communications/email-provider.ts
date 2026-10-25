@@ -1,6 +1,6 @@
 import "server-only"
 import { providerConversationId as readProviderConversationId } from "./conversation-identity"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { getContext, requestContext } from "@/lib/context"
 import { channelConfig } from "./sync-state"
 

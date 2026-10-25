@@ -1,5 +1,5 @@
 import "server-only"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import prisma, { type TransactionClient } from "@/lib/prisma"
 import { withAuth, type AuthContext } from "@/lib/auth-wrapper"
 

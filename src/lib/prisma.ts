@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
@@ -110,7 +110,7 @@ function validateDatabaseUrl() {
 
 const prismaClientSingleton = () => {
   validateDatabaseUrl()
-  return new PrismaClient().$extends({
+  return createDatabaseClient().$extends({
     query: {
       async $allOperations({ model, operation, args, query }) {
         if (!model && isPublicReadOnlyDemo()) {

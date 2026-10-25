@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import type { PurchaseOrder } from "@prisma/client"
+import type { PurchaseOrder } from "@/generated/prisma/client"
 import type { TransactionClient } from "@/lib/prisma"
 import type { AuthContext } from "@/lib/auth-wrapper"
 import { operationsDashboardScope } from "./dashboard-scope"

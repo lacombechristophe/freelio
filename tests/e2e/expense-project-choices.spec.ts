@@ -1,7 +1,7 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
-import { PrismaClient } from "@prisma/client"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 async function persistedExpense(label: string, surface: string) {
   if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL) throw new Error("La preuve SQL navigateur exige la recette SQLite isolée")

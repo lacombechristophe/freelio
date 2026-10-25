@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma"
 import { sqlTimestamp } from "@/lib/sql-timestamp"
 import { withAuth } from "@/lib/auth-wrapper"
 import { logAction } from "@/lib/audit"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"
 import { lockCompanyOwnership } from "@/lib/auth/company-ownership"
 

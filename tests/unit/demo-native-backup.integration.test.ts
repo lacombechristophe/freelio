@@ -1,5 +1,6 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, expect, it, vi } from "vitest"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@/generated/prisma/client"
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises"
 import { execFileSync, spawnSync } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
@@ -16,8 +17,8 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   vi.stubEnv("ENCRYPTION_KEY", fictionalEncryptionKey)
   const databasePath = path.join(directory, "demo.db")
   const env = { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH, TEMP: directory, TMP: directory, NODE_ENV: "test" as const, DATABASE_URL: `file:${databasePath.replaceAll("\\", "/")}`, CHECKPOINT_DISABLE: "1", NODE_OPTIONS: process.env.NODE_OPTIONS }
-  execFileSync(process.execPath, ["node_modules/prisma/build/index.js", "db", "push", "--skip-generate", "--schema", "prisma/schema.prisma"], { env, stdio: "pipe", timeout: 30_000 })
-  database = new PrismaClient({ datasources: { db: { url: env.DATABASE_URL } } })
+  execFileSync(process.execPath, ["node_modules/prisma/build/index.js", "db", "push", "--schema", "prisma/schema.prisma"], { env, stdio: "pipe", timeout: 30_000 })
+  database = createDatabaseClient(env.DATABASE_URL)
   const company = await database.company.create({ data: { name: "Synthetic native restore" } })
   const user = await database.user.create({ data: { email: company.id + "@example.test", companyId: company.id } })
   await database.membership.create({ data: { companyId: company.id, userId: user.id, role: "OWNER" } })
@@ -54,7 +55,7 @@ it.skipIf(!process.env.DATABASE_URL?.startsWith("file:"))("restores a native SQL
   const before = await database.invoice.findUniqueOrThrow({ where: { id: invoice.id }, include: { lines: true } })
   const backup = JSON.parse(execFileSync(process.execPath, ["scripts/backup-demo.mjs", "--dir", directory], { env, encoding: "utf8", timeout: 30_000 }))
   const restored = JSON.parse(execFileSync(process.execPath, ["scripts/backup-demo.mjs", "--restore", backup.backupDirectory], { env, encoding: "utf8", timeout: 30_000 }))
-  const recovered = new PrismaClient({ datasources: { db: { url: `file:${path.join(restored.restoredDirectory, "demo.db").replaceAll("\\", "/")}` } } })
+  const recovered = createDatabaseClient(`file:${path.join(restored.restoredDirectory, "demo.db").replaceAll("\\", "/")}`)
   try {
     expect(await recovered.invoice.findUniqueOrThrow({ where: { id: invoice.id }, include: { lines: true } })).toEqual(before)
     expect(await recovered.clientFile.findUniqueOrThrow({ where: { id: file.id } })).toEqual(file)

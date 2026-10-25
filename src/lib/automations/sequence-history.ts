@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { recordOutgoingEmail } from "@/lib/communications/threads"
 import prisma from "@/lib/prisma"
 import type { ProcessorLeaseControl } from "@/lib/processing/lease"

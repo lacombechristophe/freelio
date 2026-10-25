@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 
 import { withAuth } from "@/lib/auth-wrapper"
 import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"

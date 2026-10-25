@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import path from "node:path"
-import { PrismaClient } from "@prisma/client"
 import { hashPassword } from "../src/lib/auth/password-core.ts"
 
 // Explicit local database only; this script never loads .env files or resets data.
@@ -9,7 +9,7 @@ const postgresName = /^postgres(ql)?:\/\//.test(databaseUrl) ? new URL(databaseU
 const dedicatedPostgres = /^freelio_demo_[a-z0-9_]+$/.test(postgresName) && process.env.DEMO_DATABASE_NAME === postgresName
 if (process.env.NODE_ENV === "production" || (!dedicatedPostgres && (!databasePath || !/demo[^/\\]*\.db$/i.test(databasePath)))) throw new Error("Une base dédiée demo*.db ou freelio_demo_* confirmée par DEMO_DATABASE_NAME est obligatoire")
 if (!process.env.DEMO_PASSWORD || process.env.DEMO_PASSWORD.length < 12) throw new Error("DEMO_PASSWORD doit contenir au moins 12 caractères")
-const prisma = new PrismaClient()
+const prisma = createDatabaseClient()
 const email = "direction@atelier-des-bassins.example.test"
 try {
   if (await prisma.user.findUnique({ where: { email } })) throw new Error("Le compte de démonstration existe déjà ; aucune donnée modifiée")

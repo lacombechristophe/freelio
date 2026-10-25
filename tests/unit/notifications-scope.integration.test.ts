@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -15,7 +15,7 @@ import { requestContext } from "@/lib/context"
 import { capturePublicLead } from "@/lib/leads/capture"
 import { dispatchAutomationEvent, enqueueAutomationEvent } from "@/lib/automations/engine"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Personal notifications stay within the active workspace", () => {
   let companyA: string, companyB: string, peerId: string, ownId: string, otherId: string, legacyId: string
   const extraUsers: string[] = []

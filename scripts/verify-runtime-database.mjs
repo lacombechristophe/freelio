@@ -1,14 +1,14 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
-import { PrismaClient } from "@prisma/client"
 import { Queue } from "bullmq"
 import { redisConnection } from "../src/lib/bullmq/connection.ts"
 
 // This probe writes a queue job only against a newly created, fictitious recipe.
 const database = new URL(process.env.DATABASE_URL || "")
 if (process.env.RECIPE_ISOLATED !== "true" || !/^\/freelio_demo_linux_[a-f0-9]+$/.test(database.pathname)) throw Error("Recette Linux fictive explicite requise")
-const prisma = new PrismaClient()
+const prisma = createDatabaseClient()
 let queue
 try {
   const [{ version }] = await prisma.$queryRaw`SELECT version()`

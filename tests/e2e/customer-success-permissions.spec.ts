@@ -1,7 +1,7 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test, type Page } from "@playwright/test"
-import { PrismaClient } from "@prisma/client"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 
 async function openPortfolio(page: Page, surface: string, role: string) {

@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 
-const prisma = new PrismaClient()
+const prisma = createDatabaseClient()
 
 async function main() {
   const users = await prisma.user.findMany({

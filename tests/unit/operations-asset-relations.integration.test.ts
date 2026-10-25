@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
 
@@ -7,7 +7,7 @@ vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 import { getCustomerSiteDirectory, getEquipmentDirectory } from "@/actions/operations-assets"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("site and equipment directories share coherent relation predicates", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>
   let foreignAgencySiteId: string, foreignAgencyEquipmentId: string

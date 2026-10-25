@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import { databaseModels } from "@/generated/schema-metadata"
 import type { RequestContext } from "@/lib/context"
 
 /** Unknown legacy ownership is fail-closed for ordinary members. */
@@ -37,7 +37,7 @@ export function mailboxScope(model: string, context: RequestContext): Record<str
 
 /** Nested includes bypass Prisma query extensions unless scoped explicitly. */
 export function scopeMailboxIncludes(model: string, args: Record<string, any>, context: RequestContext) {
-  const definition = Prisma.dmmf.datamodel.models.find((item) => item.name === model)
+  const definition = databaseModels.find((item) => item.name === model)
   for (const projection of [args.include, args.select]) {
     if (!projection || typeof projection !== "object") continue
     if (projection._count === true) projection._count = { select: Object.fromEntries((definition?.fields || []).filter((field) => field.kind === "object" && field.isList).map((field) => [field.name, true])) }

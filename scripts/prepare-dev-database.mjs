@@ -47,17 +47,17 @@ if (isSqlite) {
 
   if (!existsSync(databasePath)) {
     const diff = runPrisma(
-      ["migrate", "diff", "--from-empty", "--to-schema-datamodel", "prisma/schema.prisma", "--script"],
+      ["migrate", "diff", "--from-empty", "--to-schema", "prisma/schema.prisma", "--script"],
       { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] },
     )
     runPrisma(
-      ["db", "execute", "--stdin", "--schema", "prisma/schema.prisma"],
+      ["db", "execute", "--stdin"],
       { input: diff.stdout, stdio: ["pipe", "inherit", "inherit"] },
     )
   } else {
     runPrisma(["db", "push", "--schema", "prisma/schema.prisma"])
   }
-  runPrisma(["db", "execute", "--file", "prisma/sqlite/backfill-recurring-projects.sql", "--schema", "prisma/schema.prisma"])
+  runPrisma(["db", "execute", "--file", "prisma/sqlite/backfill-recurring-projects.sql"])
   process.exit(0)
 }
 

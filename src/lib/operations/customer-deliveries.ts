@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import { Prisma, type CustomerOrder } from "@prisma/client"
+import { Prisma, type CustomerOrder } from "@/generated/prisma/client"
 import { z } from "zod"
 import type { TransactionClient } from "@/lib/prisma"
 import type { AuthContext } from "@/lib/auth-wrapper"

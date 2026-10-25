@@ -1,6 +1,6 @@
 "use server"
 
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import { withAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
@@ -9,7 +9,10 @@ import { deliverableOrderWhere, readCustomerDeliveryOrder } from "@/lib/operatio
 
 const querySchema = z.object({ search: z.string().trim().max(200).default(""), page: z.number().int().min(1).max(100_000).default(1), selectedId: z.string().cuid().optional() }).strict()
 const contains = (value: string) => ({ contains: value, ...(process.env.DATABASE_URL?.startsWith("postgres") ? { mode: "insensitive" as const } : {}) })
-const remaining = () => ({ quantity: { gt: 0, lte: Number.MAX_VALUE }, deliveredQuantity: { gte: 0, lte: Number.MAX_VALUE, lt: prisma.customerOrderLine.fields.quantity } })
+// Prisma accepts a Decimal Float bound but types this input as number. Its v7
+// number conversion rounds MAX_VALUE above PostgreSQL's finite double range.
+const maximumFiniteQuantity = new Prisma.Decimal(Number.MAX_VALUE.toString()) as unknown as number
+const remaining = () => ({ quantity: { gt: 0, lte: maximumFiniteQuantity }, deliveredQuantity: { gte: 0, lte: maximumFiniteQuantity, lt: prisma.customerOrderLine.fields.quantity } })
 
 export async function getDeliveryOrderChoices(input: unknown = {}) {
   return withAuth(async context => {

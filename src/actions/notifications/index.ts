@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 import { notificationAge } from "@/lib/notification-age"
 import { parseNotificationQuery } from "@/lib/notification-query"
 import { DIRECTORY_PAGE_SIZE } from "@/lib/directory-query"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
 export async function getNotificationDirectory(input: unknown = {}) {
   return withAuth(async ({ userId, companyId }) => {

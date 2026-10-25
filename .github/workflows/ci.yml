@@ -210,7 +210,7 @@ jobs:
 
       - name: Exercer un fuseau PostgreSQL non UTC
         run: |
-          node node_modules/prisma/build/index.js db execute --schema prisma/postgresql/schema.prisma --stdin <<'SQL'
+          node node_modules/prisma/build/index.js db execute --stdin <<'SQL'
           ALTER DATABASE crm_test SET timezone TO 'Europe/Paris';
           SQL
 

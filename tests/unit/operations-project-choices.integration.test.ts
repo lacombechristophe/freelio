@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "", authenticated: true }))

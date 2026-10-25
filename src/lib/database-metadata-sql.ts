@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
 export const sqliteColumnsQuery = Prisma.sql`
   SELECT m.name AS "tableName", p.name AS "columnName", p.type AS "dataType", p."notnull" AS "notNull"

@@ -1,9 +1,9 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import fs from "node:fs/promises"
 import { createReadStream } from "node:fs"
 import { createHash, randomUUID } from "node:crypto"
 import path from "node:path"
 import os from "node:os"
-import { PrismaClient } from "@prisma/client"
 import { acquireDemoLock } from "./demo-lock.mjs"
 
 const args = process.argv.slice(2)
@@ -39,7 +39,7 @@ async function collect(root, relative = "data") {
   return files
 }
 async function checkDatabase(database) {
-  const client = new PrismaClient({ datasources: { db: { url: `file:${database.replaceAll("\\", "/")}` } } })
+  const client = createDatabaseClient(`file:${database.replaceAll("\\", "/")}`)
   try {
     const result = await client.$queryRawUnsafe("PRAGMA integrity_check")
     if (result.length !== 1 || Object.values(result[0])[0] !== "ok") throw new Error("Intégrité SQLite invalide")
@@ -73,7 +73,7 @@ if (restore) {
   const access = JSON.parse(await fs.readFile(path.join(location, "demo-access.json"), "utf8"))
   if (access.schema !== "freelio.local-demo.v1") throw new Error("Ce dossier n’est pas une démo locale")
   const releaseOperation = await acquireDemoLock(location, "BACKUP")
-  const client = new PrismaClient({ datasources: { db: { url: `file:${path.join(location, "demo.db").replaceAll("\\", "/")}` } } })
+  const client = createDatabaseClient(`file:${path.join(location, "demo.db").replaceAll("\\", "/")}`)
   try {
     await fs.access(path.join(location, "demo.db"))
     const target = path.join(location, "backups", `demo-${new Date().toISOString().replaceAll(":", "-")}-${randomUUID()}`)

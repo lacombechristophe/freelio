@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test } from "@playwright/test"
 import { hashPassword } from "../../src/lib/auth/password-core"
 import { createOperationsDetailsFixture } from "../helpers/operations-details-fixture"
 
 test("Operations details exclude foreign roots, nested histories and inaccessible agencies", async ({ page }, info) => {
   if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette des fiches Opérations exige une SQLite fictive isolée")
-  const database = new PrismaClient()
+  const database = createDatabaseClient()
   const fixture = await createOperationsDetailsFixture(database)
   try {
     const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
@@ -62,7 +62,7 @@ test("Operations details exclude foreign roots, nested histories and inaccessibl
 
 test("an intervention made inaccessible after display refuses its state change without losing data", async ({ page }, info) => {
   if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL || !["desktop", "mobile"].includes(info.project.name)) throw new Error("La recette des états d'intervention exige une SQLite fictive isolée")
-  const database = new PrismaClient()
+  const database = createDatabaseClient()
   const fixture = await createOperationsDetailsFixture(database)
   try {
     const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"

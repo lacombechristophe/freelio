@@ -4,10 +4,7 @@ const mock = vi.hoisted(() => ({ query: vi.fn(), transaction: vi.fn(), warn: vi.
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/logger", () => ({ default: { warn: mock.warn } }))
 vi.mock("@/lib/prisma", () => ({ default: { $transaction: mock.transaction } }))
-vi.mock("@prisma/client", async importActual => {
-  const actual = await importActual<typeof import("@prisma/client")>()
-  return { ...actual, Prisma: { ...actual.Prisma, dmmf: { datamodel: { models: [{ name: "FictionalModel", fields: [{ name: "id", type: "String", kind: "scalar", isRequired: true }] }] } } } }
-})
+vi.mock("@/generated/schema-metadata", () => ({ databaseModels: [{ name: "FictionalModel", fields: [{ name: "id", type: "String", kind: "scalar", isRequired: true }] }] }))
 import { databaseSchemaReady, readMigrationManifest, type MigrationHistory } from "@/lib/schema-readiness"
 
 describe("PostgreSQL metadata orchestration without a provider connection", () => {

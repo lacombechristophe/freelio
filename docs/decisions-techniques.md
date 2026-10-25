@@ -22,11 +22,11 @@ Le rôle de migration et le rôle de l’application sont distincts. La démo pu
 
 L’audit npm ne prouve pas l’absence de vulnérabilités applicatives. Les mises à jour proposées par Dependabot restent soumises à revue et recette. Les changements majeurs ne sont pas regroupés avec les correctifs métier.
 
-## D04 — Prisma conservé ; étude majeure encore ouverte
+## D04 — Prisma 7 avec pilotes explicites
 
-**Décision provisoire.** Conserver Prisma 6.12 pour terminer une référence vérifiable des permissions, archives et imports. Cette version ne doit pas être présentée comme la dernière version stable maintenue. Le registre npm consulté présente une version 8 de prépublication et une version stable 7 plus récente.
+**Décision du candidat du 25 octobre.** Passer de Prisma 6.12 à 7.10.1, sans modifier Auth.js. Le client est généré dans l'application ; une fabrique fournit l'adaptateur PostgreSQL ou SQLite, avec un pool borné et les anciennes dates SQLite en millisecondes. Le manifeste de modèles utilisé pour les droits mail et la disponibilité est produit à la génération.
 
-La qualification de Prisma 7 doit couvrir les adaptateurs PostgreSQL/SQLite, extensions du DAL, SQL brut et transactions, TLS, génération, packaging et migrations. Ne pas mettre à niveau simultanément ORM et authentification. Condition de sortie : mêmes tests SQL, même artefact de récupération, nouveaux résultats liés au commit. Retour arrière : lockfile/client précédent tant que les migrations restent compatibles. L’absence d’alerte npm ne tranche pas la question de maintenance de la version 6.
+La [qualification locale](evidence/20261025-prisma7/README.md) couvre les deux suites SQL, les archives, le rôle lecteur, la récupération native et l'image Linux. Les modèles métier et les 74 migrations conservent leur contenu. La CI et la qualification hébergée restent distinctes. Le candidat `916d8e0`, son lockfile et ses preuves sont conservés comme référence précédente ; la relecture de dates écrites par Prisma 7 est testée avec Prisma 6, sans revendiquer un retour arrière hébergé complet.
 
 ## D05 — Auth.js conservé pendant la stabilisation
 

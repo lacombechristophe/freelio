@@ -1,10 +1,11 @@
-import { Prisma, PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
+import { Prisma } from "@/generated/prisma/client"
 import { afterAll, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
 import { sqlTimestamp as timestamp } from "@/lib/sql-timestamp"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const sqlite = process.env.DATABASE_URL?.startsWith("file:")
 
 afterAll(() => db.$disconnect())

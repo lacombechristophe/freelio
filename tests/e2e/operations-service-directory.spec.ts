@@ -1,9 +1,9 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { expect, test, type Page } from "@playwright/test"
 import { calendarPeriods } from "../../src/lib/calendar-days"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 test.afterAll(async () => { await database.$disconnect() })
 type Kind = "sav" | "planning" | "maintenance"
 

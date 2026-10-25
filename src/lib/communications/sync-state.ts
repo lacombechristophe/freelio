@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 
 export function channelConfig(value: Prisma.JsonValue | null) {

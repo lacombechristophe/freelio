@@ -1,0 +1,265 @@
+{
+  "observedAt": "2026-10-24T23:52:30.013795+00:00",
+  "run": 40134473148,
+  "head": "916d8e0fae318ebd3d166c461c4b9535c5e083ed",
+  "url": "https://github.com/lacombechristophe/freelio/actions/runs/40134473148",
+  "conclusion": "success",
+  "testedCommits": [
+    "dd1cb1189d45912777c414c043d1a4820471b77f"
+  ],
+  "headTree": "60c188567aaed903279a9c9bd51f97abecf59e49",
+  "testedTrees": {
+    "dd1cb1189d45912777c414c043d1a4820471b77f": "60c188567aaed903279a9c9bd51f97abecf59e49"
+  },
+  "jobs": [
+    {
+      "id": 120992958574,
+      "name": "Image Linux et Chromium",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40134473148/job/120992958574",
+      "summaryLines": []
+    },
+    {
+      "id": 120992958829,
+      "name": "Int\u00e9gration PostgreSQL",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40134473148/job/120992958829",
+      "summaryLines": [
+        "2026-10-24T21:36:44.9745694Z  Test Files  305 passed | 1 skipped (306)",
+        "2026-10-24T21:36:44.9764191Z       Tests  4098 passed | 1 skipped (4099)"
+      ]
+    },
+    {
+      "id": 120992958891,
+      "name": "quality-and-e2e (mobile)",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40134473148/job/120992958891",
+      "summaryLines": [
+        "2026-10-24T21:30:33.6993443Z found 0 vulnerabilities",
+        "2026-10-24T21:39:07.5309616Z  Test Files  306 passed (306)",
+        "2026-10-24T21:39:07.5331731Z       Tests  4099 passed (4099)",
+        "2026-10-24T21:58:20.0765294Z   243 passed (16.7m)",
+        "2026-10-24T21:58:20.6644755Z found 0 vulnerabilities"
+      ]
+    },
+    {
+      "id": 120992958892,
+      "name": "quality-and-e2e (desktop)",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40134473148/job/120992958892",
+      "summaryLines": [
+        "2026-10-24T21:30:37.5645073Z found 0 vulnerabilities",
+        "2026-10-24T21:38:40.3736793Z  Test Files  306 passed (306)",
+        "2026-10-24T21:38:40.3762478Z       Tests  4099 passed (4099)",
+        "2026-10-24T22:00:29.0913058Z   260 passed (19.2m)",
+        "2026-10-24T22:00:29.7207811Z found 0 vulnerabilities"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 12577990028,
+      "name": "verification-sqlite-dd1cb1189d45912777c414c043d1a4820471b77f-desktop",
+      "zipSha256": "56594c05b66d5525fff4a31a28ac5ea3d167703b6a9f264b68c2ffd6ae2a893b",
+      "files": [
+        {
+          "name": "test-results/tested-commit.txt",
+          "sha256": "955d57580c4d1c76dfffeea1183cde472758b97a2b3832bf9ae81c6ad115f40f"
+        },
+        {
+          "name": "test-results/node-version.txt",
+          "sha256": "f2ec568164f99546161909b0189b57bb5be3e80f8e2ccd8a51a4aed8c4055a04"
+        },
+        {
+          "name": "coverage/coverage-summary.json",
+          "sha256": "82e23785031edf1cfc664170df99cb1ea00bf58ceba9ae86d308d1bda608cfe6"
+        }
+      ],
+      "coverageTotal": {
+        "lines": {
+          "total": 436,
+          "covered": 386,
+          "skipped": 0,
+          "pct": 88.53
+        },
+        "statements": {
+          "total": 546,
+          "covered": 467,
+          "skipped": 0,
+          "pct": 85.53
+        },
+        "functions": {
+          "total": 115,
+          "covered": 103,
+          "skipped": 0,
+          "pct": 89.56
+        },
+        "branches": {
+          "total": 722,
+          "covered": 484,
+          "skipped": 0,
+          "pct": 67.03
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 100
+        }
+      }
+    },
+    {
+      "id": 12577665099,
+      "name": "ui-audit-reports-mobile",
+      "zipSha256": "f68177fe2bc68c52681330e3f453b19762575043a2042f23675fe66f3d9dbc62",
+      "files": [
+        {
+          "name": "full-ui-audit/mobile/report.json",
+          "sha256": "b9f21af1830f112b4f6e0051a2e618223c5ee179b9f6e712014ca9bab04094e5"
+        },
+        {
+          "name": "task-usability/mobile/evidence.json",
+          "sha256": "220ba37d6b00039e945ad4b9d9b309539ad8f45cd219047ec5a90d44b4ed3d7d"
+        }
+      ]
+    },
+    {
+      "id": 12577290445,
+      "name": "ui-audit-reports-desktop",
+      "zipSha256": "d314ba61c2570e7ba9e4693f3adb4b535384398ae43499c83fed0ba61976a642",
+      "files": [
+        {
+          "name": "full-ui-audit/desktop/report.json",
+          "sha256": "55a41631c229a48e9384a57840db7cd290ea18025b7d95f0292684688b29439f"
+        },
+        {
+          "name": "task-usability/desktop/evidence.json",
+          "sha256": "6c91cb7cd49f5ab2e1d642fd00f47b09b790949012c21d02a5ac3d728bed4396"
+        }
+      ]
+    },
+    {
+      "id": 12576766692,
+      "name": "container-runtime-dd1cb1189d45912777c414c043d1a4820471b77f",
+      "zipSha256": "19108acfba0206cc1d42713b582a1d44a0129c772feecd957f27d76e0533bbcb",
+      "files": [
+        {
+          "name": "freelio/freelio/test-results/tested-commit.txt",
+          "sha256": "955d57580c4d1c76dfffeea1183cde472758b97a2b3832bf9ae81c6ad115f40f"
+        },
+        {
+          "name": "freelio/freelio/test-results/image-id.txt",
+          "sha256": "cbe87faeece32e42207a876e8e55fbdaf51cb45f4827c4d414ea50d8d927e8ec"
+        },
+        {
+          "name": "_temp/Freelio-linux-AGVzNo/verification.json",
+          "sha256": "3c00c345af058cf12d868d786ec8af99dae3ba84719afdb26bfe0dc09a8edc17"
+        }
+      ],
+      "runtime": {
+        "success": true,
+        "checks": [
+          "Configuration de production vide refus\u00e9e avant \u00e9coute",
+          "Toutes les migrations du d\u00e9p\u00f4t sur PostgreSQL Linux neuf",
+          "Donn\u00e9es fictives cr\u00e9\u00e9es par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL r\u00e9el",
+          "Serveur arr\u00eat\u00e9 sur SIGTERM sans kill forc\u00e9 (code Next.js 143)",
+          "Worker BullMQ connect\u00e9 \u00e0 Redis, PDF de devis termin\u00e9",
+          "Worker arr\u00eat\u00e9 proprement sur SIGTERM",
+          "Capture sign\u00e9e fictive, archive PDF priv\u00e9e et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors r\u00e9seau sous utilisateur runtime"
+        ],
+        "imageId": "sha256:6a5e30ce5a16e54bff03392d0d50b978a034e2b9a93a0f5be4f6571dd8c40f81",
+        "exclusions": [
+          "Disponibilit\u00e9 r\u00e9elle R2/Upstash",
+          "TLS, reverse proxy et r\u00e9seau h\u00e9berg\u00e9",
+          "Reprise apr\u00e8s interruption d\u2019un job actif",
+          "Validation SaaS commerciale"
+        ]
+      }
+    },
+    {
+      "id": 12576759702,
+      "name": "verification-sqlite-dd1cb1189d45912777c414c043d1a4820471b77f-mobile",
+      "zipSha256": "b449fee7d445b539e979675bfe38b0dbdf97105d63904258ea02f29088ddd12f",
+      "files": [
+        {
+          "name": "test-results/node-version.txt",
+          "sha256": "f2ec568164f99546161909b0189b57bb5be3e80f8e2ccd8a51a4aed8c4055a04"
+        },
+        {
+          "name": "test-results/tested-commit.txt",
+          "sha256": "955d57580c4d1c76dfffeea1183cde472758b97a2b3832bf9ae81c6ad115f40f"
+        },
+        {
+          "name": "coverage/coverage-summary.json",
+          "sha256": "82e23785031edf1cfc664170df99cb1ea00bf58ceba9ae86d308d1bda608cfe6"
+        }
+      ],
+      "coverageTotal": {
+        "lines": {
+          "total": 436,
+          "covered": 386,
+          "skipped": 0,
+          "pct": 88.53
+        },
+        "statements": {
+          "total": 546,
+          "covered": 467,
+          "skipped": 0,
+          "pct": 85.53
+        },
+        "functions": {
+          "total": 115,
+          "covered": 103,
+          "skipped": 0,
+          "pct": 89.56
+        },
+        "branches": {
+          "total": 722,
+          "covered": 484,
+          "skipped": 0,
+          "pct": 67.03
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 100
+        }
+      }
+    },
+    {
+      "id": 12576417341,
+      "name": "verification-postgres-dd1cb1189d45912777c414c043d1a4820471b77f",
+      "zipSha256": "be10fbbaab82cc0e99816bffe462d22c4219a7c41431e279da348956eff6832c",
+      "files": [
+        {
+          "name": "unit-postgres.json",
+          "sha256": "bb2c57180045c655864841f44160f72310439a2590eb9a7b16909436966d4192"
+        },
+        {
+          "name": "node-version.txt",
+          "sha256": "f2ec568164f99546161909b0189b57bb5be3e80f8e2ccd8a51a4aed8c4055a04"
+        },
+        {
+          "name": "tested-commit.txt",
+          "sha256": "955d57580c4d1c76dfffeea1183cde472758b97a2b3832bf9ae81c6ad115f40f"
+        }
+      ],
+      "tests": {
+        "numPassedTests": 4098,
+        "numFailedTests": 0,
+        "numPendingTests": 1,
+        "numTotalTests": 4099,
+        "success": true
+      }
+    }
+  ],
+  "limits": [
+    "SQLite and PostgreSQL have separate executions",
+    "Native SQLite backup excluded from the PostgreSQL suite",
+    "Desktop and mobile include surface-specific exclusions",
+    "Production providers and hosted authenticated flows remain separate"
+  ]
+}

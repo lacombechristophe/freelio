@@ -1,7 +1,7 @@
 "use server"
 
 import { createHash, randomBytes } from "node:crypto"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { sqlTimestamp } from "@/lib/sql-timestamp"

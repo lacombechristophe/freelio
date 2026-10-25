@@ -1,6 +1,6 @@
 "use server"
 
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
 import { revalidatePath } from "next/cache"

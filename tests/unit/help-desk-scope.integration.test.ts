@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture } from "../helpers/operations-dashboard-fixture"
@@ -10,7 +10,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { getHelpDeskDashboard } from "@/actions/operations"
 import * as desk from "@/lib/operations/help-desk"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 const read = getHelpDeskDashboard
 describe.sequential("Main Help Desk uses a complete authorized ticket scope", () => {
   let fixture: Awaited<ReturnType<typeof createOperationsDashboardFixture>>

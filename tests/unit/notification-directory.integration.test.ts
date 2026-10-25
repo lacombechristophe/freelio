@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
@@ -10,7 +10,7 @@ vi.mock("@/app/dashboard/notifications/notifications-view", () => ({ Notificatio
 import NotificationsPage from "@/app/dashboard/notifications/page"
 import { deleteAllNotifications, deleteNotification, getNotificationDirectory, getNotifications, getUnreadCount, markAllAsRead, markAsRead } from "@/actions/notifications"
 
-const db = new PrismaClient()
+const db = createDatabaseClient()
 describe.sequential("Complete personal notification history", () => {
   let companyA: string, companyB: string, actorId: string, peerId: string, oldestId: string
   beforeEach(async () => {

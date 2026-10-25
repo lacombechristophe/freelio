@@ -1,4 +1,4 @@
-import type { EmailDelivery } from "@prisma/client"
+import type { EmailDelivery } from "@/generated/prisma/client"
 
 export const SEQUENCE_RETRY_REVIEW_MESSAGE = "Résultat fournisseur incertain : vérifiez le résultat avant toute relance."
 

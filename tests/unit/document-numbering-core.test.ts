@@ -39,6 +39,8 @@ describe("Numeric document suffix allocation", () => {
     { code: "P2034" },
     { code: "P2010", meta: { code: "40001" } },
     { code: "P2010", meta: { code: "40P01" } },
+    { code: "P2010", meta: { driverAdapterError: { cause: { kind: "TransactionWriteConflict", originalCode: "40001" } } } },
+    { code: "P2010", meta: { driverAdapterError: { cause: { kind: "TransactionWriteConflict", originalCode: "40P01" } } } },
   ])("restarts an explicitly aborted transaction when the caller opts in: %j", async conflict => {
     let attempts = 0
     const result = await withDocumentNumberRetry(async () => {
@@ -61,7 +63,9 @@ describe("Numeric document suffix allocation", () => {
     expect(attempts).toBe(3)
   })
   it.each([null, new Error("40001"), { code: "40001" }, { code: "P2002", meta: { target: ["quoteId"] } }, { code: "P2028" },
-    { code: "P2010" }, { code: "P2010", meta: { code: "23505" } }, { code: "P2010", meta: { code: "08006" } }])(
+    { code: "P2010" }, { code: "P2010", meta: { code: "23505" } }, { code: "P2010", meta: { code: "08006" } },
+    { code: "P2010", meta: { driverAdapterError: { cause: { kind: "TransactionWriteConflict", originalCode: "08006" } } } },
+    { code: "P2010", meta: { driverAdapterError: { cause: { kind: "GenericJs", originalCode: "40001" } } } }])(
     "does not classify business, connection or unknown transaction errors as safe to retry: %j", async error => {
       expect(isTransactionConflict(error)).toBe(false)
       let attempts = 0

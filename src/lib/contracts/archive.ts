@@ -1,7 +1,7 @@
 import "server-only"
 import { createHash } from "node:crypto"
 import { z } from "zod"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import prisma from "@/lib/prisma"
 import { encrypt, decrypt } from "@/lib/crypto"
 import { assertDemoMutationAllowed } from "@/lib/demo-policy"

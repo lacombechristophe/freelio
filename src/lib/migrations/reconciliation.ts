@@ -1,5 +1,5 @@
 import "server-only"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { migrationDatabase as prisma } from "@/lib/migrations/database"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "@/lib/tenant-scope"
 import { associationIds, invoiceCandidate, quoteCandidate, paymentCandidate, lineItemCandidate, type SourcePayload } from "@/lib/migrations/normalize"

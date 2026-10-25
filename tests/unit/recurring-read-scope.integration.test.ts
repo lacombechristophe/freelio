@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { readFile } from "node:fs/promises"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))

@@ -14,7 +14,7 @@ import type { AuthContext } from "@/lib/auth-wrapper"
 import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
 import { z } from "zod"
 import { calendarDayKey } from "@/lib/calendar-days"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
 const PROJECT_CHANGED_MESSAGE = "Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée."
 const TEMPLATE_CHANGED_MESSAGE = "Le modèle de chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée."

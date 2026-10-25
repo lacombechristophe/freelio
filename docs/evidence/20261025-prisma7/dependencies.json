@@ -1,0 +1,908 @@
+{
+  "lockfileSha256": "d45bfc5031338d692bf6697c52bfbeb827873f7bfe930a95f4385c9c38cee1b7",
+  "lockfileEntries": 1027,
+  "licenses": {
+    "MIT": 772,
+    "ISC": 58,
+    "Apache-2.0": 118,
+    "LGPL-3.0-or-later": 10,
+    "Apache-2.0 AND LGPL-3.0-or-later AND MIT": 1,
+    "Apache-2.0 AND LGPL-3.0-or-later": 3,
+    "0BSD": 3,
+    "BlueOak-1.0.0": 1,
+    "MIT and ISC": 1,
+    "Python-2.0": 1,
+    "MPL-2.0": 25,
+    "CC-BY-4.0": 1,
+    "BSD-2-Clause": 13,
+    "BSD-3-Clause": 11,
+    "EPL-2.0": 1,
+    "(MIT OR WTFPL)": 1,
+    "Unlicense": 3,
+    "CC0-1.0": 1,
+    "(MIT AND Zlib)": 1,
+    "MIT-0": 1,
+    "(BSD-2-Clause OR MIT OR Apache-2.0)": 1
+  },
+  "manualReviewEntries": 40,
+  "inventoryReportSha256": "57df2371507933d10c4b1c9c7e483f8931601ed19e84049f7ca8282575ca3800",
+  "versionDelta": [
+    {
+      "path": "node_modules/@electric-sql/pglite",
+      "before": null,
+      "after": "0.4.3"
+    },
+    {
+      "path": "node_modules/@electric-sql/pglite-socket",
+      "before": null,
+      "after": "0.1.3"
+    },
+    {
+      "path": "node_modules/@electric-sql/pglite-tools",
+      "before": null,
+      "after": "0.3.3"
+    },
+    {
+      "path": "node_modules/@prisma/adapter-better-sqlite3",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/adapter-pg",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/client",
+      "before": "6.12.0",
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/client-runtime-utils",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/config",
+      "before": "6.12.0",
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/config/node_modules/jiti",
+      "before": "2.4.2",
+      "after": null
+    },
+    {
+      "path": "node_modules/@prisma/debug",
+      "before": "6.12.0",
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/dev",
+      "before": null,
+      "after": "0.24.17"
+    },
+    {
+      "path": "node_modules/@prisma/dev/node_modules/std-env",
+      "before": null,
+      "after": "3.10.0"
+    },
+    {
+      "path": "node_modules/@prisma/dmmf",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/driver-adapter-utils",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/engines",
+      "before": "6.12.0",
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/engines-version",
+      "before": "6.12.0-15.8047c96bbd92db98a2abc7c9323ce77c02c89dbc",
+      "after": "8.1.0-1.d1b3f377ca835d73fd50954a5e22128b9ebdd6b8"
+    },
+    {
+      "path": "node_modules/@prisma/engines/node_modules/@prisma/get-platform",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/fetch-engine",
+      "before": "6.12.0",
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/fetch-engine/node_modules/@prisma/get-platform",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/generator",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/generator-helper",
+      "before": null,
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/@prisma/get-platform",
+      "before": "6.12.0",
+      "after": "7.2.0"
+    },
+    {
+      "path": "node_modules/@prisma/get-platform/node_modules/@prisma/debug",
+      "before": null,
+      "after": "7.2.0"
+    },
+    {
+      "path": "node_modules/@prisma/query-plan-executor",
+      "before": null,
+      "after": "7.2.0"
+    },
+    {
+      "path": "node_modules/@prisma/streams-local",
+      "before": null,
+      "after": "0.1.11"
+    },
+    {
+      "path": "node_modules/@prisma/streams-local/node_modules/ajv",
+      "before": null,
+      "after": "8.20.0"
+    },
+    {
+      "path": "node_modules/@prisma/streams-local/node_modules/json-schema-traverse",
+      "before": null,
+      "after": "1.0.0"
+    },
+    {
+      "path": "node_modules/@prisma/studio-core",
+      "before": null,
+      "after": "0.33.0"
+    },
+    {
+      "path": "node_modules/@radix-ui/primitive",
+      "before": null,
+      "after": "1.1.3"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-compose-refs",
+      "before": null,
+      "after": "1.1.2"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-primitive",
+      "before": null,
+      "after": "2.1.3"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-slot",
+      "before": null,
+      "after": "1.2.3"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-toggle",
+      "before": null,
+      "after": "1.1.10"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-use-controllable-state",
+      "before": null,
+      "after": "1.2.2"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-use-effect-event",
+      "before": null,
+      "after": "0.0.2"
+    },
+    {
+      "path": "node_modules/@radix-ui/react-use-layout-effect",
+      "before": null,
+      "after": "1.1.1"
+    },
+    {
+      "path": "node_modules/@types/d3-array",
+      "before": null,
+      "after": "3.0.3"
+    },
+    {
+      "path": "node_modules/@types/d3-color",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/@types/d3-delaunay",
+      "before": null,
+      "after": "6.0.1"
+    },
+    {
+      "path": "node_modules/@types/d3-format",
+      "before": null,
+      "after": "3.0.1"
+    },
+    {
+      "path": "node_modules/@types/d3-geo",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/@types/d3-interpolate",
+      "before": null,
+      "after": "3.0.1"
+    },
+    {
+      "path": "node_modules/@types/d3-path",
+      "before": null,
+      "after": "3.1.1"
+    },
+    {
+      "path": "node_modules/@types/d3-scale",
+      "before": null,
+      "after": "4.0.2"
+    },
+    {
+      "path": "node_modules/@types/d3-shape",
+      "before": null,
+      "after": "3.1.7"
+    },
+    {
+      "path": "node_modules/@types/d3-time",
+      "before": null,
+      "after": "3.0.0"
+    },
+    {
+      "path": "node_modules/@types/d3-time-format",
+      "before": null,
+      "after": "2.1.0"
+    },
+    {
+      "path": "node_modules/@types/geojson",
+      "before": null,
+      "after": "7946.0.16"
+    },
+    {
+      "path": "node_modules/@types/lodash",
+      "before": null,
+      "after": "4.17.27"
+    },
+    {
+      "path": "node_modules/@types/pg",
+      "before": null,
+      "after": "8.23.1"
+    },
+    {
+      "path": "node_modules/@visx/curve",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/event",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/grid",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/group",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/point",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/responsive",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/scale",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/shape",
+      "before": null,
+      "after": "4.0.1-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/vendor",
+      "before": null,
+      "after": "4.0.0-alpha.0"
+    },
+    {
+      "path": "node_modules/@visx/vendor/node_modules/d3-array",
+      "before": null,
+      "after": "3.2.1"
+    },
+    {
+      "path": "node_modules/aws-ssl-profiles",
+      "before": null,
+      "after": "1.1.2"
+    },
+    {
+      "path": "node_modules/base64-js",
+      "before": null,
+      "after": "1.5.1"
+    },
+    {
+      "path": "node_modules/better-result",
+      "before": null,
+      "after": "2.10.0"
+    },
+    {
+      "path": "node_modules/better-sqlite3",
+      "before": null,
+      "after": "12.11.1"
+    },
+    {
+      "path": "node_modules/bindings",
+      "before": null,
+      "after": "1.5.0"
+    },
+    {
+      "path": "node_modules/bl",
+      "before": null,
+      "after": "4.1.0"
+    },
+    {
+      "path": "node_modules/buffer",
+      "before": null,
+      "after": "5.7.1"
+    },
+    {
+      "path": "node_modules/c12",
+      "before": null,
+      "after": "3.3.4"
+    },
+    {
+      "path": "node_modules/chokidar",
+      "before": null,
+      "after": "5.0.0"
+    },
+    {
+      "path": "node_modules/chownr",
+      "before": null,
+      "after": "1.1.4"
+    },
+    {
+      "path": "node_modules/classnames",
+      "before": null,
+      "after": "2.5.1"
+    },
+    {
+      "path": "node_modules/confbox",
+      "before": null,
+      "after": "0.2.4"
+    },
+    {
+      "path": "node_modules/d3-array",
+      "before": null,
+      "after": "3.2.4"
+    },
+    {
+      "path": "node_modules/d3-color",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/d3-delaunay",
+      "before": null,
+      "after": "6.0.2"
+    },
+    {
+      "path": "node_modules/d3-format",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/d3-geo",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/d3-interpolate",
+      "before": null,
+      "after": "3.0.1"
+    },
+    {
+      "path": "node_modules/d3-path",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/d3-scale",
+      "before": null,
+      "after": "4.0.2"
+    },
+    {
+      "path": "node_modules/d3-shape",
+      "before": null,
+      "after": "3.2.0"
+    },
+    {
+      "path": "node_modules/d3-time",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/d3-time-format",
+      "before": null,
+      "after": "4.1.0"
+    },
+    {
+      "path": "node_modules/decompress-response",
+      "before": null,
+      "after": "6.0.0"
+    },
+    {
+      "path": "node_modules/deep-extend",
+      "before": null,
+      "after": "0.6.0"
+    },
+    {
+      "path": "node_modules/deepmerge-ts",
+      "before": null,
+      "after": "8.0.2"
+    },
+    {
+      "path": "node_modules/defu",
+      "before": null,
+      "after": "6.1.7"
+    },
+    {
+      "path": "node_modules/delaunator",
+      "before": null,
+      "after": "5.1.0"
+    },
+    {
+      "path": "node_modules/destr",
+      "before": null,
+      "after": "2.0.5"
+    },
+    {
+      "path": "node_modules/dotenv",
+      "before": null,
+      "after": "17.4.2"
+    },
+    {
+      "path": "node_modules/effect",
+      "before": null,
+      "after": "3.20.0"
+    },
+    {
+      "path": "node_modules/elkjs",
+      "before": null,
+      "after": "0.11.1"
+    },
+    {
+      "path": "node_modules/empathic",
+      "before": null,
+      "after": "2.0.0"
+    },
+    {
+      "path": "node_modules/env-paths",
+      "before": null,
+      "after": "3.0.0"
+    },
+    {
+      "path": "node_modules/expand-template",
+      "before": null,
+      "after": "2.0.3"
+    },
+    {
+      "path": "node_modules/exsolve",
+      "before": null,
+      "after": "1.1.3"
+    },
+    {
+      "path": "node_modules/fast-check",
+      "before": null,
+      "after": "3.23.2"
+    },
+    {
+      "path": "node_modules/fast-decode-uri-component",
+      "before": null,
+      "after": "1.0.1"
+    },
+    {
+      "path": "node_modules/fast-querystring",
+      "before": null,
+      "after": "1.1.2"
+    },
+    {
+      "path": "node_modules/fast-uri",
+      "before": null,
+      "after": "3.1.9"
+    },
+    {
+      "path": "node_modules/file-uri-to-path",
+      "before": null,
+      "after": "1.0.0"
+    },
+    {
+      "path": "node_modules/find-my-way",
+      "before": null,
+      "after": "9.7.0"
+    },
+    {
+      "path": "node_modules/foreground-child",
+      "before": null,
+      "after": "3.3.1"
+    },
+    {
+      "path": "node_modules/fs-constants",
+      "before": null,
+      "after": "1.0.0"
+    },
+    {
+      "path": "node_modules/generate-function",
+      "before": null,
+      "after": "2.3.1"
+    },
+    {
+      "path": "node_modules/get-port-please",
+      "before": null,
+      "after": "3.2.0"
+    },
+    {
+      "path": "node_modules/giget",
+      "before": null,
+      "after": "3.3.1"
+    },
+    {
+      "path": "node_modules/github-from-package",
+      "before": null,
+      "after": "0.0.0"
+    },
+    {
+      "path": "node_modules/grammex",
+      "before": null,
+      "after": "3.1.13"
+    },
+    {
+      "path": "node_modules/graphmatch",
+      "before": null,
+      "after": "1.1.1"
+    },
+    {
+      "path": "node_modules/iconv-lite",
+      "before": null,
+      "after": "0.7.3"
+    },
+    {
+      "path": "node_modules/ieee754",
+      "before": null,
+      "after": "1.2.1"
+    },
+    {
+      "path": "node_modules/inherits",
+      "before": null,
+      "after": "2.0.4"
+    },
+    {
+      "path": "node_modules/ini",
+      "before": null,
+      "after": "1.3.8"
+    },
+    {
+      "path": "node_modules/internmap",
+      "before": null,
+      "after": "2.0.3"
+    },
+    {
+      "path": "node_modules/is-property",
+      "before": null,
+      "after": "1.0.2"
+    },
+    {
+      "path": "node_modules/lodash",
+      "before": null,
+      "after": "4.18.1"
+    },
+    {
+      "path": "node_modules/long",
+      "before": null,
+      "after": "5.3.2"
+    },
+    {
+      "path": "node_modules/lru.min",
+      "before": null,
+      "after": "1.1.5"
+    },
+    {
+      "path": "node_modules/mimic-response",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/mkdirp-classic",
+      "before": null,
+      "after": "0.5.3"
+    },
+    {
+      "path": "node_modules/mysql2",
+      "before": null,
+      "after": "3.24.4"
+    },
+    {
+      "path": "node_modules/named-placeholders",
+      "before": null,
+      "after": "1.1.6"
+    },
+    {
+      "path": "node_modules/napi-build-utils",
+      "before": null,
+      "after": "2.0.0"
+    },
+    {
+      "path": "node_modules/node-abi",
+      "before": null,
+      "after": "3.101.0"
+    },
+    {
+      "path": "node_modules/node-abi/node_modules/semver",
+      "before": null,
+      "after": "7.8.5"
+    },
+    {
+      "path": "node_modules/ohash",
+      "before": null,
+      "after": "2.0.12"
+    },
+    {
+      "path": "node_modules/perfect-debounce",
+      "before": null,
+      "after": "2.1.0"
+    },
+    {
+      "path": "node_modules/pg",
+      "before": null,
+      "after": "8.23.1"
+    },
+    {
+      "path": "node_modules/pg-cloudflare",
+      "before": null,
+      "after": "1.4.1"
+    },
+    {
+      "path": "node_modules/pg-connection-string",
+      "before": null,
+      "after": "2.14.1"
+    },
+    {
+      "path": "node_modules/pg-int8",
+      "before": null,
+      "after": "1.0.1"
+    },
+    {
+      "path": "node_modules/pg-pool",
+      "before": null,
+      "after": "3.14.0"
+    },
+    {
+      "path": "node_modules/pg-protocol",
+      "before": null,
+      "after": "1.16.1"
+    },
+    {
+      "path": "node_modules/pg-types",
+      "before": null,
+      "after": "2.2.0"
+    },
+    {
+      "path": "node_modules/pg-types/node_modules/postgres-array",
+      "before": null,
+      "after": "2.0.0"
+    },
+    {
+      "path": "node_modules/pgpass",
+      "before": null,
+      "after": "1.0.5"
+    },
+    {
+      "path": "node_modules/pkg-types",
+      "before": null,
+      "after": "2.4.0"
+    },
+    {
+      "path": "node_modules/pkg-types/node_modules/confbox",
+      "before": null,
+      "after": "0.3.1"
+    },
+    {
+      "path": "node_modules/postgres",
+      "before": null,
+      "after": "3.4.7"
+    },
+    {
+      "path": "node_modules/postgres-array",
+      "before": null,
+      "after": "3.0.4"
+    },
+    {
+      "path": "node_modules/postgres-bytea",
+      "before": null,
+      "after": "1.0.1"
+    },
+    {
+      "path": "node_modules/postgres-date",
+      "before": null,
+      "after": "1.0.7"
+    },
+    {
+      "path": "node_modules/postgres-interval",
+      "before": null,
+      "after": "1.2.0"
+    },
+    {
+      "path": "node_modules/prebuild-install",
+      "before": null,
+      "after": "7.1.3"
+    },
+    {
+      "path": "node_modules/prebuild-install/node_modules/tar-fs",
+      "before": null,
+      "after": "2.1.5"
+    },
+    {
+      "path": "node_modules/prebuild-install/node_modules/tar-stream",
+      "before": null,
+      "after": "2.2.0"
+    },
+    {
+      "path": "node_modules/prisma",
+      "before": "6.12.0",
+      "after": "7.10.1"
+    },
+    {
+      "path": "node_modules/proper-lockfile",
+      "before": null,
+      "after": "4.1.2"
+    },
+    {
+      "path": "node_modules/proper-lockfile/node_modules/signal-exit",
+      "before": null,
+      "after": "3.0.7"
+    },
+    {
+      "path": "node_modules/pure-rand",
+      "before": null,
+      "after": "6.1.0"
+    },
+    {
+      "path": "node_modules/rc",
+      "before": null,
+      "after": "1.2.8"
+    },
+    {
+      "path": "node_modules/rc/node_modules/strip-json-comments",
+      "before": null,
+      "after": "2.0.1"
+    },
+    {
+      "path": "node_modules/rc9",
+      "before": null,
+      "after": "3.1.0"
+    },
+    {
+      "path": "node_modules/readable-stream",
+      "before": null,
+      "after": "3.6.2"
+    },
+    {
+      "path": "node_modules/readdirp",
+      "before": null,
+      "after": "5.1.1"
+    },
+    {
+      "path": "node_modules/remeda",
+      "before": null,
+      "after": "2.33.4"
+    },
+    {
+      "path": "node_modules/require-from-string",
+      "before": null,
+      "after": "2.0.2"
+    },
+    {
+      "path": "node_modules/ret",
+      "before": null,
+      "after": "0.5.1"
+    },
+    {
+      "path": "node_modules/retry",
+      "before": null,
+      "after": "0.12.0"
+    },
+    {
+      "path": "node_modules/robust-predicates",
+      "before": null,
+      "after": "3.0.3"
+    },
+    {
+      "path": "node_modules/safe-buffer",
+      "before": null,
+      "after": "5.2.1"
+    },
+    {
+      "path": "node_modules/safe-regex2",
+      "before": null,
+      "after": "5.1.2"
+    },
+    {
+      "path": "node_modules/safer-buffer",
+      "before": null,
+      "after": "2.1.2"
+    },
+    {
+      "path": "node_modules/signal-exit",
+      "before": null,
+      "after": "4.1.0"
+    },
+    {
+      "path": "node_modules/simple-concat",
+      "before": null,
+      "after": "1.0.1"
+    },
+    {
+      "path": "node_modules/simple-get",
+      "before": null,
+      "after": "4.0.1"
+    },
+    {
+      "path": "node_modules/sql-escaper",
+      "before": null,
+      "after": "1.5.2"
+    },
+    {
+      "path": "node_modules/string_decoder",
+      "before": null,
+      "after": "1.3.0"
+    },
+    {
+      "path": "node_modules/tunnel-agent",
+      "before": null,
+      "after": "0.6.0"
+    },
+    {
+      "path": "node_modules/util-deprecate",
+      "before": null,
+      "after": "1.0.2"
+    },
+    {
+      "path": "node_modules/valibot",
+      "before": null,
+      "after": "1.4.2"
+    },
+    {
+      "path": "node_modules/xtend",
+      "before": null,
+      "after": "4.0.2"
+    },
+    {
+      "path": "node_modules/zeptomatch",
+      "before": null,
+      "after": "2.1.0"
+    }
+  ],
+  "limits": [
+    "Licence du code propre",
+    "Assets et polices",
+    "Paquets syst\u00e8me de l\u2019image et Chromium",
+    "Services et images PostgreSQL/Redis",
+    "Texte effectif des licences et obligations de redistribution"
+  ]
+}

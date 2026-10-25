@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { createOperationsDashboardFixture, dashboardCollections } from "../helpers/operations-dashboard-fixture"
 
@@ -8,7 +8,7 @@ vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, co
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 import { getOperationsDashboard } from "@/actions/operations"
 
-const database = new PrismaClient()
+const database = createDatabaseClient()
 type Dashboard = Awaited<ReturnType<typeof getOperationsDashboard>>
 
 describe.sequential("Operations dashboard relation isolation on real SQL", () => {

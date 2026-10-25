@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { EmailSendQuotaError } from "@/lib/communications/send-quotas"
 import { EmailProviderError, terminalProviderFailure, providerRetryDate } from "@/lib/communications/provider-errors"
 

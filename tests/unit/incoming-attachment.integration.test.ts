@@ -1,5 +1,5 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { randomUUID } from "node:crypto"
-import { PrismaClient } from "@prisma/client"
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))
@@ -16,7 +16,7 @@ import { readIncomingAttachment } from "@/lib/communications/incoming-attachment
 import prisma from "@/lib/prisma"
 import { requestContext } from "@/lib/context"
 
-const db = new PrismaClient(), pdf = Buffer.from("%PDF-1.7\nFictional remote attachment\n")
+const db = createDatabaseClient(), pdf = Buffer.from("%PDF-1.7\nFictional remote attachment\n")
 describe.sequential("incoming OAuth attachments remain private bounded provider reads", () => {
   let memberId: string, colleagueId: string, foreignCompanyId: string
   const users: string[] = []

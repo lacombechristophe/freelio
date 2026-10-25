@@ -1,3 +1,4 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test, type Page } from "@playwright/test"
 import { mkdir, readdir, writeFile } from "node:fs/promises"
 import path from "node:path"
@@ -289,8 +290,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
   const representativeRecords: Array<{ route: string; fixture: string; state: string }> = []
   if (!focusedRoutes?.length && process.env.E2E_DIRECTORY_FIXTURES === "true") {
     if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL) throw new Error("Les documents de recette exigent une SQLite fictive isolée")
-    const { PrismaClient } = await import("@prisma/client")
-    const database = new PrismaClient()
+    const database = createDatabaseClient()
     try {
       // Banking fixtures intentionally have no historical PDF archive. Audit a
       // seeded draft, independently of invoices created by desktop workflows.

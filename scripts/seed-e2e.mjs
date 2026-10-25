@@ -1,9 +1,9 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import { createHash } from "node:crypto"
 import { hashPassword } from "../src/lib/auth/password-core.ts"
 
-const { PrismaClient } = await import("@prisma/client")
 
-const prisma = new PrismaClient()
+const prisma = createDatabaseClient()
 // Keep the fictional company ID valid for frozen contract terms as well.
 const email = process.env.E2E_USER_EMAIL || "qa-crm@example.com"
 const password = process.env.E2E_USER_PASSWORD || "RecetteSolide2026"
