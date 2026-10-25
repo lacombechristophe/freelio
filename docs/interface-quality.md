@@ -23,6 +23,7 @@ L’éditeur d’e-mail simple accepte la mise en forme qu’il sait représente
 | Refus de formulaire persistant | `tests/e2e/form-error-feedback.spec.ts` |
 | Thème clair, sombre, système et CSP | `tests/e2e/theme-preferences.spec.ts`, `visual-edge-cases.spec.ts` |
 | Préférence de mouvement et défilement du Pipeline | `tests/e2e/motion-preferences.spec.ts` |
+| Dates Terrain dans le fuseau de la société, même avec un navigateur éloigné | `tests/e2e/field-timezone.spec.ts` |
 | Vocabulaire Marketing et destinations des raccourcis | `tests/e2e/marketing-rule-language.spec.ts`, `tests/unit/dashboard-navigation.test.ts` |
 | Rédaction simple et compatibilité HTML | `tests/e2e/communications-simple-editor.spec.ts` et suites `communications-*` |
 | Logo indisponible, graphèmes, fenêtre courte et contrastes ciblés | `tests/e2e/visual-edge-cases.spec.ts`, `tests/unit/initials.test.ts` |

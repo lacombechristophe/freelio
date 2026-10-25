@@ -11,7 +11,7 @@ export async function getFieldWorkspace(): Promise<FieldSnapshot | null> {
     const futureLimit = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1_000)
     const technicianScope = role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {}
     const [company, interventions, products, warehouses] = await Promise.all([
-      prisma.company.findUnique({ where: { id: companyId }, select: { id: true, name: true } }),
+      prisma.company.findUnique({ where: { id: companyId }, select: { id: true, name: true, serviceTimezone: true } }),
       prisma.fieldIntervention.findMany({
         where: {
           companyId,
@@ -39,6 +39,7 @@ export async function getFieldWorkspace(): Promise<FieldSnapshot | null> {
     return {
       companyId: company.id,
       companyName: company.name,
+      timeZone: company.serviceTimezone,
       cachedAt: cachedAt.toISOString(),
       expiresAt: new Date(cachedAt.getTime() + 24 * 60 * 60 * 1_000).toISOString(),
       assignments: interventions.map((item) => ({

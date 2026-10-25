@@ -36,8 +36,8 @@ const STATUS_LABELS: Record<string, string> = { PLANNED: "Planifiée", EN_ROUTE:
 const EXPENSE_LABELS: Record<FieldExpenseDraft["category"], string> = { TRAVEL: "Déplacement", TOLL: "Péage", PARKING: "Stationnement", MEAL: "Repas", SUPPLIES: "Fournitures", OTHER: "Autre" }
 const RESERVATION_LABELS: Record<FieldReservationDraft["severity"], string> = { MINOR: "Mineure", MAJOR: "Majeure", BLOCKING: "Bloquante" }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+function formatDate(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value))
 }
 
 function siteAddress(assignment: FieldAssignment) {
@@ -93,6 +93,7 @@ function normalizeDraft(stored: FieldDraft | undefined, interventionId: string):
 export function TerrainWorkspace({ initialSnapshot }: { initialSnapshot: FieldSnapshot }) {
   const router = useRouter()
   const [snapshot, setSnapshot] = useState(initialSnapshot)
+  const timeZone = snapshot.timeZone ?? initialSnapshot.timeZone ?? "Europe/Paris"
   const [online, setOnline] = useState(true)
   const [offlineEnabled, setOfflineEnabled] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -194,7 +195,7 @@ export function TerrainWorkspace({ initialSnapshot }: { initialSnapshot: FieldSn
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
           <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${online ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>{online ? <Wifi className="size-4" /> : <CloudOff className="size-4" />}</span>
-          <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{online ? "Connexion disponible" : "Mode hors ligne"}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{offlineEnabled ? `Copie locale valable jusqu’au ${formatDate(snapshot.expiresAt)}. Les brouillons restent sur cet appareil.` : "Activez la copie locale avant le départ. Elle expire automatiquement après 24 h."}</p></div>
+          <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{online ? "Connexion disponible" : "Mode hors ligne"}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{offlineEnabled ? `Copie locale valable jusqu’au ${formatDate(snapshot.expiresAt, timeZone)}. Les brouillons restent sur cet appareil.` : "Activez la copie locale avant le départ. Elle expire automatiquement après 24 h."}</p></div>
           <div className="flex flex-wrap gap-2">
             {pendingCount ? <Badge variant="outline">{pendingCount} rapport{pendingCount > 1 ? "s" : ""} en attente</Badge> : null}
             <Button variant="outline" onClick={enableOffline} disabled={isPending || !online}>{isPending ? <Loader2 className="animate-spin" /> : <CloudDownload />}{offlineEnabled ? "Actualiser la copie" : "Activer hors ligne"}</Button>
@@ -205,7 +206,7 @@ export function TerrainWorkspace({ initialSnapshot }: { initialSnapshot: FieldSn
 
       <section className="overflow-hidden rounded-xl border bg-card">
         <div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Interventions à exécuter</h2><p className="mt-1 text-xs text-muted-foreground">{active.length} intervention{active.length > 1 ? "s" : ""} dans la fenêtre des 60 prochains jours</p></div>
-        {active.length ? <div className="divide-y">{active.map((assignment) => <FieldAssignmentEditor key={assignment.id} assignment={assignment} products={snapshot.products || []} warehouses={snapshot.warehouses || []} online={online} onDraftChange={refreshPendingCount} onSync={syncDraft} />)}</div> : <p className="px-5 py-12 text-center text-sm text-muted-foreground">Aucune intervention active dans la copie terrain.</p>}
+        {active.length ? <div className="divide-y">{active.map((assignment) => <FieldAssignmentEditor key={assignment.id} assignment={assignment} timeZone={timeZone} products={snapshot.products || []} warehouses={snapshot.warehouses || []} online={online} onDraftChange={refreshPendingCount} onSync={syncDraft} />)}</div> : <p className="px-5 py-12 text-center text-sm text-muted-foreground">Aucune intervention active dans la copie terrain.</p>}
       </section>
 
       {completed.length ? <section className="overflow-hidden rounded-xl border bg-card"><div className="border-b px-5 py-4"><h2 className="text-sm font-semibold">Clôturées récemment</h2></div><div className="divide-y">{completed.map((assignment) => <div key={assignment.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"><CheckCircle2 className="size-4 shrink-0 text-success" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{assignment.title}</p><p className="mt-1 text-xs text-muted-foreground">{assignment.site.clientName} · {assignment.site.label}</p></div><a className={buttonVariants({ variant: "outline", size: "sm" })} href={`/api/pdf/intervention/${assignment.id}`} target="_blank" rel="noreferrer"><FileText />Rapport PDF</a></div>)}</div></section> : null}
@@ -213,7 +214,7 @@ export function TerrainWorkspace({ initialSnapshot }: { initialSnapshot: FieldSn
   )
 }
 
-function FieldAssignmentEditor({ assignment, products, warehouses, online, onDraftChange, onSync }: { assignment: FieldAssignment; products: FieldSnapshot["products"]; warehouses: FieldSnapshot["warehouses"]; online: boolean; onDraftChange: () => Promise<void>; onSync: (draft: FieldDraft) => Promise<void> }) {
+function FieldAssignmentEditor({ assignment, timeZone, products, warehouses, online, onDraftChange, onSync }: { assignment: FieldAssignment; timeZone: string; products: FieldSnapshot["products"]; warehouses: FieldSnapshot["warehouses"]; online: boolean; onDraftChange: () => Promise<void>; onSync: (draft: FieldDraft) => Promise<void> }) {
   const [draft, setDraft] = useState<FieldDraft>(() => emptyDraft(assignment.id))
   const draftRef = useRef(draft)
   const [draftReady, setDraftReady] = useState(false)
@@ -335,7 +336,7 @@ function FieldAssignmentEditor({ assignment, products, warehouses, online, onDra
 
   return (
     <article className="px-5 py-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{STATUS_LABELS[assignment.status] || assignment.status}</Badge><span className="text-xs font-medium tabular-nums">{formatDate(assignment.scheduledStart)}</span>{draft.pendingCompletion ? <Badge variant="secondary">À synchroniser</Badge> : null}</div><h3 className="mt-2 text-sm font-semibold">{assignment.title}</h3><p className="mt-1 text-xs text-muted-foreground">{assignment.site.clientName} · {assignment.site.label}{assignment.ticketNumber ? ` · ${assignment.ticketNumber}` : ""}</p><p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3.5" />{siteAddress(assignment)}</p></div>{assignment.technician ? <span className="text-xs text-muted-foreground">{assignment.technician}</span> : null}</div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{STATUS_LABELS[assignment.status] || assignment.status}</Badge><span className="text-xs font-medium tabular-nums">{formatDate(assignment.scheduledStart, timeZone)}</span>{draft.pendingCompletion ? <Badge variant="secondary">À synchroniser</Badge> : null}</div><h3 className="mt-2 text-sm font-semibold">{assignment.title}</h3><p className="mt-1 text-xs text-muted-foreground">{assignment.site.clientName} · {assignment.site.label}{assignment.ticketNumber ? ` · ${assignment.ticketNumber}` : ""}</p><p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3.5" />{siteAddress(assignment)}</p></div>{assignment.technician ? <span className="text-xs text-muted-foreground">{assignment.technician}</span> : null}</div>
       <form onSubmit={complete} className="mt-5 space-y-4 border-t pt-4" aria-busy={!draftReady}>
         <fieldset disabled={!draftReady} className="contents">
         <div><Label htmlFor={`report-${assignment.id}`}>Compte rendu terrain</Label><textarea id={`report-${assignment.id}`} className="mt-1.5 min-h-28 w-full rounded-[10px] border bg-background p-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20" value={draft.report} onChange={(event) => change({ report: event.target.value })} /></div>
