@@ -83,4 +83,20 @@ describe.sequential("complete bounded company reversibility export", () => {
     for (const secret of ["FICTIONAL-EXCLUDED-PASSWORD", "FICTIONAL-EXCLUDED-TOKEN", "FICTIONAL-EXCLUDED-CREDENTIALS", foreignCompanyId, foreignUserId]) expect(serialized).not.toContain(secret)
     expect(verifyReversibilityExport(payload).ok).toBe(true)
   })
+
+  it("counts user data in the byte budget and preserves it when the logical export is refused", async () => {
+    const bytes = 17 * 1024 * 1024
+    await prisma.user.update({ where: { id: ownerId }, data: { image: "x".repeat(bytes) } })
+    let refused = false
+    try { await buildBackupPayload(ownerId, companyId) }
+    catch (error) {
+      expect(error).toBeInstanceOf(Error)
+      expect((error as Error).message).toBe("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+      refused = true
+    }
+    expect(refused).toBe(true)
+    const [row] = await prisma.$queryRaw<Array<{ size: number | bigint }>>`SELECT length("image") AS "size" FROM "User" WHERE "id" = ${ownerId}`
+    expect(Number(row.size)).toBe(bytes)
+    expect(await prisma.auditLog.count({ where: { userId: ownerId } })).toBe(3)
+  })
 })

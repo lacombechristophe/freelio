@@ -118,5 +118,6 @@
     "Compiled HTTP uses a new fictitious SQLite, the documented E2E credentials profile and local memory limiter. It does not validate real Upstash, OAuth, Neon or hosted login.",
     "No local browser, provider send, existing database, production alias or real secret is used.",
     "Complete remote CI on the published fixes remains required."
-  ]
+  ],
+  "qualifiedCodeCommit": "a70e0dc5b7533dfd18f2a3e34286d47c1189c602"
 }

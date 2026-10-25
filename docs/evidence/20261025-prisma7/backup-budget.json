@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-10-25T09:23:38.726598+00:00",
+  "purpose": "Reject logical exports above the table byte budget when the excess comes from User data; preserve the stored image and audit rows.",
+  "qualification": {
+    "sqlite": {
+      "numTotalTests": 119,
+      "numPassedTests": 119,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "success": true
+    },
+    "postgres": {
+      "numTotalTests": 119,
+      "numPassedTests": 119,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "success": true
+    },
+    "files": [
+      "tests/unit/operations-assets.integration.test.ts",
+      "tests/unit/operations-dashboard-relations.integration.test.ts",
+      "tests/unit/operations-details-relations.integration.test.ts",
+      "tests/unit/backup-export-volume.integration.test.ts",
+      "tests/unit/backup-export.integration.test.ts",
+      "tests/unit/backup-integrity.test.ts",
+      "tests/unit/backup-process-route.test.ts",
+      "tests/unit/backup-scheduler.test.ts"
+    ]
+  },
+  "case": "17 MiB fictitious image, existing export-limit error, stored length unchanged and three own audit rows retained",
+  "sourceSha256": {
+    "tests/unit/backup-export-volume.integration.test.ts": "46358f171b150a077a3122aabf3887c22b43b4a5e23c291242b7782dc2b5e0ef",
+    "src/lib/backup.ts": "8cd4f8a51aef0cd7b128313df50cc0d745111c3df367a240e99ccb3ba3166d6a"
+  },
+  "limits": [
+    "Synthetic databases only; no hosted database or provider request.",
+    "The original backup.json remains the qualification of the earlier three-case volume file."
+  ]
+}
