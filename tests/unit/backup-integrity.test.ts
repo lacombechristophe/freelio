@@ -45,6 +45,11 @@ function baseExport(): ReversibilityExportBase {
 }
 
 describe("manifestes de réversibilité", () => {
+  it("retire les jetons porteurs génériques dans les objets et tableaux sans supprimer les compteurs ou empreintes", () => {
+    expect(redactSensitiveExportValues({ token: "fictional-bearer", rows: [{ Token: "fictional-nested-bearer", tokenCount: 2, proofHash: "business-proof", signatureSha256: "business-signature" }] }))
+      .toEqual({ rows: [{ tokenCount: 2, proofHash: "business-proof", signatureSha256: "business-signature" }] })
+  })
+
   it("retire récursivement les secrets sans supprimer les preuves métier", () => {
     expect(redactSensitiveExportValues({
       id: "connection-1",

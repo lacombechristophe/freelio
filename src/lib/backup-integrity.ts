@@ -107,6 +107,7 @@ const SENSITIVE_EXPORT_KEYS = new Set([
   "refresh_token",
   "secret",
   "sessiontoken",
+  "token",
   "tokenhash",
   "oauthnoncehash",
   "oauthattemptid",
