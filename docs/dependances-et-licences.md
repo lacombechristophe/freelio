@@ -2,6 +2,20 @@
 
 Le candidat du 25 octobre utilise Prisma 7.10.1 et ses adaptateurs explicites. Son [inventaire daté](evidence/20261025-prisma7/dependencies.json) contient 1 027 entrées du lockfile ; l'audit local ne signale aucun avis connu. Les [preuves](evidence/20261025-prisma7/README.md) distinguent cette qualification de la CI précédente. Le dépôt est désormais public ; le choix de conserver le code propre sans licence de redistribution reste inchangé. Les paragraphes suivants conservent les contrôles historiques et leurs versions.
 
+## Maintenance après la livraison du 25 octobre
+
+Les [quatre jobs de main](evidence/20261025-main-release/ci.json) passent, y compris les audits npm de production et complet. Les alertes de dépendances GitHub sont ensuite activées ; leur [observation datée](evidence/20261025-main-release/maintenance.json) ne signale aucune alerte ouverte. Les audits et le graphe de dépendances restent des observations limitées aux avis et données disponibles.
+
+| Proposition examinée | Résultat et décision |
+| --- | --- |
+| [Vitest 5, PR #5](https://github.com/lacombechristophe/freelio/pull/5) | L’installation échoue : `@vitest/coverage-v8@4.1.12` exige Vitest `4.1.12`, tandis que la PR propose `5.0.5`. Le moteur et les paquets `@vitest/*` sont désormais groupés dans Dependabot, y compris pour les changements majeurs. Le lockfile qualifié reste inchangé ; aucun `--force` ou `--legacy-peer-deps` n’est utilisé. |
+| [Lot de maintenance, PR #12](https://github.com/lacombechristophe/freelio/pull/12) | La proposition de 35 mises à jour échoue sur 28 erreurs de lint et trois assertions de politique. Elle n’est pas fusionnée. L’adoption des nouvelles règles nécessite une revue explicite ; les règles et assertions existantes restent conservées. |
+| [ioredis 6, PR #4](https://github.com/lacombechristophe/freelio/pull/4) et [framer-motion 14, PR #6](https://github.com/lacombechristophe/freelio/pull/6) | Leur CI individuelle passe. Ces changements majeurs gardent une revue séparée ; ils ne sont pas ajoutés à une livraison documentaire sur le seul critère de nouveauté. |
+
+Le [groupement Dependabot](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#groups) conserve les limites de PR et la fréquence hebdomadaire. Les propositions restent soumises aux quatre contrôles de main. Cette configuration n’installe ni ne met à jour de paquet à elle seule.
+
+## Contrôles historiques
+
 Le 21 octobre, un nouvel audit du candidat signale des avis Vite dans l’outillage de test. Après sa mise à jour, un second audit signale aussi Vitest. Le correctif `4a7a241` fixe Vite à 8.3.3 et relève Vitest ainsi que son module de couverture à 4.1.12. Les [preuves de l’outillage](evidence/20261021-test-toolchain/README.md) conservent les audits avant/après et le périmètre installé : 27 paquets de développement changent, aucun paquet de production. Les audits locaux production et complet du lockfile corrigé sont à zéro ; aucune nouvelle CI ne qualifie encore ce code. Ce résultat daté ne garantit pas l’absence de futurs avis.
 
 Les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json), alors sans alerte, sont une référence historique. Les résultats ci-dessous conservent les anciens lockfiles, leurs alertes et leurs corrections.

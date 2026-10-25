@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-10-25T12:15:51.978709+00:00",
+  "run": 40188633508,
+  "attempt": 1,
+  "head": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+  "desktop": {
+    "passed": 259,
+    "skipped": 1,
+    "failed": 1
+  },
+  "otherJobs": "success",
+  "failure": {
+    "test": "shares a revocable client portal with messages and appointments",
+    "stage": "Playwright default context fixture teardown, after the revoked-access assertion and afterEach console assertion completed",
+    "message": "browserContext.close: Target page, context or browser has been closed",
+    "businessAssertionFailureObserved": false,
+    "underlyingCause": "not established"
+  },
+  "traceSha256": "b7d55d9bb1ce0f55dedb6fc52003021b59b14091d0304c171c6fda1634c8d596",
+  "artifactZipSha256": "7b340740de99d52b3d9c53dda60707f7e57ef7357a22030099a2e9679ebeac90",
+  "nextAction": "One bounded rerun of the failed desktop job only; no source change, timeout increase, suppression or automatic test retry. Preserve this failed attempt and inspect recurrence before deciding on a fix.",
+  "success": false
+}

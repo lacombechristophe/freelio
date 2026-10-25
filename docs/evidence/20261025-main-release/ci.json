@@ -1,0 +1,94 @@
+{
+  "observedAt": "2026-10-25T12:50:47.968786+00:00",
+  "head": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+  "run": 40188633508,
+  "url": "https://github.com/lacombechristophe/freelio/actions/runs/40188633508",
+  "jobs": [
+    {
+      "name": "quality-and-e2e (desktop)",
+      "conclusion": "success",
+      "unitSuites": [
+        {
+          "passed": 4142,
+          "skipped": 1
+        }
+      ],
+      "browser": {
+        "skipped": 1,
+        "passed": 260
+      },
+      "retryOrFlakyMarkerObserved": false
+    },
+    {
+      "name": "Image Linux et Chromium",
+      "conclusion": "success",
+      "unitSuites": [],
+      "browser": {},
+      "retryOrFlakyMarkerObserved": false
+    },
+    {
+      "name": "Intégration PostgreSQL",
+      "conclusion": "success",
+      "unitSuites": [
+        {
+          "passed": 4142,
+          "skipped": 1
+        }
+      ],
+      "browser": {},
+      "retryOrFlakyMarkerObserved": false
+    },
+    {
+      "name": "quality-and-e2e (mobile)",
+      "conclusion": "success",
+      "unitSuites": [
+        {
+          "passed": 4142,
+          "skipped": 1
+        }
+      ],
+      "browser": {
+        "skipped": 18,
+        "passed": 243
+      },
+      "retryOrFlakyMarkerObserved": false
+    }
+  ],
+  "runtime": {
+    "success": true,
+    "checks": [
+      "Configuration de production vide refusée avant écoute",
+      "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+      "Données fictives créées par Prisma Linux",
+      "Serveur Linux et sondes live/ready avec SQL réel",
+      "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+      "Worker BullMQ connecté à Redis, PDF de devis terminé",
+      "Worker arrêté proprement sur SIGTERM",
+      "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+      "PDF Chromium hors réseau sous utilisateur runtime"
+    ],
+    "imageId": "sha256:4dc90ba3246a10bd9f9d0a3bc477a50f57e4bb8217fd1ddffb87bb3e7a792a11",
+    "exclusions": [
+      "Disponibilité réelle R2/Upstash",
+      "TLS, reverse proxy et réseau hébergé",
+      "Reprise après interruption d’un job actif",
+      "Validation SaaS commerciale"
+    ]
+  },
+  "allFourJobsPassed": true,
+  "noBrowserFailureOrFlakyMarker": true,
+  "manualFailedJobReruns": 1,
+  "previousAttemptDiagnostic": "main-ci-attempt1-diagnostic.json",
+  "previousFailure": {
+    "test": "shares a revocable client portal with messages and appointments",
+    "stage": "Playwright default context fixture teardown, after the revoked-access assertion and afterEach console assertion completed",
+    "message": "browserContext.close: Target page, context or browser has been closed",
+    "businessAssertionFailureObserved": false,
+    "underlyingCause": "not established"
+  },
+  "limits": [
+    "The first main attempt failed during Playwright context teardown after all portal assertions completed. Its root cause is not established; the failure and one manual desktop rerun remain explicit.",
+    "Counts are per job and engine; duplicate SQLite executions are not added together.",
+    "Excluded cases are reported separately. Provider simulations and Chrome emulation do not qualify real accounts, devices or commercial operations."
+  ]
+}

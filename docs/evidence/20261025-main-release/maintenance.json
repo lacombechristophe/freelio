@@ -1,0 +1,159 @@
+{
+  "observedAt": "2026-10-25T15:47:46.969698+00:00",
+  "base": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+  "dependabotAlertsEnabled": true,
+  "enableEndpoint": "PUT /repos/lacombechristophe/freelio/vulnerability-alerts",
+  "verificationEndpoint": "GET /repos/lacombechristophe/freelio/vulnerability-alerts",
+  "openAlertsAtObservation": 0,
+  "pullRequests": [
+    {
+      "number": 4,
+      "url": "https://github.com/lacombechristophe/freelio/pull/4",
+      "head": "15c6fe2067ced91b7418e214e02f666c3a61aeaa",
+      "base": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+      "checks": [
+        {
+          "name": "Image Linux et Chromium",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188799033/job/121155151015"
+        },
+        {
+          "name": "quality-and-e2e (desktop)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188799033/job/121155151242"
+        },
+        {
+          "name": "quality-and-e2e (mobile)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188799033/job/121155151276"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188799033/job/121155151255"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "url": "https://github.com/lacombechristophe/freelio/pull/5",
+      "head": "909543c203f9c321e5d92ae26eededc76fc3ae4d",
+      "base": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+      "checks": [
+        {
+          "name": "Image Linux et Chromium",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188816746/job/121155203215"
+        },
+        {
+          "name": "quality-and-e2e (desktop)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188816746/job/121155203270"
+        },
+        {
+          "name": "quality-and-e2e (mobile)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188816746/job/121155203048"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188816746/job/121155203269"
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "url": "https://github.com/lacombechristophe/freelio/pull/6",
+      "head": "f5db917d6ec71a251a8fe3815be90141aa18712b",
+      "base": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+      "checks": [
+        {
+          "name": "Image Linux et Chromium",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188801937/job/121155160024"
+        },
+        {
+          "name": "quality-and-e2e (desktop)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188801937/job/121155159996"
+        },
+        {
+          "name": "quality-and-e2e (mobile)",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188801937/job/121155160003"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40188801937/job/121155159896"
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "url": "https://github.com/lacombechristophe/freelio/pull/12",
+      "head": "525fcc12220fe8ce9be6ddad76bbc89eb406327f",
+      "base": "a461e68cc0cb20effa5cabcbfa34fe54acf6a9b4",
+      "checks": [
+        {
+          "name": "Image Linux et Chromium",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40189165862/job/121156264400"
+        },
+        {
+          "name": "quality-and-e2e (desktop)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40189165862/job/121156264320"
+        },
+        {
+          "name": "quality-and-e2e (mobile)",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40189165862/job/121156264401"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "status": "COMPLETED",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/lacombechristophe/freelio/actions/runs/40189165862/job/121156264137"
+        }
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "pullRequest": 5,
+      "decision": "Keep the tested Vitest 4.1.12 toolchain. Group vitest and @vitest/* for future coordinated upgrades; no forced peer-dependency resolution."
+    },
+    {
+      "pullRequest": 12,
+      "decision": "Do not merge while policy and lint checks fail. Existing rule severities and assertions remain unchanged."
+    },
+    {
+      "pullRequests": [
+        4,
+        6
+      ],
+      "decision": "Their individual CI is green, but major upgrades remain separate reviews and are not added to this delivery solely because they are newer."
+    }
+  ],
+  "limits": [
+    "The alert count is a dated observation, not a claim that every vulnerability is known or every graph refresh has finished.",
+    "No package or lockfile changes, local installation, new OAuth scope, paid security plan or runtime update are included in this maintenance configuration change."
+  ]
+}

@@ -1,6 +1,8 @@
 # Qualification du candidat Freelio
 
-Le [candidat `745c51d`](evidence/20261025-public-demo/README.md) passe les quatre jobs de sa CI complète : 4 142 réussites et une exclusion moteur dans chaque suite SQL, desktop 260, mobile 243 et neuf contrôles Linux. Sa démo publique, en lecture seule, passe la connexion normale, les lectures de documents/PDF et la déconnexion dans Chrome. La base dédiée possède les 75 migrations vérifiées. Main et un build avec les variables Production restent des étapes séparées.
+La [livraison du 25 octobre](livraison-demo-20261025.md) qualifie la fusion sur main et le domaine principal en lecture seule. Sa [CI après fusion](evidence/20261025-main-release/ci.json) passe les quatre jobs : 4 142 réussites et une exclusion moteur dans chaque suite SQL, desktop 260, mobile 243 et neuf contrôles Linux. Le premier incident de fermeture Playwright et son unique relance restent documentés. Connexion normale, factures/PDF, déconnexion et refus d’accès sans session sont vérifiés dans Chrome. La base dédiée possède les 75 migrations vérifiées.
+
+Les comptes rendus et réserves ci-dessous restent datés. La CI récente inclut les suites présentes dans sa référence ; elle ne transforme pas les simulations fournisseur, l’émulation mobile ou une récupération fictive en qualification commerciale. Les [reçus de main](evidence/20261025-main-release/README.md) distinguent code testé et déploiement vérifié.
 
 ## Qualifications précédentes
 
