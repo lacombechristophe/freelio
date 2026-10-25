@@ -32,7 +32,7 @@ describe("direct upload publication integrity", () => {
         ContentLength: bytes.length, ContentType: input.type,
         Metadata: { sha256: input.sha256, company: input.companyId, resource: input.resourceId, kind: input.kind },
       }
-      if (command instanceof GetObjectCommand) return { Body: { transformToByteArray: async () => bytes } }
+      if (command instanceof GetObjectCommand) return { Body: { async *[Symbol.asyncIterator]() { yield bytes } } }
       return {}
     })
   })
@@ -63,7 +63,7 @@ describe("direct upload publication integrity", () => {
   it("rejects changed bytes before publication", async () => {
     const previous = mocks.send.getMockImplementation()!
     mocks.send.mockImplementation(async (command) => command instanceof GetObjectCommand
-      ? { Body: { transformToByteArray: async () => Buffer.alloc(bytes.length) } }
+      ? { Body: { async *[Symbol.asyncIterator]() { yield Buffer.alloc(bytes.length) } } }
       : previous(command))
     await expect(confirmDirectFileUpload(input)).rejects.toThrow(/intégrité/)
     expect(mocks.send.mock.calls.some(([command]) => command instanceof PutObjectCommand || command instanceof DeleteObjectCommand)).toBe(false)
@@ -72,5 +72,33 @@ describe("direct upload publication integrity", () => {
   it("rejects a different tenant's temporary key before any storage request", async () => {
     await expect(confirmDirectFileUpload({ ...input, storageKey: input.storageKey.replace("company-a", "company-b") })).rejects.toThrow(/appartient/)
     expect(mocks.send).not.toHaveBeenCalled()
+  })
+
+  it("publishes draft attachments outside the company export prefix and refuses another draft's pending key", async () => {
+    const draftInput = { ...input, kind: "email-draft" as const, resourceId: "draft-a", storageKey: "r2:_pending/company-a/email-draft/draft-a/upload.pdf" }
+    mocks.send.mockImplementation(async command => {
+      if (command instanceof HeadObjectCommand) return { ContentLength: bytes.length, ContentType: input.type, Metadata: { sha256: input.sha256, company: input.companyId, resource: draftInput.resourceId, kind: draftInput.kind } }
+      if (command instanceof GetObjectCommand) return { Body: { async *[Symbol.asyncIterator]() { yield bytes } } }
+      return {}
+    })
+    const result = await confirmDirectFileUpload(draftInput)
+    expect(result.relativePath).toBe("r2:private/company-a/email-draft/draft-a/upload.pdf")
+    const publication = mocks.send.mock.calls.map(([command]) => command).find(command => command instanceof PutObjectCommand)
+    expect(publication?.input.Key).toBe("private/company-a/email-draft/draft-a/upload.pdf")
+    expect(publication?.input.Body).toEqual(bytes)
+    mocks.send.mockClear()
+    await expect(confirmDirectFileUpload({ ...draftInput, storageKey: draftInput.storageKey.replace("draft-a", "draft-b") })).rejects.toThrow(/appartient/)
+    expect(mocks.send).not.toHaveBeenCalled()
+  })
+
+  it("stops a transfer that grows after its metadata check before publishing any bytes", async () => {
+    const previous = mocks.send.getMockImplementation()!
+    let exhausted = false
+    mocks.send.mockImplementation(async command => command instanceof GetObjectCommand
+      ? { Body: { async *[Symbol.asyncIterator]() { yield bytes; yield Buffer.from("overflow"); exhausted = true; yield Buffer.alloc(1024 * 1024) } } }
+      : previous(command))
+    await expect(confirmDirectFileUpload(input)).rejects.toThrow("volumineux")
+    expect(exhausted).toBe(false)
+    expect(mocks.send.mock.calls.some(([command]) => command instanceof PutObjectCommand)).toBe(false)
   })
 })

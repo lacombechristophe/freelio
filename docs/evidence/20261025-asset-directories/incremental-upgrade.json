@@ -1,0 +1,41 @@
+{
+  "before": {
+    "sha256": "a55344650a082689b35101b91e880e5a6050569e2e6335907a2d9ba6825e280f",
+    "counts": {
+      "company": 1,
+      "client": 1,
+      "customerSite": 1,
+      "equipment": 1,
+      "serviceTicket": 1
+    }
+  },
+  "rollbackPreservedDataAndIndexes": true,
+  "after": {
+    "sha256": "a55344650a082689b35101b91e880e5a6050569e2e6335907a2d9ba6825e280f",
+    "counts": {
+      "company": 1,
+      "client": 1,
+      "customerSite": 1,
+      "equipment": 1,
+      "serviceTicket": 1
+    }
+  },
+  "migrationsBefore": 73,
+  "migrationsAfter": 75,
+  "indexes": [
+    {
+      "indexname": "Equipment_companyId_siteId_idx",
+      "indexdef": "CREATE INDEX \"Equipment_companyId_siteId_idx\" ON public.\"Equipment\" USING btree (\"companyId\", \"siteId\")"
+    },
+    {
+      "indexname": "ServiceTicket_companyId_priority_updatedAt_id_idx",
+      "indexdef": "CREATE INDEX \"ServiceTicket_companyId_priority_updatedAt_id_idx\" ON public.\"ServiceTicket\" USING btree (\"companyId\", priority, \"updatedAt\" DESC, id)"
+    }
+  ],
+  "success": true,
+  "scope": "Owned PostgreSQL 18.6 on an internal Docker network, five fictional business rows; no hosted connection.",
+  "limits": [
+    "This rehearsal does not establish the state, privileges, latency or recoverability of Neon.",
+    "Only the two indexes and Prisma migration journal change."
+  ]
+}

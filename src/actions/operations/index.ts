@@ -1,22 +1,49 @@
 "use server"
 
-import { createHash } from "node:crypto"
+import { calendarPeriods } from "@/lib/calendar-days"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, AuthorizationError, type AuthContext } from "@/lib/auth-wrapper"
+import { requestContext } from "@/lib/context"
+import { isTransactionConflict } from "@/lib/transaction-conflicts"
+import type { StockReservation } from "@/generated/prisma/client"
+import { AssetLifecycleError } from "@/lib/operations/asset-error"
+import { messageReadSelect } from "@/lib/communications/inbox-reader"
 import { logAction } from "@/lib/audit"
 import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { calculateStockBalance, calculateStockTransferBalances } from "@/lib/operations/stock"
 import { computeInvoiceSlice, remainingOrderAmount } from "@/lib/operations/orders"
-import { planningSlotsOverlap } from "@/lib/operations/planning"
+import { assertSchedulingSlotFree, lockSchedulingMembers, schedulingMemberWhere, SchedulingError } from "@/lib/scheduling/resource-slots"
 import { indexedMaintenancePrice, nextMaintenanceTerm } from "@/lib/operations/maintenance-renewal"
 import { diagnosticSteps, diagnosticStringList, equipmentWarrantyStatus, scoreDiagnosticGuide } from "@/lib/operations/service-diagnostics"
 import { scoreServiceDuplicate } from "@/lib/operations/service-duplicates"
 import { recommendServiceAssignee, serviceRoutingTags } from "@/lib/operations/service-routing"
 import { businessMinutesBetween, serviceFirstResponseTarget, serviceResolutionTarget, serviceSlaPolicy } from "@/lib/operations/service-sla"
+import { readHelpDeskDashboard } from "@/lib/operations/help-desk"
+import { assertAcceptedMaintenanceAgreement } from "@/lib/contracts/maintenance-agreements"
 import { hasPermission } from "@/lib/permissions"
-import prisma from "@/lib/prisma"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
+import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
+import { readStockDirectory } from "@/lib/operations/stock-directory"
+import { operationsDashboardScope } from "@/lib/operations/dashboard-scope"
+import { lockActiveWarehouses } from "@/lib/operations/warehouses"
+import { lockActiveSite, lockActiveEquipment, lockActiveAssetProduct } from "@/lib/operations/asset-lifecycle"
+import prisma, { type TransactionClient } from "@/lib/prisma"
+import { readSupplierProducts, readSupplierOrders, readSupplierReturns, readSupplierMetrics, supplierHistoryQuery } from "@/lib/operations/supplier-history"
+import { supplierSchema, lockActiveSupplier } from "@/lib/operations/suppliers"
+import { purchaseDraftRevision } from "@/lib/operations/purchase-drafts"
+import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
+import { readCustomerDeliveryLine, readDeliveryRecord, lockCustomerDeliveryOrder, deliveryRevision, deliveryChanged, nextDeliveredQuantity, prepareDeliverySeal, readDeliverySeal, coherentCustomerOrder } from "@/lib/operations/customer-deliveries"
+import { transitionPurchaseOrder } from "@/lib/operations/purchase-transitions"
+import { readPurchaseStockLine, readPurchaseStockIssue, readPurchaseStockReturn, purchaseStockRevision, purchaseStockLineRevision, purchaseStockChanged, lockPurchaseStockOrder, assertPurchaseInspectionCapacity } from "@/lib/operations/purchase-stock"
+import { readPurchaseOrderDirectory, readPurchaseOrderSummary } from "@/lib/operations/purchase-directory"
+import { convertAcceptedQuote } from "@/lib/operations/quote-conversion"
+import { readOperationsProjectChoices } from "@/lib/operations/project-choices"
+import { activitySummaryQuery, readOperationsActivity } from "@/lib/operations/activity-summary"
+import { readOperationsTicketDirectory, readOperationsInterventionDirectory, readOperationsMaintenanceDirectory } from "@/lib/operations/service-directory"
+import { readOperationsPlanningSummary } from "@/lib/operations/planning-summary"
+import { readMaintenanceRenewalSources } from "@/lib/operations/maintenance-renewal-source"
 
 const id = z.string().cuid()
 const optionalId = z
@@ -64,28 +91,6 @@ const siteSchema = z.object({
   accessNotes: optionalText,
   latitude: optionalCoordinate.refine((value) => value == null || (value >= -90 && value <= 90), "Latitude invalide"),
   longitude: optionalCoordinate.refine((value) => value == null || (value >= -180 && value <= 180), "Longitude invalide"),
-})
-
-const supplierSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  code: z
-    .string()
-    .trim()
-    .max(40)
-    .optional()
-    .transform((value) => value || null),
-  contactName: optionalText,
-  email: z
-    .union([z.string().trim().email(), z.literal("")])
-    .optional()
-    .transform((value) => value || null),
-  phone: z
-    .string()
-    .trim()
-    .max(40)
-    .optional()
-    .transform((value) => value || null),
-  deliveryDays: z.coerce.number().int().min(0).max(365).optional().nullable(),
 })
 
 const productSchema = z.object({
@@ -233,6 +238,7 @@ const maintenanceContractSchema = z.object({
 
 const maintenanceRenewalSettingsSchema = z.object({
   contractId: id,
+  expectedUpdatedAt: z.string().datetime({ offset: true }),
   noticeDays: z.coerce.number().int().min(0).max(365),
   indexationRate: z.coerce.number().min(-100).max(100),
   autoRenew: z.boolean(),
@@ -320,7 +326,12 @@ const interventionMaterialSchema = z.object({
 const customerOrderSchema = z.object({
   clientId: id,
   projectId: optionalId,
-  expectedInstallationAt: dateInput,
+  expectedInstallationAt: z.string().trim().optional().transform(value => value || null).refine(value => {
+    if (!value) return true
+    const day = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+    if (!day || !Number.isFinite(new Date(value).getTime())) return false
+    return new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) === day
+  }, "Date de pose invalide").transform(value => value ? new Date(value) : null),
   notes: optionalText,
   productId: optionalId,
   label: z.string().trim().min(2).max(200),
@@ -332,6 +343,7 @@ const customerOrderSchema = z.object({
 
 const quoteToCustomerOrderSchema = z.object({
   quoteId: id,
+  expectedRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   depositRate: z.coerce.number().min(0).max(100).default(0),
   expectedInstallationAt: z
     .union([z.string().date(), z.literal("")])
@@ -363,7 +375,11 @@ const purchaseAcknowledgementSchema = z.object({
     .string()
     .trim()
     .min(1)
-    .refine((value) => !Number.isNaN(Date.parse(value)), "Date fournisseur invalide"),
+    .refine(value => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+      const date = new Date(`${value}T00:00:00Z`)
+      return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+    }, "Date fournisseur invalide"),
 })
 
 const purchaseIssueResolutionSchema = z.object({
@@ -491,49 +507,49 @@ function renderServiceMacro(value: string, variables: Record<string, string>) {
   return Object.entries(variables).reduce((rendered, [name, replacement]) => rendered.replaceAll(`{{${name}}}`, replacement), value)
 }
 
-async function findInterventionSlotConflict({
-  companyId,
-  assignedMembershipId,
-  scheduledStart,
-  scheduledEnd,
-  excludeInterventionId,
-}: {
-  companyId: string
-  assignedMembershipId: string | null
-  scheduledStart: Date
-  scheduledEnd: Date | null
-  excludeInterventionId?: string
-}) {
-  if (!assignedMembershipId) return null
-  const effectiveEnd = scheduledEnd ?? new Date(scheduledStart.getTime() + 60 * 60 * 1_000)
-  const possibleConflicts = await prisma.fieldIntervention.findMany({
-    where: {
-      companyId,
-      assignedMembershipId,
-      status: { not: "CANCELED" },
-      id: excludeInterventionId ? { not: excludeInterventionId } : undefined,
-      scheduledStart: { lt: effectiveEnd },
-      OR: [{ scheduledEnd: { gt: scheduledStart } }, { scheduledEnd: null, scheduledStart: { gt: new Date(scheduledStart.getTime() - 60 * 60 * 1_000) } }],
-    },
-    select: { id: true, title: true, scheduledStart: true, scheduledEnd: true },
-    orderBy: { scheduledStart: "asc" },
-  })
-  const conflict = possibleConflicts.find((item) => planningSlotsOverlap({ scheduledStart, scheduledEnd }, item))
-  if (conflict) {
-    const date = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Paris" }).format(conflict.scheduledStart)
-    return `Conflit de planning avec « ${conflict.title} » le ${date}.`
-  }
-  return null
+function schedulingFailure(error: unknown): { success: false; error: string } {
+  if (error instanceof SchedulingError) return { success: false, error: error.message }
+  if (error instanceof z.ZodError) return { success: false, error: "Créneau invalide. Vérifiez les dates de début et de fin." }
+  if (error && typeof error === "object" && "code" in error && error.code === "P2034") return { success: false, error: "Le planning a changé. Rechargez puis réessayez ; votre saisie est conservée." }
+  throw error
+}
+
+export async function getOperationsProjectChoices(input: unknown = {}) {
+  return withAuth(context => readOperationsProjectChoices(context, input), "operations.read")
+}
+
+export async function getOperationsTicketDirectory(input: unknown = {}) {
+  return withAuth(context => readOperationsTicketDirectory(context, input), "operations.read")
+}
+export async function getOperationsInterventionDirectory(input: unknown = {}) {
+  return withAuth(context => readOperationsInterventionDirectory(context, input), "operations.read")
+}
+export async function getOperationsMaintenanceDirectory(input: unknown = {}) {
+  return withAuth(context => readOperationsMaintenanceDirectory(context, input), "operations.read")
+}
+export async function getOperationsPlanningSummary(input: unknown = {}) {
+  return withAuth(context => readOperationsPlanningSummary(context, input), "operations.read")
+}
+
+export async function getOperationsActivitySummary(input: unknown = {}) {
+  return withAuth(async ({ companyId, agencyIds }) => {
+    const query = activitySummaryQuery.parse(input)
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const now = new Date()
+    return readOperationsActivity(companyId, agencyIds, now, calendarPeriods(now, company.serviceTimezone).tomorrowStart, query.agencyId)
+  }, "operations.read")
 }
 
 export async function getOperationsDashboard() {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const now = new Date()
     const [
       agencies,
-      clients,
       sites,
-      suppliers,
-      products,
+      stock,
       warehouses,
       purchaseOrders,
       equipments,
@@ -547,128 +563,113 @@ export async function getOperationsDashboard() {
       reservations,
       deliveryNotes,
       stockTransfers,
+      purchaseSummary,
+      activity,
     ] = await Promise.all([
       prisma.agency.findMany({
-        where: { companyId, active: true },
-        select: { id: true, code: true, name: true, isDefault: true },
+        where: { ...scope.agency, active: true },
+        select: { id: true, code: true, name: true, isDefault: true,
+          _count: { select: { customerSites: { where: scope.site }, projects: { where: { ...scope.project, status: "ACTIVE" } } } },
+        },
         orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       }),
-      prisma.client.findMany({ where: { companyId }, select: { id: true, name: true }, orderBy: { name: "asc" }, take: 500 }),
       prisma.customerSite.findMany({
-        where: { companyId },
-        include: { client: { select: { name: true } }, _count: { select: { equipments: true, serviceTickets: true } } },
+        where: scope.site,
+        include: { client: { select: { name: true } }, _count: { select: { equipments: { where: scope.equipment }, serviceTickets: { where: scope.ticket } } } },
         orderBy: { updatedAt: "desc" },
         take: 100,
       }),
-      prisma.supplier.findMany({ where: { companyId, active: true }, orderBy: { name: "asc" }, take: 200 }),
-      prisma.product.findMany({
-        where: { companyId, active: true },
-        include: { supplier: { select: { name: true } }, inventoryItems: { select: { warehouseId: true, quantity: true, reservedQuantity: true, reorderPoint: true } } },
-        orderBy: { label: "asc" },
-        take: 500,
-      }),
+      readStockDirectory(companyId, agencyIds, { search: "", page: 1 }),
       prisma.warehouse.findMany({
-        where: { companyId, active: true },
-        include: { inventoryItems: { include: { product: { select: { label: true, sku: true } } } } },
+        where: { ...scope.warehouse, active: true },
         orderBy: { name: "asc" },
       }),
-      prisma.purchaseOrder.findMany({
-        where: { companyId },
-        include: {
-          supplier: { select: { name: true } },
-          project: { select: { name: true, agencyId: true } },
-          approvedByMembership: { include: { user: { select: { name: true, email: true } } } },
-          lines: { include: { product: { select: { sku: true, label: true } }, supplierReturns: { select: { quantity: true } } }, orderBy: { order: "asc" } },
-          issues: { include: { product: { select: { label: true } }, purchaseOrderLine: { select: { label: true } } }, orderBy: { createdAt: "desc" } },
-          supplierReturns: { include: { product: { select: { label: true } }, warehouse: { select: { name: true, agencyId: true } } }, orderBy: { createdAt: "desc" } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 100,
-      }),
+      readPurchaseOrderDirectory(companyId, agencyIds, { search: "", page: 1, status: "ALL" }),
       prisma.equipment.findMany({
-        where: { companyId },
+        where: scope.equipment,
         include: { site: { include: { client: { select: { name: true } } } }, product: { select: { label: true, sku: true } } },
         orderBy: { updatedAt: "desc" },
         take: 200,
       }),
       prisma.serviceTicket.findMany({
-        where: { companyId, status: { not: "MERGED" } },
+        where: { ...scope.ticket, status: { not: "MERGED" } },
         include: {
           client: { select: { name: true } },
           site: { select: { label: true, agencyId: true } },
           equipment: { select: { label: true } },
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
-          _count: { select: { interventions: true } },
+          _count: { select: { interventions: { where: scope.intervention } } },
         },
         orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
         take: 200,
       }),
       prisma.fieldIntervention.findMany({
-        where: { companyId },
+        where: scope.intervention,
         include: {
           site: { include: { client: { select: { name: true } } } },
           ticket: { select: { number: true } },
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
           files: { orderBy: { createdAt: "asc" }, select: { id: true, name: true, mimeType: true, size: true, kind: true, createdAt: true } },
           stockMovements: {
-            where: { type: "OUT" },
+            where: { ...scope.stockMovement, type: "OUT" },
             include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } },
             orderBy: { happenedAt: "asc" },
           },
-          expenses: { select: { id: true, label: true, amountCents: true, status: true }, orderBy: { createdAt: "asc" } },
-          reservations: { orderBy: { createdAt: "asc" } },
+          expenses: { where: scope.expense, select: { id: true, label: true, amountCents: true, status: true }, orderBy: { createdAt: "asc" } },
+          reservations: { where: { companyId }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { scheduledStart: "asc" },
         take: 200,
       }),
       prisma.maintenanceContract.findMany({
-        where: { companyId },
+        where: scope.contract,
+        omit: { currentRenewalProposalId: true, acceptedRenewalProposalId: true },
         include: {
           client: { select: { name: true } },
           site: { select: { label: true, agencyId: true } },
           recurringInvoice: { select: { id: true, isActive: true } },
           renewedFrom: { select: { id: true, number: true } },
-          renewalProposals: { select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
-          _count: { select: { equipments: true, renewedContracts: true } },
+          renewalProposals: { where: { companyId, client: { companyId } }, select: { id: true, number: true, status: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          _count: { select: { equipments: { where: { equipment: scope.equipment } }, renewedContracts: { where: scope.contract } } },
         },
         orderBy: [{ endDate: "asc" }, { nextVisitAt: "asc" }],
         take: 200,
       }),
       prisma.project.findMany({
-        where: { companyId, status: "ACTIVE" },
+        where: { ...scope.project, status: "ACTIVE" },
         select: { id: true, name: true, clientId: true, siteId: true, agencyId: true },
         orderBy: { name: "asc" },
         take: 300,
       }),
       prisma.membership.findMany({
         where: { companyId, status: "ACTIVE" },
-        include: { user: { select: { name: true, email: true } }, agencyMemberships: { select: { agencyId: true, isPrimary: true } } },
+        include: { user: { select: { name: true, email: true } }, agencyMemberships: { where: { agency: scope.agency }, select: { agencyId: true, isPrimary: true } } },
         orderBy: { createdAt: "asc" },
       }),
       prisma.customerOrder.findMany({
-        where: { companyId },
+        where: scope.customerOrder,
         include: {
           client: { select: { name: true } },
           project: { select: { name: true, agencyId: true } },
           lines: true,
-          invoices: { select: { id: true, type: true, status: true } },
-          _count: { select: { invoices: true, deliveryNotes: true, stockReservations: true } },
+          invoices: canReadFinance ? { where: scope.invoice, select: { id: true, type: true, status: true } } : false,
+          _count: { select: { deliveryNotes: { where: scope.deliveryNote }, stockReservations: { where: scope.reservation } } },
         },
         orderBy: { createdAt: "desc" },
         take: 150,
       }),
       prisma.goodsReceipt.findMany({
-        where: { companyId },
+        where: scope.goodsReceipt,
         include: {
           purchaseOrder: { include: { supplier: { select: { name: true } } } },
           warehouse: { select: { name: true, agencyId: true } },
-          lines: { include: { product: { select: { sku: true, label: true } }, issues: true } },
+          lines: { where: scope.receiptLine, include: { product: { select: { sku: true, label: true } }, issues: { where: scope.purchaseIssue } } },
         },
         orderBy: { receivedAt: "desc" },
         take: 100,
       }),
       prisma.stockReservation.findMany({
-        where: { companyId, status: "ACTIVE" },
+        where: { ...scope.reservation, status: "ACTIVE" },
         include: {
           warehouse: { select: { name: true, agencyId: true } },
           product: { select: { sku: true, label: true } },
@@ -679,13 +680,14 @@ export async function getOperationsDashboard() {
         take: 150,
       }),
       prisma.deliveryNote.findMany({
-        where: { companyId },
+        where: scope.deliveryNote,
+        omit: { signedDocument: true },
         include: { customerOrder: { include: { client: { select: { name: true } }, project: { select: { agencyId: true } } } }, lines: true },
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
       prisma.stockTransfer.findMany({
-        where: { companyId },
+        where: scope.stockTransfer,
         include: {
           fromWarehouse: { select: { name: true, agencyId: true } },
           toWarehouse: { select: { name: true, agencyId: true } },
@@ -694,44 +696,78 @@ export async function getOperationsDashboard() {
         orderBy: { happenedAt: "desc" },
         take: 100,
       }),
+      readPurchaseOrderSummary(companyId, agencyIds),
+      readOperationsActivity(companyId, agencyIds, now, calendarPeriods(now, company.serviceTimezone).tomorrowStart),
     ])
     return {
+      generatedAt: now.toISOString(),
+      timeZone: company.serviceTimezone,
+      tomorrowStart: calendarPeriods(now, company.serviceTimezone).tomorrowStart.toISOString(),
       agencies,
-      clients,
       sites,
-      suppliers,
-      products,
+      stock,
       warehouses,
-      purchaseOrders,
+      purchaseOrders: purchaseOrders.items,
+      purchaseSummary,
+      activity,
       equipments,
       tickets,
       interventions,
-      contracts,
+      contracts: contracts.map(contract => ({ ...contract,
+        canManageRenewal: hasPermission(role, "service.write") && !isPublicReadOnlyDemo(),
+        canCreateRenewalProposal: hasPermission(role, "sales.write") && !isPublicReadOnlyDemo(),
+        canRenew: hasPermission(role, "service.write") && hasPermission(role, "operations.write") && (!(contract.autoInvoice || contract.recurringInvoice?.isActive) || hasPermission(role, "finance.write")) && !isPublicReadOnlyDemo(),
+      })),
       projects,
       members,
-      customerOrders,
+      customerOrders: customerOrders.map(order => ({
+        ...order,
+        billingStatus: canReadFinance ? order.billingStatus : null,
+        invoices: canReadFinance ? order.invoices : [],
+        _count: { ...order._count, invoices: canReadFinance ? order.invoices.length : null },
+      })),
       goodsReceipts,
       reservations,
       deliveryNotes,
       stockTransfers,
       canApprovePurchases: hasPermission(role, "purchases.approve"),
+      canManagePurchases: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(),
+      canManageDeliveries: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(),
+      canBillOrders: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
+      canAutomateMaintenanceBilling: hasPermission(role, "finance.write") && !isPublicReadOnlyDemo(),
     }
   }, "operations.read")
 }
 
 export async function getServiceTicketDetail(ticketId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(ticketId)
     if (!parsedId.success) return null
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const ticketScope = { ...scope.ticket, ...(agencyIds === null ? {} : { site: scope.site }) }
+    const noteScope = { companyId, OR: [{ authorMembershipId: null }, { authorMembership: { companyId } }] }
+    const diagnosticScope = { companyId, AND: [
+      { OR: [{ performedByMembershipId: null }, { performedByMembership: { companyId } }] },
+      { OR: [{ guideId: null }, { guide: { companyId } }] },
+    ] }
+    const threadScope = { companyId, AND: [
+      { OR: [{ channelId: null }, { channel: { companyId } }] },
+      { OR: [{ clientId: null }, { client: { companyId } }] },
+      { OR: [{ contactId: null }, { contact: { client: { companyId } } }] },
+      { OR: [{ leadCaptureId: null }, { leadCapture: { companyId } }] },
+    ] }
+    const messages = { where: { companyId }, select: { ...messageReadSelect,
+      events: { ...messageReadSelect.events, where: { companyId } },
+    }, orderBy: { createdAt: "asc" as const }, take: 200 }
     const [ticket, members, company, serviceMacros, diagnosticGuides] = await Promise.all([
       prisma.serviceTicket.findFirst({
-        where: { id: parsedId.data, companyId },
+        where: { id: parsedId.data, ...ticketScope },
         include: {
           client: {
             include: {
               contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] },
               emailThreads: {
-                where: { serviceTicketId: null },
+                where: { serviceTicketId: null, ...threadScope },
                 select: { id: true, subject: true, lastMessageAt: true, unreadCount: true },
                 orderBy: { lastMessageAt: "desc" },
                 take: 50,
@@ -742,39 +778,43 @@ export async function getServiceTicketDetail(ticketId: string) {
           equipment: true,
           assignedMembership: { include: { user: { select: { name: true, email: true } } } },
           mergedTickets: {
-            where: { companyId },
+            where: ticketScope,
             include: {
               interventions: {
+                where: scope.intervention,
                 include: {
                   assignedMembership: { include: { user: { select: { name: true, email: true } } } },
                   files: { orderBy: { createdAt: "asc" } },
-                  reservations: { orderBy: { createdAt: "desc" } },
+                  reservations: { where: { companyId }, orderBy: { createdAt: "desc" } },
                 },
                 orderBy: { scheduledStart: "desc" },
               },
               emailThreads: {
-                include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } },
+                where: threadScope,
+                select: { id: true, subject: true, lastMessageAt: true, unreadCount: true, messages },
                 orderBy: { lastMessageAt: "asc" },
               },
-              notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
-              diagnostics: { include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
+              notes: { where: noteScope, include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+              diagnostics: { where: diagnosticScope, include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
             },
             orderBy: { mergedAt: "asc" },
           },
           interventions: {
+            where: scope.intervention,
             include: {
               assignedMembership: { include: { user: { select: { name: true, email: true } } } },
               files: { orderBy: { createdAt: "asc" } },
-              reservations: { orderBy: { createdAt: "desc" } },
+              reservations: { where: { companyId }, orderBy: { createdAt: "desc" } },
             },
             orderBy: { scheduledStart: "desc" },
           },
           emailThreads: {
-            include: { messages: { include: { events: { orderBy: { occurredAt: "asc" } } }, orderBy: { createdAt: "asc" }, take: 200 } },
+            where: threadScope,
+            select: { id: true, subject: true, lastMessageAt: true, unreadCount: true, messages },
             orderBy: { lastMessageAt: "asc" },
           },
-          notes: { include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
-          diagnostics: { include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
+          notes: { where: noteScope, include: { authorMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { createdAt: "asc" }, take: 200 },
+          diagnostics: { where: diagnosticScope, include: { performedByMembership: { include: { user: { select: { name: true, email: true } } } } }, orderBy: { completedAt: "desc" }, take: 50 },
         },
       }),
       prisma.membership.findMany({ where: { companyId, status: "ACTIVE" }, include: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
@@ -802,16 +842,17 @@ export async function getServiceTicketDetail(ticketId: string) {
     if (!ticket) return null
     const mergedInto = ticket.mergedIntoTicketId
       ? await prisma.serviceTicket.findFirst({
-          where: { id: ticket.mergedIntoTicketId, companyId },
+          where: { id: ticket.mergedIntoTicketId, ...ticketScope },
           select: { id: true, number: true, title: true },
         })
       : null
+    if (ticket.mergedIntoTicketId && !mergedInto) return null
     const duplicateRecords =
       ticket.status === "MERGED"
         ? []
         : await prisma.serviceTicket.findMany({
             where: {
-              companyId,
+              ...ticketScope,
               clientId: ticket.clientId,
               id: { not: ticket.id },
               status: { not: "MERGED" },
@@ -916,6 +957,7 @@ export async function getServiceTicketDetail(ticketId: string) {
     }))
     return {
       ...ticket,
+      client: clientWithAccessibleMetrics(ticket.client, { role, agencyIds }),
       mergedInto,
       mergedTickets: mergedTicketSummaries,
       interventions,
@@ -933,154 +975,99 @@ export async function getServiceTicketDetail(ticketId: string) {
 }
 
 export async function getFieldInterventionDetail(interventionId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(interventionId)
     if (!parsedId.success) return null
-    return prisma.fieldIntervention.findFirst({
-      where: { id: parsedId.data, companyId },
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const intervention = await prisma.fieldIntervention.findFirst({
+      where: { id: parsedId.data, ...scope.intervention },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
-        ticket: true,
-        project: true,
-        maintenanceContract: true,
+        ticket: { select: { id: true, number: true, title: true } },
+        project: { select: { id: true, name: true } },
+        maintenanceContract: { select: { id: true, number: true, label: true } },
         assignedMembership: { include: { user: { select: { name: true, email: true } } } },
         files: { orderBy: { createdAt: "asc" } },
-        stockMovements: { include: { product: true, warehouse: true }, orderBy: { happenedAt: "desc" } },
-        expenses: { orderBy: { date: "desc" } },
-        reservations: { orderBy: { createdAt: "desc" } },
+        stockMovements: { where: scope.stockMovement, include: { product: { select: { id: true, label: true } }, warehouse: { select: { id: true, name: true } } }, orderBy: { happenedAt: "desc" } },
+        expenses: { where: scope.expense, orderBy: { date: "desc" } },
+        reservations: { where: { companyId }, orderBy: { createdAt: "desc" } },
       },
     })
+    return intervention ? { ...intervention, site: { ...intervention.site, client: clientWithAccessibleMetrics(intervention.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
 export async function getEquipmentDetail(equipmentId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(equipmentId)
     if (!parsedId.success) return null
-    return prisma.equipment.findFirst({
-      where: { id: parsedId.data, companyId },
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const equipment = await prisma.equipment.findFirst({
+      where: { id: parsedId.data, ...scope.equipment },
       include: {
         site: { include: { client: { include: { contacts: { orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }] } } } } },
-        product: { include: { supplier: true } },
+        product: { select: { id: true, sku: true, label: true, manufacturer: true, supplier: { select: { id: true, name: true } } } },
         tickets: {
-          include: { assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: true } } },
+          where: { ...scope.ticket, ...(agencyIds === null ? {} : { site: scope.site }) },
+          select: { id: true, number: true, title: true, description: true, status: true, priority: true, requestedAt: true, assignedMembership: { include: { user: { select: { name: true, email: true } } } }, _count: { select: { interventions: { where: scope.intervention } } } },
           orderBy: { requestedAt: "desc" },
         },
-        maintenanceContracts: { include: { contract: true }, orderBy: { contract: { createdAt: "desc" } } },
+        maintenanceContracts: { where: { contract: scope.contract }, include: { contract: { select: { id: true, number: true, label: true, status: true, frequency: true, nextVisitAt: true } } }, orderBy: { contract: { createdAt: "desc" } } },
       },
     })
+    return equipment ? { ...equipment, canManage: hasPermission(role, "operations.write"), site: { ...equipment.site, client: clientWithAccessibleMetrics(equipment.site.client, { role, agencyIds }) } } : null
   }, "operations.read")
 }
 
 export async function getSupplierDetail(supplierId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(supplierId)
     if (!parsedId.success) return null
-    return prisma.supplier.findFirst({
-      where: { id: parsedId.data, companyId },
-      include: {
-        products: { include: { inventoryItems: true }, orderBy: { label: "asc" }, take: 300 },
-        productPrices: { include: { product: { select: { id: true, sku: true, label: true } } }, orderBy: { validFrom: "desc" }, take: 100 },
-        purchaseOrders: { include: { project: { select: { id: true, name: true } }, lines: true, issues: true }, orderBy: { orderDate: "desc" }, take: 100 },
-        supplierReturns: { include: { product: { select: { label: true, sku: true } }, warehouse: { select: { name: true } } }, orderBy: { shippedAt: "desc" }, take: 100 },
-      },
-    })
+    return prisma.$transaction(async tx => {
+      const supplier = await tx.supplier.findFirst({ where: { id: parsedId.data, companyId } })
+      if (!supplier) return null
+      const scope = { companyId, agencyIds, supplierId: supplier.id }
+      const query = supplierHistoryQuery.parse({})
+      const metrics = await readSupplierMetrics(tx, scope)
+      const products = await readSupplierProducts(tx, scope, query)
+      const purchaseOrders = await readSupplierOrders(tx, scope, query)
+      const supplierReturns = await readSupplierReturns(tx, scope, query)
+      return { ...supplier, metrics, products, purchaseOrders, supplierReturns, canManage: hasPermission(role, "operations.write") }
+    }, { isolationLevel: "Serializable" })
   }, "operations.read")
 }
 
 export async function getPurchaseOrderDetail(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, role }) => {
+  return withAuth(async ({ companyId, role, agencyIds }) => {
     const parsedId = id.safeParse(purchaseOrderId)
     if (!parsedId.success) return null
+    const scope = operationsDashboardScope(companyId, agencyIds)
     const order = await prisma.purchaseOrder.findFirst({
-      where: { id: parsedId.data, companyId },
+      where: { id: parsedId.data, ...scope.purchaseOrder },
       include: {
         supplier: true,
-        project: { include: { client: { select: { id: true, name: true } } } },
+        project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
         approvedByMembership: { include: { user: { select: { name: true, email: true } } } },
         lines: {
           include: {
             product: true,
-            receiptLines: { include: { goodsReceipt: { include: { warehouse: true } }, issues: true } },
-            supplierReturns: { include: { warehouse: true, product: true } },
+            receiptLines: { where: scope.receiptLine, include: { goodsReceipt: { include: { warehouse: true } }, issues: { where: scope.purchaseIssue } } },
+            supplierReturns: { where: scope.supplierReturn, include: { warehouse: true, product: true } },
           },
           orderBy: { order: "asc" },
         },
-        goodsReceipts: { include: { warehouse: true, lines: { include: { product: true, issues: true } } }, orderBy: { receivedAt: "desc" } },
-        issues: { include: { product: true, purchaseOrderLine: true }, orderBy: { createdAt: "desc" } },
-        supplierReturns: { include: { product: true, warehouse: true }, orderBy: { shippedAt: "desc" } },
+        goodsReceipts: { where: scope.goodsReceipt, include: { warehouse: true, lines: { where: scope.receiptLine, include: { product: true, issues: { where: scope.purchaseIssue } } } }, orderBy: { receivedAt: "desc" } },
+        issues: { where: scope.purchaseIssue, include: { product: true, purchaseOrderLine: true }, orderBy: { createdAt: "desc" } },
+        supplierReturns: { where: scope.supplierReturn, include: { product: true, warehouse: true }, orderBy: { shippedAt: "desc" } },
       },
     })
-    return order ? { ...order, canApprovePurchases: hasPermission(role, "purchases.approve") } : null
+    return order ? { ...order, draftRevision: purchaseDraftRevision(order), canManagePurchases: hasPermission(role, "operations.write") && !isPublicReadOnlyDemo(), canApprovePurchases: hasPermission(role, "purchases.approve") } : null
   }, "operations.read")
 }
 
 export async function getHelpDeskDashboard(input: unknown = {}) {
-  return withAuth(async ({ companyId }) => {
-    const parsedFilters = z
-      .object({
-        status: z.enum(["ACTIVE", "OPEN", "QUALIFIED", "PLANNED", "WAITING", "RESOLVED", "CLOSED", "ALL"]).default("ACTIVE"),
-        priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT", "ALL"]).default("ALL"),
-        assignedMembershipId: z.union([id, z.literal("ALL"), z.literal("UNASSIGNED")]).default("ALL"),
-      })
-      .safeParse(input)
-    const filters = parsedFilters.success ? parsedFilters.data : { status: "ACTIVE" as const, priority: "ALL" as const, assignedMembershipId: "ALL" as const }
-    const activeStatuses = ["OPEN", "QUALIFIED", "PLANNED", "WAITING"]
-    const [tickets, company] = await Promise.all([
-      prisma.serviceTicket.findMany({
-        where: {
-          companyId,
-          status: filters.status === "ACTIVE" ? { in: activeStatuses } : filters.status === "ALL" ? { not: "MERGED" } : filters.status,
-          priority: filters.priority === "ALL" ? undefined : filters.priority,
-          assignedMembershipId: filters.assignedMembershipId === "ALL" ? undefined : filters.assignedMembershipId === "UNASSIGNED" ? null : filters.assignedMembershipId,
-        },
-        include: {
-          client: { select: { id: true, name: true } },
-          site: { select: { id: true, label: true, city: true } },
-          equipment: { select: { id: true, label: true, warrantyUntil: true } },
-          assignedMembership: { include: { user: { select: { name: true, email: true } } } },
-          _count: { select: { interventions: true } },
-        },
-        orderBy: [{ priority: "desc" }, { dueAt: "asc" }, { requestedAt: "asc" }],
-        take: 500,
-      }),
-      prisma.company.findUnique({
-        where: { id: companyId },
-        select: {
-          serviceTimezone: true,
-          serviceDayStart: true,
-          serviceDayEnd: true,
-          serviceWorkdays: true,
-          serviceHolidays: true,
-          serviceFirstResponseHours: true,
-          serviceResolutionHours: true,
-        },
-      }),
-    ])
-    const members = await prisma.membership.findMany({
-      where: { companyId, status: "ACTIVE" },
-      include: { user: { select: { name: true, email: true } }, _count: { select: { assignedTickets: { where: { status: { in: activeStatuses } } } } } },
-      orderBy: { createdAt: "asc" },
-    })
-    return {
-      filters,
-      members: members.map((member) => ({
-        id: member.id,
-        name: member.user.name || member.user.email || "Membre",
-        openTickets: member._count.assignedTickets,
-        capacity: member.serviceTicketCapacity,
-        available: member.serviceAvailable,
-      })),
-      tickets: tickets.map((ticket) => {
-        const policy = serviceSlaPolicy(company)
-        const resolution = serviceResolutionTarget(ticket, policy)
-        const firstResponse = serviceFirstResponseTarget(ticket, policy)
-        return { ...ticket, targetAt: resolution.targetAt, slaSource: resolution.source, firstResponseTargetAt: firstResponse.targetAt }
-      }),
-    }
-  }, "service.read")
+  return withAuth(context => readHelpDeskDashboard(context, input), "service.read")
 }
-
 export async function createCustomerSite(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = siteSchema.parse(input)
@@ -1089,8 +1076,8 @@ export async function createCustomerSite(input: unknown) {
       data.agencyId ? prisma.agency.findFirst({ where: { id: data.agencyId, companyId, active: true }, select: { id: true } }) : null,
       data.agencyId ? null : prisma.agency.findFirst({ where: { companyId, isDefault: true, active: true }, select: { id: true } }),
     ])
-    if (!client) throw new Error("Client introuvable")
-    if (data.agencyId && !requestedAgency) throw new Error("Agence introuvable ou inactive")
+    if (!client) throw new AssetLifecycleError("Client introuvable")
+    if (data.agencyId && !requestedAgency) throw new AssetLifecycleError("Agence introuvable ou inactive")
     const site = await prisma.customerSite.create({ data: { companyId, ...data, agencyId: requestedAgency?.id || defaultAgency?.id || null } })
     revalidateOperations()
     return { success: true as const, id: site.id }
@@ -1098,9 +1085,14 @@ export async function createCustomerSite(input: unknown) {
 }
 
 export async function createSupplier(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, userId }) => {
     const data = supplierSchema.parse(input)
-    const supplier = await prisma.supplier.create({ data: { companyId, ...data } })
+    let supplier
+    try { supplier = await prisma.supplier.create({ data: { companyId, ...data } }) } catch (error) {
+      if (isUniqueConstraintConflict(error, "name") || isUniqueConstraintConflict(error, "code")) throw new Error("Ce nom ou ce code fournisseur existe déjà.")
+      throw error
+    }
+    await logAction({ userId, action: "CREATE_SUPPLIER", resource: "SUPPLIER", resourceId: supplier.id, payload: { fields: Object.keys(data) } })
     revalidateOperations()
     return { success: true as const, id: supplier.id }
   }, "operations.write")
@@ -1109,8 +1101,10 @@ export async function createSupplier(input: unknown) {
 export async function createProduct(input: unknown) {
   return withAuth(async ({ companyId }) => {
     const data = productSchema.parse(input)
-    if (data.supplierId && !(await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } }))) throw new Error("Fournisseur introuvable")
-    const product = await prisma.product.create({ data: { companyId, ...data } })
+    const product = await prisma.$transaction(async tx => {
+      if (data.supplierId) await lockActiveSupplier(tx, companyId, data.supplierId)
+      return tx.product.create({ data: { companyId, ...data } })
+    })
     revalidateOperations()
     return { success: true as const, id: product.id }
   }, "operations.write")
@@ -1130,38 +1124,50 @@ export async function createWarehouse(input: unknown) {
 }
 
 export async function createEquipment(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const data = equipmentSchema.parse(input)
-    const site = await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId }, select: { id: true } })
-    if (!site) throw new Error("Site client introuvable")
-    if (data.productId && !(await prisma.product.findFirst({ where: { id: data.productId, companyId }, select: { id: true } }))) throw new Error("Produit introuvable")
-    const equipment = await prisma.equipment.create({ data: { companyId, ...data } })
+    const equipment = await prisma.$transaction(async tx => {
+      await lockActiveSite(tx, companyId, data.siteId, agencyIds)
+      if (data.productId) await lockActiveAssetProduct(tx, companyId, data.productId)
+      return tx.equipment.create({ data: { companyId, ...data } })
+    }).catch(error => {
+      if (isUniqueConstraintConflict(error, "serialNumber")) throw new AssetLifecycleError("Ce numéro de série existe déjà dans la société.")
+      throw error
+    })
     revalidateOperations()
     return { success: true as const, id: equipment.id }
   }, "operations.write")
 }
 
 export async function createServiceTicket(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const data = ticketSchema.parse(input)
     const client = await prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } })
-    if (!client) throw new Error("Client introuvable")
+    if (!client) throw new AssetLifecycleError("Client introuvable")
     if (data.siteId && !(await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } })))
-      throw new Error("Le site n'appartient pas à ce client")
+      throw new AssetLifecycleError("Le site n'appartient pas à ce client")
     const equipment = data.equipmentId
       ? await prisma.equipment.findFirst({ where: { id: data.equipmentId, companyId }, select: { id: true, siteId: true, site: { select: { clientId: true } } } })
       : null
-    if (data.equipmentId && !equipment) throw new Error("Équipement introuvable")
-    if (equipment && equipment.site.clientId !== data.clientId) throw new Error("L’équipement n’appartient pas à ce client")
-    if (equipment && data.siteId && equipment.siteId !== data.siteId) throw new Error("L’équipement n’appartient pas au site sélectionné")
+    if (data.equipmentId && !equipment) throw new AssetLifecycleError("Équipement introuvable")
+    if (equipment && equipment.site.clientId !== data.clientId) throw new AssetLifecycleError("L’équipement n’appartient pas à ce client")
+    if (equipment && data.siteId && equipment.siteId !== data.siteId) throw new AssetLifecycleError("L’équipement n’appartient pas au site sélectionné")
     if (data.assignedMembershipId && !(await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })))
-      throw new Error("Intervenant introuvable")
+      throw new AssetLifecycleError("Intervenant introuvable")
     const siteId = data.siteId || equipment?.siteId || null
     const prefix = buildYearlyDocumentPrefix("SAV-", "SAV-")
     const ticket = await withDocumentNumberRetry(
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.serviceTicket.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last, prefix) } })
+        return prisma.$transaction(async tx => {
+          if (!await tx.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } })) throw new AssetLifecycleError("Client introuvable")
+          if (siteId) {
+            const site = await lockActiveSite(tx, companyId, siteId, agencyIds)
+            if (site.clientId !== data.clientId) throw new AssetLifecycleError("Le site n'appartient pas à ce client")
+            if (equipment) await lockActiveEquipment(tx, companyId, siteId, [equipment.id], agencyIds)
+          }
+          return tx.serviceTicket.create({ data: { companyId, ...data, siteId, number: nextDocumentNumber(last, prefix) } })
+        })
       },
       { label: "le ticket SAV" },
     )
@@ -1195,41 +1201,56 @@ export async function createServiceTicket(input: unknown) {
 }
 
 export async function createFieldIntervention(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const data = interventionSchema.parse(input)
     const site = await prisma.customerSite.findFirst({ where: { id: data.siteId, companyId }, select: { id: true } })
-    if (!site) throw new Error("Site client introuvable")
+    if (!site) throw new AssetLifecycleError("Site client introuvable")
     if (
       data.ticketId &&
       !(await prisma.serviceTicket.findFirst({ where: { id: data.ticketId, companyId, status: { not: "MERGED" }, mergedIntoTicketId: null }, select: { id: true } }))
     )
-      throw new Error("Ticket introuvable ou déjà fusionné")
-    if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new Error("Chantier introuvable")
+      throw new AssetLifecycleError("Ticket introuvable ou déjà fusionné")
+    if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new AssetLifecycleError("Chantier introuvable")
     if (data.assignedMembershipId && !(await prisma.membership.findFirst({ where: { id: data.assignedMembershipId, companyId, status: "ACTIVE" }, select: { id: true } })))
-      throw new Error("Intervenant introuvable")
+      throw new AssetLifecycleError("Intervenant introuvable")
     const scheduledStart = new Date(data.scheduledStart)
     const scheduledEnd = data.scheduledEnd ? new Date(data.scheduledEnd) : null
-    const conflict = await findInterventionSlotConflict({ companyId, assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd })
-    if (conflict) return { success: false as const, error: conflict }
-    const intervention = await prisma.fieldIntervention.create({
-      data: {
-        companyId,
-        ...data,
-        scheduledStart,
-        scheduledEnd,
-      },
+    const intervention = await prisma.$transaction(async tx => {
+      const activeSite = await lockActiveSite(tx, companyId, data.siteId, agencyIds)
+      const scope = operationsDashboardScope(companyId, agencyIds)
+      if (data.ticketId) {
+        const ticket = await tx.serviceTicket.findFirst({ where: { ...scope.ticket, id: data.ticketId, clientId: activeSite.clientId, status: { not: "MERGED" }, mergedIntoTicketId: null },
+          select: { siteId: true, equipmentId: true } })
+        if (!ticket || ticket.siteId && ticket.siteId !== data.siteId) throw new AssetLifecycleError("Ticket introuvable ou incompatible avec le site")
+        if (ticket.equipmentId) await lockActiveEquipment(tx, companyId, data.siteId, [ticket.equipmentId], agencyIds)
+      }
+      if (data.projectId && !await tx.project.findFirst({ where: { ...scope.project, id: data.projectId, clientId: activeSite.clientId,
+        OR: [{ siteId: null }, { siteId: data.siteId }] }, select: { id: true } })) throw new AssetLifecycleError("Chantier introuvable ou incompatible avec le site")
+      await lockSchedulingMembers(tx, companyId, [data.assignedMembershipId])
+      if (data.assignedMembershipId) {
+        if (!await tx.membership.findFirst({ where: { ...schedulingMemberWhere(companyId, agencyIds), id: data.assignedMembershipId }, select: { id: true } })) throw new SchedulingError("Membre de l’équipe introuvable ou inaccessible.")
+        await assertSchedulingSlotFree(tx, { companyId, membershipId: data.assignedMembershipId, start: scheduledStart, end: scheduledEnd ?? new Date(scheduledStart.getTime() + 3_600_000) })
+      }
+      return tx.fieldIntervention.create({
+        data: {
+          companyId,
+          ...data,
+          scheduledStart,
+          scheduledEnd,
+        },
+      })
     })
     revalidateOperations()
     return { success: true as const, id: intervention.id }
-  }, "operations.write")
+  }, "operations.write").catch(schedulingFailure)
 }
 
 export async function rescheduleFieldIntervention(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const data = interventionPlanningSchema.parse(input)
     const intervention = await prisma.fieldIntervention.findFirst({
-      where: { id: data.interventionId, companyId },
-      select: { id: true, status: true },
+      where: { id: data.interventionId, ...operationsDashboardScope(companyId, agencyIds).intervention },
+      select: { id: true, status: true, siteId: true, assignedMembershipId: true, updatedAt: true },
     })
     if (!intervention) throw new Error("Intervention introuvable")
     if (["CANCELED", "COMPLETED"].includes(intervention.status)) throw new Error("Une intervention terminée ou annulée ne peut pas être replanifiée")
@@ -1237,49 +1258,48 @@ export async function rescheduleFieldIntervention(input: unknown) {
       throw new Error("Intervenant introuvable")
     const scheduledStart = new Date(data.scheduledStart)
     const scheduledEnd = new Date(data.scheduledEnd)
-    const conflict = await findInterventionSlotConflict({
-      companyId,
-      assignedMembershipId: data.assignedMembershipId,
-      scheduledStart,
-      scheduledEnd,
-      excludeInterventionId: intervention.id,
-    })
-    if (conflict) return { success: false as const, error: conflict }
-    await prisma.fieldIntervention.update({
-      where: { id: intervention.id },
-      data: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd },
-    })
-    await logAction({
-      userId,
-      action: "UPDATE_FIELD_INTERVENTION_PLAN",
-      resource: "FIELD_INTERVENTION",
-      resourceId: intervention.id,
-      payload: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd },
-    })
+    await prisma.$transaction(async tx => {
+      await lockActiveSite(tx, companyId, intervention.siteId, agencyIds)
+      await lockSchedulingMembers(tx, companyId, [intervention.assignedMembershipId, data.assignedMembershipId])
+      if (data.assignedMembershipId) {
+        if (!await tx.membership.findFirst({ where: { ...schedulingMemberWhere(companyId, agencyIds), id: data.assignedMembershipId }, select: { id: true } })) throw new SchedulingError("Membre de l’équipe introuvable ou inaccessible.")
+        await assertSchedulingSlotFree(tx, { companyId, membershipId: data.assignedMembershipId, start: scheduledStart, end: scheduledEnd, excludeInterventionId: intervention.id })
+      }
+      const changed = await tx.fieldIntervention.updateMany({ where: { ...operationsDashboardScope(companyId, agencyIds).intervention, id: intervention.id,
+        updatedAt: intervention.updatedAt, status: { notIn: ["CANCELED", "COMPLETED"] } }, data: { assignedMembershipId: data.assignedMembershipId, scheduledStart, scheduledEnd,
+          updatedAt: new Date(Math.max(Date.now(), intervention.updatedAt.getTime() + 1)) } })
+      if (changed.count !== 1) throw new SchedulingError("Cette intervention a changé. Rechargez le planning ; votre saisie est conservée.")
+      await tx.auditLog.create({ data: { userId, action: "UPDATE_FIELD_INTERVENTION_PLAN", resource: "FIELD_INTERVENTION", resourceId: intervention.id,
+        payload: { assignedMembershipId: data.assignedMembershipId, scheduledStart: scheduledStart.toISOString(), scheduledEnd: scheduledEnd.toISOString() } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     return { success: true as const }
-  }, "operations.write")
+  }, "operations.write").catch(schedulingFailure)
 }
 
 export async function createMaintenanceContract(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds, role }) => {
     const data = maintenanceContractSchema.parse(input)
+    if (data.autoInvoice && !hasPermission(role, "finance.write")) throw new AuthorizationError("La facturation automatique nécessite le droit Finance en écriture.")
     const [client, site, equipmentCount, company] = await Promise.all([
       prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
       prisma.customerSite.findFirst({ where: { id: data.siteId, companyId, clientId: data.clientId }, select: { id: true } }),
       data.equipmentIds.length ? prisma.equipment.count({ where: { id: { in: data.equipmentIds }, companyId, siteId: data.siteId } }) : 0,
       prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
     ])
-    if (!client) throw new Error("Client introuvable")
-    if (!site) throw new Error("Le site n’appartient pas à ce client")
-    if (equipmentCount !== data.equipmentIds.length) throw new Error("Un équipement ne correspond pas au site sélectionné")
-    if (!company) throw new Error("Entreprise introuvable")
+    if (!client) throw new AssetLifecycleError("Client introuvable")
+    if (!site) throw new AssetLifecycleError("Le site n’appartient pas à ce client")
+    if (equipmentCount !== data.equipmentIds.length) throw new AssetLifecycleError("Un équipement ne correspond pas au site sélectionné")
+    if (!company) throw new AssetLifecycleError("Entreprise introuvable")
 
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const contract = await withDocumentNumberRetry(
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
+          const activeSite = await lockActiveSite(tx, companyId, data.siteId, agencyIds)
+          if (activeSite.clientId !== data.clientId) throw new AssetLifecycleError("Le site n’appartient pas à ce client")
+          await lockActiveEquipment(tx, companyId, data.siteId, data.equipmentIds, agencyIds)
           const startDate = new Date(data.startDate)
           const created = await tx.maintenanceContract.create({
             data: {
@@ -1356,51 +1376,77 @@ export async function createMaintenanceContract(input: unknown) {
 }
 
 export async function updateMaintenanceRenewalSettings(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  const changedMessage = "Ce contrat a changé. Vérifiez la version actuelle avant de réessayer."
+  return withAuth(async context => {
+    const { companyId, userId, agencyIds } = context
     const data = maintenanceRenewalSettingsSchema.parse(input)
-    const contract = await prisma.maintenanceContract.findFirst({ where: { id: data.contractId, companyId }, select: { id: true, number: true, renewalStatus: true } })
-    if (!contract) throw new Error("Contrat d’entretien introuvable")
-    if (contract.renewalStatus === "RENEWED") throw new Error("Ce terme a déjà été renouvelé")
-    await prisma.maintenanceContract.update({
-      where: { id: contract.id },
-      data: { noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew, renewalStatus: data.renewalStatus, renewalNotes: data.renewalNotes },
-    })
-    await logAction({
-      userId,
-      action: "UPDATE_MAINTENANCE_RENEWAL",
-      resource: "MAINTENANCE_CONTRACT",
-      resourceId: contract.id,
-      payload: { number: contract.number, noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew, renewalStatus: data.renewalStatus },
-    })
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    await requestContext.run({ ...context, actionPermission: "service.write", maintenanceRenewalSettings: {
+      contractId: data.contractId, expectedUpdatedAt: new Date(data.expectedUpdatedAt).toISOString(),
+    } }, () => prisma.$transaction(async tx => {
+      const where = { ...scope.contract, id: data.contractId }
+      const contract = await tx.maintenanceContract.findFirst({ where, select: { id: true, number: true, clientId: true, siteId: true,
+        status: true, renewalStatus: true, updatedAt: true, _count: { select: { renewedContracts: true } } } })
+      if (!contract || !await tx.customerSite.findFirst({ where: { ...scope.site, id: contract.siteId, clientId: contract.clientId }, select: { id: true } }))
+        throw new Error("Contrat d’entretien introuvable")
+      if (contract.status === "RENEWED" || contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0)
+        throw new Error("Ce terme a déjà été renouvelé")
+      const expectedUpdatedAt = new Date(data.expectedUpdatedAt)
+      if (contract.updatedAt.getTime() !== expectedUpdatedAt.getTime()) throw new Error(changedMessage)
+      const updatedAt = new Date(Math.max(Date.now(), contract.updatedAt.getTime() + 1))
+      const changed = await tx.maintenanceContract.updateMany({ where: { ...where, updatedAt: expectedUpdatedAt, status: { not: "RENEWED" },
+        renewalStatus: { not: "RENEWED" }, renewedContracts: { none: {} }, site: { ...scope.site, clientId: contract.clientId } },
+        data: { noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew,
+          renewalStatus: data.renewalStatus, renewalNotes: data.renewalNotes, updatedAt } })
+      if (changed.count !== 1) throw new Error(changedMessage)
+      await tx.auditLog.create({ data: { userId, action: "UPDATE_MAINTENANCE_RENEWAL", resource: "MAINTENANCE_CONTRACT", resourceId: contract.id,
+        payload: { number: contract.number, noticeDays: data.noticeDays, indexationRate: data.indexationRate, autoRenew: data.autoRenew,
+          renewalStatus: data.renewalStatus, previousUpdatedAt: contract.updatedAt.toISOString(), updatedAt: updatedAt.toISOString() } } })
+    }, { isolationLevel: "Serializable" }))
     revalidateOperations()
     return { success: true as const }
-  }, "service.write")
+  }, "service.write").catch(error => {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new Error(changedMessage)
+    throw error
+  })
 }
 
-export async function renewMaintenanceContract(contractId: string) {
-  return withAuth(async ({ companyId, userId }) => {
+export async function renewMaintenanceContract(contractId: string, expectedRevision: string) {
+  const changedMessage = "Le contrat a changé pendant le renouvellement. Rechargez la page."
+  return withAuth(async ({ companyId, userId, agencyIds, role }) => {
+    if (!hasPermission(role, "operations.write")) throw new AuthorizationError("La création du nouveau terme nécessite le droit Opérations en écriture.")
     const parsedId = id.parse(contractId)
-    const [contract, company] = await Promise.all([
-      prisma.maintenanceContract.findFirst({
-        where: { id: parsedId, companyId },
-        include: { equipments: { select: { equipmentId: true } }, recurringInvoice: { select: { isActive: true } }, _count: { select: { renewedContracts: true } } },
-      }),
-      prisma.company.findUnique({ where: { id: companyId }, select: { isTvaApplicable: true } }),
-    ])
-    if (!contract || !company) throw new Error("Contrat d’entretien introuvable")
-    if (!contract.endDate) throw new Error("Renseignez une date de fin avant de renouveler ce contrat")
-    if (contract.renewalStatus === "DECLINED") throw new Error("Le renouvellement a été refusé. Modifiez d’abord la décision.")
-    if (contract.renewalStatus !== "ACCEPTED" && !contract.autoRenew)
-      throw new Error("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
-    if (contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new Error("Ce terme a déjà été renouvelé")
-    const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
-    const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
+    if (!z.string().regex(/^[a-f0-9]{64}$/).safeParse(expectedRevision).success) throw new AssetLifecycleError(changedMessage)
     const prefix = buildYearlyDocumentPrefix("ENT-", "ENT-")
     const renewed = await withDocumentNumberRetry(
       async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        const last = await readCompanyDocumentNumbers(() => prisma.maintenanceContract.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(
           async (transaction) => {
+            const prepared = (await readMaintenanceRenewalSources(transaction, { companyId, agencyIds }, [parsedId])).get(parsedId)
+            if (!prepared) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+            const { source: contract, isTvaApplicable } = prepared
+            if (contract.recurringInvoice && contract.recurringInvoice.clientId !== contract.clientId) throw new AssetLifecycleError("Contrat d’entretien introuvable")
+            if ((contract.autoInvoice || contract.recurringInvoice?.isActive) && !hasPermission(role, "finance.write")) throw new AuthorizationError("La facturation automatique nécessite le droit Finance en écriture.")
+            if (contract.status === "RENEWED" || contract.renewalStatus === "RENEWED" || contract._count.renewedContracts > 0) throw new AssetLifecycleError("Ce terme a déjà été renouvelé")
+            if (prepared.revision !== expectedRevision) throw new AssetLifecycleError(changedMessage)
+            if (!contract.endDate) throw new AssetLifecycleError("Renseignez une date de fin avant de renouveler ce contrat")
+            if (contract.renewalStatus === "DECLINED") throw new AssetLifecycleError("Le renouvellement a été refusé. Modifiez d’abord la décision.")
+            if (contract.renewalStatus !== "ACCEPTED" && !contract.autoRenew) throw new AssetLifecycleError("Un accord client ou le renouvellement automatique est requis avant de créer le nouveau terme")
+            const site = await lockActiveSite(transaction, companyId, contract.siteId, agencyIds)
+            if (site.clientId !== contract.clientId) throw new AssetLifecycleError("Site du contrat incompatible avec le client")
+            await lockActiveEquipment(transaction, companyId, contract.siteId, contract.equipments.map(item => item.equipmentId), agencyIds)
+            await assertAcceptedMaintenanceAgreement(transaction, prepared)
+            const term = nextMaintenanceTerm(contract.startDate, contract.endDate)
+            const nextPriceCents = indexedMaintenancePrice(contract.priceCents, contract.indexationRate)
+            if (!Number.isSafeInteger(nextPriceCents) || nextPriceCents > 2147483647) throw new AssetLifecycleError("Le montant du renouvellement dépasse la capacité de calcul.")
+            const updated = await transaction.maintenanceContract.updateMany({
+              where: { ...operationsDashboardScope(companyId, agencyIds).contract, id: contract.id, updatedAt: contract.updatedAt,
+                status: { not: "RENEWED" }, renewalStatus: contract.renewalStatus, renewedContracts: { none: {} } },
+              data: { status: "RENEWED", renewalStatus: "RENEWED", renewedAt: new Date(), nextVisitAt: null,
+                updatedAt: new Date(Math.max(Date.now(), contract.updatedAt.getTime() + 1)) },
+            })
+            if (updated.count !== 1) throw new AssetLifecycleError(changedMessage)
             const created = await transaction.maintenanceContract.create({
               data: {
                 companyId,
@@ -1414,7 +1460,8 @@ export async function renewMaintenanceContract(contractId: string) {
                 frequency: contract.frequency,
                 nextVisitAt: term.startDate,
                 priceCents: nextPriceCents,
-                tvaRate: company.isTvaApplicable ? contract.tvaRate : 0,
+                autoInvoice: contract.autoInvoice,
+                tvaRate: isTvaApplicable ? contract.tvaRate : 0,
                 invoiceDueDays: contract.invoiceDueDays,
                 notes: contract.notes,
                 noticeDays: contract.noticeDays,
@@ -1426,10 +1473,15 @@ export async function renewMaintenanceContract(contractId: string) {
                 equipments: contract.equipments.length ? { create: contract.equipments.map(({ equipmentId }) => ({ equipmentId })) } : undefined,
               },
             })
+            let recurringInvoiceId: string | null = null
+            if (contract.recurringInvoice?.isActive) {
+              const stopped = await transaction.recurringInvoice.updateMany({ where: { id: contract.recurringInvoice.id, companyId,
+                clientId: contract.clientId, maintenanceContractId: contract.id, isActive: true }, data: { isActive: false } })
+              if (stopped.count !== 1) throw new AssetLifecycleError(changedMessage)
+            }
             if (contract.recurringInvoice?.isActive && nextPriceCents > 0) {
               const recurringFrequency = contract.frequency === "BIANNUAL" ? "BIANNUALLY" : contract.frequency === "ANNUAL" ? "ANNUALLY" : contract.frequency
-              await transaction.recurringInvoice.updateMany({ where: { maintenanceContractId: contract.id, isActive: true }, data: { isActive: false } })
-              await transaction.recurringInvoice.create({
+              const recurrence = await transaction.recurringInvoice.create({
                 data: {
                   companyId,
                   clientId: contract.clientId,
@@ -1447,18 +1499,18 @@ export async function renewMaintenanceContract(contractId: string) {
                         description: `Échéance du contrat ${created.number}`,
                         quantity: 1,
                         unitPriceCents: nextPriceCents,
-                        tvaRate: company.isTvaApplicable ? contract.tvaRate : 0,
+                        tvaRate: isTvaApplicable ? contract.tvaRate : 0,
                       },
                     ],
                   },
                 },
               })
+              recurringInvoiceId = recurrence.id
             }
-            const updated = await transaction.maintenanceContract.updateMany({
-              where: { id: contract.id, companyId, renewalStatus: { not: "RENEWED" } },
-              data: { status: "RENEWED", renewalStatus: "RENEWED", renewedAt: new Date(), nextVisitAt: null },
-            })
-            if (updated.count !== 1) throw new Error("Le contrat a changé pendant le renouvellement. Rechargez la page.")
+            await transaction.auditLog.create({ data: { userId, action: "RENEW_MAINTENANCE_CONTRACT", resource: "MAINTENANCE_CONTRACT", resourceId: created.id,
+              payload: { previousContractId: contract.id, previousNumber: contract.number, number: created.number, startDate: created.startDate.toISOString(),
+                endDate: created.endDate?.toISOString(), priceCents: created.priceCents, indexationRate: contract.indexationRate, sourceRevision: expectedRevision,
+                previousRecurringInvoiceId: contract.recurringInvoice?.id ?? null, recurringInvoiceId } } })
             return created
           },
           { isolationLevel: "Serializable" },
@@ -1466,33 +1518,21 @@ export async function renewMaintenanceContract(contractId: string) {
       },
       { label: "le renouvellement du contrat d’entretien" },
     )
-    await logAction({
-      userId,
-      action: "RENEW_MAINTENANCE_CONTRACT",
-      resource: "MAINTENANCE_CONTRACT",
-      resourceId: renewed.id,
-      payload: {
-        previousContractId: contract.id,
-        previousNumber: contract.number,
-        number: renewed.number,
-        startDate: renewed.startDate,
-        endDate: renewed.endDate,
-        priceCents: renewed.priceCents,
-        indexationRate: contract.indexationRate,
-      },
-    })
     revalidateOperations()
     revalidatePath("/dashboard/service/customer-success")
     return { success: true as const, id: renewed.id, number: renewed.number }
-  }, "service.write")
+  }, "service.write").catch(error => {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2034") throw new AssetLifecycleError(changedMessage)
+    throw error
+  })
 }
 
 export async function createPurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async ({ companyId, userId, agencyIds }) => {
     const data = purchaseOrderSchema.parse(input)
     const lines = data.lines?.length ? data.lines : [{ productId: data.productId, label: data.label!, quantity: data.quantity!, unitPriceCents: data.unitPriceCents! }]
-    if (!(await prisma.supplier.findFirst({ where: { id: data.supplierId, companyId }, select: { id: true } }))) throw new Error("Fournisseur introuvable")
-    if (data.projectId && !(await prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }))) throw new Error("Chantier introuvable")
+    const projectScope = { companyId, status: "ACTIVE", client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    if (data.projectId && !(await prisma.project.findFirst({ where: { ...projectScope, id: data.projectId }, select: { id: true } }))) throw new Error("Chantier introuvable")
     const productIds = [...new Set(lines.flatMap((line) => (line.productId ? [line.productId] : [])))]
     if (productIds.length && (await prisma.product.count({ where: { id: { in: productIds }, companyId, active: true } })) !== productIds.length)
       throw new Error("Un produit fournisseur est introuvable")
@@ -1500,18 +1540,24 @@ export async function createPurchaseOrder(input: unknown) {
     const totalHtCents = lines.reduce((sum, line) => sum + line.quantity * line.unitPriceCents, 0)
     const order = await withDocumentNumberRetry(
       async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.purchaseOrder.create({
-          data: {
-            companyId,
-            supplierId: data.supplierId,
-            projectId: data.projectId,
-            expectedAt: data.expectedAt,
-            notes: data.notes,
-            number: nextDocumentNumber(last, prefix),
-            totalHtCents,
-            lines: { create: lines.map((line, order) => ({ ...line, order })) },
-          },
+        const last = await readCompanyDocumentNumbers(() => prisma.purchaseOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+        return prisma.$transaction(async tx => {
+          if (data.projectId && !(await tx.project.findFirst({ where: { ...projectScope, id: data.projectId }, select: { id: true } }))) throw new Error("Chantier introuvable")
+          if (productIds.length && (await tx.product.count({ where: { id: { in: productIds }, companyId, active: true } })) !== productIds.length)
+            throw new Error("Un produit fournisseur est introuvable")
+          await lockActiveSupplier(tx, companyId, data.supplierId)
+          return tx.purchaseOrder.create({
+            data: {
+              companyId,
+              supplierId: data.supplierId,
+              projectId: data.projectId,
+              expectedAt: data.expectedAt,
+              notes: data.notes,
+              number: nextDocumentNumber(last, prefix),
+              totalHtCents,
+              lines: { create: lines.map((line, order) => ({ ...line, order })) },
+            },
+          })
         })
       },
       { label: "la commande fournisseur" },
@@ -1529,222 +1575,85 @@ export async function createPurchaseOrder(input: unknown) {
 }
 
 export async function submitPurchaseOrder(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, userId }) => {
-    const parsedId = id.parse(purchaseOrderId)
-    const order = await prisma.purchaseOrder.findFirst({
-      where: { id: parsedId, companyId, status: "DRAFT" },
-      select: { id: true, number: true, _count: { select: { lines: true } } },
-    })
-    if (!order) throw new Error("Commande brouillon introuvable")
-    if (!order._count.lines) throw new Error("La commande ne contient aucune ligne")
-    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "DRAFT" }, data: { status: "PENDING_APPROVAL", submittedAt: new Date() } })
-    if (claimed.count !== 1) throw new Error("La commande a déjà changé d’état")
-    await logAction({ userId, action: "SUBMIT_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
+  return withAuth(async context => {
+    const result = await transitionPurchaseOrder(context, { kind: "submit", id: id.parse(purchaseOrderId) })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${purchaseOrderId}`)
+    return result
   }, "operations.write")
 }
 
 export async function approvePurchaseOrder(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, userId, membershipId }) => {
-    const parsedId = id.parse(purchaseOrderId)
-    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "PENDING_APPROVAL" }, select: { id: true, number: true, totalHtCents: true } })
-    if (!order) throw new Error("Commande en attente d’approbation introuvable")
-    const claimed = await prisma.purchaseOrder.updateMany({
-      where: { id: order.id, companyId, status: "PENDING_APPROVAL" },
-      data: { status: "APPROVED", approvedAt: new Date(), approvedByMembershipId: membershipId },
-    })
-    if (claimed.count !== 1) throw new Error("La commande a déjà été traitée")
-    await logAction({
-      userId,
-      action: "APPROVE_PURCHASE_ORDER",
-      resource: "PURCHASE_ORDER",
-      resourceId: order.id,
-      payload: { number: order.number, totalHtCents: order.totalHtCents },
-    })
+  return withAuth(async context => {
+    const result = await transitionPurchaseOrder(context, { kind: "approve", id: id.parse(purchaseOrderId) })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${purchaseOrderId}`)
+    return result
   }, "purchases.approve")
 }
 
 export async function sendPurchaseOrder(purchaseOrderId: string) {
-  return withAuth(async ({ companyId, userId }) => {
-    const parsedId = id.parse(purchaseOrderId)
-    const order = await prisma.purchaseOrder.findFirst({ where: { id: parsedId, companyId, status: "APPROVED" }, select: { id: true, number: true } })
-    if (!order) throw new Error("La commande doit être approuvée avant envoi")
-    const claimed = await prisma.purchaseOrder.updateMany({ where: { id: order.id, companyId, status: "APPROVED" }, data: { status: "SENT", sentAt: new Date() } })
-    if (claimed.count !== 1) throw new Error("La commande a déjà été envoyée")
-    await logAction({ userId, action: "SEND_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
+  return withAuth(async context => {
+    const result = await transitionPurchaseOrder(context, { kind: "send", id: id.parse(purchaseOrderId) })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${purchaseOrderId}`)
+    return result
   }, "operations.write")
 }
 
 export async function acknowledgePurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
     const data = purchaseAcknowledgementSchema.parse(input)
-    const order = await prisma.purchaseOrder.findFirst({
-      where: { id: data.purchaseOrderId, companyId, status: { in: ["SENT", "ACKNOWLEDGED"] } },
-      select: { id: true, number: true },
-    })
-    if (!order) throw new Error("Commande envoyée introuvable")
-    await prisma.purchaseOrder.update({
-      where: { id: order.id },
-      data: { status: "ACKNOWLEDGED", acknowledgedAt: new Date(), supplierReference: data.supplierReference, confirmedExpectedAt: new Date(data.confirmedExpectedAt) },
-    })
-    await logAction({
-      userId,
-      action: "ACKNOWLEDGE_PURCHASE_ORDER",
-      resource: "PURCHASE_ORDER",
-      resourceId: order.id,
-      payload: { number: order.number, supplierReference: data.supplierReference, confirmedExpectedAt: data.confirmedExpectedAt },
-    })
+    const result = await transitionPurchaseOrder(context, { kind: "acknowledge", id: data.purchaseOrderId, supplierReference: data.supplierReference, confirmedExpectedAt: data.confirmedExpectedAt })
     revalidateOperations()
-    return { success: true as const }
+    revalidatePath(`/dashboard/operations/achats/${data.purchaseOrderId}`)
+    return result
   }, "operations.write")
 }
 
 export async function createCustomerOrder(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId, agencyIds } = context
     const data = customerOrderSchema.parse(input)
-    const [client, project, product] = await Promise.all([
-      prisma.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
-      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId, clientId: data.clientId }, select: { id: true } }) : null,
-      data.productId ? prisma.product.findFirst({ where: { id: data.productId, companyId }, select: { id: true } }) : null,
-    ])
-    if (!client) throw new Error("Client introuvable")
-    if (data.projectId && !project) throw new Error("Le chantier n'appartient pas à ce client")
-    if (data.productId && !product) throw new Error("Produit introuvable")
-
-    const totalHtCents = data.quantity * data.unitPriceCents
-    const totalTvaCents = Math.round((totalHtCents * data.tvaRate) / 100)
-    if (data.depositCents > totalHtCents + totalTvaCents) throw new Error("L'acompte dépasse le total de la commande")
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    if (agencyIds !== null && !data.projectId) throw new Error("Un chantier accessible est requis pour cette commande")
     const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
-    const order = await withDocumentNumberRetry(
-      async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-        return prisma.customerOrder.create({
-          data: {
-            companyId,
-            clientId: data.clientId,
-            projectId: data.projectId,
-            number: nextDocumentNumber(last, prefix),
-            acceptedAt: new Date(),
-            expectedInstallationAt: data.expectedInstallationAt,
-            notes: data.notes,
-            totalHtCents,
-            totalTvaCents,
-            totalTtcCents: totalHtCents + totalTvaCents,
-            depositCents: data.depositCents,
-            lines: { create: { productId: data.productId, label: data.label, quantity: data.quantity, unitPriceCents: data.unitPriceCents, tvaRate: data.tvaRate } },
-          },
-        })
-      },
-      { label: "la commande client" },
-    )
+    const order = await withDocumentNumberRetry(async () => {
+      const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+      return prisma.$transaction(async tx => {
+        const [client, project, product, company] = await Promise.all([
+          tx.client.findFirst({ where: { id: data.clientId, companyId }, select: { id: true } }),
+          data.projectId ? tx.project.findFirst({ where: { id: data.projectId, ...scope.project, clientId: data.clientId, status: "ACTIVE" }, select: { id: true, site: { select: { clientId: true } } } }) : null,
+          data.productId ? tx.product.findFirst({ where: { id: data.productId, ...scope.product, active: true }, select: { id: true } }) : null,
+          tx.company.findUniqueOrThrow({ where: { id: companyId }, select: { isTvaApplicable: true } }),
+        ])
+        if (!client) throw new Error("Client introuvable")
+        if (data.projectId && (!project || project.site && project.site.clientId !== data.clientId)) throw new Error("Le chantier n'appartient pas à ce client ou n’est plus actif")
+        if (data.productId && !product) throw new Error("Produit introuvable ou inactif")
+        const tvaRate = company.isTvaApplicable ? data.tvaRate : 0
+        const totals = calculateCommercialDocument([{ ...data, tvaRate }])
+        if (data.depositCents > totals.totalTtcCents) throw new Error("L'acompte dépasse le total de la commande")
+        const created = await tx.customerOrder.create({ data: { companyId, clientId: data.clientId, projectId: data.projectId, number: nextDocumentNumber(last, prefix), acceptedAt: new Date(),
+          expectedInstallationAt: data.expectedInstallationAt, notes: data.notes, totalHtCents: totals.totalHtCents, totalTvaCents: totals.totalTvaCents, totalTtcCents: totals.totalTtcCents, depositCents: data.depositCents,
+          lines: { create: { productId: data.productId, label: data.label, quantity: data.quantity, unitPriceCents: data.unitPriceCents, tvaRate } },
+        } })
+        await tx.auditLog.create({ data: { userId, action: "CREATE_CUSTOMER_ORDER", resource: "CUSTOMER_ORDER", resourceId: created.id, payload: { number: created.number, totalHtCents: totals.totalHtCents, totalTtcCents: totals.totalTtcCents } } })
+        return created
+      }, { isolationLevel: "Serializable" })
+    }, { label: "la commande client" })
     revalidateOperations()
     return { success: true as const, id: order.id, number: order.number }
   }, "operations.write")
 }
 
 export async function convertQuoteToCustomerOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
     const data = quoteToCustomerOrderSchema.parse(typeof input === "string" ? { quoteId: input } : input)
-    const quote = await prisma.quote.findFirst({
-      where: { id: data.quoteId, companyId },
-      include: {
-        customerOrder: { select: { id: true, number: true } },
-        versions: {
-          orderBy: { version: "desc" },
-          take: 1,
-          include: { sections: { orderBy: { order: "asc" }, include: { lines: { orderBy: { order: "asc" } } } } },
-        },
-      },
-    })
-    if (!quote) throw new Error("Devis introuvable")
-    if (quote.customerOrder) return { success: true as const, id: quote.customerOrder.id, number: quote.customerOrder.number, existing: true as const }
-    if (quote.status !== "ACCEPTED") throw new Error("Enregistrez l’accord du client avant de lancer la commande")
-    const version = quote.versions[0]
-    if (!version) throw new Error("Le devis ne contient aucune version")
-    const lines = version.sections.flatMap((section) => section.lines)
-    if (!lines.length) throw new Error("Le devis ne contient aucune ligne")
-
-    const depositCents = Math.round((version.totalTtcCents * data.depositRate) / 100)
-
-    const prefix = buildYearlyDocumentPrefix("CMD-", "CMD-")
-    let order
-    try {
-      order = await withDocumentNumberRetry(
-        async () => {
-    const last = await readCompanyDocumentNumbers(() => prisma.customerOrder.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-          return prisma.$transaction(async (tx) => {
-            const projectId =
-              quote.projectId ??
-              (
-                await tx.project.create({
-                  data: {
-                    companyId,
-                    clientId: quote.clientId,
-                    name: `Chantier · ${quote.object}`,
-                    description: `Créé depuis le devis ${quote.number}`,
-                    worksiteType: "INSTALLATION",
-                    worksiteStage: "COMMANDE_CONFIRMEE",
-                    budgetCents: version.totalHtCents,
-                    startDate: new Date(),
-                  },
-                  select: { id: true },
-                })
-              ).id
-            const created = await tx.customerOrder.create({
-              data: {
-                companyId,
-                clientId: quote.clientId,
-                projectId,
-                quoteId: quote.id,
-                number: nextDocumentNumber(last, prefix),
-                status: "CONFIRMED",
-                acceptedAt: new Date(),
-                expectedInstallationAt: data.expectedInstallationAt,
-                totalHtCents: version.totalHtCents,
-                totalTvaCents: version.totalTvaCents,
-                totalTtcCents: version.totalTtcCents,
-                depositCents,
-                lines: {
-                  create: lines.map((line, index) => ({
-                    productId: line.productId,
-                    label: line.label,
-                    description: line.description,
-                    quantity: line.quantity,
-                    unitPriceCents: line.unitPriceCents,
-                    tvaRate: line.tvaRate,
-                    order: index,
-                  })),
-                },
-              },
-            })
-            await tx.quote.update({ where: { id: quote.id }, data: { projectId } })
-            return created
-          })
-        },
-        { label: "la commande issue du devis" },
-      )
-    } catch (error) {
-      if (!isUniqueConstraintConflict(error, "quoteId")) throw error
-      const concurrentOrder = await prisma.customerOrder.findFirst({ where: { companyId, quoteId: quote.id }, select: { id: true, number: true } })
-      if (!concurrentOrder) throw error
-      return { success: true as const, id: concurrentOrder.id, number: concurrentOrder.number, existing: true as const }
-    }
-    await logAction({
-      userId,
-      action: "CREATE_CUSTOMER_ORDER",
-      resource: "CUSTOMER_ORDER",
-      resourceId: order.id,
-      payload: { quoteId: quote.id, number: order.number, depositRate: data.depositRate, depositCents },
-    })
+    const result = await convertAcceptedQuote(context, data)
     revalidateOperations()
     revalidatePath("/dashboard/devis")
-    revalidatePath(`/dashboard/devis/${quote.id}`)
-    return { success: true as const, id: order.id, number: order.number, existing: false as const }
+    revalidatePath(`/dashboard/devis/${data.quoteId}`)
+    return result
   }, "sales.write")
 }
 
@@ -1752,14 +1661,30 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
   return withAuth(async ({ companyId, userId }) => {
     const data = customerOrderInvoiceSchema.parse(input)
     const order = await prisma.customerOrder.findFirst({
-      where: { id: data.customerOrderId, companyId },
-      include: { invoices: { select: { id: true, number: true, type: true, status: true, totalTtcCents: true } } },
+      where: { id: data.customerOrderId, companyId, client: { companyId }, OR: [{ projectId: null }, { project: { companyId, client: { companyId } } }] },
+      include: { project: { select: { clientId: true } }, invoices: { select: { id: true, companyId: true, clientId: true, projectId: true, number: true, type: true, status: true, totalTtcCents: true } } },
     })
-    if (!order) throw new Error("Commande client introuvable")
+    if (!order || (order.project && order.project.clientId !== order.clientId)) throw new Error("Commande client introuvable")
+    if (order.invoices.some(invoice => invoice.companyId !== companyId || invoice.clientId !== order.clientId || invoice.projectId !== order.projectId)) throw new Error("Commande client introuvable")
+    const orderScope = {
+      id: order.id, companyId, clientId: order.clientId, projectId: order.projectId,
+      client: { companyId },
+      OR: [{ projectId: null }, { project: { companyId, clientId: order.clientId, client: { companyId } } }],
+      invoices: { every: { companyId, clientId: order.clientId, projectId: order.projectId } },
+    }
+    const invoiceRead = { id: true, type: true, status: true, totalTtcCents: true } as const
+    const invoiceState = (invoices: Array<{ id: string; type: string; status: string; totalTtcCents: number }>) =>
+      JSON.stringify([...invoices].sort((a, b) => a.id.localeCompare(b.id)).map(invoice => [invoice.id, invoice.type, invoice.status, invoice.totalTtcCents]))
+    const expectedInvoiceState = invoiceState(order.invoices)
     if (order.status === "CANCELLED") throw new Error("Une commande annulée ne peut pas être facturée")
     if (data.mode === "DEPOSIT") {
       const existingDeposit = order.invoices.find((invoice) => invoice.type === "DEPOSIT" && invoice.status !== "CANCELLED")
-      if (existingDeposit) return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      if (existingDeposit) {
+        const current = await prisma.customerOrder.findFirst({ where: orderScope, select: { invoices: { select: invoiceRead } } })
+        if (!current) throw new Error("Commande client introuvable")
+        if (invoiceState(current.invoices) !== expectedInvoiceState) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
+        return { success: true as const, id: existingDeposit.id, number: existingDeposit.number, existing: true as const }
+      }
       if (order.depositCents <= 0) throw new Error("Aucun acompte n’est défini sur cette commande")
     }
     const remaining = remainingOrderAmount(order.totalTtcCents, order.invoices)
@@ -1778,9 +1703,12 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
       async () => {
     const last = await readCompanyDocumentNumbers(() => prisma.invoice.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
         return prisma.$transaction(async (tx) => {
+          const current = await tx.customerOrder.findFirst({ where: orderScope, select: { invoices: { select: invoiceRead } } })
+          if (!current) throw new Error("Commande client introuvable")
+          if (invoiceState(current.invoices) !== expectedInvoiceState) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
           const nextRemaining = remaining - amountTtcCents
           const claimed = await tx.customerOrder.updateMany({
-            where: { id: order.id, companyId, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
+            where: { ...orderScope, updatedAt: order.updatedAt, billingStatus: order.billingStatus },
             data: { billingStatus: nextRemaining <= 0 ? "INVOICED" : "PARTIALLY_INVOICED" },
           })
           if (claimed.count !== 1) throw new Error("La facturation de cette commande a changé. Rechargez la page puis réessayez.")
@@ -1820,14 +1748,12 @@ export async function createInvoiceFromCustomerOrder(input: unknown) {
 }
 
 export async function receivePurchaseOrder(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = goodsReceiptSchema.parse(input)
     const [warehouse, line] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
-      prisma.purchaseOrderLine.findFirst({
-        where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } },
-        include: { purchaseOrder: { select: { id: true, number: true, status: true } }, product: { select: { id: true } } },
-      }),
+      readPurchaseStockLine(prisma, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES"]),
     ])
     if (!warehouse) throw new Error("Dépôt introuvable")
     if (!line) throw new Error("Ligne de commande fournisseur introuvable")
@@ -1845,11 +1771,15 @@ export async function receivePurchaseOrder(input: unknown) {
     const receipt = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
-    const last = await readCompanyDocumentNumbers(() => tx.goodsReceipt.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-          if (acceptedQuantity) {
+          const freshLine = await readPurchaseStockLine(tx, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES"])
+          if (!freshLine || purchaseStockLineRevision(freshLine) !== purchaseStockLineRevision(line)) throw new Error(purchaseStockChanged)
+          await lockPurchaseStockOrder(tx, context, freshLine.purchaseOrder)
+          await lockActiveWarehouses(tx, companyId, [data.warehouseId])
+          const last = await readCompanyDocumentNumbers(() => tx.goodsReceipt.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+          {
             const claimedLine = await tx.purchaseOrderLine.updateMany({
               where: {
-                id: line.id,
+                id: line.id, purchaseOrderId: data.purchaseOrderId, productId: line.productId, quantity: line.quantity, unitPriceCents: line.unitPriceCents,
                 receivedQuantity: line.receivedQuantity,
                 creditedQuantity: line.creditedQuantity,
               },
@@ -1919,55 +1849,51 @@ export async function receivePurchaseOrder(input: unknown) {
             select: { quantity: true, receivedQuantity: true, creditedQuantity: true },
           })
           const complete = orderLines.every((orderLine) => orderLine.receivedQuantity + orderLine.creditedQuantity >= orderLine.quantity)
-          const openIssues = await tx.purchaseIssue.count({ where: { purchaseOrderId: data.purchaseOrderId, status: { not: "RESOLVED" } } })
+          const openIssues = await tx.purchaseIssue.count({ where: { companyId, purchaseOrderId: data.purchaseOrderId, status: { not: "RESOLVED" } } })
           await tx.purchaseOrder.update({
             where: { id: data.purchaseOrderId },
             data: { status: complete ? (openIssues ? "RECEIVED_WITH_ISSUES" : "RECEIVED") : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null },
           })
+          await tx.auditLog.create({ data: { userId, action: "RECEIVE_PURCHASE_ORDER", resource: "PURCHASE_ORDER", resourceId: data.purchaseOrderId,
+            payload: { receiptId: created.id, acceptedQuantity, rejectedQuantity: data.rejectedQuantity, issueType: data.issueType } } })
           return created
-        }),
+        }, { isolationLevel: "Serializable" }),
       { label: "la réception fournisseur" },
     )
-    await logAction({
-      userId,
-      action: "RECEIVE_PURCHASE_ORDER",
-      resource: "PURCHASE_ORDER",
-      resourceId: data.purchaseOrderId,
-      payload: { receiptId: receipt.id, acceptedQuantity, rejectedQuantity: data.rejectedQuantity, issueType: data.issueType },
-    })
     revalidateOperations()
     return { success: true as const, id: receipt.id, number: receipt.number }
   }, "operations.write")
 }
 
 export async function resolvePurchaseIssue(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = purchaseIssueResolutionSchema.parse(input)
-    const issue = await prisma.purchaseIssue.findFirst({
-      where: { id: data.issueId, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
-      include: {
-        goodsReceiptLine: { include: { goodsReceipt: { select: { warehouseId: true, number: true } } } },
-        purchaseOrderLine: { select: { id: true, quantity: true, receivedQuantity: true, creditedQuantity: true, unitPriceCents: true } },
-      },
-    })
+    const issue = await readPurchaseStockIssue(prisma, context, data.issueId)
     if (!issue) throw new Error("Anomalie fournisseur introuvable ou déjà résolue")
     if (data.resolution === "ACCEPTED" && !issue.goodsReceiptLine) throw new Error("Réception source introuvable")
+    if (data.resolution === "ACCEPTED") assertPurchaseInspectionCapacity(issue)
     const remaining = issue.purchaseOrderLine.quantity - issue.purchaseOrderLine.receivedQuantity - issue.purchaseOrderLine.creditedQuantity
     if (["CREDIT", "ACCEPTED"].includes(data.resolution) && issue.quantity > remaining) {
       throw new Error("Le reliquat a déjà été couvert ; clôturez l’anomalie avec une autre résolution")
     }
 
     await prisma.$transaction(async (tx) => {
+      const fresh = await readPurchaseStockIssue(tx, context, data.issueId)
+      if (!fresh || purchaseStockRevision(fresh) !== purchaseStockRevision(issue)) throw new Error(purchaseStockChanged)
+      await lockPurchaseStockOrder(tx, context, fresh.purchaseOrder)
+      if (data.resolution === "ACCEPTED") assertPurchaseInspectionCapacity(fresh)
+      if (data.resolution === "ACCEPTED") await lockActiveWarehouses(tx, companyId, [issue.goodsReceiptLine!.goodsReceipt.warehouseId])
       const nextStatus = data.resolution === "REPLACEMENT" ? "WAITING_REPLACEMENT" : "RESOLVED"
       const claimed = await tx.purchaseIssue.updateMany({
-        where: { id: issue.id, companyId, status: { in: ["OPEN", "WAITING_REPLACEMENT"] } },
-        data: { status: nextStatus, resolution: data.notes, resolvedAt: nextStatus === "RESOLVED" ? new Date() : null },
+        where: { id: issue.id, companyId, status: issue.status, updatedAt: issue.updatedAt },
+        data: { status: nextStatus, resolutionKind: data.resolution, resolution: data.notes, resolvedAt: nextStatus === "RESOLVED" ? new Date() : null },
       })
       if (claimed.count !== 1) throw new Error("Anomalie déjà traitée")
       if (data.resolution === "CREDIT") {
         const claimedLine = await tx.purchaseOrderLine.updateMany({
           where: {
-            id: issue.purchaseOrderLineId,
+            id: issue.purchaseOrderLineId, purchaseOrderId: issue.purchaseOrderId, productId: issue.productId, quantity: issue.purchaseOrderLine.quantity, unitPriceCents: issue.purchaseOrderLine.unitPriceCents,
             receivedQuantity: issue.purchaseOrderLine.receivedQuantity,
             creditedQuantity: issue.purchaseOrderLine.creditedQuantity,
           },
@@ -1978,7 +1904,7 @@ export async function resolvePurchaseIssue(input: unknown) {
         const warehouseId = issue.goodsReceiptLine!.goodsReceipt.warehouseId
         const claimedLine = await tx.purchaseOrderLine.updateMany({
           where: {
-            id: issue.purchaseOrderLineId,
+            id: issue.purchaseOrderLineId, purchaseOrderId: issue.purchaseOrderId, productId: issue.productId, quantity: issue.purchaseOrderLine.quantity, unitPriceCents: issue.purchaseOrderLine.unitPriceCents,
             receivedQuantity: issue.purchaseOrderLine.receivedQuantity,
             creditedQuantity: issue.purchaseOrderLine.creditedQuantity,
           },
@@ -2011,47 +1937,37 @@ export async function resolvePurchaseIssue(input: unknown) {
         select: { quantity: true, receivedQuantity: true, creditedQuantity: true },
       })
       const complete = orderLines.every((line) => line.receivedQuantity + line.creditedQuantity >= line.quantity)
-      const openIssues = await tx.purchaseIssue.count({ where: { purchaseOrderId: issue.purchaseOrderId, status: { not: "RESOLVED" } } })
+      const openIssues = await tx.purchaseIssue.count({ where: { companyId, purchaseOrderId: issue.purchaseOrderId, status: { not: "RESOLVED" } } })
       await tx.purchaseOrder.update({
         where: { id: issue.purchaseOrderId },
         data: { status: complete ? (openIssues ? "RECEIVED_WITH_ISSUES" : "RECEIVED") : "PARTIALLY_RECEIVED", receivedAt: complete ? new Date() : null },
       })
-    })
-    await logAction({
-      userId,
-      action: "RESOLVE_PURCHASE_ISSUE",
-      resource: "PURCHASE_ISSUE",
-      resourceId: issue.id,
-      payload: { resolution: data.resolution, purchaseOrderId: issue.purchaseOrderId, quantity: issue.quantity },
-    })
+      await tx.auditLog.create({ data: { userId, action: "RESOLVE_PURCHASE_ISSUE", resource: "PURCHASE_ISSUE", resourceId: issue.id,
+        payload: { resolution: data.resolution, purchaseOrderId: issue.purchaseOrderId, quantity: issue.quantity } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
 }
 
 export async function createSupplierReturn(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = supplierReturnSchema.parse(input)
     const [line, warehouse] = await Promise.all([
-      prisma.purchaseOrderLine.findFirst({
-        where: { id: data.purchaseOrderLineId, purchaseOrderId: data.purchaseOrderId, purchaseOrder: { companyId } },
-        include: {
-          purchaseOrder: { select: { supplierId: true, number: true } },
-          product: { select: { id: true } },
-          receiptLines: { where: { goodsReceipt: { warehouseId: data.warehouseId } }, select: { acceptedQuantity: true } },
-          supplierReturns: { where: { warehouseId: data.warehouseId }, select: { quantity: true } },
-        },
-      }),
+      readPurchaseStockLine(prisma, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES", "RECEIVED"]),
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
     ])
     if (!line?.product || !warehouse) throw new Error("Ligne produit ou dépôt introuvable")
-    const receivedInWarehouse = line.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity, 0)
+    const receivedInWarehouse = line.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity + item.inspectedQuantity, 0)
     const alreadyReturned = line.supplierReturns.reduce((sum, item) => sum + item.quantity, 0)
     if (data.quantity > receivedInWarehouse - alreadyReturned) throw new Error("La quantité retournée dépasse la quantité reçue dans ce dépôt")
     const prefix = buildYearlyDocumentPrefix("RET-", "RET-")
     const supplierReturn = await withDocumentNumberRetry(
       async () =>
         prisma.$transaction(async (tx) => {
+          await lockPurchaseStockOrder(tx, context, line.purchaseOrder)
+          await lockActiveWarehouses(tx, companyId, [data.warehouseId])
           // A no-op update takes a row lock. The following re-read therefore includes
           // returns committed by another concurrent request before validating the cap.
           const lockedLine = await tx.purchaseOrderLine.updateMany({
@@ -2059,15 +1975,9 @@ export async function createSupplierReturn(input: unknown) {
             data: { creditedQuantity: { increment: 0 } },
           })
           if (lockedLine.count !== 1) throw new Error("Ligne fournisseur introuvable")
-          const freshLine = await tx.purchaseOrderLine.findUnique({
-            where: { id: line.id },
-            include: {
-              receiptLines: { where: { goodsReceipt: { warehouseId: data.warehouseId } }, select: { acceptedQuantity: true } },
-              supplierReturns: { where: { warehouseId: data.warehouseId }, select: { quantity: true } },
-            },
-          })
-          if (!freshLine) throw new Error("Ligne fournisseur introuvable")
-          const freshReceived = freshLine.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity, 0)
+          const freshLine = await readPurchaseStockLine(tx, context, data, ["SENT", "ACKNOWLEDGED", "PARTIALLY_RECEIVED", "RECEIVED_WITH_ISSUES", "RECEIVED"])
+          if (!freshLine || purchaseStockLineRevision(freshLine) !== purchaseStockLineRevision(line)) throw new Error(purchaseStockChanged)
+          const freshReceived = freshLine.receiptLines.reduce((sum, item) => sum + item.acceptedQuantity + item.inspectedQuantity, 0)
           const freshReturned = freshLine.supplierReturns.reduce((sum, item) => sum + item.quantity, 0)
           if (data.quantity > freshReceived - freshReturned) throw new Error("La quantité retournée dépasse la quantité reçue dans ce dépôt")
 
@@ -2094,7 +2004,7 @@ export async function createSupplierReturn(input: unknown) {
               notes: `Retour fournisseur · ${data.reason}`,
             },
           })
-          return tx.supplierReturn.create({
+          const created = await tx.supplierReturn.create({
             data: {
               companyId,
               purchaseOrderId: data.purchaseOrderId,
@@ -2110,47 +2020,68 @@ export async function createSupplierReturn(input: unknown) {
               notes: data.notes,
             },
           })
-        }),
+          await tx.auditLog.create({ data: { userId, action: "CREATE_SUPPLIER_RETURN", resource: "SUPPLIER_RETURN", resourceId: created.id,
+            payload: { number: created.number, purchaseOrderId: data.purchaseOrderId, quantity: data.quantity } } })
+          return created
+        }, { isolationLevel: "Serializable" }),
       { label: "le retour fournisseur" },
     )
-    await logAction({
-      userId,
-      action: "CREATE_SUPPLIER_RETURN",
-      resource: "SUPPLIER_RETURN",
-      resourceId: supplierReturn.id,
-      payload: { number: supplierReturn.number, purchaseOrderId: data.purchaseOrderId, quantity: data.quantity },
-    })
     revalidateOperations()
     return { success: true as const, id: supplierReturn.id, number: supplierReturn.number }
   }, "operations.write")
 }
 
 export async function creditSupplierReturn(supplierReturnId: string, creditReference: string) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = z.object({ supplierReturnId: id, creditReference: z.string().trim().min(1).max(120) }).parse({ supplierReturnId, creditReference })
-    const supplierReturn = await prisma.supplierReturn.findFirst({ where: { id: data.supplierReturnId, companyId, status: "SHIPPED" }, select: { id: true, number: true } })
+    const supplierReturn = await readPurchaseStockReturn(prisma, context, data.supplierReturnId)
     if (!supplierReturn) throw new Error("Retour fournisseur expédié introuvable")
-    await prisma.supplierReturn.update({ where: { id: supplierReturn.id }, data: { status: "CREDITED", creditedAt: new Date(), creditReference: data.creditReference } })
-    await logAction({
-      userId,
-      action: "CREDIT_SUPPLIER_RETURN",
-      resource: "SUPPLIER_RETURN",
-      resourceId: supplierReturn.id,
-      payload: { number: supplierReturn.number, creditReference: data.creditReference },
-    })
+    await prisma.$transaction(async tx => {
+      const fresh = await readPurchaseStockReturn(tx, context, data.supplierReturnId)
+      if (!fresh || purchaseStockRevision(fresh) !== purchaseStockRevision(supplierReturn)) throw new Error(purchaseStockChanged)
+      await lockPurchaseStockOrder(tx, context, fresh.purchaseOrder)
+      const claimed = await tx.supplierReturn.updateMany({ where: { id: supplierReturn.id, companyId, status: "SHIPPED", updatedAt: supplierReturn.updatedAt }, data: { status: "CREDITED", creditedAt: new Date(), creditReference: data.creditReference } })
+      if (claimed.count !== 1) throw new Error(purchaseStockChanged)
+      await tx.auditLog.create({ data: { userId, action: "CREDIT_SUPPLIER_RETURN", resource: "SUPPLIER_RETURN", resourceId: supplierReturn.id,
+        payload: { number: supplierReturn.number, creditReference: data.creditReference } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
 }
 
+async function stockReservationReferences(db: TransactionClient, context: Pick<AuthContext, "companyId" | "agencyIds">, projectId?: string | null, customerOrderId?: string | null) {
+  const scope = operationsDashboardScope(context.companyId, context.agencyIds)
+  const [project, order] = await Promise.all([
+    projectId ? db.project.findFirst({ where: { id: projectId, ...scope.project }, select: { id: true, clientId: true, site: { select: { clientId: true } } } }) : null,
+    customerOrderId ? db.customerOrder.findFirst({
+      where: { id: customerOrderId, ...scope.customerOrder },
+      select: { id: true, clientId: true, projectId: true, project: { select: { clientId: true, site: { select: { clientId: true } } } }, quote: { select: { clientId: true, projectId: true } } },
+    }) : null,
+  ])
+  return { project: project && (!project.site || project.site.clientId === project.clientId) ? project : null, customerOrder: order && coherentCustomerOrder(order) ? order : null }
+}
+
+function assertFreshStockReservation(current: StockReservation | null, previous: StockReservation): asserts current is StockReservation {
+  const fields = ["warehouseId", "productId", "projectId", "customerOrderId", "quantity", "notes"] as const
+  if (!current || current.updatedAt.getTime() !== previous.updatedAt.getTime() || fields.some(field => current[field] !== previous[field])) throw new Error("Réservation active introuvable")
+}
+
+function stockTransactionFailure(error: unknown): never {
+  if (isTransactionConflict(error)) throw new Error("Le stock a changé. Rechargez la page puis réessayez ; votre saisie est conservée.")
+  throw error
+}
+
 export async function reserveStock(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = reservationSchema.parse(input)
-    const [warehouse, product, project, customerOrder] = await Promise.all([
+    const scope = operationsDashboardScope(companyId, context.agencyIds)
+    const [warehouse, product, { project, customerOrder }] = await Promise.all([
       prisma.warehouse.findFirst({ where: { id: data.warehouseId, companyId, active: true }, select: { id: true } }),
-      prisma.product.findFirst({ where: { id: data.productId, companyId, active: true }, select: { id: true } }),
-      data.projectId ? prisma.project.findFirst({ where: { id: data.projectId, companyId }, select: { id: true } }) : null,
-      data.customerOrderId ? prisma.customerOrder.findFirst({ where: { id: data.customerOrderId, companyId }, select: { id: true } }) : null,
+      prisma.product.findFirst({ where: { id: data.productId, ...scope.product, active: true }, select: { id: true } }),
+      stockReservationReferences(prisma, context, data.projectId, data.customerOrderId),
     ])
     if (!warehouse || !product) throw new Error("Dépôt ou produit introuvable")
     if (data.projectId && !project) throw new Error("Chantier introuvable")
@@ -2158,6 +2089,14 @@ export async function reserveStock(input: unknown) {
     if (!data.projectId && !data.customerOrderId) throw new Error("Rattachez la réservation à un chantier ou une commande client")
 
     const reservation = await prisma.$transaction(async (tx) => {
+      await lockActiveWarehouses(tx, companyId, [data.warehouseId])
+      const [freshProduct, references] = await Promise.all([
+        tx.product.findFirst({ where: { id: data.productId, ...scope.product, active: true }, select: { id: true } }),
+        stockReservationReferences(tx, context, data.projectId, data.customerOrderId),
+      ])
+      if (!freshProduct) throw new Error("Dépôt ou produit introuvable")
+      if (data.projectId && !references.project) throw new Error("Chantier introuvable")
+      if (data.customerOrderId && !references.customerOrder) throw new Error("Commande client introuvable")
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId: data.productId } } })
       if (!current) throw new Error("Aucun stock disponible pour ce produit")
       const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "RESERVE", movementQuantity: data.quantity })
@@ -2181,19 +2120,28 @@ export async function reserveStock(input: unknown) {
           notes: data.notes,
         },
       })
+      await tx.auditLog.create({ data: { userId, action: "CREATE_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: created.id,
+        payload: { quantity: created.quantity, productId: created.productId, warehouseId: created.warehouseId, projectId: created.projectId, customerOrderId: created.customerOrderId } } })
       return created
-    })
+    }, { isolationLevel: "Serializable" }).catch(stockTransactionFailure)
     revalidateOperations()
     return { success: true as const, id: reservation.id }
   }, "operations.write")
 }
 
 export async function releaseStockReservation(reservationId: string) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
+    const references = await stockReservationReferences(prisma, context, reservation.projectId, reservation.customerOrderId)
+    if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
+      const currentReservation = await tx.stockReservation.findFirst({ where: { id: reservation.id, ...operationsDashboardScope(companyId, context.agencyIds).reservation, status: "ACTIVE" } })
+      assertFreshStockReservation(currentReservation, reservation)
+      const freshReferences = await stockReservationReferences(tx, context, reservation.projectId, reservation.customerOrderId)
+      if ((reservation.projectId && !freshReferences.project) || (reservation.customerOrderId && !freshReferences.customerOrder)) throw new Error("Réservation active introuvable")
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
         data: { status: "RELEASED", releasedAt: new Date() },
@@ -2221,18 +2169,27 @@ export async function releaseStockReservation(reservationId: string) {
           notes: reservation.notes,
         },
       })
-    })
+      await tx.auditLog.create({ data: { userId, action: "RELEASE_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: reservation.id,
+        payload: { quantity: reservation.quantity, productId: reservation.productId, warehouseId: reservation.warehouseId } } })
+    }, { isolationLevel: "Serializable" }).catch(stockTransactionFailure)
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
 }
 
 export async function consumeStockReservation(reservationId: string) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const parsedId = id.parse(reservationId)
     const reservation = await prisma.stockReservation.findFirst({ where: { id: parsedId, companyId, status: "ACTIVE" } })
     if (!reservation) throw new Error("Réservation active introuvable")
+    const references = await stockReservationReferences(prisma, context, reservation.projectId, reservation.customerOrderId)
+    if ((reservation.projectId && !references.project) || (reservation.customerOrderId && !references.customerOrder)) throw new Error("Réservation active introuvable")
     await prisma.$transaction(async (tx) => {
+      const currentReservation = await tx.stockReservation.findFirst({ where: { id: reservation.id, ...operationsDashboardScope(companyId, context.agencyIds).reservation, status: "ACTIVE" } })
+      assertFreshStockReservation(currentReservation, reservation)
+      const freshReferences = await stockReservationReferences(tx, context, reservation.projectId, reservation.customerOrderId)
+      if ((reservation.projectId && !freshReferences.project) || (reservation.customerOrderId && !freshReferences.customerOrder)) throw new Error("Réservation active introuvable")
       const claimedReservation = await tx.stockReservation.updateMany({
         where: { id: reservation.id, companyId, status: "ACTIVE", updatedAt: reservation.updatedAt },
         data: { status: "CONSUMED", releasedAt: new Date() },
@@ -2266,102 +2223,68 @@ export async function consumeStockReservation(reservationId: string) {
           data: { status: "IN_PREPARATION" },
         })
       }
-    })
-    await logAction({
-      userId,
-      action: "CONSUME_STOCK_RESERVATION",
-      resource: "STOCK_RESERVATION",
-      resourceId: reservation.id,
-      payload: { quantity: reservation.quantity, productId: reservation.productId },
-    })
+      await tx.auditLog.create({ data: { userId, action: "CONSUME_STOCK_RESERVATION", resource: "STOCK_RESERVATION", resourceId: reservation.id,
+        payload: { quantity: reservation.quantity, productId: reservation.productId } } })
+    }, { isolationLevel: "Serializable" }).catch(stockTransactionFailure)
     revalidateOperations()
     return { success: true as const }
   }, "operations.write")
 }
 
 export async function createDeliveryNote(input: unknown) {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = deliveryNoteSchema.parse(input)
-    const line = await prisma.customerOrderLine.findFirst({
-      where: { id: data.customerOrderLineId, customerOrderId: data.customerOrderId, customerOrder: { companyId } },
-      include: { customerOrder: { select: { id: true, projectId: true } } },
-    })
+    const line = await readCustomerDeliveryLine(prisma, context, data.customerOrderId, data.customerOrderLineId)
     if (!line) throw new Error("Ligne de commande client introuvable")
-    const remaining = line.quantity - line.deliveredQuantity
-    if (data.quantity > remaining) throw new Error(`La quantité dépasse le reliquat de ${remaining}`)
-
+    nextDeliveredQuantity(line, data.quantity)
     const prefix = buildYearlyDocumentPrefix("BL-", "BL-")
-    const note = await withDocumentNumberRetry(
-      async () =>
-        prisma.$transaction(async (tx) => {
-    const last = await readCompanyDocumentNumbers(() => tx.deliveryNote.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
-          const claimedLine = await tx.customerOrderLine.updateMany({
-            where: { id: line.id, deliveredQuantity: line.deliveredQuantity },
-            data: { deliveredQuantity: { increment: data.quantity } },
-          })
-          if (claimedLine.count !== 1) throw new Error("Le reliquat de livraison a changé. Rechargez la page puis réessayez.")
-          const created = await tx.deliveryNote.create({
-            data: {
-              companyId,
-              customerOrderId: data.customerOrderId,
-              projectId: line.customerOrder.projectId,
-              number: nextDocumentNumber(last, prefix),
-              status: "DELIVERED",
-              deliveredAt: new Date(),
-              recipientName: data.recipientName,
-              notes: data.notes,
-              lines: { create: { customerOrderLineId: line.id, productId: line.productId, label: line.label, quantity: data.quantity } },
-            },
-          })
-          const orderLines = await tx.customerOrderLine.findMany({ where: { customerOrderId: data.customerOrderId }, select: { quantity: true, deliveredQuantity: true } })
-          if (orderLines.every((orderLine) => orderLine.deliveredQuantity >= orderLine.quantity)) {
-            await tx.customerOrder.update({ where: { id: data.customerOrderId }, data: { status: "DELIVERED" } })
-          }
-          return created
-        }),
-      { label: "le bon de livraison" },
-    )
+    const note = await withDocumentNumberRetry(async () => prisma.$transaction(async tx => {
+      const fresh = await readCustomerDeliveryLine(tx, context, data.customerOrderId, data.customerOrderLineId)
+      if (!fresh || deliveryRevision(fresh) !== deliveryRevision(line)) throw new Error(deliveryChanged)
+      await lockCustomerDeliveryOrder(tx, context, fresh.customerOrder)
+      const deliveredQuantity = nextDeliveredQuantity(fresh, data.quantity)
+      const last = await readCompanyDocumentNumbers(() => tx.deliveryNote.findMany({ where: { companyId, number: { startsWith: prefix } }, select: { number: true } }))
+      const claimed = await tx.customerOrderLine.updateMany({ where: { id: line.id, customerOrderId: data.customerOrderId, quantity: line.quantity, deliveredQuantity: line.deliveredQuantity, productId: line.productId }, data: { deliveredQuantity } })
+      if (claimed.count !== 1) throw new Error(deliveryChanged)
+      const created = await tx.deliveryNote.create({ data: { companyId, customerOrderId: data.customerOrderId, projectId: line.customerOrder.projectId, number: nextDocumentNumber(last, prefix), status: "DELIVERED", deliveredAt: new Date(), recipientName: data.recipientName, notes: data.notes,
+        lines: { create: { customerOrderLineId: line.id, productId: line.productId, label: line.label, quantity: data.quantity } },
+      } })
+      const lines = await tx.customerOrderLine.findMany({ where: { customerOrderId: data.customerOrderId }, select: { quantity: true, deliveredQuantity: true } })
+      if (lines.every(item => item.deliveredQuantity >= item.quantity)) await tx.customerOrder.update({ where: { id: data.customerOrderId }, data: { status: "DELIVERED" } })
+      await tx.auditLog.create({ data: { userId, action: "CREATE_DELIVERY_NOTE", resource: "DELIVERY_NOTE", resourceId: created.id, payload: { number: created.number, customerOrderId: data.customerOrderId, quantity: data.quantity } } })
+      return created
+    }, { isolationLevel: "Serializable" }), { label: "le bon de livraison" })
     revalidateOperations()
     return { success: true as const, id: note.id, number: note.number }
   }, "operations.write")
 }
 
 export async function signDeliveryNote(input: unknown) {
-  return withAuth(async ({ companyId, userId }) => {
+  return withAuth(async context => {
+    const { companyId, userId } = context
     const data = deliverySignatureSchema.parse(input)
-    const note = await prisma.deliveryNote.findFirst({
-      where: { id: data.deliveryNoteId, companyId },
-      include: { lines: { orderBy: { id: "asc" } } },
-    })
+    const note = await readDeliveryRecord(prisma, context, data.deliveryNoteId)
     if (!note) throw new Error("Bon de livraison introuvable")
-    if (note.signedAt && note.signatureSha256) return { success: true as const, alreadySigned: true, signatureSha256: note.signatureSha256 }
-    const signedAt = new Date()
-    const signatureSha256 = createHash("sha256")
-      .update(
-        JSON.stringify({
-          deliveryNoteId: note.id,
-          number: note.number,
-          customerOrderId: note.customerOrderId,
-          recipientName: data.recipientName,
-          signedAt: signedAt.toISOString(),
-          lines: note.lines.map((line) => ({ id: line.id, label: line.label, quantity: line.quantity })),
-        }),
-      )
-      .digest("hex")
-    const signed = await prisma.deliveryNote.updateMany({
-      where: { id: note.id, companyId, signedAt: null },
-      data: { status: "SIGNED", recipientName: data.recipientName, signedAt, signatureSha256 },
-    })
-    if (signed.count !== 1) throw new Error("Ce bon de livraison a déjà été signé")
-    await logAction({
-      userId,
-      action: "SIGN_DELIVERY_NOTE",
-      resource: "DELIVERY_NOTE",
-      resourceId: note.id,
-      payload: { number: note.number, recipientName: data.recipientName, signatureSha256 },
-    })
+    if (note.signedAt || note.status === "SIGNED" || note.signatureSha256) {
+      readDeliverySeal({ ...note, clientId: note.customerOrder.clientId })
+      if (note.recipientName !== data.recipientName) throw new Error("Ce bon de livraison a déjà été signé par un autre réceptionnaire")
+      return { success: true as const, alreadySigned: true, signatureSha256: note.signatureSha256! }
+    }
+    if (note.status !== "DELIVERED" || !note.deliveredAt || !note.lines.length) throw new Error("Le bon doit être livré avant sa signature")
+    const signedAt = new Date(), seal = await prepareDeliverySeal(note, data.recipientName, signedAt)
+    await prisma.$transaction(async tx => {
+      const fresh = await readDeliveryRecord(tx, context, note.id)
+      if (!fresh || deliveryRevision(fresh) !== deliveryRevision(note)) throw new Error(deliveryChanged)
+      await lockCustomerDeliveryOrder(tx, context, fresh.customerOrder)
+      const claimed = await tx.deliveryNote.updateMany({ where: { id: note.id, companyId, status: "DELIVERED", signedAt: null, updatedAt: note.updatedAt },
+        data: { status: "SIGNED", recipientName: data.recipientName, signedAt, ...seal },
+      })
+      if (claimed.count !== 1) throw new Error(deliveryChanged)
+      await tx.auditLog.create({ data: { userId, action: "SIGN_DELIVERY_NOTE", resource: "DELIVERY_NOTE", resourceId: note.id, payload: { number: note.number, recipientName: data.recipientName, signatureSha256: seal.signatureSha256, sealVersion: 1 } } })
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
-    return { success: true as const, signatureSha256 }
+    return { success: true as const, signatureSha256: seal.signatureSha256 }
   }, "operations.write")
 }
 
@@ -2377,6 +2300,7 @@ export async function createStockMovement(input: unknown) {
     if (data.projectId && !project) throw new Error("Chantier introuvable")
 
     await prisma.$transaction(async (tx) => {
+      await lockActiveWarehouses(tx, companyId, [data.warehouseId])
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: data.warehouseId, productId: data.productId } } })
       const magnitude = Math.abs(data.quantity)
       const next = calculateStockBalance({ quantity: current?.quantity ?? 0, reservedQuantity: current?.reservedQuantity ?? 0, type: data.type, movementQuantity: data.quantity })
@@ -2417,6 +2341,7 @@ export async function createStockTransfer(input: unknown) {
 
     const transfer = await prisma.$transaction(
       async (tx) => {
+        await lockActiveWarehouses(tx, companyId, [fromWarehouse.id, toWarehouse.id])
         const [sourceInventory, destinationInventory] = await Promise.all([
           tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: fromWarehouse.id, productId: product.id } } }),
           tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: toWarehouse.id, productId: product.id } } }),
@@ -2507,6 +2432,7 @@ export async function consumeInterventionMaterial(input: unknown) {
     if (!warehouse || !product) throw new Error("Dépôt ou produit suivi en stock introuvable")
 
     const movement = await prisma.$transaction(async (tx) => {
+      await lockActiveWarehouses(tx, companyId, [warehouse.id])
       const current = await tx.inventoryItem.findUnique({ where: { warehouseId_productId: { warehouseId: warehouse.id, productId: product.id } } })
       if (!current) throw new Error("Aucun stock disponible pour ce produit dans ce dépôt")
       const next = calculateStockBalance({ quantity: current.quantity, reservedQuantity: current.reservedQuantity, type: "OUT", movementQuantity: data.quantity })
@@ -2723,33 +2649,46 @@ export async function unmergeServiceTicket(sourceId: string) {
 }
 
 export async function updateInterventionStatus(interventionId: string, status: "PLANNED" | "EN_ROUTE" | "IN_PROGRESS" | "CANCELED") {
-  return withAuth(async ({ companyId }) => {
+  return withAuth(async ({ companyId, agencyIds }) => {
     const parsed = z.object({ interventionId: id, status: z.enum(["PLANNED", "EN_ROUTE", "IN_PROGRESS", "CANCELED"]) }).parse({ interventionId, status })
-    const intervention = await prisma.fieldIntervention.findFirst({ where: { id: parsed.interventionId, companyId }, select: { id: true } })
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const where = { id: parsed.interventionId, ...scope.intervention }
+    const intervention = await prisma.fieldIntervention.findFirst({ where, select: { id: true, siteId: true, assignedMembershipId: true, scheduledStart: true, scheduledEnd: true, updatedAt: true } })
     if (!intervention) throw new Error("Intervention introuvable")
-    await prisma.fieldIntervention.update({
-      where: { id: intervention.id },
-      data: {
-        status: parsed.status,
-        startedAt: parsed.status === "IN_PROGRESS" ? new Date() : undefined,
-      },
-    })
+    await prisma.$transaction(async tx => {
+      if (parsed.status !== "CANCELED") await lockActiveSite(tx, companyId, intervention.siteId, agencyIds)
+      await lockSchedulingMembers(tx, companyId, [intervention.assignedMembershipId])
+      if (parsed.status !== "CANCELED" && intervention.assignedMembershipId) {
+        await assertSchedulingSlotFree(tx, { companyId, membershipId: intervention.assignedMembershipId, start: intervention.scheduledStart,
+          end: intervention.scheduledEnd ?? new Date(intervention.scheduledStart.getTime() + 3_600_000), excludeInterventionId: intervention.id })
+      }
+      const updated = await tx.fieldIntervention.updateMany({ where: { ...where, updatedAt: intervention.updatedAt },
+        data: { status: parsed.status, startedAt: parsed.status === "IN_PROGRESS" ? new Date() : undefined, updatedAt: new Date(Math.max(Date.now(), intervention.updatedAt.getTime() + 1)) } })
+      if (updated.count !== 1) throw new Error("Intervention introuvable")
+    }, { isolationLevel: "Serializable" })
     revalidateOperations()
     revalidatePath(`/dashboard/service/interventions/${intervention.id}`)
     return { success: true as const }
-  }, "operations.write")
+  }, "operations.write").catch(schedulingFailure)
 }
 
 export async function resolveInterventionReservation(reservationId: string) {
-  return withAuth(async ({ companyId, userId, membershipId, role }) => {
+  return withAuth(async ({ companyId, userId, membershipId, role, agencyIds }) => {
     const parsedId = id.parse(reservationId)
+    const scope = operationsDashboardScope(companyId, agencyIds)
+    const where = { id: parsedId, companyId, intervention: { ...scope.intervention, ...(role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {}) } }
     const reservation = await prisma.interventionReservation.findFirst({
-      where: { id: parsedId, companyId, intervention: role === "TECHNICIAN" ? { assignedMembershipId: membershipId } : {} },
+      where,
       select: { id: true, interventionId: true, status: true },
     })
     if (!reservation) throw new Error("Réserve introuvable")
     if (reservation.status === "RESOLVED") return { success: true as const, alreadyResolved: true }
-    await prisma.interventionReservation.update({ where: { id: reservation.id }, data: { status: "RESOLVED", resolvedAt: new Date() } })
+    const updated = await prisma.interventionReservation.updateMany({ where: { ...where, status: { not: "RESOLVED" } }, data: { status: "RESOLVED", resolvedAt: new Date() } })
+    if (updated.count !== 1) {
+      const current = await prisma.interventionReservation.findFirst({ where, select: { status: true } })
+      if (current?.status === "RESOLVED") return { success: true as const, alreadyResolved: true }
+      throw new Error("Réserve introuvable")
+    }
     await logAction({
       userId,
       action: "RESOLVE_INTERVENTION_RESERVATION",

@@ -1,0 +1,45 @@
+{
+  "schema": "freelio.expense-relations-before.v1",
+  "limits": [
+    "Real isolated SQLite, membership, DAL, action and audit; authentication and Next cache mocked.",
+    "Owner role isolates relation consistency; this is not evidence of missing domain permissions.",
+    "No real files, provider calls or hosted data."
+  ],
+  "baseCommit": "021bface3a527c75f4657720fabb22667d4e0cfc",
+  "diagnostic": {
+    "exitCode": 1,
+    "passed": 1,
+    "failed": 6,
+    "skipped": 0,
+    "cases": [
+      {
+        "name": "Expense relation diagnostic on real SQL keeps a coherent expense readable",
+        "status": "passed"
+      },
+      {
+        "name": "Expense relation diagnostic on real SQL excludes a foreign client from expense reads",
+        "status": "failed"
+      },
+      {
+        "name": "Expense relation diagnostic on real SQL excludes a foreign project from expense reads",
+        "status": "failed"
+      },
+      {
+        "name": "Expense relation diagnostic on real SQL refuses expense creation on a project with a foreign client",
+        "status": "failed"
+      },
+      {
+        "name": "Expense relation diagnostic on real SQL refuses update of an expense with a foreign client",
+        "status": "failed"
+      },
+      {
+        "name": "Expense relation diagnostic on real SQL refuses justify of an expense with a foreign client",
+        "status": "failed"
+      },
+      {
+        "name": "Expense relation diagnostic on real SQL refuses delete of an expense with a foreign client",
+        "status": "failed"
+      }
+    ]
+  }
+}

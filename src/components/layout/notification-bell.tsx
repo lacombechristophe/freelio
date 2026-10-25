@@ -23,15 +23,7 @@ type Notification = {
   message: string
   isRead: boolean
   createdAt: Date | string
-}
-
-function relativeTime(d: Date | string) {
-  const date = new Date(d)
-  const diff = (Date.now() - date.getTime()) / 1000
-  if (diff < 60) return "à l'instant"
-  if (diff < 3600) return `${Math.floor(diff / 60)}min`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-  return `${Math.floor(diff / 86400)}j`
+  ageLabel: string
 }
 
 export function NotificationBell({
@@ -105,7 +97,7 @@ export function NotificationBell({
                       <p className={cn("text-sm font-semibold", !n.isRead && "text-foreground")}>
                         {n.title}
                       </p>
-                      <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(n.createdAt)}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{n.ageLabel}</span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
                   </button>

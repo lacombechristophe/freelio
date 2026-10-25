@@ -17,16 +17,21 @@ import { Label } from "@/components/ui/label"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { createProject, updateProject } from "@/actions/projets"
+import { createProject, updateProject } from "@/actions/projets/mutations"
+import { requireSuccessfulMutation } from "@/lib/mutation-result"
+import { getProjectClientChoices } from "@/actions/projets/directory"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import type { ProjectTemplateOption } from "./project-template-dialog"
 
 type Project = {
   id: string
+  updatedAt: Date | string
   name: string
   description?: string | null
   status: string
   budgetCents: number
   clientId: string
+  client?: { id: string; name: string }
   agencyId?: string | null
   projectTemplateId?: string | null
   worksiteType?: string | null
@@ -35,6 +40,7 @@ type Project = {
 }
 
 type ClientOption = { id: string; name: string }
+type ClientChoices = Awaited<ReturnType<typeof getProjectClientChoices>>
 type AgencyOption = { id: string; name: string; code: string; isDefault: boolean }
 
 function emptyProjectForm(defaultAgencyId = "") {
@@ -43,24 +49,29 @@ function emptyProjectForm(defaultAgencyId = "") {
 
 export function ProjectFormDialog({
   project,
-  clients,
   templates,
   agencies,
   open,
   onOpenChange,
 }: {
   project?: Project
-  clients: ClientOption[]
   templates: ProjectTemplateOption[]
   agencies: AgencyOption[]
   open: boolean
   onOpenChange: (o: boolean) => void
 }) {
   const router = useRouter()
+  const defaultAgencyId = agencies.find(agency => agency.isDefault)?.id ?? ""
   const [pending, setPending] = React.useState(false)
+  const [clientSearch, setClientSearch] = React.useState("")
+  const [clientPage, setClientPage] = React.useState(1)
+  const [clientRevision, setClientRevision] = React.useState(0)
+  const [loadingClients, startClientTransition] = React.useTransition()
+  const [choices, setChoices] = React.useState<{ key: string; data: ClientChoices | null; error: boolean } | null>(null)
+  const [selectedClient, setSelectedClient] = React.useState<ClientOption | undefined>(project?.client)
   const [form, setForm] = React.useState({
     clientId: project?.clientId ?? "",
-    agencyId: project?.agencyId ?? agencies.find((agency) => agency.isDefault)?.id ?? "",
+    agencyId: project?.agencyId ?? defaultAgencyId,
     projectTemplateId: project?.projectTemplateId ?? "",
     name: project?.name ?? "",
     description: project?.description ?? "",
@@ -72,10 +83,16 @@ export function ProjectFormDialog({
   })
 
   React.useEffect(() => {
+    if (open) {
+      setClientSearch("")
+      setClientPage(1)
+      setClientRevision(value => value + 1)
+      setSelectedClient(project?.client)
+    }
     if (open && project) {
       setForm({
         clientId: project.clientId,
-        agencyId: project.agencyId ?? agencies.find((agency) => agency.isDefault)?.id ?? "",
+        agencyId: project.agencyId ?? defaultAgencyId,
         projectTemplateId: project.projectTemplateId ?? "",
         name: project.name,
         description: project.description ?? "",
@@ -85,15 +102,39 @@ export function ProjectFormDialog({
         budget: (project.budgetCents / 100).toString(),
         status: project.status,
       })
-    } else if (open && !project) setForm(emptyProjectForm(agencies.find((agency) => agency.isDefault)?.id))
-  }, [agencies, open, project])
+    } else if (open && !project) setForm(emptyProjectForm(defaultAgencyId))
+  }, [defaultAgencyId, open, project])
+
+  const clientKey = JSON.stringify([form.clientId, clientSearch, clientPage, clientRevision])
+  const freshClients = choices?.key === clientKey
+  React.useEffect(() => {
+    if (!open || freshClients) return
+    let current = true
+    const timer = setTimeout(() => startClientTransition(async () => {
+      try {
+        const data = await getProjectClientChoices({ selectedId: form.clientId || undefined, search: clientSearch, page: clientPage })
+        if (!data) throw new Error("Liste indisponible")
+        if (current) {
+          setClientPage(data.page)
+          setChoices({ key: JSON.stringify([form.clientId, clientSearch, data.page, clientRevision]), data, error: false })
+          if (data.selected) setSelectedClient(data.selected)
+        }
+      } catch {
+        if (current) setChoices(previous => ({ key: clientKey, data: previous?.data ?? null, error: true }))
+      }
+    }), 200)
+    return () => { current = false; clearTimeout(timer) }
+  }, [open, freshClients, clientKey, form.clientId, clientSearch, clientPage, clientRevision])
+  const clientsBusy = loadingClients || !freshClients
+  const selectedVerified = freshClients && !choices?.error && choices?.data?.selected?.id === form.clientId
+  const clientsError = freshClients && (Boolean(choices?.error) || Boolean(form.clientId && !selectedVerified))
+  const clientOptions = freshClients && !choices?.error ? choices?.data?.items ?? [] : []
+  const clients = selectedClient && !clientOptions.some(item => item.id === selectedClient.id) ? [selectedClient, ...clientOptions] : clientOptions
+  const canSave = !pending && !clientsBusy && !clientsError && Boolean(form.clientId && selectedVerified)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.clientId) {
-      toast.error("Sélectionnez un client.")
-      return
-    }
+    if (!canSave) return
     setPending(true)
     try {
       const payload = {
@@ -109,10 +150,10 @@ export function ProjectFormDialog({
         status: form.status as "ACTIVE" | "COMPLETED" | "ARCHIVED",
       }
       if (project) {
-        await updateProject(project.id, payload)
+        requireSuccessfulMutation(await updateProject(project.id, payload, new Date(project.updatedAt).toISOString()))
         toast.success("Projet mis à jour.")
       } else {
-        await createProject(payload)
+        requireSuccessfulMutation(await createProject(payload))
         toast.success("Projet créé.")
       }
       onOpenChange(false)
@@ -133,7 +174,11 @@ export function ProjectFormDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label>Client *</Label>
-            <Select value={form.clientId} onValueChange={(v) => setForm({ ...form, clientId: v ?? "" })}>
+            <Input aria-label="Rechercher un client" placeholder="Rechercher un client…" value={clientSearch} maxLength={200} disabled={pending} onChange={event => { setClientSearch(event.target.value); setClientPage(1) }} />
+            <Select value={form.clientId} onValueChange={(v) => {
+              setSelectedClient(clients.find(client => client.id === v))
+              setForm({ ...form, clientId: v ?? "" })
+            }} disabled={pending}>
               <SelectTrigger aria-label="Client du projet">
                 <SelectValue placeholder="Sélectionner un client…" />
               </SelectTrigger>
@@ -143,6 +188,7 @@ export function ProjectFormDialog({
                 ))}
               </SelectContent>
             </Select>
+            <DirectoryPagination total={choices?.data?.total ?? 0} page={freshClients ? choices?.data?.page ?? clientPage : clientPage} pending={clientsBusy} error={clientsError} onPage={setClientPage} onRetry={() => setClientRevision(value => value + 1)} />
           </div>
           {agencies.length ? (
             <div className="space-y-1.5">
@@ -220,7 +266,7 @@ export function ProjectFormDialog({
           )}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={!canSave}>
               {pending ? "…" : project ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>

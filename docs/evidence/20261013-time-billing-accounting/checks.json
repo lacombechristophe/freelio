@@ -1,0 +1,27 @@
+[
+  {
+    "name": "types",
+    "exitCode": 0,
+    "seconds": 10.393
+  },
+  {
+    "name": "eslint",
+    "exitCode": 0,
+    "seconds": 29.108
+  },
+  {
+    "name": "oxlint",
+    "exitCode": 0,
+    "seconds": 0.168
+  },
+  {
+    "name": "unit",
+    "exitCode": 0,
+    "seconds": 260.988
+  },
+  {
+    "name": "build",
+    "exitCode": 0,
+    "seconds": 95.182
+  }
+]

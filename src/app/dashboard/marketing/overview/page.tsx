@@ -1,14 +1,20 @@
 import { ChartNoAxesCombined, Gauge, Inbox, Megaphone, Workflow } from "lucide-react"
 
 import { getWorkspaceOverview } from "@/actions/workspaces"
+import { resolveAuthContext } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
+import { WorkspaceAccessRequired } from "@/app/dashboard/_components/workspace-access-required"
 import { formatWorkspaceEuro, WorkspaceHub } from "@/app/dashboard/_components/workspace-hub"
 import { WorkspaceDistributionPanel, WorkspaceTrendPanel } from "@/app/dashboard/_components/workspace-insights"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
 import { TRIGGER_LABELS } from "@/app/dashboard/automatisations/automation-model"
 
 export default async function MarketingWorkspacePage() {
+  const context = await resolveAuthContext()
+  if (context && !hasPermission(context.role, "automation.read")) return <WorkspaceAccessRequired title="Accès Automatisations requis" />
   const data = await getWorkspaceOverview("MARKETING")
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de piloter le marketing." />
+  if (data.activeSegments === null || data.activeWorkflows === null) return <WorkspaceAccessRequired title="Accès Automatisations requis" />
 
   return (
     <WorkspaceHub

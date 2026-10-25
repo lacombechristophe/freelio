@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { CheckCircle2, FileCheck2, LoaderCircle, ScrollText, Send, Trash2, XCircle } from "lucide-react"
 
-import { createContractFromQuote, deleteQuote, updateQuoteStatus } from "@/actions/devis"
-import { convertQuoteToCustomerOrder } from "@/actions/operations"
+import { deleteQuote, updateQuoteStatus } from "@/actions/devis"
+import { prepareQuoteContract, prepareQuoteOrder } from "@/actions/quote-commands"
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -18,21 +18,30 @@ import type { QuoteStatus } from "@/lib/quotes/workflow"
 
 type QuoteStatusActionsProps = {
   quoteId: string
+  orderConversionRevision: string
+  contractConversionRevision: string
+  contractId?: string
+  canPrepareOrder: boolean
   status: string
   hasOrder?: boolean
   hasContract?: boolean
+  unavailableRelations: { project: boolean; customerOrder: boolean; generatedContract: boolean }
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "L’action n’a pas pu être terminée."
+  return error instanceof Error && !("digest" in error) ? error.message : "L’action n’a pas pu être terminée."
 }
 
-export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContract = false }: QuoteStatusActionsProps) {
+export function QuoteStatusActions({ quoteId, orderConversionRevision, contractConversionRevision, contractId, canPrepareOrder, status, hasOrder = false, hasContract = false, unavailableRelations }: QuoteStatusActionsProps) {
   const router = useRouter()
   const confirmDialog = useConfirm()
+  const contractChoiceLabelId = React.useId()
   const [pending, setPending] = React.useState(false)
   const [launchOpen, setLaunchOpen] = React.useState(false)
+  const [launchRevision, setLaunchRevision] = React.useState(orderConversionRevision)
+  const [launchContractRevision, setLaunchContractRevision] = React.useState(contractConversionRevision)
   const [includeContract, setIncludeContract] = React.useState(!hasContract)
+  const launchUnavailable = Object.values(unavailableRelations).some(Boolean)
 
   async function changeStatus(next: QuoteStatus) {
     if (next === "ACCEPTED") {
@@ -63,23 +72,34 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
     const expectedInstallationAt = String(form.get("expectedInstallationAt") || "")
 
     setPending(true)
+    let preparedOrder: { number: string } | null = null
     try {
-      const order = await convertQuoteToCustomerOrder({ quoteId, depositRate, expectedInstallationAt })
-      if (includeContract) await createContractFromQuote(quoteId)
+      const order = await prepareQuoteOrder({ quoteId, depositRate, expectedInstallationAt, expectedRevision: launchRevision })
+      if ("error" in order) throw new Error(order.error)
+      preparedOrder = order
+      if (includeContract) {
+        const contract = await prepareQuoteContract(quoteId, launchContractRevision)
+        if ("error" in contract) throw new Error(contract.error)
+      }
       toast.success(order.existing ? `Le dossier ${order.number} était déjà préparé.` : `Commande ${order.number} et chantier préparés.`)
       setLaunchOpen(false)
       router.refresh()
     } catch (error) {
-      toast.error(errorMessage(error))
+      toast.error(preparedOrder && includeContract ? `Commande ${preparedOrder.number} conservée. Le contrat n’a pas pu être préparé : ${errorMessage(error)}` : errorMessage(error))
     } finally {
       setPending(false)
     }
   }
 
   async function createContract() {
+    if (contractId) {
+      router.push(`/dashboard/contrats/${contractId}`)
+      return
+    }
     setPending(true)
     try {
-      const contract = await createContractFromQuote(quoteId)
+      const contract = await prepareQuoteContract(quoteId, contractConversionRevision)
+      if ("error" in contract) throw new Error(contract.error)
       toast.success(hasContract ? "Contrat déjà préparé." : "Contrat métier préparé.")
       router.push(`/dashboard/contrats/${contract.id}`)
     } catch (error) {
@@ -126,7 +146,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
           </Button>
         ) : null}
         {status === "ACCEPTED" && !hasOrder ? (
-          <Button demoMutation disabled={pending} onClick={() => setLaunchOpen(true)}>
+          <Button demoMutation disabled={pending || !canPrepareOrder || launchUnavailable} onClick={() => { setLaunchRevision(orderConversionRevision); setLaunchContractRevision(contractConversionRevision); setLaunchOpen(true) }}>
             <FileCheck2 />
             Lancer le dossier
           </Button>
@@ -146,7 +166,7 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
               </>
             ) : null}
             {status === "ACCEPTED" ? (
-              <DropdownMenuItem onClick={createContract} className="gap-2">
+              <DropdownMenuItem demoMutation={!hasContract} disabled={unavailableRelations.generatedContract || (!hasContract && !canPrepareOrder)} onClick={createContract} className="gap-2">
                 <ScrollText /> {hasContract ? "Ouvrir le contrat" : "Préparer le contrat"}
               </DropdownMenuItem>
             ) : null}
@@ -176,30 +196,30 @@ export function QuoteStatusActions({ quoteId, status, hasOrder = false, hasContr
               <div className="space-y-2">
                 <Label htmlFor="depositRate">Acompte prévu</Label>
                 <div className="relative">
-                  <Input id="depositRate" name="depositRate" type="number" min="0" max="100" step="0.5" defaultValue="30" className="pr-9" />
+                  <Input id="depositRate" name="depositRate" disabled={pending} type="number" min="0" max="100" step="0.5" defaultValue="30" className="pr-9" />
                   <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">%</span>
                 </div>
-                <p className="text-xs leading-5 text-muted-foreground">Prépare la facture d’acompte sans l’émettre automatiquement.</p>
+                <p className="text-xs leading-5 text-muted-foreground">Fixe l’acompte à facturer depuis la commande, sans émission automatique.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="expectedInstallationAt">Pose souhaitée</Label>
-                <Input id="expectedInstallationAt" name="expectedInstallationAt" type="date" />
+                <Input id="expectedInstallationAt" name="expectedInstallationAt" disabled={pending} type="date" />
                 <p className="text-xs leading-5 text-muted-foreground">Indicative : à confirmer avec l’équipe et le fabricant.</p>
               </div>
             </div>
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/35 p-4">
-              <Checkbox aria-label="Préparer aussi le contrat de fourniture et pose" checked={includeContract} onCheckedChange={(checked) => setIncludeContract(checked === true)} />
+              <Checkbox disabled={pending} aria-labelledby={contractChoiceLabelId} aria-describedby={`${contractChoiceLabelId}-description`} checked={includeContract} onCheckedChange={(checked) => setIncludeContract(checked === true)} />
               <span className="min-w-0">
-                <span className="block text-sm font-semibold">Préparer aussi le contrat de fourniture et pose</span>
-                <span className="mt-1 block text-xs leading-5 text-muted-foreground">Le modèle métier reprend le devis, le relevé technique, la réception, les garanties et les règles de sécurité.</span>
+                <span id={contractChoiceLabelId} className="block text-sm font-semibold">Préparer aussi le contrat de fourniture et pose</span>
+                <span id={`${contractChoiceLabelId}-description`} className="mt-1 block text-xs leading-5 text-muted-foreground">Le modèle métier reprend le devis, le relevé technique, la réception, les garanties et les règles de sécurité.</span>
               </span>
             </label>
           </form>
 
           <DialogFooter>
             <Button type="button" variant="outline" disabled={pending} onClick={() => setLaunchOpen(false)}>Annuler</Button>
-            <Button type="submit" form="launch-quote-folder" disabled={pending}>
+            <Button type="submit" form="launch-quote-folder" disabled={pending || !canPrepareOrder}>
               {pending ? <LoaderCircle className="animate-spin" /> : <FileCheck2 />}
               Préparer le dossier
             </Button>

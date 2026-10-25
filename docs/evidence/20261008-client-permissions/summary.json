@@ -1,0 +1,166 @@
+{
+  "schema": "freelio.client-permissions-regression.v1",
+  "date": "2026-10-08",
+  "engine": "SQLite",
+  "nodeVersion": "v24.15.0",
+  "isolated": true,
+  "sessionMocked": true,
+  "sqlAndDalReal": true,
+  "testFile": "tests/unit/client-read-scope.integration.test.ts",
+  "testSha256": "b89a22814019dd5ac2692c864f7402060518fb2fdcd61e39fc82a67845303b47",
+  "baseline": {
+    "sourceCommit": "5b72db6e9b96bbe5f35e4e1c8675149ba25b5064",
+    "readerSha256": "6e68d32a27a3466d4933a9b21561c3e05c6c6ad1f55cb5bf90152a19ca4831ac",
+    "reportSha256": "98fbdf7cb4bd694234d64725dd07b4e4c0ac4db0943a98700ef4f5cbb9d0ee85",
+    "total": 17,
+    "passed": 5,
+    "failed": 12,
+    "cases": [
+      {
+        "name": "keeps company-wide OWNER reads without disclosing foreign nested documents",
+        "status": "failed"
+      },
+      {
+        "name": "keeps company-wide ADMIN reads without disclosing foreign nested documents",
+        "status": "failed"
+      },
+      {
+        "name": "keeps Accounting reads within its currently assigned agency",
+        "status": "failed"
+      },
+      {
+        "name": "does not return Finance or Sales documents to TECHNICIAN through a CRM read",
+        "status": "failed"
+      },
+      {
+        "name": "does not return Finance or Sales documents to SERVICE through a CRM read",
+        "status": "failed"
+      },
+      {
+        "name": "preserves Sales documents and writing rights without returning financial amounts or invoices",
+        "status": "failed"
+      },
+      {
+        "name": "preserves Viewer document reads without giving Sales writing rights",
+        "status": "failed"
+      },
+      {
+        "name": "rereads inactive agency access rather than retaining old document visibility",
+        "status": "failed"
+      },
+      {
+        "name": "rereads unassigned agency access rather than retaining old document visibility",
+        "status": "failed"
+      },
+      {
+        "name": "reads permitted client data in public demo mode without writing",
+        "status": "failed"
+      },
+      {
+        "name": "does not read a first client from malformed ID undefined",
+        "status": "failed"
+      },
+      {
+        "name": "does not read a first client from malformed ID null",
+        "status": "failed"
+      },
+      {
+        "name": "does not read a first client from malformed ID ",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID  ",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "status": "passed"
+      },
+      {
+        "name": "refuses a foreign client even when its ID is supplied directly",
+        "status": "passed"
+      },
+      {
+        "name": "refuses a suspended membership before reading client detail",
+        "status": "passed"
+      }
+    ]
+  },
+  "fixed": {
+    "readerSha256": "9b8046e523d56665474c0a753b4222cb4f5a8c6c5e9ee2d5cd03b1770b948dd1",
+    "reportSha256": "ca2987fb6615d4c5826d84741f78fe7e1da2bfe88d60362aaf3ac3ee47648a44",
+    "total": 17,
+    "passed": 17,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "keeps company-wide OWNER reads without disclosing foreign nested documents",
+        "status": "passed"
+      },
+      {
+        "name": "keeps company-wide ADMIN reads without disclosing foreign nested documents",
+        "status": "passed"
+      },
+      {
+        "name": "keeps Accounting reads within its currently assigned agency",
+        "status": "passed"
+      },
+      {
+        "name": "does not return Finance or Sales documents to TECHNICIAN through a CRM read",
+        "status": "passed"
+      },
+      {
+        "name": "does not return Finance or Sales documents to SERVICE through a CRM read",
+        "status": "passed"
+      },
+      {
+        "name": "preserves Sales documents and writing rights without returning financial amounts or invoices",
+        "status": "passed"
+      },
+      {
+        "name": "preserves Viewer document reads without giving Sales writing rights",
+        "status": "passed"
+      },
+      {
+        "name": "rereads inactive agency access rather than retaining old document visibility",
+        "status": "passed"
+      },
+      {
+        "name": "rereads unassigned agency access rather than retaining old document visibility",
+        "status": "passed"
+      },
+      {
+        "name": "reads permitted client data in public demo mode without writing",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID undefined",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID null",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID ",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID  ",
+        "status": "passed"
+      },
+      {
+        "name": "does not read a first client from malformed ID xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "status": "passed"
+      },
+      {
+        "name": "refuses a foreign client even when its ID is supplied directly",
+        "status": "passed"
+      },
+      {
+        "name": "refuses a suspended membership before reading client detail",
+        "status": "passed"
+      }
+    ]
+  }
+}

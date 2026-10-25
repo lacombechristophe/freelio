@@ -23,6 +23,10 @@ import {
 import { useConfirm } from "@/components/shared/confirm-provider"
 import { EmptyState } from "@/components/shared/empty-state"
 import { PageHeader, PageHeaderStat } from "@/components/shared/page-header"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
+import { Input } from "@/components/ui/input"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
+import type { NotificationQuery } from "@/lib/notification-query"
 
 type Notification = {
   id: string
@@ -31,6 +35,7 @@ type Notification = {
   message: string
   isRead: boolean
   createdAt: Date | string
+  ageLabel: string
 }
 
 const typeConfig: Record<string, { icon: React.ElementType; color: string }> = {
@@ -41,21 +46,20 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string }> = {
   CONTRACT: { icon: FileSignature, color: "text-primary bg-primary/10" },
 }
 
-function relativeTime(d: Date | string) {
-  const date = new Date(d)
-  const diff = (Date.now() - date.getTime()) / 1000
-  if (diff < 60) return "à l'instant"
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)}h`
-  if (diff < 2_592_000) return `il y a ${Math.floor(diff / 86400)}j`
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
-}
-
-export function NotificationsView({ notifications }: { notifications: Notification[] }) {
+export function NotificationsView({ notifications, total, totalAll, unreadCount, query }: {
+  notifications: Notification[]; total: number; totalAll: number; unreadCount: number; query: NotificationQuery
+}) {
   const router = useRouter()
   const confirmDialog = useConfirm()
+  const [pending, startTransition] = React.useTransition()
+
+  function changePage(page: number) {
+    const params = new URLSearchParams({ search: query.search, status: query.status, page: String(page) })
+    startTransition(() => router.push(`/dashboard/notifications?${params}`))
+  }
 
   async function handleMark(id: string) {
+    if (isReadOnlyDemo) return
     try {
       await markAsRead(id)
       router.refresh()
@@ -63,6 +67,7 @@ export function NotificationsView({ notifications }: { notifications: Notificati
   }
 
   async function handleDelete(id: string) {
+    if (isReadOnlyDemo) return
     try {
       await deleteNotification(id)
       toast.success("Notification supprimée.")
@@ -71,6 +76,7 @@ export function NotificationsView({ notifications }: { notifications: Notificati
   }
 
   async function handleMarkAll() {
+    if (isReadOnlyDemo) return
     try {
       await markAllAsRead()
       toast.success("Toutes marquées comme lues.")
@@ -79,9 +85,10 @@ export function NotificationsView({ notifications }: { notifications: Notificati
   }
 
   async function handleClearAll() {
+    if (isReadOnlyDemo) return
     if (!(await confirmDialog({
       title: "Supprimer toutes les notifications ?",
-      description: "Cette action est irréversible.",
+      description: "Toutes vos notifications de cet espace seront supprimées, y compris celles masquées par la recherche ou les filtres. Cette action est irréversible.",
       confirmLabel: "Tout supprimer",
       destructive: true,
     }))) return
@@ -92,8 +99,6 @@ export function NotificationsView({ notifications }: { notifications: Notificati
     } catch (err: any) { toast.error(err?.message ?? "Erreur.") }
   }
 
-  const unread = notifications.filter((n) => !n.isRead).length
-
   return (
     <div className="mx-auto max-w-5xl space-y-7">
       <PageHeader
@@ -101,19 +106,28 @@ export function NotificationsView({ notifications }: { notifications: Notificati
         title="Notifications"
         description="Retrouvez les paiements, échéances, signatures et événements importants de votre activité."
         actions={<>
-          <PageHeaderStat label="Non lues" value={unread} />
-          <Button variant="ghost" size="sm" className="gap-2" onClick={handleMarkAll} disabled={unread === 0}>
+          <PageHeaderStat label="Non lues" value={unreadCount} />
+          <Button demoMutation variant="ghost" size="sm" className="gap-2" onClick={handleMarkAll} disabled={unreadCount === 0} title="Marquer toutes vos notifications de cet espace comme lues, y compris hors des filtres.">
             <Check className="h-4 w-4" /> Tout marquer lu
           </Button>
-          <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/5 gap-2" onClick={handleClearAll} disabled={notifications.length === 0}>
+          <Button demoMutation variant="ghost" size="sm" className="text-danger hover:bg-danger/5 gap-2" onClick={handleClearAll} disabled={totalAll === 0}>
             <Trash2 className="h-4 w-4" /> Vider
           </Button>
         </>}
       />
 
+      <form key={`${query.search}:${query.status}`} action="/dashboard/notifications" method="get" className="flex flex-wrap items-center gap-2">
+        <Input name="search" aria-label="Rechercher une notification" placeholder="Rechercher une notification" maxLength={200} defaultValue={query.search} className="max-w-sm" />
+        <select name="status" aria-label="État de lecture" defaultValue={query.status} className="h-10 rounded-lg border border-input bg-background px-3 text-sm">
+          <option value="ALL">Toutes</option><option value="UNREAD">Non lues</option><option value="READ">Lues</option>
+        </select>
+        <Button type="submit" demoMutation={false} variant="outline">Rechercher</Button>
+      </form>
+      <DirectoryPagination total={total} page={query.page} pending={pending} error={false} onPage={changePage} onRetry={() => startTransition(() => router.refresh())} />
+
       {notifications.length === 0 ? (
         <div className="rounded-xl border border-border bg-card">
-          <EmptyState icon={Bell} title="Tout est à jour" description="Les prochains paiements, échéances ou événements importants apparaîtront ici." />
+          <EmptyState icon={Bell} title={totalAll === 0 ? "Tout est à jour" : "Aucune notification trouvée"} description={totalAll === 0 ? "Les prochains paiements, échéances ou événements importants apparaîtront ici." : "Essayez une autre recherche ou un autre état de lecture."} />
         </div>
       ) : (
         <div className="space-y-3">
@@ -126,7 +140,7 @@ export function NotificationsView({ notifications }: { notifications: Notificati
                   "group cursor-pointer transition-[border-color,background-color,box-shadow] hover:border-primary/20 hover:bg-muted/30",
                   !notif.isRead && "border-primary/20 bg-primary/[0.025]"
                 )}
-                onClick={() => !notif.isRead && handleMark(notif.id)}
+                onClick={() => !isReadOnlyDemo && !notif.isRead && handleMark(notif.id)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -143,7 +157,7 @@ export function NotificationsView({ notifications }: { notifications: Notificati
                         </div>
                         <p className="text-sm text-muted-foreground leading-snug">{notif.message}</p>
                         <p className="pt-1 text-xs font-medium text-muted-foreground">
-                          {relativeTime(notif.createdAt)}
+                          {notif.ageLabel}
                         </p>
                       </div>
                     </div>

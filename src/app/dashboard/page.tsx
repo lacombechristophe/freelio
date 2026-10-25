@@ -104,7 +104,7 @@ export default async function DashboardPage() {
               Organiser
             </Button>
           </Link>
-          {isReadOnlyDemo ? <Button demoMutation variant="outline" className="gap-2"><Download className="h-4 w-4" />Export de réversibilité</Button> : <a href="/api/backup/export" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+          {isReadOnlyDemo ? <Button demoMutation variant="outline" className="gap-2"><Download className="h-4 w-4" />Export de réversibilité</Button> : <a download href="/api/backup/export" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
             <Download className="h-4 w-4" />
             Export de réversibilité
           </a>}

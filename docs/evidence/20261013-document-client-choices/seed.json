@@ -1,0 +1,115 @@
+{
+  "schema": "freelio.approved-choice-seeds.v1",
+  "documentFixtures": [
+    {
+      "kind": "quote",
+      "surface": "desktop",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "invoice",
+      "surface": "desktop",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "contract",
+      "surface": "desktop",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "opportunity",
+      "surface": "desktop",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "quote",
+      "surface": "mobile",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "invoice",
+      "surface": "mobile",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "contract",
+      "surface": "mobile",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    },
+    {
+      "kind": "opportunity",
+      "surface": "mobile",
+      "clients": 1001,
+      "selectedPosition": 1001,
+      "coherentOldReference": true
+    }
+  ],
+  "modelFixtures": [
+    {
+      "surface": "desktop",
+      "historicalProjects": 6,
+      "coherentProjects": 3
+    },
+    {
+      "surface": "mobile",
+      "historicalProjects": 6,
+      "coherentProjects": 3
+    }
+  ],
+  "portalFixtures": [
+    {
+      "surface": "desktop",
+      "kind": "own",
+      "coherentParty": true,
+      "coherentContact": true
+    },
+    {
+      "surface": "desktop",
+      "kind": "foreignclient",
+      "coherentParty": false,
+      "coherentContact": true
+    },
+    {
+      "surface": "desktop",
+      "kind": "foreigncontact",
+      "coherentParty": true,
+      "coherentContact": false
+    },
+    {
+      "surface": "mobile",
+      "kind": "own",
+      "coherentParty": true,
+      "coherentContact": true
+    },
+    {
+      "surface": "mobile",
+      "kind": "foreignclient",
+      "coherentParty": false,
+      "coherentContact": true
+    },
+    {
+      "surface": "mobile",
+      "kind": "foreigncontact",
+      "coherentParty": true,
+      "coherentContact": false
+    }
+  ],
+  "passwordsVerified": true,
+  "cleanup": {
+    "remainingFixtureCompanies": 0
+  }
+}

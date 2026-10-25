@@ -1,0 +1,179 @@
+{
+  "schema": "freelio.purchase-workflow-baseline.v1",
+  "observedAt": "2026-10-21T08:43:14.190Z",
+  "directory": {
+    "sourceFile": "src/actions/operations/index.ts",
+    "sourceCommit": "4fba1348d6b80965c5b9058716a5f6744a5a0fd5",
+    "scope": "Previous dashboard reader copied into the isolated recipe with the new test oracle; not a complete run of that old candidate",
+    "file": "purchase-directory-baseline-20261021.json",
+    "sha256": "f592a0bb04b3f481d6c57276c92abe1a4e44a736704b7e36ac24e13dc690d0c9",
+    "total": 22,
+    "passed": 0,
+    "failed": 1,
+    "pending": 21,
+    "files": 1,
+    "success": false,
+    "durationSeconds": 1.088264404296875,
+    "failedCases": [
+      {
+        "file": "purchase-directory.integration.test.ts",
+        "title": "dashboard bounds its initial payload and carries the complete purchase count"
+      }
+    ]
+  },
+  "transitions": {
+    "sourceCommit": "be2a4ef",
+    "scope": "Previous transitions with 44 new regression cases; four additional line-only interleavings were added after this baseline",
+    "file": "purchase-transitions-baseline-20261021.json",
+    "sha256": "3daf59cb4d7470ca7acd8a541b22755b8a335b94850e14ee53cf8cf345000ecf",
+    "total": 44,
+    "passed": 10,
+    "failed": 34,
+    "pending": 0,
+    "files": 1,
+    "success": false,
+    "durationSeconds": 2.716050537109375,
+    "failedCases": [
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: refuses foreign supplier without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: refuses foreign client without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: refuses foreign product without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: refuses foreign approver without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: rechecks references changed after preparation"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: rejects received line history even with a stale status"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SUBMIT_PURCHASE_ORDER: rolls back if its audit cannot be saved"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: refuses foreign supplier without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: refuses foreign client without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: refuses foreign product without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: refuses foreign approver without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: rechecks references changed after preparation"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: rejects received line history even with a stale status"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "APPROVE_PURCHASE_ORDER: rolls back if its audit cannot be saved"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: refuses foreign supplier without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: refuses foreign client without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: refuses foreign product without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: refuses foreign approver without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: rechecks references changed after preparation"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: rejects received line history even with a stale status"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "SEND_PURCHASE_ORDER: rolls back if its audit cannot be saved"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: refuses foreign supplier without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: refuses foreign client without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: refuses foreign product without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: refuses foreign approver without writing"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: rechecks references changed after preparation"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: rejects received line history even with a stale status"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "ACKNOWLEDGE_PURCHASE_ORDER: rolls back if its audit cannot be saved"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "does not overwrite a reception completed after acknowledgement preparation"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "refuses a noncanonical supplier day: 2030-02-31"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "refuses a noncanonical supplier day: 2031-02-29"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "refuses a noncanonical supplier day: 2030-04-31"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "refuses a noncanonical supplier day: 2030-1-1"
+      },
+      {
+        "file": "purchase-transitions.integration.test.ts",
+        "title": "refuses a noncanonical supplier day: 2030-01-01T12:00:00Z"
+      }
+    ]
+  },
+  "limits": [
+    "The 21 pending baseline cases were excluded by the diagnostic name filter, not skipped in the final full suite",
+    "Failing cases count assertions, not independent vulnerabilities"
+  ]
+}

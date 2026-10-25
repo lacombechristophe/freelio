@@ -1,0 +1,26 @@
+{
+  "schema": "freelio.maintenance-proposal-baseline.v1",
+  "codeCommit": "419e33a7157e1050563527a0ddc1acdb02ac973a",
+  "sourceCodeCommit": "f6e34033d97083a8fdfd78e2d9e6acf05b05f345",
+  "file": "maintenance-proposal-baseline-20261022.json",
+  "sha256": "ec616c01701619ea0e53922646490b5c16a3a7e3e3ecd83b5d114bd43d3b77d7",
+  "passed": 3,
+  "failed": 7,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Maintenance proposals retain their displayed source and mandatory audit rolls back the draft and source metadata when SQL refuses the audit",
+    "Maintenance proposals retain their displayed source and mandatory audit refuses a price changed after the displayed proposal source",
+    "Maintenance proposals retain their displayed source and mandatory audit refuses a site label changed independently of the maintenance revision",
+    "Maintenance proposals retain their displayed source and mandatory audit does not create a proposal linked to a foreign client",
+    "Maintenance proposals retain their displayed source and mandatory audit allows Commercial to prepare the proposal without general operational writes",
+    "Maintenance proposals retain their displayed source and mandatory audit identifies the indexed price as HT rather than promising that price TTC",
+    "Maintenance proposals retain their displayed source and mandatory audit refuses a proposal whose indexed amount exceeds the stored-price capacity"
+  ],
+  "probe": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "aac08d77461e56c02a97dcd14febe1f7dc95fb67b0c21c689e10d3a52cd085dd"
+  },
+  "classification": "Seven failing observations and three positive controls; not seven independent security vulnerabilities. The baseline supplies the existing displayed revision as a second argument, ignored by the old one-argument action."
+}

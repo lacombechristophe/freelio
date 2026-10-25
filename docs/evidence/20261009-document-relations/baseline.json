@@ -1,0 +1,86 @@
+{
+  "schema": "freelio.document-relations-baseline.v1",
+  "reference": "13a89e7942c71518a39fc12ce4bba804ff2bfe8b",
+  "node": "v24.15.0",
+  "passed": 4,
+  "failed": 13,
+  "total": 17,
+  "hookErrors": 0,
+  "reportSha256": "0f757879b73b69e784e33fac9aa48c72b43ba809d38c40f80d88450fa204e422",
+  "reproducerSha256": "27a20fa3d85e7232e16160688ef5a6fe429e32a4ed41f231fafbb461bd169963",
+  "cases": [
+    {
+      "name": "document relation scope on real SQL omits a foreign project from a local quote",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL omits a foreign customer order from a local quote",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL omits a foreign generated contract from a local quote",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL excludes foreign purchases attached to the local quote project",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL excludes foreign invoices attached to the local customer order",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL does not expose order invoices to Sales without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL does not expose order billing status to Sales without Finance",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL omits a foreign project from a local invoice",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL omits a foreign original invoice from a local credit",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL excludes a foreign credit linked to the local invoice",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL omits a foreign parent from a local contract",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL excludes foreign amendments attached to the local contract",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL omits foreign maintenance from a local contract",
+      "status": "failed"
+    },
+    {
+      "name": "document relation scope on real SQL retains the coherent quote project for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "document relation scope on real SQL retains the coherent invoice and its amounts for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "document relation scope on real SQL retains local contract content and coordinates",
+      "status": "passed"
+    },
+    {
+      "name": "document relation scope on real SQL refuses the foreign parent as a primary contract",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "Fictitious isolated SQLite; session and Next cache mocked.",
+    "Incoherent references are created directly by the fixture, without proof that application mutations permit their creation.",
+    "The proposed visible correction requires user approval."
+  ]
+}

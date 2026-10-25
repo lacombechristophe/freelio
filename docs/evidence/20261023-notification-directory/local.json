@@ -1,0 +1,195 @@
+{
+  "schema": "freelio.notification-directory-qualification.v1",
+  "observedAt": "2026-10-23T10:11:57.045Z",
+  "candidate": "94990608b671d3f258bd814ef1fdadd98acb1285",
+  "source": {
+    "filesCompared": 1270,
+    "mismatches": 0
+  },
+  "reproduction": {
+    "candidate": "219a1c83a9f28cb23749eda05c9e27fa2deec17b",
+    "failed": 1,
+    "passed": 1,
+    "scenario": "The real server page ignores page 3 and omits the oldest of 51 attributed notifications; the recent-preview control passes."
+  },
+  "focused": {
+    "passed": 60,
+    "files": 6,
+    "failed": 0,
+    "skipped": 0,
+    "newFiles": [
+      {
+        "file": "tests/unit/notification-directory.integration.test.ts",
+        "passed": 18,
+        "cases": [
+          "Complete personal notification history finds the oldest notification on page three instead of losing everything after fifty",
+          "Complete personal notification history keeps the bell as a bounded preview with the full unread count",
+          "Complete personal notification history counts the full scope separately from the first page and returns a minimal display record",
+          "Complete personal notification history keeps the same personal boundary for OWNER",
+          "Complete personal notification history keeps the same personal boundary for TECHNICIAN",
+          "Complete personal notification history keeps the same personal boundary for ACCOUNTING",
+          "Complete personal notification history keeps the same personal boundary for VIEWER",
+          "Complete personal notification history searches all titles and messages for OLDER SIGNATURE",
+          "Complete personal notification history searches all titles and messages for historic needle",
+          "Complete personal notification history filters by read state without truncating the unread indicator",
+          "Complete personal notification history clamps the last page after its last notification has been removed",
+          "Complete personal notification history keeps applied filters and returns page one when marking the last matching item read",
+          "Complete personal notification history returns every row exactly once when all creation timestamps tie",
+          "Complete personal notification history normalizes malformed URL and action fields without accepting caller ownership",
+          "Complete personal notification history does not expose a workspace after the membership is revoked",
+          "Complete personal notification history does not expose notification data without authentication or an active workspace",
+          "Complete personal notification history allows public-demo consultation but blocks all notification mutations",
+          "Complete personal notification history does not count foreign or unattributed rows when the own workspace is empty"
+        ]
+      },
+      {
+        "file": "tests/unit/notification-directory-view.test.ts",
+        "passed": 4,
+        "cases": [
+          "Notification directory server markup shows the full unread indicator even when every displayed notification is read",
+          "Notification directory server markup keeps URL search and read filters in the consultation form",
+          "Notification directory server markup distinguishes an empty filter result from an empty history",
+          "Notification directory server markup keeps search and pagination usable in the public demo while disabling writes"
+        ]
+      }
+    ],
+    "exitCode": 0
+  },
+  "full": {
+    "command": "npm run test:coverage -- --reporter=default --reporter=json --outputFile=<isolated-report>",
+    "passed": 3994,
+    "files": 298,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 580.07,
+    "database": {
+      "provider": "sqlite",
+      "name": "notification-directory-full-20261023.db",
+      "createdFresh": true,
+      "existingDataCopied": false
+    },
+    "fileParallelism": false,
+    "exitCode": 0
+  },
+  "coverage": {
+    "scope": "Six configured deterministic business modules, not application-wide coverage",
+    "files": [
+      "src/lib/automations/delivery-retry.ts",
+      "src/lib/communications/delivery-events.ts",
+      "src/lib/finance/commercial-calculation.ts",
+      "src/lib/migrations/ingest.ts",
+      "src/lib/migrations/normalize.ts",
+      "src/lib/pdf/facturx.ts"
+    ],
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    },
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "checks": {
+    "types": "success",
+    "eslint": "success",
+    "oxlint": "success",
+    "build": {
+      "next": "16.4.2",
+      "staticPages": 76,
+      "priorBuildMovedAside": true,
+      "exitCode": 0
+    },
+    "playwright": {
+      "selected": 522,
+      "files": 105,
+      "addedScenarios": 2,
+      "surfaces": [
+        "desktop",
+        "mobile"
+      ],
+      "browserInteractionsExecuted": false
+    }
+  },
+  "schemaChanged": false,
+  "dependenciesChanged": false,
+  "logs": [
+    {
+      "kind": "before",
+      "file": "Freelio-notification-directory-before-20261023.log",
+      "sha256": "09f48a6f115b2bb7ad067278f009a390051849c9dbde13edf94d67dcd80fc23b"
+    },
+    {
+      "kind": "focused",
+      "file": "Freelio-notification-directory-focused-final-20261023.log",
+      "sha256": "749ddbb084638e08e775cd0e9383dc59f8644f77eaccdab707db4b334be8864f"
+    },
+    {
+      "kind": "full",
+      "file": "Freelio-notification-directory-full-20261023.log",
+      "sha256": "9e5cf92402c101ff4180ce5530619e165ada7572e5fde81481838dbb509f0bdb"
+    },
+    {
+      "kind": "json",
+      "file": "Freelio-notification-directory-full-20261023.json",
+      "sha256": "7e53fe75d9faf3f8c3ea702e589a4b4daeb466a5c476b865e69e769e159c459c"
+    },
+    {
+      "kind": "types",
+      "file": "Freelio-notification-directory-types-20261023.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "kind": "lint",
+      "file": "Freelio-notification-directory-lint-20261023.log",
+      "sha256": "3a29a01bb576f7ab5e3b61642eb5440c8fcf43da172d8fe84dcc1a8d1d7653df"
+    },
+    {
+      "kind": "build",
+      "file": "Freelio-notification-directory-build-20261023.log",
+      "sha256": "5e0a68296799a9abb14dfef7949f8b234c2571757ed79942410981178cf79dcf"
+    },
+    {
+      "kind": "selection",
+      "file": "Freelio-notification-directory-list-20261023.log",
+      "sha256": "d3c8ab5038686b0101c40ad4949677a6fa657d3957b721d6ea6d75b3b3412fb9"
+    }
+  ],
+  "limits": [
+    "Authentication and cache APIs are mocked in unit integration tests; SQL and the page loader are real SQLite.",
+    "Four static markup tests do not exercise client navigation or click handlers. Prepared browser scenarios were not executed locally.",
+    "A transaction provides a consistent single read, not an immutable snapshot across later page navigations.",
+    "PostgreSQL, Linux, hosted migration shape and authenticated preview workflows remain unqualified for this candidate.",
+    "No dependency installation, application server, local browser, provider business call or hosted database write."
+  ]
+}

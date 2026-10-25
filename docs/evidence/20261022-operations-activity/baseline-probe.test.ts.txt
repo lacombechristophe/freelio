@@ -1,0 +1,75 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getOperationsDashboard } from "@/actions/operations"
+
+describe.sequential("Operations activity totals do not depend on preview caches", () => {
+  let agencyId: string, clientId: string, siteId: string
+  let data: Awaited<ReturnType<typeof getOperationsDashboard>>
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional activity summary", serviceTimezone: "Europe/Paris" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `activity-summary-${randomUUID()}@example.test` } })).id
+    await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+    agencyId = (await prisma.agency.create({ data: { companyId: session.companyId, code: "SUMMARY", name: "Fictional summary agency" } })).id
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional summary client" } })).id
+    await prisma.customerSite.createMany({ data: Array.from({ length: 101 }, (_, i) => ({ companyId: session.companyId, clientId, agencyId, label: `Fictional site ${i}`, address1: "Fictional address" })) })
+    siteId = (await prisma.customerSite.findFirstOrThrow({ where: { companyId: session.companyId } })).id
+    await prisma.project.createMany({ data: Array.from({ length: 301 }, (_, i) => ({ companyId: session.companyId, clientId, agencyId, name: `Fictional project ${i}` })) })
+    await prisma.serviceTicket.createMany({ data: Array.from({ length: 201 }, (_, i) => ({ companyId: session.companyId, clientId, siteId, number: `CLOSED-${i}`, title: "Closed fictional ticket", description: "Fictional description", priority: "URGENT", status: "CLOSED" })) })
+    await prisma.serviceTicket.createMany({ data: Array.from({ length: 2 }, (_, i) => ({ companyId: session.companyId, clientId, siteId, number: `OPEN-${i}`, title: "Open fictional ticket", description: "Fictional description" })) })
+    await prisma.fieldIntervention.createMany({ data: Array.from({ length: 201 }, () => ({ companyId: session.companyId, siteId, title: "Completed fictional intervention", status: "COMPLETED", scheduledStart: new Date("2000-01-01T12:00:00Z") })) })
+    await prisma.fieldIntervention.createMany({ data: [
+      { companyId: session.companyId, siteId, title: "Future fictional intervention", scheduledStart: new Date("2099-01-01T12:00:00Z") },
+      { companyId: session.companyId, siteId, title: "Other future fictional intervention", scheduledStart: new Date("2099-01-02T12:00:00Z") },
+      { companyId: session.companyId, siteId, title: "Due fictional intervention", scheduledStart: new Date("2001-01-01T12:00:00Z") },
+      { companyId: session.companyId, siteId, title: "Other due fictional intervention", scheduledStart: new Date("2001-01-02T12:00:00Z") },
+    ] })
+    data = await getOperationsDashboard()
+  })
+  afterAll(async () => {
+    await prisma.fieldIntervention.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.serviceTicket.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.project.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.customerSite.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  // This adapter also runs against the pre-fix dashboard, whose consumers counted
+  // loaded arrays. It observes the actual action result; no database read is mocked.
+  function activity() {
+    if ("activity" in data) return data.activity as {
+      openTickets: number; comingInterventions: number; dueInterventions: number
+      priorityTickets: { number: string }[]; upcomingInterventions: { title: string }[]
+    }
+    const priorityTickets = data.tickets.filter(row => !["RESOLVED", "CLOSED"].includes(row.status))
+    const upcomingInterventions = data.interventions.filter(row => !["COMPLETED", "CANCELED"].includes(row.status) && new Date(row.scheduledStart) < new Date(data.tomorrowStart))
+    return { openTickets: priorityTickets.length,
+      comingInterventions: data.interventions.filter(row => !["COMPLETED", "CANCELED"].includes(row.status) && new Date(row.scheduledStart) >= new Date(data.generatedAt)).length,
+      dueInterventions: upcomingInterventions.length, priorityTickets: priorityTickets.slice(0, 6), upcomingInterventions: upcomingInterventions.slice(0, 6) }
+  }
+  it("counts open SAV beyond 200 closed tickets", () => expect(activity().openTickets).toBe(2))
+  it("counts future interventions beyond 200 historical interventions", () => expect(activity().comingInterventions).toBe(2))
+  it("finds due interventions outside the historical cache", () => expect(activity().dueInterventions).toBe(2))
+  it("keeps the actual open tickets in the priority preview", () => expect(activity().priorityTickets.map(row => row.number).sort()).toEqual(["OPEN-0", "OPEN-1"]))
+  it("keeps the actual due interventions in the overview preview", () => expect(activity().upcomingInterventions.map(row => row.title)).toEqual(["Due fictional intervention", "Other due fictional intervention"]))
+  it("counts all 101 sites in the agency comparison", () => {
+    const agency = data.agencies.find(row => row.id === agencyId)!
+    const count = "_count" in agency ? (agency._count as { customerSites: number }).customerSites : data.sites.filter(row => row.agencyId === agencyId).length
+    expect(count).toBe(101)
+  })
+  it("counts all 301 active projects in the agency comparison", () => {
+    const agency = data.agencies.find(row => row.id === agencyId)!
+    const count = "_count" in agency ? (agency._count as { projects: number }).projects : data.projects.filter(row => row.agencyId === agencyId).length
+    expect(count).toBe(301)
+  })
+  it("still keeps bounded dashboard caches for their other consumers", () => {
+    expect(data.sites).toHaveLength(100); expect(data.projects).toHaveLength(300)
+    expect(data.tickets).toHaveLength(200); expect(data.interventions).toHaveLength(200)
+  })
+})

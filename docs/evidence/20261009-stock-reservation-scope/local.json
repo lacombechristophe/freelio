@@ -1,0 +1,134 @@
+{
+  "schema": "freelio.stock-reservation-scope-local.v1",
+  "codeCommit": "e25c8d155df20faefebfbe4f3f3feccf671d079e",
+  "files": [
+    {
+      "file": "src/actions/operations/index.ts",
+      "sha256": "9e17558bfd821b7a0940fb84d89fa0e59296568b4145035f122db7527ae2bda2"
+    },
+    {
+      "file": "tests/unit/stock-reservation-scope.integration.test.ts",
+      "sha256": "5dcd891290ffe6c18452e59b2ba62e07b26fa69ead2fd97689da323bf6ada57b"
+    },
+    {
+      "file": "tests/unit/stock-reservation-concurrency.integration.test.ts",
+      "sha256": "52213b322860fafd77159f8b74c35e3504a7a23e5df65d6ebb053b8af972ec17"
+    }
+  ],
+  "database": "isolated fictitious SQLite",
+  "unit": {
+    "passed": 1496,
+    "failed": 0,
+    "files": 180
+  },
+  "targeted": {
+    "passed": 24,
+    "failed": 0
+  },
+  "cases": [
+    {
+      "name": "refuses a new reservation through an inconsistent project",
+      "status": "passed"
+    },
+    {
+      "name": "refuses a new reservation through an inconsistent order",
+      "status": "passed"
+    },
+    {
+      "name": "refuses an inconsistent stored project reference during release",
+      "status": "passed"
+    },
+    {
+      "name": "refuses an inconsistent stored project reference during consume",
+      "status": "passed"
+    },
+    {
+      "name": "refuses an inconsistent stored order reference during release",
+      "status": "passed"
+    },
+    {
+      "name": "refuses an inconsistent stored order reference during consume",
+      "status": "passed"
+    },
+    {
+      "name": "preserves a coherent project reservation, release and consumption",
+      "status": "passed"
+    },
+    {
+      "name": "preserves a coherent order reservation, release and consumption",
+      "status": "passed"
+    },
+    {
+      "name": "refuses a local order with a different client's project during create",
+      "status": "passed"
+    },
+    {
+      "name": "refuses a local order with a different client's project during release",
+      "status": "passed"
+    },
+    {
+      "name": "refuses a local order with a different client's project during consume",
+      "status": "passed"
+    },
+    {
+      "name": "preserves a reservation with both coherent references",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 32.624
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 33.894
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.187
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 191.162
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 87.31
+    }
+  ],
+  "firstExecution": {
+    "passed": 1495,
+    "failed": 1,
+    "failures": [
+      {
+        "file": "migration-database.integration.test.ts",
+        "name": "simulates, imports twice without duplicates, then reconciles every source row",
+        "durationMs": 5014.890300000001
+      }
+    ],
+    "isolatedRecheck": {
+      "passed": 11,
+      "failed": 0
+    },
+    "note": "The unchanged migration test failed around its five-second deadline while a Git-history scan ran concurrently. The isolated migration suite and full sequential rerun passed. The cause is not established; assertions and deadlines were unchanged."
+  },
+  "publicationHistoryScan": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1145,
+    "historyBlobsChecked": 3300,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "limits": [
+    "Session and Next cache simulated; actions, DAL, SQL transactions and persisted balances are real.",
+    "Fixtures insert inconsistent references directly; they do not prove that current forms can create them.",
+    "PostgreSQL, browser and Linux qualification of this code commit require their own CI candidate.",
+    "This test covers reservations, not all purchasing, receipt, return or delivery flows."
+  ]
+}

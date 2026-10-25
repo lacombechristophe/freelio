@@ -33,6 +33,7 @@ interface ClientSignViewProps {
     title: string
     status: string
     content: string
+    documentHash: string
     clientName: string
     validFrom: string | null
     validUntil: string | null
@@ -49,6 +50,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
   const [pending, setPending] = React.useState(false)
   const [signedSuccess, setSignedSuccess] = React.useState(false)
   const [sealHash, setSealHash] = React.useState("")
+  const [signedAt, setSignedAt] = React.useState("")
 
   const sigCanvasRef = React.useRef<SignaturePad>(null)
 
@@ -89,12 +91,16 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
         signerName,
         signerEmail,
         canvasData,
+        documentHash: contract.documentHash,
       })
 
       if (res.ok) {
         setSealHash(res.integrityHash)
+        setSignedAt(res.signedAt)
         setSignedSuccess(true)
         toast.success("Le contrat a été signé électroniquement avec succès !")
+      } else {
+        toast.error(res.error)
       }
     } catch (err) {
       console.error(err)
@@ -116,7 +122,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
           <div className="space-y-2">
             <h2 className="text-2xl font-black tracking-tight text-success">Contrat Signé avec Succès !</h2>
             <p className="text-sm text-muted-foreground">
-              Le contrat <span className="font-mono font-bold text-foreground">{contract.number}</span> est scellé et archivé de manière sécurisée.
+              La signature du contrat <span className="font-mono font-bold text-foreground">{contract.number}</span> est enregistrée. Son PDF archivé est en préparation.
             </p>
           </div>
 
@@ -138,7 +144,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
                 <span className="text-foreground font-bold">Piste d'audit :</span> enregistrée côté serveur
               </div>
               <div>
-                <span className="text-foreground font-bold">Timestamp UTC :</span> {new Date().toUTCString()}
+                <span className="text-foreground font-bold">Timestamp UTC :</span> {new Date(signedAt).toUTCString()}
               </div>
             </div>
 

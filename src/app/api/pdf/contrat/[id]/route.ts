@@ -5,6 +5,7 @@ import { generatePdfFromHtml } from "@/lib/pdf/generator"
 import { renderContractHtml } from "@/lib/pdf/contract-render"
 import prisma from "@/lib/prisma"
 import { withRouteAuth } from "@/lib/route-auth"
+import { readContractArchive, readSignedContractDocument, readContractSnapshot, previewContractSnapshot, contractSnapshotWhere } from "@/lib/contracts/archive"
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   return withRouteAuth("sales.read", async ({ userId, companyId }) => {
@@ -20,6 +21,33 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     if (!contract) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    if (contract.status === "SIGNED") {
+      try {
+        if (new URL(req.url).searchParams.get("screen") === "1") {
+          return new NextResponse(readSignedContractDocument(contract.signedDocument, contract).html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } })
+        }
+        const archive = await readContractArchive(contract)
+        const name = contract.number.replace(/[^A-Za-z0-9._-]/g, "_")
+        return new NextResponse(new Uint8Array(archive.pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${name}.pdf"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } })
+      } catch {
+        return NextResponse.json({ error: contract.signedDocument ? "Archive du contrat en préparation ou indisponible" : "Archive historique indisponible" }, { status: 409, headers: { "Cache-Control": "private, no-store" } })
+      }
+    }
+
+    if (contract.status === "SENT") {
+      try {
+        const link = await prisma.contractSigningToken.findFirst({ where: { contractId: contract.id, usedAt: null, expiresAt: { gt: new Date() }, contractRevision: contract.updatedAt }, orderBy: { createdAt: "desc" } })
+        const snapshot = readContractSnapshot(link?.documentSnapshot ?? null, link?.documentHash ?? null, contract)
+        if (!await prisma.contract.count({ where: { ...contractSnapshotWhere(snapshot), status: "SENT", updatedAt: link!.contractRevision! } })) throw new Error("CONTRACT_CHANGED")
+        const html = previewContractSnapshot(snapshot)
+        if (new URL(req.url).searchParams.get("screen") === "1") return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" } })
+        const pdf = await generatePdfFromHtml(html, { signal: AbortSignal.timeout(45_000) })
+        return new NextResponse(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${contract.number.replace(/[^A-Za-z0-9._-]/g, "_")}.pdf"`, "Cache-Control": "private, no-store" } })
+      } catch {
+        return NextResponse.json({ error: "Le lien de signature ou son aperçu doit être renouvelé" }, { status: 409, headers: { "Cache-Control": "private, no-store" } })
+      }
     }
 
     const primaryContact = contract.client.contacts[0]

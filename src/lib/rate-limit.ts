@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
+import { upstashRateLimitConfiguration } from "./rate-limit-configuration"
 
 type RateLimiter = {
   limit: (identifier: string) => Promise<{
@@ -10,14 +11,7 @@ type RateLimiter = {
   }>
 }
 
-const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
-const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
-
-const hasUpstashConfig =
-  !!upstashUrl &&
-  !!upstashToken &&
-  !upstashUrl.includes("your-url") &&
-  !upstashToken.includes("your-token")
+const upstash = upstashRateLimitConfiguration()
 
 const memoryBuckets = new Map<string, { count: number; reset: number }>()
 let memoryRequests = 0
@@ -69,16 +63,29 @@ function createRateLimit({
   windowMs: number
   prefix: string
 }): RateLimiter {
-  if (!hasUpstashConfig) {
+  if (!upstash) {
+    // Only the declared CI recipe may exercise local counters in a production
+    // build. A deployed instance must never silently lose distributed limits.
+    const isolatedRecipe = process.env.GITHUB_ACTIONS === "true" && process.env.RECIPE_ISOLATED === "true" && process.env.E2E_ENABLE_CREDENTIALS_AUTH === "true"
+    if (process.env.NODE_ENV === "production" && !isolatedRecipe) {
+      return { async limit() { return { success: false, limit, remaining: 0, reset: Date.now() + 1_000 } } }
+    }
     return createMemoryRateLimit(limit, windowMs, prefix)
   }
 
-  return new Ratelimit({
-    redis: Redis.fromEnv(),
+  const distributed = new Ratelimit({
+    redis: new Redis(upstash),
     limiter: Ratelimit.slidingWindow(limit, window),
     analytics: true,
     prefix,
   })
+  return {
+    async limit(identifier) {
+      const result = await distributed.limit(identifier)
+      // The SDK permits requests after its timeout; no quota was verified.
+      return { ...result, success: result.success && result.reason !== "timeout" }
+    },
+  }
 }
 
 // Strict limit for login attempts: 5 per 15 minutes

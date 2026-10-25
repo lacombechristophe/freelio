@@ -8,6 +8,7 @@ import {
   createEmailOAuthNonce,
   createEmailOAuthState,
   emailOAuthCookieName,
+  emailOAuthNonceHash,
   emailOAuthRedirectUri,
   EMAIL_OAUTH_PROVIDERS,
 } from "@/lib/integrations/email-oauth"
@@ -29,14 +30,15 @@ export async function GET(request: NextRequest) {
   return withRouteAuth("company.manage", async ({ companyId, userId }) => {
     try {
       const { channelId } = querySchema.parse(Object.fromEntries(request.nextUrl.searchParams))
-      const channel = await prisma.communicationChannel.findFirst({ where: { id: channelId, companyId, provider: { in: [...EMAIL_OAUTH_PROVIDERS] } }, select: { id: true, provider: true } })
+      const channel = await prisma.communicationChannel.findFirst({ where: { id: channelId, companyId, provider: { in: [...EMAIL_OAUTH_PROVIDERS] } }, select: { id: true, provider: true, mailEnabled: true, calendarEnabled: true } })
       if (!channel || !EMAIL_OAUTH_PROVIDERS.includes(channel.provider as (typeof EMAIL_OAUTH_PROVIDERS)[number])) return failureRedirect(request, "channel_not_found")
       const provider = channel.provider as (typeof EMAIL_OAUTH_PROVIDERS)[number]
       const nonce = createEmailOAuthNonce()
       const codeVerifier = createEmailOAuthNonce()
       const state = createEmailOAuthState({ provider, companyId, userId, channelId: channel.id, nonce })
       const redirectUri = emailOAuthRedirectUri(canonicalIntegrationBaseUrl(request))
-      const response = NextResponse.redirect(buildEmailAuthorizationUrl(provider, redirectUri, state, createEmailOAuthCodeChallenge(codeVerifier)))
+      const response = NextResponse.redirect(buildEmailAuthorizationUrl(provider, redirectUri, state, createEmailOAuthCodeChallenge(codeVerifier), channel))
+      await prisma.communicationChannel.update({ where: { id: channel.id }, data: { oauthNonceHash: emailOAuthNonceHash(nonce), oauthAttemptId: emailOAuthNonceHash(nonce), oauthExpiresAt: new Date(Date.now() + 10 * 60_000), oauthStartedByUserId: userId } })
       response.cookies.set(emailOAuthCookieName(provider), `${nonce}.${codeVerifier}`, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

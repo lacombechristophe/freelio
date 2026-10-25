@@ -1,0 +1,89 @@
+{
+  "scriptSha256": "9946317baa37fb76f308fafc1f0206f5323ffe724f665226d896fd0983e36a4d",
+  "schema": "freelio.workflow-journal-volume.v1",
+  "source": "e6733423b741677c7a79fee4c602c454ad379bf7",
+  "startedAt": "2026-10-07T22:33:07.483Z",
+  "runtime": {
+    "node": "v24.15.0",
+    "os": "win32",
+    "architecture": "x64",
+    "cpu": "AMD Ryzen 5 5600X 6-Core Processor             ",
+    "cpuCount": 12,
+    "sqlite": "3.46.0"
+  },
+  "rows": 10000,
+  "pageSize": 25,
+  "measurements": {
+    "seedMs": 600.12,
+    "firstPage": {
+      "coldMs": 5.32,
+      "warmMs": [
+        2.22,
+        2.12,
+        2.21,
+        1.98,
+        1.96
+      ],
+      "warmMedianMs": 2.12
+    },
+    "lastPage": {
+      "coldMs": 9.16,
+      "warmMs": [
+        10.04,
+        11.41,
+        11.92,
+        9.97,
+        8.81
+      ],
+      "warmMedianMs": 10.04
+    },
+    "lastRowSearch": {
+      "coldMs": 9.84,
+      "warmMs": [
+        8.98,
+        9.01,
+        8.83,
+        8.96,
+        8.85
+      ],
+      "warmMedianMs": 8.96
+    },
+    "failedFilter": {
+      "coldMs": 5.04,
+      "warmMs": [
+        5.23,
+        5.58,
+        5.23,
+        5.36,
+        4.98
+      ],
+      "warmMedianMs": 5.23
+    },
+    "details": {
+      "coldMs": 1.6,
+      "warmMs": [
+        0.92,
+        0.86,
+        0.8,
+        0.81,
+        0.77
+      ],
+      "warmMedianMs": 0.81
+    },
+    "rssMiBAtEnd": 107.12
+  },
+  "checks": [
+    "All 10,000 executions counted; oldest row accessible on page 400",
+    "Search plus state and last filtered page preserve exact totals",
+    "Detail DTO excludes raw output; foreign company cannot read it",
+    "Fictional company and its 10,000 executions removed by cascade"
+  ],
+  "exclusions": [
+    "Hosted latency or capacity guarantee",
+    "Concurrent production load",
+    "Provider delivery",
+    "SIGKILL injection",
+    "Browser performance"
+  ],
+  "finishedAt": "2026-10-07T22:33:08.390Z"
+}

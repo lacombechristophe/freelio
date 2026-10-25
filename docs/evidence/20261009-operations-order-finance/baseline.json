@@ -1,0 +1,50 @@
+{
+  "schema": "freelio.operations-order-finance-baseline.v1",
+  "source": "f88fa41c2c3db328297ba83930eed47d15ec357e",
+  "test": "probe.test-source.txt",
+  "passed": 1,
+  "failed": 9,
+  "pending": 0,
+  "cases": [
+    {
+      "title": "excludes 'invoices' for 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'count' for 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'status' for 'TECHNICIAN'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'invoices' for 'OPERATIONS'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'count' for 'OPERATIONS'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'status' for 'OPERATIONS'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'invoices' for 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'count' for 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "title": "excludes 'status' for 'SERVICE'",
+      "status": "failed"
+    },
+    {
+      "title": "preserves Owner finance references",
+      "status": "passed"
+    }
+  ]
+}

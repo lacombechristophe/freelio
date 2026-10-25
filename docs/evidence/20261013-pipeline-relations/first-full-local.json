@@ -1,0 +1,26 @@
+{
+  "scope": "first full local suite with coverage",
+  "passed": 2146,
+  "failed": 2,
+  "failures": [
+    {
+      "title": "verified immutable campaign audiences and atomic resumable activation paginates all 26 captures and isolates history and closure by society, rights and public demo",
+      "durationMs": 5012.679499999998,
+      "reason": "default 5000 ms test deadline reached"
+    },
+    {
+      "title": "verified immutable campaign audiences and atomic resumable activation isolates societies, refuses read-only mutations, preserves captured evidence in backup and binds the withdrawal link to its exact address proof",
+      "durationMs": 5000.214900000006,
+      "reason": "default 5000 ms test deadline reached"
+    }
+  ],
+  "isolatedRetry": {
+    "suite": "campaign-activation.integration.test.ts",
+    "passed": 9,
+    "failed": 0,
+    "durationSeconds": 48.1,
+    "timeoutsChanged": false,
+    "assertionsRemoved": false
+  },
+  "finalFullRerun": "see second-full-local.json"
+}

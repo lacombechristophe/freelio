@@ -1,0 +1,15 @@
+{
+  "scope": "second full local suite with coverage",
+  "passed": 2147,
+  "failed": 1,
+  "files": 212,
+  "failures": [
+    {
+      "title": "human recovery of frozen manual email commands on real SQL normalizes validated historical authors beyond 500 and paginates the full private portfolio",
+      "durationMs": 5012.508900000001,
+      "reason": "default 5000 ms test deadline reached"
+    }
+  ],
+  "coverageResult": "not emitted after a failed run",
+  "qualification": "full remote recipe required"
+}

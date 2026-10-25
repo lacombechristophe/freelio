@@ -1,0 +1,65 @@
+{
+  "source": "Project and time actions unchanged from 780a24f",
+  "observedAt": "2026-10-12T19:02:12.224Z",
+  "passed": 10,
+  "failed": 0,
+  "sourceSha256": "fc5d092e7df5eed3b15bbb9835d66d6ddd7d9f5315bc08b6921d94bca006e0b9",
+  "cases": [
+    {
+      "name": "Project and time diagnostics on real SQL reproduces the default 20-project ceiling with a coherent twenty-first project",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces 500 returned time entries out of 501 with the older entry absent",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces creation of negative time and a negative consumed budget",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces editing a duration to a negative value",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces creation through a project whose client belongs to another company",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces editing a time entry with an incoherent project client",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces deletion of a time entry with an incoherent project client",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces editing a time entry already allocated to an invoice",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL reproduces deletion of a time entry already allocated to an invoice",
+      "status": "passed"
+    },
+    {
+      "name": "Project and time diagnostics on real SQL keeps a coherent create, edit and delete path with a consistent final budget",
+      "status": "passed"
+    }
+  ],
+  "facts": {
+    "projectLimit": 20,
+    "projectPortfolio": 21,
+    "timeLimit": 500,
+    "timePortfolio": 501,
+    "negativeTimeCreation": true,
+    "negativeTimeUpdate": true,
+    "foreignProjectClientCreate": true,
+    "foreignProjectClientUpdate": true,
+    "foreignProjectClientDelete": true,
+    "billedTimeUpdate": true,
+    "billedTimeDelete": true
+  },
+  "limits": [
+    "Real isolated SQL, memberships and actions. Auth and Next cache mocked. These passing cases reproduce defects, not fixes."
+  ]
+}

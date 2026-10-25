@@ -1,0 +1,284 @@
+{
+  "schema": "freelio.native-conversations-local.v1",
+  "observedAt": "2026-10-20T13:20:35.592Z",
+  "codeCommit": "1dd29efceb0a0799ecc847053b4521c8dc7c0315",
+  "source": {
+    "observedAt": "2026-10-20T13:14:05.962Z",
+    "commit": "1dd29efceb0a0799ecc847053b4521c8dc7c0315",
+    "filesCompared": 1147,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "bd25bc3080d0148d5b701a3670289063026c061c1686b1bb61b5a9aa640455a5",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "initialFailures": {
+    "retained": "baseline.json",
+    "codeCommit": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+    "failed": 2,
+    "passed": 0,
+    "explanation": "Distinct native conversations collapse to one local thread for a known contact and identical subject."
+  },
+  "firstCandidate": {
+    "codeCommit": "2dfd41282e9050ba6651090f264a5f1193fc677a",
+    "full": {
+      "file": "full-sqlite-native-conversations-20261020.json",
+      "sha256": "fa5c7831059f78a528a309b769f44189c96e8ee2258fb6c5462a5421a8a62c28",
+      "success": false,
+      "total": 2883,
+      "passed": 2882,
+      "failed": 1,
+      "pending": 0,
+      "files": 248
+    },
+    "focused": {
+      "file": "Freelio-native-conversations-guarded-20261020.json",
+      "sha256": "a540636c9ba306c02ac6ceff8a7397abbabb913a376539b25cbf4855b1407467",
+      "success": true,
+      "total": 148,
+      "passed": 148,
+      "failed": 0,
+      "pending": 0,
+      "files": 9
+    },
+    "failureInterpretation": "One legacy reply fixture omitted the native identity but expected native grouping. Updated fixture now freezes the native parent and retains the original single-send, copies, reference and thread-count assertions.",
+    "furtherAudit": {
+      "file": "Freelio-native-repair-baseline-20261020.json",
+      "sha256": "3779d98db37101302ce3928d2abbba1f3bf3a9d3b1d10742f9d6a3f9be616a9e",
+      "success": false,
+      "total": 18,
+      "passed": 17,
+      "failed": 1,
+      "pending": 0,
+      "files": 1,
+      "explanation": "One newly added SQL test outside that first full suite reproduces an extra empty native thread when repairing an already synchronized historical message."
+    }
+  },
+  "focused": {
+    "file": "Freelio-native-repair-fixed-20261020.json",
+    "sha256": "538f46766875ddccd7ecf0628952d5cc1ca9664b9f8290bd23705793f5c39591",
+    "success": true,
+    "total": 37,
+    "passed": 37,
+    "failed": 0,
+    "pending": 0,
+    "files": 2,
+    "suites": [
+      {
+        "file": "manual-email-recovery.integration.test.ts",
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "file": "sequence-recovery.integration.test.ts",
+        "passed": 19,
+        "failed": 0
+      }
+    ],
+    "source": "External snapshot of the four follow-up files, later committed unchanged in f3b72aa; no provider sends."
+  },
+  "replyAndRepairFixtures": {
+    "file": "Freelio-native-history-fixtures-20261020.json",
+    "sha256": "c28f3ee8f5b4c539e151c9cb0c5d7f824e1e81aa9482e7d833a9be359caafa44",
+    "success": true,
+    "total": 40,
+    "passed": 40,
+    "failed": 0,
+    "pending": 0,
+    "files": 3,
+    "suites": [
+      {
+        "file": "manual-email-recovery.integration.test.ts",
+        "passed": 18,
+        "failed": 0
+      },
+      {
+        "file": "native-replies.integration.test.ts",
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "file": "sequence-recovery.integration.test.ts",
+        "passed": 19,
+        "failed": 0
+      }
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-native-conversation-history-20261020.json",
+    "sha256": "94f796f8a85d72e7988ae02df497685d5faba1de9ed57bd1b83662a1d79b9fca",
+    "success": true,
+    "total": 2885,
+    "passed": 2885,
+    "failed": 0,
+    "pending": 0,
+    "files": 248
+  },
+  "checks": {
+    "build": {
+      "file": "Freelio-native-conversation-history-build-20261020.log",
+      "sha256": "15dcda31010ee2aed27f454b1d8dfe68a817fa78322f96c58b1f8ea560be9c75",
+      "exitCode": 0,
+      "staticPages": 76
+    },
+    "eslint": {
+      "file": "Freelio-native-conversation-history-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "oxlint": {
+      "file": "Freelio-native-conversation-history-oxlint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "types": {
+      "file": "Freelio-native-conversation-history-types-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    }
+  },
+  "schemaChange": {
+    "nullableFields": [
+      "EmailThread.providerConversationId",
+      "EmailDelivery.providerConversationId"
+    ],
+    "scopedUniqueConstraint": "EmailThread_native_conversation_key",
+    "inferredHistoricalIdentity": false,
+    "upgrade": {
+      "success": true,
+      "engine": "SQLite",
+      "preservedRows": 6,
+      "preservedTables": [
+        "Company",
+        "CommunicationChannel",
+        "EmailThread",
+        "EmailMessage",
+        "EmailDelivery"
+      ],
+      "historicalAssignmentsUnchanged": true,
+      "newIdentityDefaultsToNull": true,
+      "foreignKeyErrors": 0,
+      "postgresDiffMatchesMigration": true,
+      "postgresMigrationExecuted": false,
+      "previousSchemaSha256": "dbd74016cce281bccfc2bf74e93e157164ebc3015fd6261dfec1037dbf89af18",
+      "schemaSha256": "c64bc4e17f4c9d96e811378ac33f4b231eb3cb4ff48513bf72d85821ea310818"
+    }
+  },
+  "dependencyAudit": {
+    "inheritedFrom": "../20261020-calendar-window/local.json",
+    "sameLockfile": true,
+    "lockfileSha256": "0aa5f905da5df448892debe9030f1aae63244b304a7cecdf91383a661ad35514",
+    "audits": {
+      "full": {
+        "file": "Freelio-communication-access-audit-full-20261020.json",
+        "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        }
+      },
+      "production": {
+        "file": "Freelio-communication-access-audit-production-20261020.json",
+        "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        }
+      }
+    }
+  },
+  "coverage": {
+    "modules": 6,
+    "summary": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T13:14:10.254Z",
+    "baseline": "1dd29efceb0a0799ecc847053b4521c8dc7c0315",
+    "all": 454,
+    "desktop": 227,
+    "mobile": 227,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "publication": {
+    "historyThroughCommit": "1dd29efceb0a0799ecc847053b4521c8dc7c0315",
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1697,
+    "historyBlobsChecked": 4321,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "limits": [
+    "Real SQLite transactions and constraints; provider HTTP is simulated.",
+    "PostgreSQL migration SQL matches the schema diff; no live PostgreSQL execution is claimed.",
+    "Browser selection only, not browser execution. Local servers and Docker remain unavailable after automatic approval review rejection.",
+    "Unknown historical grouping is retained without splitting, merging, backfill or message moves.",
+    "No push, new CI, deployment, original database access, provider send, R2 or paid action. GitHub Actions zero spending budget remains unverified."
+  ]
+}

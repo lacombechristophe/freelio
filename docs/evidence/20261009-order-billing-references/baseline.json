@@ -1,0 +1,47 @@
+{
+  "schema": "freelio.order-billing-reference-baseline.v1",
+  "source": "3f1ca72142c7e7e7cdac59d9adbdff8541683e82",
+  "test": "probe.test-source.txt",
+  "passed": 2,
+  "failed": 6,
+  "pending": 0,
+  "cases": [
+    {
+      "title": "refuses DEPOSIT with foreign client without changing SQL",
+      "status": "failed"
+    },
+    {
+      "title": "refuses DEPOSIT with foreign project client without changing SQL",
+      "status": "failed"
+    },
+    {
+      "title": "refuses DEPOSIT with foreign project without changing SQL",
+      "status": "failed"
+    },
+    {
+      "title": "preserves a coherent DEPOSIT draft",
+      "status": "passed"
+    },
+    {
+      "title": "refuses BALANCE with foreign client without changing SQL",
+      "status": "failed"
+    },
+    {
+      "title": "refuses BALANCE with foreign project client without changing SQL",
+      "status": "failed"
+    },
+    {
+      "title": "refuses BALANCE with foreign project without changing SQL",
+      "status": "failed"
+    },
+    {
+      "title": "preserves a coherent BALANCE draft",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "Inconsistent fictitious relationships inserted through SQL; current form exploit not established.",
+    "Real SQL, action, DAL, transaction and audit; session and Next cache simulated.",
+    "Draft invoice creation only, no PDF, provider or email."
+  ]
+}

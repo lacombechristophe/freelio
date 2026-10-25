@@ -1,0 +1,41 @@
+import { describe, expect, it, vi } from "vitest"
+vi.mock("server-only", () => ({}))
+import prisma from "@/lib/prisma"
+import { readRemoteMail } from "@/lib/communications/oauth-mail-reader"
+import { persistRemoteMail } from "@/lib/communications/remote-mail-persistence"
+
+describe("native conversation identity audit on real SQL", () => {
+  it.each(["GOOGLE", "MICROSOFT"])("keeps two native %s conversations distinct for the same known contact and subject", async provider => {
+    const company = await prisma.company.create({ data: { name: "Fictional native conversation audit" } })
+    const client = await prisma.client.create({ data: { companyId: company.id, name: "Fictional contact client" } })
+    await prisma.contact.create({ data: { clientId: client.id, firstName: "Fictional", lastName: "Sender", email: "known@example.test" } })
+    const channel = await prisma.communicationChannel.create({ data: { companyId: company.id, provider, emailAddress: "mailbox@example.test", status: "ACTIVE" } })
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname.endsWith("/mailFolders/inbox")) return Response.json({ id: "inbox", displayName: "Fictional reception" })
+      if (url.pathname.endsWith("/attachments")) return Response.json({ value: [] })
+      const id = url.pathname.split("/").at(-1)!, native = `native-${id}`, date = new Date(Date.now() - 1000).toISOString()
+      return provider === "GOOGLE" ? Response.json({ id, threadId: native, internalDate: String(Date.parse(date)), labelIds: ["INBOX"], payload: { mimeType: "text/plain", body: { data: Buffer.from("Fictional body").toString("base64url") },
+        headers: [{ name: "From", value: "known@example.test" }, { name: "To", value: channel.emailAddress }, { name: "Subject", value: "Same fictional subject" }, { name: "Message-ID", value: `<${id}@example.test>` }] } })
+        : Response.json({ id, conversationId: native, internetMessageId: `<${id}@example.test>`, subject: "Same fictional subject", parentFolderId: "inbox", from: { emailAddress: { address: "known@example.test" } },
+          toRecipients: [{ emailAddress: { address: channel.emailAddress } }], receivedDateTime: date, isRead: true, body: { contentType: "text", content: "Fictional body" } })
+    }))
+    try {
+      for (const id of ["message-a", "message-b"]) {
+        const message = await readRemoteMail(channel, id, "fictional-access-token")
+        expect(message).not.toBeNull()
+        await persistRemoteMail(company.id, channel, message!, false)
+      }
+      const rows = await prisma.emailMessage.findMany({ where: { companyId: company.id } })
+      expect(rows).toHaveLength(2)
+      expect(new Set(rows.map(row => row.threadId)).size).toBe(2)
+      expect(await prisma.emailThread.count({ where: { companyId: company.id } })).toBe(2)
+    } finally {
+      vi.unstubAllGlobals()
+      await prisma.emailThread.deleteMany({ where: { companyId: company.id } })
+      await prisma.contact.deleteMany({ where: { clientId: client.id } })
+      await prisma.client.delete({ where: { id: client.id } })
+      await prisma.company.delete({ where: { id: company.id } })
+    }
+  })
+})

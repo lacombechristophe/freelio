@@ -10,9 +10,9 @@ import {
   sendPurchaseOrder,
   submitPurchaseOrder,
   routeServiceTicket,
-  updateInterventionStatus,
   updateServiceTicket,
 } from "@/actions/operations";
+import { updateInterventionStatus } from "@/actions/operations/mutations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,11 @@ function useMutation() {
   function mutate(operation: () => Promise<unknown>, success: string) {
     startTransition(async () => {
       try {
-        await operation();
+        const result = await operation();
+        if (result && typeof result === "object" && "success" in result && result.success === false) {
+          toast.error("error" in result && typeof result.error === "string" ? result.error : "Mise à jour impossible.");
+          return;
+        }
         toast.success(success);
         router.refresh();
       } catch (error) {
@@ -231,16 +235,18 @@ export function PurchaseOrderRecordActions({
   id,
   status,
   canApprove,
+  canManage,
 }: {
   id: string;
   status: string;
   canApprove: boolean;
+  canManage: boolean;
 }) {
   const { pending, mutate } = useMutation();
   return (
     <div className="flex flex-wrap gap-2">
-      {status === "DRAFT" && (
-        <Button
+      {status === "DRAFT" && canManage && (
+        <Button demoMutation
           disabled={pending}
           onClick={() =>
             mutate(
@@ -264,8 +270,8 @@ export function PurchaseOrderRecordActions({
           Approuver
         </Button>
       )}
-      {status === "APPROVED" && (
-        <Button
+      {status === "APPROVED" && canManage && (
+        <Button demoMutation
           disabled={pending}
           onClick={() =>
             mutate(() => sendPurchaseOrder(id), "Commande marquée envoyée.")

@@ -1,6 +1,7 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 
-import prisma from "@/lib/prisma"
+import prisma, { type TransactionClient } from "@/lib/prisma"
+import { providerConversationId } from "./conversation-identity"
 
 export function canonicalEmailSubject(subject: string) {
   return subject.replace(/^\s*((re|fw|fwd|tr)\s*:\s*)+/i, "").trim().slice(0, 250) || "Sans objet"
@@ -23,45 +24,56 @@ export async function resolveEmailParty(companyId: string, email: string) {
 
 export async function getOrCreateEmailThread(input: {
   companyId: string
+  providerConversationId?: string | null
+  channelId?: string | null
   subject: string
   clientId?: string | null
   contactId?: string | null
   leadCaptureId?: string | null
   inReplyTo?: string | null
   occurredAt?: Date
-}) {
+}, database: Pick<TransactionClient, "emailThread" | "emailMessage"> = prisma) {
+  const nativeId = providerConversationId(input.providerConversationId)
+  const subject = canonicalEmailSubject(input.subject)
+  const data = { companyId: input.companyId, channelId: input.channelId || null, subject,
+    clientId: input.clientId || null, contactId: input.contactId || null, leadCaptureId: input.leadCaptureId || null,
+    lastMessageAt: input.occurredAt || new Date() }
+  if (nativeId) {
+    if (!input.channelId) throw new Error("Une conversation fournisseur exige une messagerie")
+    return database.emailThread.upsert({
+      where: { companyId_channelId_providerConversationId: { companyId: input.companyId, channelId: input.channelId, providerConversationId: nativeId } },
+      update: {}, create: { ...data, providerConversationId: nativeId },
+    })
+  }
   if (input.inReplyTo) {
-    const repliedMessage = await prisma.emailMessage.findFirst({
-      where: { companyId: input.companyId, internetMessageId: input.inReplyTo },
+    const repliedMessage = await database.emailMessage.findFirst({
+      where: { companyId: input.companyId, internetMessageId: input.inReplyTo, thread: { companyId: input.companyId, channelId: input.channelId || null, providerConversationId: null } },
       select: { threadId: true },
     })
-    if (repliedMessage) return prisma.emailThread.findUniqueOrThrow({ where: { id: repliedMessage.threadId } })
+    if (repliedMessage) return database.emailThread.findUniqueOrThrow({ where: { id: repliedMessage.threadId } })
   }
-  const subject = canonicalEmailSubject(input.subject)
-  const existing = await prisma.emailThread.findFirst({
+  // A subject alone does not identify a conversation between unknown parties.
+  // An OAuth response without native identity must not fall back to a subject.
+  const existing = input.providerConversationId === undefined && (input.contactId || input.leadCaptureId || input.clientId) ? await database.emailThread.findFirst({
     where: {
       companyId: input.companyId,
+      channelId: input.channelId || null,
+      providerConversationId: null,
       status: { not: "ARCHIVED" },
       subject,
       ...(input.contactId ? { contactId: input.contactId } : input.leadCaptureId ? { leadCaptureId: input.leadCaptureId } : input.clientId ? { clientId: input.clientId } : {}),
     },
     orderBy: { lastMessageAt: "desc" },
-  })
+  }) : null
   if (existing) return existing
-  return prisma.emailThread.create({
-    data: {
-      companyId: input.companyId,
-      subject,
-      clientId: input.clientId || null,
-      contactId: input.contactId || null,
-      leadCaptureId: input.leadCaptureId || null,
-      lastMessageAt: input.occurredAt || new Date(),
-    },
-  })
+  return database.emailThread.create({ data })
 }
 
 export async function recordOutgoingEmail(input: {
   companyId: string
+  providerConversationId?: string | null
+  purpose?: string | null
+  channelId?: string | null
   threadId?: string | null
   clientId?: string | null
   contactId?: string | null
@@ -69,34 +81,79 @@ export async function recordOutgoingEmail(input: {
   deliveryId?: string | null
   providerId: string
   provider?: string
+  internetMessageId?: string | null
+  inReplyTo?: string | null
   from: string
   to: string[]
   cc?: string[]
   bcc?: string[]
+  attachments?: Array<{ id: string; name: string; size: number; type: string; sha256: string }>
   subject: string
   bodyHtml?: string | null
   bodyText?: string | null
   sentAt?: Date
-}) {
+}, database?: TransactionClient) {
   const sentAt = input.sentAt || new Date()
-  const thread = input.threadId
-    ? await prisma.emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId } })
-    : await getOrCreateEmailThread({ ...input, occurredAt: sentAt })
+  if (input.deliveryId) {
+    const recorded = await (database || prisma).emailMessage.findUnique({ where: { deliveryId: input.deliveryId } })
+    if (recorded) {
+      if (recorded.companyId !== input.companyId) throw new Error("Historique d’envoi hors société")
+      return recorded
+    }
+  }
+  // Mailbox ACLs validate message.threadId through the committed SQL view.
+  // Persist/validate the thread first so an ordinary member's first message
+  // does not fail that check on an uncommitted thread created by this command.
+  // An interrupted history write can leave an empty thread; the durable
+  // delivery retries this journal step without another provider send.
+  const requested = input.threadId
+    ? await (database || prisma).emailThread.findFirstOrThrow({ where: { id: input.threadId, companyId: input.companyId, channelId: input.channelId || null } })
+    : null
+  const imported = input.deliveryId ? await (database || prisma).emailMessage.findUnique({ where: { companyId_provider_providerId: {
+    companyId: input.companyId, provider: input.provider || "RESEND", providerId: input.providerId,
+  } }, select: { threadId: true } }) : null
+  // Repair may adopt an exact synchronized message. Preserve its historical
+  // assignment instead of creating a new empty thread or guessing a migration.
+  const selected = imported ? await (database || prisma).emailThread.findFirstOrThrow({ where: { id: imported.threadId, companyId: input.companyId, channelId: input.channelId || null } }) : requested
+  const nativeId = providerConversationId(input.providerConversationId)
+  if (selected?.providerConversationId && nativeId && selected.providerConversationId !== nativeId) throw new Error("La conversation distante diffère de la réponse préparée ; historique à vérifier")
+  const thread = selected && (imported || !nativeId || selected.providerConversationId === nativeId) ? selected
+    : await getOrCreateEmailThread({ ...input, providerConversationId: nativeId || (["GOOGLE", "MICROSOFT"].includes(input.provider || "") ? null : undefined), occurredAt: sentAt }, database || prisma)
+  const write = async (tx: TransactionClient) => {
   const provider = input.provider || "RESEND"
-  const message = await prisma.emailMessage.upsert({
-    where: { provider_providerId: { provider, providerId: input.providerId } },
-    update: { status: "SENT" },
+  const existing = await tx.emailMessage.findUnique({ where: { companyId_provider_providerId: { companyId: input.companyId, provider, providerId: input.providerId } } })
+  if (existing && input.deliveryId && existing.deliveryId !== input.deliveryId) {
+    // Synchronization may have journaled an accepted outbound message before
+    // this durable command repaired its history. Adopt only exact, unbound
+    // content in the same mailbox; never steal another command's reference.
+    const mailboxAddress = (value: string) => (value.match(/<([^<>]+)>$/)?.[1] || value).trim().toLowerCase()
+    const sameRecipients = Array.isArray(existing.toAddresses) && existing.toAddresses.length === input.to.length && existing.toAddresses.every(value => typeof value === "string" && input.to.some(to => mailboxAddress(to) === mailboxAddress(value)))
+    const sameMailbox = await tx.emailThread.count({ where: { id: existing.threadId, companyId: input.companyId, channelId: input.channelId || null,
+      ...(nativeId ? { OR: [{ providerConversationId: null }, { providerConversationId: nativeId }] } : {}) } })
+    if (existing.deliveryId || existing.direction !== "OUTBOUND" || !sameMailbox || !sameRecipients || mailboxAddress(existing.fromAddress) !== mailboxAddress(input.from) || existing.subject !== input.subject || existing.bodyHtml !== (input.bodyHtml || null) || (input.internetMessageId && existing.internetMessageId !== input.internetMessageId)) throw new Error("La référence fournisseur est déjà journalisée autrement ; rapprochement manuel nécessaire")
+    const bound = await tx.emailMessage.updateMany({ where: { id: existing.id, companyId: input.companyId, deliveryId: null, updatedAt: existing.updatedAt }, data: { deliveryId: input.deliveryId, purpose: input.purpose || null,
+      ccAddresses: input.cc?.length ? input.cc : Prisma.DbNull, bccAddresses: input.bcc?.length ? input.bcc : Prisma.DbNull, attachments: input.attachments?.length ? input.attachments : Prisma.DbNull,
+      bodyText: input.bodyText || null } })
+    if (bound.count !== 1) throw new Error("La référence fournisseur a changé pendant le rapprochement")
+  }
+  const message = await tx.emailMessage.upsert({
+    where: { companyId_provider_providerId: { companyId: input.companyId, provider, providerId: input.providerId } },
+    update: {},
     create: {
       companyId: input.companyId,
       threadId: thread.id,
       deliveryId: input.deliveryId || null,
       direction: "OUTBOUND",
+      purpose: input.purpose || null,
       provider,
       providerId: input.providerId,
+      internetMessageId: input.internetMessageId || null,
+      inReplyTo: input.inReplyTo || null,
       fromAddress: input.from,
       toAddresses: input.to,
       ccAddresses: input.cc?.length ? input.cc : undefined,
       bccAddresses: input.bcc?.length ? input.bcc : undefined,
+      attachments: input.attachments?.length ? input.attachments : undefined,
       subject: input.subject,
       bodyHtml: input.bodyHtml || null,
       bodyText: input.bodyText || null,
@@ -104,8 +161,11 @@ export async function recordOutgoingEmail(input: {
       sentAt,
     },
   })
-  await prisma.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: sentAt } })
+  if (input.deliveryId && message.deliveryId !== input.deliveryId) throw new Error("La référence fournisseur appartient à une autre commande")
+  await tx.emailThread.update({ where: { id: message.threadId }, data: { lastMessageAt: sentAt } })
   return message
+  }
+  return database ? write(database) : prisma.$transaction(write)
 }
 
 export function jsonValue(value: unknown): Prisma.InputJsonValue {

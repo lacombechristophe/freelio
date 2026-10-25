@@ -1,0 +1,28 @@
+{
+  "baseline": "49082a4bc692a6501e5799c703aa019cac3169d2",
+  "database": "isolated SQLite",
+  "before": {
+    "passed": 0,
+    "failed": 1,
+    "maximumForwardedTransactions": 2,
+    "tenantProjectionAssertionsPassed": true
+  },
+  "after": {
+    "passed": 5,
+    "failed": 0,
+    "maximumForwardedTransactions": 1
+  },
+  "checks": [
+    "FIFO execution",
+    "Rejection does not poison the queue",
+    "Original connection wait budget and P2028; expired callback never runs",
+    "Caller context retained",
+    "Real SQL results remain isolated for two companies"
+  ],
+  "limits": [
+    "Counts forwarded requests, not two simultaneously held SQLite write locks",
+    "One Node process only; no cross-process or throughput proof",
+    "Native PostgreSQL and compiled browser correction still pending"
+  ],
+  "noRealProviderCalls": true
+}

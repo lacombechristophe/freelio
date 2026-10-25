@@ -1,0 +1,46 @@
+{
+  "schema": "freelio.maintenance-signing-baseline.v1",
+  "codeCommit": "7c336a2e5998c840cd127ded2ad47a53900c4208",
+  "sourceCodeCommit": "6ae02861c36df5dea89d1fb98f8b5465fc3a3ea3",
+  "file": "maintenance-signing-baseline-20261022.json",
+  "sha256": "4602f17756de91e430b33de8ff38007b604c3a6730e619d76a60c75d7fdd8be9",
+  "passed": 2,
+  "failed": 5,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Maintenance signature and subsequent term preserve the agreed economics refuses a proposal sent after its underlying price changed",
+    "Maintenance signature and subsequent term preserve the agreed economics refuses signature after the maintenance price changed without consuming the token",
+    "Maintenance signature and subsequent term preserve the agreed economics refuses a306euro term after a102euro signature and preserves that signature",
+    "Maintenance signature and subsequent term preserve the agreed economics rolls back sent status, token and proposed decision when SQL refuses their audit",
+    "Maintenance signature and subsequent term preserve the agreed economics lets Commercial prepare the signature link without general operational edits"
+  ],
+  "recovery": [
+    {
+      "before": "Maintenance signature and subsequent term preserve the agreed economics refuses a proposal sent after its underlying price changed",
+      "after": "Maintenance signature and subsequent term preserve the agreed economics refuses a proposal sent after its underlying price changed"
+    },
+    {
+      "before": "Maintenance signature and subsequent term preserve the agreed economics refuses signature after the maintenance price changed without consuming the token",
+      "after": "Maintenance signature and subsequent term preserve the agreed economics refuses signature after the maintenance price changed without consuming the token"
+    },
+    {
+      "before": "Maintenance signature and subsequent term preserve the agreed economics refuses a306euro term after a102euro signature and preserves that signature",
+      "after": "Maintenance signature and subsequent term preserve the agreed economics refuses a €306 term after a €102 signature and preserves that signature"
+    },
+    {
+      "before": "Maintenance signature and subsequent term preserve the agreed economics rolls back sent status, token and proposed decision when SQL refuses their audit",
+      "after": "Maintenance signature and subsequent term preserve the agreed economics rolls back sent status, token and proposed decision when SQL refuses their audit"
+    },
+    {
+      "before": "Maintenance signature and subsequent term preserve the agreed economics lets Commercial prepare the signature link without general operational edits",
+      "after": "Maintenance signature and subsequent term preserve the agreed economics lets Commercial prepare the signature link without general operational edits"
+    }
+  ],
+  "probe": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "ad0f22ec0ee5c16d89487b713ed823b642bec3e5f342d97770b29ed10fc7fec2"
+  },
+  "classification": "Five failing economic, transaction or capability observations and two positive controls; not five independent security vulnerabilities"
+}

@@ -7,14 +7,14 @@ export class PayloadTooLargeError extends Error {
   }
 }
 
-function declaredLength(request: Request) {
+function declaredLength(request: Pick<Request, "headers">) {
   const value = request.headers.get("content-length")
   if (!value || !/^\d+$/.test(value)) return null
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) ? parsed : null
 }
 
-export async function readBodyBytes(request: Request, maxBytes: number) {
+export async function readBodyBytes(request: Pick<Request, "headers" | "body">, maxBytes: number) {
   const contentLength = declaredLength(request)
   if (contentLength !== null && contentLength > maxBytes) throw new PayloadTooLargeError()
   if (!request.body) return new Uint8Array()

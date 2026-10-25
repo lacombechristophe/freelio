@@ -1,0 +1,39 @@
+import * as React from "react"
+import {renderToStaticMarkup} from "react-dom/server"
+import {randomUUID} from "node:crypto"
+import {afterAll,beforeAll,describe,expect,it,vi} from "vitest"
+const session=vi.hoisted(()=>({userId:"",companyId:""}))
+vi.mock("server-only",()=>({}))
+vi.mock("@/auth",()=>({auth:async()=>({user:{id:session.userId},companyId:session.companyId})}))
+vi.mock("next/cache",()=>({revalidatePath:vi.fn()}))
+vi.mock("next/navigation",()=>({useRouter:()=>({refresh:vi.fn(),push:vi.fn()}),useSearchParams:()=>new URLSearchParams()}))
+vi.mock("next/dynamic",()=>({default:()=>()=>null}))
+import prisma from "@/lib/prisma"
+import {getOperationsDashboard} from "@/actions/operations"
+import {OperationsCenter} from "@/app/dashboard/operations/operations-center"
+describe.sequential("Stock dashboard completeness diagnostic on isolated SQL and actual server markup",()=>{
+ beforeAll(async()=>{
+  vi.stubGlobal("React",React)
+  session.companyId=(await prisma.company.create({data:{name:"Fictional stock dashboard completeness diagnostic"}})).id
+  session.userId=(await prisma.user.create({data:{email:`stock-dashboard-${randomUUID()}@example.test`}})).id
+  await prisma.membership.create({data:{companyId:session.companyId,userId:session.userId,role:"OWNER",status:"ACTIVE"}})
+  await prisma.product.createMany({data:Array.from({length:501},(_,i)=>({companyId:session.companyId,sku:`FAKE-${i}`,label:`Fictional product ${String(i).padStart(3,"0")}`}))})
+ })
+ afterAll(async()=>{
+  vi.unstubAllGlobals()
+  await prisma.product.deleteMany({where:{companyId:session.companyId}})
+  await prisma.company.delete({where:{id:session.companyId}})
+  await prisma.user.delete({where:{id:session.userId}})
+ })
+ it("records 501 eligible stock-tracked products without any inventory",async()=>{
+  expect(await prisma.product.count({where:{companyId:session.companyId,active:true,stockTracked:true}})).toBe(501)
+  expect(await prisma.inventoryItem.count({where:{companyId:session.companyId}})).toBe(0)
+ })
+ it("shows all 501 products below their zero stock threshold in the actual dashboard metric",async()=>{
+  const data=await getOperationsDashboard()
+  const html=renderToStaticMarkup(React.createElement(OperationsCenter,{initialData:data}))
+  const metric=html.match(/Stocks bas<\/p><p[^>]*>(\d+)<\/p>/)
+  expect(metric,"Actual stock metric must be present in the rendered component").not.toBeNull()
+  expect(Number(metric![1])).toBe(501)
+ })
+})

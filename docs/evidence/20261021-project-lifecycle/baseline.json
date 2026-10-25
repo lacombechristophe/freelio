@@ -1,0 +1,65 @@
+{
+  "schema": "freelio.project-lifecycle-baseline.v1",
+  "lifecycle": {
+    "productionCommit": "082f3dea0746782f8ff5b606377c79c5aeee300f",
+    "file": "project-lifecycle-baseline-20261021.json",
+    "sha256": "8b1ea09f0fb1f8c58c0cd66a4df1230363550054d65bb36577376f106be6eaa1",
+    "passed": 0,
+    "failed": 16,
+    "pending": 0,
+    "total": 16,
+    "files": 1,
+    "success": false,
+    "failures": [
+      "Project lifecycle integrity on real SQL deletes a coherent project with its file metadata and unbilled time, then cleans files",
+      "Project lifecycle integrity on real SQL preserves time when SQL refuses the project deletion",
+      "Project lifecycle integrity on real SQL rolls back create when its audit insertion is refused",
+      "Project lifecycle integrity on real SQL rolls back update when its audit insertion is refused",
+      "Project lifecycle integrity on real SQL rolls back archive when its audit insertion is refused",
+      "Project lifecycle integrity on real SQL rolls back delete when its audit insertion is refused",
+      "Project lifecycle integrity on real SQL refuses update on a project linked to a foreign client",
+      "Project lifecycle integrity on real SQL refuses archive on a project linked to a foreign client",
+      "Project lifecycle integrity on real SQL refuses delete on a project linked to a foreign client",
+      "Project lifecycle integrity on real SQL denies create without Operations write before reading project data",
+      "Project lifecycle integrity on real SQL denies update without Operations write before reading project data",
+      "Project lifecycle integrity on real SQL denies archive without Operations write before reading project data",
+      "Project lifecycle integrity on real SQL denies delete without Operations write before reading project data",
+      "Project lifecycle integrity on real SQL cannot delete time already linked to an invoice outside the project's invoice relation",
+      "Project lifecycle integrity on real SQL cannot erase the only project reference of a stock reservation",
+      "Project lifecycle integrity on real SQL archives a coherent project with an audit without deleting its time"
+    ],
+    "source": "Initial uncommitted 16-case SQL probe; final suite was expanded and API signatures now require a displayed revision",
+    "interpretation": "Not 16 independent security vulnerabilities. Four permission cases concern business reads before write rejection: the Prisma extension already refused unauthorized writes. Archive had no audit; create/update/delete logged best effort. Coherent archive and delete are functional witnesses."
+  },
+  "displayedRevision": {
+    "productionCommit": "a2884da",
+    "file": "project-stale-baseline-20261021.json",
+    "sha256": "a873f2aef0f706a27c7b0f70e2f0414d9fbf939acfceb3f3d792eb3d18a92c47",
+    "passed": 0,
+    "failed": 6,
+    "pending": 30,
+    "total": 36,
+    "files": 1,
+    "success": false,
+    "failures": [
+      "Project lifecycle integrity on real SQL refuses update from an outdated project revision",
+      "Project lifecycle integrity on real SQL rejects update without a valid displayed revision",
+      "Project lifecycle integrity on real SQL refuses archive from an outdated project revision",
+      "Project lifecycle integrity on real SQL rejects archive without a valid displayed revision",
+      "Project lifecycle integrity on real SQL refuses delete from an outdated project revision",
+      "Project lifecycle integrity on real SQL rejects delete without a valid displayed revision"
+    ],
+    "selection": "Only the six new stale/missing revision diagnostics; 30 intentional filtered cases, not a full qualification"
+  },
+  "harnessFailure": {
+    "file": "project-lifecycle-guarded-20261021.json",
+    "sha256": "d371851547dbaf1fa57ce1e2acd5e7f843b94786bf2c230b312f0c528f88cb29",
+    "passed": 64,
+    "failed": 15,
+    "pending": 0,
+    "total": 79,
+    "files": 3,
+    "success": false,
+    "explanation": "Read-only environment was restored after SQL trigger cleanup; that cleanup was itself refused. Teardown now restores the environment first. This run is retained as a harness failure, not 15 product defects."
+  }
+}

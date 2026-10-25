@@ -1,0 +1,71 @@
+{
+  "schema": "freelio.order-billing-stale-local.v1",
+  "date": "2026-10-09",
+  "codeCommit": "061173c959589bb9550fc81964d6595bcec56223",
+  "environment": "Isolated Windows recipe, fictitious SQLite; no existing environment files or provider calls",
+  "steps": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 12.636
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 28.945
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.212
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 218.688
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 74.149
+    }
+  ],
+  "unit": {
+    "passed": 1615,
+    "failed": 0,
+    "files": 188,
+    "reportSha256": "0c49610d1ce7d478b027d029a9a4e80b52bc3ba14bd951ac4659e503671c4e3d",
+    "focused": [
+      {
+        "name": "order billing after a linked draft changes DEPOSIT rechecks amount and allows a fresh retry",
+        "status": "passed"
+      },
+      {
+        "name": "order billing after a linked draft changes DEPOSIT rechecks status and allows a fresh retry",
+        "status": "passed"
+      },
+      {
+        "name": "order billing after a linked draft changes DEPOSIT rechecks unchanged and allows a fresh retry",
+        "status": "passed"
+      },
+      {
+        "name": "order billing after a linked draft changes BALANCE rechecks amount and allows a fresh retry",
+        "status": "passed"
+      },
+      {
+        "name": "order billing after a linked draft changes BALANCE rechecks status and allows a fresh retry",
+        "status": "passed"
+      },
+      {
+        "name": "order billing after a linked draft changes BALANCE rechecks unchanged and allows a fresh retry",
+        "status": "passed"
+      }
+    ]
+  },
+  "limits": [
+    "Intermediate mutation injected through a real SQL read/write; not independent concurrent connections",
+    "Session and Next cache mocked; actual action, DAL and SQL transaction",
+    "No issued document, PDF, payment or supplier call",
+    "Own PostgreSQL, Linux and compiled-browser CI required"
+  ]
+}

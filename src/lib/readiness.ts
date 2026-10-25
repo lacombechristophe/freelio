@@ -1,4 +1,5 @@
 import { publicDemoConfigurationIssues } from "./demo-configuration"
+import { upstashRateLimitConfiguration } from "./rate-limit-configuration"
 
 const MIN_SECRET_LENGTH = 32
 
@@ -37,6 +38,7 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
     if (!hasValue(environment, name)) issues.push(name)
   }
   if (!isHttpsUrl(environment.UPSTASH_REDIS_REST_URL)) issues.push("UPSTASH_REDIS_REST_URL_HTTPS")
+  if (!upstashRateLimitConfiguration(environment)) issues.push("UPSTASH_REDIS_REST_CONFIG")
   if (environment.REQUIRE_PLATFORM_EMAIL?.trim().toLowerCase() === "true") {
     for (const name of ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET", "EMAIL_FROM"]) {
       if (!hasValue(environment, name)) issues.push(name)
@@ -51,6 +53,9 @@ export function productionConfigurationIssues(environment: NodeJS.ProcessEnv = p
   for (const name of ["AUTH_URL", "PUBLIC_APP_URL", "PUBLIC_PRIVACY_NOTICE_URL"]) {
     if (!isHttpsUrl(environment[name])) issues.push(`${name}_HTTPS`)
   }
+
+  const withoutStorage = readonly && environment.FILE_STORAGE_DRIVER?.trim().toLowerCase() === "disabled" && environment.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() === "disabled"
+  if (withoutStorage) return issues
 
   if (environment.FILE_STORAGE_DRIVER?.trim().toLowerCase() !== "r2") issues.push("FILE_STORAGE_DRIVER_R2")
   if (environment.MIGRATION_STORAGE_DRIVER?.trim().toLowerCase() !== "r2") issues.push("MIGRATION_STORAGE_DRIVER_R2")

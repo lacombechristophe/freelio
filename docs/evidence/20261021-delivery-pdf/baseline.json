@@ -1,0 +1,159 @@
+{
+  "schema": "freelio.delivery-pdf-baseline.v1",
+  "productionCommit": "40aa68aa19f5311179aabc8f457aa724f138982b",
+  "source": "New native test and offline inspector added to the parent production template before the print-margin change",
+  "checks": 36,
+  "failed": [
+    "signed-multi-page.pdf: page 1 print margins",
+    "signed-multi-page.pdf: page 2 print margins",
+    "signed-multi-page.pdf: page 3 print margins",
+    "signed-multi-page.pdf: page 4 print margins"
+  ],
+  "artifacts": [
+    {
+      "file": "signed-original.pdf",
+      "sha256": "7da8e89833abd0095cf8e70fd451d50a612c0096bb8332cd449e0b43c6494353",
+      "bytes": 142994,
+      "pages": 1,
+      "fonts": [
+        "AAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "BAAAAA+Source-Serif-4-28pt-Bold",
+        "CAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "DAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "EAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "FAAAAA+Source-Sans-3-ExtraLight",
+        "GAAAAA+Source-Sans-3-ExtraLight",
+        "GAAAAA+Source-Sans-3-ExtraLight",
+        "HAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "IAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "JAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "LAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "MAAAAA+Source-Sans-3-ExtraLight",
+        "KAAAAA+Consolas-Bold"
+      ],
+      "embeddedFiles": 1,
+      "embeddedGlyphFonts": 13
+    },
+    {
+      "file": "signed-after-edits.pdf",
+      "sha256": "b4e96ce98e9f6acb5c00651f390a75be5a4efde6b0be714581b94a3ba6439d3e",
+      "bytes": 142994,
+      "pages": 1,
+      "fonts": [
+        "AAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "BAAAAA+Source-Serif-4-28pt-Bold",
+        "CAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "DAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "EAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "FAAAAA+Source-Sans-3-ExtraLight",
+        "GAAAAA+Source-Sans-3-ExtraLight",
+        "GAAAAA+Source-Sans-3-ExtraLight",
+        "HAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "IAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "JAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "LAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "MAAAAA+Source-Sans-3-ExtraLight",
+        "KAAAAA+Consolas-Bold"
+      ],
+      "embeddedFiles": 1,
+      "embeddedGlyphFonts": 13
+    },
+    {
+      "file": "signed-multi-page.pdf",
+      "sha256": "64d54e57a81e89dbe80669409c3f0e4305bc08f6a543f103dc3fa4a3152c52fa",
+      "bytes": 204141,
+      "pages": 4,
+      "fonts": [
+        "AAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "BAAAAA+Source-Serif-4-28pt-Bold",
+        "CAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "DAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "EAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "FAAAAA+Source-Sans-3-ExtraLight",
+        "GAAAAA+Source-Sans-3-ExtraLight",
+        "GAAAAA+Source-Sans-3-ExtraLight",
+        "HAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "IAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "JAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "LAAAAA+Source-Sans-3-ExtraLight-Bold",
+        "MAAAAA+Source-Sans-3-ExtraLight",
+        "KAAAAA+Consolas-Bold"
+      ],
+      "embeddedFiles": 1,
+      "embeddedGlyphFonts": 13
+    }
+  ],
+  "inspectionSha256": "73eef76b6fffa8033f6f631e41e73390b0e183506e8ec70ca746c7e486d70f45",
+  "pageBounds": [
+    {
+      "file": "signed-original.pdf",
+      "pages": [
+        {
+          "page": 1,
+          "bounds": {
+            "left": 42.51562322851562,
+            "right": 544.2493680485734,
+            "top": 50.24999790624997,
+            "bottom": 639.74997334375
+          }
+        }
+      ]
+    },
+    {
+      "file": "signed-after-edits.pdf",
+      "pages": [
+        {
+          "page": 1,
+          "bounds": {
+            "left": 42.51562322851562,
+            "right": 544.2493680485734,
+            "top": 50.24999790624997,
+            "bottom": 639.74997334375
+          }
+        }
+      ]
+    },
+    {
+      "file": "signed-multi-page.pdf",
+      "pages": [
+        {
+          "page": 1,
+          "bounds": {
+            "left": 42.51562322851562,
+            "right": 544.2502424843063,
+            "top": 50.24999790624997,
+            "bottom": 817.4999659375
+          }
+        },
+        {
+          "page": 2,
+          "bounds": {
+            "left": 51.01171662451171,
+            "right": 544.2502424843063,
+            "top": 8.002499741562588,
+            "bottom": 802.4999665625002
+          }
+        },
+        {
+          "page": 3,
+          "bounds": {
+            "left": 51.01171662451171,
+            "right": 544.2502424843063,
+            "top": 8.00249974156236,
+            "bottom": 802.4999665624999
+          }
+        },
+        {
+          "page": 4,
+          "bounds": {
+            "left": 42.51562322851562,
+            "right": 544.2502424843063,
+            "top": 8.002499741562133,
+            "bottom": 750.7499687187495
+          }
+        }
+      ]
+    }
+  ],
+  "classification": "One printing defect with four failed page-margin observations, not four independent vulnerabilities. Other content, identity, quantity and rendering checks passed."
+}

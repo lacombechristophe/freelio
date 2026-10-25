@@ -1,0 +1,28 @@
+{
+  "schema": "freelio.quote-contract-baseline.v1",
+  "baselineCodeCommit": "4871e827f1b6bdcc1490961aa412529fde463df0",
+  "file": "quote-contract-baseline-20261022.json",
+  "sha256": "f68f3f003e6298f530188bf0e4707a61998b139c4505778bb43e5e7c6ba79c96",
+  "passed": 1,
+  "failed": 5,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Accepted quote contract keeps the displayed source and mandatory audit does not keep a draft contract when its mandatory audit is refused",
+    "Accepted quote contract keeps the displayed source and mandatory audit does not take a newer version instead of the accepted current version",
+    "Accepted quote contract keeps the displayed source and mandatory audit rechecks acceptance after number preparation before creating the contract",
+    "Accepted quote contract keeps the displayed source and mandatory audit refuses the stale displayed contract source including its validity date",
+    "Accepted quote contract keeps the displayed source and mandatory audit returns a concurrent coherent contract without claiming a second creation audit"
+  ],
+  "source": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "9c98b5baf8773f3284bdf08ce1c1bfe5d3445b42447c80460fe654760d36ce3e"
+  },
+  "log": {
+    "file": "quote-contract-baseline-20261022.log",
+    "sha256": "f22e59d5e609ec4a6124c737db96e9c880dca059723f0a95504d6cafad8bbece"
+  },
+  "scope": "Five failed cases and one positive Commercial control, actual action/membership and fresh SQLite. Authentication and Next cache mocked. Controlled change during numbering, not independent PostgreSQL connections.",
+  "revisionProbe": "The old action accepted no revision; a typed test adapter supplied an ignored second argument. The final suite obtains and asserts a real 64-hex contractConversionRevision, including audit, version and intercalation cases."
+}

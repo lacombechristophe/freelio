@@ -11,7 +11,10 @@ import {
   importBankTransactions,
   matchTransactionToExpense,
   matchTransactionToInvoice,
+  getBankingDashboard,
 } from "@/actions/bank"
+import { BankTargetPicker } from "./bank-target-picker"
+import { parseBankDate } from "@/lib/bank-date"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -60,15 +63,38 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
   const [mapping, setMapping] = React.useState({ date: "", label: "", amount: "", reference: "" })
   const [targets, setTargets] = React.useState<Record<string, string>>({})
   const [pending, setPending] = React.useState(false)
+  const [search, setSearch] = React.useState("")
+  const [status, setStatus] = React.useState("ALL")
+  const [page, setPage] = React.useState(1)
+  const [history, setHistory] = React.useState(data)
+  const [loadedKey, setLoadedKey] = React.useState("ALL:1:")
+  const [historyError, setHistoryError] = React.useState("")
+  const queryKey = `${status}:${page}:${search}`
+  const loading = loadedKey !== queryKey
+  React.useEffect(() => {
+    let cancelled = false
+    const timer = setTimeout(() => React.startTransition(async () => {
+      setHistoryError("")
+      try {
+        const next = await getBankingDashboard({ search, status, page })
+        if (!cancelled) { setHistory(next); setLoadedKey(queryKey) }
+      } catch (error) {
+        if (!cancelled) setHistoryError(error instanceof Error ? error.message : "Historique indisponible.")
+      }
+    }), 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [search, status, page, queryKey, data])
 
   const normalizedRows = React.useMemo(() => rawRows.map((row) => ({
     date: parseDate(row[mapping.date] ?? ""),
     label: (row[mapping.label] ?? "").trim(),
     amountCents: parseAmount(row[mapping.amount] ?? ""),
     reference: (row[mapping.reference] ?? "").trim(),
-  })).filter((row) => row.date && row.label && row.amountCents !== 0), [rawRows, mapping])
+  })).filter(row => row.label && row.amountCents !== 0), [rawRows, mapping])
+  const validRowCount = normalizedRows.filter(row => { try { parseBankDate(row.date); return true } catch { return false } }).length
 
-  function readCsv(file: File | undefined) {
+  const csvInput = React.useRef<HTMLInputElement>(null)
+  const readCsv = React.useCallback((file: File | undefined) => {
     if (!file) return
     Papa.parse<RawRow>(file, {
       header: true,
@@ -86,12 +112,21 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
       },
       error: (error) => toast.error(error.message),
     })
-  }
+  }, [])
+  React.useEffect(() => {
+    // A native file picker can be used before React attaches its change handler.
+    // Recover that selection once on mount rather than losing the chosen CSV.
+    readCsv(csvInput.current?.files?.[0])
+  }, [readCsv])
 
   async function importRows() {
     if (!normalizedRows.length) return toast.error("Aucune ligne exploitable.")
     setPending(true)
     try {
+      for (const row of rawRows) {
+        const value = row[mapping.date] ?? ""
+        try { parseBankDate(parseDate(value)) } catch { throw new Error(`Date bancaire invalide : ${value}`) }
+      }
       const result = await importBankTransactions({ rows: normalizedRows })
       toast.success(`${result.imported} transaction(s) importée(s), ${result.ignored} doublon(s) ignoré(s).`)
       setRawRows([])
@@ -132,9 +167,7 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
     }
   }
 
-  const unmatched = data.transactions.filter((transaction) => !transaction.matchedPaymentId && !transaction.matchedExpenseId)
-  const inflow = data.transactions.reduce((sum, transaction) => sum + Math.max(0, transaction.amountCents), 0)
-  const outflow = data.transactions.reduce((sum, transaction) => sum + Math.min(0, transaction.amountCents), 0)
+  const { inflow, outflow, unmatched } = history.totals
 
   return (
     <div className="space-y-6">
@@ -146,13 +179,13 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
       <div className="grid gap-4 md:grid-cols-3">
         <Card><CardHeader><CardTitle className="text-xs uppercase text-muted-foreground">Entrées importées</CardTitle></CardHeader><CardContent className="text-2xl font-bold text-success">{formatEuro(inflow)}</CardContent></Card>
         <Card><CardHeader><CardTitle className="text-xs uppercase text-muted-foreground">Sorties importées</CardTitle></CardHeader><CardContent className="text-2xl font-bold text-danger">{formatEuro(outflow)}</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-xs uppercase text-muted-foreground">À rapprocher</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{unmatched.length}</CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-xs uppercase text-muted-foreground">À rapprocher</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{unmatched}</CardContent></Card>
       </div>
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-sm"><FileUp /> Importer un relevé CSV</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <Input aria-label="Sélectionner un relevé bancaire CSV" type="file" accept=".csv,text/csv" onChange={(event) => readCsv(event.target.files?.[0])} />
+          <Input ref={csvInput} aria-label="Sélectionner un relevé bancaire CSV" type="file" accept=".csv,text/csv" onChange={(event) => readCsv(event.target.files?.[0])} />
           {headers.length > 0 && <>
             <div className="grid gap-3 sm:grid-cols-4">
               {(["date", "label", "amount", "reference"] as const).map((field) => (
@@ -164,20 +197,29 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2 text-sm"><span>{normalizedRows.length} ligne(s) valide(s) sur {rawRows.length}</span><Button demoMutation onClick={importRows} disabled={pending || normalizedRows.length === 0}>Importer</Button></div>
+            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2 text-sm"><span>{validRowCount} ligne(s) valide(s) sur {rawRows.length}</span><Button demoMutation onClick={importRows} disabled={pending || normalizedRows.length === 0}>Importer</Button></div>
           </>}
         </CardContent>
       </Card>
 
+      <div className="space-y-3" aria-label="Historique bancaire">
+        <div className="flex flex-wrap items-center gap-3">
+          <Input className="sm:max-w-sm" aria-label="Rechercher une transaction" placeholder="Libellé ou référence" value={search} onChange={event => { setSearch(event.target.value); setPage(1); setHistoryError("") }} />
+          <Select value={status} onValueChange={value => { setStatus(value ?? "ALL"); setPage(1); setHistoryError("") }}>
+            <SelectTrigger aria-label="État du rapprochement"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="ALL">Toutes</SelectItem><SelectItem value="UNMATCHED">À rapprocher</SelectItem><SelectItem value="MATCHED">Rapprochées</SelectItem></SelectContent>
+          </Select>
+          <span aria-live="polite" className="text-sm text-muted-foreground">{historyError || (loading ? "Chargement…" : `${history.total} transaction(s) · Page ${history.page} / ${history.pageCount}`)}</span>
+          <Button variant="outline" disabled={loading || history.page <= 1} onClick={() => setPage(history.page - 1)}>Page précédente</Button>
+          <Button variant="outline" disabled={loading || history.page >= history.pageCount} onClick={() => setPage(history.page + 1)}>Page suivante</Button>
+        </div>
+        {historyError && <p role="alert" className="text-sm text-muted-foreground">{historyError}</p>}
       <div className="overflow-hidden rounded-lg border bg-card">
         <Table>
           <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Libellé</TableHead><TableHead>Montant</TableHead><TableHead>État</TableHead><TableHead>Rapprochement</TableHead></TableRow></TableHeader>
           <TableBody>
-            {data.transactions.length === 0 ? <TableRow><TableCell colSpan={5} className="py-14 text-center text-muted-foreground">Aucune transaction importée.</TableCell></TableRow> : data.transactions.map((transaction) => {
-              const matched = transaction.matchedPayment?.invoice.number ?? transaction.matchedExpense?.label
-              const options = transaction.amountCents > 0
-                ? data.invoices.map((invoice) => ({ id: invoice.id, label: `${invoice.number} · ${invoice.client.name} · ${formatEuro(invoice.totalTtcCents - invoice.paidAmountCents)}` }))
-                : data.expenses.filter((expense) => expense.amountCents === Math.abs(transaction.amountCents)).map((expense) => ({ id: expense.id, label: `${expense.label} · ${formatEuro(expense.amountCents)}` }))
+            {loading ? <TableRow><TableCell colSpan={5} className="py-14 text-center text-muted-foreground">{historyError || "Chargement…"}</TableCell></TableRow> : history.transactions.length === 0 ? <TableRow><TableCell colSpan={5} className="py-14 text-center text-muted-foreground">Aucune transaction importée.</TableCell></TableRow> : history.transactions.map((transaction) => {
+              const matched = transaction.matchedPayment?.invoice.number ?? transaction.matchedExpense?.label ?? (transaction.matchedPaymentId || transaction.matchedExpenseId ? "Rapprochée" : null)
               return <TableRow key={transaction.id}>
                 <TableCell className="text-xs">{new Date(transaction.date).toLocaleDateString("fr-FR")}</TableCell>
                 <TableCell><div className="max-w-sm truncate font-medium">{transaction.label}</div><div className="text-xs text-muted-foreground">{transaction.reference}</div></TableCell>
@@ -185,18 +227,16 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
                 <TableCell>{matched ? <Badge className="gap-1"><Check /> {matched}</Badge> : <Badge variant="outline">À rapprocher</Badge>}</TableCell>
                 <TableCell>
                   {!matched && <div className="flex min-w-[320px] items-center gap-2">
-                    <Select value={targets[transaction.id] ?? ""} onValueChange={(value) => setTargets((current) => ({ ...current, [transaction.id]: value ?? "" }))}>
-                      <SelectTrigger className="flex-1"><SelectValue placeholder={transaction.amountCents > 0 ? "Facture" : "Dépense de même montant"} /></SelectTrigger>
-                      <SelectContent>{options.map((option) => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Button size="icon" variant="outline" title="Rapprocher" disabled={pending || !targets[transaction.id]} onClick={() => reconcile(transaction.id, transaction.amountCents)}><Link2 /></Button>
-                    {transaction.amountCents < 0 && <Button size="icon" variant="outline" title="Créer une dépense" disabled={pending} onClick={() => createExpense(transaction.id)}><Plus /></Button>}
+                    <BankTargetPicker transactionId={transaction.id} positive={transaction.amountCents > 0} value={targets[transaction.id] ?? ""} onChange={value => setTargets(current => ({ ...current, [transaction.id]: value }))} />
+                    <Button demoMutation size="icon" variant="outline" title="Rapprocher" disabled={pending || !targets[transaction.id]} onClick={() => reconcile(transaction.id, transaction.amountCents)}><Link2 /></Button>
+                    {transaction.amountCents < 0 && <Button demoMutation size="icon" variant="outline" title="Créer une dépense" disabled={pending} onClick={() => createExpense(transaction.id)}><Plus /></Button>}
                   </div>}
                 </TableCell>
               </TableRow>
             })}
           </TableBody>
         </Table>
+      </div>
       </div>
     </div>
   )

@@ -27,13 +27,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { ClientChoice, useClientChoices, type ClientOption } from "@/components/shared/client-choice"
 import {
   CONTRACT_CLAUSE_LIBRARY,
   CONTRACT_TEMPLATE_CATEGORY_LABELS,
@@ -92,14 +86,15 @@ function isMeaningfulContent(value: string) {
 
 export function ContractForm({
   contract,
-  clients,
+  initialClient,
 }: {
   contract?: Contract
-  clients: Array<{ id: string; name: string }>
+  initialClient?: ClientOption
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
   const [clientId, setClientId] = React.useState(contract?.clientId ?? "")
+  const clientChoices = useClientChoices(clientId, initialClient)
   const [title, setTitle] = React.useState(contract?.title ?? "")
   const [content, setContent] = React.useState(contract?.content ?? "")
   const [validFrom, setValidFrom] = React.useState(
@@ -170,6 +165,7 @@ export function ContractForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (pending || (clientId && !clientChoices.ready)) return
     if (!clientId) return toast.error("Sélectionnez un client.")
     if (!isMeaningfulContent(content)) return toast.error("Le contenu du contrat ne peut pas être vide.")
     setPending(true)
@@ -207,7 +203,7 @@ export function ContractForm({
         </Link>
         <div className="min-w-0"><p className="truncate text-sm font-semibold">{contract ? "Modifier le contrat" : "Préparer le contrat"}</p><p className="text-xs text-muted-foreground">{selectedTemplateId ? "Modèle métier appliqué" : "Brouillon juridique à compléter"}</p></div>
         <div className="ml-auto">
-          <Button type="submit" disabled={pending} className="gap-2">
+          <Button type="submit" disabled={pending || Boolean(clientId && !clientChoices.ready)} className="gap-2">
             <Save className="h-4 w-4" />
             {pending ? "Enregistrement…" : "Enregistrer"}
           </Button>
@@ -304,19 +300,8 @@ export function ContractForm({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Client destinataire *</Label>
-                  <Select value={clientId} onValueChange={(v) => setClientId(v ?? "")}>
-                    <SelectTrigger className="bg-background" aria-label="Client destinataire du contrat">
-                      <SelectValue placeholder="Sélectionner un client…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {clients.length === 0 && (
+                  <ClientChoice choices={clientChoices} onChange={setClientId} label="Client destinataire du contrat" placeholder="Sélectionner un client…" triggerClassName="bg-background" disabled={pending} />
+                  {clientChoices.total === 0 && !clientChoices.search && !clientChoices.busy && !clientChoices.error && (
                     <p className="text-xs text-muted-foreground">Aucun client disponible pour l&apos;instant.</p>
                   )}
                 </div>

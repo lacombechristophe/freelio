@@ -1,0 +1,45 @@
+{
+  "schema": "freelio.order-billing-role-baseline.v1",
+  "source": "3f1ca72142c7e7e7cdac59d9adbdff8541683e82",
+  "test": "probe.test-source.txt",
+  "passed": 4,
+  "failed": 2,
+  "pending": 0,
+  "cases": [
+    {
+      "title": "creates a coherent DEPOSIT draft for OWNER",
+      "status": "passed",
+      "observedError": null
+    },
+    {
+      "title": "creates a coherent BALANCE draft for OWNER",
+      "status": "passed",
+      "observedError": null
+    },
+    {
+      "title": "creates a coherent DEPOSIT draft for ADMIN",
+      "status": "passed",
+      "observedError": null
+    },
+    {
+      "title": "creates a coherent BALANCE draft for ADMIN",
+      "status": "passed",
+      "observedError": null
+    },
+    {
+      "title": "creates a coherent DEPOSIT draft for ACCOUNTING",
+      "status": "failed",
+      "observedError": "FORBIDDEN:operations.write"
+    },
+    {
+      "title": "creates a coherent BALANCE draft for ACCOUNTING",
+      "status": "failed",
+      "observedError": "FORBIDDEN:operations.write"
+    }
+  ],
+  "limits": [
+    "Coherent fictitious records inserted through SQL; invoice draft action and DAL real.",
+    "Session and Next cache simulated.",
+    "No invoice issue, PDF, payment or provider."
+  ]
+}

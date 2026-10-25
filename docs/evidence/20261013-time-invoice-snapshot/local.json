@@ -1,0 +1,179 @@
+{
+  "schema": "freelio.time-invoice-snapshot.local.v1",
+  "before": {
+    "failed": 14,
+    "passed": 3,
+    "cases": [
+      {
+        "title": "preserves a legitimate duration edit and refuses the previous calculation",
+        "status": "failed"
+      },
+      {
+        "title": "preserves a legitimate date edit and refuses the previous calculation",
+        "status": "failed"
+      },
+      {
+        "title": "preserves a legitimate description edit and refuses the previous calculation",
+        "status": "failed"
+      },
+      {
+        "title": "preserves a legitimate billability edit and refuses the previous calculation",
+        "status": "failed"
+      },
+      {
+        "title": "refuses stale VAT data without undoing the external edit",
+        "status": "failed"
+      },
+      {
+        "title": "refuses stale prefix data without undoing the external edit",
+        "status": "failed"
+      },
+      {
+        "title": "refuses stale project data without undoing the external edit",
+        "status": "failed"
+      },
+      {
+        "title": "refuses stale client data without undoing the external edit",
+        "status": "failed"
+      },
+      {
+        "title": "refuses stale project name data without undoing the external edit",
+        "status": "failed"
+      },
+      {
+        "title": "refuses stale client name data without undoing the external edit",
+        "status": "failed"
+      },
+      {
+        "title": "refuses a selection deleted after preparation",
+        "status": "failed"
+      },
+      {
+        "title": "rolls back every effect after a invoice outage",
+        "status": "passed"
+      },
+      {
+        "title": "rolls back every effect after a claim outage",
+        "status": "passed"
+      },
+      {
+        "title": "rolls back every effect after a audit outage",
+        "status": "passed"
+      },
+      {
+        "title": "returns the controlled refusal after a rolled-back serialization conflict",
+        "status": "failed"
+      },
+      {
+        "title": "allows a new preparation to use the current duration",
+        "status": "failed"
+      },
+      {
+        "title": "keeps one winning invoice for two requests, with a real PostgreSQL read barrier",
+        "status": "failed"
+      }
+    ]
+  },
+  "after": {
+    "files": 204,
+    "failed": 0,
+    "passed": 1944,
+    "focused": [
+      {
+        "title": "preserves a legitimate duration edit and refuses the previous calculation",
+        "status": "passed"
+      },
+      {
+        "title": "preserves a legitimate date edit and refuses the previous calculation",
+        "status": "passed"
+      },
+      {
+        "title": "preserves a legitimate description edit and refuses the previous calculation",
+        "status": "passed"
+      },
+      {
+        "title": "preserves a legitimate billability edit and refuses the previous calculation",
+        "status": "passed"
+      },
+      {
+        "title": "refuses stale VAT data without undoing the external edit",
+        "status": "passed"
+      },
+      {
+        "title": "refuses stale prefix data without undoing the external edit",
+        "status": "passed"
+      },
+      {
+        "title": "refuses stale project data without undoing the external edit",
+        "status": "passed"
+      },
+      {
+        "title": "refuses stale client data without undoing the external edit",
+        "status": "passed"
+      },
+      {
+        "title": "refuses stale project name data without undoing the external edit",
+        "status": "passed"
+      },
+      {
+        "title": "refuses stale client name data without undoing the external edit",
+        "status": "passed"
+      },
+      {
+        "title": "refuses a selection deleted after preparation",
+        "status": "passed"
+      },
+      {
+        "title": "rolls back every effect after a invoice outage",
+        "status": "passed"
+      },
+      {
+        "title": "rolls back every effect after a claim outage",
+        "status": "passed"
+      },
+      {
+        "title": "rolls back every effect after a audit outage",
+        "status": "passed"
+      },
+      {
+        "title": "returns the controlled refusal after a rolled-back serialization conflict",
+        "status": "passed"
+      },
+      {
+        "title": "allows a new preparation to use the current duration",
+        "status": "passed"
+      },
+      {
+        "title": "keeps one winning invoice for two requests, with a real PostgreSQL read barrier",
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 12.68
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 26.697
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.166
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 238.678
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 74.319
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema": "freelio.organisation-domain-diagnostic.v1",
+  "candidate": "960b8b6a133f094926c243aae33500471769ecd5",
+  "exitCode": 1,
+  "passed": 0,
+  "failed": 6,
+  "cases": [
+    {
+      "name": "Organisation domain read diagnostic on real SQL does not disclose invoices to SALES without finance.read",
+      "status": "failed"
+    },
+    {
+      "name": "Organisation domain read diagnostic on real SQL does not disclose invoices to OPERATIONS without finance.read",
+      "status": "failed"
+    },
+    {
+      "name": "Organisation domain read diagnostic on real SQL does not disclose invoices to SERVICE without finance.read",
+      "status": "failed"
+    },
+    {
+      "name": "Organisation domain read diagnostic on real SQL does not disclose invoices to TECHNICIAN without finance.read",
+      "status": "failed"
+    },
+    {
+      "name": "Organisation domain read diagnostic on real SQL does not disclose quotes to SERVICE without sales.read",
+      "status": "failed"
+    },
+    {
+      "name": "Organisation domain read diagnostic on real SQL does not disclose quotes to TECHNICIAN without sales.read",
+      "status": "failed"
+    }
+  ],
+  "scope": "Real SQLite, action and memberships; authentication and Next cache mocked. Fictitious disposable fixtures removed after the run."
+}

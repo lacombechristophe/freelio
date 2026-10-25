@@ -1,0 +1,152 @@
+{
+  "schema": "freelio.native-ci.v1",
+  "observedAt": "2026-10-22T22:17:47.742Z",
+  "observationComplete": true,
+  "identity": {
+    "observedAt": "2026-10-22T21:45:28.5716142Z",
+    "candidate": "6274f54f04d37a05f00b64fad988bc0609a0cb40",
+    "pullRequest": 8,
+    "mergeRef": "31c6ee695d39a787b3c9da96cca00f7279bca329",
+    "candidateTree": "8a540283c164ed1dd04cf709fdb8ad2a43aeba7d",
+    "testedMergeTree": "8a540283c164ed1dd04cf709fdb8ad2a43aeba7d",
+    "treesIdentical": true,
+    "baseIsAncestor": true,
+    "ciRun": 39859480914
+  },
+  "run": {
+    "id": 39859480914,
+    "url": "https://github.com/lacombechristophe/freelio/actions/runs/39859480914",
+    "status": "completed",
+    "conclusion": "cancelled",
+    "cancellationReason": "Stopped after the older run exposed reproducible UI failures in unchanged code; avoids consuming the remainder of a known failing run."
+  },
+  "postgres": {
+    "job": 120106534270,
+    "migrations": 72,
+    "passed": 3925,
+    "failed": 0,
+    "skipped": 1,
+    "filesPassed": 291,
+    "filesSkipped": 1,
+    "durationSeconds": 326.07,
+    "skippedSuite": "tests/unit/demo-native-backup.integration.test.ts",
+    "testsStep": "success",
+    "artifactStep": "failure"
+  },
+  "linux": {
+    "job": 120106534370,
+    "checksPassed": 9,
+    "success": true,
+    "imageId": "sha256:789efa7f9f1f6be10904bc72c67171d26191f4cef40c0460d7858e80d901d097",
+    "artifactStep": "failure"
+  },
+  "desktop": {
+    "job": 120106534368,
+    "sqlite": {
+      "passed": 3926,
+      "failed": 0,
+      "skipped": 0,
+      "files": 292,
+      "durationSeconds": 330.46
+    },
+    "typecheck": "success",
+    "lint": "success",
+    "coverageGate": "success",
+    "build": "success",
+    "staticPages": 76,
+    "productionAudit": "success",
+    "completeAudit": "success",
+    "auditVulnerabilities": 0,
+    "e2e": "not_executed",
+    "failure": {
+      "step": "Installer Chromium",
+      "exitCode": 100,
+      "source": "packages.microsoft.com/ubuntu/24.04/prod/dists/noble/InRelease",
+      "httpStatus": 403
+    },
+    "artifactStep": "failure"
+  },
+  "mobile": {
+    "job": 120106534069,
+    "status": "cancelled",
+    "e2e": "incomplete_after_failures",
+    "startedTests": 75,
+    "selectedTests": 259,
+    "recordedFailures": [
+      {
+        "index": 1,
+        "test": "tests/e2e/asset-lifecycle.spec.ts:6:5 › edits and retires assets without losing history or a refused creation form",
+        "error": "Test timeout of 240000ms exceeded."
+      },
+      {
+        "index": 2,
+        "test": "tests/e2e/communications-access.spec.ts:14:7 › operations can read Communications without automatic writes or editable drafts",
+        "error": "Error: expect(locator).toBeVisible() failed"
+      },
+      {
+        "index": 3,
+        "test": "tests/e2e/communications-access.spec.ts:14:7 › service can read Communications without automatic writes or editable drafts",
+        "error": "Error: expect(locator).toBeVisible() failed"
+      },
+      {
+        "index": 4,
+        "test": "tests/e2e/communications-access.spec.ts:41:5 › Sales can compose but cannot configure a company connection",
+        "error": "Error: expect(locator).toBeEnabled() failed"
+      },
+      {
+        "index": 5,
+        "test": "tests/e2e/communications-remote-state.spec.ts:3:5 › distinguishes recorded provider observations from local CRM state and reports a disconnected attachment read",
+        "error": "Error: expect(locator).toBeVisible() failed"
+      }
+    ]
+  },
+  "artifactError": "Failed to CreateArtifact: Artifact storage quota has been hit. Unable to upload any new artifacts.",
+  "receipts": [
+    {
+      "kind": "postgres",
+      "file": "Freelio-ci-6274f54-pg-20261022.log",
+      "job": 120106534270,
+      "sha256": "1d732b02fb02743e1e7a2e6c6cce1742e8898ea81539982dd2b242ca42953118"
+    },
+    {
+      "kind": "linux",
+      "file": "Freelio-ci-6274f54-linux-20261022.log",
+      "job": 120106534370,
+      "sha256": "2cfbbfbb9c4167b3f47a51d7c78587da7b375dff315381e6f38a06d4a278c766"
+    },
+    {
+      "kind": "desktop",
+      "file": "Freelio-ci-6274f54-desktop-20261022.log",
+      "job": 120106534368,
+      "sha256": "bc8aac13463a17c3c0f6126dae4d70c8e3ceb8c3a9016d71e61578de6029837e"
+    },
+    {
+      "kind": "mobile",
+      "file": "Freelio-ci-6274f54-mobile-20261022.log",
+      "job": 120106534069,
+      "sha256": "7c8a9406ffe026a75d3b280ef2a474a41a7656553874c072878aff9037811769"
+    }
+  ],
+  "preview": {
+    "deploymentId": "dpl_BiwUTCztzARxfLP9VSwuTagrnYpE",
+    "url": "https://freelio-paj7ek19b-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "target": "preview",
+    "status": "READY",
+    "githubCommitStatus": "success",
+    "hostedMigrationsVerified": false,
+    "authenticatedHostedRecipeExecuted": false
+  },
+  "branchProtection": {
+    "repository": "private",
+    "protectionRequestStatus": 403,
+    "rulesetsRequestStatus": 403,
+    "message": "Upgrade to GitHub Pro or make this repository public to enable this feature.",
+    "settingsChanged": false
+  },
+  "limits": [
+    "Completed run, incomplete UI qualification; this is not a green CI.",
+    "The PostgreSQL backup skip is SQLite-specific.",
+    "Hosted database migrations and authenticated hosted paths are not qualified.",
+    "No new deletion, paid plan, billing change or visibility change."
+  ]
+}

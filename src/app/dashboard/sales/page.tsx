@@ -1,13 +1,19 @@
 import { CalendarDays, FileSignature, FileText, Kanban, Package, Target } from "lucide-react"
 
 import { getWorkspaceOverview } from "@/actions/workspaces"
+import { resolveAuthContext } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
+import { WorkspaceAccessRequired } from "@/app/dashboard/_components/workspace-access-required"
 import { formatWorkspaceDate, formatWorkspaceEuro, WorkspaceHub } from "@/app/dashboard/_components/workspace-hub"
 import { SalesPipelineBoard } from "@/app/dashboard/_components/workspace-insights"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
 
 export default async function SalesWorkspacePage() {
+  const context = await resolveAuthContext()
+  if (context && !hasPermission(context.role, "sales.read")) return <WorkspaceAccessRequired title="Accès commercial requis" />
   const data = await getWorkspaceOverview("SALES")
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de piloter les ventes." />
+  if (data.openDeals === null || data.openDealValueCents === null || data.quotes === null) return <WorkspaceAccessRequired title="Accès commercial requis" />
 
   return (
     <WorkspaceHub

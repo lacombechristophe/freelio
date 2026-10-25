@@ -1,0 +1,47 @@
+{
+  "schema": "freelio.baseline-replay.v1",
+  "reference": "ae88e4709523fb1c73fdba737798fc914a824ea8",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "passed": 2,
+  "failed": 6,
+  "reportSha256": "c3aeda530996707bb0a251745c56bdda66571ef42573f0bb135bf6fe229de365",
+  "cases": [
+    {
+      "name": "refuses recurrence templates without Finance for SALES",
+      "status": "failed"
+    },
+    {
+      "name": "refuses recurrence templates without Finance for OPERATIONS",
+      "status": "failed"
+    },
+    {
+      "name": "refuses recurrence templates without Finance for TECHNICIAN",
+      "status": "failed"
+    },
+    {
+      "name": "refuses recurrence templates without Finance for SERVICE",
+      "status": "failed"
+    },
+    {
+      "name": "excludes another agency recurrence from Accounting",
+      "status": "failed"
+    },
+    {
+      "name": "excludes a recurrence whose client belongs to another company",
+      "status": "failed"
+    },
+    {
+      "name": "preserves coherent recurrence templates for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "preserves a coherent local recurrence for Accounting",
+      "status": "passed"
+    }
+  ],
+  "conditions": [
+    "Fictitious isolated database; real actions and Prisma queries; mocked session/cache.",
+    "Historical relations inserted directly by the fixture; no proof that current mutations can create them."
+  ]
+}

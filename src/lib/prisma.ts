@@ -1,8 +1,11 @@
-import { PrismaClient } from "@prisma/client"
+import { createDatabaseClient } from "@/lib/database-client"
 import { getContext } from "./context"
 import { canActionPermissionMutateModel, hasPermission, requiredMutationPermission } from "./permissions"
 import { COMPANY_SCOPED_MODELS, companyRelationScope } from "./tenant-scope"
 import { assertDemoMutationAllowed, isPublicReadOnlyDemo } from "./demo-policy"
+import { mailboxScope, scopeMailboxIncludes } from "./communications/mailbox-access"
+import { runSqliteTransaction, type SqliteTransactionQueue } from "./sqlite-transactions"
+import { isReadinessMetadataQuery } from "./database-metadata-sql"
 
 const MUTATION_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn", "update", "updateMany", "updateManyAndReturn", "upsert", "delete", "deleteMany"])
 
@@ -10,6 +13,8 @@ const TENANT_READ_OPERATIONS = new Set(["aggregate", "count", "findFirst", "find
 
 const TENANT_CREATE_OPERATIONS = new Set(["create", "createMany", "createManyAndReturn"])
 const TENANT_UPDATE_OPERATIONS = new Set(["update", "updateMany", "updateManyAndReturn"])
+const SERVICE_PROFILE_FIELDS = new Set(["successOwnerMembershipId", "renewalAt", "nextActionAt", "nextActionLabel", "successPlan", "expansionNotes"])
+const MAINTENANCE_RENEWAL_FIELDS = new Set(["noticeDays", "indexationRate", "autoRenew", "renewalStatus", "renewalNotes", "updatedAt"])
 
 function appendWhereScope(args: { where?: Record<string, unknown> }, scope: Record<string, unknown>) {
   const existingAnd = args.where?.AND
@@ -23,6 +28,11 @@ const DIRECT_AGENCY_MODELS = new Set(["CustomerSite", "Project", "Warehouse"])
 
 function agencyWhere(model: string, agencyIds: string[]) {
   const direct = { agencyId: { in: agencyIds } }
+  const recurring = { AND: [
+    { OR: [{ projectId: null }, { project: direct }] },
+    { OR: [{ maintenanceContractId: null }, { maintenanceContract: { site: direct } }] },
+    { OR: [{ projectId: { not: null } }, { maintenanceContractId: { not: null } }] },
+  ] }
   const scopes: Record<string, Record<string, unknown>> = {
     Agency: { id: { in: agencyIds } },
     CustomerSite: direct,
@@ -34,6 +44,8 @@ function agencyWhere(model: string, agencyIds: string[]) {
     PurchaseOrder: { project: direct },
     Quote: { project: direct },
     Invoice: { project: direct },
+    RecurringInvoice: recurring,
+    RecurringInvoiceOccurrence: { recurring },
     Expense: { OR: [{ project: direct }, { intervention: { site: direct } }] },
     GoodsReceipt: { warehouse: direct },
     StockReservation: { warehouse: direct },
@@ -98,15 +110,18 @@ function validateDatabaseUrl() {
 
 const prismaClientSingleton = () => {
   validateDatabaseUrl()
-  return new PrismaClient().$extends({
+  return createDatabaseClient().$extends({
     query: {
       async $allOperations({ model, operation, args, query }) {
         if (!model && isPublicReadOnlyDemo()) {
-          // Raw SQL can mutate even when exposed through $queryRaw. The only
-          // supported raw read in a public demo is the readiness probe.
+          // Raw SQL can mutate even through $queryRaw. Only connectivity,
+          // exact metadata probes and the scoped project selector are admitted.
           const rawArgs = args as { sql?: string } | unknown[]
           const sql = !Array.isArray(rawArgs) && rawArgs && "sql" in rawArgs ? rawArgs.sql : Array.isArray(rawArgs) && Array.isArray(rawArgs[0]) ? rawArgs[0].join("") : undefined
-          if (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1") assertDemoMutationAllowed()
+          const context = getContext()
+          const projectRead = operation === "$queryRaw" && typeof sql === "string" && context?.actionPermission === "operations.read"
+            && context.operationsProjectReadSql === sql
+          if (!projectRead && !isReadinessMetadataQuery(operation, sql) && (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1")) assertDemoMutationAllowed()
         }
         return query(args)
       },
@@ -120,12 +135,56 @@ const prismaClientSingleton = () => {
           const mutableArgs = args as any
 
           const requiredPermission = requiredMutationPermission(model)
+          const profileFields = Object.keys(mutableArgs.data ?? {})
+          // Service can edit its follow-up fields, never the general client or money.
+          const serviceProfileUpdate = model === "Client" && operation === "update" && context?.actionPermission === "service.write" &&
+            hasPermission(context.role, "service.write") && profileFields.length > 0 && profileFields.every(field => SERVICE_PROFILE_FIELDS.has(field))
+          // Service may save only the settings and revision claimed by this action.
+          const maintenanceRenewalSettingsUpdate = model === "MaintenanceContract" && operation === "updateMany" && context?.actionPermission === "service.write" &&
+            hasPermission(context.role, "service.write") && context.maintenanceRenewalSettings &&
+            mutableArgs.where?.id === context.maintenanceRenewalSettings.contractId && mutableArgs.where.updatedAt instanceof Date &&
+            mutableArgs.where.updatedAt.toISOString() === context.maintenanceRenewalSettings.expectedUpdatedAt &&
+            profileFields.length === MAINTENANCE_RENEWAL_FIELDS.size && profileFields.every(field => MAINTENANCE_RENEWAL_FIELDS.has(field))
+          // Finance claims billing only; it cannot edit the operational order.
+          const orderBillingUpdate = model === "CustomerOrder" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "billingStatus"
+          // Sales may create only the dossier claimed by the accepted-quote action.
+          // This grants no general operational update, deletion, stock or invoice access.
+          const quoteOrderCreation = model === "CustomerOrder" && operation === "create" && context?.actionPermission === "sales.write" && hasPermission(context.role, "sales.write") &&
+            context.quoteOrderCreation && mutableArgs.data?.companyId === context.companyId && mutableArgs.data?.clientId === context.quoteOrderCreation.clientId &&
+            mutableArgs.data.quoteId === context.quoteOrderCreation.quoteId
+          // This capability is scoped to the draft just created by the Finance action.
+          const timeInvoiceClaim = model === "TimeEntry" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "invoiceId" &&
+            typeof mutableArgs.data.invoiceId === "string" && mutableArgs.data.invoiceId === context.timeInvoiceClaimId && mutableArgs.where?.invoiceId === null
+          const timeInvoiceRelease = model === "TimeEntry" && operation === "updateMany" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && profileFields.length === 1 && profileFields[0] === "invoiceId" && mutableArgs.data.invoiceId === null &&
+            typeof context.timeInvoiceReleaseId === "string" && mutableArgs.where?.invoiceId === context.timeInvoiceReleaseId
+          // Legacy invoiceId has no FK. Count only this accessible draft's links
+          // to refuse a partial release; no foreign row or identifier is returned.
+          const timeInvoiceReleaseCount = model === "TimeEntry" && operation === "count" && context?.actionPermission === "finance.write" &&
+            hasPermission(context.role, "finance.write") && typeof context.timeInvoiceReleaseId === "string" && mutableArgs.where?.invoiceId === context.timeInvoiceReleaseId
+          // An authorized mailbox read may refresh only that channel's encrypted
+          // credentials through the provider's CAS. It cannot edit its settings.
+          const oauthCredentialRefresh = model === "CommunicationChannel" && operation === "updateMany" && context &&
+            ["automation.read", "automation.write"].includes(context.actionPermission || "") && hasPermission(context.role, "automation.read") &&
+            typeof context.oauthCredentialRefreshChannelId === "string" && mutableArgs.where?.id === context.oauthCredentialRefreshChannelId &&
+            mutableArgs.where?.status === "ACTIVE" && typeof mutableArgs.where?.credentialsEncrypted === "string" &&
+            profileFields.length === 2 && profileFields.includes("credentialsEncrypted") && profileFields.includes("lastError") &&
+            typeof mutableArgs.data.credentialsEncrypted === "string" && mutableArgs.data.lastError === null
 
           if (
             context &&
             requiredPermission &&
             MUTATION_OPERATIONS.has(operation) &&
             !hasPermission(context.role, requiredPermission) &&
+            !serviceProfileUpdate &&
+            !maintenanceRenewalSettingsUpdate &&
+            !orderBillingUpdate &&
+            !quoteOrderCreation &&
+            !timeInvoiceClaim &&
+            !timeInvoiceRelease &&
+            !oauthCredentialRefresh &&
             !canActionPermissionMutateModel(context.actionPermission, model)
           ) {
             throw new Error(`FORBIDDEN:${requiredPermission}`)
@@ -133,9 +192,11 @@ const prismaClientSingleton = () => {
 
           const directCompanyScope = context?.companyId && COMPANY_SCOPED_MODELS.has(model) ? { companyId: context.companyId } : null
           const relationCompanyScope = context?.companyId ? companyRelationScope(model, context.companyId, context.userId) : null
-          const tenantScope = directCompanyScope ?? relationCompanyScope
+          // Notifications belong to both a company and a personal recipient.
+          const tenantScope = directCompanyScope && relationCompanyScope
+            ? { AND: [directCompanyScope, relationCompanyScope] } : directCompanyScope ?? relationCompanyScope
 
-          if (context?.companyId && tenantScope) {
+          if (context?.companyId && tenantScope && !timeInvoiceReleaseCount) {
             if (TENANT_READ_OPERATIONS.has(operation)) {
               appendWhereScope(mutableArgs, tenantScope)
             } else if (directCompanyScope && TENANT_CREATE_OPERATIONS.has(operation)) {
@@ -158,12 +219,36 @@ const prismaClientSingleton = () => {
             }
           }
 
-          if (context?.agencyIds !== null && context?.agencyIds !== undefined) {
+          if (context?.agencyIds !== null && context?.agencyIds !== undefined && !timeInvoiceReleaseCount) {
             const scope = agencyWhere(model, context.agencyIds)
             if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) {
               appendWhereScope(mutableArgs, scope)
             }
             enforceAgencyWrite(model, operation, mutableArgs, context.agencyIds)
+          }
+
+          if (context) {
+            if (["EmailDraft", "EmailSignature"].includes(model) && MUTATION_OPERATIONS.has(operation)) {
+              for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                const author = data.authorUserId ?? data.author?.connect?.id
+                if (author !== undefined && author !== context.userId) throw new Error("DRAFT_ACCESS_DENIED")
+                if (TENANT_CREATE_OPERATIONS.has(operation) || data === mutableArgs.create) data.authorUserId = context.userId
+              }
+            }
+            const scope = mailboxScope(model, context)
+            if (scope && !TENANT_CREATE_OPERATIONS.has(operation)) appendWhereScope(mutableArgs, scope)
+            scopeMailboxIncludes(model, mutableArgs, context)
+            if (!["OWNER", "ADMIN"].includes(context.role) && MUTATION_OPERATIONS.has(operation)) {
+              const link = model === "EmailMessage" ? "threadId" : model === "OrganisationTask" ? "calendarChannelId" : ["EmailThread", "EmailDelivery", "AutomationEventOutbox"].includes(model) ? "channelId" : null
+              if (link) {
+                for (const data of [mutableArgs.data, mutableArgs.create, mutableArgs.update].flat().filter(Boolean)) {
+                  const linkedId = data[link] ?? data[link === "threadId" ? "thread" : link === "calendarChannelId" ? "calendarChannel" : "channel"]?.connect?.id
+                  if (typeof linkedId !== "string") continue
+                  const allowed = link === "threadId" ? await getPrisma().emailThread.count({ where: { id: linkedId } }) : await getPrisma().communicationChannel.count({ where: { id: linkedId } })
+                  if (allowed !== 1) throw new Error("MAILBOX_ACCESS_DENIED")
+                }
+              }
+            }
           }
 
           return query(mutableArgs)
@@ -174,9 +259,11 @@ const prismaClientSingleton = () => {
 }
 
 type PrismaClientExtended = ReturnType<typeof prismaClientSingleton>
+export type TransactionClient = Parameters<Parameters<PrismaClientExtended["$transaction"]>[0]>[0]
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientExtended | undefined
+  sqliteTransactions?: SqliteTransactionQueue
 }
 
 const getPrisma = (): PrismaClientExtended => {
@@ -196,6 +283,13 @@ const prisma = new Proxy({} as PrismaClientExtended, {
 
     // If the property is a function, we must bind it to the client to preserve 'this'
     if (typeof value === "function") {
+      if (prop === "$transaction" && process.env.DATABASE_URL?.startsWith("file:")) {
+        return (callback: unknown, options?: { maxWait?: number }) => {
+          if (typeof callback !== "function") return value.call(client, callback, options)
+          const queue = globalForPrisma.sqliteTransactions ??= {}
+          return runSqliteTransaction(queue, maxWait => value.call(client, callback, { ...options, maxWait }), options?.maxWait)
+        }
+      }
       if (prop === "$queryRaw" && isPublicReadOnlyDemo()) {
         return (query: TemplateStringsArray) => {
           if (!Array.isArray(query) || query.length !== 1 || query[0].trim().toUpperCase() !== "SELECT 1") assertDemoMutationAllowed()

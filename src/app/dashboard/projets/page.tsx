@@ -1,15 +1,17 @@
-import { getProjects, getProjectTemplates } from "@/actions/projets"
-import { getClientsMinimal } from "@/actions/clients"
+import { getProjectTemplates } from "@/actions/projets"
+import { getProjectDirectory } from "@/actions/projets/directory"
 import { ProjetsGrid } from "./projets-grid"
 import { PageHeader } from "@/components/shared/page-header"
 import { getActiveAgencies } from "@/actions/agencies"
+import { resolveAuthContext } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 
 export default async function ProjetsPage() {
-  const [projects, clients, templates, agencies] = await Promise.all([
-    getProjects(),
-    getClientsMinimal(),
+  const [initial, templates, agencies, context] = await Promise.all([
+    getProjectDirectory(),
     getProjectTemplates(),
     getActiveAgencies(),
+    resolveAuthContext(),
   ])
 
   return (
@@ -20,7 +22,7 @@ export default async function ProjetsPage() {
         title="Chantiers"
         description="Pilotez les budgets, le temps consommé et l’avancement de chaque chantier actif."
       />
-      <ProjetsGrid projects={projects ?? []} clients={clients ?? []} templates={templates ?? []} agencies={agencies ?? []} />
+      {initial && <ProjetsGrid initial={initial} templates={templates ?? []} agencies={agencies ?? []} canManageTemplates={Boolean(context && hasPermission(context.role, "operations.write"))} />}
     </div>
   )
 }

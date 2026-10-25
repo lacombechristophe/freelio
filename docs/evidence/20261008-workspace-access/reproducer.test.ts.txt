@@ -1,0 +1,82 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getWorkspaceOverview } from "@/actions/workspaces"
+
+describe.sequential("workspace access probe on real SQL", () => {
+  let membershipId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional workspace access probe" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `workspace-access-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    const clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional workspace client" } })).id
+    for (const [code, amount] of [["LOCAL", 10000], ["OTHER", 20000]] as const) {
+      const agencyId = (await prisma.agency.create({ data: { companyId: session.companyId, code, name: `Fictional ${code} agency` } })).id
+      if (code === "LOCAL") await prisma.agencyMembership.create({ data: { membershipId, agencyId } })
+      const projectId = (await prisma.project.create({ data: { companyId: session.companyId, clientId, agencyId, name: `Fictional ${code} project` } })).id
+      await prisma.invoice.create({ data: { companyId: session.companyId, clientId, projectId, number: code, object: "Fictional invoice", status: "SENT", dueDate: new Date("2020-01-01"), totalHtCents: amount, totalTvaCents: 0, totalTtcCents: amount } })
+      const siteId = (await prisma.customerSite.create({ data: { companyId: session.companyId, clientId, agencyId, label: `Fictional ${code} site`, address1: "Fictional address" } })).id
+      await prisma.serviceTicket.create({ data: { companyId: session.companyId, clientId, siteId, number: code, title: `Fictional ${code} ticket`, description: "Fictional ticket" } })
+    }
+  })
+  afterEach(async () => { await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } }) })
+  afterAll(async () => {
+    const where = { companyId: session.companyId }
+    await prisma.serviceTicket.deleteMany({ where })
+    await prisma.customerSite.deleteMany({ where })
+    await prisma.invoice.deleteMany({ where })
+    await prisma.project.deleteMany({ where })
+    await prisma.client.deleteMany({ where })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it.each(["TECHNICIAN", "SERVICE", "SALES"].flatMap(role => ["CRM", "SERVICE"].map(scope => ({ role, scope }))))("does not serialize unused financial amounts in $scope for $role", async ({ role, scope }) => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    expect((await getWorkspaceOverview(scope as "CRM" | "SERVICE")).outstandingCents).toBeNull()
+  })
+  it.each(["TECHNICIAN", "SERVICE", "SALES"])("refuses the Finance workspace reader to %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    await expect(getWorkspaceOverview("REVENUE")).rejects.toThrow("droits nécessaires")
+  })
+  it.each(["TECHNICIAN", "SERVICE"])("refuses the Sales workspace reader to %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    await expect(getWorkspaceOverview("SALES")).rejects.toThrow("droits nécessaires")
+  })
+  it("limits Service overview counts and details to assigned agencies", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "SERVICE" } })
+    const result = await getWorkspaceOverview("SERVICE")
+    expect(result.openTickets).toBe(1)
+    expect(result.priorityTickets.map(ticket => ticket.number)).toEqual(["LOCAL"])
+  })
+  it("limits a Viewer financial overview to its assigned agency", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "VIEWER" } })
+    const result = await getWorkspaceOverview("REVENUE")
+    expect(result.outstandingCents).toBe(10000)
+    expect(result.recentInvoices.map(invoice => invoice.number)).toEqual(["LOCAL"])
+  })
+  it("preserves Owner company-wide financial totals", async () => {
+    expect((await getWorkspaceOverview("REVENUE")).outstandingCents).toBe(30000)
+  })
+  it("preserves Owner company-wide Service tickets", async () => {
+    expect((await getWorkspaceOverview("SERVICE")).openTickets).toBe(2)
+  })
+  it("does not count another agency projects in recent CRM clients", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "SERVICE" } })
+    expect((await getWorkspaceOverview("CRM")).recentClients[0]._count.projects).toBe(1)
+  })
+  it("preserves Owner recent CRM client project count", async () => {
+    expect((await getWorkspaceOverview("CRM")).recentClients[0]._count.projects).toBe(2)
+  })
+  it.each([{ role: "TECHNICIAN", scope: "MARKETING" }, { role: "VIEWER", scope: "MARKETING" }, { role: "ACCOUNTING", scope: "MARKETING" }, { role: "SALES", scope: "SERVICE" }, { role: "ACCOUNTING", scope: "SERVICE" }])("refuses a $scope workspace without its domain permission to $role", async ({ role, scope }) => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    await expect(getWorkspaceOverview(scope as "MARKETING" | "SERVICE")).rejects.toThrow("droits nécessaires")
+  })
+  it("refuses workspace consultation after suspension", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { status: "SUSPENDED" } })
+    await expect(getWorkspaceOverview("CRM")).rejects.toThrow("plus accès")
+  })
+})

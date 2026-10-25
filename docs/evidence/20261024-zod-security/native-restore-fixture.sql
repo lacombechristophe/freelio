@@ -1,0 +1,6 @@
+BEGIN;
+INSERT INTO "Company" (id,name,"serviceTimezone") VALUES ('restore-company-a','Atelier fictif Équinoxe','Europe/Paris'),('restore-company-b','Atelier fictif Boréal','America/New_York');
+INSERT INTO "Client" (id,"companyId",name,"customFields","updatedAt") VALUES ('restore-client-a','restore-company-a','Client fictif d''essai — été','{"note":"écriture synthétique","flags":[true,false],"count":3}'::jsonb,'2026-07-01T10:05:06.789'),('restore-client-b','restore-company-b','Client fictif hiver',NULL,'2026-01-01T10:05:06.789');
+INSERT INTO "Invoice" (id,"companyId","clientId",number,object,date,"dueDate","totalHtCents","totalTvaCents","totalTtcCents","updatedAt") VALUES ('restore-invoice-a','restore-company-a','restore-client-a','RECETTE-A-001','Brouillon fictif été','2026-07-01T10:05:06.789','2026-07-31T22:00:00',10000,2000,12000,'2026-07-01T10:05:06.789'),('restore-invoice-b','restore-company-b','restore-client-b','RECETTE-B-001','Brouillon fictif hiver','2026-01-01T10:05:06.789','2026-01-31T23:00:00',25000,5000,30000,'2026-01-01T10:05:06.789');
+INSERT INTO "InvoiceLine" (id,"invoiceId",label,quantity,"unitPriceCents","tvaRate","order") VALUES ('restore-line-a','restore-invoice-a','Prestation fictive A',1,10000,20,0),('restore-line-b','restore-invoice-b','Prestation fictive B',2.5,10000,20,0);
+COMMIT;

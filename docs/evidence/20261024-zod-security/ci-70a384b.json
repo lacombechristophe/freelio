@@ -1,0 +1,296 @@
+{
+  "schema": "freelio.public-ci.v1",
+  "observedAt": "2026-10-24T17:04:13.739351+00:00",
+  "headCommit": "70a384b93bbda32a6b245621b079dc0cd66fef4a",
+  "testedMergeCommits": [
+    "49118367bc381dec5ce4cfe20d8252eb38b6def1"
+  ],
+  "identicalGitTree": "2b9b4200bdcfe015fdc879f17796a050bfbb1db3",
+  "applicationSourceTree": "ab0344aaa9c93a3124da07009f3eba72714f4a9d",
+  "packageLockSha256": "b6fd43599ea90d24a9ddb62622da706834e09124c709afba95af4a8e524272c5",
+  "run": {
+    "id": 40111403797,
+    "url": "https://github.com/lacombechristophe/freelio/actions/runs/40111403797",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 120923718034,
+      "name": "Image Linux et Chromium",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40111403797/job/120923718034",
+      "runtimeChecksPassed": 9
+    },
+    {
+      "id": 120923718219,
+      "name": "quality-and-e2e (desktop)",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40111403797/job/120923718219",
+      "sqlite": {
+        "passed": 4071,
+        "failed": 0,
+        "skipped": 0,
+        "files": 305
+      },
+      "browser": {
+        "passed": 260,
+        "failed": 0,
+        "skipped": 1,
+        "skipReason": "Compact navigation scenario is mobile-only"
+      },
+      "auditLogResults": {
+        "Auditer les dépendances de production": "found 0 vulnerabilities",
+        "Auditer toutes les dépendances": "found 0 vulnerabilities"
+      },
+      "mandatoryQualityGates": [
+        "typecheck",
+        "eslint",
+        "oxlint",
+        "coverage thresholds",
+        "production build"
+      ],
+      "downloadedLogSha256": "cdc027d4205a00db574ed8277c3cc5d3f600d61989822c2d5f8c9790c5082f72"
+    },
+    {
+      "id": 120923718279,
+      "name": "Intégration PostgreSQL",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40111403797/job/120923718279",
+      "postgres": {
+        "passed": 4070,
+        "failed": 0,
+        "skipped": 1,
+        "files": 305,
+        "skipReason": "Native SQLite restore test"
+      }
+    },
+    {
+      "id": 120923718335,
+      "name": "quality-and-e2e (mobile)",
+      "conclusion": "success",
+      "html_url": "https://github.com/lacombechristophe/freelio/actions/runs/40111403797/job/120923718335",
+      "sqlite": {
+        "passed": 4071,
+        "failed": 0,
+        "skipped": 0,
+        "files": 305
+      },
+      "browser": {
+        "passed": 243,
+        "failed": 0,
+        "skipped": 18,
+        "skipReason": "Eighteen mutating scenarios are exercised only on desktop"
+      },
+      "auditLogResults": {
+        "Auditer les dépendances de production": "found 0 vulnerabilities",
+        "Auditer toutes les dépendances": "found 0 vulnerabilities"
+      },
+      "mandatoryQualityGates": [
+        "typecheck",
+        "eslint",
+        "oxlint",
+        "coverage thresholds",
+        "production build"
+      ],
+      "downloadedLogSha256": "67716fa73ffd74f528d8f5c98587d1a104b2b4e715197c83e19b0ae5edd3b302"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 12567547244,
+      "name": "verification-sqlite-49118367bc381dec5ce4cfe20d8252eb38b6def1-mobile",
+      "zipSha256": "ca07d8fdebf1dc99326c8e96a23da27dbd3afeab98306c61b7160bc5ffd417a8",
+      "files": [
+        {
+          "name": "test-results/tested-commit.txt",
+          "sha256": "44d0596eb61e3ac2511b3425ddedc23be996ba342ba9519678984558ca2f8a53"
+        },
+        {
+          "name": "test-results/node-version.txt",
+          "sha256": "f2ec568164f99546161909b0189b57bb5be3e80f8e2ccd8a51a4aed8c4055a04"
+        },
+        {
+          "name": "coverage/coverage-summary.json",
+          "sha256": "82e23785031edf1cfc664170df99cb1ea00bf58ceba9ae86d308d1bda608cfe6"
+        }
+      ],
+      "coverageOnNamedModules": {
+        "lines": {
+          "total": 436,
+          "covered": 386,
+          "skipped": 0,
+          "pct": 88.53
+        },
+        "statements": {
+          "total": 546,
+          "covered": 467,
+          "skipped": 0,
+          "pct": 85.53
+        },
+        "functions": {
+          "total": 115,
+          "covered": 103,
+          "skipped": 0,
+          "pct": 89.56
+        },
+        "branches": {
+          "total": 722,
+          "covered": 484,
+          "skipped": 0,
+          "pct": 67.03
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 100
+        }
+      }
+    },
+    {
+      "id": 12567223891,
+      "name": "verification-sqlite-49118367bc381dec5ce4cfe20d8252eb38b6def1-desktop",
+      "zipSha256": "e162b953758cf0b9dca335a455ac1a8b487af59698a5e7d64c4e79a7d27fc5b2",
+      "files": [
+        {
+          "name": "test-results/tested-commit.txt",
+          "sha256": "44d0596eb61e3ac2511b3425ddedc23be996ba342ba9519678984558ca2f8a53"
+        },
+        {
+          "name": "test-results/node-version.txt",
+          "sha256": "f2ec568164f99546161909b0189b57bb5be3e80f8e2ccd8a51a4aed8c4055a04"
+        },
+        {
+          "name": "coverage/coverage-summary.json",
+          "sha256": "82e23785031edf1cfc664170df99cb1ea00bf58ceba9ae86d308d1bda608cfe6"
+        }
+      ],
+      "coverageOnNamedModules": {
+        "lines": {
+          "total": 436,
+          "covered": 386,
+          "skipped": 0,
+          "pct": 88.53
+        },
+        "statements": {
+          "total": 546,
+          "covered": 467,
+          "skipped": 0,
+          "pct": 85.53
+        },
+        "functions": {
+          "total": 115,
+          "covered": 103,
+          "skipped": 0,
+          "pct": 89.56
+        },
+        "branches": {
+          "total": 722,
+          "covered": 484,
+          "skipped": 0,
+          "pct": 67.03
+        },
+        "branchesTrue": {
+          "total": 0,
+          "covered": 0,
+          "skipped": 0,
+          "pct": 100
+        }
+      }
+    },
+    {
+      "id": 12567175423,
+      "name": "container-runtime-49118367bc381dec5ce4cfe20d8252eb38b6def1",
+      "zipSha256": "8030b7634d33b2be6fdce74419d3c21d8610003a2b9820742a3bc60c1db8718c",
+      "files": [
+        {
+          "name": "freelio/freelio/test-results/image-id.txt",
+          "sha256": "08c3c6b092d5fc9929f125bf007f0e904ab5853a9d74b5362b2faad39a191b94"
+        },
+        {
+          "name": "freelio/freelio/test-results/tested-commit.txt",
+          "sha256": "44d0596eb61e3ac2511b3425ddedc23be996ba342ba9519678984558ca2f8a53"
+        },
+        {
+          "name": "_temp/Freelio-linux-LWCjzX/verification.json",
+          "sha256": "61a9e7975cd6dd9549939518e23672b69863b6f5be20dcbaae1464bee0c09bb4"
+        }
+      ],
+      "imageId": "sha256:14666e0d59967e1df9455506875527b7a0cac33cedf6276db87141eacfeeb9cd",
+      "runtimeChecks": [
+        "Configuration de production vide refusée avant écoute",
+        "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+        "Données fictives créées par Prisma Linux",
+        "Serveur Linux et sondes live/ready avec SQL réel",
+        "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+        "Worker BullMQ connecté à Redis, PDF de devis terminé",
+        "Worker arrêté proprement sur SIGTERM",
+        "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+        "PDF Chromium hors réseau sous utilisateur runtime"
+      ]
+    },
+    {
+      "id": 12567059972,
+      "name": "ui-audit-reports-desktop",
+      "zipSha256": "ebf816242be0f87e29d2eaae60bc5ccadd8feb07713a23193a3acbb652811174",
+      "files": [
+        {
+          "name": "full-ui-audit/desktop/report.json",
+          "sha256": "5763dee1bc9f3d8cfbe9cc2d2198a16c4c72d7f5b452e538420e2599077d7e7d"
+        },
+        {
+          "name": "task-usability/desktop/evidence.json",
+          "sha256": "6c91cb7cd49f5ab2e1d642fd00f47b09b790949012c21d02a5ac3d728bed4396"
+        }
+      ]
+    },
+    {
+      "id": 12567019877,
+      "name": "ui-audit-reports-mobile",
+      "zipSha256": "3fee9ea66fb6ff70eada8127055ca46f2b2a022396a600916411ed18472bca6a",
+      "files": [
+        {
+          "name": "full-ui-audit/mobile/report.json",
+          "sha256": "a580a6d3e1de68d10d22f947fc2c06cd62a1dd4653c64493fb2fb2e50b6ed332"
+        },
+        {
+          "name": "task-usability/mobile/evidence.json",
+          "sha256": "220ba37d6b00039e945ad4b9d9b309539ad8f45cd219047ec5a90d44b4ed3d7d"
+        }
+      ]
+    },
+    {
+      "id": 12566384900,
+      "name": "verification-postgres-49118367bc381dec5ce4cfe20d8252eb38b6def1",
+      "zipSha256": "4a4e02e9a6cd3a7b2bff2e50477f8c4e457f04a2b414bd8ca454818bdc542717",
+      "files": [
+        {
+          "name": "unit-postgres.json",
+          "sha256": "c84deeef9777f7170ebeee9d802f4ed2dfbed9a845d0bf829cd1d4eb03265068"
+        },
+        {
+          "name": "tested-commit.txt",
+          "sha256": "44d0596eb61e3ac2511b3425ddedc23be996ba342ba9519678984558ca2f8a53"
+        },
+        {
+          "name": "node-version.txt",
+          "sha256": "f2ec568164f99546161909b0189b57bb5be3e80f8e2ccd8a51a4aed8c4055a04"
+        }
+      ]
+    }
+  ],
+  "coverageScope": [
+    "src/lib/finance/commercial-calculation.ts",
+    "src/lib/automations/delivery-retry.ts",
+    "src/lib/communications/delivery-events.ts",
+    "src/lib/migrations/ingest.ts",
+    "src/lib/migrations/normalize.ts",
+    "src/lib/pdf/facturx.ts"
+  ],
+  "limits": [
+    "Nineteen browser exclusions are counted separately, not as passes.",
+    "The PostgreSQL suite skips the native SQLite restore test.",
+    "Mocked providers and simulated transaction conflicts remain simulated.",
+    "This CI does not qualify authenticated hosted-demo access, production configuration, real providers, deliverability, sustained load, RTO or PITR."
+  ]
+}

@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash } from "node:crypto"
-import type { Prisma } from "@prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import { encrypt, decrypt, decryptSensitive } from "@/lib/crypto"
 import { storeFileBytes, readLocalFile, removeLocalFile } from "@/lib/local-files"
@@ -53,7 +53,7 @@ export async function discardIssuedInvoice(artifact: { pdfUrl: string }) {
   await removeLocalFile(artifact.pdfUrl)
 }
 
-export async function readIssuedInvoice(invoice: ArchivedInvoice) {
+export async function readIssuedInvoice(invoice: ArchivedInvoice, maxBytes = Infinity) {
   if (!invoice.issuedDocument || !invoice.pdfUrl || !invoice.pdfHash) {
     throw new Error("ISSUED_INVOICE_ARCHIVE_MISSING")
   }
@@ -61,7 +61,7 @@ export async function readIssuedInvoice(invoice: ArchivedInvoice) {
   const key = invoice.pdfUrl.replace(/^(local:|r2:)/, "")
   if (!key.startsWith(invoice.companyId + "/generated/" + invoice.id + "/")) throw new Error("ISSUED_INVOICE_ARCHIVE_SCOPE")
   const snapshot = snapshotSchema.parse(JSON.parse(decrypt(invoice.issuedDocument)))
-  const pdf = await readLocalFile(invoice.pdfUrl)
+  const pdf = await readLocalFile(invoice.pdfUrl, maxBytes)
   if (createHash("sha256").update(pdf).digest("hex") !== invoice.pdfHash) throw new Error("ISSUED_INVOICE_ARCHIVE_INTEGRITY")
   return { ...snapshot, pdf }
 }

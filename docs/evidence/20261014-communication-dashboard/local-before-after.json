@@ -1,0 +1,39 @@
+{
+  "baseline": "e74c0a8cdca407f9ccc79c5db9c72dd377bacb6a",
+  "baselineActionSha256": "61fb21b0fcd90e58277bad6b630ea54f7536e2b89d64a7ebdba3cba171b792f3",
+  "database": "isolated SQLite",
+  "authAndCache": "simulated session and Next cache; readers and Prisma remain real",
+  "observation": "Pending reader calls, not two simultaneously acquired SQLite write locks",
+  "before": {
+    "passed": 3,
+    "failed": 1,
+    "maximumPendingReaders": 2,
+    "failure": "Expected one pending reader, observed two"
+  },
+  "after": {
+    "passed": 12,
+    "failed": 0,
+    "maximumPendingReaders": 1,
+    "suites": [
+      {
+        "file": "communication-dashboard.integration.test.ts",
+        "cases": 4,
+        "status": "passed"
+      },
+      {
+        "file": "inbox-reader.integration.test.ts",
+        "cases": 4,
+        "status": "passed"
+      },
+      {
+        "file": "recipient-reader.integration.test.ts",
+        "cases": 4,
+        "status": "passed"
+      }
+    ]
+  },
+  "postgresParallelism": "Must still pass on the native PostgreSQL CI",
+  "browserRegression": "Must still pass on the compiled CI",
+  "transactionAndTestTimeoutsChanged": false,
+  "realProviderCalls": false
+}

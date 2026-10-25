@@ -21,6 +21,7 @@ import {
   RecordMetric,
 } from "@/app/dashboard/operations/_components/record-ui";
 import { Badge } from "@/components/ui/badge";
+import { EquipmentManagementButtons } from "@/app/dashboard/operations/asset-editors";
 import {
   Card,
   CardContent,
@@ -73,11 +74,17 @@ export default async function EquipmentDetailPage({
           </>
         }
         actions={
-          <Badge
+          <><Badge
             variant={equipment.status === "ACTIVE" ? "secondary" : "outline"}
           >
             {equipment.status}
           </Badge>
+          {equipment.archivedAt ? <Badge variant="outline">Référencement désactivé</Badge> : null}
+          <EquipmentManagementButtons canManage={equipment.canManage} equipment={{ id: equipment.id, label: equipment.label, status: equipment.status,
+            category: equipment.category, manufacturer: equipment.manufacturer, model: equipment.model, serialNumber: equipment.serialNumber, productId: equipment.productId,
+            installedAt: equipment.installedAt?.toISOString() ?? null, warrantyUntil: equipment.warrantyUntil?.toISOString() ?? null, notes: equipment.notes,
+            archivedAt: equipment.archivedAt?.toISOString() ?? null, updatedAt: equipment.updatedAt.toISOString(), site: { label: equipment.site.label, client: { name: equipment.site.client.name } } }} />
+          </>
         }
       />
       <section className="record-metrics grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">

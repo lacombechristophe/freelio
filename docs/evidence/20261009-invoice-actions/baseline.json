@@ -1,0 +1,218 @@
+{
+  "schema": "freelio.invoice-action-scope.v1",
+  "phase": "baseline",
+  "baseCommit": "d1cd591a933835fed0b3fce6bd1b454df99a3644",
+  "database": "SQLite, isolated fictitious recipe",
+  "source": [
+    {
+      "file": "src/actions/factures/index.ts",
+      "sha256": "ba1984f6a74ad61d4876fdcad81ff2c206dccab22428ba1428be283d809b4798"
+    },
+    {
+      "file": "src/lib/finance/invoice-reminder-sender.ts",
+      "sha256": "2a96307eb23343eb96d8e4708bbc1d0022376870c764b39e6c55645c7accb9b5"
+    }
+  ],
+  "tests": [
+    {
+      "file": "tests/unit/invoice-action-scope.integration.test.ts",
+      "sha256": "8fac1cb04564d0993d385ef06f2bcf4cea769869a9042c14be62fdd3a2eaaba0"
+    },
+    {
+      "file": "tests/unit/invoice-reminder-command.integration.test.ts",
+      "sha256": "d743763329500438aea75e4731a0af958fd592d1bc60cf05ba83ecd568f7f50a"
+    }
+  ],
+  "total": 43,
+  "passed": 14,
+  "failed": 29,
+  "suites": [
+    {
+      "file": "invoice-action-scope.integration.test.ts",
+      "cases": [
+        {
+          "name": "excludes an invoice attached to another company's client from the list",
+          "status": "failed"
+        },
+        {
+          "name": "excludes unbilled times attached to another company's client",
+          "status": "failed"
+        },
+        {
+          "name": "rejects unbilled-time reads before querying financial data for SALES",
+          "status": "failed"
+        },
+        {
+          "name": "rejects unbilled-time reads before querying financial data for OPERATIONS",
+          "status": "failed"
+        },
+        {
+          "name": "rejects unbilled-time reads before querying financial data for TECHNICIAN",
+          "status": "failed"
+        },
+        {
+          "name": "rejects unbilled-time reads before querying financial data for SERVICE",
+          "status": "failed"
+        },
+        {
+          "name": "rejects payment writes before reading the invoice for SALES",
+          "status": "failed"
+        },
+        {
+          "name": "rejects payment writes before reading the invoice for OPERATIONS",
+          "status": "failed"
+        },
+        {
+          "name": "rejects payment writes before reading the invoice for TECHNICIAN",
+          "status": "failed"
+        },
+        {
+          "name": "rejects payment writes before reading the invoice for SERVICE",
+          "status": "failed"
+        },
+        {
+          "name": "rejects payment writes before reading the invoice for VIEWER",
+          "status": "failed"
+        },
+        {
+          "name": "refuses issue on an invoice with a foreign client without side effects",
+          "status": "failed"
+        },
+        {
+          "name": "refuses payment on an invoice with a foreign client without side effects",
+          "status": "failed"
+        },
+        {
+          "name": "refuses credit on an invoice with a foreign client without side effects",
+          "status": "failed"
+        },
+        {
+          "name": "refuses reminder on an invoice with a foreign client without side effects",
+          "status": "failed"
+        },
+        {
+          "name": "refuses delete on an invoice with a foreign client without side effects",
+          "status": "failed"
+        },
+        {
+          "name": "refuses updating an inconsistent draft without replacing its client",
+          "status": "failed"
+        },
+        {
+          "name": "refuses invoicing times linked to a foreign client without consuming them",
+          "status": "failed"
+        },
+        {
+          "name": "rejects credit before invoice or time reads for Viewer",
+          "status": "failed"
+        },
+        {
+          "name": "rejects reminder before invoice or time reads for Viewer",
+          "status": "failed"
+        },
+        {
+          "name": "rejects delete before invoice or time reads for Viewer",
+          "status": "failed"
+        },
+        {
+          "name": "rejects update before invoice or time reads for Viewer",
+          "status": "failed"
+        },
+        {
+          "name": "rejects create before invoice or time reads for Viewer",
+          "status": "failed"
+        },
+        {
+          "name": "rejects time before invoice or time reads for Viewer",
+          "status": "failed"
+        },
+        {
+          "name": "does not subtract a foreign credit from the available local credit amount",
+          "status": "failed"
+        },
+        {
+          "name": "still subtracts coherent credits and refuses over-crediting",
+          "status": "passed"
+        },
+        {
+          "name": "does not subtract a local credit attached to a different client",
+          "status": "failed"
+        },
+        {
+          "name": "keeps financial reads available to Viewer",
+          "status": "passed"
+        },
+        {
+          "name": "blocks payment before invoice reads in the public demo",
+          "status": "failed"
+        },
+        {
+          "name": "preserves coherent payments for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "preserves coherent payments for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "preserves coherent payments for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "name": "preserves invoice issuing for Owner",
+          "status": "passed"
+        },
+        {
+          "name": "preserves reminder preparation for Accounting",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "invoice-reminder-command.integration.test.ts",
+      "cases": [
+        {
+          "name": "journals the original private mailbox and native Message-ID for an accountant",
+          "status": "passed"
+        },
+        {
+          "name": "repairs accepted history after payment without another remote send",
+          "status": "passed"
+        },
+        {
+          "name": "retains the prepared draft and custom content across a timeout, rejecting changed intent",
+          "status": "passed"
+        },
+        {
+          "name": "blocks a paid invoice both initially and immediately before remote dispatch",
+          "status": "passed"
+        },
+        {
+          "name": "refuses ambiguous legacy attempts while allowing a failed preflight to be corrected",
+          "status": "passed"
+        },
+        {
+          "name": "refuses a frozen amount after a partial payment instead of sending an outdated balance",
+          "status": "passed"
+        },
+        {
+          "name": "refuses an outdated preview before the first attempt and refuses unknown legacy balances",
+          "status": "passed"
+        },
+        {
+          "name": "rejects a reminder with a foreign client before preparing a delivery",
+          "status": "failed"
+        },
+        {
+          "name": "rechecks client company immediately before dispatch",
+          "status": "failed"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Authentication session, Next cache and invoice archive rendering are mocked.",
+    "Reminder transport is simulated; its existing recipient guard already refused the incoherent client.",
+    "Failures include authorization timing assertions, not only accepted writes."
+  ]
+}

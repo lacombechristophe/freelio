@@ -1,0 +1,37 @@
+{
+  "baseline": "6c2e18b54c7caa27710840d7ae7b44962500e7db",
+  "method": "Before implementation, matching baseline recipe plus the new reproduction test",
+  "baselineModules": [
+    "src/lib/marketing/campaign-preflight.ts",
+    "src/lib/marketing/campaign-activation.ts"
+  ],
+  "reproduction": "campaign-reproduction.test.ts.txt",
+  "reproductionSha256": "4726d58efed0544eb3a4a13ad5757dfbad79dcdbeb9ea0b621d2715696d96f8a",
+  "filter": null,
+  "http": "Forbidden for campaign; fictional mock for transport",
+  "rawReportSha256": "69e5e051ccca9f37c714ad4094ac25c431721a652e6c4111c26d7121c5791eb2",
+  "total": 3,
+  "passed": 0,
+  "failed": 3,
+  "pending": 0,
+  "files": 1,
+  "failedFiles": 1,
+  "success": false,
+  "failures": [
+    {
+      "file": "campaign-send-readiness.integration.test.ts",
+      "title": "reports an unconfigured quota even when the retained content is valid",
+      "failure": "AssertionError: expected { …(10) } to match object { ok: true, dispatch: { …(2) } }"
+    },
+    {
+      "file": "campaign-send-readiness.integration.test.ts",
+      "title": "refuses capture without an explicit quota before creating an audience or audit",
+      "failure": "Error: promise resolved \"{ success: true, …(1) }\" instead of rejecting"
+    },
+    {
+      "file": "campaign-send-readiness.integration.test.ts",
+      "title": "refuses capture when an administrator has disabled the quota policy",
+      "failure": "Error: promise resolved \"{ success: true, …(1) }\" instead of rejecting"
+    }
+  ]
+}

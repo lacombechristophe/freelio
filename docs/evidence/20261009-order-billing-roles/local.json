@@ -1,0 +1,63 @@
+{
+  "schema": "freelio.order-billing-local.v1",
+  "date": "2026-10-09",
+  "codeCommit": "39a396516da4ec23497d3bb157c60efd77ecb52f",
+  "environment": "Isolated Windows recipe, fictitious SQLite; no existing environment files or provider calls",
+  "steps": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 22.759
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 77.021
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.379
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 299.477
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 141.076
+    }
+  ],
+  "unit": {
+    "files": 185,
+    "passed": 1591,
+    "reportSha256": "7bd061d74a94d8bb2f041cbf8b820c36348a795c373500ec7b1f16b9af4101eb",
+    "failed": 0,
+    "skipped": 0,
+    "focused": [
+      {
+        "file": "order-billing-references.integration.test.ts",
+        "passed": 14
+      },
+      {
+        "file": "order-billing-roles.integration.test.ts",
+        "passed": 19
+      }
+    ]
+  },
+  "browser": {
+    "loaded": 14,
+    "files": 3,
+    "finalTypesExitCode": 0,
+    "executedLocally": 0,
+    "newAccountingCases": 4
+  },
+  "limits": [
+    "Session and Next cache mocked in SQL suites; actual actions, DAL and transactions",
+    "Intermediate relationship mutation injected; not concurrent independent connections",
+    "No issued invoice, PDF, payment or external supplier qualification",
+    "PostgreSQL and compiled browser require the candidate CI"
+  ]
+}

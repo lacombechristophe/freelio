@@ -1,0 +1,123 @@
+{
+  "schema": "freelio.logical-export-volume.v1",
+  "observedAt": "2026-10-25T01:48:00.055451+00:00",
+  "baseline": "a54a8f509e1733574f6cca268afa8b6cf126c8d5",
+  "remoteBaseline": {
+    "run": 40148604560,
+    "url": "https://github.com/lacombechristophe/freelio/actions/runs/40148604560",
+    "conclusion": "failure",
+    "postgresPassed": 4126,
+    "postgresSkipped": 1,
+    "desktop": {
+      "passed": 259,
+      "failed": 1,
+      "skipped": 1
+    },
+    "mobile": {
+      "passed": 242,
+      "failed": 1,
+      "skipped": 18
+    },
+    "failedRoute": "GET /api/backup/export",
+    "errorCode": "P2029"
+  },
+  "reproduction": {
+    "initialSql": {
+      "numPassedTests": 0,
+      "numFailedTests": 3,
+      "success": false
+    },
+    "genericToken": {
+      "numPassedTests": 7,
+      "numFailedTests": 1,
+      "success": false
+    },
+    "afterTokenFix": {
+      "numPassedTests": 1,
+      "numFailedTests": 2,
+      "success": false
+    },
+    "nativeBindProbe": [
+      {
+        "parameters": 1001,
+        "status": "error",
+        "code": "P2029"
+      },
+      {
+        "parameters": 10001,
+        "status": "error",
+        "code": "P2029"
+      },
+      {
+        "parameters": 32767,
+        "status": "error",
+        "code": "P2029"
+      }
+    ]
+  },
+  "qualification": {
+    "sqlite": {
+      "numPassedTests": 17,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "success": true
+    },
+    "postgres": {
+      "numTotalTests": 17,
+      "numPassedTests": 17,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "success": true
+    },
+    "postgresImage": "docker.io/library/postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+    "compiledHttp": {
+      "checks": [
+        "Production build succeeds on candidate backup and health sources",
+        "Normal Auth.js CSRF/password flow authenticates the owned fictitious owner; cookies remain in memory",
+        "Authenticated compiled export returns HTTP 200 with all 1,001 category and audit witnesses, no duplicates and no bearer/password fields"
+      ],
+      "exportStatus": 200,
+      "manifestStatus": "COMPLETE",
+      "exportedCategories": 1001,
+      "exportedAudits": 1001,
+      "httpSeconds": 0.375,
+      "bodySha256": "2d4040cb7febbe6ac30d07bfb3b6dcf7535cd2f61e956df27df217e912a53595",
+      "ownedServerStopped": true,
+      "success": true
+    },
+    "typesAndLintersPassed": true
+  },
+  "sourceSha256": {
+    "src/lib/backup.ts": "8cd4f8a51aef0cd7b128313df50cc0d745111c3df367a240e99ccb3ba3166d6a",
+    "src/lib/backup-integrity.ts": "b0fc0a864d001994f06943225a3414a05c9d12e19d3f46c9cfa076ec339e1cc8",
+    "tests/unit/backup-export-volume.integration.test.ts": "c60ee7eb028c6048194783c0ddb417318c03ce8ae6dd7614daeae9b8b515d58e",
+    "tests/unit/backup-integrity.test.ts": "999b087c39dd046bdb00000e296b3357e5bec1a2f93a61bdf18fdd3ffa1b7377"
+  },
+  "rawReportSha256": {
+    "backup-volume-before.json": "f3a2580ac5e75b76f1711d7f75f734da4634f11237486c57ccbfae4f907ca067",
+    "backup-token-before.json": "9d1c6a658f90bb41813a92918e2d54b6ac14b0f49c6e9df8bd445bae7400ce59",
+    "backup-token-after.json": "db2c159477a9fa0a826640b9a65d51f3228bd91856999cfc66207db510b07cab",
+    "backup-volume-after-token.json": "3c496f4a92d604cd360a27ba2ae38031238ca6d65a0f993df2d12f3c4542d6cc",
+    "backup-volume-after.json": "5dfe892e269932be6a07d270cd844b3fb7abad7be02f573a0f023a4bad0db256",
+    "postgres-7be95fc043c2/unit-postgres.json": "d251024d8a3e46d3a0950f85cb5d2c289880810cbed3f83281cd5b533e84d92d",
+    "postgres-7be95fc043c2/verification.json": "d276373eba4da3d76ecc5721f551653c1a2eeeb944f031740d66443c646358ef",
+    "backup-http-verification.json": "0235adfdae794fe07195c7183f347ff204c2bb86e7f2690a7882c96929e5a801",
+    "backup-http-build.log": "c1402c0d6ce8a17685a83ddd7a5f9720681b6752cbb87a938a990b074723f141",
+    "backup-volume-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prisma7-bind-limit-probe.jsonl": "00a3920ef4df02b1cfda68a81eff8c848ea5cc990b972538dc4e4f4d200ffa46"
+  },
+  "invariants": [
+    "All resources and all matching audit pages retained; resource chunks and SQL result pages contain at most 250 identifiers/rows.",
+    "User membership predicates are evaluated in the same serializable snapshot as the exported tables; requesting user, shared members and inactive members retain previous inclusion rules.",
+    "Audit rows remain the intersection of exported resources and company users. Disjoint resource chunks prevent duplicate audit rows.",
+    "The existing 50,000 row and 16 MiB table limits remain; user pages now also count toward these budgets. Transaction timeout remains 30 seconds.",
+    "Generic token fields are removed case-insensitively; counters and integrity hashes remain."
+  ],
+  "limits": [
+    "Native PostgreSQL mounts only the qualified backup source and test files over the previous Prisma 7 qualification image; this is not a full image requalification.",
+    "Compiled HTTP uses a new fictitious SQLite, the documented E2E credentials profile and local memory limiter. It does not validate real Upstash, OAuth, Neon or hosted login.",
+    "No local browser, provider send, existing database, production alias or real secret is used.",
+    "Complete remote CI on the published fixes remains required."
+  ],
+  "qualifiedCodeCommit": "a70e0dc5b7533dfd18f2a3e34286d47c1189c602"
+}

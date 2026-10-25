@@ -1,0 +1,234 @@
+{
+  "schema": "freelio.site-transfers-local.v1",
+  "observedAt": "2026-10-20T10:00:56.863Z",
+  "codeCommit": "ae1b02f8d7b95e54c8adf626dca83ac7d2406ae7",
+  "source": {
+    "observedAt": "2026-10-20T10:00:56.792Z",
+    "commit": "ae1b02f8d7b95e54c8adf626dca83ac7d2406ae7",
+    "filesCompared": 1108,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "5e95124223fb9528211ba584ed041719f71bb250f4f286f5d3ea86336a23dfdc",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "first": {
+    "nativeReport": "site-transfers-first-20261020.json",
+    "sha256": "bbf15c5122a72d161edaa3263cc12160ffc4a918bed63266a846525af03d036a",
+    "success": true,
+    "total": 40,
+    "passed": 40,
+    "failed": 0,
+    "pending": 0,
+    "files": 2,
+    "suites": [
+      {
+        "file": "asset-commands.test.ts",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "file": "site-transfers.integration.test.ts",
+        "passed": 23,
+        "failed": 0
+      }
+    ]
+  },
+  "expanded": {
+    "nativeReport": "site-transfers-expanded-20261020.json",
+    "sha256": "85f692d86f6a012b93394090b4fe140c241e0ecadfc84480fbd9ba416c387c11",
+    "success": true,
+    "total": 163,
+    "passed": 163,
+    "failed": 0,
+    "pending": 0,
+    "files": 7,
+    "suites": [
+      {
+        "file": "asset-choices.integration.test.ts",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "file": "asset-commands.test.ts",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "file": "asset-import-lifecycle.integration.test.ts",
+        "passed": 22,
+        "failed": 0
+      },
+      {
+        "file": "asset-management.integration.test.ts",
+        "passed": 46,
+        "failed": 0
+      },
+      {
+        "file": "asset-reference-lifecycle.integration.test.ts",
+        "passed": 25,
+        "failed": 0
+      },
+      {
+        "file": "operations-asset-relations.integration.test.ts",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "file": "site-transfers.integration.test.ts",
+        "passed": 28,
+        "failed": 0
+      }
+    ]
+  },
+  "full": {
+    "nativeReport": "full-sqlite-transfers-20261020.json",
+    "sha256": "5f4803f84a83be1768fe56a1bc710c9ec7772b3096cab50a10ee2f2a58b6f86c",
+    "success": true,
+    "total": 2664,
+    "passed": 2664,
+    "failed": 0,
+    "pending": 0,
+    "files": 235,
+    "suites": [
+      {
+        "file": "asset-choices.integration.test.ts",
+        "passed": 15,
+        "failed": 0
+      },
+      {
+        "file": "asset-commands.test.ts",
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "file": "asset-import-lifecycle.integration.test.ts",
+        "passed": 22,
+        "failed": 0
+      },
+      {
+        "file": "asset-management.integration.test.ts",
+        "passed": 46,
+        "failed": 0
+      },
+      {
+        "file": "asset-reference-lifecycle.integration.test.ts",
+        "passed": 25,
+        "failed": 0
+      },
+      {
+        "file": "operations-asset-relations.integration.test.ts",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "file": "site-transfers.integration.test.ts",
+        "passed": 28,
+        "failed": 0
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "types-final",
+      "exitCode": 0,
+      "log": "Freelio-site-transfers-types-final-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "eslint-final",
+      "exitCode": 0,
+      "log": "Freelio-site-transfers-eslint-final-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "oxlint-final",
+      "exitCode": 0,
+      "log": "Freelio-site-transfers-oxlint-final-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "log": "Freelio-site-transfers-build-20261020.log",
+      "sha256": "935b22d7ad01eb60ed23e448fb7b460baab53fa11c142763ad054ab290cbfdeb"
+    }
+  ],
+  "coverage": {
+    "sha256": "17fe1e2342324e1c05928239d7ad7b6b9fad1284e670bb5c39c2215e576b5552",
+    "modules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T09:53:50.762Z",
+    "baseline": "ae1b02f8d7b95e54c8adf626dca83ac7d2406ae7",
+    "all": 446,
+    "desktop": 223,
+    "mobile": 223,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "limits": [
+    "Auth.js and Next cache mocked; real actions, memberships, constraints and transactions on isolated SQLite",
+    "The 302-project case verifies a bulk update without a page cap, not load capacity",
+    "The SQLite concurrent-revision test is not PostgreSQL concurrency qualification",
+    "Compiled build passes; browser cases listed only, not executed",
+    "No original application data, external provider, paid service, remote push, CI workflow or deployment used"
+  ]
+}

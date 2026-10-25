@@ -1,0 +1,105 @@
+{
+  "schema": "freelio.delivery-seal-baseline.v1",
+  "observedAt": "2026-10-21T10:03:54.941Z",
+  "codeCommit": "643898a689dba6bb40811ceabdeafcf7c5efa2fa",
+  "file": "delivery-baseline-20261021.json",
+  "sha256": "2f4d5387c3dfe018ee33b06303896fccd25c55ec06b0b7954e584de19097b126",
+  "passed": 1,
+  "failed": 21,
+  "pending": 0,
+  "total": 22,
+  "files": 1,
+  "success": false,
+  "failedCases": [
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "creates a coherent order with one audit and exact integer-cent totals"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "refuses new orders using foreign supplier"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "refuses new orders using inactive product"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "refuses new orders using completed project"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "deliver: rejects foreign client"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "deliver: rejects foreign product"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "deliver: rejects foreign supplier"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "deliver: rejects different project client"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "sign: rejects foreign client"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "sign: rejects foreign product"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "sign: rejects foreign supplier"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "sign: rejects different project client"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "preview: rejects foreign client"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "preview: rejects foreign product"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "preview: rejects foreign supplier"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "preview: rejects different project client"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "keeps decimal deliveries exact across 0.1 and 0.2"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "does not revive an order canceled during delivery preparation"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "rejects a delivery line belonging to another order when sealing or previewing"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "keeps the signed document identical after current identities and lines change"
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "title": "refuses to regenerate a historical signed note without a captured document"
+    }
+  ],
+  "classification": "The 21 failed outcomes include missing audit, relation isolation, decimal delivery, stale cancellation and immutable/historical document behavior; they are not 21 independent vulnerabilities. The initial cent-total assertion passed; that case failed on its missing audit.",
+  "oracleEvolution": [
+    "Later added 21 cases for roles, rollback, VAT, dates, small quantities, site ownership and encrypted capture binding",
+    "The final delivery fixture books the pre-existing note into deliveredQuantity and adds 1+1 to reach the same three-unit target",
+    "The tax-bearing fixture is now explicit; a separate exempt-company case preserves coverage of the default"
+  ]
+}

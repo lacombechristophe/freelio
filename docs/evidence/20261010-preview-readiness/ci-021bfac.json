@@ -1,0 +1,911 @@
+{
+  "schema": "freelio.ci-result.v1",
+  "candidate": "021bface3a527c75f4657720fabb22667d4e0cfc",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 972,
+    "sha256": "a4b6742b46109313827c013d534af3ea663967d53d15fa270dfe2bd77be36fcf"
+  },
+  "sourceComparison": {
+    "merge": "5813c2e8029bc01555f994b57702040916f62de4",
+    "parents": [
+      "0e9109483cb596dd760bb755c50a831952bdf8ab",
+      "021bface3a527c75f4657720fabb22667d4e0cfc"
+    ],
+    "candidateEntries": 972,
+    "mergeEntries": 972,
+    "differencesOutsideDocs": 0
+  },
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38046692203",
+      "conclusion": "failure",
+      "testedCommit": "021bface3a527c75f4657720fabb22667d4e0cfc",
+      "parents": [
+        "e0385b462c483ad029c46b472a2df1d1206a621a"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114197548900,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114197549017,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114197549064,
+          "conclusion": "success"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114197548900,
+          "attempt": 1,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114197549017,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114197549064,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  192 passed (192)",
+        "Tests  1672 passed (1672)",
+        "Test Files  192 passed (192)",
+        "Tests  1672 passed (1672)"
+      ],
+      "postgres": {
+        "artifactId": 11668200671,
+        "reportSha256": "5a3e44522c9d3cbadd96f9f741f08da0d30371ab65ca71537b868f9b87a01edc",
+        "passed": 1671,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "auth-context-module-reload.integration.test.ts",
+            "status": "passed",
+            "cases": 8
+          },
+          {
+            "file": "auth-context.integration.test.ts",
+            "status": "passed",
+            "cases": 7
+          },
+          {
+            "file": "calendar-days.test.ts",
+            "status": "passed",
+            "cases": 10
+          },
+          {
+            "file": "catalogue-pagination.integration.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "client-mutation-response.integration.test.ts",
+            "status": "passed",
+            "cases": 22
+          },
+          {
+            "file": "client-profile-finance.integration.test.ts",
+            "status": "passed",
+            "cases": 21
+          },
+          {
+            "file": "contact-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 36
+          },
+          {
+            "file": "credit-note-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "disabled-storage.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "document-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 33
+          },
+          {
+            "file": "invoice-action-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 34
+          },
+          {
+            "file": "invoice-payment-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "invoice-reminder-command.integration.test.ts",
+            "status": "passed",
+            "cases": 9
+          },
+          {
+            "file": "operations-assets.integration.test.ts",
+            "status": "passed",
+            "cases": 20
+          },
+          {
+            "file": "operations-order-directory.integration.test.ts",
+            "status": "passed",
+            "cases": 19
+          },
+          {
+            "file": "operations-order-finance.integration.test.ts",
+            "status": "passed",
+            "cases": 16
+          },
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 23
+          },
+          {
+            "file": "order-billing-references.integration.test.ts",
+            "status": "passed",
+            "cases": 14
+          },
+          {
+            "file": "order-billing-roles.integration.test.ts",
+            "status": "passed",
+            "cases": 19
+          },
+          {
+            "file": "order-billing-stale-balance.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          },
+          {
+            "file": "order-linked-invoice.integration.test.ts",
+            "status": "passed",
+            "cases": 14
+          },
+          {
+            "file": "organisation-domain-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 15
+          },
+          {
+            "file": "readiness.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "recurring-generation.integration.test.ts",
+            "status": "passed",
+            "cases": 13
+          },
+          {
+            "file": "recurring-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 26
+          },
+          {
+            "file": "service-analytics-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 40
+          },
+          {
+            "file": "service-calendar.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          },
+          {
+            "file": "service-detail-client-metrics.integration.test.ts",
+            "status": "passed",
+            "cases": 27
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "status": "passed",
+            "cases": 58
+          },
+          {
+            "file": "shared-health-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 65
+          },
+          {
+            "file": "stock-reservation-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 12
+          },
+          {
+            "file": "stock-reservation-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 12
+          },
+          {
+            "file": "workspace-access.integration.test.ts",
+            "status": "passed",
+            "cases": 31
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11667796222,
+        "reportSha256": "ddcb2d60c49c74cdae2fb14dcea60bc3626cfc484d9c1b8ceefead1e0e2f76ff",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "1 failed",
+          "19 skipped",
+          "304 passed (17.9m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          },
+          {
+            "file": "catalogue-volume",
+            "passed": 6
+          },
+          {
+            "file": "document-relations",
+            "passed": 6
+          },
+          {
+            "file": "recurring-invoices",
+            "passed": 8
+          },
+          {
+            "file": "operations-order-finance",
+            "passed": 6
+          },
+          {
+            "file": "operations-order-directory",
+            "passed": 4
+          },
+          {
+            "file": "order-billing-accounting",
+            "passed": 4
+          },
+          {
+            "file": "document-calendar-dates",
+            "passed": 8
+          },
+          {
+            "file": "organisation-permissions",
+            "passed": 6
+          }
+        ],
+        "taskCases": [
+          "✓  140 [desktop] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.2s)",
+          "✓  141 [desktop] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (660ms)",
+          "✓  142 [desktop] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (1.5s)",
+          "✓  143 [desktop] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (478ms)",
+          "✓  144 [desktop] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (728ms)",
+          "✓  145 [desktop] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation (805ms)",
+          "✓  147 [desktop] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (670ms)",
+          "✓  148 [desktop] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (970ms)",
+          "✓  149 [desktop] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (541ms)",
+          "✓  150 [desktop] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (844ms)",
+          "✓  151 [desktop] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (10.7s)",
+          "✓  152 [desktop] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (4.4s)",
+          "✓  153 [desktop] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (3.4s)",
+          "✓  154 [desktop] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.1s)",
+          "✓  302 [mobile] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.1s)",
+          "✓  303 [mobile] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (604ms)",
+          "✓  304 [mobile] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (1.6s)",
+          "✓  305 [mobile] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (498ms)",
+          "✓  306 [mobile] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (793ms)",
+          "✓  308 [mobile] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture (1.3s)",
+          "✓  309 [mobile] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (839ms)",
+          "✓  310 [mobile] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (830ms)",
+          "✓  311 [mobile] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (529ms)",
+          "✓  312 [mobile] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (878ms)",
+          "✓  313 [mobile] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (14.0s)",
+          "✓  314 [mobile] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (4.9s)",
+          "✓  315 [mobile] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (4.2s)",
+          "✓  316 [mobile] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.2s)"
+        ],
+        "calendarCases": [
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.8
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.4
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.6
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.3
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.4
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.3
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.5
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.2
+          }
+        ],
+        "exclusions": [
+          "-  146 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  210 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  211 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  213 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  214 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  215 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  216 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  217 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  218 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  219 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  220 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  221 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  222 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  223 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  224 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  225 [mobile] › tests/e2e/critical-flows.spec.ts:1601:5 › creates and signs in a production account with a password",
+          "-  270 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  307 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  317 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ]
+      },
+      "artifacts": [
+        {
+          "id": 11668861086,
+          "name": "ui-audit-reports",
+          "bytes": 160742738
+        },
+        {
+          "id": 11668786100,
+          "name": "verification-sqlite-021bface3a527c75f4657720fabb22667d4e0cfc",
+          "bytes": 1003
+        },
+        {
+          "id": 11668771104,
+          "name": "playwright-report",
+          "bytes": 171093455
+        },
+        {
+          "id": 11668200671,
+          "name": "verification-postgres-021bface3a527c75f4657720fabb22667d4e0cfc",
+          "bytes": 71897
+        },
+        {
+          "id": 11667796222,
+          "name": "container-runtime-021bface3a527c75f4657720fabb22667d4e0cfc",
+          "bytes": 1607
+        }
+      ]
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38046694363",
+      "conclusion": "failure",
+      "testedCommit": "5813c2e8029bc01555f994b57702040916f62de4",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "021bface3a527c75f4657720fabb22667d4e0cfc"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114197555307,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114197555504,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114197555532,
+          "conclusion": "success"
+        }
+      ],
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 114197555307,
+          "attempt": 1,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114197555504,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114197555532,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  192 passed (192)",
+        "Tests  1672 passed (1672)",
+        "Test Files  192 passed (192)",
+        "Tests  1672 passed (1672)"
+      ],
+      "postgres": {
+        "artifactId": 11668000876,
+        "reportSha256": "ab55075d178f306feaa546397d226026c78fd38e500a70ebd614cfc1e57781c0",
+        "passed": 1671,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "auth-context-module-reload.integration.test.ts",
+            "status": "passed",
+            "cases": 8
+          },
+          {
+            "file": "auth-context.integration.test.ts",
+            "status": "passed",
+            "cases": 7
+          },
+          {
+            "file": "calendar-days.test.ts",
+            "status": "passed",
+            "cases": 10
+          },
+          {
+            "file": "catalogue-pagination.integration.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "client-mutation-response.integration.test.ts",
+            "status": "passed",
+            "cases": 22
+          },
+          {
+            "file": "client-profile-finance.integration.test.ts",
+            "status": "passed",
+            "cases": 21
+          },
+          {
+            "file": "contact-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 36
+          },
+          {
+            "file": "credit-note-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "disabled-storage.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "document-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 33
+          },
+          {
+            "file": "invoice-action-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 34
+          },
+          {
+            "file": "invoice-payment-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 4
+          },
+          {
+            "file": "invoice-reminder-command.integration.test.ts",
+            "status": "passed",
+            "cases": 9
+          },
+          {
+            "file": "operations-assets.integration.test.ts",
+            "status": "passed",
+            "cases": 20
+          },
+          {
+            "file": "operations-order-directory.integration.test.ts",
+            "status": "passed",
+            "cases": 19
+          },
+          {
+            "file": "operations-order-finance.integration.test.ts",
+            "status": "passed",
+            "cases": 16
+          },
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 23
+          },
+          {
+            "file": "order-billing-references.integration.test.ts",
+            "status": "passed",
+            "cases": 14
+          },
+          {
+            "file": "order-billing-roles.integration.test.ts",
+            "status": "passed",
+            "cases": 19
+          },
+          {
+            "file": "order-billing-stale-balance.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          },
+          {
+            "file": "order-linked-invoice.integration.test.ts",
+            "status": "passed",
+            "cases": 14
+          },
+          {
+            "file": "organisation-domain-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 15
+          },
+          {
+            "file": "readiness.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "recurring-generation.integration.test.ts",
+            "status": "passed",
+            "cases": 13
+          },
+          {
+            "file": "recurring-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 26
+          },
+          {
+            "file": "service-analytics-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 40
+          },
+          {
+            "file": "service-calendar.integration.test.ts",
+            "status": "passed",
+            "cases": 6
+          },
+          {
+            "file": "service-detail-client-metrics.integration.test.ts",
+            "status": "passed",
+            "cases": 27
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "status": "passed",
+            "cases": 58
+          },
+          {
+            "file": "shared-health-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 65
+          },
+          {
+            "file": "stock-reservation-concurrency.integration.test.ts",
+            "status": "passed",
+            "cases": 12
+          },
+          {
+            "file": "stock-reservation-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 12
+          },
+          {
+            "file": "workspace-access.integration.test.ts",
+            "status": "passed",
+            "cases": 31
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11666734715,
+        "reportSha256": "ed9570b33dc78c70e3a917df63f94203b906a016f2bb2c881c8a1d10f1201f87",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "1 failed",
+          "19 skipped",
+          "304 passed (17.4m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          },
+          {
+            "file": "catalogue-volume",
+            "passed": 6
+          },
+          {
+            "file": "document-relations",
+            "passed": 6
+          },
+          {
+            "file": "recurring-invoices",
+            "passed": 8
+          },
+          {
+            "file": "operations-order-finance",
+            "passed": 6
+          },
+          {
+            "file": "operations-order-directory",
+            "passed": 4
+          },
+          {
+            "file": "order-billing-accounting",
+            "passed": 4
+          },
+          {
+            "file": "document-calendar-dates",
+            "passed": 8
+          },
+          {
+            "file": "organisation-permissions",
+            "passed": 6
+          }
+        ],
+        "taskCases": [
+          "✓  140 [desktop] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.1s)",
+          "✓  141 [desktop] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (738ms)",
+          "✓  142 [desktop] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (1.3s)",
+          "✓  143 [desktop] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (463ms)",
+          "✓  144 [desktop] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (682ms)",
+          "✓  145 [desktop] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation (836ms)",
+          "✓  147 [desktop] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (662ms)",
+          "✓  148 [desktop] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (855ms)",
+          "✓  149 [desktop] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (514ms)",
+          "✓  150 [desktop] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (826ms)",
+          "✓  151 [desktop] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (10.2s)",
+          "✓  152 [desktop] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (3.6s)",
+          "✓  153 [desktop] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (3.4s)",
+          "✓  154 [desktop] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.1s)",
+          "✓  302 [mobile] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (982ms)",
+          "✓  303 [mobile] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (574ms)",
+          "✓  304 [mobile] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (1.5s)",
+          "✓  305 [mobile] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (481ms)",
+          "✓  306 [mobile] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (744ms)",
+          "✓  308 [mobile] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture (1.3s)",
+          "✓  309 [mobile] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (641ms)",
+          "✓  310 [mobile] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (1.0s)",
+          "✓  311 [mobile] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (497ms)",
+          "✓  312 [mobile] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (825ms)",
+          "✓  313 [mobile] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (13.8s)",
+          "✓  314 [mobile] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (3.7s)",
+          "✓  315 [mobile] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (3.8s)",
+          "✓  316 [mobile] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.1s)"
+        ],
+        "calendarCases": [
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.5
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.4
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.6
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "desktop",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.4
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.5
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.2
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps document calendar dates identical before and after hydration",
+            "status": "passed",
+            "seconds": 2.4
+          },
+          {
+            "file": "document-calendar-dates",
+            "surface": "mobile",
+            "name": "America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+            "status": "passed",
+            "seconds": 1.2
+          }
+        ],
+        "exclusions": [
+          "-  146 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  210 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  211 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  213 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  214 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  215 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  216 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  217 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  218 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  219 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  220 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  221 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  222 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  223 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  224 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  225 [mobile] › tests/e2e/critical-flows.spec.ts:1601:5 › creates and signs in a production account with a password",
+          "-  270 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  307 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  317 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ]
+      },
+      "artifacts": [
+        {
+          "id": 11668497414,
+          "name": "ui-audit-reports",
+          "bytes": 159868148
+        },
+        {
+          "id": 11668382466,
+          "name": "verification-sqlite-5813c2e8029bc01555f994b57702040916f62de4",
+          "bytes": 1004
+        },
+        {
+          "id": 11668000876,
+          "name": "verification-postgres-5813c2e8029bc01555f994b57702040916f62de4",
+          "bytes": 72303
+        },
+        {
+          "id": 11667803372,
+          "name": "playwright-report",
+          "bytes": 170085370
+        },
+        {
+          "id": 11666734715,
+          "name": "container-runtime-5813c2e8029bc01555f994b57702040916f62de4",
+          "bytes": 1607
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Fictitious fixtures, real SQLite/PostgreSQL and compiled browser application. No real provider, commercial certification or hosted load qualification.",
+    "The nineteen historical browser exclusions and native SQLite-only PostgreSQL exclusion remain explicit.",
+    "Both workflow runs failed the dated portal appointment E2E: 304 passed, one failed and nineteen historical exclusions. Organisation cases passed; this is not a fully qualified candidate."
+  ]
+}

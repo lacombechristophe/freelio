@@ -1,0 +1,731 @@
+{
+  "baseCommit": "93867875f1e54b38095d34b45db06c5c1bc48452",
+  "includesUncommittedCreationChange": true,
+  "database": "isolated SQLite",
+  "success": true,
+  "total": 171,
+  "passed": 171,
+  "failed": 0,
+  "suites": [
+    {
+      "file": "operations-client-choices.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "name": "Operations complete client choices on real SQL reaches all 501 clients by stable pages and keeps the last selection outside the page",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for SALES",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for SERVICE",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL preserves company-shared minimal choices for VIEWER",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL omits the unused bounded client payload from the Operations dashboard",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL creates site with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL creates ticket with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL creates maintenance with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL creates order with the 501st company client and retains its business fields",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL rejects a foreign client for site before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL rejects a foreign client for ticket before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL rejects a foreign client for maintenance before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL rejects a foreign client for order before mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps site writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps ticket writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps maintenance writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps order writes denied to Viewer before reading the selected client",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps site writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps ticket writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps maintenance writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL keeps order writes forbidden in public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL offers a replacement after a selected client disappears",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete client choices on real SQL rejects revoked membership before any directory query",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "operations-product-choices.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "name": "Operations complete product choices on real SQL reaches all 501 eligible products without duplication and keeps the last selection outside its page",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL finds the last product through dernier and clamps an obsolete page",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL finds the last product through zz-last and clamps an obsolete page",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL retains the current active and stock-tracked eligibility rules",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for SALES",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for SERVICE",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL returns minimal company-shared choices for VIEWER",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"page\":0}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"page\":1.5}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"page\":100001}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"selectedId\":\"\"}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"stockTrackedOnly\":\"true\"}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects malformed input before business queries: {\"companyId\":\"override\"}",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL orders identical labels deterministically across a page boundary",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL supports equipment with the 501st product without changing the entered values",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL supports movement with the 501st product without changing the entered values",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL supports transfer with the 501st product without changing the entered values",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL supports order with the 501st product without changing the entered values",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL supports reservation with the 501st product without changing the entered values",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL supports material with the 501st product without changing the entered values",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects a foreign product during equipment without mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects a foreign product during movement without mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects a foreign product during transfer without mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects a foreign product during order without mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects a foreign product during reservation without mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL rejects a foreign product during material without mutation or audit",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps equipment forbidden to Viewer before looking up the product",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps movement forbidden to Viewer before looking up the product",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps transfer forbidden to Viewer before looking up the product",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps order forbidden to Viewer before looking up the product",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps reservation forbidden to Viewer before looking up the product",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps material forbidden to Viewer before looking up the product",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps equipment forbidden in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps movement forbidden in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps transfer forbidden in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps order forbidden in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps reservation forbidden in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL keeps material forbidden in the public read-only demo",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL offers replacement choices after the selected product disappears",
+          "status": "passed"
+        },
+        {
+          "name": "Operations complete product choices on real SQL checks membership before querying products",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "operations-stock-directory.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "name": "Complete Operations stock on real SQL renders 501 low stocks and the five-of-501 preview in the actual dashboard",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL visits all 21 pages without duplication or changing global indicators",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL searches the last product by dernier without reducing aggregates",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL searches the last product by zz-last without reducing aggregates",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL returns an empty search with complete metrics and a clamped page",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL orders identical labels by id across pages and the critical preview",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL includes the last product in agency totals and counts the exact threshold",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL preserves historical and unassigned warehouses in ALL, excluding them from agency comparison",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps untracked active products in quantities and valuation but outside low-stock alerts",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for SALES",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for SERVICE",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps stock inside the current agency scope for VIEWER",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects a nonexistent agency even for an owner",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rechecks agency and membership revocation",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects invalid query {\"page\":0} before reading stock",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects invalid query {\"page\":1.5} before reading stock",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects invalid query {\"page\":100001} before reading stock",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects invalid query {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"} before reading stock",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects invalid query {\"agencyId\":\"\"} before reading stock",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL rejects invalid query {\"surprise\":true} before reading stock",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL returns unavailable valuation instead of an inexact agency total",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL keeps every cent at the maximum exact integer value",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL does not lose an exact global result when large historical values cancel",
+          "status": "passed"
+        },
+        {
+          "name": "Complete Operations stock on real SQL allows read-only demo stock reads without any stock or audit writes",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "purchase-choices.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "name": "Complete purchase choices on real SQL reads all 501 products with exact price and a selected product outside the page",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL reads all active coherent projects with stable pages and a separate selection",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL finds the last product through zz-last and clamps an old page",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL finds the last product through dernier and clamps an old page",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL finds the last project and retains it outside an empty search",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL refuses inactive, foreign or incoherent selected references",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL does not send unused product or warehouse-inventory payloads to the browser",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for SALES",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for SERVICE",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL keeps minimal choices and agency boundaries for VIEWER",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL product: rejects invalid query {\"page\":0} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL product: rejects invalid query {\"page\":1.5} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL product: rejects invalid query {\"page\":100001} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL product: rejects invalid query {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL product: rejects invalid query {\"selectedId\":\"\"} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL product: rejects invalid query {\"unexpected\":true} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL project: rejects invalid query {\"page\":0} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL project: rejects invalid query {\"page\":1.5} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL project: rejects invalid query {\"page\":100001} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL project: rejects invalid query {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL project: rejects invalid query {\"selectedId\":\"\"} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL project: rejects invalid query {\"unexpected\":true} before reading choices",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL rechecks disappeared selections and lets a valid replacement be resolved",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL rechecks agency and membership revocation in the same session",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL creates a coherent draft with edited prices, labels and a free line",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL does not grant purchase creation to SALES",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL does not grant purchase creation to SERVICE",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL does not grant purchase creation to ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL does not grant purchase creation to VIEWER",
+          "status": "passed"
+        },
+        {
+          "name": "Complete purchase choices on real SQL allows public demo reads and refuses creation before any business write",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "purchase-creation-integrity.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "name": "Purchase creation checks references after number preparation preserves coherent draft creation and edited prices for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation preserves coherent draft creation and edited prices for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation preserves coherent draft creation and edited prices for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation preserves coherent draft creation and edited prices for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses foreign client without any new business state",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses completed project without any new business state",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses foreign project without any new business state",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses a foreign product without any new business state",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses a inactive product without any new business state",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation keeps limited roles inside their agencies",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation rechecks foreign client after the number is prepared",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation rechecks completed project after the number is prepared",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation rechecks other agency after the number is prepared",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation rechecks inactive product after the number is prepared",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation keeps supplier deactivation protected and rolls back the whole draft",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation preserves a free line and an optional project for the owner",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses writes by SALES before reading business references",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses writes by SERVICE before reading business references",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses writes by ACCOUNTING before reading business references",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses writes by VIEWER before reading business references",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation refuses public-demo creation without any new business state",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation returns the expected project refusal across the Action boundary",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation returns the expected product refusal across the Action boundary",
+          "status": "passed"
+        },
+        {
+          "name": "Purchase creation checks references after number preparation leaves unexpected error details to production redaction",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "supplier-read-scope.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads reads a shared supplier without exposing the other agency's stock or orders",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads keeps the same stock boundary in the operations dashboard",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads calculates catalogue availability only from permitted warehouses",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads does not disclose an inaccessible warehouse in the product detail",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads preserves the company-wide supplier view for OWNER",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads preserves the company-wide supplier view for ADMIN",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads rechecks agency revocation with the same session",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads keeps the same agency restriction in public demo",
+          "status": "passed"
+        },
+        {
+          "name": "supplier detail retains the current agency boundary on nested reads refuses a foreign supplier and a revoked membership",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

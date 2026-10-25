@@ -56,6 +56,11 @@ function documentFixture(kind: PdfDocument["kind"]): PdfDocument {
 }
 
 describe("billing PDF templates", () => {
+  it.each(PDF_TEMPLATES)("keeps six quantity decimals for new invoices and two for quotes in %s", template => {
+    const doc = { ...baseDocument, lines: [{ label: "Fictional minute", quantity: 1 / 60, unitPriceCents: 10000, tvaRate: 0 }] }
+    expect(renderDocumentHtml({ ...doc, kind: "FACTURE" }, { template })).toContain('class="num numeric">0,016667</td>')
+    expect(renderDocumentHtml({ ...doc, kind: "DEVIS" }, { template })).toContain('class="num numeric">0,02</td>')
+  })
   it.each([
     ["MINIMAL", "data-template=\"minimal\"", "minimal-lead"],
     ["PROFESSIONAL", "data-template=\"professional\"", "professional-overview"],

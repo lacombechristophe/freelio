@@ -1,0 +1,47 @@
+{
+  "schema": "freelio.approved-lots-local.v1",
+  "base": "db14793",
+  "code": "Working tree with the approved document client choice changes",
+  "checks": {
+    "types": "passed",
+    "sqlite": {
+      "files": 211,
+      "passed": 2123,
+      "failed": 0
+    },
+    "oxlint": "passed",
+    "eslint": "passed",
+    "coverage": {
+      "statements": 82.6,
+      "scope": "Six modules configured in vitest.config.mts",
+      "functions": 84.34,
+      "branches": 58.17,
+      "lines": 86
+    },
+    "productionBuild": "passed"
+  },
+  "focused": [
+    {
+      "file": "document-client-choices.integration.test.ts",
+      "status": "passed",
+      "cases": 24
+    },
+    {
+      "file": "portal-relations.integration.test.ts",
+      "status": "passed",
+      "cases": 31
+    },
+    {
+      "file": "project-template-count.integration.test.ts",
+      "status": "passed",
+      "cases": 12
+    }
+  ],
+  "browserDefined": 12,
+  "browserExecutedLocally": false,
+  "limits": [
+    "PostgreSQL, Linux and compiled browser qualification remain pending in GitHub CI.",
+    "Authentication/cache simulated in SQL tests. Actual actions, transactions and role checks.",
+    "No local application server, provider send, subscription, migration or R2 storage."
+  ]
+}

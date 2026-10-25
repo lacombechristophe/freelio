@@ -48,7 +48,7 @@ describe("invoice PDF HTTP response", () => {
     const response = await request()
     expect(response.status).toBe(200)
     expect(await response.text()).toBe("structured-pdf")
-    expect(mocks.find).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "invoice-1", companyId: "company-a" } }))
+    expect(mocks.find).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "invoice-1", companyId: "company-a", client: { companyId: "company-a" } } }))
     expect(mocks.auth).toHaveBeenCalledWith("finance.read", expect.any(Function))
     expect(mocks.audit).toHaveBeenCalledTimes(1)
   })

@@ -1,0 +1,36 @@
+{
+  "observedAt": "2026-10-10T12:49:19.116Z",
+  "head": "61d7331d2b165994148066c307ec290ea4cb8f2f",
+  "branchRun": {
+    "id": 38050431853,
+    "conclusion": "success"
+  },
+  "prRun": {
+    "id": 38050436373,
+    "conclusion": "failure",
+    "qualityAndBrowser": "success",
+    "postgresql": "success",
+    "attempts": [
+      {
+        "attempt": 1,
+        "job": 114208293133,
+        "conclusion": "failure",
+        "stage": "Redis acquisition after successful application image build",
+        "message": "toomanyrequests: Rate exceeded",
+        "logSha256": "b512c0794b0aa4eb19d5641a4a342da06634e38916abb91972e086703ccda8cc"
+      },
+      {
+        "attempt": 2,
+        "job": 114213521075,
+        "conclusion": "failure",
+        "stage": "Redis acquisition after successful application image build",
+        "message": "toomanyrequests: Rate exceeded",
+        "logSha256": "337bf19ef3ef42ee6ac4b29bd0fe64cfcbc3eef61cf8feac3de814b529b95ed4"
+      }
+    ]
+  },
+  "limits": [
+    "Failure reports identify registry acquisition, not a passed Linux runtime recipe.",
+    "Raw logs remain private; this report contains their hashes and the non-sensitive registry error only."
+  ]
+}

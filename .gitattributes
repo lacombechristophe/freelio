@@ -1,5 +1,11 @@
 * text=auto eol=lf
 
+# This applied migration has a historical mixed-EOL checksum. Preserve its bytes.
+prisma/postgresql/migrations/20261004040000_signed_contract_archives/migration.sql -text whitespace=cr-at-eol
+
+# Preserve upstream font notices, including their original whitespace.
+public/fonts/licenses/*-OFL.txt -text whitespace=-blank-at-eol,cr-at-eol
+
 *.png binary
 *.jpg binary
 *.jpeg binary

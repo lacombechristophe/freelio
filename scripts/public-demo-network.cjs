@@ -40,6 +40,20 @@ function allowedUrl(input, options = {}) {
   return url.protocol === "https:" && (http.get(url.host)?.has(method) ?? false);
 }
 const deny = () => { throw Error(message); };
+// pg negotiates TLS over its existing TCP socket without repeating the port.
+// Remember that socket's destination instead of trusting a caller-supplied SNI.
+const socketTargets = new WeakMap();
+const net = require("node:net");
+const connectSocket = net.Socket.prototype.connect;
+net.Socket.prototype.connect = function(...args) {
+  const values = Array.isArray(args[0]) ? args[0] : args;
+  const options = typeof values[0] === "object" ? values[0] : { port: values[0], host: typeof values[1] === "string" ? values[1] : "localhost" };
+  const host = String(options.hostname || options.host || "localhost").replace(/^\[|\]$/g, "");
+  socketTargets.delete(this);
+  const result = connectSocket.apply(this, args);
+  if (network.has(`${host}:${options.port}`)) socketTargets.set(this, { host, port: String(options.port) });
+  return result;
+};
 for (const [name, transport] of [["node:http", require("node:http")], ["node:https", require("node:https")]]) {
   for (const method of ["request", "get"]) {
     const original = transport[method];
@@ -58,7 +72,12 @@ for (const transport of [require("node:net"), require("node:tls")]) {
     transport[method] = function(...args) {
       const options = typeof args[0] === "object" ? args[0] : {port:args[0],host:typeof args[1] === "string" ? args[1] : "localhost"};
       const host = String(options.hostname || options.host || "localhost").replace(/^\[|\]$/g, "");
-      if (!network.has(`${host}:${options.port}`)) deny();
+      if (options.socket) {
+        const target = socketTargets.get(options.socket);
+        if (!target || ((options.hostname || options.host) && host !== target.host)
+          || (options.port !== undefined && String(options.port) !== target.port)
+          || (options.servername && options.servername !== target.host)) deny();
+      } else if (!network.has(`${host}:${options.port}`)) deny();
       return original.apply(this, args);
     };
   }

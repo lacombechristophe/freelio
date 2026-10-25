@@ -1,0 +1,615 @@
+{
+  "schema": "freelio.ci-log-summary.v1",
+  "candidate": "a01ce4c533a2527d6c2ead8450d194804f5d735d",
+  "fullyQualified": false,
+  "observedAt": "2026-10-14T21:06:28.061Z",
+  "projection": "Terminal job metadata and complete job logs, not uploaded native JSON reports",
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38629552114",
+      "attempt": 1,
+      "conclusion": "failure",
+      "testedHead": "a01ce4c533a2527d6c2ead8450d194804f5d735d",
+      "jobs": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 116077359154,
+          "conclusion": "failure",
+          "failedSteps": [
+            "Run actions/upload-artifact@v7"
+          ]
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 116077359597,
+          "conclusion": "cancelled",
+          "failedSteps": [
+            "Publier les traces en cas d’échec",
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ]
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 116077359616,
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les preuves PostgreSQL"
+          ]
+        }
+      ],
+      "typesLintCoverageAndBuildPassed": true,
+      "sqlite": {
+        "passed": 2360,
+        "failed": 0,
+        "files": 222
+      },
+      "postgres": {
+        "passed": 2359,
+        "failed": 0,
+        "skipped": 1,
+        "filesPassed": 221,
+        "filesSkipped": 1,
+        "nativeReportUploaded": false,
+        "logSha256": "ed436e116ad2e20490c17175983b1bebce833721ebdcf0ef678ef135c7a1af86"
+      },
+      "linux": {
+        "checksPassed": 9,
+        "success": true,
+        "nativeReportUploaded": false,
+        "logSha256": "df255021df8c127da183dcb828ca99163b2700f542caa9139b327b7a8a59b006"
+      },
+      "focusedSql": [
+        {
+          "file": "tests/unit/purchase-choices.integration.test.ts",
+          "sqlitePassed": 35,
+          "postgresPassed": 35
+        },
+        {
+          "file": "tests/unit/purchase-creation-integrity.integration.test.ts",
+          "sqlitePassed": 24,
+          "postgresPassed": 24
+        },
+        {
+          "file": "tests/unit/communication-dashboard.integration.test.ts",
+          "sqlitePassed": 4,
+          "postgresPassed": 4
+        },
+        {
+          "file": "tests/unit/sqlite-transactions.test.ts",
+          "sqlitePassed": 5,
+          "postgresPassed": 5
+        },
+        {
+          "file": "tests/unit/sqlite-transaction-scope.integration.test.ts",
+          "sqlitePassed": 1,
+          "postgresPassed": 1
+        },
+        {
+          "file": "tests/unit/supplier-history.integration.test.ts",
+          "sqlitePassed": 21,
+          "postgresPassed": 21
+        },
+        {
+          "file": "tests/unit/build-memory.test.ts",
+          "sqlitePassed": 2,
+          "postgresPassed": 2
+        }
+      ],
+      "browser": {
+        "planned": 430,
+        "complete": false,
+        "passed": 372,
+        "failed": 1,
+        "skipped": 17,
+        "reportedCases": 390,
+        "unreportedCases": 40,
+        "stageConclusion": "cancelled",
+        "terminationReason": "The job has exceeded the maximum execution time of 45m0s",
+        "duration": null,
+        "purchaseCases": [
+          {
+            "ordinal": 141,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (6.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 142,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (3.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 356,
+            "project": "mobile",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (6.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 357,
+            "project": "mobile",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (3.2s)",
+            "status": "passed"
+          }
+        ],
+        "supplierCases": [
+          {
+            "ordinal": 177,
+            "project": "desktop",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "reads the full supplier directory and edits, deactivates and reactivates an old supplier (7.9s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 178,
+            "project": "desktop",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "keeps an off-page supplier choice while searching a purchase or product form (6.3s)",
+            "status": "passed"
+          }
+        ],
+        "communications": {
+          "passed": 40,
+          "failed": 0
+        },
+        "failures": [
+          {
+            "ordinal": 62,
+            "project": "desktop",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "shares a revocable client portal with messages and appointments (11.8s)",
+            "status": "failed"
+          }
+        ],
+        "exclusions": [
+          {
+            "ordinal": 185,
+            "project": "desktop",
+            "file": "tests/e2e/task-usability.spec.ts",
+            "title": "la navigation mobile garde le focus et le restitue à la fermeture",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 263,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "multiple sales pipelines keep their stages and opportunities isolated",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 264,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "configurable CRM properties use business presets and retain a visible history",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 266,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "publishes service knowledge and records a secure satisfaction response",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 267,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "configures a product, its options and its bill of materials into a quote",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 268,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "creates a reusable project plan and enforces milestone dependencies",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 269,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "runs the supplier approval, receipt issue and return workflow",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 270,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "field workspace installs and reloads from its bounded offline cache",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 271,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "configures an email sequence and a lead automation",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 272,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "plans a multichannel marketing campaign and links its sequence",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 273,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "lead, consent withdrawal, order, billing and reserved stock flow",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 274,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "field report and maintenance contract flow",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 275,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "creates a structured amendment without altering the signed source contract",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 276,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "scores prospects and exposes the communication center",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 277,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "shares a revocable client portal with messages and appointments",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 278,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "creates and signs in a production account with a password",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 362,
+            "project": "mobile",
+            "file": "tests/e2e/redesign-completion.spec.ts",
+            "title": "les gabarits restent contenus aux largeurs de recette",
+            "status": "skipped"
+          }
+        ],
+        "nativeReportUploaded": false
+      },
+      "dependencyAuditsZeroVulnerabilities": 2,
+      "observedP1008": 0,
+      "observedP2028": 0,
+      "qualityLogSha256": "d2977bdaadc128253d1df33d6a24b2f38badc416805475099b7c6726d403286f",
+      "artifactUploadsPassed": false
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38629561175",
+      "attempt": 1,
+      "conclusion": "failure",
+      "testedHead": "a01ce4c533a2527d6c2ead8450d194804f5d735d",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 116077390396,
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ]
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 116077390619,
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les preuves PostgreSQL"
+          ]
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 116077390837,
+          "conclusion": "failure",
+          "failedSteps": [
+            "Run actions/upload-artifact@v7"
+          ]
+        }
+      ],
+      "typesLintCoverageAndBuildPassed": true,
+      "sqlite": {
+        "passed": 2360,
+        "failed": 0,
+        "files": 222
+      },
+      "postgres": {
+        "passed": 2359,
+        "failed": 0,
+        "skipped": 1,
+        "filesPassed": 221,
+        "filesSkipped": 1,
+        "nativeReportUploaded": false,
+        "logSha256": "f33b0d552ba6aa58acdd6cd622d2e488b1bfcba98c04720fe485ccbab9fc33a3"
+      },
+      "linux": {
+        "checksPassed": 9,
+        "success": true,
+        "nativeReportUploaded": false,
+        "logSha256": "c4aea1d221ae23d5f7f7dcdb1e4c37c2008c63e667477fb82e618e3b8f9ceeff"
+      },
+      "focusedSql": [
+        {
+          "file": "tests/unit/purchase-choices.integration.test.ts",
+          "sqlitePassed": 35,
+          "postgresPassed": 35
+        },
+        {
+          "file": "tests/unit/purchase-creation-integrity.integration.test.ts",
+          "sqlitePassed": 24,
+          "postgresPassed": 24
+        },
+        {
+          "file": "tests/unit/communication-dashboard.integration.test.ts",
+          "sqlitePassed": 4,
+          "postgresPassed": 4
+        },
+        {
+          "file": "tests/unit/sqlite-transactions.test.ts",
+          "sqlitePassed": 5,
+          "postgresPassed": 5
+        },
+        {
+          "file": "tests/unit/sqlite-transaction-scope.integration.test.ts",
+          "sqlitePassed": 1,
+          "postgresPassed": 1
+        },
+        {
+          "file": "tests/unit/supplier-history.integration.test.ts",
+          "sqlitePassed": 21,
+          "postgresPassed": 21
+        },
+        {
+          "file": "tests/unit/build-memory.test.ts",
+          "sqlitePassed": 2,
+          "postgresPassed": 2
+        }
+      ],
+      "browser": {
+        "planned": 430,
+        "complete": true,
+        "passed": 411,
+        "failed": 0,
+        "skipped": 19,
+        "reportedCases": 430,
+        "unreportedCases": 0,
+        "stageConclusion": "success",
+        "terminationReason": null,
+        "duration": "27.8m",
+        "purchaseCases": [
+          {
+            "ordinal": 141,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (5.7s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 142,
+            "project": "desktop",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (2.5s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 356,
+            "project": "mobile",
+            "file": "tests/e2e/purchase-choices.spec.ts",
+            "title": "purchase choices preserve independent lines, edited prices and recovery (5.6s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 357,
+            "project": "mobile",
+            "file": "tests/e2e/purchase-creation-integrity.spec.ts",
+            "title": "purchase creation refuses changed references and preserves input for recovery (2.3s)",
+            "status": "passed"
+          }
+        ],
+        "supplierCases": [
+          {
+            "ordinal": 177,
+            "project": "desktop",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "reads the full supplier directory and edits, deactivates and reactivates an old supplier (6.1s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 178,
+            "project": "desktop",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "keeps an off-page supplier choice while searching a purchase or product form (5.8s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 392,
+            "project": "mobile",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "reads the full supplier directory and edits, deactivates and reactivates an old supplier (5.4s)",
+            "status": "passed"
+          },
+          {
+            "ordinal": 393,
+            "project": "mobile",
+            "file": "tests/e2e/supplier-management.spec.ts",
+            "title": "keeps an off-page supplier choice while searching a purchase or product form (4.9s)",
+            "status": "passed"
+          }
+        ],
+        "communications": {
+          "passed": 40,
+          "failed": 0
+        },
+        "failures": [],
+        "exclusions": [
+          {
+            "ordinal": 185,
+            "project": "desktop",
+            "file": "tests/e2e/task-usability.spec.ts",
+            "title": "la navigation mobile garde le focus et le restitue à la fermeture",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 263,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "multiple sales pipelines keep their stages and opportunities isolated",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 264,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "configurable CRM properties use business presets and retain a visible history",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 266,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "publishes service knowledge and records a secure satisfaction response",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 267,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "configures a product, its options and its bill of materials into a quote",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 268,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "creates a reusable project plan and enforces milestone dependencies",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 269,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "runs the supplier approval, receipt issue and return workflow",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 270,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "field workspace installs and reloads from its bounded offline cache",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 271,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "configures an email sequence and a lead automation",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 272,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "plans a multichannel marketing campaign and links its sequence",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 273,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "lead, consent withdrawal, order, billing and reserved stock flow",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 274,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "field report and maintenance contract flow",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 275,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "creates a structured amendment without altering the signed source contract",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 276,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "scores prospects and exposes the communication center",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 277,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "shares a revocable client portal with messages and appointments",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 278,
+            "project": "mobile",
+            "file": "tests/e2e/critical-flows.spec.ts",
+            "title": "creates and signs in a production account with a password",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 362,
+            "project": "mobile",
+            "file": "tests/e2e/redesign-completion.spec.ts",
+            "title": "les gabarits restent contenus aux largeurs de recette",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 399,
+            "project": "mobile",
+            "file": "tests/e2e/task-usability.spec.ts",
+            "title": "un favori invisible n’intercepte pas un clic sur la navigation",
+            "status": "skipped"
+          },
+          {
+            "ordinal": 423,
+            "project": "mobile",
+            "file": "tests/e2e/visual-direction.spec.ts",
+            "title": "le nouveau shell et les cockpits métier restent cohérents",
+            "status": "skipped"
+          }
+        ],
+        "nativeReportUploaded": false
+      },
+      "dependencyAuditsZeroVulnerabilities": 2,
+      "observedP1008": 0,
+      "observedP2028": 0,
+      "qualityLogSha256": "e053ca0f44e3d83f4cd570acb64d5cf92c22331d08147cc947f9c7cc45a0d13b",
+      "artifactUploadsPassed": false
+    }
+  ],
+  "limits": [
+    "GitHub artifact storage quota prevents native report uploads; workflow failures retained",
+    "Six coverage modules, not global application coverage",
+    "Historical browser exclusions remain explicit; no real provider or load proof"
+  ]
+}

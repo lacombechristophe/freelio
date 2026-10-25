@@ -1,0 +1,59 @@
+{
+  "schema": "freelio.recurring-generation-baseline.v1",
+  "reference": "83ac9185e7e769457140d943a0d60f3b60371851",
+  "passed": 3,
+  "failed": 4,
+  "total": 7,
+  "suiteErrors": [],
+  "cases": [
+    {
+      "name": "generates a coherent draft, occurrence and audit without issuing the invoice",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "does not generate twice for the same scheduled date",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects a local plan referencing a foreign client before writing a draft",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected 1 to be +0 // Object.is equality"
+      ]
+    },
+    {
+      "name": "rejects a project from another company before writing a draft",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected 1 to be +0 // Object.is equality"
+      ]
+    },
+    {
+      "name": "rejects a project belonging to another client in the same company",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected 1 to be +0 // Object.is equality"
+      ]
+    },
+    {
+      "name": "rejects an explicit audit author who is not a member of the company",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected 1 to be +0 // Object.is equality"
+      ]
+    },
+    {
+      "name": "keeps a coherent plan without a project supported",
+      "status": "passed",
+      "failure": []
+    }
+  ],
+  "reproducerSha256": "32d3f206af793c17093c4f9b8c480ac0a78e9fde8a81b41f56112880984a859f",
+  "limits": [
+    "Real SQL and production worker; fake fixtures in an isolated SQLite. No HTTP provider, invoice issuance or email sending.",
+    "Inconsistent stored references are inserted directly by the fixture. This does not establish that current application mutations can create them.",
+    "The explicit worker author argument is tested through the exported internal function; no externally exploitable endpoint is established."
+  ]
+}

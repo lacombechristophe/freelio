@@ -1,0 +1,57 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getClients, getClientById } from "@/actions/clients"
+import { getClientDirectory } from "@/actions/directories"
+import { getWorkspaceOverview } from "@/actions/workspaces"
+import { getAutomationDashboard } from "@/actions/automations"
+import { directoryQuerySchema } from "@/lib/directory-query"
+
+describe.sequential("shared global health permission probe on real SQL", () => {
+  let membershipId: string, clientId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional shared health probe" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `shared-health-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional shared health client", relationScore: 37 } })).id
+  })
+  afterEach(async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } })
+  })
+  afterAll(async () => {
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it.each(["TECHNICIAN", "SERVICE", "VIEWER"].flatMap(role => ["list", "detail", "directory", "CRM", "SERVICE"].map(reader => ({ role, reader }))))("does not expose global health through $reader to $role", async ({ role, reader }) => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    if (reader === "list") expect((await getClients()).clients[0].relationScore).toBeNull()
+    else if (reader === "detail") expect((await getClientById(clientId))?.relationScore).toBeNull()
+    else if (reader === "directory") expect((await getClientDirectory(directoryQuerySchema.parse({}))).rows[0].relationScore).toBeNull()
+    else expect((await getWorkspaceOverview(reader as "CRM" | "SERVICE")).clientHealth).toBeNull()
+  })
+  it.each(["SALES", "SERVICE"])("does not expose global health in automation subject choices to %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    expect((await getAutomationDashboard()).clients[0].score).toBeNull()
+  })
+  it("preserves Owner list and detail scores", async () => {
+    expect((await getClients()).clients[0].relationScore).toBe(37)
+    expect((await getClientById(clientId))?.relationScore).toBe(37)
+  })
+  it("preserves Owner directory and workspace health", async () => {
+    expect((await getClientDirectory(directoryQuerySchema.parse({}))).rows[0].relationScore).toBe(37)
+    expect((await getWorkspaceOverview("CRM")).clientHealth).toEqual({ healthy: 0, watch: 0, risk: 1 })
+  })
+  it("preserves Owner automation subject score", async () => {
+    expect((await getAutomationDashboard()).clients[0].score).toBe(37)
+  })
+  it("refuses consultation after membership suspension", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { status: "SUSPENDED" } })
+    await expect(getWorkspaceOverview("CRM")).rejects.toThrow("plus accès")
+  })
+})

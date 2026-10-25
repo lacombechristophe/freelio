@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       { Indicateur: "Résolution moyenne (minutes ouvrées)", Valeur: analytics.summary.averageResolutionMinutes ?? "", Denominateur: "" },
       { Indicateur: "Couverture diagnostic (%)", Valeur: analytics.summary.diagnosticCoveragePercent ?? "", Denominateur: analytics.summary.created },
       { Indicateur: "Satisfaction globale (%)", Valeur: analytics.summary.satisfactionPercent ?? "", Denominateur: analytics.summary.satisfactionResponses },
-      { Indicateur: "Santé moyenne (/100)", Valeur: analytics.summary.averageHealthScore ?? "", Denominateur: "" },
+      { Indicateur: "Santé moyenne (/100)", Valeur: analytics.access.globalHistory ? analytics.summary.averageHealthScore ?? "" : "Historique global indisponible", Denominateur: "" },
     ]
     const teamRows = analytics.byAssignee.map((item) => ({
       Responsable: item.name,
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
       Clos: item.closed,
     }))
     const diagnosticRows = analytics.topDiagnostics.map((item) => ({ Guide: item.name, Utilisations: item.count }))
-    const healthRows = analytics.healthDistribution.map((item) => ({ Niveau: item.status, Clients: item.count }))
+    const healthRows: Array<{ Niveau: string; Clients: number | string }> = analytics.access.globalHistory ? analytics.healthDistribution.map((item) => ({ Niveau: item.status, Clients: item.count })) : [{ Niveau: "Historique global indisponible", Clients: "" }]
     const csvFiles = {
       "resume.csv": rowsToCsv(["Indicateur", "Valeur", "Denominateur"], summaryRows),
       "equipe.csv": rowsToCsv(["Responsable", "Crees", "Clos", "Backlog", "SLAPremiereReponse", "SLAResolution", "ResolutionMoyenneMinutes"], teamRows),
@@ -106,7 +106,8 @@ export async function GET(request: Request) {
       files: fileManifest,
       notes: [
         "Les SLA incluent les objectifs échus sans réponse ou clôture.",
-        "La satisfaction et la santé sont globales pour la période et ne sont pas filtrées par responsable.",
+        "La satisfaction porte sur le périmètre accessible et n’est pas filtrée par responsable ou priorité.",
+        analytics.access.globalHistory ? "La santé correspond aux scores globaux actuels de la société, indépendants du filtre de responsable." : "Historique global indisponible : aucun score ou compteur de santé globale n’est exporté.",
       ],
     }
     const zip = zipSync(

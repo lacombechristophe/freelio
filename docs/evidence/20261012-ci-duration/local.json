@@ -1,0 +1,49 @@
+{
+  "schema": "freelio.ci-suite-once.v1",
+  "observedAt": "2026-10-12T21:09:21.557Z",
+  "sourceBase": "3bb5edf",
+  "command": "vitest run --coverage --no-file-parallelism",
+  "sqlite": {
+    "passed": 1885,
+    "failed": 0,
+    "files": 200
+  },
+  "coverage": {
+    "lines": {
+      "total": 436,
+      "covered": 375,
+      "skipped": 0,
+      "pct": 86
+    },
+    "statements": {
+      "total": 546,
+      "covered": 451,
+      "skipped": 0,
+      "pct": 82.6
+    },
+    "functions": {
+      "total": 115,
+      "covered": 97,
+      "skipped": 0,
+      "pct": 84.34
+    },
+    "branches": {
+      "total": 722,
+      "covered": 420,
+      "skipped": 0,
+      "pct": 58.17
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "coverageConfigSha256": "37089f75384d0de4692340fb9a2125379fb64a86ea54d7147e2f0cf257615ec3",
+  "workflowSha256": "605e14a814c7b8701810ac6d5302656d031da6b5e2a07b04ccb932e42d483831",
+  "limits": [
+    "Complete SQL suite executed locally with the existing v8 coverage configuration and thresholds.",
+    "Workflow syntax and compiled browser remain to qualify on GitHub; no local server or container launched."
+  ]
+}

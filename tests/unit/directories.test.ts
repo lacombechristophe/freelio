@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { parseDirectoryQuery } from "@/lib/directory-query"
 
 const mocks = vi.hoisted(() => ({
-  withAuth: vi.fn(async (action: (context: { companyId: string }) => unknown) => action({ companyId: "tenant-a" })),
+  withAuth: vi.fn(async (action: (context: { companyId: string; role: "OWNER" }) => unknown) => action({ companyId: "tenant-a", role: "OWNER" })),
   quote: { count: vi.fn(), groupBy: vi.fn(), findMany: vi.fn() },
   invoice: { count: vi.fn(), groupBy: vi.fn(), findMany: vi.fn(), aggregate: vi.fn() },
   contact: { count: vi.fn(), findMany: vi.fn() },

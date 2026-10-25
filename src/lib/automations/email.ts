@@ -1,5 +1,9 @@
-import { createConsentWithdrawalToken } from "@/lib/leads/consent-token"
+import { prepareManualMarketingContent } from "@/lib/communications/marketing-consent"
 import { sendEmailThroughChannel, type EmailProviderState, type PreparedEmailProviderState } from "@/lib/communications/email-provider"
+import { escapeEmailHtml, sanitizeSequenceEmailHtml } from "@/lib/communications/email-sanitize"
+import { assertEmailContentReady } from "@/lib/communications/email-preflight"
+import type { EmailTemplateVariable } from "@/lib/communications/email-template-variables"
+export { sanitizeSequenceEmailHtml } from "@/lib/communications/email-sanitize"
 
 type EmailContext = {
   company: { id: string; name: string; email: string | null }
@@ -10,11 +14,8 @@ type EmailContext = {
     email: string | null
     projectType: string | null
     city: string | null
+    contactId?: string | null
   }
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
 }
 
 function variables(context: EmailContext) {
@@ -25,38 +26,16 @@ function variables(context: EmailContext) {
     "{{lead.projectType}}": context.lead.projectType || "",
     "{{lead.city}}": context.lead.city || "",
     "{{company.name}}": context.company.name,
-  }
+  } satisfies Record<EmailTemplateVariable, string>
 }
 
 export function renderEmailVariables(template: string, context: EmailContext, html = false) {
-  let rendered = template
-  for (const [key, raw] of Object.entries(variables(context))) {
-    rendered = rendered.replaceAll(key, html ? escapeHtml(raw) : raw)
-  }
-  return rendered
-}
-
-export function sanitizeSequenceEmailHtml(html: string) {
-  const allowed = new Set(["a", "blockquote", "br", "em", "h1", "h2", "h3", "li", "ol", "p", "strong", "ul"])
-  return html
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(script|style|iframe|object|embed|svg|math|form)\b[\s\S]*?<\/\1>/gi, "")
-    .replace(/<([a-z][a-z0-9-]*)([^>]*)>/gi, (tag, rawName: string, attributes: string) => {
-      const name = rawName.toLowerCase()
-      if (!allowed.has(name)) return ""
-      if (name === "br") return "<br>"
-      if (name !== "a") return `<${name}>`
-      const href = attributes.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1]
-      if (!href || !/^https?:\/\//i.test(href)) return "<a>"
-      return `<a href="${escapeHtml(href)}" rel="noopener noreferrer">`
-    })
-    .replace(/<\/([a-z][a-z0-9-]*)\s*>/gi, (_tag, rawName: string) => allowed.has(rawName.toLowerCase()) ? `</${rawName.toLowerCase()}>` : "")
-}
-
-function appBaseUrl() {
-  const configured = process.env.PUBLIC_APP_URL || process.env.AUTH_URL || process.env.NEXTAUTH_URL
-  if (!configured && process.env.NODE_ENV === "production") throw new Error("PUBLIC_APP_URL est requis pour les liens de désinscription")
-  return (configured || "http://localhost:3000").replace(/\/$/, "")
+  const values = variables(context)
+  // Recipient values are data: never interpret another template token in them.
+  return template.replace(/\{\{[^{}]*\}\}/g, key => {
+    const raw = values[key as EmailTemplateVariable]
+    return raw === undefined ? key : html ? escapeEmailHtml(raw) : raw
+  })
 }
 
 export function senderFor(companyName: string) {
@@ -66,22 +45,32 @@ export function senderFor(companyName: string) {
   return `${companyName.replace(/[<>\r\n]/g, "")} <${address}>`
 }
 
+export async function prepareSequenceEmail(input: EmailContext & { subjectTemplate: string; bodyTemplate: string }) {
+  if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
+
+  if (!input.lead.contactId) throw new Error("La prospection nécessite un contact avec une preuve liée à son adresse")
+  assertEmailContentReady(input.subjectTemplate, input.bodyTemplate)
+  const subject = renderEmailVariables(input.subjectTemplate, input, false).replace(/[\r\n]+/g, " ").trim()
+  const content = sanitizeSequenceEmailHtml(renderEmailVariables(input.bodyTemplate, input, true))
+  assertEmailContentReady(subject, content, false)
+  const marketing = await prepareManualMarketingContent(input.company.id, input.lead.contactId, input.lead.email, `<!doctype html><html lang="fr"><body><main>${content}</main></body></html>`)
+  return { subject, html: marketing.renderedHtml, headers: marketing.headers, marketing: marketing.authorization }
+}
+
 export async function sendSequenceEmail(input: EmailContext & {
   subjectTemplate: string
   bodyTemplate: string
+  prepared?: { subject: string; html: string; headers: Record<string, string> }
+  from?: string
   idempotencyKey: string
+  channelId?: string | null
   resume?: EmailProviderState
   onPrepared?: (state: PreparedEmailProviderState) => Promise<void>
+  beforeDispatch?: () => Promise<void>
 }) {
   if (!input.lead.email) throw new Error("Le prospect n'a pas d'adresse e-mail")
-
-  const token = await createConsentWithdrawalToken({ companyId: input.company.id, leadId: input.lead.id })
-  const unsubscribeUrl = `${appBaseUrl()}/consent/withdraw/${token}`
-  const oneClickUnsubscribeUrl = `${appBaseUrl()}/api/public/consent/one-click/${token}`
-  const subject = renderEmailVariables(input.subjectTemplate, input, false).replace(/[\r\n]+/g, " ").trim()
-  const content = sanitizeSequenceEmailHtml(renderEmailVariables(input.bodyTemplate, input, true))
-  const html = `<!doctype html><html lang="fr"><body><main>${content}</main><hr><p style="color:#667085;font-size:12px;line-height:1.5">Vous recevez cet e-mail selon vos préférences de communication. <a href="${escapeHtml(unsubscribeUrl)}">Se désinscrire</a>.</p></body></html>`
-
-  const sent = await sendEmailThroughChannel({ companyId: input.company.id, companyName: input.company.name, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, headers: { "List-Unsubscribe": `<${oneClickUnsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } })
+  const { subject, html, headers } = input.prepared ?? await prepareSequenceEmail(input)
+  assertEmailContentReady(subject, html, false)
+  const sent = await sendEmailThroughChannel({ companyId: input.company.id, channelId: input.channelId, companyName: input.company.name, from: input.from, to: input.lead.email, replyTo: input.company.email, subject, html, idempotencyKey: input.idempotencyKey, resume: input.resume, onPrepared: input.onPrepared, beforeDispatch: input.beforeDispatch, headers })
   return { ...sent, subject, html }
 }

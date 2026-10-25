@@ -1,0 +1,272 @@
+{
+  "schema": "freelio.organisation-domain-local.v1",
+  "observedAt": "2026-10-10T10:54:15.643Z",
+  "baseCommit": "9086a5d7a31747fae91e8757c83c9ceaae87ad83",
+  "qualification": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 16.451
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 54.33
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.298
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 207.186
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 74.592
+    }
+  ],
+  "unit": {
+    "passed": 1672,
+    "failed": 0,
+    "files": 192
+  },
+  "before": {
+    "passed": 1,
+    "failed": 14,
+    "note": "Six domain refusals reproduce disclosures. Other failures include the new explicit permission flags; fourteen failures are not fourteen distinct leaks.",
+    "cases": [
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for SALES",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for OPERATIONS",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for SERVICE",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for TECHNICIAN",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose quotes without Sales for SERVICE",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose quotes without Sales for TECHNICIAN",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for OWNER",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for ADMIN",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for ACCOUNTING",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for VIEWER",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL keeps permitted quotes for SALES",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL keeps permitted quotes for OPERATIONS",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves tasks, goals, time and operational budgets without document permissions",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL reevaluates document permissions after a role change in the same session",
+        "status": "failed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL removes both document domains after agency access is revoked",
+        "status": "failed"
+      }
+    ]
+  },
+  "after": {
+    "passed": 31,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "calendar days and company service periods keeps a date-only field separate from an appointment in the service zone",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods uses real midnight boundaries through the DST transition 2026-03-29T12:00:00Z",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods uses real midnight boundaries through the DST transition 2026-10-25T12:00:00Z",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods uses the company's day, month and year near UTC midnight",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods uses the first instant when midnight is skipped or repeated: 2026-09-06T12:00:00Z",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods uses the first instant when midnight is skipped or repeated: 2026-11-01T12:00:00Z",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods starts the week on Monday, including a Sunday in a western zone",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods advances calendar dates independently of DST: 2024-02-28",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods advances calendar dates independently of DST: 2024-02-29",
+        "status": "passed"
+      },
+      {
+        "name": "calendar days and company service periods advances calendar dates independently of DST: 2026-12-31",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for SALES",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for OPERATIONS",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for SERVICE",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose invoices without Finance for TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose quotes without Sales for SERVICE",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL does not query or disclose quotes without Sales for TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for OWNER",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for ADMIN",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for ACCOUNTING",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves permitted documents and excludes foreign clients/tenants for VIEWER",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL keeps permitted quotes for SALES",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL keeps permitted quotes for OPERATIONS",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL preserves tasks, goals, time and operational budgets without document permissions",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL reevaluates document permissions after a role change in the same session",
+        "status": "passed"
+      },
+      {
+        "name": "Organisation document permissions on real SQL removes both document domains after agency access is revoked",
+        "status": "passed"
+      },
+      {
+        "name": "service calendar boundaries on real SQL uses Europe/Paris for periods and civil time entries on a Pacific/Kiritimati host",
+        "status": "passed"
+      },
+      {
+        "name": "service calendar boundaries on real SQL uses America/Los_Angeles for periods and civil time entries on a Pacific/Kiritimati host",
+        "status": "passed"
+      },
+      {
+        "name": "service calendar boundaries on real SQL uses Europe/Paris for periods and civil time entries on a America/Los_Angeles host",
+        "status": "passed"
+      },
+      {
+        "name": "service calendar boundaries on real SQL uses America/Los_Angeles for periods and civil time entries on a America/Los_Angeles host",
+        "status": "passed"
+      },
+      {
+        "name": "service calendar boundaries on real SQL returns a stable observation time and next midnight for Operations in Europe/Paris",
+        "status": "passed"
+      },
+      {
+        "name": "service calendar boundaries on real SQL returns a stable observation time and next midnight for Operations in America/Los_Angeles",
+        "status": "passed"
+      }
+    ]
+  },
+  "seed": {
+    "schema": "freelio.organisation-seed-check.v1",
+    "observedAt": "2026-10-10T10:52:12.342Z",
+    "success": true,
+    "disposableSQLite": true,
+    "counts": {
+      "companies": 2,
+      "users": 6,
+      "quotes": 2,
+      "invoices": 2,
+      "tasks": 2,
+      "goals": 2
+    }
+  },
+  "browser": {
+    "loaded": 14,
+    "organisation": 6,
+    "calendar": 8,
+    "executedLocally": false,
+    "note": "Browser execution is reserved for CI; --list starts no server."
+  },
+  "limits": [
+    "Authentication and Next cache mocked; memberships, agency scope, Prisma and action use real SQLite.",
+    "Local build does not qualify PostgreSQL or a deployed preview."
+  ],
+  "publicationScan": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1239,
+    "historyBlobsChecked": 3476,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "finalTestFixtureCheck": {
+    "eslintExitCode": 0,
+    "change": "Time entry fixture uses the Paris civil day",
+    "focusedTests": 31,
+    "applicationSourceChangedAfterBuild": false
+  }
+}

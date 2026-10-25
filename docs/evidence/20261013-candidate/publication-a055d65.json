@@ -1,0 +1,12 @@
+{
+  "schema": "freelio.publication-summary.v1",
+  "candidate": "a055d65699f636e3676676302f0381678442d081",
+  "filesChecked": 1359,
+  "historyBlobsChecked": 3698,
+  "placeholdersExcluded": 1,
+  "findings": [],
+  "limits": [
+    "Known signatures only; no assertion that all possible secrets are detected."
+  ],
+  "scope": "Working copy based on a055d65, including pending qualification documentation; history through this commit."
+}

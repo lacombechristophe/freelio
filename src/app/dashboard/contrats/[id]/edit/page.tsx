@@ -1,15 +1,11 @@
 import { notFound, redirect } from "next/navigation"
 import { getContractById } from "@/actions/contrats"
-import { getClientsMinimal } from "@/actions/clients"
 import { ContractForm } from "../../contract-form"
 import { PageHeader } from "@/components/shared/page-header"
 
 export default async function EditContractPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [contract, clients] = await Promise.all([
-    getContractById(id),
-    getClientsMinimal(),
-  ])
+  const contract = await getContractById(id)
   if (!contract) notFound()
   if (contract.kind !== "STANDARD") redirect(`/dashboard/contrats/${contract.id}`)
   if (contract.status === "SIGNED") {
@@ -32,7 +28,7 @@ export default async function EditContractPage({ params }: { params: Promise<{ i
           validFrom: contract.validFrom,
           validUntil: contract.validUntil,
         }}
-        clients={clients ?? []}
+        initialClient={{ id: contract.client.id, name: contract.client.name }}
       />
     </div>
   )

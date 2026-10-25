@@ -1,6 +1,6 @@
 "use server"
 
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/generated/prisma/client"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -16,6 +16,7 @@ import {
 } from "@/lib/crm-properties"
 import type { Permission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
+import { opportunityCompanyScope, opportunityMutation } from "@/lib/opportunity-scope"
 
 const idSchema = z.string().cuid()
 const definitionUpdateSchema = z.object({
@@ -52,7 +53,7 @@ const WRITE_PERMISSIONS: Record<CrmObjectType, Permission> = {
 async function recordExists(companyId: string, objectType: CrmObjectType, recordId: string) {
   if (objectType === "CLIENT") return Boolean(await prisma.client.findFirst({ where: { id: recordId, companyId }, select: { id: true } }))
   if (objectType === "CONTACT") return Boolean(await prisma.contact.findFirst({ where: { id: recordId, client: { companyId } }, select: { id: true } }))
-  if (objectType === "OPPORTUNITY") return Boolean(await prisma.opportunity.findFirst({ where: { id: recordId, pipeline: { companyId } }, select: { id: true } }))
+  if (objectType === "OPPORTUNITY") return Boolean(await prisma.opportunity.findFirst({ where: { id: recordId, ...opportunityCompanyScope(companyId) }, select: { id: true } }))
   if (objectType === "PROJECT") return Boolean(await prisma.project.findFirst({ where: { id: recordId, companyId }, select: { id: true } }))
   if (objectType === "TICKET") return Boolean(await prisma.serviceTicket.findFirst({ where: { id: recordId, companyId }, select: { id: true } }))
   return Boolean(await prisma.equipment.findFirst({ where: { id: recordId, companyId }, select: { id: true } }))
@@ -212,8 +213,8 @@ export async function getRecordCrmProperties(objectType: string, recordId: strin
 
 export async function updateRecordCrmProperties(input: unknown) {
   const parsed = valuesInputSchema.parse(input)
-  return withAuth(async ({ companyId, userId }) => {
-    if (!await recordExists(companyId, parsed.objectType, parsed.recordId)) throw new Error("Enregistrement introuvable")
+  return opportunityMutation(() => withAuth(async ({ companyId, userId }) => {
+    if (!await recordExists(companyId, parsed.objectType, parsed.recordId)) throw new Error(parsed.objectType === "OPPORTUNITY" ? "Opportunité introuvable" : "Enregistrement introuvable")
     const definitionIds = Object.keys(parsed.values)
     const definitions = await prisma.crmPropertyDefinition.findMany({
       where: { companyId, objectType: parsed.objectType, archivedAt: null, id: { in: definitionIds } },
@@ -233,6 +234,9 @@ export async function updateRecordCrmProperties(input: unknown) {
     })
 
     await prisma.$transaction(async (tx) => {
+      if (parsed.objectType === "OPPORTUNITY" && !await tx.opportunity.findFirst({
+        where: { id: parsed.recordId, ...opportunityCompanyScope(companyId) }, select: { id: true },
+      })) throw new Error("Opportunité introuvable")
       for (const change of changes) {
         if (change.normalized === null) {
           if (change.existing) await tx.crmPropertyValue.delete({ where: { id: change.existing.id } })
@@ -257,7 +261,7 @@ export async function updateRecordCrmProperties(input: unknown) {
           },
         })
       }
-    })
+    }, { isolationLevel: "Serializable" })
     await logAction({ userId, action: "UPDATE_CRM_PROPERTY_VALUES", resource: parsed.objectType, resourceId: parsed.recordId, payload: { properties: changes.map((change) => change.definition.key) } })
     revalidatePath(`/dashboard/clients/${parsed.recordId}`)
     revalidatePath(`/dashboard/contacts/${parsed.recordId}`)
@@ -266,5 +270,5 @@ export async function updateRecordCrmProperties(input: unknown) {
     revalidatePath(`/dashboard/service/tickets/${parsed.recordId}`)
     revalidatePath(`/dashboard/equipements/${parsed.recordId}`)
     return { success: true as const, updated: changes.length }
-  }, WRITE_PERMISSIONS[parsed.objectType])
+  }, WRITE_PERMISSIONS[parsed.objectType]))
 }

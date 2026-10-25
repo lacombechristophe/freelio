@@ -1,0 +1,11 @@
+ALTER TABLE "Contract" ADD COLUMN "signedDocument" TEXT;
+ALTER TABLE "Contract" ADD COLUMN "pdfUrl" TEXT;
+ALTER TABLE "Contract" ADD COLUMN "pdfHash" TEXT;
+ALTER TABLE "Contract" ADD COLUMN "archiveStatus" TEXT;
+ALTER TABLE "Contract" ADD COLUMN "archiveAttempts" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Contract" ADD COLUMN "archiveNextAttemptAt" TIMESTAMP(3);
+ALTER TABLE "Contract" ADD COLUMN "archiveError" TEXT;
+CREATE INDEX "Contract_archiveStatus_archiveNextAttemptAt_idx" ON "Contract"("archiveStatus", "archiveNextAttemptAt");
+ALTER TABLE "ContractSigningToken" ADD COLUMN "documentSnapshot" TEXT;
+ALTER TABLE "ContractSigningToken" ADD COLUMN "documentHash" TEXT;
+ALTER TABLE "ContractSigningToken" ADD COLUMN "contractRevision" TIMESTAMP(3);

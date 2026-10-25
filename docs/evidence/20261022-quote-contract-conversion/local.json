@@ -1,0 +1,244 @@
+{
+  "schema": "freelio.quote-contract-local.v1",
+  "observedAt": "2026-10-22T09:38:24.865Z",
+  "codeCommit": "8850040fd0beb3f7d12aac49e03453fc9e985864",
+  "source": {
+    "observedAt": "2026-10-22T09:38:24.574Z",
+    "commit": "8850040fd0beb3f7d12aac49e03453fc9e985864",
+    "filesCompared": 1225,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "e90e0b99403d5032c1f869fe75bf4fddf8a38443898b0177c62431627fd8a296",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ],
+    "contractRenderer": {
+      "unchanged": true,
+      "normalizedSha256": "060b9bd253539f41211c5b2d2919da9b15f63b4b1734f93c0aec46e5df57b3b4",
+      "previousCommit": "4871e827f1b6bdcc1490961aa412529fde463df0",
+      "templateUnchanged": true,
+      "comparison": "Original escape/format/content functions extracted verbatim; normalize CRLF and trailing whitespace only"
+    },
+    "removedRecipeSource": {
+      "path": "src/lib/operations/quote-order-source.ts",
+      "absent": true,
+      "reason": "Canonical source revisions now live in src/lib/quotes/conversion-source.ts"
+    }
+  },
+  "full": {
+    "file": "quote-contract-full-20261022.json",
+    "sha256": "945c980b6a4cee656b77a92d1041b38caf73aea70336d1c67e00347be8fcf558",
+    "passed": 3581,
+    "failed": 0,
+    "pending": 0,
+    "files": 280,
+    "success": true,
+    "exit": 0,
+    "freshDatabase": true,
+    "database": "verification-quote-contract-full-20261022.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "quote-contract-final-focused-20261022.json",
+    "sha256": "2f3f11000b2a98052ae990756fde291f233ea7feb4ffede6b2fdadba45bfb3ae",
+    "passed": 154,
+    "failed": 0,
+    "pending": 0,
+    "files": 6,
+    "success": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 280,
+    "executedFiles": 280,
+    "identityMatch": true
+  },
+  "recoveredBaselineCases": 5,
+  "dedicatedWithinFull": [
+    {
+      "file": "quote-contract-conversion.integration.test.ts",
+      "passed": 29
+    },
+    {
+      "file": "quote-order-conversion.integration.test.ts",
+      "passed": 32
+    },
+    {
+      "file": "document-read-scope.integration.test.ts",
+      "passed": 33
+    },
+    {
+      "file": "contract-archives.integration.test.ts",
+      "passed": 11
+    },
+    {
+      "file": "permissions.test.ts",
+      "passed": 6
+    },
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "passed": 43
+    }
+  ],
+  "checks": [
+    {
+      "check": "typegen",
+      "file": "quote-contract-typegen-confirmed-20261022.log",
+      "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084",
+      "exit": 0
+    },
+    {
+      "check": "types",
+      "file": "quote-contract-types-confirmed-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "eslint",
+      "file": "quote-contract-eslint-confirmed-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "build",
+      "file": "quote-contract-build-20261022.log",
+      "sha256": "bfe1b6ee1a814a668dcc41bae4e8eaa7583291663c3ea01f7ae7bd6c7852771d",
+      "exit": 0,
+      "staticPages": 76
+    }
+  ],
+  "oxlint": {
+    "file": "quote-contract-oxlint-confirmed-20261022.json",
+    "sha256": "4704c1e971ae1f89de1ba6604532e0ed39708b20f0d03e725a6f611093c78381",
+    "exit": 0,
+    "diagnostics": [],
+    "files": 1101,
+    "rules": 21
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "file": "quote-contract-browser-list-20261022.json",
+    "sha256": "a440eed16611867b23cf1ed4b0efdbd578c0731d8cb150df7030905c2dbaa848",
+    "selected": 478,
+    "desktop": 239,
+    "mobile": 239,
+    "executed": false,
+    "newCases": [
+      {
+        "file": "quote-contract-conversion.spec.ts",
+        "title": "a contract refuses stale validity, resumes after reload and remains readable after a role change",
+        "project": "desktop"
+      },
+      {
+        "file": "quote-contract-conversion.spec.ts",
+        "title": "a failed contract keeps the prepared order and form, then resumes without duplicate documents",
+        "project": "desktop"
+      },
+      {
+        "file": "quote-contract-conversion.spec.ts",
+        "title": "a contract refuses stale validity, resumes after reload and remains readable after a role change",
+        "project": "mobile"
+      },
+      {
+        "file": "quote-contract-conversion.spec.ts",
+        "title": "a failed contract keeps the prepared order and form, then resumes without duplicate documents",
+        "project": "mobile"
+      }
+    ]
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "behavior": [
+    "New contract requires the displayed source revision, accepted status, coherent project and unambiguous current version rechecked in one serializable transaction",
+    "Draft and mandatory audit commit together; audit refusal leaves no new contract; return value contains id and number only",
+    "A coherent existing draft or signed contract is returned unchanged, without another creation audit, including an insertion observed during number preparation",
+    "Contract revision includes quote validity and content but excludes operational project linking; generated-project conversion therefore does not invalidate identical contract content",
+    "An existing order survives a later contract failure, and retries create neither another order nor another creation audit; UI reports the partial outcome explicitly",
+    "UI opens an existing contract by its read route rather than invoking the creation action; new preparation remains permission-gated and blocked in the public read-only demo",
+    "Contract renderer and template content are unchanged; no signed archive is recalculated"
+  ],
+  "limits": [
+    "SQLite/actions/membership/audit refusal are real; authentication and cache are mocked",
+    "Controlled intercalations and two same-process SQLite callers do not qualify native PostgreSQL contention",
+    "Order and optional contract remain separate actions, with a recoverable partial outcome rather than an all-or-nothing folder",
+    "No historical acceptance snapshot is manufactured; signed historical data is not repaired or regenerated",
+    "Four new application-browser cases were selected, not executed; native PostgreSQL, Linux, compiled HTTP invocation and hosted preview of this code remain to qualify",
+    "Coverage includes six configured modules only; unchanged package audits remain dated",
+    "No schema/dependency/licence change, installation, real provider send, push, new CI, merge or deployment"
+  ]
+}

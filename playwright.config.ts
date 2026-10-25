@@ -11,9 +11,13 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
-  reporter: "list",
+  // Preserve assertion details even when the CI job ends before the suite.
+  reporter: process.env.CI ? "line" : "list",
   use: {
     baseURL,
+    // A missing field must fail before consuming the whole multi-step test budget.
+    actionTimeout: 30_000,
+    navigationTimeout: 60_000,
     storageState: "playwright/.auth/user.json",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
@@ -38,7 +42,7 @@ export default defineConfig({
         VERCEL: "0",
         UPSTASH_REDIS_REST_URL: "your-url",
         UPSTASH_REDIS_REST_TOKEN: "your-token",
-        PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "e2e-company",
+        PUBLIC_LEAD_COMPANY_ID: process.env.PUBLIC_LEAD_COMPANY_ID ?? "ce2ecompany000000000000001",
         PUBLIC_PRIVACY_NOTICE_URL: process.env.PUBLIC_PRIVACY_NOTICE_URL ?? "https://example.test/conformite",
         LEAD_ALLOWED_ORIGINS: process.env.LEAD_ALLOWED_ORIGINS ?? "https://example.test",
       },

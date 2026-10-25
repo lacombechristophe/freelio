@@ -4,6 +4,7 @@ import type { AuthContext } from "@/lib/auth-wrapper"
 import { requestContext } from "@/lib/context"
 import { hasPermission } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
+import { opportunityCompanyScope } from "@/lib/opportunity-scope"
 import {
   buildExecutiveReport,
   reportWindow,
@@ -45,7 +46,7 @@ async function loadScopedExecutiveReport({ companyId, role }: AuthContext, perio
     access.sales
       ? prisma.opportunity.findMany({
           where: {
-            pipeline: { companyId },
+            AND: [opportunityCompanyScope(companyId)],
             OR: [
               { status: { notIn: ["WON", "LOST"] } },
               { closedAt: { gte: previousStartAt } },

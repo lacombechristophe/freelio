@@ -1,0 +1,222 @@
+{
+  "schema": "freelio.delivery-choices-local.v1",
+  "observedAt": "2026-10-21T14:08:29.563Z",
+  "codeCommit": "a00a94941201f43297171989abd7d51a02f9dc89",
+  "source": {
+    "observedAt": "2026-10-21T13:58:20.067Z",
+    "commit": "a00a94941201f43297171989abd7d51a02f9dc89",
+    "filesCompared": 1202,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "b9ef3eb58d233b9bba0b125b07b02d15478cd30bc66a0456d77c0fcec589ccb2",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-delivery-choices-20261021.json",
+    "sha256": "bbed0ef5617ad0d6ea439e8bccf09bf7f230fe9d1cab623733944352a22d8133",
+    "passed": 3319,
+    "failed": 0,
+    "pending": 0,
+    "total": 3319,
+    "files": 270,
+    "success": true,
+    "freshDatabase": true,
+    "database": "verification-delivery-choices-full-20261021.db",
+    "coverageEnabled": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 270,
+    "executedFiles": 270,
+    "identityMatch": true,
+    "recordsSha256": "99b5bfb8609543ec4159e570e2701d098577d772dfc7afb84bab84c4e3437307"
+  },
+  "focused": {
+    "file": "delivery-choices-focused-final-20261021.json",
+    "sha256": "df7cc3657fdee83c5a8a607d18a57040afbb975adfbd392f6a968e393b70f2e4",
+    "passed": 94,
+    "failed": 0,
+    "pending": 0,
+    "total": 94,
+    "files": 3,
+    "success": true
+  },
+  "focusedWithinFull": [
+    {
+      "file": "customer-order-delivery.integration.test.ts",
+      "passed": 43
+    },
+    {
+      "file": "delivery-choices.integration.test.ts",
+      "passed": 29
+    },
+    {
+      "file": "delivery-directory.integration.test.ts",
+      "passed": 22
+    }
+  ],
+  "initialFocused": {
+    "file": "delivery-choices-focused-20261021.json",
+    "sha256": "7e6f108aa0e95a3bfc3129dda7fa373383fe34a2aeebcbb4ad67c201625023bb",
+    "passed": 88,
+    "failed": 0,
+    "pending": 0,
+    "total": 88,
+    "files": 3,
+    "success": true
+  },
+  "checks": [
+    {
+      "check": "typegen",
+      "log": "delivery-choices-typegen-20261021.log",
+      "exit": 0,
+      "sha256": "adba4af9194e10e47dda75ff0fd0f8c2b756474896d0eba5612799c527ff372a"
+    },
+    {
+      "check": "types",
+      "log": "delivery-choices-types-20261021.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "eslint",
+      "log": "delivery-choices-eslint-20261021.log",
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "build",
+      "log": "delivery-choices-build-20261021.log",
+      "exit": 0,
+      "sha256": "6cc38c067b45bdc2eea2eb22dcb165c33f997a8c13fbab9ed7a9de80636fd594"
+    }
+  ],
+  "oxlint": {
+    "file": "delivery-choices-oxlint-20261021.json",
+    "files": 1079,
+    "rules": 21,
+    "diagnostics": [],
+    "sha256": "e19d0564e763769a748d25de322111c37806bb94fbfb541da5747d81b896190e"
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "scope": "Configured deterministic modules, not the entire application",
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "observedAt": "2026-10-21T13:58:25.538Z",
+    "baseline": "a00a94941201f43297171989abd7d51a02f9dc89",
+    "all": 462,
+    "desktop": 231,
+    "mobile": 231,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ],
+    "executed": false
+  },
+  "limits": [
+    "SQL and current memberships are real; session/cache are mocked",
+    "The 29 dedicated cases cover server choices, not interactive React state",
+    "Same-model Prisma field references are executed on SQLite; PostgreSQL remains unqualified",
+    "Detailed selected-order verification rejects incoherent historical references without repairing them",
+    "The old bounded dashboard projection remains for other forms; Delivery uses the complete choice queries",
+    "Order choice in stock reservations and other project choices remain separate",
+    "No migration, server/container launch, browser execution, push, new CI, provider send or financial-setting change"
+  ],
+  "purchaseWithinFull": [
+    {
+      "file": "purchase-choices.integration.test.ts",
+      "passed": 35
+    },
+    {
+      "file": "purchase-creation-integrity.integration.test.ts",
+      "passed": 24
+    },
+    {
+      "file": "purchase-directory.integration.test.ts",
+      "passed": 22
+    },
+    {
+      "file": "purchase-draft-lifecycle.integration.test.ts",
+      "passed": 51
+    },
+    {
+      "file": "purchase-inspection-returns.integration.test.ts",
+      "passed": 8
+    },
+    {
+      "file": "purchase-stock-integrity.integration.test.ts",
+      "passed": 35
+    },
+    {
+      "file": "purchase-transitions.integration.test.ts",
+      "passed": 48
+    },
+    {
+      "file": "warehouse-stock-lifecycle.integration.test.ts",
+      "passed": 16
+    }
+  ],
+  "finalPublication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1810,
+    "historyBlobsChecked": 0,
+    "placeholdersExcluded": 0,
+    "findings": []
+  },
+  "markdownLinks": {
+    "observedAt": "2026-10-21T14:09:31.179Z",
+    "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+    "checked": 1040,
+    "findings": []
+  }
+}

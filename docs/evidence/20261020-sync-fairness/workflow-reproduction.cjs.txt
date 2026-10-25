@@ -1,0 +1,33 @@
+const fs = require('node:fs'), path = require('node:path'), { spawnSync } = require('node:child_process'), assert = require('node:assert/strict'), crypto = require('node:crypto');
+const root = process.cwd();
+const yaml = fs.readFileSync(path.join(root, '.github/workflows/production-processors.yml'), 'utf8').replace(/\r\n/g, '\n');
+const block = yaml.slice(yaml.lastIndexOf('        run: |\n') + '        run: |\n'.length).replace(/^          /gm, '');
+assert.ok(block.includes('call_processor()') && block.includes('exit "$failed"'));
+const prelude = `
+curl() {
+  local url="\${@: -1}" retry=false arg
+  for arg in "$@"; do if [[ "$arg" == '--retry' ]]; then retry=true; fi; done
+  if [[ -n "$FAIL_ENDPOINT" && "$url" == *"$FAIL_ENDPOINT" ]]; then
+    printf 'ATTEMPT %s %s\n' "$url" "$FAILURE_KIND"
+    if [[ "$retry" == true ]]; then printf 'ATTEMPT %s 200_after_transport_retry\n' "$url"; return 0; fi
+    return 22
+  fi
+  printf 'ATTEMPT %s 200\n' "$url"
+  return 0
+}
+`;
+const cases = [];
+for (const fail of ['', '/api/automations/process', '/api/communications/sync/process', '/api/backup/process']) {
+  const child = spawnSync((process.platform === "win32" ? path.join(process.env.ProgramFiles || "C:/Program Files", "Git/bin/bash.exe") : "bash"), ['--noprofile', '--norc', '-c', prelude + '\n' + block], { cwd: root, windowsHide: true, encoding: 'utf8',
+    env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, APP_URL: 'https://fiction.invalid', PROCESSOR_SECRET: 'isolated-workflow-secret-only', FAIL_ENDPOINT: fail, FAILURE_KIND: '503' } });
+  if (child.error) throw child.error;
+  const attempts = (child.stdout || '').split('\n').filter(line => line.startsWith('ATTEMPT '));
+  cases.push({ failedEndpoint: fail || null, exitCode: child.status, expectedExitCode: fail ? 1 : 0, attempts, passed: child.status === (fail ? 1 : 0) && attempts.length === 4 });
+}
+const report = { schema: 'freelio.processor-workflow-shell.v1', observedAt: new Date().toISOString(), workflowSha256: crypto.createHash('sha256').update(yaml).digest('hex'), cases,
+  passed: cases.filter(item => item.passed).length, failed: cases.filter(item => !item.passed).length,
+  limits: ['Actual Bash body extracted from the current workflow; curl is a deterministic shell function simulating first failure followed by success when retry flags are present.', 'This tests orchestration and error propagation, not libcurl or an actual HTTP server.', 'No network, credentials, GitHub job, processor dispatch, provider or paid action.'] };
+const name = process.argv[2]; assert.match(name, /^[a-z0-9-]+\.json$/i);
+fs.writeFileSync(path.join(process.env.TEMP, name), JSON.stringify(report, null, 2) + '\n');
+console.log(JSON.stringify({ report: name, passed: report.passed, failed: report.failed }));
+process.exitCode = report.failed ? 1 : 0;

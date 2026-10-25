@@ -1,0 +1,28 @@
+{
+  "schema": "freelio.help-desk-baseline.v1",
+  "codeCommit": "de7497a8e0b46729f7113a98d2e574f39997c78a",
+  "sourceCodeCommit": "b3211e08960357c11461b8cfd440c06cdfc5924f",
+  "file": "help-desk-baseline-20261022.json",
+  "sha256": "45a2bc294ed4029d319c475148e73463432b0d88184ccb1638a98a6b066fa12d",
+  "passed": 2,
+  "failed": 9,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Main Help Desk uses a complete authorized ticket scope excludes a ticket whose client belongs to another company",
+    "Main Help Desk uses a complete authorized ticket scope excludes a ticket assigned to another company's membership",
+    "Main Help Desk uses a complete authorized ticket scope excludes foreign equipment independently of its own ticket root",
+    "Main Help Desk uses a complete authorized ticket scope counts only coherent interventions below an otherwise coherent ticket",
+    "Main Help Desk uses a complete authorized ticket scope also restricts nested intervention counts to the current agencies",
+    "Main Help Desk uses a complete authorized ticket scope does not count a foreign-client assignment in a member's workload",
+    "Main Help Desk uses a complete authorized ticket scope does not offer a responsible member from an inaccessible agency",
+    "Main Help Desk uses a complete authorized ticket scope puts HIGH before NORMAL rather than using lexical priority order",
+    "Main Help Desk uses a complete authorized ticket scope counts the 501st coherent ticket beyond the old hard cap"
+  ],
+  "probe": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "6ad2508ead59a31e105ac684860e23bb15a62f44d362fded6aaa5c36d851d165"
+  },
+  "classification": "Nine failing observations on graph scope, nested/member counters, member agency scope, lexical priority and a 500-ticket cap, plus two positive controls. Not nine independent security vulnerabilities."
+}

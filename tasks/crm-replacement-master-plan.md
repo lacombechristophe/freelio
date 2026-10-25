@@ -444,4 +444,4 @@ La décision la plus rentable est de sortir rapidement de HubSpot grâce au socl
 - [HubSpot — workflows](https://knowledge.hubspot.com/fr/workflows/understand-workflow-object-types)
 - [HubSpot Developers — architecture CRM](https://developers.hubspot.com/docs/api-reference/latest/crm/understanding-the-crm)
 
-L'[audit préliminaire détaillé](./docs/coverage-and-external-dependencies.md) conserve l'inventaire plus exhaustif des modules publics et les constats techniques ayant servi à ce plan.
+L'[audit préliminaire détaillé](../docs/coverage-and-external-dependencies.md) conserve l'inventaire plus exhaustif des modules publics et les constats techniques ayant servi à ce plan.

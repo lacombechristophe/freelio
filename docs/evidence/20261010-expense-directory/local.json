@@ -1,0 +1,375 @@
+{
+  "schema": "freelio.expense-directory-local.v1",
+  "recordedAt": "2026-10-12T15:04:46.795Z",
+  "baseCommit": "c054bffa01667ab91e04a61429aed87dec6847f0",
+  "source": [
+    {
+      "file": "src/actions/depenses/index.ts",
+      "sha256": "e24c21b8638aff00e8fdb2841db4095cf94c6ba4c02bd39d9f4d15ae6c648ebb"
+    },
+    {
+      "file": "src/app/dashboard/depenses/page.tsx",
+      "sha256": "394c1b945b3ce0bb6e2484b0b7151c150755af1a8e39f54bcb130eb3a21b0646"
+    },
+    {
+      "file": "src/app/dashboard/depenses/depenses-view.tsx",
+      "sha256": "e2ae00fa6be4e99be5eff553732dc7d06b00d84917e0ffe434466cb8f4938f37"
+    },
+    {
+      "file": "scripts/seed-ui-redesign.mjs",
+      "sha256": "51a2d4a3aec3b153f0a1f303e9e9c6aba1a44e0a5c644d5aa8fe39fedb62bf2e"
+    },
+    {
+      "file": "scripts/seed-expense-directory.mjs",
+      "sha256": "f67ef3b69589d4e1d335f3e6a1134e7f069611af89783c6225e016b71865abba"
+    },
+    {
+      "file": "tests/unit/expense-directory.integration.test.ts",
+      "sha256": "a356028351fa08a0afc810880a35a7fcee00cdd08814dc1e4c35beabfcfbf926"
+    },
+    {
+      "file": "tests/e2e/expense-directory.spec.ts",
+      "sha256": "2fba252b0b0a040fe3e04e113fc9f721afdafd394913ffe600fcfc2fe5769671"
+    }
+  ],
+  "runtime": {
+    "node": "v24.15.0",
+    "next": "16.3.8"
+  },
+  "qualification": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 9.043,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 26.759,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.165,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 218.525,
+      "logSha256": "ba16f63815e53af32058d68830734ffc1e8dc5925674b3a42b5d7d56051bd6f7"
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 73.245,
+      "logSha256": "bd920528561ce206f913e09374346ad25e1811b5e46df5d497de39dac132c37e"
+    }
+  ],
+  "commands": [
+    "tsc --noEmit",
+    "eslint .",
+    "oxlint .",
+    "vitest run --no-file-parallelism --reporter=json",
+    "next build --webpack"
+  ],
+  "unit": {
+    "passed": 1733,
+    "failed": 0,
+    "files": 195,
+    "reportSha256": "4d2b522e8934159039e123a1b564529af112e2a7d74c9c4af2b68de5f5f75739"
+  },
+  "focused": {
+    "passed": 60,
+    "failed": 0,
+    "files": [
+      {
+        "file": "expense-directory.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "Expense directory on real SQL reaches all 51 rows with stable equal-date pages and complete independent cards",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL finds an older label or provider across the complete history:   ANCIENNE  ",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL finds an older label or provider across the complete history: bureau UNIQUE",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL clamps an obsolete last page and keeps cards when search has no result",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL refreshes complete cards after justification and clamps the page after deleting its last row",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL returns an empty first page and zero cards for an empty authorized history",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL applies the same company, relation and agency scope to rows and cards for OWNER",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL applies the same company, relation and agency scope to rows and cards for ADMIN",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL applies the same company, relation and agency scope to rows and cards for ACCOUNTING",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL applies the same company, relation and agency scope to rows and cards for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL immediately removes rows, amounts and counts after agency access is revoked",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL denies SALES before querying expense rows, aggregates or company settings",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL denies OPERATIONS before querying expense rows, aggregates or company settings",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL denies SERVICE before querying expense rows, aggregates or company settings",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL denies TECHNICIAN before querying expense rows, aggregates or company settings",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL rejects an invalid or injected directory query: {\"page\":0}",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL rejects an invalid or injected directory query: {\"page\":1.5}",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL rejects an invalid or injected directory query: {\"page\":100001}",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL rejects an invalid or injected directory query: {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL rejects an invalid or injected directory query: {\"companyId\":\"foreign\"}",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL uses the company's civil month in Europe/Paris at 2026-05-31T22:30:00Z, independently of the host clock zone",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL uses the company's civil month in America/Los_Angeles at 2026-06-01T01:30:00Z, independently of the host clock zone",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL uses the company's civil month in Pacific/Kiritimati at 2026-12-31T10:30:00Z, independently of the host clock zone",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL uses the company's civil month in America/Los_Angeles at 2027-01-01T01:30:00Z, independently of the host clock zone",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL uses the company's civil month in Europe/Paris at 2026-10-25T01:30:00Z, independently of the host clock zone",
+            "status": "passed"
+          },
+          {
+            "name": "Expense directory on real SQL keeps the directory readable in the public read-only demo without writes",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "expense-permissions.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "denies expense reads to a technician before reading financial data",
+            "status": "passed"
+          },
+          {
+            "name": "allows a viewer to read the current company's expenses",
+            "status": "passed"
+          },
+          {
+            "name": "denies a viewer permission to create an expense before touching the database",
+            "status": "passed"
+          },
+          {
+            "name": "denies a viewer permission to edit an expense before touching the database",
+            "status": "passed"
+          },
+          {
+            "name": "denies a viewer permission to delete an expense before touching the database",
+            "status": "passed"
+          },
+          {
+            "name": "denies a viewer permission to justify an expense before touching the database",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "expense-relations.integration.test.ts",
+        "status": "passed",
+        "cases": [
+          {
+            "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for OWNER",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for ADMIN",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for ACCOUNTING",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL keeps optional unattached expenses for Owner",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses creation on a project whose client is foreign, without writing or auditing",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses update for foreign client without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses justify for foreign client without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses delete for foreign client without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses update for foreign project without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses justify for foreign project without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses delete for foreign project without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses update for project with foreign client without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses justify for project with foreign client without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses delete for project with foreign client without changing the expense, receipt or audit",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Finance reads before the expense query for SALES",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Finance reads before the expense query for OPERATIONS",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Finance reads before the expense query for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Finance reads before the expense query for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Viewer update before reading or writing an expense",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Viewer justify before reading or writing an expense",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL denies Viewer delete before reading or writing an expense",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses update if the client becomes foreign after the initial read",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses justify if the client becomes foreign after the initial read",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL refuses delete if the client becomes foreign after the initial read",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL preserves a coherent Accounting create/edit/justify/delete path",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL keeps agency filtering and immediately applies its revocation",
+            "status": "passed"
+          },
+          {
+            "name": "Expense relations on real SQL rejects writes in the public read-only demo before the expense lookup",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "seed": {
+    "schema": "freelio.expense-directory-seed-check.v1",
+    "observedAt": "2026-10-10T14:41:21.968Z",
+    "success": true,
+    "disposableSQLite": true,
+    "counts": {
+      "companies": 2,
+      "users": 2,
+      "expenses": 102
+    }
+  },
+  "browser": {
+    "newCasesLoaded": 4,
+    "totalFocusedCasesLoaded": 10,
+    "executedLocally": false,
+    "command": "playwright test tests/e2e/expense-directory.spec.ts tests/e2e/expense-relations.spec.ts --list"
+  },
+  "initialInstrumentation": {
+    "failed": 5,
+    "cause": "Unsupported spy on a proxied transaction method, replaced by business model spies. Test instrumentation failures, not five product defects."
+  },
+  "limits": [
+    "Isolated fictitious SQLite with real memberships, DAL and actions; authentication and Next cache are mocked.",
+    "No local Next server or container; no real supplier or file storage.",
+    "PostgreSQL, browser execution and hosted preview require checks on the implementation candidate.",
+    "Date cases cover month/year boundaries and DST; not a hosted load or universal concurrency benchmark."
+  ]
+}

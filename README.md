@@ -17,26 +17,26 @@ Chaque parcours doit être relié à des tests, à une version et à ses limites
 | Élément | Choix actuel |
 | --- | --- |
 | Application | Next.js 16, React 19, TypeScript strict |
-| Données | Prisma 6 ; PostgreSQL pour l’environnement partagé, SQLite pour la démo locale |
+| Données | Prisma 7 et pilotes explicites ; PostgreSQL pour l’environnement partagé, SQLite pour la démo locale |
 | Accès | Auth.js, mots de passe, MFA, memberships et droits par domaine |
 | Documents | Puppeteer/Chromium, pdf-lib et XML Factur-X ; aucune certification globale |
 | Travaux de fond | BullMQ/Redis TCP ; Upstash REST pour la limitation distribuée |
-| Fichiers | Local en développement ; R2 privé pour le runtime de production actuel |
+| Fichiers | Local en développement ; R2 privé en production modifiable ; stockage désactivé possible en démo publique |
 | Vérification | Vitest, intégrations SQL, Playwright et GitHub Actions |
 
 L’architecture est un monolithe modulaire avec un processus worker séparé. Les règles financières ne dépendent pas du rendu des écrans. Les clients sont partagés au niveau entreprise ; les dossiers opérationnels peuvent être bornés aux agences. Voir les [frontières métier](docs/architecture-domain-boundaries.md).
 
 ## Démo locale isolée
 
-Prérequis : Node **24.x**, npm et les dépendances installées. Le postinstall d’une installation neuve génère Prisma et nécessite une DATABASE_URL de développement. Pour installer sans ce postinstall : `npm ci --ignore-scripts`, puis générer explicitement le client SQLite avant la première démo.
+Prérequis : Node **24.x**, npm et les dépendances installées. Le postinstall d’une installation neuve génère Prisma et nécessite une DATABASE_URL de développement. Une installation avec `npm ci --ignore-scripts` demande une préparation explicite du binaire `better-sqlite3` pour SQLite, par exemple avec `npm rebuild better-sqlite3` ; aucune installation n'est effectuée par le lanceur.
 
-Avec un client Prisma SQLite déjà généré :
+Depuis le dépôt avec ses dépendances disponibles :
 
 ```powershell
 npm run demo
 ```
 
-Le lanceur crée une nouvelle copie dans le répertoire temporaire, une SQLite neuve et un compte fictif avec mot de passe. Il ne copie aucun .env ni donnée métier du dépôt. Le terminal affiche l’adresse locale et le chemin privé des identifiants, sans afficher les secrets. Il réutilise les dépendances installées sans régénérer leur client Prisma.
+Le lanceur crée une nouvelle copie dans le répertoire temporaire, une SQLite neuve et un compte fictif avec mot de passe. Il ne copie aucun .env ni donnée métier du dépôt. Le terminal affiche l’adresse locale et le chemin privé des identifiants, sans afficher les secrets. Les dépendances sont réutilisées ; le client Prisma et ses métadonnées sont générés dans la copie.
 
 La démo locale est distincte de la démo hébergée en lecture seule. Son garde-fou Node refuse les connexions fournisseur mais permet les téléchargements publics de polices. Voir le [guide de démarrage, reprise, sauvegarde et restauration](docs/demo-local.md). La qualification Vercel et ses limites sont consignées dans le [compte rendu de livraison](docs/livraison-demo-vercel-20261003.md).
 
@@ -69,10 +69,13 @@ npm run test:e2e
 
 Les tests d’intégration et fixtures écrivent et suppriment des données : utiliser exclusivement une base isolée. `npm run verify` prépare la base configurée avant les contrôles ; il n’est pas destiné à un environnement partagé. Les E2E nécessitent leur propre jeu de données ; leur réussite ne se déduit pas d’un build.
 
-- Recette du 30 septembre 2026 : 427 tests dans 100 fichiers, build/typage/lint réussis ; 14 pages et 13 contrôles navigateur ciblés ; sauvegarde/restauration SQLite. Voir le [compte rendu](docs/technical-hardening-20260930.md).
-- La CI définit des jobs SQLite et PostgreSQL. Un workflow existant ne prouve pas son exécution distante : contrôler le résultat du commit exact avant publication.
-- Les validations PostgreSQL, Linux/Docker et exploitation sont consignées dans le [suivi CTO](docs/execution-cto-20261001.md).
-- La livraison locale `review-local-20261002-final` conserve les [rapports](docs/evidence/20261002/README.md) : 457 tests SQLite, 456 tests PostgreSQL, 19 parcours desktop, les contrôles de démo en lecture seule, les seuils de couverture ciblée et une charge locale de 30 minutes sans erreur. Leurs dates, conditions et limites sont explicites ; aucun résultat CI distant n’est revendiqué.
+Les [résultats courants](docs/completude-recette-20261003.md) distinguent le candidat local, la tête distante de la PR #8 et les contrôles exécutés sur chaque version. La [carte des preuves](docs/carte-des-preuves.md) relie les risques à leurs tests et limites. Une ancienne CI ou preview ne qualifie pas les changements locaux suivants ; la [recette hébergée sans stockage](docs/qualification-demo-sans-stockage-20261010.md) reste une référence datée. La branche main et la production restent des références distinctes.
+
+La [démo publique en lecture seule](https://freelio-demo-77c40cf.vercel.app) sert le code `745c51d`. Ses [preuves du 25 octobre](docs/evidence/20261025-public-demo/README.md) identifient la CI complète, les 75 migrations, la connexion, les lectures de documents/PDF et la déconnexion sur cet alias. Le nom de l’adresse est historique ; l’en-tête de révision permet de vérifier le code servi. Les [contrôles de la PR #8](https://github.com/lacombechristophe/freelio/pull/8/checks) suivent les commits ultérieurs. Main et le profil Production gardent leur propre étape de livraison.
+
+Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
+
+Le [reçu CI de `745c51d`](docs/evidence/20261025-public-demo/ci-745c51d.json) valide quatre jobs : les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le [passage à Prisma 7](docs/evidence/20261025-prisma7/README.md) et les [lectures des annuaires](docs/evidence/20261025-asset-directories/README.md) conservent leurs diagnostics et limites. Une recette antérieure ne qualifie pas automatiquement les changements suivants.
 
 ## Image et exploitation
 
@@ -83,11 +86,11 @@ node scripts/verify-container-runtime.mjs freelio:local-review
 
 Le Dockerfile prépare le client PostgreSQL et le build sans migrer une base réelle. Il inclut Chromium, utilise un utilisateur non root et tini. Secrets et données locales sont exclus du contexte de build. Les variables NEXT_PUBLIC sont définies au build ; les secrets serveur se fournissent au runtime.
 
-La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker et un PDF Chromium hors réseau. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
+La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker, une archive de contrat depuis une signature synthétique avec rejeu stable, et un PDF Chromium hors réseau. Son résultat doit être contrôlé sur le commit exact ; la présence du script ne prouve pas son succès. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
 
 La génération PDF actuelle désactive la sandbox Chrome : non-root et conteneur ne suffisent pas à attester une isolation complète. Vérifier les restrictions du rendu, les ressources, le réseau et les processus dans le runtime cible.
 
-Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production actuel exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. Voir le [runbook](docs/production-runbook.md).
+Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production modifiable exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. La [démo publique sans stockage](docs/qualification-demo-sans-stockage-20261010.md) conserve PostgreSQL et Upstash, refuse tous les accès persistants aux fichiers et calcule les PDF de brouillons à la demande. Voir le [runbook](docs/production-runbook.md).
 
 ## Documentation et collaboration
 
@@ -107,4 +110,4 @@ Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dé
 
 Les rapports d’audit et de déploiement sont historiques et datés. Les changements se présentent par lots cohérents, avec leur validation et leur périmètre. Aucun ancien lien de déploiement n’est présenté ici comme une démo courante vérifiée.
 
-Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. Décider la licence de distribution du code propre avant partage public et inventorier les licences des dépendances/assets.
+Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. À la demande du propriétaire, le code propre reste sans licence de redistribution. Les licences des dépendances et assets sont distinctes ; leur [inventaire](docs/dependances-et-licences.md) précise les notices à examiner.

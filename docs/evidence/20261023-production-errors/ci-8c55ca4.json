@@ -1,0 +1,99 @@
+{
+  "schema": "freelio.ci-startup-gate.v1",
+  "observedAt": "2026-10-22T23:34:30.859Z",
+  "identity": {
+    "candidate": "8c55ca4ba23c73e53c044b0ee4e860abd09754f2",
+    "preparedMergeRef": "cc1d757eaa81f9b263a961fea3c3b54ba5f75d49",
+    "candidateTree": "b65dd26d4b606d4886cc01f11d5fd771c7f232dc",
+    "preparedMergeTree": "b65dd26d4b606d4886cc01f11d5fd771c7f232dc",
+    "treesIdentical": true,
+    "baseIsAncestor": true
+  },
+  "run": {
+    "id": 39872058905,
+    "url": "https://github.com/lacombechristophe/freelio/actions/runs/39872058905",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "account_gate_before_job_execution"
+  },
+  "jobs": [
+    {
+      "kind": "linux",
+      "id": 120148600520,
+      "name": "Image Linux et Chromium",
+      "status": "completed",
+      "conclusion": "failure",
+      "executedSteps": 0,
+      "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings"
+    },
+    {
+      "kind": "desktop",
+      "id": 120148600706,
+      "name": "quality-and-e2e (desktop)",
+      "status": "completed",
+      "conclusion": "failure",
+      "executedSteps": 0,
+      "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings"
+    },
+    {
+      "kind": "pg",
+      "id": 120148600843,
+      "name": "Intégration PostgreSQL",
+      "status": "completed",
+      "conclusion": "failure",
+      "executedSteps": 0,
+      "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings"
+    },
+    {
+      "kind": "mobile",
+      "id": 120148600863,
+      "name": "quality-and-e2e (mobile)",
+      "status": "completed",
+      "conclusion": "failure",
+      "executedSteps": 0,
+      "annotation": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings"
+    }
+  ],
+  "artifactUploadAttempted": false,
+  "preview": {
+    "deploymentId": "dpl_8cWgaTRvbzsLExPHQAdQrqzm93LR",
+    "url": "https://freelio-9p95y54j7-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "status": "READY",
+    "probes": [
+      {
+        "path": "/api/health/live",
+        "httpStatus": 200,
+        "body": {
+          "status": "ok"
+        },
+        "log": {
+          "file": "Freelio-8c55ca4-health-live-20261023.log",
+          "sha256": "75470e063bc5309aa796c278265c136d2b3e46680df59ce12bac057e06bc6f89"
+        }
+      },
+      {
+        "path": "/api/health/ready",
+        "httpStatus": 200,
+        "body": {
+          "status": "ready",
+          "components": {
+            "database": "ok",
+            "configuration": "ok"
+          }
+        },
+        "log": {
+          "file": "Freelio-8c55ca4-health-ready-20261023.log",
+          "sha256": "faf8ce2f2536543df5ed4246ac91f5c536dcd1eebb57f7962d9a914d50260d25"
+        }
+      }
+    ],
+    "authenticatedRecipeExecuted": false,
+    "migrationsVerified": false
+  },
+  "limits": [
+    "GitHub reports a generic account billing/spending-limit gate. Its annotation does not identify the underlying account cause or prove a failed payment.",
+    "No application, PostgreSQL, SQLite, browser or Linux verification was executed in this run. There was no manual retry.",
+    "Read-only health probes used the existing Vercel CLI authorization, without a browser or project environment pull. The ready endpoint runs SELECT 1, not a migration or table-shape check.",
+    "No billing, plan, repository visibility, license, main or production change."
+  ]
+}

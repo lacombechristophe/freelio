@@ -17,6 +17,8 @@ type MaintenanceRenewalDocumentInput = {
   indexationRate: number
   frequency: string
   noticeDays: number
+  tvaRate?: number
+  invoiceDueDays?: number
 }
 
 function escapeHtml(value: string) {
@@ -55,5 +57,8 @@ export function buildContractAmendmentContent(input: {
 }
 
 export function buildMaintenanceRenewalContent(input: MaintenanceRenewalDocumentInput) {
-  return `<h1>Proposition de renouvellement</h1><p>La présente proposition renouvelle le contrat d’entretien <strong>${escapeHtml(input.sourceNumber)}</strong> relatif à <strong>${escapeHtml(input.label)}</strong>, sur le site <strong>${escapeHtml(input.siteLabel)}</strong>.</p><h2>Nouveau terme</h2><ul><li>Début : ${escapeHtml(date(input.nextStartDate))}</li><li>Fin : ${escapeHtml(date(input.nextEndDate))}</li><li>Fréquence : ${escapeHtml(input.frequency)}</li><li>Préavis : ${input.noticeDays} jours</li></ul><h2>Conditions financières</h2><p>Tarif actuel : ${escapeHtml(money(input.currentPriceCents))} TTC.</p><p>Nouveau tarif : <strong>${escapeHtml(money(input.nextPriceCents))} TTC</strong>, après indexation de ${escapeHtml(new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(input.indexationRate))} %.</p><h2>Acceptation</h2><p>La signature électronique de cette proposition vaut accord sur le nouveau terme et ses conditions. Le nouveau contrat d’entretien sera ensuite créé dans le dossier, sans altérer l’historique du terme précédent.</p>`
+  const frequency: Record<string, string> = { ANNUAL: "Annuelle", BIANNUAL: "Semestrielle", QUARTERLY: "Trimestrielle", MONTHLY: "Mensuelle" }
+  const tax = input.tvaRate === undefined ? "" : `<p>TVA applicable : ${escapeHtml(new Intl.NumberFormat("fr-FR", { maximumSignificantDigits: 21 }).format(input.tvaRate))} %.</p>`
+  const payment = input.invoiceDueDays === undefined ? "" : `<p>Délai de paiement : ${input.invoiceDueDays} jours.</p>`
+  return `<h1>Proposition de renouvellement</h1><p>La présente proposition renouvelle le contrat d’entretien <strong>${escapeHtml(input.sourceNumber)}</strong> relatif à <strong>${escapeHtml(input.label)}</strong>, sur le site <strong>${escapeHtml(input.siteLabel)}</strong>.</p><h2>Nouveau terme</h2><ul><li>Début : ${escapeHtml(date(input.nextStartDate))}</li><li>Fin : ${escapeHtml(date(input.nextEndDate))}</li><li>Fréquence : ${escapeHtml(frequency[input.frequency] || input.frequency)}</li><li>Préavis : ${input.noticeDays} jours</li></ul><h2>Conditions financières</h2><p>Tarif actuel : ${escapeHtml(money(input.currentPriceCents))} HT.</p><p>Nouveau tarif : <strong>${escapeHtml(money(input.nextPriceCents))} HT</strong>, après indexation de ${escapeHtml(new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(input.indexationRate))} %.</p>${tax}${payment}<h2>Acceptation</h2><p>La signature électronique de cette proposition vaut accord sur le nouveau terme et ses conditions. Le nouveau contrat d’entretien sera ensuite créé dans le dossier, sans altérer l’historique du terme précédent.</p>`
 }

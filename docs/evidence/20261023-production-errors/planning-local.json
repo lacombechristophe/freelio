@@ -1,0 +1,77 @@
+{
+  "schema": "freelio.planning-validation-local.v1",
+  "observedAt": "2026-10-22T23:26:47.281Z",
+  "candidate": "64f8e7da0e4d6a09fffb21ba8b70eb64cab9508e",
+  "source": {
+    "filesCompared": 1261,
+    "mismatches": 0,
+    "dependenciesAndSchemasUnchangedSince": "df2262353f2f63272cd2566ee5e0d7b441c59a9c"
+  },
+  "database": {
+    "provider": "sqlite",
+    "name": "planning-errors-20261023.db",
+    "createdFreshForReproduction": true,
+    "reusedForCorrectionReplay": true,
+    "existingProjectDataCopied": false
+  },
+  "before": {
+    "files": 1,
+    "passed": 31,
+    "failed": 2,
+    "expectedFailure": "Raw ZodError instead of a safe business refusal"
+  },
+  "after": {
+    "files": 4,
+    "passed": 130,
+    "failed": 0,
+    "skipped": 0,
+    "newTests": 2,
+    "invalidPaths": 4,
+    "suites": [
+      "portal-booking.integrity.integration.test.ts",
+      "asset-commands.test.ts",
+      "asset-reference-lifecycle.integration.test.ts",
+      "operations-service-directory.integration.test.ts"
+    ]
+  },
+  "typecheck": "success",
+  "eslint": "success",
+  "build": {
+    "status": "success",
+    "next": "16.4.2",
+    "staticPages": 76,
+    "priorBuildMovedAside": true
+  },
+  "playwright": {
+    "selected": 518,
+    "files": 104,
+    "executed": false,
+    "actionTimeoutMs": 30000,
+    "navigationTimeoutMs": 60000,
+    "testTimeoutMs": 240000
+  },
+  "ciJobTimeoutMinutes": 60,
+  "logs": {
+    "before": {
+      "file": "Freelio-planning-errors-before-20261023.log",
+      "sha256": "4e3800776b9619117c802d63191042f4e0dcfc0a68f594348172ca761a011691"
+    },
+    "after": {
+      "file": "Freelio-planning-errors-after-20261023.log",
+      "sha256": "4525aeeb73dfd34c3d062c194f94574f4c26bbc21018110f1eb199ab242d8dcb"
+    },
+    "build": {
+      "file": "Freelio-planning-errors-build-20261023.log",
+      "sha256": "2636d35bbeac1f2ce2793107e585f520aadb27df90fcab10da7aded0b444ec44"
+    },
+    "selection": {
+      "file": "Freelio-planning-errors-list-20261023.log",
+      "sha256": "8f78b2dfeb5b31f9606fcbd963a45f48302096e5e22727e05c3b06e6663ec2ce"
+    }
+  },
+  "limits": [
+    "Browser interactions were not executed locally. Selection is not qualification.",
+    "The previous native CI receipt belongs to df22623 and does not qualify these subsequent corrections.",
+    "No hosted migration, provider call, main merge, production promotion or paid service."
+  ]
+}

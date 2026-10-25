@@ -1,0 +1,29 @@
+{
+  "schema": "freelio.order-stale-balance-baseline.v1",
+  "source": "bfa6125336a0880f38d0b230f18355a9ade2309f",
+  "test": "probe.test-source.txt",
+  "reportSha256": "33f1d018073ff1fa9476ce05784cd5a9107bf35cbf534025c4b128d94b08600a",
+  "passed": 0,
+  "failed": 1,
+  "observed": {
+    "modifiedDepositCents": 6000,
+    "invoicedTotalCents": 15000,
+    "orderTotalCents": 12000,
+    "audits": 1,
+    "invoiceCount": 2,
+    "billingStatus": "INVOICED",
+    "error": null
+  },
+  "expected": {
+    "invoiceCount": 1,
+    "error": "La facturation de cette commande a changé. Rechargez la page puis réessayez.",
+    "invoicedTotalCents": 6000,
+    "billingStatus": "PARTIALLY_INVOICED",
+    "audits": 0
+  },
+  "limits": [
+    "Intermediate draft mutation injected, not concurrent independent connections",
+    "Actual SQL/actions/DAL/transactions; session and Next cache mocked",
+    "No PDF, issued document, payment or provider"
+  ]
+}

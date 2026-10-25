@@ -1,0 +1,858 @@
+{
+  "schema": "freelio.task-time-ci.v1",
+  "candidate": "19502a6c38784c6510aae8df365a2631bcaeb85b",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38405043599",
+      "conclusion": "success",
+      "testedCommit": "19502a6c38784c6510aae8df365a2631bcaeb85b",
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115322346031,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115322346290,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115322346615,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "parents": [
+        "fbbab30951aef879593559011ea9c057d27df0d8"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115322346031,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115322346290,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115322346615,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11818596695,
+        "reportSha256": "5e016097067506ad8176c6b1c08b2dd9e270af61f36c70d6d2866f12c8ffe1db",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "postgres": {
+        "artifactId": 11816798411,
+        "reportSha256": "df6793f0505e96ec6c906ace99aec531f436cdc2a458e1cb8ef674e24b7d7878",
+        "passed": 2055,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "project-client-choices.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection reaches the 1001st client without duplicates or financial fields",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection searches the whole company case-insensitively and trims the query",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps the selected client separately when a page or search hides it",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection clamps an obsolete page and keeps equal-name ties stable",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for OWNER",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for ADMIN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for SALES",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for OPERATIONS",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for ACCOUNTING",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for VIEWER",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection returns no selected client once it has been deleted",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rechecks active membership before reading choices",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":0} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":1.5} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":100001} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"selectedId\":\"\"} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"companyId\":\"foreign\"} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for OWNER",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for ADMIN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for OPERATIONS",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection revalidates a foreign choice during creation without a project or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps reads available but blocks writes in the public demo",
+                "status": "passed"
+              }
+            ]
+          },
+          {
+            "file": "time-invoice-preview.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a duration edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a date edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a description edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a billability edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a VAT change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a prefix change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a project change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a client change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a project name change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a client name change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a agency change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a missing version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a empty version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a malformed version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a forged version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a different entry version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a duplicate version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL does not let another authorized user reuse the displayed version",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL checks current rights before business reads even with a valid displayed version",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses an entry deleted after its preview was displayed",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL uses a fresh displayed version after refusal, without silently accepting the old one",
+                "status": "passed"
+              }
+            ]
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "file": "project-client-choices",
+            "surface": "desktop",
+            "name": "The 1001st client can create a project and remains selected outside the searched page",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "desktop",
+            "name": "An existing last-client project preserves its inputs through lookup failure and recovery",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "desktop",
+            "name": "A removed selected client can be replaced without losing the project form",
+            "status": "passed",
+            "seconds": 2.4
+          },
+          {
+            "file": "time-invoice-preview",
+            "surface": "desktop",
+            "name": "A compiled stale preview preserves a selection hidden by a filter and succeeds only after reload",
+            "status": "passed",
+            "seconds": 1.8
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "mobile",
+            "name": "The 1001st client can create a project and remains selected outside the searched page",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "mobile",
+            "name": "An existing last-client project preserves its inputs through lookup failure and recovery",
+            "status": "passed",
+            "seconds": 2
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "mobile",
+            "name": "A removed selected client can be replaced without losing the project form",
+            "status": "passed",
+            "seconds": 2.4
+          },
+          {
+            "file": "time-invoice-preview",
+            "surface": "mobile",
+            "name": "A compiled stale preview preserves a selection hidden by a filter and succeeds only after reload",
+            "status": "passed",
+            "seconds": 1.4
+          }
+        ],
+        "preservedCases": [
+          "✓   10 [desktop] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (1.5s)",
+          "✓   11 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.3s)",
+          "✓   12 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.4s)",
+          "✓   13 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.3s)",
+          "✓   14 [desktop] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (1.4s)",
+          "✓   15 [desktop] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (1.5s)",
+          "✓  154 [desktop] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (10.3s)",
+          "✓  155 [desktop] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.6s)",
+          "✓  204 [mobile] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (1.9s)",
+          "✓  205 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.3s)",
+          "✓  206 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.2s)",
+          "✓  207 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.2s)",
+          "✓  208 [mobile] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (1.9s)",
+          "✓  209 [mobile] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (1.8s)",
+          "✓  348 [mobile] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (10.7s)",
+          "✓  349 [mobile] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.5s)"
+        ],
+        "skippedCases": [
+          "-  164 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  242 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  243 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  245 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  246 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  247 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  248 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  249 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  250 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  251 [mobile] › tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  252 [mobile] › tests/e2e/critical-flows.spec.ts:1145:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  253 [mobile] › tests/e2e/critical-flows.spec.ts:1272:5 › field report and maintenance contract flow",
+          "-  254 [mobile] › tests/e2e/critical-flows.spec.ts:1480:5 › creates a structured amendment without altering the signed source contract",
+          "-  255 [mobile] › tests/e2e/critical-flows.spec.ts:1538:5 › scores prospects and exposes the communication center",
+          "-  256 [mobile] › tests/e2e/critical-flows.spec.ts:1555:5 › shares a revocable client portal with messages and appointments",
+          "-  257 [mobile] › tests/e2e/critical-flows.spec.ts:1608:5 › creates and signs in a production account with a password",
+          "-  320 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  357 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  381 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "failures": [],
+        "totals": [
+          "19 skipped",
+          "369 passed (20.9m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  208 passed (208)",
+        "Tests  2056 passed (2056)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38405049561",
+      "conclusion": "success",
+      "testedCommit": "eb06c3562722331b792223b0d747def186f35703",
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115322367146,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115322367255,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115322367429,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "19502a6c38784c6510aae8df365a2631bcaeb85b"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115322367146,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115322367255,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115322367429,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11818561534,
+        "reportSha256": "f87c06ad66599e03c6c518fd8df5db3497a2ad82a4bbf8a14d69d0fc915e9511",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "postgres": {
+        "artifactId": 11818331868,
+        "reportSha256": "469f657a16326c9e149de78e3814ad0f66bb329047b521460da5f66559fdbb17",
+        "passed": 2055,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "project-client-choices.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection reaches the 1001st client without duplicates or financial fields",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection searches the whole company case-insensitively and trims the query",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps the selected client separately when a page or search hides it",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection clamps an obsolete page and keeps equal-name ties stable",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for OWNER",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for ADMIN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for SALES",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for OPERATIONS",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for SERVICE",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for ACCOUNTING",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for VIEWER",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection returns no selected client once it has been deleted",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rechecks active membership before reading choices",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":0} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":1.5} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":100001} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"selectedId\":\"\"} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"companyId\":\"foreign\"} before the choice transaction",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for OWNER",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for ADMIN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for OPERATIONS",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for TECHNICIAN",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection revalidates a foreign choice during creation without a project or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Project client choices cover the full company with a minimal SQL projection keeps reads available but blocks writes in the public demo",
+                "status": "passed"
+              }
+            ]
+          },
+          {
+            "file": "time-invoice-preview.integration.test.ts",
+            "status": "passed",
+            "cases": [
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a duration edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a date edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a description edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a billability edit completed before submission and keeps the legitimate edit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a VAT change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a prefix change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a project change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a client change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a project name change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a client name change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a agency change completed before submission",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a missing version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a empty version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a malformed version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a forged version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a different entry version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses a duplicate version without a draft, claim or audit",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL does not let another authorized user reuse the displayed version",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL checks current rights before business reads even with a valid displayed version",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL refuses an entry deleted after its preview was displayed",
+                "status": "passed"
+              },
+              {
+                "name": "Time invoices verify the displayed preview before preparation in SQL uses a fresh displayed version after refusal, without silently accepting the old one",
+                "status": "passed"
+              }
+            ]
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "file": "project-client-choices",
+            "surface": "desktop",
+            "name": "The 1001st client can create a project and remains selected outside the searched page",
+            "status": "passed",
+            "seconds": 2.6
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "desktop",
+            "name": "An existing last-client project preserves its inputs through lookup failure and recovery",
+            "status": "passed",
+            "seconds": 2.3
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "desktop",
+            "name": "A removed selected client can be replaced without losing the project form",
+            "status": "passed",
+            "seconds": 2.9
+          },
+          {
+            "file": "time-invoice-preview",
+            "surface": "desktop",
+            "name": "A compiled stale preview preserves a selection hidden by a filter and succeeds only after reload",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "mobile",
+            "name": "The 1001st client can create a project and remains selected outside the searched page",
+            "status": "passed",
+            "seconds": 2.5
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "mobile",
+            "name": "An existing last-client project preserves its inputs through lookup failure and recovery",
+            "status": "passed",
+            "seconds": 2.2
+          },
+          {
+            "file": "project-client-choices",
+            "surface": "mobile",
+            "name": "A removed selected client can be replaced without losing the project form",
+            "status": "passed",
+            "seconds": 2.7
+          },
+          {
+            "file": "time-invoice-preview",
+            "surface": "mobile",
+            "name": "A compiled stale preview preserves a selection hidden by a filter and succeeds only after reload",
+            "status": "passed",
+            "seconds": 2
+          }
+        ],
+        "preservedCases": [
+          "✓   10 [desktop] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (1.9s)",
+          "✓   11 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.6s)",
+          "✓   12 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.6s)",
+          "✓   13 [desktop] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.5s)",
+          "✓   14 [desktop] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (1.8s)",
+          "✓   15 [desktop] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (1.9s)",
+          "✓  154 [desktop] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (10.9s)",
+          "✓  155 [desktop] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (2.9s)",
+          "✓  204 [mobile] › tests/e2e/client-permissions.spec.ts:23:5 › technician reads the client without receiving commercial lists or financial amounts (2.3s)",
+          "✓  205 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for owner (1.5s)",
+          "✓  206 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for technician (1.5s)",
+          "✓  207 [mobile] › tests/e2e/client-permissions.spec.ts:38:7 › client directory and CSV preserve Finance permissions for sales (1.5s)",
+          "✓  208 [mobile] › tests/e2e/client-permissions.spec.ts:71:5 › sales keeps quote creation and assigned quotes while financial data stays unavailable (2.2s)",
+          "✓  209 [mobile] › tests/e2e/client-permissions.spec.ts:81:5 › owner reads both agencies and live totals instead of stale client counters (2.2s)",
+          "✓  348 [mobile] › tests/e2e/supplier-history.spec.ts:24:5 › reads all three supplier histories while keeping full metrics and independent searches (11.6s)",
+          "✓  349 [mobile] › tests/e2e/supplier-history.spec.ts:63:5 › hides stale supplier rows during refresh and offers retry after a read failure (3.0s)"
+        ],
+        "skippedCases": [
+          "-  164 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  242 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  243 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  245 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  246 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  247 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  248 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  249 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  250 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  251 [mobile] › tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  252 [mobile] › tests/e2e/critical-flows.spec.ts:1145:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  253 [mobile] › tests/e2e/critical-flows.spec.ts:1272:5 › field report and maintenance contract flow",
+          "-  254 [mobile] › tests/e2e/critical-flows.spec.ts:1480:5 › creates a structured amendment without altering the signed source contract",
+          "-  255 [mobile] › tests/e2e/critical-flows.spec.ts:1538:5 › scores prospects and exposes the communication center",
+          "-  256 [mobile] › tests/e2e/critical-flows.spec.ts:1555:5 › shares a revocable client portal with messages and appointments",
+          "-  257 [mobile] › tests/e2e/critical-flows.spec.ts:1608:5 › creates and signs in a production account with a password",
+          "-  320 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  357 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  381 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "failures": [],
+        "totals": [
+          "19 skipped",
+          "369 passed (25.1m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  208 passed (208)",
+        "Tests  2056 passed (2056)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    }
+  ],
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 1024,
+    "sha256": "4442ad2676775c1bc4c5d32e2b931d55a3d13b46e368e02eb6e3295268994ddc"
+  },
+  "logExtraction": "SQLite, browser and audit summaries are taken only from quality-and-e2e job payloads. PostgreSQL uses its separate JSON artifact.",
+  "limits": [
+    "Fictitious isolated recipe; no real provider or hosted commercial qualification.",
+    "Historical browser exclusions and native SQLite-only PostgreSQL exclusion retained.",
+    "Image availability, provider integrations, load and disaster recovery are not guaranteed by this recipe."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "baseline": "4fb6692bb590021259c348a17ab2d0441e2d1a61",
+  "diagnosticOnly": true,
+  "method": "Two selected new feature tests before implementation; missing exports, not a claim of two production regressions",
+  "total": 40,
+  "passed": 0,
+  "failed": 2,
+  "pending": 38,
+  "files": 1,
+  "success": false,
+  "rawReportSha256": "cda96ce171abe8450aeb7b6589d17b08d77eb0f8e646dd540f293a23c33602ac",
+  "failures": [
+    {
+      "title": "edits a draft without replacing its number, negotiated prices or surviving source line",
+      "failure": "TypeError: __vi_import_2__.updatePurchaseDraft is not a function"
+    },
+    {
+      "title": "cancels DRAFT while preserving all lines and the approval history",
+      "failure": "TypeError: __vi_import_2__.cancelPurchaseDraft is not a function"
+    }
+  ]
+}

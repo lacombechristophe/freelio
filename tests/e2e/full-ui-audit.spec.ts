@@ -1,3 +1,4 @@
+import { createDatabaseClient } from "@/lib/database-client"
 import { expect, test, type Page } from "@playwright/test"
 import { mkdir, readdir, writeFile } from "node:fs/promises"
 import path from "node:path"
@@ -286,7 +287,25 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     const expression = template.split("/").map((segment) => segment.startsWith("[") ? "[^/]+" : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("/")
     return new RegExp(`^${expression}$`).test(route)
   }) ?? route
-  const queue = focusedRoutes?.length ? [...focusedRoutes] : [...routes]
+  const representativeRecords: Array<{ route: string; fixture: string; state: string }> = []
+  if (!focusedRoutes?.length && process.env.E2E_DIRECTORY_FIXTURES === "true") {
+    if (process.env.RECIPE_ISOLATED !== "true" || !process.env.DATABASE_URL?.startsWith("file:") || process.env.PLAYWRIGHT_BASE_URL) throw new Error("Les documents de recette exigent une SQLite fictive isolée")
+    const database = createDatabaseClient()
+    try {
+      // Banking fixtures intentionally have no historical PDF archive. Audit a
+      // seeded draft, independently of invoices created by desktop workflows.
+      const invoice = await database.invoice.findUniqueOrThrow({
+        where: { companyId_number: { companyId: "ce2ecompany000000000000001", number: "UIQA-054" } },
+        select: { id: true, status: true, lockedAt: true },
+      })
+      expect(invoice.status).toBe("DRAFT")
+      expect(invoice.lockedAt).toBeNull()
+      representativeRecords.push({ route: `/dashboard/factures/${invoice.id}`, fixture: "UIQA-054", state: invoice.status })
+    } finally {
+      await database.$disconnect()
+    }
+  }
+  const queue = focusedRoutes?.length ? [...focusedRoutes] : [...routes, ...representativeRecords.map(record => record.route)]
   const visited = new Set<string>()
   const coveredTemplates = new Set<string>()
   const evidence: Array<{ route: string } & Awaited<ReturnType<typeof captureScrollablePage>>> = []
@@ -368,7 +387,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
     const fileName = actualRoute.replace(/^\/dashboard\/?/, "").replaceAll("/", "--") || "overview"
     const capture = await captureScrollablePage(page, artifactDirectory, fileName)
     evidence.push({ route: actualRoute, ...capture })
-    if (!capture.complete) findings.push({ severity: "P2", category: "content", route: actualRoute, message: "Capture interrompue après 40 écrans : contenu restant non inspecté" })
+    if (!capture.complete) findings.push({ severity: "P2", category: "content", route: actualRoute, message: `Capture incomplète après ${capture.files.length} écrans (${capture.incompleteReason}) : contenu restant non inspecté` })
   }
 
   for (const [title, titleRoutes] of titles) {
@@ -386,6 +405,7 @@ test("audit UI exhaustif des routes authentifiées", async ({ page }, testInfo) 
   const report = {
     generatedAt: new Date().toISOString(),
     project: testInfo.project.name,
+    representativeRecords,
     routesAudited: [...visited],
     templatesCovered: [...coveredTemplates],
     templatesNotDiscovered: templates.filter((template) => !coveredTemplates.has(template)),

@@ -1,5 +1,4 @@
-# syntax=docker/dockerfile:1
-FROM node:24-bookworm-slim AS dependencies
+FROM docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS dependencies
 # Prisma selects its native engine when generating the client. Install the
 # same OpenSSL major version in the builder and runtime before generation.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
@@ -10,11 +9,13 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --fund=false
 
 FROM dependencies AS builder
-COPY tsconfig.json next.config.ts postcss.config.mjs ./
+COPY tsconfig.json next.config.ts postcss.config.mjs prisma.config.ts ./
 COPY public ./public
 COPY src ./src
 COPY prisma ./prisma
 COPY scripts/sync-prisma-schemas.mjs ./scripts/sync-prisma-schemas.mjs
+COPY scripts/generate-database-metadata.mjs ./scripts/generate-database-metadata.mjs
+COPY scripts/build-memory.mjs ./scripts/build-memory.mjs
 COPY scripts/public-demo-network.cjs ./scripts/public-demo-network.cjs
 # A schema selection URL, never a credential to an existing database.
 # Generation and compilation do not migrate or seed the runtime database.
@@ -28,7 +29,7 @@ ENV DEMO_ACCESS_MODE=$DEMO_ACCESS_MODE
 RUN npm run build
 RUN npm prune --omit=dev --ignore-scripts --no-audit --fund=false
 
-FROM node:24-bookworm-slim AS runtime
+FROM docker.io/library/node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends chromium tini openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
@@ -42,7 +43,7 @@ COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/src ./src
 COPY --chown=node:node scripts ./scripts
 COPY --from=builder --chown=node:node /app/prisma ./prisma
-COPY --from=builder --chown=node:node /app/tsconfig.json /app/next.config.ts ./
+COPY --from=builder --chown=node:node /app/tsconfig.json /app/next.config.ts /app/prisma.config.ts ./
 RUN mkdir -p data .next/cache && chown -R node:node data .next/cache
 USER node
 EXPOSE 3000

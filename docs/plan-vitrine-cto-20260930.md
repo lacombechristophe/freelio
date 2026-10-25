@@ -2,6 +2,8 @@
 
 Date : 30 septembre 2026. Objectif : obtenir des missions de sous-traitance comme développeur freelance, auprès d’agences encore à préciser. Ce document propose une trajectoire ; il ne constate pas la réalisation des travaux futurs et n’autorise aucune dépense, transmission à un fournisseur ou publication.
 
+L’état d’exécution courant est la [recette du candidat](completude-recette-20261003.md), avec les [preuves du 24 octobre](evidence/20261024-zod-security/README.md). Les chiffres et constats initiaux ci-dessous restent historiques. Le critère de la section 11 n’est pas encore entièrement satisfait : suites SQL et migrations passent, dump/restauration PostgreSQL local et sauvegarde SQLite sont éprouvés sur leurs corpus fictifs, et l’image Linux réussit ses neuf contrôles de runtime. CI distante et recette navigateur des trois parcours de référence restent ouvertes. Aucun succès de sonde HTTP ne les remplace.
+
 ## 1. Résultat attendu
 
 Freelio doit démontrer la capacité à concevoir, livrer, sécuriser et maintenir une application métier. Une agence doit pouvoir essayer trois parcours cohérents, examiner les choix techniques et reprendre le projet sans dépendre de la machine de son auteur.

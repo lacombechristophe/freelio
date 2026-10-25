@@ -1,0 +1,21 @@
+{
+  "schema": "freelio.preview-provision.v1",
+  "candidate": "369f41369fe2084dacba09188d2c9d8020eadef8",
+  "observedAt": "2026-10-09T22:42:18.908Z",
+  "dedicatedDatabase": true,
+  "existingDatabasesModified": false,
+  "previewOrigin": "https://freelio-git-codex-function-c9a645-hyhyhyhyhytest-8931s-projects.vercel.app",
+  "checks": {
+    "migrations": 60,
+    "clients": 6,
+    "users": 1,
+    "schemaCreate": false,
+    "writeTables": [
+      "AuditLog"
+    ]
+  },
+  "limits": [
+    "Existing PostgreSQL service; no new subscription or paid plan. Provider quotas and eventual storage costs are not attested.",
+    "Only freshly generated fictitious fixtures. No provider sending or business writes through the reader."
+  ]
+}

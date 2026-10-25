@@ -105,6 +105,7 @@ export function RecordPropertiesPanel({
     setPending(true)
     try {
       const result = await updateRecordCrmProperties({ objectType, recordId, values })
+      if (!result.success) return toast.error(result.error)
       toast.success(result.updated ? `${result.updated} propriété(s) mise(s) à jour.` : "Aucune modification à enregistrer.")
       setEditOpen(false)
       router.refresh()

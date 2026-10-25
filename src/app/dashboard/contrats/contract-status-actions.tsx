@@ -8,23 +8,25 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { updateContractStatus, deleteContract } from "@/actions/contrats"
+import { changeContractStatus, removeContract } from "@/actions/contract-commands"
 import { useConfirm } from "@/components/shared/confirm-provider"
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Erreur."
 }
 
-export function ContractStatusActions({ contractId, status }: { contractId: string; status: string }) {
+export function ContractStatusActions({ contractId, status, kind }: { contractId: string; status: string; kind?: string }) {
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [pending, setPending] = React.useState(false)
   const [signingUrl, setSigningUrl] = React.useState("")
 
   async function changeStatus(next: "SENT" | "EXPIRED") {
+    if (next === "EXPIRED" && !(await confirmDialog({ title: "Classer cette proposition sans signature ?", description: "Le document sera conservé. Les liens non utilisés seront révoqués ; aucune signature ni facture ne sera supprimée.", confirmLabel: "Classer" }))) return
     setPending(true)
     try {
-      const result = await updateContractStatus(contractId, next)
+      const result = await changeContractStatus(contractId, next)
+      if ("error" in result) { toast.error(result.error); return }
       if (result?.signingPath) {
         const url = `${window.location.origin}${result.signingPath}`
         setSigningUrl(url)
@@ -52,7 +54,8 @@ export function ContractStatusActions({ contractId, status }: { contractId: stri
       return
     setPending(true)
     try {
-      await deleteContract(contractId)
+      const result = await removeContract(contractId)
+      if ("error" in result) { toast.error(result.error); return }
       toast.success("Contrat supprimé.")
       router.push("/dashboard/contrats")
     } catch (err) {
@@ -79,10 +82,11 @@ export function ContractStatusActions({ contractId, status }: { contractId: stri
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {(status === "DRAFT" || status === "SENT") && (
-            <DropdownMenuItem onClick={() => changeStatus("SENT")} className="gap-2">
+            <DropdownMenuItem demoMutation onClick={() => changeStatus("SENT")} className="gap-2">
               <Send className="h-4 w-4" /> {status === "SENT" ? "Régénérer le lien" : "Envoyer pour signature"}
             </DropdownMenuItem>
           )}
+          {kind === "MAINTENANCE_RENEWAL" && ["DRAFT", "SENT"].includes(status) && <DropdownMenuItem demoMutation onClick={() => changeStatus("EXPIRED")}>Classer sans signature</DropdownMenuItem>}
           {status !== "SIGNED" && (
             <>
               <DropdownMenuSeparator />

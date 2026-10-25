@@ -19,10 +19,10 @@ export default async function CrmWorkspacePage() {
       metrics={[
         { label: "Clients", value: data.clients, detail: `${data.contacts} contact(s) associé(s)`, icon: Users, tone: "blue", href: "/dashboard/clients" },
         { label: "Prospects actifs", value: data.activeLeads, detail: "Hors spam et archives", icon: UserRoundSearch, tone: "teal", href: "/dashboard/leads" },
-        { label: "Affaires ouvertes", value: data.openDeals, detail: "Opportunités non closes", icon: Kanban, tone: "amber", href: "/dashboard/pipeline" },
+        { label: "Affaires ouvertes", value: data.openDeals === null ? "Accès commercial requis" : data.openDeals, detail: "Opportunités non closes", icon: Kanban, tone: "amber", href: "/dashboard/pipeline" },
         { label: "Messages non lus", value: data.unreadEmail, detail: "Dans la boîte partagée", icon: Inbox, tone: "red", alert: data.unreadEmail > 0, status: data.unreadEmail ? "À traiter" : "À jour", href: "/dashboard/communications" },
       ]}
-      featured={<div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.7fr)]"><WorkspaceTrendPanel title="Activité relationnelle" description="Prospects, interactions CRM et e-mails enregistrés sur les 30 derniers jours." labels={data.activitySeries.labels} series={data.activitySeries.series} href="/dashboard/reports" linkLabel="Ouvrir les rapports CRM" /><WorkspaceDistributionPanel title="Santé du portefeuille" description="Répartition réelle des clients par score relationnel." items={[{ label: "Relation saine", value: data.clientHealth.healthy }, { label: "À surveiller", value: data.clientHealth.watch }, { label: "À risque", value: data.clientHealth.risk }]} href="/dashboard/service/customer-success" linkLabel="Analyser le portefeuille" /></div>}
+      featured={<div className="grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.7fr)]"><WorkspaceTrendPanel title="Activité relationnelle" description="Prospects, interactions CRM et e-mails enregistrés sur les 30 derniers jours." labels={data.activitySeries.labels} series={data.activitySeries.series} href="/dashboard/reports" linkLabel="Ouvrir les rapports CRM" /><WorkspaceDistributionPanel title="Santé du portefeuille" unavailable={data.clientHealth === null ? "Historique global indisponible" : undefined} description="Répartition réelle des clients par score relationnel." items={[{ label: "Relation saine", value: data.clientHealth?.healthy ?? 0 }, { label: "À surveiller", value: data.clientHealth?.watch ?? 0 }, { label: "À risque", value: data.clientHealth?.risk ?? 0 }]} href="/dashboard/service/customer-success" linkLabel="Analyser le portefeuille" /></div>}
       panels={[
         {
           title: "Portefeuille clients",
@@ -30,9 +30,9 @@ export default async function CrmWorkspacePage() {
           rows: data.recentClients.map((client) => ({
             title: client.name,
             detail: `${client._count.contacts} contact(s) · ${client._count.projects} projet(s)`,
-            meta: client.nextActionLabel || `Santé ${client.relationScore}/100`,
-            status: client.relationScore < 60 ? "À risque" : client.relationScore < 80 ? "À suivre" : "À jour",
-            tone: client.relationScore < 60 ? "red" : client.relationScore < 80 ? "amber" : "teal",
+            meta: client.nextActionLabel || (client.relationScore === null ? "Historique global indisponible" : `Santé ${client.relationScore}/100`),
+            status: client.relationScore === null ? "Historique global indisponible" : client.relationScore < 60 ? "À risque" : client.relationScore < 80 ? "À suivre" : "À jour",
+            tone: client.relationScore === null ? "blue" : client.relationScore < 60 ? "red" : client.relationScore < 80 ? "amber" : "teal",
             href: `/dashboard/clients/${client.id}`,
             icon: Building2,
           })),

@@ -1,4 +1,6 @@
 import { getContext, requestContext } from "@/lib/context"
+import { isTransactionConflict } from "@/lib/transaction-conflicts"
+import { uniqueConstraintTarget } from "@/lib/prisma-constraint"
 
 export const DOCUMENT_NUMBER_MAX_RETRIES = 20
 
@@ -47,7 +49,7 @@ export function isUniqueConstraintConflict(error: unknown, field: string, accept
 
   if (maybePrismaError.code !== "P2002") return false
 
-  const target = maybePrismaError.meta?.target
+  const target = uniqueConstraintTarget(error)
   if (!target) return acceptUnknownTarget
   if (Array.isArray(target)) return target.includes(field)
   if (typeof target === "string") return target.includes(field)
@@ -57,7 +59,7 @@ export function isUniqueConstraintConflict(error: unknown, field: string, accept
 
 export async function withDocumentNumberRetry<T>(
   operation: () => Promise<T>,
-  options: { maxRetries?: number; label?: string } = {}
+  options: { maxRetries?: number; label?: string; retryTransactionConflicts?: boolean } = {}
 ) {
   const maxRetries = options.maxRetries ?? DOCUMENT_NUMBER_MAX_RETRIES
   let lastConflict: unknown
@@ -66,7 +68,9 @@ export async function withDocumentNumberRetry<T>(
     try {
       return await operation()
     } catch (error) {
-      if (!isDocumentNumberConflict(error) || attempt === maxRetries - 1) {
+      // Opt in only for operations whose effects are wholly inside a transaction.
+      const retryable = isDocumentNumberConflict(error) || options.retryTransactionConflicts && isTransactionConflict(error)
+      if (!retryable || attempt === maxRetries - 1) {
         throw error
       }
       lastConflict = error

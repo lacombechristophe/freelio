@@ -1,0 +1,70 @@
+{
+  "schema": "freelio.stock-reservation-scope.v1",
+  "phase": "baseline",
+  "baseCommit": "88ce8dd2b932c58d105a18347402fcc3bca8950f",
+  "source": {
+    "file": "src/actions/operations/index.ts",
+    "sha256": "39969a63b85a7a10bbb90efe54aca12b7c4afb565605e166af4673d40dffec9e"
+  },
+  "test": {
+    "file": "tests/unit/stock-reservation-scope.integration.test.ts",
+    "sha256": "5dcd891290ffe6c18452e59b2ba62e07b26fa69ead2fd97689da323bf6ada57b"
+  },
+  "database": "isolated fictitious SQLite",
+  "passed": 3,
+  "failed": 9,
+  "cases": [
+    {
+      "name": "refuses a new reservation through an inconsistent project",
+      "status": "failed"
+    },
+    {
+      "name": "refuses a new reservation through an inconsistent order",
+      "status": "failed"
+    },
+    {
+      "name": "refuses an inconsistent stored project reference during release",
+      "status": "failed"
+    },
+    {
+      "name": "refuses an inconsistent stored project reference during consume",
+      "status": "failed"
+    },
+    {
+      "name": "refuses an inconsistent stored order reference during release",
+      "status": "failed"
+    },
+    {
+      "name": "refuses an inconsistent stored order reference during consume",
+      "status": "failed"
+    },
+    {
+      "name": "preserves a coherent project reservation, release and consumption",
+      "status": "passed"
+    },
+    {
+      "name": "preserves a coherent order reservation, release and consumption",
+      "status": "passed"
+    },
+    {
+      "name": "refuses a local order with a different client's project during create",
+      "status": "failed"
+    },
+    {
+      "name": "refuses a local order with a different client's project during release",
+      "status": "failed"
+    },
+    {
+      "name": "refuses a local order with a different client's project during consume",
+      "status": "failed"
+    },
+    {
+      "name": "preserves a reservation with both coherent references",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "Inconsistent references inserted directly by SQL fixtures; not proof that a current form can create them.",
+    "Real actions, permissions and transactions; session and Next cache simulated."
+  ]
+}

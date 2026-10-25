@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient } from "@/generated/prisma/client"
 const identity = vi.hoisted(() => ({ companyId: "", userId: "" }))
 vi.mock("@/auth", () => ({ auth: vi.fn(async () => ({ user: { id: identity.userId }, companyId: identity.companyId })) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))

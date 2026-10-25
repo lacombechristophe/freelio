@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import prisma from "@/lib/prisma"
+import { mutateTime, recomputeProjectConsumed, TimeEntryError } from "@/lib/time-entry-mutations"
 import { withAuth } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
 import { advanceTaskRecurrence } from "@/lib/workflow-rules"
 import { completeSequenceTaskFromOrganisationTask } from "@/lib/automations/sequences"
 import { deleteOrganisationTaskFromCalendar, pushOrganisationTaskToCalendar } from "@/lib/communications/calendar-sync"
+import { calendarDayKey, calendarPeriods } from "@/lib/calendar-days"
 import { localDateTimeInZone } from "@/lib/integrations/calendar-event"
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as const
@@ -52,8 +55,6 @@ const taskSchema = z.object({
 type TaskInput = z.input<typeof taskSchema>
 type GoalInput = z.input<typeof goalSchema>
 
-const HOURLY_RATE_CENTS = 6250
-
 function toIso(value: Date | null | undefined) {
   return value ? value.toISOString() : null
 }
@@ -67,61 +68,6 @@ function parseDate(value: string | null | undefined, timeZone?: string) {
 
 function cleanId(value: string | null | undefined) {
   return value && value.trim() !== "" ? value : null
-}
-
-function startOfDay(date = new Date()) {
-  const result = new Date(date)
-  result.setHours(0, 0, 0, 0)
-  return result
-}
-
-function endOfDay(date = new Date()) {
-  const result = startOfDay(date)
-  result.setDate(result.getDate() + 1)
-  return result
-}
-
-function startOfWeek(date = new Date()) {
-  const result = startOfDay(date)
-  const day = result.getDay()
-  const diff = result.getDate() - day + (day === 0 ? -6 : 1)
-  result.setDate(diff)
-  return result
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
-}
-
-function startOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1)
-}
-
-function endOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 1)
-}
-
-function startOfYear(date = new Date()) {
-  return new Date(date.getFullYear(), 0, 1)
-}
-
-function endOfYear(date = new Date()) {
-  return new Date(date.getFullYear() + 1, 0, 1)
-}
-
-async function recomputeProjectConsumed(projectId: string) {
-  const sum = await prisma.timeEntry.aggregate({
-    where: { projectId, isBillable: true },
-    _sum: { durationSec: true },
-  })
-  const seconds = sum._sum.durationSec ?? 0
-  const consumedCents = Math.round((seconds / 3600) * HOURLY_RATE_CENTS)
-  await prisma.project.update({
-    where: { id: projectId },
-    data: { consumedCents },
-  })
 }
 
 async function resolveTaskRelations(companyId: string, data: z.output<typeof taskSchema>) {
@@ -164,22 +110,20 @@ function revalidateOrganisation(paths: string[] = []) {
 }
 
 export async function getOrganisationDashboardData() {
-  return await withAuth(async ({ companyId }) => {
+  return await withAuth(async ({ companyId, role }) => {
+    const canReadFinance = hasPermission(role, "finance.read")
+    const canReadSales = hasPermission(role, "sales.read")
     const now = new Date()
-    const todayStart = startOfDay(now)
-    const tomorrowStart = endOfDay(now)
-    const weekStart = startOfWeek(now)
-    const weekEnd = addDays(weekStart, 7)
-    const monthStart = startOfMonth(now)
-    const monthEnd = endOfMonth(now)
-    const yearStart = startOfYear(now)
-    const yearEnd = endOfYear(now)
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId }, select: { serviceTimezone: true } })
+    const { todayStart, tomorrowStart, weekStart, weekEnd, monthStart, monthEnd, yearStart, yearEnd } = calendarPeriods(now, company.serviceTimezone)
+
+    const dateOnly = (date: Date) => new Date(`${calendarDayKey(date, company.serviceTimezone)}T00:00:00.000Z`)
 
     const [goals, tasks, projects, clients, weekTimeEntries, invoices, quotes, milestones, calendarChannels] = await Promise.all([
       prisma.organisationGoal.findMany({
         where: {
           companyId,
-          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { periodStart: { gte: yearStart, lt: yearEnd } }],
+          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { periodStart: { gte: dateOnly(yearStart), lt: dateOnly(yearEnd) } }],
         },
         include: {
           tasks: {
@@ -192,7 +136,7 @@ export async function getOrganisationDashboardData() {
       prisma.organisationTask.findMany({
         where: {
           companyId,
-          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { dueDate: { gte: monthStart, lt: monthEnd } }, { scheduledDate: { gte: weekStart, lt: weekEnd } }],
+          OR: [{ status: { not: "DONE" } }, { updatedAt: { gte: weekStart } }, { dueDate: { gte: dateOnly(monthStart), lt: dateOnly(monthEnd) } }, { scheduledDate: { gte: weekStart, lt: weekEnd } }],
         },
         include: {
           client: { select: { id: true, name: true } },
@@ -225,7 +169,7 @@ export async function getOrganisationDashboardData() {
       prisma.timeEntry.findMany({
         where: {
           project: { companyId },
-          date: { gte: weekStart, lt: weekEnd },
+          date: { gte: dateOnly(weekStart), lt: dateOnly(weekEnd) },
         },
         include: {
           project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
@@ -233,18 +177,20 @@ export async function getOrganisationDashboardData() {
         orderBy: { date: "desc" },
         take: 5_000,
       }),
-      prisma.invoice.findMany({
+      canReadFinance ? prisma.invoice.findMany({
         where: {
           companyId,
+          client: { companyId },
           status: { in: ["DRAFT", "SENT", "OVERDUE"] },
         },
         include: { client: { select: { id: true, name: true } } },
         orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
         take: 12,
-      }),
-      prisma.quote.findMany({
+      }) : Promise.resolve([]),
+      canReadSales ? prisma.quote.findMany({
         where: {
           companyId,
+          client: { companyId },
           status: { in: ["DRAFT", "SENT"] },
         },
         include: {
@@ -257,12 +203,12 @@ export async function getOrganisationDashboardData() {
         },
         orderBy: [{ validUntil: "asc" }, { createdAt: "desc" }],
         take: 12,
-      }),
+      }) : Promise.resolve([]),
       prisma.projectMilestone.findMany({
         where: {
           project: { companyId },
           status: { not: "DONE" },
-          dueDate: { gte: todayStart, lt: monthEnd },
+          dueDate: { gte: dateOnly(todayStart), lt: dateOnly(monthEnd) },
         },
         include: {
           project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
@@ -279,6 +225,9 @@ export async function getOrganisationDashboardData() {
 
     return {
       generatedAt: now.toISOString(),
+      timeZone: company.serviceTimezone,
+      canReadFinance,
+      canReadSales,
       periods: {
         todayStart: todayStart.toISOString(),
         tomorrowStart: tomorrowStart.toISOString(),
@@ -549,33 +498,40 @@ export async function deleteOrganisationTask(id: string) {
   })
 }
 
-export async function createTimeEntryFromOrganisationTask(id: string, durationMin?: number) {
-  return await withAuth(async ({ companyId }) => {
-    const task = await prisma.organisationTask.findFirst({
-      where: { id, companyId },
-      include: { project: { select: { id: true, companyId: true } } },
-    })
-    if (!task) throw new Error("Tache introuvable")
-    if (!task.projectId || !task.project) {
-      throw new Error("Associez cette tache a un projet avant d'imputer du temps.")
-    }
+const taskTimeMinutes = z.number().int().min(1).max(1440)
+const TASK_TIME_UNAVAILABLE = "Tâche introuvable ou chantier inaccessible"
+const TASK_TIME_DUPLICATE = "Cette tâche a déjà été imputée"
 
-    const minutes = Math.max(1, Math.min(durationMin ?? task.estimateMin ?? 60, 24 * 60))
-    await prisma.timeEntry.create({
-      data: {
-        projectId: task.projectId,
-        durationSec: minutes * 60,
-        description: task.title,
-        date: task.scheduledDate ?? task.dueDate ?? new Date(),
-        isBillable: task.isBillable,
-      },
+export async function createTimeEntryFromOrganisationTask(id: string, durationMin?: number) {
+  const result = await mutateTime(async (tx, { companyId }) => {
+    const task = await tx.organisationTask.findFirst({
+      where: { id: z.string().trim().min(1).max(100).parse(id), companyId },
+      select: { id: true, projectId: true, clientId: true, title: true, estimateMin: true, scheduledDate: true, dueDate: true, isBillable: true, timeImputedAt: true, timeEntry: { select: { id: true } } },
     })
-    await prisma.organisationTask.update({
-      where: { id },
-      data: { status: "DONE" },
+    if (!task?.projectId) throw new TimeEntryError(TASK_TIME_UNAVAILABLE)
+    const project = await tx.project.findFirst({
+      where: { id: task.projectId, companyId, client: { companyId }, OR: [{ agencyId: null }, { agency: { companyId } }] },
+      select: { id: true, clientId: true },
     })
-    await recomputeProjectConsumed(task.projectId)
-    revalidateOrganisation(["/dashboard/temps", "/dashboard/projets", `/dashboard/projets/${task.projectId}`])
-    return { ok: true }
+    if (!project || (task.clientId !== null && task.clientId !== project.clientId)) throw new TimeEntryError(TASK_TIME_UNAVAILABLE)
+    if (task.timeImputedAt || task.timeEntry) throw new TimeEntryError(TASK_TIME_DUPLICATE)
+    const minutes = taskTimeMinutes.parse(durationMin ?? task.estimateMin ?? 60)
+    const claimed = await tx.organisationTask.updateMany({
+      where: { id: task.id, companyId, timeImputedAt: null },
+      data: { status: "DONE", timeImputedAt: new Date() },
+    })
+    if (claimed.count !== 1) throw new TimeEntryError(TASK_TIME_DUPLICATE)
+    const entry = await tx.timeEntry.create({ data: {
+      sourceOrganisationTaskId: task.id,
+      projectId: project.id,
+      durationSec: minutes * 60,
+      description: task.title,
+      date: task.scheduledDate ?? task.dueDate ?? new Date(),
+      isBillable: task.isBillable,
+    } })
+    await recomputeProjectConsumed(tx, project.id)
+    return { value: entry.id, projectId: project.id }
   })
+  if (result.ok) revalidateOrganisation()
+  return result
 }

@@ -1,0 +1,25 @@
+{
+  "schema": "freelio.maintenance-settings-baseline.v1",
+  "codeCommit": "c369b5b7c61bf6876bb1b182e410e9871bed2072",
+  "file": "maintenance-settings-baseline-qualified-20261022.json",
+  "sha256": "2a5cbaf6b1691009fbc216c340f25fdd6cca37ed11f91788ae4ab72de1c18b06",
+  "passed": 2,
+  "failed": 7,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Maintenance settings preserve the displayed revision and mandatory audit lets Service save only its renewal settings in an accessible agency",
+    "Maintenance settings preserve the displayed revision and mandatory audit rolls back settings and revision when SQL refuses the audit",
+    "Maintenance settings preserve the displayed revision and mandatory audit refuses an old displayed revision without overwriting the newer settings",
+    "Maintenance settings preserve the displayed revision and mandatory audit refuses settings through a foreign client",
+    "Maintenance settings preserve the displayed revision and mandatory audit refuses settings through a foreign site",
+    "Maintenance settings preserve the displayed revision and mandatory audit refuses settings through a different site client",
+    "Maintenance settings preserve the displayed revision and mandatory audit preserves a term with an existing successor even if its status is inconsistent"
+  ],
+  "probe": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "18110a0f6dc5cd79534064c495387d0e6660f706b40f86d07ceb9fe57e500609"
+  },
+  "classification": "Seven failed observations: audit not mandatory/atomic, stale revision ignored, three invalid references, existing-successor guard missing, Service denied by the model write guard. Not seven independent security vulnerabilities. Two positive controls."
+}

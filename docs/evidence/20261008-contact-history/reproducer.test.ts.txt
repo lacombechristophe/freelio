@@ -1,0 +1,91 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+import prisma from "@/lib/prisma"
+import { getContactDetail } from "@/actions/contacts"
+import { getContactDirectory } from "@/actions/directories"
+import { directoryQuerySchema } from "@/lib/directory-query"
+
+describe.sequential("contact nested communication read scope on real SQL", () => {
+  let membershipId: string, colleagueId: string, contactId: string, foreignCompanyId: string, foreignContactId: string
+  let sharedThreadId: string, privateThreadId: string, colleagueThreadId: string, foreignThreadId: string, foreignEnrollmentId: string, foreignConsentId: string, foreignLeadId: string, foreignMessageId: string, foreignDeliveryId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional contact reader company" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `contact-read-${randomUUID()}@example.test` } })).id
+    colleagueId = (await prisma.user.create({ data: { email: `contact-colleague-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    const client = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional contact client" } })
+    contactId = (await prisma.contact.create({ data: { clientId: client.id, firstName: "Fictional", lastName: "Local", email: "local@example.test" } })).id
+    const shared = await prisma.communicationChannel.create({ data: { companyId: session.companyId, provider: "GOOGLE", emailAddress: "shared@example.test", visibility: "SHARED" } })
+    const personal = await prisma.communicationChannel.create({ data: { companyId: session.companyId, provider: "GOOGLE", ownerUserId: session.userId, emailAddress: "personal@example.test", visibility: "PRIVATE" } })
+    const colleague = await prisma.communicationChannel.create({ data: { companyId: session.companyId, provider: "GOOGLE", ownerUserId: colleagueId, emailAddress: "colleague@example.test", visibility: "PRIVATE" } })
+    for (const [channel, subject] of [[shared, "Fictional shared thread"], [personal, "Fictional personal thread"], [colleague, "Fictional colleague thread"]] as const) {
+      const thread = await prisma.emailThread.create({ data: { companyId: session.companyId, channelId: channel.id, contactId, subject, messages: { create: { companyId: session.companyId, direction: "INBOUND", provider: "GOOGLE", fromAddress: "local@example.test", toAddresses: [channel.emailAddress], subject } } } })
+      if (channel.id === shared.id) sharedThreadId = thread.id
+      if (channel.id === personal.id) privateThreadId = thread.id
+      if (channel.id === colleague.id) colleagueThreadId = thread.id
+    }
+    const lead = await prisma.leadCapture.create({ data: { companyId: session.companyId, clientId: client.id, contactId, firstName: "Fictional", lastName: "Local", privacyAccepted: true, fingerprint: randomUUID() } })
+    const sequence = await prisma.emailSequence.create({ data: { companyId: session.companyId, name: "Fictional local sequence" } })
+    const enrollment = await prisma.emailSequenceEnrollment.create({ data: { sequenceId: sequence.id, leadCaptureId: lead.id, contactId } })
+    await prisma.emailDelivery.create({ data: { companyId: session.companyId, channelId: shared.id, contactId, enrollmentId: enrollment.id, recipientEmail: "local@example.test", subject: "Fictional local delivery", scheduledAt: new Date() } })
+    foreignCompanyId = (await prisma.company.create({ data: { name: "Fictional foreign contact company" } })).id
+    const foreignClient = await prisma.client.create({ data: { companyId: foreignCompanyId, name: "Fictional foreign contact client" } })
+    foreignContactId = (await prisma.contact.create({ data: { clientId: foreignClient.id, firstName: "Fictional", lastName: "Foreign" } })).id
+    foreignThreadId = (await prisma.emailThread.create({ data: { companyId: foreignCompanyId, channelId: shared.id, contactId, subject: "Fictional foreign thread" } })).id
+    foreignMessageId = (await prisma.emailMessage.create({ data: { companyId: foreignCompanyId, threadId: sharedThreadId, direction: "INBOUND", provider: "GOOGLE", fromAddress: "foreign@example.test", toAddresses: [shared.emailAddress], subject: "Fictional inconsistent foreign message", createdAt: new Date("2030-01-01") } })).id
+    const foreignLead = await prisma.leadCapture.create({ data: { companyId: foreignCompanyId, contactId, firstName: "Fictional", lastName: "Foreign", privacyAccepted: true, fingerprint: randomUUID() } }); foreignLeadId = foreignLead.id
+    const foreignSequence = await prisma.emailSequence.create({ data: { companyId: foreignCompanyId, name: "Fictional foreign sequence" } })
+    foreignEnrollmentId = (await prisma.emailSequenceEnrollment.create({ data: { sequenceId: foreignSequence.id, leadCaptureId: foreignLead.id, contactId } })).id
+    foreignDeliveryId = (await prisma.emailDelivery.create({ data: { companyId: foreignCompanyId, channelId: shared.id, contactId, enrollmentId: enrollment.id, recipientEmail: "local@example.test", subject: "Fictional foreign delivery", scheduledAt: new Date() } })).id
+    foreignConsentId = (await prisma.marketingConsent.create({ data: { companyId: foreignCompanyId, contactId, channel: "EMAIL", purpose: "MARKETING", status: "GRANTED", legalBasis: "CONSENT", source: "FICTIONAL", proofHash: "fictional-cross-company-proof" } })).id
+  })
+  afterEach(async () => { if (membershipId) await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } }) })
+  afterAll(async () => {
+    const companies = [session.companyId, foreignCompanyId].filter(Boolean), where = { companyId: { in: companies } }
+    if (companies.length) {
+      await prisma.emailThread.deleteMany({ where })
+      await prisma.emailDelivery.deleteMany({ where })
+      await prisma.emailSequence.deleteMany({ where })
+      await prisma.marketingConsent.deleteMany({ where })
+      await prisma.leadCapture.deleteMany({ where })
+      await prisma.contact.deleteMany({ where: { client: where } })
+      await prisma.client.deleteMany({ where })
+      await prisma.company.deleteMany({ where: { id: { in: companies } } })
+    }
+    await prisma.user.deleteMany({ where: { id: { in: [session.userId, colleagueId].filter(Boolean) } } })
+  })
+  it.each(["TECHNICIAN", "ACCOUNTING", "VIEWER"])("does not expose mail without Automations to %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    expect((await getContactDetail(contactId))?.emailThreads).toEqual([])
+  })
+  it.each(["TECHNICIAN", "ACCOUNTING", "VIEWER"])("does not expose enrollments without Automations to %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    expect((await getContactDetail(contactId))?.sequenceEnrollments).toEqual([])
+  })
+  it.each(["TECHNICIAN", "ACCOUNTING", "VIEWER"])("does not expose directory engagement counts without Automations to %s", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    const row = (await getContactDirectory(directoryQuerySchema.parse({}))).rows.find(contact => contact.id === contactId)
+    expect(row?._count).toMatchObject({ emailDeliveries: null, sequenceEnrollments: null })
+  })
+  it("excludes a foreign thread linked to the local contact", async () => { expect((await getContactDetail(contactId))?.emailThreads.map(thread => thread.id)).not.toContain(foreignThreadId) })
+  it("excludes a foreign message from the local thread", async () => { expect((await getContactDetail(contactId))?.emailThreads.flatMap(thread => thread.messages).map(message => message.id)).not.toContain(foreignMessageId) })
+  it("excludes a foreign sequence enrollment linked to the local contact", async () => { expect((await getContactDetail(contactId))?.sequenceEnrollments.map(enrollment => enrollment.id)).not.toContain(foreignEnrollmentId) })
+  it("excludes a foreign delivery linked to a local enrollment", async () => { expect((await getContactDetail(contactId))?.sequenceEnrollments.flatMap(enrollment => enrollment.deliveries).map(delivery => delivery.id)).not.toContain(foreignDeliveryId) })
+  it("excludes foreign consent proof linked to the local contact", async () => { expect((await getContactDetail(contactId))?.marketingConsents.map(consent => consent.id)).not.toContain(foreignConsentId) })
+  it("excludes a foreign lead linked to the local contact", async () => { expect((await getContactDetail(contactId))?.leadCaptures.map(lead => lead.id)).not.toContain(foreignLeadId) })
+  it("counts only the local sequence enrollment in the directory", async () => { expect((await getContactDirectory(directoryQuerySchema.parse({}))).rows.find(contact => contact.id === contactId)?._count.sequenceEnrollments).toBe(1) })
+  it("counts only the local delivery in the directory", async () => { expect((await getContactDirectory(directoryQuerySchema.parse({}))).rows.find(contact => contact.id === contactId)?._count.emailDeliveries).toBe(1) })
+  it("preserves coherent Owner threads", async () => { expect((await getContactDetail(contactId))?.emailThreads.map(thread => thread.id)).toEqual(expect.arrayContaining([sharedThreadId, privateThreadId, colleagueThreadId])) })
+  it("retains the colleague private mailbox restriction for Sales", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } })
+    expect((await getContactDetail(contactId))?.emailThreads.map(thread => thread.id)).not.toContain(colleagueThreadId)
+  })
+  it("refuses a foreign contact", async () => { expect(await getContactDetail(foreignContactId)).toBeNull() })
+  it("refuses a suspended membership", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { status: "SUSPENDED" } })
+    await expect(getContactDetail(contactId)).rejects.toThrow("plus accès")
+  })
+})

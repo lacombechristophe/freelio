@@ -1,0 +1,32 @@
+{
+  "candidate": "faeb7b3e35faefa86fe9bb1a8ff7e82e1f7fca8c",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38567117114",
+      "job": 115862512035,
+      "stage": "docker build: builder npm run build",
+      "conclusion": "failure",
+      "reason": "Build memory preload absent from explicit builder COPY list",
+      "runtimeChecksExecuted": false,
+      "logSha256": "3daa7a3e710dfbd6610d34e079a7b8a162baeb9e1a9c1ad8086eab41da32adc5"
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38567125555",
+      "job": 115862539922,
+      "stage": "docker build: builder npm run build",
+      "conclusion": "failure",
+      "reason": "Build memory preload absent from explicit builder COPY list",
+      "runtimeChecksExecuted": false,
+      "logSha256": "93b9708f7683408825aaaea56ccf87247e6c256ba6c1f0d9d44fd67b066b7704"
+    }
+  ],
+  "correction": {
+    "file": "Dockerfile",
+    "builderCopyAdded": "scripts/build-memory.mjs",
+    "applicationCodeChanged": false,
+    "runtimeConfigurationChanged": false
+  },
+  "linuxQualified": false
+}

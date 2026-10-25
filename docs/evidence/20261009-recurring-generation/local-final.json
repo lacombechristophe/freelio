@@ -1,0 +1,52 @@
+{
+  "schema": "freelio.recurring-generation-local.v1",
+  "reference": "246d2e0b151ac93751d36dbbfb15c75d07189f09",
+  "node": "v24.15.0",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 931,
+    "sha256": "5e4ca89f32e781ae86d258c8a5068a0ca9bbb85533c88a3cc5fce9c83e2348a5"
+  },
+  "fullSuite": {
+    "passed": 1377,
+    "files": 175,
+    "seconds": 181.37,
+    "logSha256": "cfea5606359e5077b21bcbfc22c2628f8dc002c2c565ab52dcab7665a014c715"
+  },
+  "targeted": {
+    "passed": 16,
+    "failed": 0,
+    "reportSha256": "041a5470d22c31384766000cf16ac1e626cfb8aa4ebb4969a766e327a50d8d2a",
+    "files": [
+      {
+        "file": "business-scheduling-concurrency.test.ts",
+        "status": "passed",
+        "passed": 3
+      },
+      {
+        "file": "recurring-generation.integration.test.ts",
+        "status": "passed",
+        "passed": 13
+      }
+    ]
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75
+  },
+  "checkLogSha256": {
+    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eslint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "oxlint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build": "779e011566eeaf2f14e42249b6e0ff8c3b7146de8f2dedd15cc3511e4a6d14b4"
+  },
+  "limits": [
+    "Real SQLite and production worker on fictitious fixtures; no invoice issuance, PDF emission or external provider.",
+    "PostgreSQL execution of the thirteen new cases and CI of this source reference remain pending.",
+    "One spy gates the initial read while a second real worker call commits. This is a controlled interleaving, not simultaneous multi-process load or interruption recovery.",
+    "Recurring reader permissions, agency bindings and maintenance reference coherence are separate qualifications.",
+    "The latest catalogue/browser CI tests an earlier reference and does not qualify this new worker change."
+  ]
+}

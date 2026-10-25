@@ -1,0 +1,444 @@
+{
+  "baseline": "c5d11912bb2aeb44a4d3fd87bd7a52b1d2b28f3f",
+  "database": "isolated SQLite with fictional fixtures",
+  "passed": 103,
+  "failed": 0,
+  "suites": [
+    {
+      "file": "document-client-choices.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions reaches all 1001 choices once, with a stable order and only id/name",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions searches beyond the former ceiling and separately verifies a choice outside the query",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions clamps pages and orders equal names by id without duplicates",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for OWNER",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for ADMIN",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for SALES",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps minimal company-shared choices for VIEWER",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps replacement choices when the selected client was deleted",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions checks membership before reading the directory",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"page\":0}",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"page\":1.5}",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"page\":100001}",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"selectedId\":\"\"}",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions rejects malformed input {\"companyId\":\"foreign\"}",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions creates and edits all four resources using the last choice for OWNER",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions creates and edits all four resources using the last choice for ADMIN",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions revalidates a foreign choice in all four create actions without audit",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions does not turn shared choice access into Viewer write access",
+          "status": "passed"
+        },
+        {
+          "title": "Document and opportunity client choices cover the company without changing write permissions keeps all choices readable but all four writes forbidden in public demo mode",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "opportunity-read-scope.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "opportunity nested client read scope on real SQL omits inaccessible totalRevenueCents from the Sales detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL omits inaccessible totalUnpaidCents from the Sales detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL omits inaccessible renewalAmountCents from the Sales detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL omits inaccessible relationScore from the Sales detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL omits global totalRevenueCents from the agency-limited Viewer detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL omits global totalUnpaidCents from the agency-limited Viewer detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL omits global relationScore from the agency-limited Viewer detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL limits nested projects to assigned agencies",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL limits nested quotes to company and assigned agencies",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL does not include a foreign quote even for Owner",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL refuses an opportunity whose client belongs to another company",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL preserves the Owner company-wide client values and projects",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL refuses a foreign pipeline",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL refuses consultation after membership suspension",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL preserves Admin values and only coherent company references",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL keeps the financial renewal field for Accounting without global caches",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL refuses the detail without Sales read permission to TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL refuses the detail without Sales read permission to SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL rereads the scope after a role downgrade",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL returns no operational references after agency revocation",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL permits a scoped read in the public readonly demo",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL rejects an invalid opportunity id without loading a detail",
+          "status": "passed"
+        },
+        {
+          "title": "opportunity nested client read scope on real SQL filters references before applying the recent-list limit",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "pipeline-relations.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for OWNER",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for ADMIN",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for SALES",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL applies coherent reads and the existing Sales permission for VIEWER",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL uses the same open counts and amounts in CRM, Sales and the executive report",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL refuses every ordinary action on the foreign client relation without writes or audit",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL refuses every ordinary action on the foreign owner relation without writes or audit",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL refuses every ordinary action on the foreign pipeline relation without writes or audit",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL rechecks a relation changed before the update write",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL rechecks a relation changed before the delete write",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL rechecks a relation changed before the activity write",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL rechecks a relation changed before the properties write",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL preserves coherent edit, activity and deletion for OWNER",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL preserves coherent edit, activity and deletion for ADMIN",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL preserves coherent edit, activity and deletion for SALES",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL denies mutations before business reads for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL denies mutations before business reads for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL denies mutations before business reads for SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL denies mutations before business reads for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL denies mutations before business reads for VIEWER",
+          "status": "passed"
+        },
+        {
+          "title": "pipeline relation boundaries on real SQL rereads membership and preserves the public demo mutation block",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "workspace-access.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "workspace domain access on real SQL does not serialize unused financial amounts in 'CRM' for 'TECHNICIAN'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not serialize unused financial amounts in 'SERVICE' for 'TECHNICIAN'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not serialize unused financial amounts in 'CRM' for 'SERVICE'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not serialize unused financial amounts in 'SERVICE' for 'SERVICE'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not serialize unused financial amounts in 'CRM' for 'SALES'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not serialize unused financial amounts in 'SERVICE' for 'SALES'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses the Finance workspace reader to TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses the Finance workspace reader to SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses the Finance workspace reader to SALES",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses the Sales workspace reader to TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses the Sales workspace reader to SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL limits Service overview counts and details to assigned agencies",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL limits a Viewer financial overview to its assigned agency",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves Owner company-wide financial totals",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves Owner company-wide Service tickets",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not count another agency projects in recent CRM clients",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves Owner recent CRM client project count",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses a 'MARKETING' workspace without its domain permission to 'TECHNICIAN'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses a 'MARKETING' workspace without its domain permission to 'VIEWER'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses a 'MARKETING' workspace without its domain permission to 'ACCOUNTING'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses a 'SERVICE' workspace without its domain permission to 'SALES'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses a 'SERVICE' workspace without its domain permission to 'ACCOUNTING'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL refuses workspace consultation after suspension",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves the authorized 'SALES' domain for 'SALES'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves the authorized 'MARKETING' domain for 'SERVICE'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves the authorized 'REVENUE' domain for 'ACCOUNTING'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL preserves the authorized 'SERVICE' domain for 'TECHNICIAN'",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL omits all forbidden domain fields from the combined reader",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL does not query forbidden financial, sales or automation tables",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL rechecks a role downgrade without changing the session",
+          "status": "passed"
+        },
+        {
+          "title": "workspace domain access on real SQL rejects an unknown scope instead of falling back to the combined reader",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

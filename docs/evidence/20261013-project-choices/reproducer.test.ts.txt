@@ -1,0 +1,46 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getClientsMinimal } from "@/actions/clients"
+import { getProjectTemplates } from "@/actions/projets"
+let foreignCompany: string, templateId: string, missingClient: string
+beforeAll(async () => {
+  session.companyId = (await prisma.company.create({ data: { name: "Fictional project choice diagnostic" } })).id
+  foreignCompany = (await prisma.company.create({ data: { name: "Fictional foreign template project" } })).id
+  session.userId = (await prisma.user.create({ data: { email: `project-choice-${randomUUID()}@example.test` } })).id
+  const membership = await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OPERATIONS", status: "ACTIVE" } })
+  const own = await prisma.agency.create({ data: { companyId: session.companyId, code: "OWN", name: "Fictional assigned" } })
+  const other = await prisma.agency.create({ data: { companyId: session.companyId, code: "OTHER", name: "Fictional unassigned" } })
+  await prisma.agencyMembership.create({ data: { membershipId: membership.id, agencyId: own.id } })
+  const client = await prisma.client.create({ data: { companyId: session.companyId, name: "AA Fictional current customer" } })
+  const foreignClient = await prisma.client.create({ data: { companyId: foreignCompany, name: "Fictional foreign customer" } })
+  await prisma.client.createMany({ data: Array.from({ length: 999 }, (_, index) => ({ companyId: session.companyId, name: `Fixture customer ${String(index).padStart(4, "0")}` })) })
+  missingClient = (await prisma.client.create({ data: { companyId: session.companyId, name: "ZZ Fictional missing project customer" } })).id
+  templateId = (await prisma.projectTemplate.create({ data: { companyId: session.companyId, name: "Fictional scoped template" } })).id
+  const base = { companyId: session.companyId, clientId: client.id, projectTemplateId: templateId, name: "Fictional template project" }
+  await prisma.project.create({ data: { ...base, agencyId: own.id } })
+  await prisma.project.create({ data: { ...base, agencyId: other.id } })
+  await prisma.project.create({ data: { ...base, companyId: foreignCompany, clientId: foreignClient.id } })
+  await prisma.project.create({ data: { ...base, agencyId: own.id, clientId: foreignClient.id } })
+})
+afterAll(async () => {
+  await prisma.project.deleteMany({ where: { projectTemplateId: templateId } })
+  await prisma.projectTemplate.delete({ where: { id: templateId } })
+  await prisma.client.deleteMany({ where: { companyId: { in: [session.companyId, foreignCompany] } } })
+  await prisma.company.deleteMany({ where: { id: { in: [session.companyId, foreignCompany] } } })
+  await prisma.user.delete({ where: { id: session.userId } })
+})
+it("confirms the 1001st accessible project customer is absent from the current selector", async () => {
+  const result = await getClientsMinimal()
+  expect(await prisma.client.count({ where: { companyId: session.companyId } })).toBe(1001)
+  expect(result).toHaveLength(1000)
+  expect(result.some(row => row.id === missingClient)).toBe(false)
+})
+it("confirms the template count includes unassigned and foreign or incoherent projects", async () => {
+  expect((await getProjectTemplates()).find(row => row.id === templateId)?._count.projects).toBe(4)
+  expect(await prisma.project.count({ where: { projectTemplateId: templateId, companyId: session.companyId, client: { companyId: session.companyId }, agency: { memberships: { some: { membership: { userId: session.userId } } } } } })).toBe(1)
+})

@@ -1,0 +1,918 @@
+{
+  "schema": "freelio.task-time-ci.v1",
+  "candidate": "bfe5d6bbc82032f24e95a51342ab17990af75333",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 1050,
+    "sha256": "fad0aa6ba04d5d53fc8af10a2345aae9cd478842f37995e2311f234860d56cf7"
+  },
+  "projection": "Complete totals, focused SQL suite aggregates, corresponding browser cases, all exclusions, audits and Linux provenance. Original PostgreSQL report digests and GitHub runs identify complete reports.",
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38469876666",
+      "conclusion": "success",
+      "testedCommit": "bfe5d6bbc82032f24e95a51342ab17990af75333",
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115545897107,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115545897477,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115545897509,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "parents": [
+        "ca6f6fb832c5e87a744bd7a288b49e8799c26f82"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115545897107,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115545897477,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115545897509,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11850748463,
+        "reportSha256": "7cefe8fb06eb4ad5a1ace051e93c27ac8d6ab7f2ad45c8fbfa3a8da1275da40f",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "postgres": {
+        "artifactId": 11851193121,
+        "reportSha256": "3d891000667aaad74dd381aad7188fc4e2291697087248c1d9306b48dbf68b9a",
+        "passed": 2257,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "document-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "lead-inbox.integration.test.ts",
+            "status": "passed",
+            "passed": 36,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "operations-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "operations-product-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 46,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "pipeline-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "portal-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 31,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "project-template-count.integration.test.ts",
+            "status": "passed",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.7
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.8
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7.6
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "desktop",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 8.1
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.7
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.5
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.7
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "equipment: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "movement: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.7
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "transfer: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.7
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "order: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.5
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "reservation: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.6
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "material: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 5
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "desktop",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 3.9
+          },
+          {
+            "file": "portal-relations",
+            "surface": "desktop",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.927
+          },
+          {
+            "file": "project-template-count",
+            "surface": "desktop",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 2.1
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.1
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 7.1
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.8
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.9
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "mobile",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.8
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 5
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "equipment: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "movement: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "transfer: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "order: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 5.2
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "reservation: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 5
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "material: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 5
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "mobile",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 3.9
+          },
+          {
+            "file": "portal-relations",
+            "surface": "mobile",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 1
+          },
+          {
+            "file": "project-template-count",
+            "surface": "mobile",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 2.1
+          }
+        ],
+        "skippedCases": [
+          "-  182 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  260 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  261 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  263 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  264 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  265 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  266 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  267 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  268 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  269 [mobile] › tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  270 [mobile] › tests/e2e/critical-flows.spec.ts:1145:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  271 [mobile] › tests/e2e/critical-flows.spec.ts:1272:5 › field report and maintenance contract flow",
+          "-  272 [mobile] › tests/e2e/critical-flows.spec.ts:1480:5 › creates a structured amendment without altering the signed source contract",
+          "-  273 [mobile] › tests/e2e/critical-flows.spec.ts:1538:5 › scores prospects and exposes the communication center",
+          "-  274 [mobile] › tests/e2e/critical-flows.spec.ts:1555:5 › shares a revocable client portal with messages and appointments",
+          "-  275 [mobile] › tests/e2e/critical-flows.spec.ts:1608:5 › creates and signs in a production account with a password",
+          "-  356 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  393 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  417 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "failures": [],
+        "totals": [
+          "19 skipped",
+          "405 passed (28.0m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  215 passed (215)",
+        "Tests  2258 passed (2258)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38469883072",
+      "conclusion": "success",
+      "testedCommit": "7a1f7e16d9a47665fa65bd553b6a8c072fc277fb",
+      "attempts": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115545919732,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115545920240,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115545920363,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "bfe5d6bbc82032f24e95a51342ab17990af75333"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 115545919732,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 115545920240,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 115545920363,
+          "conclusion": "success"
+        }
+      ],
+      "linux": {
+        "artifactId": 11850613520,
+        "reportSha256": "ec2b4d98c3c30579f247c2aeace7d0ba94005fa66d72b23fb89a24ccc4d7a9eb",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "postgres": {
+        "artifactId": 11850839387,
+        "reportSha256": "11e8500a590ece30c907a7eadd228f63487485215f35a8f715126ca73e02eb6e",
+        "passed": 2257,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "document-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 24,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "lead-inbox.integration.test.ts",
+            "status": "passed",
+            "passed": 36,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "operations-client-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 28,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "operations-product-choices.integration.test.ts",
+            "status": "passed",
+            "passed": 46,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "pipeline-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 25,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "portal-relations.integration.test.ts",
+            "status": "passed",
+            "passed": 31,
+            "failed": 0,
+            "skipped": 0
+          },
+          {
+            "file": "project-template-count.integration.test.ts",
+            "status": "passed",
+            "passed": 12,
+            "failed": 0,
+            "skipped": 0
+          }
+        ]
+      },
+      "browser": {
+        "cases": [
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.1
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.2
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "desktop",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 6.1
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "desktop",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 6.8
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.2
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "desktop",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.5
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "equipment: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "movement: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "transfer: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "order: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "reservation: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.2
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "desktop",
+            "name": "material: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.2
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "desktop",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 2.8
+          },
+          {
+            "file": "portal-relations",
+            "surface": "desktop",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.654
+          },
+          {
+            "file": "project-template-count",
+            "surface": "desktop",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 1.4
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "quote: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 4.9
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "invoice: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.7
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "contract: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.8
+          },
+          {
+            "file": "document-client-choices",
+            "surface": "mobile",
+            "name": "opportunity: complete client choices preserve creation, editing and recovery",
+            "status": "passed",
+            "seconds": 5.8
+          },
+          {
+            "file": "lead-inbox",
+            "surface": "mobile",
+            "name": "Incoming inbox searches its complete portfolio and preserves filters through failure and a status change",
+            "status": "passed",
+            "seconds": 5.9
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "site: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "ticket: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.1
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "maintenance: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-client-choices",
+            "surface": "mobile",
+            "name": "order: complete Operations client choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "equipment: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "movement: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.3
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "transfer: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "order: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "reservation: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.4
+          },
+          {
+            "file": "operations-product-choices",
+            "surface": "mobile",
+            "name": "material: complete Operations product choice preserves input and recovery",
+            "status": "passed",
+            "seconds": 4.2
+          },
+          {
+            "file": "pipeline-relations",
+            "surface": "mobile",
+            "name": "Compiled pipeline hides foreign references and refuses an edit after its owner changes",
+            "status": "passed",
+            "seconds": 2.8
+          },
+          {
+            "file": "portal-relations",
+            "surface": "mobile",
+            "name": "Compiled portal rejects incoherent links and rechecks an existing session",
+            "status": "passed",
+            "seconds": 0.667
+          },
+          {
+            "file": "project-template-count",
+            "surface": "mobile",
+            "name": "Compiled model badges count only coherent projects in the accessible agencies",
+            "status": "passed",
+            "seconds": 1.4
+          }
+        ],
+        "skippedCases": [
+          "-  182 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  260 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  261 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  263 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  264 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  265 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  266 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  267 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  268 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  269 [mobile] › tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  270 [mobile] › tests/e2e/critical-flows.spec.ts:1145:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  271 [mobile] › tests/e2e/critical-flows.spec.ts:1272:5 › field report and maintenance contract flow",
+          "-  272 [mobile] › tests/e2e/critical-flows.spec.ts:1480:5 › creates a structured amendment without altering the signed source contract",
+          "-  273 [mobile] › tests/e2e/critical-flows.spec.ts:1538:5 › scores prospects and exposes the communication center",
+          "-  274 [mobile] › tests/e2e/critical-flows.spec.ts:1555:5 › shares a revocable client portal with messages and appointments",
+          "-  275 [mobile] › tests/e2e/critical-flows.spec.ts:1608:5 › creates and signs in a production account with a password",
+          "-  356 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  393 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  417 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ],
+        "failures": [],
+        "totals": [
+          "19 skipped",
+          "405 passed (22.6m)"
+        ]
+      },
+      "sqlite": [
+        "Test Files  215 passed (215)",
+        "Tests  2258 passed (2258)"
+      ],
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "supplementalJobLog": {
+        "method": "GitHub jobs logs API; supplements sections absent from gh run view --log output",
+        "jobId": 115545919732,
+        "sha256": "4eac6f48ff170e913dcdaa5ffdf8b779599aea371b3f1f07db96ce371319b734"
+      }
+    }
+  ],
+  "logExtraction": "SQLite, browser and audit summaries are taken only from quality-and-e2e job payloads. PostgreSQL uses its separate JSON artifact.",
+  "limits": [
+    "Fictitious isolated recipe; no real provider or hosted commercial qualification.",
+    "Historical browser exclusions and native SQLite-only PostgreSQL exclusion retained.",
+    "Image availability, provider integrations, load and disaster recovery are not guaranteed by this recipe."
+  ]
+}

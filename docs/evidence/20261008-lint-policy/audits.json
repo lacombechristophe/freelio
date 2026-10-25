@@ -1,0 +1,63 @@
+{
+  "schema": "freelio.dependency-audit-summary.v1",
+  "generatedAt": "2026-10-08T10:54:27.573Z",
+  "lockfileSha256": "01ccfdac6f6eca66691c55baf9a2a3a2bcd150fd551c39727b1d08ff597eb1f2",
+  "next": "16.3.8",
+  "packageCount": 864,
+  "manualReviewCount": 40,
+  "unknownLicenses": 0,
+  "results": [
+    {
+      "name": "lock-production",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    {
+      "name": "lock-complete",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    {
+      "name": "installed-production",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    {
+      "name": "installed-complete",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    }
+  ]
+}

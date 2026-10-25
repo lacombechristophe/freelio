@@ -1,0 +1,50 @@
+{
+  "phase": "apply",
+  "startedAt": "2026-10-25T09:55:54.057Z",
+  "database": "freelio_demo_preview_20261010_420e34f8",
+  "checks": [
+    "Exact database and existing owner; direct endpoint with certificate validation",
+    "All existing migration names/checksums match the 75 versioned sources, including Prisma-compatible line endings",
+    "No unknown, duplicate, failed or rolled-back migration; only the two index migrations may be missing",
+    "Reader permissions unchanged and owner has both target tables",
+    "Standard Prisma migrate deploy completes; 75 names/checksums and both index definitions verified; previous journal and reader privilege metadata preserved"
+  ],
+  "before": {
+    "completedMigrations": 73,
+    "missing": [
+      "20261024190000_ticket_priority_order",
+      "20261025093000_equipment_company_site"
+    ],
+    "indexes": [],
+    "privileges": {
+      "reader_history": true,
+      "reader_company_update": false,
+      "owns_equipment": true,
+      "owns_tickets": true
+    }
+  },
+  "prismaExitCode": 0,
+  "prismaErrorCodes": [],
+  "after": {
+    "completedMigrations": 75,
+    "missing": [],
+    "indexes": [
+      {
+        "indexname": "Equipment_companyId_siteId_idx",
+        "indexdef": "CREATE INDEX \"Equipment_companyId_siteId_idx\" ON public.\"Equipment\" USING btree (\"companyId\", \"siteId\")"
+      },
+      {
+        "indexname": "ServiceTicket_companyId_priority_updatedAt_id_idx",
+        "indexdef": "CREATE INDEX \"ServiceTicket_companyId_priority_updatedAt_id_idx\" ON public.\"ServiceTicket\" USING btree (\"companyId\", priority, \"updatedAt\" DESC, id)"
+      }
+    ],
+    "privileges": {
+      "reader_history": true,
+      "reader_company_update": false,
+      "owns_equipment": true,
+      "owns_tickets": true
+    }
+  },
+  "success": true,
+  "finishedAt": "2026-10-25T09:55:57.262Z"
+}

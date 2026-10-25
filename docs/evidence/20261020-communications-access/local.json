@@ -1,0 +1,279 @@
+{
+  "schema": "freelio.communications-access-local.v1",
+  "observedAt": "2026-10-20T12:13:27.719Z",
+  "codeCommit": "194066c49a1eee3a0a1a5259619fb5aa7a14e427",
+  "browserRecipeCommit": "d606c098efadd8e555e8ce9277d0ac7d557a89bf",
+  "source": {
+    "observedAt": "2026-10-20T12:05:39.918Z",
+    "commit": "194066c49a1eee3a0a1a5259619fb5aa7a14e427",
+    "filesCompared": 1142,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "fc22b03ddedeb66383ff533b5fc0a6f9c786d268a707ba8923ad700553c1f4e4",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "browserSource": {
+    "observedAt": "2026-10-20T12:12:21.592Z",
+    "commit": "d606c098efadd8e555e8ce9277d0ac7d557a89bf",
+    "filesCompared": 1142,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "625bd47da7c17654189297d2fb2013b76b91f49f0747ec8d35deb5518996cff2",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "browserOnlyChangeAfterBuild": {
+    "path": "tests/e2e/communications-access.spec.ts",
+    "addedLines": 1,
+    "deletedLines": 0,
+    "purpose": "Return to list before searching on mobile; application and SQL tests unchanged"
+  },
+  "diagnostics": [
+    {
+      "file": "communication-capabilities-before-20261020.json",
+      "sha256": "2c8cb38faca05cae80cd865dd0e16adbaa9c1e1362de37a81b14fddb6c3d8fab",
+      "success": false,
+      "total": 10,
+      "passed": 4,
+      "failed": 6,
+      "pending": 0,
+      "files": 1,
+      "interpretation": "Six capability DTO expectations missing before implementation; four existing dashboard cases pass."
+    },
+    {
+      "file": "communication-capabilities-display-20261020.json",
+      "sha256": "19a13f9309b51316142860fd67cb2edde2c3eb5512a797230db3f4bf7c2e9272",
+      "success": false,
+      "total": 50,
+      "passed": 47,
+      "failed": 3,
+      "pending": 0,
+      "files": 3,
+      "interpretation": "Three initial ordinary-role renders expose empty-inbox crash because the legacy unowned thread is correctly hidden. Shared mailbox added for positive control assertions."
+    },
+    {
+      "file": "communication-capabilities-empty-before-20261020.json",
+      "sha256": "19a26efab86abb3246af202175519e5fac82e72097b0e9ac4023d4b9fd2c6364",
+      "success": false,
+      "total": 15,
+      "passed": 14,
+      "failed": 1,
+      "pending": 0,
+      "files": 1,
+      "interpretation": "One explicit empty-inbox SSR case fails before null guard; fourteen role/render cases already pass."
+    },
+    {
+      "file": "communication-capabilities-qualified-20261020.json",
+      "sha256": "f6ccb0a3434d169fa02cc4e90708f7c9757d1764dfd99a6ed48e3b81010d1cf2",
+      "success": false,
+      "total": 64,
+      "passed": 63,
+      "failed": 1,
+      "pending": 0,
+      "files": 5,
+      "interpretation": "First browser-fixture verification fails on cleanup foreign-key order; application checks pass. Corrected cleanup tested in a fresh database."
+    }
+  ],
+  "focused": {
+    "file": "communication-capabilities-fresh-20261020.json",
+    "sha256": "95bec5ec525402f61f0a21ff40f131772befd89104d8e070b462813e9b4b217d",
+    "success": true,
+    "total": 64,
+    "passed": 64,
+    "failed": 0,
+    "pending": 0,
+    "files": 5,
+    "suites": [
+      {
+        "file": "communication-dashboard.integration.test.ts",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "file": "email-drafts.integration.test.ts",
+        "passed": 9,
+        "failed": 0
+      },
+      {
+        "file": "incoming-attachment.integration.test.ts",
+        "passed": 33,
+        "failed": 0
+      },
+      {
+        "file": "mailbox-access.integration.test.ts",
+        "passed": 3,
+        "failed": 0
+      },
+      {
+        "file": "member-mailbox-offboarding.integration.test.ts",
+        "passed": 3,
+        "failed": 0
+      }
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-communication-access-20261020.json",
+    "sha256": "0e2aead2d4d6df45017449563fe8587bc00465669733db96ff3ccc51ce2ec029",
+    "success": true,
+    "total": 2829,
+    "passed": 2829,
+    "failed": 0,
+    "pending": 0,
+    "files": 246
+  },
+  "checks": {
+    "build": {
+      "file": "Freelio-communication-access-build-20261020.log",
+      "sha256": "f0609c0eb0d335a1503544df023df0df8e39d9a7965777595e9b1bdd91977b6b",
+      "exitCode": 0,
+      "staticPages": 76
+    },
+    "types": {
+      "file": "Freelio-communication-access-types-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "eslint": {
+      "file": "Freelio-communication-access-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "oxlint": {
+      "file": "Freelio-communication-access-oxlint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "browserRecipeTypes": {
+      "file": "Freelio-communication-access-browser-types-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "browserRecipeLint": {
+      "file": "Freelio-communication-access-browser-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    }
+  },
+  "audits": {
+    "full": {
+      "file": "Freelio-communication-access-audit-full-20261020.json",
+      "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      }
+    },
+    "production": {
+      "file": "Freelio-communication-access-audit-production-20261020.json",
+      "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+      "exitCode": 0,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      }
+    }
+  },
+  "lockfileSha256": "0aa5f905da5df448892debe9030f1aae63244b304a7cecdf91383a661ad35514",
+  "coverage": {
+    "modules": 6,
+    "summary": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T12:12:28.241Z",
+    "baseline": "d606c098efadd8e555e8ce9277d0ac7d557a89bf",
+    "all": 454,
+    "desktop": 227,
+    "mobile": 227,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "publication": {
+    "historyThroughCommit": "194066c49a1eee3a0a1a5259619fb5aa7a14e427",
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1684,
+    "historyBlobsChecked": 4277,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "limits": [
+    "Real SQLite memberships, actions, mailbox scopes and private drafts; authentication/cache mocked as declared in test files",
+    "SSR controls use inert effect-event stub; this does not exercise hydration, automatic mark-read or autosave in a browser",
+    "Three prepared browser cases per surface listed only, not executed; mobile recipe adjustment is after the tested application commit and separately identified",
+    "No database schema or server permission-matrix change; browser capability flags never replace server authorization",
+    "PostgreSQL, provider accounts and current Linux/browser runtime remain unqualified for these local additions",
+    "No original database access, provider send, push, workflow, deployment, R2 or paid action; zero GitHub Actions spending budget remains unverified"
+  ]
+}

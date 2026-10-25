@@ -1,0 +1,495 @@
+{
+  "schema": "freelio.time-invoice-preview-local.v1",
+  "sourceBase": "06d0d7c5cb1836aac55294c33f8f645b509818de",
+  "scope": "Uncommitted preview-version fix, isolated SQLite recipe; auth/cache and archive-preparation import mocked in SQL suites.",
+  "passed": 2030,
+  "failed": 0,
+  "files": 207,
+  "coverage": {
+    "scope": [
+      "commercial-calculation",
+      "delivery-retry",
+      "delivery-events",
+      "migration ingest",
+      "migration normalize",
+      "Factur-X"
+    ],
+    "statements": 82.6,
+    "branches": 58.17,
+    "functions": 84.34,
+    "lines": 86
+  },
+  "focused": [
+    {
+      "file": "tests/unit/invoice-action-scope.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL excludes an invoice attached to another company's client from the list",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL excludes unbilled times attached to another company's client",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects unbilled-time reads before querying financial data for SALES",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects unbilled-time reads before querying financial data for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects unbilled-time reads before querying financial data for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects unbilled-time reads before querying financial data for SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects payment writes before reading the invoice for SALES",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects payment writes before reading the invoice for OPERATIONS",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects payment writes before reading the invoice for TECHNICIAN",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects payment writes before reading the invoice for SERVICE",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects payment writes before reading the invoice for VIEWER",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses issue on an invoice with a foreign client without side effects",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses payment on an invoice with a foreign client without side effects",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses credit on an invoice with a foreign client without side effects",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses reminder on an invoice with a foreign client without side effects",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses delete on an invoice with a foreign client without side effects",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses updating an inconsistent draft without replacing its client",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL refuses invoicing times linked to a foreign client without consuming them",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects credit before invoice or time reads for Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects reminder before invoice or time reads for Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects delete before invoice or time reads for Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects update before invoice or time reads for Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects create before invoice or time reads for Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL rejects time before invoice or time reads for Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL does not subtract a foreign credit from the available local credit amount",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL still subtracts coherent credits and refuses over-crediting",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL does not subtract a local credit attached to a different client",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL keeps financial reads available to Viewer",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL blocks payment before invoice reads in the public demo",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL preserves coherent payments for OWNER",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL preserves coherent payments for ADMIN",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL preserves coherent payments for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL preserves invoice issuing for Owner",
+          "status": "passed"
+        },
+        {
+          "title": "invoice actions enforce financial rights and client scope on SQL preserves reminder preparation for Accounting",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/time-billing-accounting.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL creates one accessible draft and audit for ACCOUNTING",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL creates one accessible draft and audit for OWNER",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL creates one accessible draft and audit for ADMIN",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies SALES before business SQL",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies SERVICE before business SQL",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies OPERATIONS before business SQL",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies TECHNICIAN before business SQL",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies VIEWER before business SQL",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL refuses foreign project without a draft or claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL refuses foreign client without a draft or claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL refuses unassigned agency without a draft or claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL refuses foreign agency without a draft or claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL refuses an agency withdrawal before preparing the draft",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL rechecks the client reference at the claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL rechecks the agency reference at the claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL rechecks the project reference at the claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL rolls back a multi-project draft which Accounting cannot subsequently read",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL rolls back the draft, lines and times after a claim outage",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL rolls back the draft, lines and times after a audit outage",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies a direct Time update with missing capability",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies a direct Time update with different invoice",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies a direct Time update with extra field",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies a direct Time update with detach",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies a direct Time update with already allocated",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL denies a direct Time update with read action",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL restores the Finance context after the narrow claim",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL does not grant Accounting any general time action",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL does not authorize a single-row update even with the claim capability",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL does not authorize a single-row delete even with the claim capability",
+          "status": "passed"
+        },
+        {
+          "title": "Accounting claims only times for its newly created draft in SQL blocks the public read-only demo before creating a draft",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/time-invoice-preview.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a duration edit completed before submission and keeps the legitimate edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a date edit completed before submission and keeps the legitimate edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a description edit completed before submission and keeps the legitimate edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a billability edit completed before submission and keeps the legitimate edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a VAT change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a prefix change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a project change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a client change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a project name change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a client name change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a agency change completed before submission",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a missing version without a draft, claim or audit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a empty version without a draft, claim or audit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a malformed version without a draft, claim or audit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a forged version without a draft, claim or audit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a different entry version without a draft, claim or audit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses a duplicate version without a draft, claim or audit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL does not let another authorized user reuse the displayed version",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL checks current rights before business reads even with a valid displayed version",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL refuses an entry deleted after its preview was displayed",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices verify the displayed preview before preparation in SQL uses a fresh displayed version after refusal, without silently accepting the old one",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/time-invoice-rounding.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "Time invoices preserve exact seconds and preview totals in SQL matches both preview modes with VAT enabled = false",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices preserve exact seconds and preview totals in SQL matches both preview modes with VAT enabled = true",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices preserve exact seconds and preview totals in SQL keeps a one-second time positive without first rounding its hours to zero",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices preserve exact seconds and preview totals in SQL preserves an existing invoice while creating a new exact-time draft",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices preserve exact seconds and preview totals in SQL refuses an out-of-capacity amount before creating a draft or association",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "tests/unit/time-invoice-snapshot.integration.test.ts",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL preserves a legitimate duration edit and refuses the previous calculation",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL preserves a legitimate date edit and refuses the previous calculation",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL preserves a legitimate description edit and refuses the previous calculation",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL preserves a legitimate billability edit and refuses the previous calculation",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses stale VAT data without undoing the external edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses stale prefix data without undoing the external edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses stale project data without undoing the external edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses stale client data without undoing the external edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses stale project name data without undoing the external edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses stale client name data without undoing the external edit",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL refuses a selection deleted after preparation",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL rolls back every effect after a invoice outage",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL rolls back every effect after a claim outage",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL rolls back every effect after a audit outage",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL returns the controlled refusal after a rolled-back serialization conflict",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL allows a new preparation to use the current duration",
+          "status": "passed"
+        },
+        {
+          "title": "Time invoices refuse a stale prepared snapshot in SQL keeps one winning invoice for two requests, with a real PostgreSQL read barrier",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Coverage percentages apply only to the six configured modules, not to the entire application.",
+    "Compiled browser, PostgreSQL and Linux validation must run on the new commit.",
+    "No real provider send or document issuance in this preview test."
+  ],
+  "checks": {
+    "typescript": "passed",
+    "eslint": "passed",
+    "oxlint": "passed",
+    "productionBuild": "passed",
+    "playwrightDiscovery": "42 tests in 3 files; discovery only",
+    "agencyWithdrawalFollowup": "30 Accounting tests passed after strengthening the fixture to submit an actual displayed version"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "schema": "freelio.calendar-preview.v1",
+  "candidate": "bc8f2d6bf6efb84803d03eaff03224138cb3867d",
+  "desktop": {
+    "schema": "freelio.hosted-calendar.v1",
+    "startedAt": "2026-10-10T02:08:40.512Z",
+    "commit": "bc8f2d6bf6efb84803d03eaff03224138cb3867d",
+    "deployment": {
+      "id": "dpl_AwaeGFF2sZGN27btVZyEdmrSvwFL",
+      "url": "https://freelio-pq9zh75fi-hyhyhyhyhytest-8931s-projects.vercel.app",
+      "state": "READY",
+      "createdAt": 1791598014778
+    },
+    "baseURL": "https://freelio-git-codex-function-c9a645-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "viewport": "desktop-1440",
+    "timezone": "Pacific/Kiritimati",
+    "checks": [
+      {
+        "route": "/api/health/live",
+        "http": 200,
+        "status": "ok"
+      },
+      {
+        "route": "/api/health/ready",
+        "http": 200,
+        "status": "ready",
+        "components": {
+          "database": "ok",
+          "configuration": "ok"
+        }
+      },
+      "Hidden, mutation and unknown entry points return 403 before authentication",
+      "Public entry and disabled registration, reset and email login",
+      "Password login with configured Upstash and read-only notice",
+      "Clients, quotes, invoices and expenses: reads succeed, mutations disabled",
+      {
+        "document": "quote",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 278326
+      },
+      {
+        "document": "draft invoice",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 240101
+      },
+      "Server read actions still filter data",
+      "Authenticated uploads and billing refused",
+      "Logout"
+    ],
+    "pageErrors": [],
+    "externalRequestsBlocked": 8,
+    "blockedHosts": [
+      "vercel.live"
+    ],
+    "success": true,
+    "finishedAt": "2026-10-10T02:09:27.722Z"
+  },
+  "mobile": {
+    "schema": "freelio.hosted-calendar.v1",
+    "startedAt": "2026-10-10T02:09:51.561Z",
+    "commit": "bc8f2d6bf6efb84803d03eaff03224138cb3867d",
+    "deployment": {
+      "id": "dpl_AwaeGFF2sZGN27btVZyEdmrSvwFL",
+      "url": "https://freelio-pq9zh75fi-hyhyhyhyhytest-8931s-projects.vercel.app",
+      "state": "READY",
+      "createdAt": 1791598014778
+    },
+    "baseURL": "https://freelio-git-codex-function-c9a645-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "viewport": "mobile-390",
+    "timezone": "America/Los_Angeles",
+    "checks": [
+      {
+        "route": "/api/health/live",
+        "http": 200,
+        "status": "ok"
+      },
+      {
+        "route": "/api/health/ready",
+        "http": 200,
+        "status": "ready",
+        "components": {
+          "database": "ok",
+          "configuration": "ok"
+        }
+      },
+      "Hidden, mutation and unknown entry points return 403 before authentication",
+      "Public entry and disabled registration, reset and email login",
+      "Password login with configured Upstash and read-only notice",
+      "Clients, quotes, invoices and expenses: reads succeed, mutations disabled",
+      {
+        "document": "quote",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 278326
+      },
+      {
+        "document": "draft invoice",
+        "http": 200,
+        "signature": "%PDF-",
+        "bytes": 240101
+      },
+      "Server read actions still filter data",
+      "Authenticated uploads and billing refused",
+      "Mobile navigation and page width",
+      "Logout"
+    ],
+    "pageErrors": [],
+    "externalRequestsBlocked": 8,
+    "blockedHosts": [
+      "vercel.live"
+    ],
+    "success": true,
+    "finishedAt": "2026-10-10T02:10:19.800Z"
+  }
+}

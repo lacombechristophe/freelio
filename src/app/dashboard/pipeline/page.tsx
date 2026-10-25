@@ -1,15 +1,11 @@
 import { getPipeline } from "@/actions/pipeline"
-import { getClientsMinimal } from "@/actions/clients"
 import { PipelineBoard } from "./pipeline-board"
 import { PageHeader } from "@/components/shared/page-header"
 
 export default async function PipelinePage({ searchParams }: PageProps<"/dashboard/pipeline">) {
   const query = await searchParams
   const pipelineId = typeof query.pipeline === "string" ? query.pipeline : undefined
-  const [pipeline, clients] = await Promise.all([
-    getPipeline(pipelineId),
-    getClientsMinimal(),
-  ])
+  const pipeline = await getPipeline(pipelineId)
 
   return (
     <div className="flex flex-col space-y-6 sm:h-[calc(100dvh-128px)]">
@@ -19,7 +15,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/dashboa
         description="Visualisez les opportunités en cours et la valeur pondérée de votre prochain chiffre d’affaires."
         className="shrink-0"
       />
-      <PipelineBoard pipeline={pipeline} clients={clients ?? []} />
+      <PipelineBoard pipeline={pipeline} />
     </div>
   )
 }

@@ -1,0 +1,43 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { parseDirectoryQuery } from "@/lib/directory-query"
+
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getClients } from "@/actions/clients"
+import { getClientDirectory } from "@/actions/directories"
+
+describe.sequential("client directory respects Finance reading permissions", () => {
+  let membershipId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional client directory permissions" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `client-directory-${randomUUID()}@example.test` } })).id
+    membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
+    const agency = await prisma.agency.create({ data: { companyId: session.companyId, code: "PERMITTED", name: "Fictional assigned agency" } })
+    await prisma.agencyMembership.create({ data: { agencyId: agency.id, membershipId } })
+    const client = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional directory customer" } })
+    const project = await prisma.project.create({ data: { companyId: session.companyId, clientId: client.id, agencyId: agency.id, name: "Fictional directory project" } })
+    await prisma.invoice.create({ data: { companyId: session.companyId, clientId: client.id, projectId: project.id, number: "PERMITTED", object: "Fictional directory invoice", dueDate: new Date("2030-01-01"), status: "PAID", totalHtCents: 100, totalTvaCents: 0, totalTtcCents: 100, paidAmountCents: 100 } })
+  })
+  afterAll(async () => {
+    await prisma.invoice.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.project.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.client.deleteMany({ where: { companyId: session.companyId } })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it.each(["OWNER", "ACCOUNTING"])("keeps authorized %s financial values", async role => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    expect((await getClients()).clients[0].totalRevenueCents).toBe(100)
+    expect((await getClientDirectory(parseDirectoryQuery(null))).rows[0].totalRevenueCents).toBe(100)
+  })
+  it.each(["TECHNICIAN", "SERVICE", "SALES"].flatMap(role => ["legacy", "directory"].map(reader => ({ role, reader }))))("does not return financial values to $role through $reader", async ({ role, reader }) => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role } })
+    const client = reader === "legacy" ? (await getClients()).clients[0] : (await getClientDirectory(parseDirectoryQuery(null))).rows[0]
+    expect(client.totalRevenueCents).toBeNull()
+    expect(client.totalUnpaidCents).toBeNull()
+  })
+})

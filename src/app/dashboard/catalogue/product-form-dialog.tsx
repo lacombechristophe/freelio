@@ -6,6 +6,8 @@ import { toast } from "sonner"
 import { Boxes, CircleDollarSign, PackagePlus, Tags, Warehouse } from "lucide-react"
 
 import { createCatalogProduct, updateCatalogProduct } from "@/actions/products"
+import { SupplierPicker } from "@/components/shared/supplier-picker"
+import { ProductParentPicker } from "./product-parent-picker"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -47,10 +49,8 @@ const EMPTY_FORM = {
   stockTracked: false,
 }
 
-export function ProductFormDialog({ product, products, suppliers, defaultParentProductId, defaultKind, open, onOpenChange }: {
+export function ProductFormDialog({ product, defaultParentProductId, defaultKind, open, onOpenChange }: {
   product?: CatalogProductFormValue
-  products: Array<{ id: string; sku: string; label: string; parentProductId: string | null }>
-  suppliers: Array<{ id: string; name: string }>
   defaultParentProductId?: string
   defaultKind?: string
   open: boolean
@@ -118,7 +118,6 @@ export function ProductFormDialog({ product, products, suppliers, defaultParentP
     }
   }
 
-  const parentChoices = products.filter((candidate) => candidate.id !== product?.id && !candidate.parentProductId)
   const marginCents = Math.round((Number(form.salePrice || 0) - Number(form.purchasePrice || 0)) * 100)
   const marginRate = Number(form.salePrice || 0) > 0 ? Math.round((marginCents / (Number(form.salePrice) * 100)) * 1000) / 10 : 0
 
@@ -146,8 +145,8 @@ export function ProductFormDialog({ product, products, suppliers, defaultParentP
             <div className="space-y-1.5"><Label>Nature</Label><Select value={form.kind} onValueChange={(value) => setForm({ ...form, kind: value ?? "CONFIGURABLE" })}><SelectTrigger aria-label="Nature du produit"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="CONFIGURABLE">Produit configurable</SelectItem><SelectItem value="VARIANT">Variante</SelectItem><SelectItem value="MATERIAL">Matière / composant</SelectItem><SelectItem value="ACCESSORY">Accessoire / option</SelectItem><SelectItem value="SERVICE_COMPONENT">Composant de pose</SelectItem></SelectContent></Select></div>
             <div className="space-y-1.5"><Label htmlFor="product-family">Famille / gamme</Label><Input id="product-family" value={form.family} onChange={(event) => setForm({ ...form, family: event.target.value })} placeholder="Couverture, abri, volet…" /></div>
             <div className="space-y-1.5"><Label htmlFor="product-manufacturer">Fabricant</Label><Input id="product-manufacturer" value={form.manufacturer} onChange={(event) => setForm({ ...form, manufacturer: event.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Fournisseur</Label><Select value={form.supplierId || "none"} onValueChange={(value) => setForm({ ...form, supplierId: value === "none" ? "" : value ?? "" })}><SelectTrigger aria-label="Fournisseur du produit"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Non renseigné</SelectItem>{suppliers.map((supplier) => <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-1.5"><Label>Produit parent</Label><Select value={form.parentProductId || "none"} onValueChange={(value) => setForm({ ...form, parentProductId: value === "none" ? "" : value ?? "" })}><SelectTrigger aria-label="Produit parent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Produit racine</SelectItem>{parentChoices.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.sku} · {candidate.label}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Fournisseur</Label><SupplierPicker variant="select" value={form.supplierId} onChange={supplierId => setForm(current => ({ ...current, supplierId }))} productId={product?.id} label="Fournisseur du produit" /></div>
+            <div className="space-y-1.5"><Label>Produit parent</Label><ProductParentPicker value={form.parentProductId} productId={product?.id} onChange={parentProductId => setForm(current => ({ ...current, parentProductId }))} /></div>
             <div className="space-y-1.5"><Label htmlFor="variant-label">Libellé de variante</Label><Input id="variant-label" value={form.variantLabel} onChange={(event) => setForm({ ...form, variantLabel: event.target.value })} placeholder="V10 · anthracite · 5 × 10 m" /></div>
           </div>
           </section>
@@ -164,7 +163,7 @@ export function ProductFormDialog({ product, products, suppliers, defaultParentP
           </section>
 
           <label className="flex items-start gap-3 rounded-xl border bg-muted/20 p-4 text-sm"><input type="checkbox" className="mt-0.5 size-4" checked={form.stockTracked} onChange={(event) => setForm({ ...form, stockTracked: event.target.checked })} /><Warehouse className="mt-0.5 size-4 shrink-0 text-primary" /><span><strong className="block">Suivi en stock</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">Activez-le uniquement pour une référence réellement détenue dans un dépôt. Les fabrications sur mesure restent généralement hors stock.</span></span></label>
-          <DialogFooter><DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose><Button type="submit" disabled={pending}>{pending ? "Enregistrement…" : product ? "Enregistrer" : "Créer et configurer"}</Button></DialogFooter>
+          <DialogFooter><DialogClose render={<Button type="button" variant="outline" />}>Annuler</DialogClose><Button demoMutation type="submit" disabled={pending}>{pending ? "Enregistrement…" : product ? "Enregistrer" : "Créer et configurer"}</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

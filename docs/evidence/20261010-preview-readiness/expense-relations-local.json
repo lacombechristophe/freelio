@@ -1,0 +1,230 @@
+{
+  "schema": "freelio.expense-relations-local.v1",
+  "observedAt": "2026-10-10T11:19:46.867Z",
+  "baseCommit": "021bface3a527c75f4657720fabb22667d4e0cfc",
+  "source": [
+    {
+      "file": "src/actions/depenses/index.ts",
+      "sha256": "46111e6f5f87bf76d96b301f564a4cd8dab24085bf86a5c74c5ed74cec994ce4"
+    },
+    {
+      "file": "tests/unit/expense-permissions.test.ts",
+      "sha256": "29035a15bdce27f2d49726c8da3d7befc9751f1f50de30f827c0b0020d8059c1"
+    },
+    {
+      "file": "tests/unit/expense-relations.integration.test.ts",
+      "sha256": "95647752e805ef1d2c85e07b31c8e798518f36b9c41e94d9d0c0716aa264977a"
+    },
+    {
+      "file": "tests/e2e/expense-relations.spec.ts",
+      "sha256": "bad48cc04794753853daaf2bd6b5cc18281b57da08afca8977643a8492d646f2"
+    },
+    {
+      "file": "scripts/seed-expense-relations.mjs",
+      "sha256": "127bc987d67e68582c7515fb04250b52da652d1993fa4ebca0139717e15fac97"
+    },
+    {
+      "file": "scripts/seed-ui-redesign.mjs",
+      "sha256": "9689f6199894e88496d3fbc50ae5cd0611a92b3ceea6b1f5d8e8076cc9e3ecfd"
+    }
+  ],
+  "qualification": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 8.398
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 22.161
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.164
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 211.634
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 57.439
+    }
+  ],
+  "unit": {
+    "passed": 1700,
+    "failed": 0,
+    "files": 193
+  },
+  "before": {
+    "passed": 11,
+    "failed": 14,
+    "note": "The original diagnostic reproduces six defects. The expanded 25-case baseline has fourteen failures across repeated roles/actions; these are not fourteen distinct leaks."
+  },
+  "focused": [
+    {
+      "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for OWNER",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for ADMIN",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL keeps coherent reads and excludes foreign relations for VIEWER",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL keeps optional unattached expenses for Owner",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses creation on a project whose client is foreign, without writing or auditing",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses update for foreign client without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses justify for foreign client without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses delete for foreign client without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses update for foreign project without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses justify for foreign project without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses delete for foreign project without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses update for project with foreign client without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses justify for project with foreign client without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses delete for project with foreign client without changing the expense, receipt or audit",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Finance reads before the expense query for SALES",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Finance reads before the expense query for OPERATIONS",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Finance reads before the expense query for SERVICE",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Finance reads before the expense query for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Viewer update before reading or writing an expense",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Viewer justify before reading or writing an expense",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL denies Viewer delete before reading or writing an expense",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses update if the client becomes foreign after the initial read",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses justify if the client becomes foreign after the initial read",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL refuses delete if the client becomes foreign after the initial read",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL preserves a coherent Accounting create/edit/justify/delete path",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL keeps agency filtering and immediately applies its revocation",
+      "status": "passed"
+    },
+    {
+      "name": "Expense relations on real SQL rejects writes in the public read-only demo before the expense lookup",
+      "status": "passed"
+    }
+  ],
+  "focusedRegression": {
+    "passed": 55,
+    "failed": 0,
+    "includes": [
+      "expense relations (28)",
+      "expense permissions (6)",
+      "Organisation (15)",
+      "calendar SQL (6)"
+    ]
+  },
+  "seed": {
+    "schema": "freelio.expense-seed-check.v1",
+    "observedAt": "2026-10-10T11:14:14.980Z",
+    "success": true,
+    "disposableSQLite": true,
+    "counts": {
+      "companies": 4,
+      "users": 6,
+      "expenses": 8
+    }
+  },
+  "browser": {
+    "expenseCasesLoaded": 6,
+    "totalFocusedCasesLoaded": 20,
+    "executedLocally": false
+  },
+  "limits": [
+    "Real isolated SQLite, memberships, DAL, actions and audit. Authentication, Next cache and receipt removal are mocked; no real file or provider.",
+    "Three deterministic changes between read and conditional write are covered; this is not a hosted concurrency/load benchmark or a universal relational constraint.",
+    "PostgreSQL and browser execution require the new candidate CI. The current hosted Owner walkthrough does not qualify these role-specific cases."
+  ],
+  "publication": {
+    "history": {
+      "schema": "freelio.publication-scan.v1",
+      "filesChecked": 1245,
+      "historyBlobsChecked": 3489,
+      "placeholdersExcluded": 1,
+      "findings": []
+    },
+    "working": {
+      "schema": "freelio.publication-scan.v1",
+      "filesChecked": 1247,
+      "historyBlobsChecked": 0,
+      "placeholdersExcluded": 0,
+      "findings": []
+    },
+    "limit": "Rule-based source/history scan; not a universal guarantee of absence of secrets."
+  }
+}

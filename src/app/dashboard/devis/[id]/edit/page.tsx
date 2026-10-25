@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
 import { getQuoteById } from "@/actions/devis"
-import { getClientsMinimal } from "@/actions/clients"
 import { getBillingSettings } from "@/actions/settings"
 import { getQuoteProductCatalog } from "@/actions/products"
 import { QuoteForm } from "../../quote-form"
@@ -8,9 +7,8 @@ import { PageHeader } from "@/components/shared/page-header"
 
 export default async function EditQuotePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [quote, clients, billingSettings, productCatalog] = await Promise.all([
+  const [quote, billingSettings, productCatalog] = await Promise.all([
     getQuoteById(id),
-    getClientsMinimal(),
     getBillingSettings(),
     getQuoteProductCatalog(),
   ])
@@ -49,7 +47,7 @@ export default async function EditQuotePage({ params }: { params: Promise<{ id: 
           validUntil: quote.validUntil,
         }}
         initialLines={initialLines}
-        clients={clients ?? []}
+        initialClient={{ id: quote.client.id, name: quote.client.name }}
         productCatalog={productCatalog}
         isTvaApplicable={billingSettings?.isTvaApplicable ?? true}
       />

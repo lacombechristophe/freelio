@@ -135,8 +135,8 @@ function withLineBreaks(value: string | null | undefined) {
   return escapeHtml(value).replace(/\r?\n/g, "<br>")
 }
 
-function formatQuantity(quantity: number) {
-  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(quantity)
+function formatQuantity(quantity: number, maximumFractionDigits: number) {
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits }).format(quantity)
 }
 
 function isValidHexColor(color: string | null | undefined) {
@@ -327,7 +327,7 @@ function linesTable(doc: PdfDocument, className: string) {
             <div class="line-title">${escapeHtml(line.label)}</div>
             ${line.description ? `<div class="line-desc">${withLineBreaks(line.description)}</div>` : ""}
           </td>
-          <td class="num numeric">${formatQuantity(line.quantity)}</td>
+          <td class="num numeric">${formatQuantity(line.quantity, doc.kind === "FACTURE" ? 6 : 2)}</td>
           <td class="num numeric">${formatEuro(line.unitPriceCents)}</td>
           <td class="num numeric">${formatRate(line.tvaRate)}%</td>
           <td class="num numeric line-total">${formatEuro(lineTotalCents(line))}</td>

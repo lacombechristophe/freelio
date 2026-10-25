@@ -1,0 +1,201 @@
+{
+  "schema": "freelio.project-template-local.v1",
+  "observedAt": "2026-10-22T00:00:43.216Z",
+  "codeCommit": "5970c15daa987f037d3ab92653b7a48fb28ffffd",
+  "source": {
+    "observedAt": "2026-10-22T00:00:43.049Z",
+    "commit": "5970c15daa987f037d3ab92653b7a48fb28ffffd",
+    "filesCompared": 1217,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "c3f887b7cb5567b8d0568b42f28a9cd6777f8d1de69af411375147afb64e7449",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ]
+  },
+  "full": {
+    "file": "project-template-full-20261021.json",
+    "sha256": "b933daac3325784f15d754f4fdf4fa46843283f936cbf9d9c5f99d32db09d451",
+    "passed": 3505,
+    "failed": 0,
+    "pending": 0,
+    "files": 277,
+    "success": true,
+    "freshDatabase": true,
+    "database": "verification-template-full-20261021.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "project-template-final-focused-20261021.json",
+    "sha256": "14ba62ea47b01c4d1844f3c0c94f3b6371eab0701885af63c91e553694ce650a",
+    "passed": 209,
+    "failed": 0,
+    "pending": 0,
+    "files": 7,
+    "success": true
+  },
+  "firstFix": {
+    "file": "project-template-first-fix-20261021.json",
+    "sha256": "2ddb20203715ae8bbfc131d18aefd771652148b9032f08c5b98a55fffd10e0f1",
+    "passed": 187,
+    "failed": 0,
+    "pending": 0,
+    "files": 5,
+    "success": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 277,
+    "executedFiles": 277,
+    "identityMatch": true
+  },
+  "recoveredBaselineCases": 9,
+  "dedicatedWithinFull": [
+    {
+      "file": "project-template-integrity.integration.test.ts",
+      "passed": 24
+    },
+    {
+      "file": "project-template-count.integration.test.ts",
+      "passed": 12
+    }
+  ],
+  "checks": [
+    {
+      "check": "typegen",
+      "file": "project-template-typegen-final-20261021.log",
+      "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084",
+      "exit": 0
+    },
+    {
+      "check": "types",
+      "file": "project-template-types-final-20261021.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "eslint",
+      "file": "project-template-eslint-final-20261021.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "build",
+      "file": "project-template-build-20261021.log",
+      "sha256": "156df7a86b14dc1918e83cfca333f3a17018870e6cadb4b2fd739645b7dbdf2c",
+      "exit": 0
+    }
+  ],
+  "oxlint": {
+    "file": "project-template-oxlint-final-20261021.json",
+    "sha256": "c1e2af1ff96be1cd94850ea69dcb695f4b211484f836a84791142c7497103570",
+    "diagnostics": [],
+    "files": 1093,
+    "rules": 21
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "file": "project-template-browser-list-20261021.json",
+    "sha256": "eef18523e548bf4f297e22e6aeb967129b00b9afb3e5647ef6f4190ac2479473",
+    "selected": 472,
+    "desktop": 236,
+    "mobile": 236,
+    "newCases": [
+      {
+        "project": "desktop",
+        "file": "project-template-integrity.spec.ts",
+        "title": "project templates hide foreign prerequisites and preserve drafts after a stale transition"
+      },
+      {
+        "project": "mobile",
+        "file": "project-template-integrity.spec.ts",
+        "title": "project templates hide foreign prerequisites and preserve drafts after a stale transition"
+      }
+    ],
+    "executed": false
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "limits": [
+    "Actual SQLite/actions/memberships and audit refusal triggers; session/cache mocked",
+    "Same-process SQLite serialization only, not native PostgreSQL concurrency",
+    "Client state/disabled controls and serialized browser payload have prepared E2E coverage, not an executed application-browser proof",
+    "No historical graph rewrite, migration, provider call, package installation, push, new CI, merge or deployment",
+    "Legacy project readers and template pagination/editing remain separate; this is not qualification of every project export"
+  ]
+}

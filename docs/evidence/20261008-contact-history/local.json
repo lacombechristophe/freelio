@@ -1,0 +1,123 @@
+{
+  "schema": "freelio.contact-history-local.v1",
+  "reference": "e7b6b5761461cce8f0bf0587cfbaa8d2e3c7ae75",
+  "node": "v24.15.0",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 930,
+    "sha256": "7b45ffcc548ae245ffe5d44ada52ae983157ede5acd57369f259133fb33a2b25"
+  },
+  "fullSuite": {
+    "passed": 1364,
+    "files": 174,
+    "seconds": 172.73
+  },
+  "targeted": {
+    "passed": 43,
+    "failed": 0,
+    "reportSha256": "118bd409bdbdce5207146b7a804f383822beee8d8b50ce3089e99ec9c6214245",
+    "files": [
+      {
+        "file": "contact-read-scope.integration.test.ts",
+        "status": "passed",
+        "passed": 36,
+        "failed": 0
+      },
+      {
+        "file": "directories.test.ts",
+        "status": "passed",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "mailbox-access.integration.test.ts",
+        "status": "passed",
+        "passed": 3,
+        "failed": 0
+      }
+    ]
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "warnings": 0,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 282,
+      "files": 49,
+      "contactCases": 16,
+      "execution": false
+    }
+  },
+  "publicationScan": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1096,
+    "historyBlobsChecked": 3160,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "logs": [
+    {
+      "check": "final-types",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-lint-eslint",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-lint-next",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "final-unit",
+      "sha256": "7b4d86c68b799e18d11e8a66cb7cfa5414d0a52ee3cbf945786d73651ac576e6"
+    },
+    {
+      "check": "schema",
+      "sha256": "b3cbfa874be0e58784715f2965230ef8d156001ef259a315cef6f0f73ea319cc"
+    },
+    {
+      "check": "postgres",
+      "sha256": "8eeef3570aaf550387c6e2e76df0d40e4827a3e8be1e0d7183b3ed770638c393"
+    },
+    {
+      "check": "e2e-list",
+      "sha256": "e9f700f73e7d5b9b60e24dad340c80b878d1abbbe0471bae617b12901204f0e5"
+    },
+    {
+      "check": "build",
+      "sha256": "b2d0ee5f2501f82211edd4b13b3fd47fed9aa022ff89dfff423ffcb93820d4b5"
+    },
+    {
+      "check": "final-targeted",
+      "sha256": "f1cd64ba04da25f7e76ad58d75d6a0e4b3de944fc4c6f1f1bf23e727f696fee4"
+    },
+    {
+      "check": "replay-types",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "replay-eslint",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "replay-oxlint",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "replay-e2e-list",
+      "sha256": "26db916137592dba260ae627b30bc05e1a8a705bf495ad4521db74bc0fa08138"
+    }
+  ],
+  "limits": [
+    "Fictitious isolated SQLite; authentication session and Next cache mocked.",
+    "The first full run exposed a directory auth mock missing its role. The mock now supplies OWNER; its four existing assertions are unchanged.",
+    "Only E2E expectations and loading waits changed after the passing full unit suite and application build.",
+    "No local browser execution or real provider calls.",
+    "PostgreSQL schema validation does not connect to a database.",
+    "Contact detail indicators retain their existing recent-history calculation."
+  ]
+}

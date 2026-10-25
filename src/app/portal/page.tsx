@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getCurrentPortalAccess } from "@/lib/portal/session"
 import prisma from "@/lib/prisma"
+import { readPortalAppointments } from "@/lib/scheduling/appointment-reader"
 import { PortalWorkspace } from "./portal-workspace"
 
 export const metadata: Metadata = {
@@ -50,7 +51,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   const [company, projects, quotes, invoices, contracts, files, interventions, messages, appointments, knowledgeArticles] = await Promise.all([
     prisma.company.findUniqueOrThrow({
       where: { id: access.companyId },
-      select: { name: true, logo: true, brandColor: true, email: true, phone: true, address: true },
+      select: { name: true, logo: true, brandColor: true, email: true, phone: true, address: true, serviceTimezone: true },
     }),
     prisma.project.findMany({
       where: { companyId: access.companyId, clientId: access.clientId, status: { not: "ARCHIVED" } },
@@ -82,7 +83,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
       take: 20,
     }),
     prisma.clientPortalMessage.findMany({ where: { companyId: access.companyId, clientId: access.clientId }, orderBy: { createdAt: "asc" }, take: 100 }),
-    prisma.clientPortalAppointmentRequest.findMany({ where: { companyId: access.companyId, clientId: access.clientId }, orderBy: { createdAt: "desc" }, take: 20 }),
+    readPortalAppointments(access.companyId, access.clientId, null),
     prisma.knowledgeArticle.findMany({ where: { companyId: access.companyId, status: "PUBLISHED", visibility: "PORTAL" }, select: { id: true, title: true, summary: true, category: true, updatedAt: true }, orderBy: [{ category: "asc" }, { title: "asc" }], take: 60 }),
   ])
 
@@ -162,7 +163,8 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
 
         <PortalWorkspace
           messages={messages.map((message) => ({ ...message, createdAt: message.createdAt.toISOString() }))}
-          appointments={appointments.map((appointment) => ({ ...appointment, preferredStart: appointment.preferredStart.toISOString(), alternativeStart: appointment.alternativeStart?.toISOString() ?? null }))}
+          initialAppointments={appointments}
+          timeZone={company.serviceTimezone}
         />
       </div>
 

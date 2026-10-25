@@ -12,7 +12,7 @@ Avec Node 24 LTS et les dépendances du projet déjà installées, depuis la rac
 npm run demo
 ```
 
-Le lanceur crée un dossier distinct sous `%TEMP%\Freelio-local-demo`, copie le code courant, prépare une SQLite neuve et crée une entreprise fictive avec six clients, six devis, six factures brouillons, six interventions, trois produits et un dépôt. Il ne copie aucun `.env`, aucune base existante ni les fichiers métier du projet. Il réutilise les dépendances installées sans installation ni régénération du client Prisma.
+Le lanceur crée un dossier distinct sous `%TEMP%\Freelio-local-demo`, copie le code courant, prépare une SQLite neuve et crée une entreprise fictive avec six clients, six devis, six factures brouillons, six interventions, trois produits et un dépôt. Il ne copie aucun `.env`, aucune base existante ni les fichiers métier du projet. Il réutilise les dépendances installées ; le client Prisma et ses métadonnées sont générés uniquement dans la copie. Si l'installation a désactivé les scripts npm, préparer explicitement le binaire `better-sqlite3` avant cette première exécution.
 
 Le terminal affiche l’adresse locale, par défaut `http://127.0.0.1:54177`, le dossier créé et le chemin `demo-access.json`. Ce fichier contient l’adresse du compte fictif, son mot de passe aléatoire et les clés propres à cette démo. Ouvrir ce fichier localement pour se connecter ; conserver ce fichier privé avec les sauvegardes. Le terminal n’affiche pas les secrets. La connexion exige le mot de passe, y compris en développement.
 

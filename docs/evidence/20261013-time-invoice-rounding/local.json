@@ -1,0 +1,194 @@
+{
+  "schema": "freelio.time-invoice-rounding.local.v1",
+  "completeBeforeArchiveComplement": {
+    "files": 203,
+    "failed": 0,
+    "passed": 1927
+  },
+  "finalFocused": {
+    "files": 6,
+    "failed": 0,
+    "passed": 38,
+    "cases": [
+      {
+        "title": "rejects line, tax and aggregate amounts beyond the database integer range",
+        "status": "passed"
+      },
+      {
+        "title": "allocates a large discount exactly without unsafe integer multiplication",
+        "status": "passed"
+      },
+      {
+        "title": "calculates mixed VAT per line and preserves cent invariants",
+        "status": "passed"
+      },
+      {
+        "title": "allocates a global discount deterministically without losing a cent",
+        "status": "passed"
+      },
+      {
+        "title": "combines line and global discounts without double counting",
+        "status": "passed"
+      },
+      {
+        "title": "reports material and labor margins only when costs are known",
+        "status": "passed"
+      },
+      {
+        "title": "forces every tax rate to zero for a company exempt from VAT",
+        "status": "passed"
+      },
+      {
+        "title": "rejects invalid monetary, tax and discount inputs",
+        "status": "passed"
+      },
+      {
+        "title": "rounds the discount once at cent precision",
+        "status": "passed"
+      },
+      {
+        "title": "returns no PDF and no success audit when XML embedding fails",
+        "status": "passed"
+      },
+      {
+        "title": "does not silently fall back when XML generation fails",
+        "status": "passed"
+      },
+      {
+        "title": "returns the structured bytes only after successful assembly",
+        "status": "passed"
+      },
+      {
+        "title": "serves the sealed artifact for an issued invoice without regenerating it",
+        "status": "passed"
+      },
+      {
+        "title": "returns a recovery error when the issued archive is missing",
+        "status": "passed"
+      },
+      {
+        "title": "persists real PDF/XML at issuance and preserves it after identity changes",
+        "status": "passed"
+      },
+      {
+        "title": "keeps six quantity decimals for new invoices and two for quotes in MINIMAL",
+        "status": "passed"
+      },
+      {
+        "title": "keeps six quantity decimals for new invoices and two for quotes in PROFESSIONAL",
+        "status": "passed"
+      },
+      {
+        "title": "keeps six quantity decimals for new invoices and two for quotes in MODERN",
+        "status": "passed"
+      },
+      {
+        "title": "renders a distinct MINIMAL composition",
+        "status": "passed"
+      },
+      {
+        "title": "renders a distinct PROFESSIONAL composition",
+        "status": "passed"
+      },
+      {
+        "title": "renders a distinct MODERN composition",
+        "status": "passed"
+      },
+      {
+        "title": "keeps invoice payment semantics in MINIMAL",
+        "status": "passed"
+      },
+      {
+        "title": "keeps invoice payment semantics in PROFESSIONAL",
+        "status": "passed"
+      },
+      {
+        "title": "keeps invoice payment semantics in MODERN",
+        "status": "passed"
+      },
+      {
+        "title": "honors the payment and repeated-reference controls",
+        "status": "passed"
+      },
+      {
+        "title": "escapes document and line content before rendering",
+        "status": "passed"
+      },
+      {
+        "title": "rejects unsafe logo sources",
+        "status": "passed"
+      },
+      {
+        "title": "does not repeat an identical trade name and legal name in the footer",
+        "status": "passed"
+      },
+      {
+        "title": "normalizes URL controls without accepting arbitrary colors",
+        "status": "passed"
+      },
+      {
+        "title": "rounds each project separately rather than the complete selected duration",
+        "status": "passed"
+      },
+      {
+        "title": "uses the same quantities for browser strings and server dates without mutating the selection",
+        "status": "passed"
+      },
+      {
+        "title": "keeps whole-hour totals and chronological detail labels",
+        "status": "passed"
+      },
+      {
+        "title": "calculates an empty selection as zero",
+        "status": "passed"
+      },
+      {
+        "title": "matches both preview modes with VAT enabled = false",
+        "status": "passed"
+      },
+      {
+        "title": "matches both preview modes with VAT enabled = true",
+        "status": "passed"
+      },
+      {
+        "title": "keeps a one-second time positive without first rounding its hours to zero",
+        "status": "passed"
+      },
+      {
+        "title": "preserves an existing invoice while creating a new exact-time draft",
+        "status": "passed"
+      },
+      {
+        "title": "refuses an out-of-capacity amount before creating a draft or association",
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 18.591
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 49.322
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.22
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 10.239
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 74.921
+    }
+  ]
+}

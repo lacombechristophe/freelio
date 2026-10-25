@@ -43,4 +43,16 @@ describe.sequential("processor lease", () => {
 
     await expect(withProcessorLease(leaseName, async () => "recovered")).resolves.toEqual({ acquired: true, value: "recovered" })
   })
+
+  it("stops a worker that lost ownership and never releases the new owner's lease", async () => {
+    const leaseUntil = new Date(Date.now() + 60_000)
+    await expect(withProcessorLease(leaseName, async (control) => {
+      await prisma.processorLease.update({ where: { name: leaseName }, data: { ownerId: "replacement-worker", leaseUntil } })
+      await control.assertOwned()
+      throw new Error("A stale worker must not reach another effect")
+    })).rejects.toThrow("PROCESSOR_LEASE_LOST")
+    const lease = await prisma.processorLease.findUniqueOrThrow({ where: { name: leaseName } })
+    expect(lease.ownerId).toBe("replacement-worker")
+    expect(lease.leaseUntil.getTime()).toBe(leaseUntil.getTime())
+  })
 })

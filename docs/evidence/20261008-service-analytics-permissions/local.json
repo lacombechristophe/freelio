@@ -1,0 +1,434 @@
+{
+  "schema": "freelio.local-qualification.v1",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "reference": "d63da1f31980f626ebbdd5e4c23d62df517f499f",
+  "fullSuite": {
+    "passed": 1100,
+    "files": 166,
+    "seconds": 153.94
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75,
+    "postgresSchemaValidatedWithoutConnection": true,
+    "e2eDiscovery": {
+      "cases": 212,
+      "files": 44,
+      "execution": false
+    }
+  },
+  "targeted": {
+    "total": 86,
+    "passed": 86,
+    "failed": 0,
+    "reportSha256": "07e7aae5ae52ba9be64a25d3cc97556e807840a4526f7e9bbf3d54024954b7ad",
+    "suites": [
+      {
+        "file": "catalogue-pagination.integration.test.ts",
+        "status": "passed",
+        "testSha256": "f466d37cb883c31f02a3d154e2e995c5157b53682eb757b2fea155b735b73347",
+        "cases": [
+          {
+            "name": "complete paginated product catalogue on real SQL bounds the first page while preserving whole-catalogue counters",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL reaches every row once with stable ties and clamps the last page",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL searches volume-600 beyond the first page without changing counters",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL searches catalogue 600 beyond the first page without changing counters",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL searches distinctive maker beyond the first page without changing counters",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL searches distant variant beyond the first page without changing counters",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL searches distinctive family beyond the first page without changing counters",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL keeps a selected root outside the parent search and page",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL excludes self, variants, inactive and foreign parents",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL keeps stock scoped to active assigned agencies on every searched page",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL refuses both readers after membership revocation",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL preserves sales-read permissions without granting access to Technician",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL keeps public-demo reads and refuses product writes",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL rejects unbounded input {\"page\":0}",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL rejects unbounded input {\"page\":1.5}",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL rejects unbounded input {\"page\":1000001}",
+            "status": "passed"
+          },
+          {
+            "name": "complete paginated product catalogue on real SQL rejects unbounded input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "operations-assets.integration.test.ts",
+        "status": "passed",
+        "testSha256": "69915ec9403f8270d33d89cecd94b2dbfbffcb326af6366d0fc69fdd0b5105f0",
+        "cases": [
+          {
+            "name": "complete site and equipment directories on real SQL paginates all 201 sites and 301 equipment items with stable complete boundaries",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL finds the oldest site through site 200",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL finds the oldest site through address 200",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL finds the oldest equipment through equipment 300",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL finds the oldest equipment through volume-300",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL finds the oldest equipment through distinctive category",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL searches related clients and sites within the permitted scope",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL scopes nested site counters to local-company children",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL preserves both local agencies for OWNER while excluding foreign relations",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL preserves both local agencies for ADMIN while excluding foreign relations",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL refuses a requested agency outside assignments instead of widening the result",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rereads inactive agency assignments",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rereads unassigned agency assignments",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL refuses both readers for a suspended member",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL keeps both directories readable in the public demo",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rejects unbounded query {\"page\":0}",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rejects unbounded query {\"page\":1.5}",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rejects unbounded query {\"page\":1000001}",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rejects unbounded query {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+            "status": "passed"
+          },
+          {
+            "name": "complete site and equipment directories on real SQL rejects unbounded query {\"agencyId\":\"invalid\"}",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "service-analytics-permissions.integration.test.ts",
+        "status": "passed",
+        "testSha256": "6a2d54929d8c22f65260d86f368443cc75194f95562d4db87b0f18fa2d393cca",
+        "cases": [
+          {
+            "name": "service analytics permissions on real SQL preserves Owner ticket and company boundaries",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL excludes a diagnostic linked to a foreign-company ticket for Owner",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL excludes foreign-company ticket and survey responses for Owner",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not expose a global health average to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not expose a global health average to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not expose a global health average to VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not expose global health cohorts to TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not expose global health cohorts to SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not expose global health cohorts to VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL preserves accessible ticket counts for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL preserves accessible ticket counts for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL preserves accessible ticket counts for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL scopes diagnostic names to the current agencies for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL scopes diagnostic names to the current agencies for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL scopes diagnostic names to the current agencies for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL scopes satisfaction to authorized tickets and company surveys for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL scopes satisfaction to authorized tickets and company surveys for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL scopes satisfaction to authorized tickets and company surveys for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'resume.csv' independently for 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'diagnostics.csv' independently for 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'sante-portefeuille.csv' independently for 'TECHNICIAN'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'resume.csv' independently for 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'diagnostics.csv' independently for 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'sante-portefeuille.csv' independently for 'SERVICE'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'resume.csv' independently for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'diagnostics.csv' independently for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL restricts exported 'sante-portefeuille.csv' independently for 'VIEWER'",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL preserves authorized global health and exports for OWNER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL preserves authorized global health and exports for ADMIN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not query inaccessible global client scores for TECHNICIAN",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not query inaccessible global client scores for SERVICE",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL does not query inaccessible global client scores for VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL keeps satisfaction independent of the priority filter within the accessible scope",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL handles a response without a ticket according to the scope of OWNER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL handles a response without a ticket according to the scope of VIEWER",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL rereads inactive agency access for diagnostics and satisfaction",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL rereads unassigned agency access for diagnostics and satisfaction",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL refuses suspended membership in the reader",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL refuses suspended membership in the export",
+            "status": "passed"
+          },
+          {
+            "name": "service analytics permissions on real SQL keeps read-only demo ticket consultation while restricting global health",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "supplier-read-scope.integration.test.ts",
+        "status": "passed",
+        "testSha256": "058647279584d6f62be70af14ffd0541f7f57f63ec46d1c985b1bd88e6989baa",
+        "cases": [
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads reads a shared supplier without exposing the other agency's stock or orders",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads keeps the same stock boundary in the operations dashboard",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads calculates catalogue availability only from permitted warehouses",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads does not disclose an inaccessible warehouse in the product detail",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads preserves the company-wide supplier view for OWNER",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads preserves the company-wide supplier view for ADMIN",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads rechecks agency revocation with the same session",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads keeps the same agency restriction in public demo",
+            "status": "passed"
+          },
+          {
+            "name": "supplier detail retains the current agency boundary on nested reads refuses a foreign supplier and a revoked membership",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "logs": [
+    {
+      "file": "Freelio-campaign-final-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "Freelio-campaign-final-lint-eslint.log",
+      "sha256": "1a73194bbfea1346a7897812c24cb4121c59472388ba90fdcda7c5cbe4199257"
+    },
+    {
+      "file": "Freelio-campaign-final-lint-next.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "Freelio-campaign-final-unit.log",
+      "sha256": "f99265c2ea8cc0512d47684ca302e5057705e35320a6ec29b3a50d94d2c6a517"
+    },
+    {
+      "file": "Freelio-activation-build.log",
+      "sha256": "ea3cd091202a20e4f74f3bbe952e530944a7f78df4088512e3a2536c0163f3b2"
+    },
+    {
+      "file": "Freelio-activation-e2e-list.log",
+      "sha256": "4ff298db95ca6a3367319f4e32e568e22dcdd912f6110711b8152f7ed62df3ba"
+    }
+  ],
+  "sourceIdentity": {
+    "method": "git ls-tree -r, excluding docs/, entries joined with LF and a final LF",
+    "entries": 914,
+    "sha256": "90326a5b0ca1442fef0e7a094b4bd82d82f943182d81d12492936759404918a1"
+  }
+}

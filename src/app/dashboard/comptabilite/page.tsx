@@ -38,7 +38,7 @@ export default async function ComptabilitePage() {
         title="Finance & comptabilité"
         description="Pilotez facturation, encaissements, encours, TVA et rentabilité, puis transmettez un export contrôlé au cabinet comptable."
         actions={<>
-          <Button nativeButton={false} variant="outline" render={<a href="/api/accounting/export" />}><Download />Export comptable</Button>
+          <Button nativeButton={false} variant="outline" render={<a download href="/api/accounting/export" />}><Download />Export comptable</Button>
           <Button nativeButton={false} variant="outline" render={<Link href="/dashboard/comptabilite/banque" />}><Landmark />Banque</Button>
           <Button nativeButton={false} variant="outline" render={<Link href="/dashboard/factures" />}><Receipt />Voir les factures</Button>
         </>}

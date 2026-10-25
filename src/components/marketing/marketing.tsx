@@ -53,7 +53,7 @@ const pricingPlans = [
     price: "0 €",
     cadence: "pendant la phase privée",
     description: isDemoMode ? "Pour explorer Freelio avec des dossiers piscine fictifs et découvrir le fonctionnement du produit." : "Pour tester Freelio sur vos dossiers piscine réels et participer à la construction du produit.",
-    cta: "Rejoindre l’alpha",
+    cta: isReadOnlyDemo ? DEMO_ENTRY_LABEL : "Rejoindre l’alpha",
     href: "/auth/login",
     features: ["Prospects et clients", "Devis et factures", "Chantiers et SAV", "Support produit direct"],
   },
@@ -62,7 +62,7 @@ const pricingPlans = [
     price: "79 €",
     cadence: "par mois HT, tarif indicatif",
     description: "Le cockpit complet d’une entreprise de piscine qui relie commerce, terrain, service et paiement.",
-    cta: "Commencer gratuitement",
+    cta: isReadOnlyDemo ? DEMO_ENTRY_LABEL : "Commencer gratuitement",
     href: "/auth/login",
     featured: true,
     features: ["Tout Alpha", "Stocks et achats", "Entretien et parc installé", "Automatisations et relances"],
@@ -72,7 +72,7 @@ const pricingPlans = [
     price: "149 €",
     cadence: "par mois HT, tarif indicatif",
     description: "Pour les équipes qui partagent plusieurs agences, dépôts, secteurs de pose et files SAV.",
-    cta: "Demander un accès",
+    cta: isReadOnlyDemo ? DEMO_ENTRY_LABEL : "Demander un accès",
     href: "/auth/login",
     features: ["Tout Atelier", "Multi-agences et dépôts", "Droits avancés", "Support prioritaire"],
   },
@@ -280,9 +280,9 @@ function DocumentPreviewGrid() {
       icon: FileText,
       client: "Famille Martin",
       meta: "Valide jusqu’au 30 juin",
-      lines: [["Terrassement", "8 500 €"], ["Filtration", "4 900 €"]],
+      lines: isDemoMode ? [["Terrassement", "2 000 €"], ["Structure et filtration", "4 800 €"]] : [["Terrassement", "8 500 €"], ["Filtration", "4 900 €"]],
       totalLabel: "Total HT",
-      total: "5 000 €",
+      total: isDemoMode ? "6 800 €" : "5 000 €",
     },
     {
       type: "CONTRAT",
@@ -304,9 +304,9 @@ function DocumentPreviewGrid() {
       icon: ReceiptText,
       client: "Famille Martin",
       meta: "Échéance · 02 juillet",
-      lines: [["Acompte chantier", "8 500 €"], ["Équipements", "4 900 €"]],
-      totalLabel: "Net à payer",
-      total: "6 000 €",
+      lines: isDemoMode ? [["Travaux TTC", "2 400 €"], ["Équipements TTC", "5 760 €"]] : [["Acompte chantier", "8 500 €"], ["Équipements", "4 900 €"]],
+      totalLabel: isDemoMode ? "Net à payer TTC" : "Net à payer",
+      total: isDemoMode ? "8 160 €" : "6 000 €",
     },
   ]
 
@@ -502,7 +502,7 @@ function FinalCTA() {
               <div aria-hidden className="absolute inset-x-0 top-8 border-t border-white/15" />
               <div className="relative flex items-center gap-2 text-[10px] font-semibold uppercase text-white/70"><span className="size-1.5 rounded-full bg-white shadow-[0_0_0_4px_rgba(255,255,255,0.14)]" />Alpha privée · Accès ouvert</div>
               <h2 className="marketing-display relative mt-7 max-w-xl text-[42px] font-semibold leading-[1.02] sm:text-[54px]">{isDemoMode ? "Explorez un chantier fictif." : "Commencez avec un chantier réel."}</h2>
-              <p className="relative mt-5 max-w-lg text-base leading-7 text-white/75">Importez un prospect, créez son devis et suivez le chantier, la pose et le paiement dans un même fil.</p>
+              <p className="relative mt-5 max-w-lg text-base leading-7 text-white/75">{isReadOnlyDemo ? "Explorez les dossiers fictifs et suivez leurs devis, chantiers, interventions et règlements dans un même fil." : "Importez un prospect, créez son devis et suivez le chantier, la pose et le paiement dans un même fil."}</p>
               <div className="relative mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link href="/auth/login" className="group inline-flex h-12 items-center justify-center gap-3 rounded-md bg-white px-5 text-sm font-semibold text-freelio-ink shadow-[0_2px_6px_rgba(16,24,40,0.12)] transition-[background-color,transform,box-shadow] hover:bg-freelio-surface-2 hover:shadow-[0_4px_8px_rgba(16,24,40,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-freelio-accent">{isReadOnlyDemo ? "Ouvrir la démonstration" : "Créer mon espace"}<ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
                 <Link href="/fonctionnalites" className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Voir le produit<ChevronRight className="size-4" /></Link>

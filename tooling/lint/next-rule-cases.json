@@ -1,0 +1,128 @@
+[
+  {
+    "rule": "google-font-display",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <link href=\"https://fonts.googleapis.com/css?family=Roboto\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "google-font-preconnect",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <link href=\"https://fonts.gstatic.com\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "inline-script-id",
+    "file": "src/app/page.tsx",
+    "code": "import Script from \"next/script\";export default function Page(){return <Script>{`alert(1)`}</Script>}",
+    "expected": 1
+  },
+  {
+    "rule": "next-script-for-ga",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <script src=\"https://www.google-analytics.com/analytics.js\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-assign-module-variable",
+    "file": "src/app/page.tsx",
+    "code": "const module = {}; export default module;",
+    "expected": 1
+  },
+  {
+    "rule": "no-async-client-component",
+    "file": "src/app/page.tsx",
+    "code": "\"use client\"; export default async function Page(){return <div/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-before-interactive-script-outside-document",
+    "file": "pages/index.tsx",
+    "code": "import Script from \"next/script\";export default function Page(){return <Script src=\"/test.js\" strategy=\"beforeInteractive\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-css-tags",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <link rel=\"stylesheet\" href=\"/test.css\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-document-import-in-page",
+    "file": "src/app/page.tsx",
+    "code": "import Document from \"next/document\"; export default Document;",
+    "expected": 1
+  },
+  {
+    "rule": "no-duplicate-head",
+    "file": "pages/_document.tsx",
+    "code": "import Document,{Head} from \"next/document\"; export default class Page extends Document{render(){return <html><Head/><Head/></html>}}",
+    "expected": 1
+  },
+  {
+    "rule": "no-head-element",
+    "file": "pages/index.tsx",
+    "code": "export default function Page(){return <head/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-head-import-in-document",
+    "file": "pages/_document.tsx",
+    "code": "import Head from \"next/head\"; export default Head;",
+    "expected": 1
+  },
+  {
+    "rule": "no-html-link-for-pages",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <a href=\"/dashboard\">Dashboard</a>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-img-element",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <img src=\"/test.jpg\" alt=\"test\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-page-custom-font",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-script-component-in-head",
+    "file": "src/app/page.tsx",
+    "code": "import Head from \"next/head\";import Script from \"next/script\";export default function Page(){return <Head><Script src=\"/test.js\"/></Head>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-styled-jsx-in-document",
+    "file": "pages/_document.tsx",
+    "code": "export default function Page(){return <style jsx>{`div {color:red;}`}</style>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-sync-scripts",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <script src=\"/test.js\"/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-title-in-document-head",
+    "file": "pages/_document.tsx",
+    "code": "import {Head} from \"next/document\"; export default function Page(){return <Head><title>test</title></Head>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-typos",
+    "file": "pages/index.tsx",
+    "code": "export function getStaticprops(){return {props:{}}} export default function Page(){return <div/>}",
+    "expected": 1
+  },
+  {
+    "rule": "no-unwanted-polyfillio",
+    "file": "src/app/page.tsx",
+    "code": "export default function Page(){return <script src=\"https://polyfill.io/v3/polyfill.min.js?features=Array.prototype.copyWithin\"/>}",
+    "expected": 1
+  }
+]

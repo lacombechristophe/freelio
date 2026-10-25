@@ -1,0 +1,44 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import { getOperationsDashboard } from "@/actions/operations"
+describe.sequential("Operations bootstrap list volume on real SQL", () => {
+  let oldestOrderId: string, latestOrderId: string, oldestReservationId: string, latestReservationId: string
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictional Operations list volume" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `operations-volume-${randomUUID()}@example.test` } })).id
+    await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+    const client = await prisma.client.create({ data: { companyId: session.companyId, name: "Fictional volume client" } })
+    const warehouse = await prisma.warehouse.create({ data: { companyId: session.companyId, code: "LOCAL", name: "Fictional volume warehouse" } })
+    const product = await prisma.product.create({ data: { companyId: session.companyId, sku: "LOCAL", label: "Fictional volume product" } })
+    await prisma.inventoryItem.create({ data: { companyId: session.companyId, warehouseId: warehouse.id, productId: product.id, quantity: 151, reservedQuantity: 151 } })
+    for (let index = 0; index < 151; index++) {
+      const createdAt = new Date(Date.UTC(2020, 0, 1, 0, index))
+      const order = await prisma.customerOrder.create({ data: { companyId: session.companyId, clientId: client.id, number: `VOLUME-${index}`, createdAt } })
+      const reservation = await prisma.stockReservation.create({ data: { companyId: session.companyId, warehouseId: warehouse.id, productId: product.id, quantity: 1, createdAt } })
+      if (index === 0) { oldestOrderId = order.id; oldestReservationId = reservation.id }
+      if (index === 150) { latestOrderId = order.id; latestReservationId = reservation.id }
+    }
+  })
+  afterAll(async () => {
+    const where = { companyId: session.companyId }
+    await prisma.stockReservation.deleteMany({ where })
+    await prisma.inventoryItem.deleteMany({ where })
+    await prisma.customerOrder.deleteMany({ where })
+    await prisma.product.deleteMany({ where })
+    await prisma.warehouse.deleteMany({ where })
+    await prisma.client.deleteMany({ where })
+    await prisma.company.delete({ where: { id: session.companyId } })
+    await prisma.user.delete({ where: { id: session.userId } })
+  })
+  it("includes the oldest of 151 customer orders", async () => { expect((await getOperationsDashboard()).customerOrders.map(row => row.id)).toContain(oldestOrderId) })
+  it("returns all 151 orders to the current unpaged screen", async () => { expect((await getOperationsDashboard()).customerOrders).toHaveLength(151) })
+  it("includes the latest customer order", async () => { expect((await getOperationsDashboard()).customerOrders.map(row => row.id)).toContain(latestOrderId) })
+  it("includes the oldest of 151 active reservations", async () => { expect((await getOperationsDashboard()).reservations.map(row => row.id)).toContain(oldestReservationId) })
+  it("returns all 151 active reservations to the current unpaged screen", async () => { expect((await getOperationsDashboard()).reservations).toHaveLength(151) })
+  it("includes the latest active reservation", async () => { expect((await getOperationsDashboard()).reservations.map(row => row.id)).toContain(latestReservationId) })
+})

@@ -3,16 +3,19 @@
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
-import { runAutomationEvent } from "@/lib/automations/engine"
+import { hasPermission } from "@/lib/permissions"
+import { enqueueAutomationEvent, dispatchAutomationEvent } from "@/lib/automations/engine"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { QuoteSchema } from "@/lib/validations"
 import { calculateConfiguredProductPrice, resolveProductOptionSelection } from "@/lib/product-pricing"
 import { calculateCommercialDocument } from "@/lib/finance/commercial-calculation"
-import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, isUniqueConstraintConflict, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
+import { buildYearlyDocumentPrefix, readCompanyDocumentNumbers, nextDocumentNumber, withDocumentNumberRetry } from "@/lib/document-numbering"
 import { boundedPageSize } from "@/lib/pagination"
-import { CONTRACT_TEMPLATE_PRESETS } from "@/lib/contracts/templates"
+import { prepareQuoteContract } from "@/lib/contracts/quote-conversion"
 import { assertQuoteStatusTransition, quoteStatusDates, type QuoteStatus } from "@/lib/quotes/workflow"
+import { clientWithAccessibleMetrics } from "@/lib/client-metrics-access"
+import { quoteOrderRevision, quoteContractRevision } from "@/lib/quotes/conversion-source"
 
 type QuoteInput = z.input<typeof QuoteSchema>
 type ValidatedQuoteLine = z.output<typeof QuoteSchema>["lines"][number]
@@ -61,34 +64,55 @@ export async function getQuotes(cursor?: string, limit = 50) {
 }
 
 export async function getQuoteById(id: string) {
-  return await withAuth(async ({ companyId }) => {
-    return await prisma.quote.findFirst({
-      where: { id, companyId },
+  return await withAuth(async ({ companyId, role, agencyIds }) => {
+    const quote = await prisma.quote.findFirst({
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: true,
-        project: {
-          include: {
-            purchaseOrders: { select: { id: true, number: true, status: true } },
-          },
-        },
-        customerOrder: {
-          include: {
-            invoices: { select: { id: true, number: true, status: true, type: true } },
-          },
-        },
-        generatedContract: { select: { id: true, number: true, status: true } },
+        customerOrder: { select: { id: true } },
+        generatedContract: { select: { id: true } },
         versions: {
           orderBy: { version: "desc" },
-          include: {
-            sections: {
-              orderBy: { order: "asc" },
-              include: { lines: { orderBy: { order: "asc" } } },
-            },
-          },
+          include: { sections: { orderBy: { order: "asc" }, include: { lines: { orderBy: { order: "asc" } } } } },
         },
       },
     })
+    if (!quote) return null
+    const canReadFinance = hasPermission(role, "finance.read")
+    const projectScope = { companyId, clientId: quote.clientId, client: { companyId }, ...(agencyIds === null ? {} : { agencyId: { in: agencyIds } }) }
+    const [project, customerOrder, generatedContract] = await Promise.all([
+      quote.projectId ? prisma.project.findFirst({
+        where: { id: quote.projectId, ...projectScope },
+        select: { id: true, name: true, purchaseOrders: {
+          where: { companyId, supplier: { companyId }, project: projectScope },
+          select: { id: true, number: true, status: true },
+        } },
+      }) : null,
+      quote.customerOrder ? prisma.customerOrder.findFirst({
+        where: { id: quote.customerOrder.id, companyId, clientId: quote.clientId, client: { companyId }, project: projectScope },
+        select: { id: true, number: true, status: true, billingStatus: canReadFinance,
+          invoices: canReadFinance ? {
+            where: { companyId, clientId: quote.clientId, client: { companyId }, OR: [{ projectId: null }, { project: projectScope }] },
+            select: { id: true, number: true, status: true, type: true },
+          } : false,
+        },
+      }) : null,
+      quote.generatedContract ? prisma.contract.findFirst({
+        where: { id: quote.generatedContract.id, companyId, clientId: quote.clientId, client: { companyId } },
+        select: { id: true, number: true, status: true },
+      }) : null,
+    ])
+    return {
+      ...quote, projectId: project?.id ?? null, project, generatedContract,
+      orderConversionRevision: quoteOrderRevision(quote),
+      contractConversionRevision: quoteContractRevision(quote),
+      canPrepareOrder: hasPermission(role, "sales.write"),
+      customerOrder: customerOrder ? { ...customerOrder, billingStatus: canReadFinance ? customerOrder.billingStatus : null, invoices: canReadFinance ? customerOrder.invoices : [] } : null,
+      canReadFinance,
+      unavailableRelations: { project: Boolean(quote.projectId && !project), customerOrder: Boolean(quote.customerOrder && !customerOrder), generatedContract: Boolean(quote.generatedContract && !generatedContract) },
+      client: clientWithAccessibleMetrics(quote.client, { role, agencyIds }),
+    }
   }, "sales.read")
 }
 
@@ -99,58 +123,6 @@ async function generateQuoteNumber(companyId: string, customPrefix?: string) {
     select: { number: true },
   }))
   return nextDocumentNumber(last, prefix)
-}
-
-async function generateContractNumber(companyId: string) {
-  const prefix = buildYearlyDocumentPrefix("CONT-", "CONT-")
-  const last = await readCompanyDocumentNumbers(() => prisma.contract.findMany({
-    where: { companyId, number: { startsWith: prefix } },
-    select: { number: true },
-  }))
-  return nextDocumentNumber(last, prefix)
-}
-
-function escapeContractHtml(value: string | null | undefined) {
-  if (!value) return ""
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;")
-}
-
-function formatEuro(cents: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
-}
-
-function buildContractContentFromQuote(
-  quote: {
-    object: string
-    number: string
-    validUntil: Date | null
-  },
-  lines: Array<{
-    label: string
-    description: string | null
-    quantity: number
-    unitPriceCents: number
-  }>,
-  totalTtcCents: number,
-) {
-  const scope = lines
-    .map((line) => {
-      const description = line.description ? `<br><span>${escapeContractHtml(line.description)}</span>` : ""
-      return `<li><strong>${escapeContractHtml(line.label)}</strong>${description}</li>`
-    })
-    .join("")
-
-  const template = CONTRACT_TEMPLATE_PRESETS.find((preset) => preset.id === "vertical-fourniture-pose")
-  if (!template) throw new Error("Le modèle métier de fourniture et pose est indisponible")
-
-  const quoteAppendix = [
-    "<h2>Annexe — périmètre accepté</h2>",
-    `<p>Objet : <strong>${escapeContractHtml(quote.object)}</strong>. Devis de référence : <strong>${escapeContractHtml(quote.number)}</strong>.</p>`,
-    `<ul>${scope}</ul>`,
-    `<p>Montant total de référence : <strong>${formatEuro(totalTtcCents)}</strong>. Toute fourniture ou intervention hors de ce périmètre nécessite un avenant ou un devis complémentaire accepté.</p>`,
-  ].join("")
-
-  return template.content.replace("<h2>Signature électronique</h2>", `${quoteAppendix}<h2>Signature électronique</h2>`)
 }
 
 async function resolveCatalogQuoteLines(companyId: string, inputLines: ValidatedQuoteLine[]) {
@@ -405,11 +377,14 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
     const transition = assertQuoteStatusTransition(existing.status, requestedStatus)
     if (!transition.changed) return existing
 
-    const claimed = await prisma.quote.updateMany({
+    const eventId = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.quote.updateMany({
       where: { id: parsedQuoteId, companyId, status: transition.current, updatedAt: existing.updatedAt },
       data: { status: transition.next, ...quoteStatusDates(transition.next) },
     })
     if (claimed.count !== 1) throw new Error("Le devis a changé. Rechargez-le avant de modifier son statut.")
+    return enqueueAutomationEvent(tx, { companyId, event: "QUOTE_STATUS_CHANGED", eventKey: `${parsedQuoteId}:status:${transition.next}:${crypto.randomUUID()}`, subjectModel: "Quote", subjectId: parsedQuoteId, leadId: existing.client.leadCaptures[0]?.id, clientId: existing.clientId })
+    })
     const quote = await prisma.quote.findUniqueOrThrow({ where: { id: parsedQuoteId } })
     await logAction({
       userId,
@@ -418,15 +393,7 @@ export async function updateQuoteStatus(quoteId: string, requestedStatus: QuoteS
       resourceId: parsedQuoteId,
       payload: { previousStatus: transition.current, status: transition.next },
     })
-    await runAutomationEvent({
-      companyId,
-      event: "QUOTE_STATUS_CHANGED",
-      eventKey: `${quote.id}:status:${transition.next}`,
-      subjectModel: "Quote",
-      subjectId: quote.id,
-      leadId: existing.client.leadCaptures[0]?.id,
-      clientId: existing.clientId,
-    }).catch((error) => console.error("Quote automation failed", error))
+    await dispatchAutomationEvent(eventId).catch((error) => console.error("Quote automation deferred", error))
     revalidatePath("/dashboard/devis")
     revalidatePath(`/dashboard/devis/${parsedQuoteId}`)
     return quote
@@ -452,77 +419,13 @@ export async function deleteQuote(id: string) {
   }, "sales.write")
 }
 
-export async function createContractFromQuote(quoteId: string) {
-  return await withAuth(async ({ companyId, userId }) => {
+export async function createContractFromQuote(quoteId: string, expectedRevision?: string) {
+  return withAuth(async context => {
     const parsedQuoteId = quoteIdSchema.parse(quoteId)
-    const quote = await prisma.quote.findFirst({
-      where: { id: parsedQuoteId, companyId },
-      include: {
-        generatedContract: true,
-        versions: {
-          orderBy: { version: "desc" },
-          take: 1,
-          include: {
-            sections: {
-              orderBy: { order: "asc" },
-              include: { lines: { orderBy: { order: "asc" } } },
-            },
-          },
-        },
-      },
-    })
-    if (!quote) throw new Error("Devis introuvable")
-    if (quote.generatedContract) return quote.generatedContract
-    if (quote.status !== "ACCEPTED") throw new Error("Le devis doit être accepté avant de préparer le contrat")
-
-    const latest = quote.versions[0]
-    if (!latest) throw new Error("Aucune version disponible")
-    const lines = latest.sections.flatMap((section) => section.lines)
-    if (!lines.length) throw new Error("Le devis ne contient aucune ligne.")
-
-    let contract
-    try {
-      contract = await withDocumentNumberRetry(
-        async () => {
-          const number = await generateContractNumber(companyId)
-          const title = `Contrat de fourniture et pose — ${quote.object}`
-
-          const created = await prisma.contract.upsert({
-            where: { sourceQuoteId: quote.id },
-            update: {},
-            create: {
-              companyId,
-              clientId: quote.clientId,
-              sourceQuoteId: quote.id,
-              number,
-              title,
-              status: "DRAFT",
-              content: buildContractContentFromQuote(quote, lines, latest.totalTtcCents),
-              validFrom: new Date(),
-              validUntil: quote.validUntil,
-            },
-          })
-
-          await logAction({
-            userId,
-            action: "CREATE_CONTRACT",
-            resource: "CONTRACT",
-            resourceId: created.id,
-            payload: { fromQuote: parsedQuoteId, number },
-          })
-
-          return created
-        },
-        { label: "le contrat issu du devis" },
-      )
-    } catch (error) {
-      if (!isUniqueConstraintConflict(error, "sourceQuoteId")) throw error
-      const concurrentContract = await prisma.contract.findFirst({ where: { companyId, sourceQuoteId: quote.id } })
-      if (!concurrentContract) throw error
-      return concurrentContract
-    }
-
+    const revision = z.string().regex(/^[a-f0-9]{64}$/).optional().parse(expectedRevision)
+    const contract = await prepareQuoteContract(context, parsedQuoteId, revision)
     revalidatePath("/dashboard/devis")
+    revalidatePath(`/dashboard/devis/${parsedQuoteId}`)
     revalidatePath("/dashboard/contrats")
     return contract
   }, "sales.write")

@@ -33,8 +33,8 @@ export function nextSequenceExecution(base: Date, delayHours: number, schedule: 
   if (!sequenceTimezoneIsValid(schedule.timezone)) throw new Error("Fuseau horaire invalide")
   if (!Number.isInteger(schedule.sendWindowStart) || !Number.isInteger(schedule.sendWindowEnd) || schedule.sendWindowStart < 0 || schedule.sendWindowEnd > 23 || schedule.sendWindowStart >= schedule.sendWindowEnd) throw new Error("Fenêtre d’envoi invalide")
   const delay = Math.max(0, Math.trunc(delayHours))
+  // Preserve precision: rounding down starts early; rounding up delays immediate steps.
   let candidate = new Date(base.getTime() + delay * 3_600_000)
-  candidate.setUTCSeconds(0, 0)
   for (let attempts = 0; attempts < 8 * 24 * 4; attempts += 1) {
     const { weekday, hour } = localParts(candidate, schedule.timezone)
     const businessDay = weekday >= 1 && weekday <= 5
@@ -43,4 +43,3 @@ export function nextSequenceExecution(base: Date, delayHours: number, schedule: 
   }
   throw new Error("Impossible de trouver un créneau d’envoi dans les huit prochains jours")
 }
-

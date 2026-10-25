@@ -1,0 +1,282 @@
+{
+  "schema": "freelio.operations-project-choice-local.v1",
+  "observedAt": "2026-10-22T10:32:51.770Z",
+  "codeCommit": "a5cfdc29482b62d37221d12feeacb549ddef56da",
+  "source": {
+    "observedAt": "2026-10-22T10:32:51.434Z",
+    "commit": "a5cfdc29482b62d37221d12feeacb549ddef56da",
+    "filesCompared": 1229,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "bfc2de372ab38800118822ab28fb3a1a364c6e4ad6874ebcd0bda4da0a8ec76b",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ],
+    "contractRenderer": {
+      "unchanged": true,
+      "normalizedSha256": "060b9bd253539f41211c5b2d2919da9b15f63b4b1734f93c0aec46e5df57b3b4",
+      "previousCommit": "4871e827f1b6bdcc1490961aa412529fde463df0",
+      "templateUnchanged": true,
+      "comparison": "Original escape/format/content functions extracted verbatim; normalize CRLF and trailing whitespace only"
+    },
+    "removedRecipeSource": {
+      "path": "src/lib/operations/quote-order-source.ts",
+      "absent": true,
+      "reason": "Canonical source revisions now live in src/lib/quotes/conversion-source.ts"
+    }
+  },
+  "full": {
+    "file": "operations-project-choice-full-20261022.json",
+    "sha256": "17564dcc8b225826a9f646ff767ac8f7ae1071b797bc9e0260422f0279342207",
+    "passed": 3613,
+    "failed": 0,
+    "pending": 0,
+    "files": 281,
+    "success": true,
+    "exit": 0,
+    "freshDatabase": true,
+    "database": "verification-operations-project-choice-full-20261022.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "operations-project-choice-final-20261022.json",
+    "sha256": "d521f7c4ad785dd3b1a6e5b9e52951db975ae9511afa4138ddc8076bc93129b1",
+    "passed": 112,
+    "failed": 0,
+    "pending": 0,
+    "files": 6,
+    "success": true
+  },
+  "nativeManifest": {
+    "expectedFiles": 281,
+    "executedFiles": 281,
+    "identityMatch": true
+  },
+  "recoveredBaselineCases": 3,
+  "dedicatedWithinFull": [
+    {
+      "file": "operations-project-choices.integration.test.ts",
+      "passed": 32
+    },
+    {
+      "file": "reservation-choices.integration.test.ts",
+      "passed": 29
+    },
+    {
+      "file": "asset-choices.integration.test.ts",
+      "passed": 15
+    },
+    {
+      "file": "project-directory.integration.test.ts",
+      "passed": 23
+    },
+    {
+      "file": "public-demo-database.integration.test.ts",
+      "passed": 1
+    },
+    {
+      "file": "public-demo.test.ts",
+      "passed": 12
+    }
+  ],
+  "checks": [
+    {
+      "check": "typegen",
+      "file": "operations-project-choice-typegen-final-20261022.log",
+      "sha256": "8b0db89a1e25137a4cb79143a4ea63ae347e6f5f2247f026d984e133255d3084",
+      "exit": 0
+    },
+    {
+      "check": "types",
+      "file": "operations-project-choice-types-final-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "eslint",
+      "file": "operations-project-choice-eslint-final-20261022.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit": 0
+    },
+    {
+      "check": "build",
+      "file": "operations-project-choice-build-20261022.log",
+      "sha256": "2851ed5ed07d0dd4b4f7789821895b9b736492111a2c4909b3ea3728029c3237",
+      "exit": 0,
+      "staticPages": 76
+    }
+  ],
+  "oxlint": {
+    "file": "operations-project-choice-oxlint-final-20261022.json",
+    "sha256": "b73f1eeeb86c9e61822f59391ceb79721b3e71635c6ca86a83211288368de505",
+    "exit": 0,
+    "diagnostics": [],
+    "files": 1105,
+    "rules": 21
+  },
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "browser": {
+    "file": "operations-project-choice-browser-list-20261022.json",
+    "sha256": "34e6c73e8392027612b892ea5c45acff4301214efa022d3d22b1ad71ef64ec99",
+    "selected": 484,
+    "desktop": 242,
+    "mobile": 242,
+    "executed": false,
+    "newCases": [
+      {
+        "file": "operations-project-choices.spec.ts",
+        "title": "Commande client: complete project choices preserve input through failure and replacement",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-project-choices.spec.ts",
+        "title": "Mouvement de stock: complete project choices preserve input through failure and replacement",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-project-choices.spec.ts",
+        "title": "Intervention: complete project choices preserve input through failure and replacement",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-project-choices.spec.ts",
+        "title": "Commande client: complete project choices preserve input through failure and replacement",
+        "project": "mobile"
+      },
+      {
+        "file": "operations-project-choices.spec.ts",
+        "title": "Mouvement de stock: complete project choices preserve input through failure and replacement",
+        "project": "mobile"
+      },
+      {
+        "file": "operations-project-choices.spec.ts",
+        "title": "Intervention: complete project choices preserve input through failure and replacement",
+        "project": "mobile"
+      }
+    ]
+  },
+  "sourceInspection": {
+    "creationFormsNoLongerReadDashboardProjectCache": true,
+    "projectFieldConsumers": 3,
+    "scope": "Static source wiring only; no hydration, HTTP action or interactive form proof"
+  },
+  "candidateRegression": {
+    "file": "operations-project-choice-expanded-20261022.json",
+    "sha256": "1f8adad42b5f6609ccf03e70b14fd58e080f4205daba404f5048c3af8f6f5e3f",
+    "passed": 97,
+    "failed": 1,
+    "pending": 0,
+    "files": 4,
+    "success": false,
+    "log": {
+      "file": "operations-project-choice-expanded-20261022.log",
+      "sha256": "f2a86fbb490bcf87d36adc4c82dace433b54b9d019246485013764f2268a9d13"
+    },
+    "correctedRun": {
+      "file": "operations-project-choice-demo-fix-20261022.json",
+      "sha256": "10f4c34e11ab39d0599aab167e74a4ef855afe81a30277f5c009e046e6bbe58a",
+      "passed": 99,
+      "failed": 0,
+      "pending": 0,
+      "files": 4,
+      "success": true
+    },
+    "classification": "The first uncommitted candidate used raw SELECTs rejected by the public-demo guard. This was an implementation regression, not a baseline defect or harness failure. Corrected by an operations.read/company-bound, exact-statement context limited to the three constructed SELECTs; tests retain denial of unrelated raw SELECT, raw mutation and model mutation after lookup."
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "behavior": [
+    "Name search, total and 25-item pages use the full eligible company/agency scope; identifier stabilizes equal names",
+    "Selected project is resolved separately from search/page, and only id/label leave the reader",
+    "Customer-order client and intervention site constrain eligibility; contradictory or inaccessible dependencies are rejected or empty",
+    "Site/client and company/template/agency coherence is filtered in SQL before count/page, with scalar inputs bound as parameters",
+    "Client/site changes, refreshed data and lookup failure invalidate verification while retaining the selected option and other form values in the implementation",
+    "The public demo permits only this reader's exact constructed SELECT while it executes; general raw SQL and model mutation remain denied",
+    "No business write permission or mutation behavior is added by a choice read"
+  ],
+  "limits": [
+    "SQLite/actions/membership are real; authentication and Next cache are mocked",
+    "The three frontend integrations and six new browser cases are prepared, not executed; static wiring and SQL tests do not prove interactive input preservation",
+    "getOperationsDashboard retains its 300-project cache for other consumers; agency/global indicator completeness remains separate",
+    "Choice verification does not replace transaction-time mutation guards; this lot does not qualify all stock/order/intervention writes",
+    "Native PostgreSQL SQL/serialization, Linux, compiled HTTP invocation and same-SHA hosted preview remain to qualify",
+    "Coverage includes six configured modules only; unchanged package audits remain dated",
+    "No schema/dependency/licence change, installation, real provider send, push, new CI, merge or deployment"
+  ]
+}

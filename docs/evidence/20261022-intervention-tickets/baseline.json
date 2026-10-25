@@ -1,0 +1,20 @@
+{
+  "schema": "freelio.intervention-ticket-baseline.v1",
+  "codeCommit": "a699be73bae7104956e2102f6f3f9d587d8e2d96",
+  "file": "intervention-ticket-baseline-20261022.json",
+  "sha256": "dc10543336d442469e08892e9f369efbfe93837709f1b48c70a8dc257d459383",
+  "passed": 1,
+  "failed": 2,
+  "pending": 0,
+  "files": 1,
+  "success": false,
+  "failures": [
+    "Baseline: New intervention ticket choices still use the bounded root cache makes the 201st eligible ticket reachable from the New intervention choice",
+    "Baseline: New intervention ticket choices still use the bounded root cache excludes another site's ticket from the selected intervention site's choice"
+  ],
+  "probe": {
+    "file": "baseline-probe.test.ts.txt",
+    "sha256": "0f0bccd8ef58d126d4fc7b6a516352fea46b0d0fe2902440bc521827516a05e5"
+  },
+  "scope": "Old New intervention selector read getOperationsDashboard().tickets directly. Two failing assertions and one positive control; the root cache remains bounded. This probe is not claimed to pass after the change: the new API has its own distinct contract and 47 SQL tests."
+}

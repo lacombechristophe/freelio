@@ -1,0 +1,70 @@
+{
+  "schema": "freelio.calendar-local.v1",
+  "seed": {
+    "schema": "freelio.calendar-seed-check.v1",
+    "observedAt": "2026-10-10T02:01:57.817Z",
+    "success": true,
+    "disposableSQLite": true,
+    "counts": {
+      "companies": 2,
+      "users": 2,
+      "quotes": 4,
+      "invoices": 4,
+      "expenses": 4
+    },
+    "dates": {
+      "quotes": [
+        "1999-12-31T23:30:00.000Z",
+        "1999-12-31T23:30:00.000Z",
+        "2000-01-01T00:30:00.000Z",
+        "2000-01-01T00:30:00.000Z"
+      ],
+      "invoices": [
+        "1999-12-31T23:30:00.000Z",
+        "1999-12-31T23:30:00.000Z",
+        "2000-01-01T00:30:00.000Z",
+        "2000-01-01T00:30:00.000Z"
+      ],
+      "expenses": [
+        "1999-12-31T23:30:00.000Z",
+        "1999-12-31T23:30:00.000Z",
+        "2000-01-01T00:30:00.000Z",
+        "2000-01-01T00:30:00.000Z"
+      ]
+    }
+  },
+  "qualification": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 25.853
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 49.435
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.258
+    },
+    {
+      "name": "targeted",
+      "exitCode": 0,
+      "seconds": 2.145
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 65.896
+    }
+  ],
+  "browser": {
+    "loaded": 4,
+    "executedLocally": false
+  },
+  "limits": [
+    "No local server or container launched. Browser execution requires CI and hosted preview."
+  ]
+}

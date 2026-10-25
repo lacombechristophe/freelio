@@ -1,0 +1,42 @@
+{
+  "reference": "fda7be9c7e222dd65591091860443bc4f7b131f6",
+  "engine": "SQLite",
+  "exitCode": 1,
+  "passed": 3,
+  "failed": 3,
+  "hookFailure": false,
+  "actionGitBlobSha256": "064049fa29365b96b02b99f2e34878eb74451059dc8475c024fcf31929906351",
+  "reportSha256": "8f76e92d19f67716f52ac9ad5437087d3fcc227de20e37d2332667eeeaed1da3",
+  "reproducerSha256": "4d6b70ffd2662b7dd854a8d2f5469558d9dafb5ee1c74aa606fae9b616ee001e",
+  "cases": [
+    {
+      "name": "client mutation response permissions on real SQL restricts the 'create' response for 'SALES' while preserving stored fields",
+      "status": "failed"
+    },
+    {
+      "name": "client mutation response permissions on real SQL restricts the 'update' response for 'SALES' while preserving stored fields",
+      "status": "failed"
+    },
+    {
+      "name": "client mutation response permissions on real SQL restricts the 'next' response for 'SALES' while preserving stored fields",
+      "status": "failed"
+    },
+    {
+      "name": "client mutation response permissions on real SQL restricts the 'create' response for 'OWNER' while preserving stored fields",
+      "status": "passed"
+    },
+    {
+      "name": "client mutation response permissions on real SQL restricts the 'update' response for 'OWNER' while preserving stored fields",
+      "status": "passed"
+    },
+    {
+      "name": "client mutation response permissions on real SQL restricts the 'next' response for 'OWNER' while preserving stored fields",
+      "status": "passed"
+    }
+  ],
+  "fixtureIncident": {
+    "initialCleanupOmittedAuditLogs": true,
+    "replayedWithCorrectedCleanup": true,
+    "isolatedFictitiousUsersRemoved": 2
+  }
+}

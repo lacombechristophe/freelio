@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-10-14T21:02:18.295Z",
+  "baseline": "a01ce4c533a2527d6c2ead8450d194804f5d735d",
+  "all": 430,
+  "desktop": 215,
+  "mobile": 215,
+  "identicalCaseUnion": true,
+  "failFast": false,
+  "jobTimeoutMinutes": 45,
+  "isolatedRunnersAndDatabases": true,
+  "artifactNames": [
+    "playwright-report-${{ matrix.project }}",
+    "ui-audit-reports-${{ matrix.project }}",
+    "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+  ],
+  "workflowSha256": "7db77f112d43f56100f4b15f7bf9a620050ac10b5e5b2d1ecd706d4661be956c",
+  "limits": [
+    "Listing only; does not execute application or browser",
+    "Project independence still requires its own native CI runs"
+  ],
+  "checkedAgainstCommit": "20ee4e437738d0ced0ba07df47b31d113e00ad53",
+  "normalizedSourceMatchesCommit": true
+}

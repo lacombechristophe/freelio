@@ -1,0 +1,245 @@
+{
+  "schema": "freelio.calendar-window-local.v1",
+  "observedAt": "2026-10-20T12:47:05.903Z",
+  "codeCommit": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+  "source": {
+    "observedAt": "2026-10-20T12:35:34.648Z",
+    "commit": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+    "filesCompared": 1143,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "a8d054b13c1d3e281b29860470b55f10a1caf49e70e4f3191e9087e42e17b754",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "diagnostics": [
+    {
+      "file": "calendar-window-before-20261020.json",
+      "sha256": "ed8c1a0674bb53d9bdc3815a5bd08a8bcd854dc561356ca94cb2ea08a874b6d6",
+      "success": false,
+      "total": 6,
+      "passed": 0,
+      "failed": 6,
+      "pending": 0,
+      "files": 1,
+      "interpretation": "Six failures on Google/Microsoft reproduce unchanged out-of-window events, missing checkpoint window and acceptance of an old response after reconnect."
+    },
+    {
+      "file": "calendar-window-guarded-20261020.json",
+      "sha256": "2d3f4526c9eb18eb23e42b23b9848e58a54d6f8a14b5fe2dfefcfe1f0358dca3",
+      "success": false,
+      "total": 91,
+      "passed": 89,
+      "failed": 2,
+      "pending": 0,
+      "files": 4,
+      "interpretation": "Eighty-nine pass, two tests fail because spyOn cannot replace the lazy Prisma proxy transaction property. Replaced with a boundary proxy retaining real SQL."
+    }
+  ],
+  "focused": {
+    "file": "calendar-window-focused-20261020.json",
+    "sha256": "dd1b25196e43cd17005445ec1e1a9eb358447810345588e8d5746a3866efc4a2",
+    "success": true,
+    "total": 93,
+    "passed": 93,
+    "failed": 0,
+    "pending": 0,
+    "files": 4,
+    "suites": [
+      {
+        "file": "calendar-window.integration.test.ts",
+        "passed": 29,
+        "failed": 0
+      },
+      {
+        "file": "incoming-attachment.integration.test.ts",
+        "passed": 33,
+        "failed": 0
+      },
+      {
+        "file": "oauth-mail-reconciliation.integration.test.ts",
+        "passed": 26,
+        "failed": 0
+      },
+      {
+        "file": "oauth-sync-pagination.integration.test.ts",
+        "passed": 5,
+        "failed": 0
+      }
+    ]
+  },
+  "full": {
+    "file": "full-sqlite-calendar-window-20261020.json",
+    "sha256": "e36c513451bf1b0440868be2c89e7864e84668b9bf62cea122656ecf0a10db05",
+    "success": true,
+    "total": 2858,
+    "passed": 2858,
+    "failed": 0,
+    "pending": 0,
+    "files": 247
+  },
+  "checks": {
+    "build": {
+      "file": "Freelio-calendar-window-build-20261020.log",
+      "sha256": "1da66c98add6a036412b1717be85949dccdaa32d2fce5e4550eb453a35c926e0",
+      "exitCode": 0,
+      "staticPages": 76
+    },
+    "eslint": {
+      "file": "Freelio-calendar-window-eslint-final-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "oxlint": {
+      "file": "Freelio-calendar-window-oxlint-final-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "types": {
+      "file": "Freelio-calendar-window-types-final-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    }
+  },
+  "schemaChange": false,
+  "encryptedCredentialsCompatibility": {
+    "missingWindow": "Rebuild initial view; never invent dates for a legacy cursor",
+    "malformedWindow": "Discard invalid optional metadata and rebuild",
+    "tokenRotation": "Preserves the most recent window/cursor in the same generation"
+  },
+  "dependencyAudit": {
+    "inheritedFrom": "../20261020-communications-access/local.json",
+    "sameLockfile": true,
+    "lockfileSha256": "0aa5f905da5df448892debe9030f1aae63244b304a7cecdf91383a661ad35514",
+    "audits": {
+      "full": {
+        "file": "Freelio-communication-access-audit-full-20261020.json",
+        "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        }
+      },
+      "production": {
+        "file": "Freelio-communication-access-audit-production-20261020.json",
+        "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        }
+      }
+    }
+  },
+  "coverage": {
+    "modules": 6,
+    "summary": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T12:44:00.431Z",
+    "baseline": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+    "all": 454,
+    "desktop": 227,
+    "mobile": 227,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "publication": {
+    "historyThroughCommit": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1688,
+    "historyBlobsChecked": 4287,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "remainingAudit": {
+    "file": "Freelio-native-thread-baseline-20261020.json",
+    "sha256": "2d87428f2d6462998635cef68384f8f97d00abdbbaae3bdc7b99f53a0a534437",
+    "success": false,
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "pending": 0,
+    "files": 1,
+    "codeCommit": "1194b51df21158a9c008c2cc7ca327f64cfa07e4",
+    "source": {
+      "file": "Freelio-native-thread-baseline-20261020.test.ts",
+      "sha256": "4874bd0e95803efa15c10a261b41a37f93804e34d61859dd7389542c1c6e91f9"
+    },
+    "interpretation": "Separate real-SQL/HTTP probe: two native provider conversations with the same known contact and subject collapse to one local thread. Two failures remain open; these cases are not part of the passing full suite."
+  },
+  "limits": [
+    "Real SQLite actions, transactions and encrypted credentials; provider HTTP simulated, Date controlled without replacing real timers",
+    "Transactional channel row lock and deterministic reconnect interleavings are not a PostgreSQL contention or load qualification",
+    "No schema migration; old encrypted credentials without window metadata are exercised, no real provider account",
+    "Unchanged browser cases listed only; no new visible command, no local server/Docker retry after automatic approval rejection",
+    "Advanced recurrence, invitations, free-busy and conflicting local/provider edits are outside this window correction",
+    "Native conversation identity audit remains open; passing full suite does not mean all P1 requirements are closed",
+    "No push, CI launch, deployment, original data access, provider send, R2 or paid action; GitHub Actions zero budget remains unverified"
+  ]
+}

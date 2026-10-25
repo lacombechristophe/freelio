@@ -1,0 +1,450 @@
+{
+  "schema": "freelio.ui-diagnostic.v1",
+  "observedAt": "2026-10-22T22:17:47.747Z",
+  "codeCommit": "9f09bd562407053e22c3f57b47944775cfeb3f6f",
+  "run": 39855959357,
+  "conclusion": "failure",
+  "uiConclusion": "cancelled_at_job_deadline",
+  "qualificationComplete": false,
+  "selectedTestsPerSurface": 259,
+  "startedTests": {
+    "desktop": 130,
+    "mobile": 177
+  },
+  "recordedFailures": [
+    {
+      "surface": "desktop",
+      "index": 1,
+      "test": "tests/e2e/asset-lifecycle.spec.ts:6:5 › edits and retires assets without losing history or a refused creation form",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.fill: Test timeout of 240000ms exceeded.",
+        "- waiting for getByTestId('operation-composer').getByLabel('Équipement', { exact: true })",
+        "> 68 |     await composer.getByLabel(\"Équipement\", { exact: true }).fill(\"UIQA Preserved Creation\")",
+        "at /home/runner/work/freelio/freelio/tests/e2e/asset-lifecycle.spec.ts:68:62"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 2,
+      "test": "tests/e2e/communications-access.spec.ts:14:7 › operations can read Communications without automatic writes or editable drafts",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Fictional retained message', { exact: true })",
+        "Expected: visible",
+        "Error: strict mode violation: getByText('Fictional retained message', { exact: true }) resolved to 2 elements:",
+        "- waiting for getByText('Fictional retained message', { exact: true })",
+        "> 20 |     await expect(page.getByText(\"Fictional retained message\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-access.spec.ts:20:81"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 3,
+      "test": "tests/e2e/communications-access.spec.ts:14:7 › service can read Communications without automatic writes or editable drafts",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Fictional retained message', { exact: true })",
+        "Expected: visible",
+        "Error: strict mode violation: getByText('Fictional retained message', { exact: true }) resolved to 2 elements:",
+        "- waiting for getByText('Fictional retained message', { exact: true })",
+        "> 20 |     await expect(page.getByText(\"Fictional retained message\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-access.spec.ts:20:81"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 4,
+      "test": "tests/e2e/communications-remote-state.spec.ts:3:5 › distinguishes recorded provider observations from local CRM state and reports a disconnected attachment read",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)",
+        ">  9 |   await expect(page.getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-remote-state.spec.ts:9:96"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 5,
+      "test": "tests/e2e/critical-flows.spec.ts:504:5 › service records connect the help desk, conversation, ticket, intervention and installed equipment",
+      "detail": [
+        "Error: locator.selectOption: Error: strict mode violation: getByLabel('Site') resolved to 2 elements:",
+        "- waiting for getByLabel('Site')",
+        "> 627 |     await page.getByLabel(\"Site\").selectOption({ label: \"Client QA Piscine · Bassin QA\" })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/critical-flows.spec.ts:627:35"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 6,
+      "test": "tests/e2e/critical-flows.spec.ts:1079:5 › plans a multichannel marketing campaign and links its sequence",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Audience vérifiée sans inscription.', { exact: true })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText('Audience vérifiée sans inscription.', { exact: true })",
+        "> 1134 |   await expect(page.getByText(\"Audience vérifiée sans inscription.\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/critical-flows.spec.ts:1134:88"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 7,
+      "test": "tests/e2e/critical-flows.spec.ts:1148:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+      "detail": [
+        "Error: locator.selectOption: Error: strict mode violation: getByLabel('Commande client') resolved to 2 elements:",
+        "- waiting for getByLabel('Commande client')",
+        "> 1242 |   await page.getByLabel(\"Commande client\").selectOption({ index: 1 })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/critical-flows.spec.ts:1242:44"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 8,
+      "test": "tests/e2e/critical-flows.spec.ts:1275:5 › field report and maintenance contract flow",
+      "detail": [
+        "Error: locator.selectOption: Error: strict mode violation: getByLabel('Site') resolved to 2 elements:",
+        "- waiting for getByLabel('Site')",
+        "> 1303 |   await page.getByLabel(\"Site\").selectOption({ label: \"Client QA Piscine · Bassin QA\" })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/critical-flows.spec.ts:1303:33"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 9,
+      "test": "tests/e2e/delivery-seal.spec.ts:7:5 › reserved stock, delivery and captured acknowledgement retain their history",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.fill: Test timeout of 240000ms exceeded.",
+        "- waiting for getByRole('dialog', { name: 'Signer le bon de livraison', exact: true }).getByLabel('Nom du réceptionnaire', { exact: true })",
+        "> 55 |   await signing.getByLabel(\"Nom du réceptionnaire\", { exact: true }).fill(\"Fictional recipient\")",
+        "at /home/runner/work/freelio/freelio/tests/e2e/delivery-seal.spec.ts:55:70"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 10,
+      "test": "tests/e2e/document-calendar-dates.spec.ts:47:9 › Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+      "detail": [
+        "Error: expect(received).toContain(expected) // indexOf",
+        "Expected substring: \"1 janv. 2000, 01:30\"",
+        "> 68 |         expect(serverText).toContain(expected)",
+        "at /home/runner/work/freelio/freelio/tests/e2e/document-calendar-dates.spec.ts:68:28"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 11,
+      "test": "tests/e2e/document-calendar-dates.spec.ts:47:9 › America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+      "detail": [
+        "Error: expect(received).toContain(expected) // indexOf",
+        "Expected substring: \"1 janv. 2000, 01:30\"",
+        "> 68 |         expect(serverText).toContain(expected)",
+        "at /home/runner/work/freelio/freelio/tests/e2e/document-calendar-dates.spec.ts:68:28"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 12,
+      "test": "tests/e2e/operations-client-choices.spec.ts:14:7 › maintenance: complete Operations client choice preserves input and recovery",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.selectOption: Test timeout of 240000ms exceeded.",
+        "- waiting for getByTestId('operation-composer').locator('form').locator('#siteId')",
+        "2 × waiting for element to be visible and enabled",
+        "2 × waiting for element to be visible and enabled",
+        "471 × waiting for element to be visible and enabled",
+        "> 45 |       await container.locator(\"#siteId\").selectOption(`copschoicesite${form.kind}${info.project.name}`)",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-client-choices.spec.ts:45:42"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 13,
+      "test": "tests/e2e/operations-details-relations.spec.ts:63:5 › an intervention made inaccessible after display refuses its state change without losing data",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Intervention introuvable', { exact: true })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText('Intervention introuvable', { exact: true })",
+        "> 86 |     await expect(page.getByText(\"Intervention introuvable\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-details-relations.spec.ts:86:79"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 14,
+      "test": "tests/e2e/operations-project-choices.spec.ts:15:7 › Commande client: complete project choices preserve input through failure and replacement",
+      "detail": [
+        "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.",
+        "waiting for navigation until \"load\"",
+        "> 39 |     await page.waitForURL(url => url.pathname === \"/dashboard\", { timeout: 60_000 })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-project-choices.spec.ts:39:16"
+      ]
+    },
+    {
+      "surface": "desktop",
+      "index": 15,
+      "test": "tests/e2e/operations-project-choices.spec.ts:15:7 › Mouvement de stock: complete project choices preserve input through failure and replacement",
+      "detail": [
+        "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.",
+        "waiting for navigation until \"load\"",
+        "> 39 |     await page.waitForURL(url => url.pathname === \"/dashboard\", { timeout: 60_000 })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-project-choices.spec.ts:39:16"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 1,
+      "test": "tests/e2e/asset-lifecycle.spec.ts:6:5 › edits and retires assets without losing history or a refused creation form",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.fill: Test timeout of 240000ms exceeded.",
+        "- waiting for getByTestId('operation-composer').getByLabel('Équipement', { exact: true })",
+        "> 68 |     await composer.getByLabel(\"Équipement\", { exact: true }).fill(\"UIQA Preserved Creation\")",
+        "at /home/runner/work/freelio/freelio/tests/e2e/asset-lifecycle.spec.ts:68:62"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 2,
+      "test": "tests/e2e/communications-access.spec.ts:14:7 › operations can read Communications without automatic writes or editable drafts",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Fictional retained message', { exact: true })",
+        "Expected: visible",
+        "Error: strict mode violation: getByText('Fictional retained message', { exact: true }) resolved to 2 elements:",
+        "- waiting for getByText('Fictional retained message', { exact: true })",
+        "> 20 |     await expect(page.getByText(\"Fictional retained message\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-access.spec.ts:20:81"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 3,
+      "test": "tests/e2e/communications-access.spec.ts:14:7 › service can read Communications without automatic writes or editable drafts",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Fictional retained message', { exact: true })",
+        "Expected: visible",
+        "Error: strict mode violation: getByText('Fictional retained message', { exact: true }) resolved to 2 elements:",
+        "- waiting for getByText('Fictional retained message', { exact: true })",
+        "> 20 |     await expect(page.getByText(\"Fictional retained message\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-access.spec.ts:20:81"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 4,
+      "test": "tests/e2e/communications-access.spec.ts:41:5 › Sales can compose but cannot configure a company connection",
+      "detail": [
+        "Error: expect(locator).toBeEnabled() failed",
+        "Locator: getByRole('button', { name: 'Répondre', exact: true })",
+        "Expected: enabled",
+        "Error: element(s) not found",
+        "- waiting for getByRole('button', { name: 'Répondre', exact: true })",
+        "> 43 |   await expect(page.getByRole(\"button\", { name: \"Répondre\", exact: true })).toBeEnabled()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-access.spec.ts:43:77"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 5,
+      "test": "tests/e2e/communications-remote-state.spec.ts:3:5 › distinguishes recorded provider observations from local CRM state and reports a disconnected attachment read",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)",
+        ">  9 |   await expect(page.getByText(/La lecture et la clôture dans Freelio modifient le suivi CRM/)).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/communications-remote-state.spec.ts:9:96"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 6,
+      "test": "tests/e2e/delivery-seal.spec.ts:7:5 › reserved stock, delivery and captured acknowledgement retain their history",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.fill: Test timeout of 240000ms exceeded.",
+        "- waiting for getByRole('dialog', { name: 'Signer le bon de livraison', exact: true }).getByLabel('Nom du réceptionnaire', { exact: true })",
+        "> 55 |   await signing.getByLabel(\"Nom du réceptionnaire\", { exact: true }).fill(\"Fictional recipient\")",
+        "at /home/runner/work/freelio/freelio/tests/e2e/delivery-seal.spec.ts:55:70"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 7,
+      "test": "tests/e2e/document-calendar-dates.spec.ts:47:9 › Pacific/Kiritimati › keeps projects and the service calendar stable across hydration",
+      "detail": [
+        "Error: expect(received).toContain(expected) // indexOf",
+        "Expected substring: \"1 janv. 2000, 01:30\"",
+        "> 68 |         expect(serverText).toContain(expected)",
+        "at /home/runner/work/freelio/freelio/tests/e2e/document-calendar-dates.spec.ts:68:28"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 8,
+      "test": "tests/e2e/document-calendar-dates.spec.ts:47:9 › America/Los_Angeles › keeps projects and the service calendar stable across hydration",
+      "detail": [
+        "Error: expect(received).toContain(expected) // indexOf",
+        "Expected substring: \"1 janv. 2000, 01:30\"",
+        "> 68 |         expect(serverText).toContain(expected)",
+        "at /home/runner/work/freelio/freelio/tests/e2e/document-calendar-dates.spec.ts:68:28"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 9,
+      "test": "tests/e2e/operations-client-choices.spec.ts:14:7 › maintenance: complete Operations client choice preserves input and recovery",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.selectOption: Test timeout of 240000ms exceeded.",
+        "- waiting for getByTestId('operation-composer').locator('form').locator('#siteId')",
+        "2 × waiting for element to be visible and enabled",
+        "2 × waiting for element to be visible and enabled",
+        "473 × waiting for element to be visible and enabled",
+        "> 45 |       await container.locator(\"#siteId\").selectOption(`copschoicesite${form.kind}${info.project.name}`)",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-client-choices.spec.ts:45:42"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 10,
+      "test": "tests/e2e/operations-details-relations.spec.ts:63:5 › an intervention made inaccessible after display refuses its state change without losing data",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Intervention introuvable', { exact: true })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText('Intervention introuvable', { exact: true })",
+        "> 86 |     await expect(page.getByText(\"Intervention introuvable\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-details-relations.spec.ts:86:79"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 11,
+      "test": "tests/e2e/operations-project-choices.spec.ts:15:7 › Commande client: complete project choices preserve input through failure and replacement",
+      "detail": [
+        "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.",
+        "waiting for navigation until \"load\"",
+        "> 39 |     await page.waitForURL(url => url.pathname === \"/dashboard\", { timeout: 60_000 })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-project-choices.spec.ts:39:16"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 12,
+      "test": "tests/e2e/operations-project-choices.spec.ts:15:7 › Mouvement de stock: complete project choices preserve input through failure and replacement",
+      "detail": [
+        "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.",
+        "waiting for navigation until \"load\"",
+        "> 39 |     await page.waitForURL(url => url.pathname === \"/dashboard\", { timeout: 60_000 })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-project-choices.spec.ts:39:16"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 13,
+      "test": "tests/e2e/operations-project-choices.spec.ts:15:7 › Intervention: complete project choices preserve input through failure and replacement",
+      "detail": [
+        "TimeoutError: page.waitForURL: Timeout 60000ms exceeded.",
+        "waiting for navigation until \"load\"",
+        "> 39 |     await page.waitForURL(url => url.pathname === \"/dashboard\", { timeout: 60_000 })",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-project-choices.spec.ts:39:16"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 14,
+      "test": "tests/e2e/operations-service-directory.spec.ts:61:7 › Planning terrain: complete paging, filtering, failures and retained input",
+      "detail": [
+        "Test timeout of 240000ms exceeded.",
+        "Error: locator.fill: Test timeout of 240000ms exceeded.",
+        "- waiting for getByRole('dialog').getByLabel('Début', { exact: true })",
+        "> 119 |         await dialog.getByLabel(\"Début\", { exact: true }).fill(\"2030-06-20T10:00\")",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-service-directory.spec.ts:119:59"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 15,
+      "test": "tests/e2e/operations-service-directory.spec.ts:155:5 › A stale maintenance form keeps its input and does not overwrite a newer decision",
+      "detail": [
+        "Error: expect(locator).toContainText(expected) failed",
+        "Locator: locator('[data-sonner-toast]')",
+        "Expected substring: \"Ce contrat a changé\"",
+        "Error: element(s) not found",
+        "- waiting for locator('[data-sonner-toast]')",
+        "> 165 |   await expect(page.locator(\"[data-sonner-toast]\")).toContainText(\"Ce contrat a changé\")",
+        "at /home/runner/work/freelio/freelio/tests/e2e/operations-service-directory.spec.ts:165:53"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 16,
+      "test": "tests/e2e/project-lifecycle-conflicts.spec.ts:8:5 › project lifecycle refuses stale forms and preserves the user's input",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.', { exact: true })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText('Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.', { exact: true })",
+        "> 37 |   await expect(page.getByText(message, { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/project-lifecycle-conflicts.spec.ts:37:58"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 17,
+      "test": "tests/e2e/project-template-integrity.spec.ts:8:5 › project templates hide foreign prerequisites and preserve drafts after a stale transition",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Le modèle de chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.', { exact: true })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText('Le modèle de chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.', { exact: true })",
+        "> 41 |   await expect(page.getByText(\"Le modèle de chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/project-template-integrity.spec.ts:41:147"
+      ]
+    },
+    {
+      "surface": "mobile",
+      "index": 18,
+      "test": "tests/e2e/project-workspace-integrity.spec.ts:8:5 › project workspace keeps saved state and preserves drafts after stale revisions",
+      "detail": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByText('Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.', { exact: true })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByText('Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.', { exact: true })",
+        "> 54 |   await expect(page.getByText(\"Le chantier a changé. Rechargez la page puis réessayez ; votre saisie est conservée.\", { exact: true })).toBeVisible()",
+        "at /home/runner/work/freelio/freelio/tests/e2e/project-workspace-integrity.spec.ts:54:137"
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "surface": "desktop",
+      "file": "Freelio-ci-9f09bd5-desktop-20261022.log",
+      "sha256": "f5f96935b55f094fdd77fe5bf0d1279f01454487d6416822f53913c7d78c547a"
+    },
+    {
+      "surface": "mobile",
+      "file": "Freelio-ci-9f09bd5-mobile-20261022.log",
+      "sha256": "18f747f133099d9d8f8784e9f242907adbb5934495d520c01cdaadcf6b770c30"
+    }
+  ],
+  "limits": [
+    "Started tests are not a passed count. The job deadline interrupted the remaining cases.",
+    "Failures include obsolete selectors, fictional setup and product error transport; corrections require their own execution."
+  ]
+}

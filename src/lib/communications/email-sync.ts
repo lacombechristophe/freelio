@@ -1,223 +1,203 @@
 import "server-only"
-
-import { runAutomationEvent } from "@/lib/automations/engine"
-import { activeCommunicationChannel, validOAuthAccessToken, type ActiveChannel } from "@/lib/communications/email-provider"
-import { getOrCreateEmailThread, resolveEmailParty } from "@/lib/communications/threads"
+import { activeCommunicationChannel, validOAuthCredentials, type ActiveChannel } from "./email-provider"
+import { mailScopeGranted, MailReconnectRequiredError } from "./capabilities"
 import { EMAIL_OAUTH_PROVIDERS, type EmailOAuthProvider } from "@/lib/integrations/email-oauth"
+import { providerFetch } from "@/lib/integrations/provider-fetch"
 import prisma from "@/lib/prisma"
+import { withProcessorLease, type ProcessorLeaseControl } from "@/lib/processing/lease"
+import { channelConfig, storeChannelSyncState } from "./sync-state"
+import { mailHeaders, mailResourceId, MailReadError, microsoftMailContinuation, readMailJson, readRemoteMail } from "./oauth-mail-reader"
+import { mailSyncStateSchema, type MailSyncState, type MailId } from "./mail-sync-state"
+import { persistRemoteMail } from "./remote-mail-persistence"
+import { remoteMailObservationSchema } from "./remote-mail-types"
 
-type ExternalMessage = {
-  providerId: string
-  direction: "INBOUND" | "OUTBOUND"
-  internetMessageId: string | null
-  inReplyTo: string | null
-  from: string
-  to: string[]
-  cc: string[]
-  bcc: string[]
-  subject: string
-  bodyHtml: string | null
-  bodyText: string | null
-  occurredAt: Date
-  unread: boolean
+type MailPage = { ids: MailId[]; continuation: string | null; checkpoint: string | null }
+const googleRoot = "https://gmail.googleapis.com/gmail/v1/users/me"
+const graphRoot = "https://graph.microsoft.com/v1.0/me"
+
+async function lastLocalId(companyId: string, channel: ActiveChannel) {
+  return (await prisma.emailMessage.findFirst({ where: { companyId, provider: channel.provider, providerId: { startsWith: `${channel.id}:` }, thread: { companyId, channelId: channel.id } },
+    select: { id: true }, orderBy: { id: "desc" } }))?.id ?? null
 }
-
-function bounded(value: string | null | undefined, max = 100_000) {
-  return value ? value.slice(0, max) : null
-}
-
-function normalizedAddress(value: string) {
-  return (value.match(/<([^>]+)>/)?.[1] || value).trim().toLowerCase()
-}
-
-function splitAddresses(value: string | null | undefined) {
-  return (value || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 100)
-}
-
-async function persistMessage(companyId: string, provider: EmailOAuthProvider, message: ExternalMessage) {
-  const exists = await prisma.emailMessage.findUnique({ where: { provider_providerId: { provider, providerId: message.providerId } }, select: { id: true } })
-  if (exists) return false
-  const counterparty = message.direction === "INBOUND" ? normalizedAddress(message.from) : normalizedAddress(message.to[0] || "")
-  const party = counterparty ? await resolveEmailParty(companyId, counterparty) : { contactId: null, clientId: null, leadCaptureId: null }
-  const thread = await getOrCreateEmailThread({ companyId, subject: message.subject, ...party, inReplyTo: message.inReplyTo, occurredAt: message.occurredAt })
-  await prisma.$transaction([
-    prisma.emailMessage.create({ data: {
-      companyId,
-      threadId: thread.id,
-      direction: message.direction,
-      provider,
-      providerId: message.providerId,
-      internetMessageId: message.internetMessageId,
-      inReplyTo: message.inReplyTo,
-      fromAddress: message.from,
-      toAddresses: message.to,
-      ccAddresses: message.cc,
-      bccAddresses: message.bcc,
-      subject: bounded(message.subject, 250) || "Sans objet",
-      bodyHtml: bounded(message.bodyHtml),
-      bodyText: bounded(message.bodyText),
-      status: message.direction === "INBOUND" ? "RECEIVED" : "SENT",
-      receivedAt: message.direction === "INBOUND" ? message.occurredAt : null,
-      sentAt: message.direction === "OUTBOUND" ? message.occurredAt : null,
-    } }),
-    prisma.emailThread.update({ where: { id: thread.id }, data: { lastMessageAt: message.occurredAt, status: "OPEN", ...(message.direction === "INBOUND" && message.unread ? { unreadCount: { increment: 1 } } : {}) } }),
-    ...(message.direction === "INBOUND" ? [prisma.emailSequenceEnrollment.updateMany({ where: { status: "ACTIVE", OR: [...(party.contactId ? [{ contactId: party.contactId }] : []), ...(party.leadCaptureId ? [{ leadCaptureId: party.leadCaptureId }] : [])] }, data: { status: "STOPPED", stopReason: "CUSTOMER_REPLIED", nextSendAt: null, completedAt: message.occurredAt } })] : []),
-  ])
-  if (message.direction === "INBOUND") {
-    const stored = await prisma.emailMessage.findUniqueOrThrow({ where: { provider_providerId: { provider, providerId: message.providerId } }, select: { id: true } })
-    await runAutomationEvent({ companyId, event: "EMAIL_RECEIVED", subjectModel: "EmailMessage", subjectId: stored.id, eventKey: `${provider.toLowerCase()}:${message.providerId}:received`, leadId: party.leadCaptureId || undefined, clientId: party.clientId || undefined }).catch(() => undefined)
+async function initialState(companyId: string, channel: ActiveChannel, token: string, generation: string, signal: AbortSignal): Promise<MailSyncState> {
+  const now = new Date().toISOString()
+  const state: MailSyncState = { version: 2, generation, phase: "BOOTSTRAP", since: new Date(Math.min(channel.lastSyncAt?.getTime() ?? Infinity, Date.now() - 30 * 86_400_000) - 300_000).toISOString(), startedAt: now,
+    folder: 0, continuation: null, receptionSince: now, roundStartedAt: now, googleHistoryId: null, graphCursors: [null, null], graphFolders: ["inbox", "sentitems"],
+    reconcileUntil: await lastLocalId(companyId, channel), reconcileAfter: null, initialised: false, pendingPage: null }
+  if (channel.provider === "GOOGLE") {
+    const profile = await readMailJson<{ historyId?: string }>(await providerFetch(`${googleRoot}/profile`, { headers: mailHeaders(token), signal, cache: "no-store" }))
+    if (!profile.historyId || !/^\d+$/.test(profile.historyId)) throw new Error("Checkpoint initial Gmail absent")
+    state.googleHistoryId = profile.historyId
+  } else {
+    for (const folder of [0, 1] as const) {
+      const data = await readMailJson<{ id?: string }>(await providerFetch(`${graphRoot}/mailFolders/${state.graphFolders[folder]}?$select=id`, { headers: mailHeaders(token), signal, cache: "no-store" }))
+      if (!data.id) throw new Error("Dossier Microsoft introuvable")
+      state.graphFolders[folder] = data.id
+    }
   }
-  return true
+  return state
 }
-
-type GmailPart = { mimeType?: string; body?: { data?: string }; parts?: GmailPart[] }
-type GmailMessage = { id: string; internalDate?: string; labelIds?: string[]; payload?: GmailPart & { headers?: Array<{ name: string; value: string }> } }
-
-function decodeGmailBody(value: string | undefined) {
-  if (!value) return null
-  try { return Buffer.from(value, "base64url").toString("utf8") } catch { return null }
-}
-
-function gmailBody(part: GmailPart | undefined, mimeType: string): string | null {
-  if (!part) return null
-  if (part.mimeType?.toLowerCase() === mimeType) return decodeGmailBody(part.body?.data)
-  for (const child of part.parts || []) {
-    const value = gmailBody(child, mimeType)
-    if (value) return value
+async function googlePage(state: MailSyncState, token: string, signal: AbortSignal): Promise<MailPage> {
+  const bootstrap = state.phase === "BOOTSTRAP"
+  const url = new URL(`${googleRoot}/${bootstrap ? "messages" : "history"}`)
+  url.searchParams.set("maxResults", "50")
+  if (state.continuation) url.searchParams.set("pageToken", state.continuation)
+  if (bootstrap) {
+    url.searchParams.set("labelIds", state.folder === 0 ? "INBOX" : "SENT")
+    url.searchParams.set("q", `after:${Math.floor(Date.parse(state.since) / 1000)} before:${Math.floor(Date.parse(state.startedAt) / 1000) + 1}`)
+  } else url.searchParams.set("startHistoryId", state.googleHistoryId!)
+  const data = await readMailJson<{ messages?: Array<{ id: string }>; nextPageToken?: string; historyId?: string;
+    history?: Array<{ messages?: Array<{ id: string }>; messagesAdded?: Array<{ message: { id: string } }>; messagesDeleted?: Array<{ message: { id: string } }>;
+      labelsAdded?: Array<{ message: { id: string } }>; labelsRemoved?: Array<{ message: { id: string } }> }> }>(await providerFetch(url, { headers: mailHeaders(token), signal, cache: "no-store" }))
+  const ids = new Map<string, boolean>()
+  for (const item of data.messages || []) ids.set(item.id, false)
+  for (const history of data.history || []) {
+    for (const item of history.messages || []) ids.set(item.id, ids.get(item.id) ?? false)
+    for (const item of [...history.labelsAdded || [], ...history.labelsRemoved || [], ...history.messagesDeleted || []]) ids.set(item.message.id, ids.get(item.message.id) ?? false)
+    for (const item of history.messagesAdded || []) ids.set(item.message.id, true)
   }
-  return null
+  if (!bootstrap && !data.nextPageToken && (!data.historyId || !/^\d+$/.test(data.historyId))) throw new Error("Checkpoint final Gmail absent")
+  return { ids: [...ids].map(([id, newReceipt]) => ({ id, newReceipt })), continuation: data.nextPageToken || null, checkpoint: data.historyId || null }
 }
-
-function gmailHeader(message: GmailMessage, name: string) {
-  return message.payload?.headers?.find((header) => header.name.toLowerCase() === name.toLowerCase())?.value || ""
+async function graphPage(state: MailSyncState, token: string, signal: AbortSignal): Promise<MailPage> {
+  const folder = state.graphFolders[state.folder]
+  const initial = new URL(`${graphRoot}/mailFolders/${mailResourceId(folder)}/messages/delta`)
+  // A receivedDateTime filter imposes Graph's 5,000-message cap. Walk the
+  // complete metadata collection, then apply our bounded import window locally.
+  initial.searchParams.set("$select", "id,receivedDateTime,sentDateTime")
+  const url = microsoftMailContinuation(state.continuation || state.graphCursors[state.folder] || initial.toString(), folder)
+  const data = await readMailJson<{ value?: Array<{ id: string }>; "@odata.nextLink"?: string; "@odata.deltaLink"?: string }>(await providerFetch(url, { headers: { ...mailHeaders(token), Prefer: `${mailHeaders(token).Prefer}, odata.maxpagesize=50` }, signal, cache: "no-store" }))
+  const next = data["@odata.nextLink"] ? microsoftMailContinuation(data["@odata.nextLink"], folder) : null
+  const checkpoint = data["@odata.deltaLink"] ? microsoftMailContinuation(data["@odata.deltaLink"], folder) : null
+  if (!next && !checkpoint) throw new Error("Checkpoint final Microsoft absent")
+  return { ids: [...new Set((data.value || []).map(item => item.id))].map(id => ({ id, newReceipt: state.initialised, sentHint: state.folder === 1 })), continuation: next, checkpoint }
 }
-
-async function googleMessages(channel: ActiveChannel, accessToken: string) {
-  const since = Math.floor(((channel.lastSyncAt?.getTime() ?? Date.now() - 30 * 24 * 60 * 60_000) - 5 * 60_000) / 1000)
-  const ids = new Map<string, "INBOUND" | "OUTBOUND">()
-  for (const [label, direction] of [["INBOX", "INBOUND"], ["SENT", "OUTBOUND"]] as const) {
-    const url = new URL("https://gmail.googleapis.com/gmail/v1/users/me/messages")
-    url.searchParams.set("labelIds", label)
-    url.searchParams.set("q", `after:${since}`)
-    url.searchParams.set("maxResults", "50")
-    const response = await fetch(url, { headers: { authorization: `Bearer ${accessToken}` }, cache: "no-store" })
-    const payload = await response.json().catch(() => ({})) as { messages?: Array<{ id: string }>; error?: { message?: string } }
-    if (!response.ok) throw new Error(payload.error?.message || "Synchronisation Gmail refusée")
-    for (const item of payload.messages || []) ids.set(item.id, direction)
+async function syncOAuthEmailChannelUnlocked(companyId: string, channelId: string, control: ProcessorLeaseControl) {
+  const channel = await activeCommunicationChannel(companyId, channelId)
+  if (channel.mailEnabled === false) return { examined: 0, imported: 0, complete: true, disabled: true }
+  if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Ce canal reçoit déjà ses événements par webhook")
+  // Bind credentials to the captured connection, including a reconnect that
+  // finishes before the first provider request or checkpoint.
+  const stored = await prisma.communicationChannel.findFirstOrThrow({ where: { id: channel.id, companyId, status: "ACTIVE" }, select: { config: true } })
+  const config = channelConfig(stored.config)
+  const generation = typeof config.mailSyncGeneration === "string" ? config.mailSyncGeneration : "legacy"
+  const credentials = await validOAuthCredentials(channel)
+  await assertCurrent()
+  if (!mailScopeGranted(channel.provider as EmailOAuthProvider, credentials.scope, "READ")) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour autoriser la lecture des e-mails")
+  const token = credentials.accessToken
+  const resume = mailSyncStateSchema.safeParse(config.emailSync)
+  let state = resume.success && resume.data.generation === generation ? resume.data : await initialState(companyId, channel, token, generation, control.signal)
+  if (!resume.success && config.emailSync && typeof config.emailSync === "object" && !Array.isArray(config.emailSync) && typeof config.emailSync.since === "string" && Number.isFinite(Date.parse(config.emailSync.since))) {
+    state.since = new Date(Math.min(Date.parse(state.since), Date.parse(config.emailSync.since))).toISOString()
   }
-  const messages: ExternalMessage[] = []
-  const entries = [...ids].slice(0, 100)
-  for (let index = 0; index < entries.length; index += 8) {
-    const batch = await Promise.all(entries.slice(index, index + 8).map(async ([id, direction]) => {
-      const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=full`, { headers: { authorization: `Bearer ${accessToken}` }, cache: "no-store" })
-      const message = await response.json().catch(() => ({})) as GmailMessage & { error?: { message?: string } }
-      if (!response.ok || !message.id) throw new Error(message.error?.message || "Lecture d’un message Gmail impossible")
-      return {
-      providerId: `${channel.id}:${message.id}`,
-      direction,
-      internetMessageId: gmailHeader(message, "Message-ID") || null,
-      inReplyTo: gmailHeader(message, "In-Reply-To") || null,
-      from: gmailHeader(message, "From"),
-      to: splitAddresses(gmailHeader(message, "To")),
-      cc: splitAddresses(gmailHeader(message, "Cc")),
-      bcc: splitAddresses(gmailHeader(message, "Bcc")),
-      subject: gmailHeader(message, "Subject") || "Sans objet",
-      bodyHtml: gmailBody(message.payload, "text/html"),
-      bodyText: gmailBody(message.payload, "text/plain"),
-      occurredAt: new Date(Number(message.internalDate || Date.now())),
-      unread: Boolean(message.labelIds?.includes("UNREAD")),
-      } satisfies ExternalMessage
-    }))
-    messages.push(...batch)
+  let examined = 0, imported = 0
+  const folders = new Map<string, string>()
+  const save = (completedAt?: Date) => {
+    state = mailSyncStateSchema.parse(state)
+    return storeChannelSyncState(companyId, channel.id, "emailSync", state, completedAt, { mailGeneration: generation })
   }
-  return messages
-}
-
-type GraphMessage = {
-  id: string
-  internetMessageId?: string | null
-  subject?: string | null
-  body?: { contentType?: string; content?: string }
-  bodyPreview?: string
-  from?: { emailAddress?: { name?: string; address?: string } }
-  toRecipients?: Array<{ emailAddress?: { name?: string; address?: string } }>
-  ccRecipients?: Array<{ emailAddress?: { name?: string; address?: string } }>
-  bccRecipients?: Array<{ emailAddress?: { name?: string; address?: string } }>
-  receivedDateTime?: string
-  sentDateTime?: string
-  isRead?: boolean
-}
-
-function graphAddress(value: { name?: string; address?: string } | undefined) {
-  if (!value?.address) return ""
-  return value.name ? `${value.name.replace(/[<>\r\n]/g, "")} <${value.address}>` : value.address
-}
-
-async function microsoftMessages(channel: ActiveChannel, accessToken: string) {
-  const messages: ExternalMessage[] = []
-  for (const [folder, direction, dateField] of [["inbox", "INBOUND", "receivedDateTime"], ["sentitems", "OUTBOUND", "sentDateTime"]] as const) {
-    const url = new URL(`https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages`)
-    url.searchParams.set("$top", "50")
-    url.searchParams.set("$orderby", `${dateField} desc`)
-    url.searchParams.set("$select", "id,internetMessageId,subject,body,bodyPreview,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,sentDateTime,isRead")
-    const response = await fetch(url, { headers: { authorization: `Bearer ${accessToken}`, Prefer: 'IdType="ImmutableId", outlook.body-content-type="html"' }, cache: "no-store" })
-    const payload = await response.json().catch(() => ({})) as { value?: GraphMessage[]; error?: { message?: string } }
-    if (!response.ok) throw new Error(payload.error?.message || "Synchronisation Microsoft refusée")
-    for (const item of payload.value || []) messages.push({
-      providerId: `${channel.id}:${item.id}`,
-      direction,
-      internetMessageId: item.internetMessageId || null,
-      inReplyTo: null,
-      from: graphAddress(item.from?.emailAddress),
-      to: (item.toRecipients || []).map((entry) => graphAddress(entry.emailAddress)).filter(Boolean),
-      cc: (item.ccRecipients || []).map((entry) => graphAddress(entry.emailAddress)).filter(Boolean),
-      bcc: (item.bccRecipients || []).map((entry) => graphAddress(entry.emailAddress)).filter(Boolean),
-      subject: item.subject || "Sans objet",
-      bodyHtml: item.body?.contentType?.toLowerCase() === "html" ? item.body.content || null : null,
-      bodyText: item.body?.contentType?.toLowerCase() === "text" ? item.body.content || null : item.bodyPreview || null,
-      occurredAt: new Date((direction === "INBOUND" ? item.receivedDateTime : item.sentDateTime) || Date.now()),
-      unread: direction === "INBOUND" && !item.isRead,
-    })
+  async function assertCurrent() {
+    await control.assertOwned()
+    const current = await prisma.communicationChannel.findFirst({ where: { id: channel.id, companyId, provider: channel.provider, emailAddress: channel.emailAddress, status: "ACTIVE", mailEnabled: true }, select: { config: true } })
+    if (!current || (channelConfig(current.config).mailSyncGeneration ?? "legacy") !== generation) throw new Error("La connexion a changé pendant la synchronisation")
   }
-  return messages
+  async function observe(item: MailId, importing: boolean) {
+    await assertCurrent(); examined += 1
+    const key = `${channel.id}:${item.id}`
+    const existing = await prisma.emailMessage.findFirst({ where: { companyId, provider: channel.provider, providerId: key, thread: { companyId, channelId: channel.id } }, select: { id: true, remoteObservation: true } })
+    const message = await readRemoteMail(channel, item.id, token, { signal: control.signal, folders, sentFolderId: state.graphFolders[1], sentHint: item.sentHint })
+    await assertCurrent()
+    if (!message) {
+      if (existing) {
+        const previous = remoteMailObservationSchema.safeParse(existing.remoteObservation)
+        await prisma.emailMessage.updateMany({ where: { id: existing.id, companyId, thread: { companyId, channelId: channel.id } }, data: { remoteObservation: {
+          presence: "MISSING", read: null, folderIds: [], folderNames: [], checkedAt: new Date().toISOString(), attachments: previous.success ? previous.data.attachments : [], attachmentsComplete: previous.success && previous.data.attachmentsComplete,
+        } } })
+      }
+      return
+    }
+    if (!existing && (message.draft || !importing || message.occurredAt.getTime() < Date.parse(state.since))) return
+    const newReceipt = item.newReceipt && message.occurredAt.getTime() >= Date.parse(state.receptionSince)
+    if (await persistRemoteMail(companyId, channel, message, newReceipt)) imported += 1
+  }
+  try {
+    await save() // The initial Gmail anchor must survive a partially processed page.
+    for (let page = 0; page < 4; page++) {
+      await assertCurrent()
+      if (state.phase === "RECONCILE") {
+        const rows = state.reconcileUntil ? await prisma.emailMessage.findMany({ where: { companyId, provider: channel.provider, providerId: { startsWith: `${channel.id}:` },
+          thread: { companyId, channelId: channel.id }, id: { lte: state.reconcileUntil, ...(state.reconcileAfter ? { gt: state.reconcileAfter } : {}) } }, select: { id: true, providerId: true }, orderBy: { id: "asc" }, take: 50 }) : []
+        for (const row of rows) { await observe({ id: row.providerId!.slice(channel.id.length + 1), newReceipt: false }, false); state.reconcileAfter = row.id }
+        if (rows.length < 50) {
+          state.phase = "CHANGES"; state.folder = 0; state.continuation = null; state.reconcileAfter = null; state.reconcileUntil = null
+          if (channel.provider === "MICROSOFT") {
+            state.initialised = true; state.receptionSince = state.roundStartedAt ?? state.startedAt; state.roundStartedAt = null
+            await save(new Date(state.receptionSince)); return { examined, imported, complete: true }
+          }
+        }
+        await save(); continue
+      }
+      if (state.phase === "CHANGES" && !state.roundStartedAt) { state.roundStartedAt = new Date().toISOString(); await save() }
+      try {
+        if (!state.pendingPage) {
+          const result = channel.provider === "GOOGLE" ? await googlePage(state, token, control.signal) : await graphPage(state, token, control.signal)
+          state.pendingPage = { ...result, position: 0 }
+          await save()
+        }
+      }
+      catch (error) {
+        if (error instanceof MailReadError && ((channel.provider === "GOOGLE" && state.phase === "CHANGES" && error.status === 404) || channel.provider === "MICROSOFT" && error.status === 410)) {
+          state = await initialState(companyId, channel, token, generation, control.signal); await save(); return { examined, imported, complete: false }
+        }
+        throw error
+      }
+      const pending = state.pendingPage!
+      // One history record can contain thousands of changed IDs. Persist its
+      // work separately from its provider checkpoint; never replay the first
+      // hundred IDs indefinitely when a function stops before finishing a page.
+      const end = Math.min(pending.ids.length, pending.position + 50)
+      for (; pending.position < end; pending.position++) await observe(pending.ids[pending.position], true)
+      state.pendingPage = pending
+      if (pending.position < pending.ids.length) { await save(); continue }
+      const result: MailPage = pending
+      state.pendingPage = null
+      if (result.continuation) state.continuation = result.continuation
+      else if (channel.provider === "GOOGLE" && state.phase === "CHANGES") {
+        state.googleHistoryId = result.checkpoint; state.initialised = true; state.continuation = null
+        // Use the round's start, not its completion. A message arriving after
+        // the provider response must remain eligible in the following round.
+        state.receptionSince = state.roundStartedAt ?? state.startedAt; state.roundStartedAt = null
+        await save(new Date(state.receptionSince)); return { examined, imported, complete: true }
+      } else {
+        if (channel.provider === "MICROSOFT") state.graphCursors[state.folder] = result.checkpoint
+        state.continuation = null
+        if (state.folder === 0) state.folder = 1
+        else {
+          state.folder = 0; state.phase = "RECONCILE"; state.reconcileAfter = null
+          if (channel.provider === "MICROSOFT" && state.initialised) state.reconcileUntil = await lastLocalId(companyId, channel)
+        }
+      }
+      await save()
+    }
+    return { examined, imported, complete: false }
+  } catch (error) {
+    // Reconnection must not receive errors or checkpoints from its old worker.
+    await assertCurrent()
+    const reconnect = error instanceof MailReadError && error.status === 401
+    const message = (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500)
+    await storeChannelSyncState(companyId, channel.id, "emailSyncStatus", { status: reconnect ? "RECONNECT_REQUIRED" : "FAILED", error: message, checkedAt: new Date().toISOString() }, undefined,
+      { mailGeneration: generation, lastError: message })
+    if (reconnect) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour reprendre la lecture des e-mails")
+    throw error
+  }
 }
 
 export async function syncOAuthEmailChannel(companyId: string, channelId: string) {
-  const channel = await activeCommunicationChannel(companyId, channelId)
-  if (!EMAIL_OAUTH_PROVIDERS.includes(channel.provider as EmailOAuthProvider)) throw new Error("Ce canal reçoit déjà ses événements par webhook")
   try {
-    const provider = channel.provider as EmailOAuthProvider
-    const accessToken = await validOAuthAccessToken(channel)
-    const messages = provider === "GOOGLE" ? await googleMessages(channel, accessToken) : await microsoftMessages(channel, accessToken)
-    let imported = 0
-    for (const message of messages.sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime())) {
-      if (await persistMessage(companyId, provider, message)) imported += 1
-    }
-    await prisma.communicationChannel.update({ where: { id: channel.id }, data: { lastSyncAt: new Date(), lastError: null, status: "ACTIVE" } })
-    return { examined: messages.length, imported }
+    const result = await withProcessorLease(`email-sync:${channelId}`, control => syncOAuthEmailChannelUnlocked(companyId, channelId, control))
+    return result.acquired ? result.value : { examined: 0, imported: 0, complete: false }
   } catch (error) {
-    const message = (error instanceof Error ? error.message : "Synchronisation impossible").slice(0, 500)
-    await prisma.communicationChannel.updateMany({ where: { id: channel.id, companyId }, data: { lastError: message } })
-    throw new Error(message)
+    if (error instanceof MailReadError && error.status === 401) throw new MailReconnectRequiredError("Reconnectez cette messagerie pour reprendre la lecture des e-mails")
+    throw error
   }
-}
-
-export async function syncDueOAuthEmailChannels(limit = 10) {
-  const channels = await prisma.communicationChannel.findMany({
-    where: { provider: { in: [...EMAIL_OAUTH_PROVIDERS] }, status: "ACTIVE" },
-    select: { id: true, companyId: true },
-    orderBy: { lastSyncAt: "asc" },
-    take: Math.min(25, Math.max(1, limit)),
-  })
-  const summary = { examined: channels.length, synced: 0, imported: 0, failed: 0 }
-  for (const channel of channels) {
-    try {
-      const result = await syncOAuthEmailChannel(channel.companyId, channel.id)
-      summary.synced += 1
-      summary.imported += result.imported
-    } catch {
-      summary.failed += 1
-    }
-  }
-  return summary
 }

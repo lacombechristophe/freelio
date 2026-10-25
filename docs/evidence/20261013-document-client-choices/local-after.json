@@ -1,0 +1,110 @@
+{
+  "schema": "freelio.document-client-choice-local.v1",
+  "base": "db14793",
+  "code": "Uncommitted client choice correction based on that commit",
+  "passed": 24,
+  "failed": 0,
+  "cases": [
+    {
+      "title": "reaches all 1001 choices once, with a stable order and only id/name",
+      "status": "passed"
+    },
+    {
+      "title": "searches beyond the former ceiling and separately verifies a choice outside the query",
+      "status": "passed"
+    },
+    {
+      "title": "clamps pages and orders equal names by id without duplicates",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for ADMIN",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for SALES",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for OPERATIONS",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for TECHNICIAN",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for SERVICE",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "title": "keeps minimal company-shared choices for VIEWER",
+      "status": "passed"
+    },
+    {
+      "title": "keeps replacement choices when the selected client was deleted",
+      "status": "passed"
+    },
+    {
+      "title": "checks membership before reading the directory",
+      "status": "passed"
+    },
+    {
+      "title": "rejects malformed input {\"page\":0}",
+      "status": "passed"
+    },
+    {
+      "title": "rejects malformed input {\"page\":1.5}",
+      "status": "passed"
+    },
+    {
+      "title": "rejects malformed input {\"page\":100001}",
+      "status": "passed"
+    },
+    {
+      "title": "rejects malformed input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+      "status": "passed"
+    },
+    {
+      "title": "rejects malformed input {\"selectedId\":\"\"}",
+      "status": "passed"
+    },
+    {
+      "title": "rejects malformed input {\"companyId\":\"foreign\"}",
+      "status": "passed"
+    },
+    {
+      "title": "creates and edits all four resources using the last choice for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "creates and edits all four resources using the last choice for ADMIN",
+      "status": "passed"
+    },
+    {
+      "title": "revalidates a foreign choice in all four create actions without audit",
+      "status": "passed"
+    },
+    {
+      "title": "does not turn shared choice access into Viewer write access",
+      "status": "passed"
+    },
+    {
+      "title": "keeps all choices readable but all four writes forbidden in public demo mode",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "SQLite only; authentication/cache and invoice archive imports mocked. Actual SQL and four create/update actions.",
+    "First Viewer assertion expected the wrapper wording; some existing actions reject with FORBIDDEN:sales.write at the DAL. Assertion corrected to the existing permission errors without changing permissions.",
+    "Eight compiled browser cases are defined; their execution and PostgreSQL qualification remain pending."
+  ]
+}

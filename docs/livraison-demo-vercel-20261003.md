@@ -44,3 +44,9 @@ Vercel utilise le plan Hobby existant. Aucun compte ni abonnement payant supplé
 Cette base contient des brouillons et aucune archive émise à récupérer depuis R2. Une configuration verte ne prouve pas une lecture R2, une restauration hébergée, une rétention de journaux, un plafond de charge distribué ou un RPO/RTO. Ces points et les intégrations réelles du plan fonctionnel restent à qualifier avant usage commercial.
 
 Un retour de version doit sélectionner un artefact déjà qualifié en lecture seule, compatible avec cette base. Ne pas réactiver un déploiement modifiable ou un rôle SQL administrateur, ni annuler les migrations pour un simple retour web. Les restaurations locales du runbook ne constituent pas un essai de récupération des fournisseurs hébergés.
+
+## Vérification du 10 octobre
+
+Le [contrôle courant de preview](evidence/20261010-preview-readiness/README.md) identifie une configuration incomplète, un schéma public historique à 43 migrations sur 60, puis prépare une nouvelle base fictive et un rôle lecteur distincts. Le propriétaire indique que les comptes R2/Upstash ne sont pas encore créés. Les sondes et parcours historiques ci-dessus ne prouvent pas leur disponibilité : les mentions de configuration conservée ne valent pas qualification des fournisseurs. La production historique reste inchangée ; la preview du candidat courant n’est pas prête.
+
+Le propriétaire configure ensuite Upstash et renonce à activer R2. Le [rejeu de 92a07a3 sans stockage](qualification-demo-sans-stockage-20261010.md) réussit sondes, connexion, lectures, restrictions et PDF, mais conserve un échec navigateur lié aux dates et au fuseau. Cette preview est distincte de la production historique ; aucune configuration ou donnée de celle-ci n’est modifiée.

@@ -84,5 +84,6 @@ export async function withAuth<T>(
     throw new AuthorizationError("Vous n'avez pas les droits nécessaires pour cette action")
   }
 
-  return requestContext.run({ ...context, actionPermission: permission }, () => action(context))
+  // Lazy Prisma promises must execute before leaving the authorization context.
+  return requestContext.run({ ...context, actionPermission: permission }, async () => await action(context))
 }

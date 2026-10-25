@@ -1,0 +1,25 @@
+{
+  "passed": 1,
+  "failed": 2,
+  "pending": 0,
+  "suites": [
+    {
+      "file": "operations-selector-diagnostic.test.ts",
+      "status": "failed",
+      "cases": [
+        {
+          "fullName": "Operations selector boundary diagnostic on isolated SQL keeps client and product choices scoped to the current company",
+          "status": "passed"
+        },
+        {
+          "fullName": "Operations selector boundary diagnostic on isolated SQL offers the 501st coherent client to the existing creation forms",
+          "status": "failed"
+        },
+        {
+          "fullName": "Operations selector boundary diagnostic on isolated SQL offers the 501st active product to the existing creation forms",
+          "status": "failed"
+        }
+      ]
+    }
+  ]
+}

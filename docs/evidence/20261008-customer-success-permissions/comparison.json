@@ -1,0 +1,276 @@
+{
+  "schema": "freelio.permission-comparison.v1",
+  "method": "Selected historical source files substituted only in the isolated recipe, then restored; other candidate files remain current.",
+  "before": {
+    "schema": "freelio.permission-regression.v1",
+    "kind": "health",
+    "engine": "SQLite",
+    "node": "v24.15.0",
+    "reference": "653cddc6c03fd8f3cf73c6fc12e07696181fb545",
+    "exitCode": 1,
+    "total": 26,
+    "passed": 5,
+    "failed": 21,
+    "testSha256": "d3edfc46abf5b7e0ca15f5aee11ef6a1d68395fff9641edbd179b2c12187aee3",
+    "source": [
+      {
+        "file": "src/actions/customer-success/index.ts",
+        "sha256": "92a36438294b2231ede72599fdff5ecfa3f3ea22e40edff5be6dce520e8cd281"
+      },
+      {
+        "file": "src/lib/operations/customer-health-metrics.ts",
+        "sha256": "58fe2acda71018193efda2c567a4e12df68044459e862d536db653aad431ab68"
+      },
+      {
+        "file": "src/lib/prisma.ts",
+        "sha256": "b2791e53109ad998fecb98588168dc3f8daba30828d3c5518ecd8ffc7adb313a"
+      }
+    ],
+    "reportSha256": "1f7df8d589940c2a9f08f10a6ce9afe471f12527e34273c95f690424db45db05",
+    "cases": [
+      {
+        "name": "customer-success financial permissions on real SQL preserves authorized Owner values",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'TECHNICIAN'",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'TECHNICIAN'",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'SERVICE'",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'SERVICE'",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to TECHNICIAN",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to SERVICE",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for TECHNICIAN",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for SERVICE",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL excludes invoice activity from TECHNICIAN operational metrics",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL excludes invoice activity from SERVICE operational metrics",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when TECHNICIAN saves other fields",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when SERVICE saves other fields",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by TECHNICIAN",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by SERVICE",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects direct creation of a financial rule by Service",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects direct archiving of a financial rule by Service",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL installs operational defaults without overwriting the existing financial rule",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL keeps authorized financial writes and rule management available to Owner",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL keeps Finance-readable Viewer values within the assigned agency and refuses writes",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not query invoice aggregates or debts when Finance is unavailable",
+        "status": "failed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rereads inactive agency access for Finance-readable metrics",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rereads unassigned agency access for Finance-readable metrics",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL refuses suspended membership",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not return or update a foreign client",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL keeps the public demo readable while refusing profile writes",
+        "status": "failed"
+      }
+    ]
+  },
+  "after": {
+    "schema": "freelio.permission-regression.v1",
+    "kind": "health",
+    "engine": "SQLite",
+    "node": "v24.15.0",
+    "reference": "working-tree-with-uncommitted-changes",
+    "exitCode": 0,
+    "total": 26,
+    "passed": 26,
+    "failed": 0,
+    "testSha256": "d3edfc46abf5b7e0ca15f5aee11ef6a1d68395fff9641edbd179b2c12187aee3",
+    "source": [
+      {
+        "file": "src/actions/customer-success/index.ts",
+        "sha256": "015df4423192ebcce21e36125d8eff0c9afb1cf0e5263f4f52b30c1079d7313e"
+      },
+      {
+        "file": "src/lib/operations/customer-health-metrics.ts",
+        "sha256": "5b5eb7190becce52a2dd519b6ad30496c09e9923ee8ef50c37dc9f0029a8116b"
+      },
+      {
+        "file": "src/lib/prisma.ts",
+        "sha256": "12993e685f7269b9c74b72b8571fb01dca5ffbceeec00d93564ed6add864e5b3"
+      }
+    ],
+    "reportSha256": "fd068a696a983caf1253b72aa211ba5834bbe29726a983317ad1c11cf33e775d",
+    "cases": [
+      {
+        "name": "customer-success financial permissions on real SQL preserves authorized Owner values",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'TECHNICIAN'",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'TECHNICIAN'",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'renewal' amount to 'SERVICE'",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not disclose 'overdue' amount to 'SERVICE'",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance factors or global scores to SERVICE",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not expose Finance through status filters or counters for SERVICE",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL excludes invoice activity from TECHNICIAN operational metrics",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL excludes invoice activity from SERVICE operational metrics",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when TECHNICIAN saves other fields",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL preserves the hidden renewal amount when SERVICE saves other fields",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects a direct financial profile write by SERVICE",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects direct creation of a financial rule by Service",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rejects direct archiving of a financial rule by Service",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL installs operational defaults without overwriting the existing financial rule",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL keeps authorized financial writes and rule management available to Owner",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL keeps Finance-readable Viewer values within the assigned agency and refuses writes",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not query invoice aggregates or debts when Finance is unavailable",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rereads inactive agency access for Finance-readable metrics",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL rereads unassigned agency access for Finance-readable metrics",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL refuses suspended membership",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL does not return or update a foreign client",
+        "status": "passed"
+      },
+      {
+        "name": "customer-success financial permissions on real SQL keeps the public demo readable while refusing profile writes",
+        "status": "passed"
+      }
+    ]
+  },
+  "limits": [
+    "SQLite only at this stage.",
+    "Session and Next cache simulated where imported; SQL, membership, DAL and transactions real.",
+    "Failed baselines are not counted as successful qualification.",
+    "No external provider or existing application data used."
+  ]
+}

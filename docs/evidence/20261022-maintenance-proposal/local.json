@@ -1,0 +1,262 @@
+{
+  "schema": "freelio.maintenance-proposal-local.v1",
+  "observedAt": "2026-10-22T18:29:02.498Z",
+  "codeCommit": "b3211e08960357c11461b8cfd440c06cdfc5924f",
+  "source": {
+    "observedAt": "2026-10-22T18:29:01.887Z",
+    "commit": "b3211e08960357c11461b8cfd440c06cdfc5924f",
+    "filesCompared": 1245,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "2d6ad0ccc20d90ef968055708f5ff38947616249a718c21aa910ef6b87b1a64d",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "runtime": {
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "lockSha256": "39f2fac0ec08c1c6ab10fe66a18611213889a55f3c2324020983192ed5e8b1ad",
+      "installedCompared": 710,
+      "installedMismatches": [],
+      "normalizedInstalledVersions": [
+        {
+          "path": "node_modules/@upstash/core-analytics",
+          "expected": "0.0.10",
+          "actual": "v0.0.10"
+        },
+        {
+          "path": "node_modules/@upstash/ratelimit",
+          "expected": "2.0.8",
+          "actual": "v2.0.8"
+        }
+      ]
+    },
+    "dependencyQualification": {
+      "codeCommit": "4a7a24157cc7281179c605f1019a848d67539346",
+      "source": "docs/evidence/20261021-test-toolchain/local.json",
+      "packageFilesUnchanged": true,
+      "lockMatches": true,
+      "scope": "Dated dependency audits and inventory reused for this unchanged lockfile; installed versions checked again"
+    },
+    "limits": [
+      "Source and version identity do not prove runtime behavior",
+      "Absent optional platform packages are not counted",
+      "Native PostgreSQL, Linux and application browser qualification remain separate"
+    ]
+  },
+  "full": {
+    "file": "maintenance-proposal-full-20261022.json",
+    "sha256": "da30097fc8cc3194cdabb950256606c8956992f8843fe78d999bccd1e61a9c30",
+    "passed": 3791,
+    "failed": 0,
+    "pending": 0,
+    "files": 287,
+    "success": true,
+    "exitCode": 0,
+    "freshDatabase": true,
+    "database": "maintenance-proposal-full-20261022.db",
+    "coverageEnabled": true
+  },
+  "focused": {
+    "file": "maintenance-proposal-qualified-20261022.json",
+    "sha256": "d67f0d326769f9960f159a0c8b3bf413df42af7bb30b6ce531c72902b768b4b9",
+    "passed": 246,
+    "failed": 0,
+    "pending": 0,
+    "files": 12,
+    "success": true,
+    "exitCode": 0
+  },
+  "dedicated": {
+    "passed": 30,
+    "recoveredBaselineCases": 7
+  },
+  "nativeManifest": {
+    "expectedFiles": 287,
+    "executedFiles": 287,
+    "identityMatch": true
+  },
+  "checks": [
+    {
+      "check": "types",
+      "file": "maintenance-proposal-types-20261022.log",
+      "sha256": "4a8d4d0901c23c59e21490fa658266c117b8a1e5b5f02b4ac9c4735a1e7ad843",
+      "exitCode": 0
+    },
+    {
+      "check": "lint",
+      "file": "maintenance-proposal-lint-20261022.log",
+      "sha256": "3a29a01bb576f7ab5e3b61642eb5440c8fcf43da172d8fe84dcc1a8d1d7653df",
+      "exitCode": 0
+    },
+    {
+      "check": "build",
+      "file": "maintenance-proposal-build-20261022.log",
+      "sha256": "df033b7bb58f8470b146ddacda035ccce3debdcd2a9856038c5e005522bbfca1",
+      "exitCode": 0
+    }
+  ],
+  "coverage": {
+    "configuredModules": 6,
+    "total": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "pdfWithinFull": [
+    {
+      "file": "pdf-generator.integration.test.ts",
+      "passed": 4
+    },
+    {
+      "file": "delivery-pdf-native.integration.test.ts",
+      "passed": 3
+    }
+  ],
+  "compiledActions": {
+    "manifestSha256": "a3af800978664083149ecc88434a57981cac0a64468279ea306fbc0bb36f2f98",
+    "requiredPublicActions": [
+      "createAssetMaintenanceProposal"
+    ],
+    "inspectedNames": [
+      "createAssetMaintenanceProposal",
+      "createMaintenanceRenewalProposal"
+    ],
+    "registered": [
+      "createAssetMaintenanceProposal",
+      "createMaintenanceRenewalProposal"
+    ],
+    "scope": "Whitelisted exported names only; no encryption material exposed and no HTTP invocation proof"
+  },
+  "browser": {
+    "file": "maintenance-proposal-browser-list-20261022.json",
+    "sha256": "f76ac2dd62634522ceda8651a1990ab38d9b9be66dc8181a83ae8597a74da2b4",
+    "selected": 506,
+    "desktop": 253,
+    "mobile": 253,
+    "executed": false,
+    "newCases": [
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Maintenance proposal lets Commercial prepare an audited draft with HT prices",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Maintenance proposal refuses a stale site label and keeps its form open",
+        "project": "desktop"
+      },
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Maintenance proposal lets Commercial prepare an audited draft with HT prices",
+        "project": "mobile"
+      },
+      {
+        "file": "operations-service-directory.spec.ts",
+        "title": "Maintenance proposal refuses a stale site label and keeps its form open",
+        "project": "mobile"
+      }
+    ],
+    "fixtureCorrection": "Four existing maintenance scenarios now search for the target record before opening it: it is outside the first page. These browser interactions remain unexecuted."
+  },
+  "iterations": [
+    {
+      "stage": "initial focused fix",
+      "file": "maintenance-proposal-focused-20261022.json",
+      "sha256": "9bd388e5e20b410471c916ce8f6977e95e7568cfa88d750fe15bb72ffc1f49fb",
+      "passed": 10,
+      "failed": 0,
+      "pending": 0,
+      "files": 1,
+      "success": true,
+      "explanation": "The ten baseline scenarios pass before extension to all rights/dependency cases and the final serializable-response boundary."
+    },
+    {
+      "stage": "first expanded candidate",
+      "file": "maintenance-proposal-expanded-20261022.json",
+      "sha256": "b2d32038905cc1ac389ed6682f06fcd723a4148a7df36622edbebdda86a381d8",
+      "passed": 231,
+      "failed": 1,
+      "pending": 0,
+      "files": 10,
+      "success": false,
+      "explanation": "231 pass and one fixture error: the foreign-site test assumed an existing foreign site, while the shared fixture supplies only a foreign client/agency. The test now creates its own foreign site before asserting the refusal; the production predicate is unchanged for this correction."
+    }
+  ],
+  "semantics": {
+    "source": "Version 2 of the shared canonical source also includes the site label displayed in the proposed document; the directory and the action use that same revision",
+    "transaction": "Fresh scoped source and eligibility after number preparation; active site and coherent client; parameterized no-op row locks serialize creation while preserving source metadata; draft and mandatory audit in one Serializable transaction",
+    "access": "sales.write required before business reads; Commercial can prepare only the sales document, with no additional operational update/delete permission or role-matrix exception",
+    "content": "New drafts identify current/indexed maintenance amounts as HT, matching input and invoice base; existing drafts, sent documents and signed captures are not regenerated",
+    "recovery": "An existing coherent active proposal is returned without mutation; a stale source or unavailable dependency retains entered UI values; known failures cross the Server Action boundary as data while unexpected technical errors are not exposed"
+  },
+  "runtimeScope": "Real SQLite, fresh membership/domain/agency checks, bound SQL row locking, audit rejection trigger and concurrent requests in one process using the existing SQLite transaction queue. Authentication/session and Next cache are mocked; PostgreSQL, multi-instance contention and React interactions are not proved.",
+  "limits": [
+    "Signing, status changes, and the relationship between signed terms and a later maintenance decision require their own reproduction and qualification; this creation lot does not close them",
+    "Main Help Desk scope, totals and remaining root-cache selectors remain separate",
+    "Native PostgreSQL/Linux, application browser, remote CI and exact hosted SHA remain unqualified",
+    "No schema, dependency, installation, role matrix, archival algorithm, license, provider send, billing or repository visibility change"
+  ],
+  "remote": {
+    "checkedAt": "2026-10-22T18:14:53.0867141Z",
+    "repositoryPrivate": true,
+    "ownerType": "User",
+    "pullRequest": "https://github.com/lacombechristophe/freelio/pull/8",
+    "state": "OPEN",
+    "head": "8d2232385f8cfcca9006d5e56ecdb3794485610c",
+    "pushed": false,
+    "newCI": false,
+    "merged": false,
+    "deployed": false,
+    "gate": "GitHub Actions zero budget and paid-use stop not attested; no new remote writes"
+  },
+  "finalPublication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1917,
+    "historyBlobsChecked": 0,
+    "placeholdersExcluded": 0,
+    "findings": [],
+    "report": "Freelio-maintenance-proposal-publication-20261022.json",
+    "sha256": "c70a4392f7c885c83483a4630403f0fe45fc57d0addb3fbfc6146c9a8871cdc1",
+    "scope": "Current tracked files including staged evidence; not a historical secret scan or a guarantee of absence of secrets"
+  },
+  "markdownLinks": {
+    "observedAt": "2026-10-22T18:29:06.371Z",
+    "scope": "Tracked Markdown relative file links only; URL/anchor and prose references excluded",
+    "checked": 1182,
+    "findings": [],
+    "report": "Freelio-maintenance-proposal-links-20261022.json",
+    "sha256": "40a8243c2197962a3cdba7592a398d52bb1c0b82d947122f8f4e7fc6c862791a"
+  }
+}

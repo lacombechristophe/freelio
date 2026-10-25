@@ -9,6 +9,14 @@ describe("nextSequenceExecution", () => {
     expect(nextSequenceExecution(new Date("2026-08-27T09:30:00.000Z"), 2, schedule).toISOString()).toBe("2026-08-27T11:30:00.000Z")
   })
 
+  it.each([
+    ["2026-08-27T09:30:40.250Z", 2, "2026-08-27T11:30:40.250Z"],
+    ["2026-08-27T17:59:59.999Z", 0, "2026-08-27T17:59:59.999Z"],
+    ["2026-08-27T09:30:40.250Z", 0, "2026-08-27T09:30:40.250Z"],
+  ])("preserves %s with delay %i inside the configured window", (base, delay, expected) => {
+    expect(nextSequenceExecution(new Date(base), delay, schedule).toISOString()).toBe(expected)
+  })
+
   it("moves an evening due time to the next opening", () => {
     expect(nextSequenceExecution(new Date("2026-08-27T17:45:00.000Z"), 1, schedule).toISOString()).toBe("2026-08-28T08:00:00.000Z")
   })
@@ -28,4 +36,3 @@ describe("sequenceTimezoneIsValid", () => {
     expect(sequenceTimezoneIsValid("Invalid/Timezone")).toBe(false)
   })
 })
-

@@ -1,0 +1,51 @@
+{
+  "schema": "freelio.order-linked-invoice-baseline.v1",
+  "source": "d88a6bbc715b7a5b9de21c4a2ac0c28e9a63e06c",
+  "test": "probe.test-source.txt",
+  "reportSha256": "289a9ae0d475813d1632586e3aba462dfc1aa51e03d0240c58d1d1903a99e184",
+  "passed": 2,
+  "failed": 6,
+  "cases": [
+    {
+      "observedError": null,
+      "status": "failed",
+      "title": "DEPOSIT with foreign company invoice"
+    },
+    {
+      "observedError": null,
+      "status": "failed",
+      "title": "DEPOSIT with other client invoice"
+    },
+    {
+      "observedError": null,
+      "status": "failed",
+      "title": "DEPOSIT with other project invoice"
+    },
+    {
+      "observedError": null,
+      "status": "passed",
+      "title": "DEPOSIT with coherent invoice"
+    },
+    {
+      "observedError": null,
+      "status": "failed",
+      "title": "BALANCE with foreign company invoice"
+    },
+    {
+      "observedError": null,
+      "status": "failed",
+      "title": "BALANCE with other client invoice"
+    },
+    {
+      "observedError": null,
+      "status": "failed",
+      "title": "BALANCE with other project invoice"
+    },
+    {
+      "observedError": null,
+      "status": "passed",
+      "title": "BALANCE with coherent invoice"
+    }
+  ],
+  "scope": "Real SQL/actions/DAL/transactions; session/cache mocked; inconsistent references inserted directly; no issued document, provider, PDF or payment"
+}

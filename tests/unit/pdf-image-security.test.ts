@@ -51,4 +51,28 @@ describe("PDF image network boundary", () => {
     await expect(inlineSafePdfImages('<img src="/../private.txt">')).rejects.toThrow("PATH_REFUSED")
     expect(mocks.get).not.toHaveBeenCalled()
   })
+  it("aborts a pending DNS lookup without subsequently opening a socket", async () => {
+    let resolve!: (value: { address: string; family: number }[]) => void
+    mocks.lookup.mockImplementation(() => new Promise(done => { resolve = done }))
+    const controller = new AbortController()
+    const pending = fetchPublicPdfImage("https://logo.example.test/current.png", 0, controller.signal)
+    const assertion = expect(pending).rejects.toThrow("Fictional deadline")
+    controller.abort(new Error("Fictional deadline")); await assertion
+    resolve([{ address: "93.184.216.34", family: 4 }]); await Promise.resolve()
+    expect(mocks.get).not.toHaveBeenCalled()
+  })
+  it("rejects an already-aborted capture and passes a live signal to HTTPS", async () => {
+    const controller = new AbortController(); controller.abort(new Error("Fictional canceled capture"))
+    await expect(inlineSafePdfImages('<img src="https://logo.example.test/current.png">', controller.signal)).rejects.toThrow("canceled capture")
+    expect(mocks.lookup).not.toHaveBeenCalled()
+    mocks.lookup.mockResolvedValue([{ address: "93.184.216.34", family: 4 }])
+    const live = new AbortController()
+    mocks.get.mockImplementation((_url, options) => {
+      expect(options.signal).toBe(live.signal)
+      const request = new EventEmitter()
+      queueMicrotask(() => request.emit("error", new Error("Fictional HTTP abort")))
+      return request
+    })
+    await expect(fetchPublicPdfImage("https://logo.example.test/current.png", 0, live.signal)).rejects.toThrow("HTTP abort")
+  })
 })

@@ -1,9 +1,9 @@
+import { createDatabaseClient } from "../src/lib/database-client.ts"
 import fs from "node:fs/promises"
 import path from "node:path"
 import assert from "node:assert/strict"
 import { chromium, expect } from "@playwright/test"
 import puppeteer from "puppeteer"
-import { PrismaClient } from "@prisma/client"
 
 const directory = process.argv[2] && path.resolve(process.argv[2])
 if (!directory) throw new Error("Dossier de démonstration requis")
@@ -14,7 +14,7 @@ const baseURL = `http://127.0.0.1:${running.port}`
 const report = { baseURL, testedAt: new Date().toISOString(), pages: [], checks: [], unexpectedErrors: [], externalRequestsBlocked: 0 }
 const evidence = path.join(directory, "verification")
 await fs.mkdir(evidence, { recursive: true })
-const database = new PrismaClient({ datasources: { db: { url: `file:${path.join(directory, "demo.db").replaceAll("\\", "/")}` } } })
+const database = createDatabaseClient(`file:${path.join(directory, "demo.db").replaceAll("\\", "/")}`)
 const browser = await chromium.launch({ executablePath: await puppeteer.executablePath(), args: ["--disable-background-networking", "--disable-component-update"] })
 try {
   const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" })

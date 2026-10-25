@@ -98,6 +98,9 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   related("EmailSequenceEnrollment", { sequence: { companyId: "$companyId" } }),
   direct("EmailSequenceTask"),
   direct("EmailDelivery"),
+  direct("EmailSendQuotaPolicy"),
+  direct("EmailSendQuotaState"),
+  direct("EmailSendQuotaCharge"),
   direct("EmailThread"),
   direct("EmailMessage"),
   direct("EmailEvent"),
@@ -108,9 +111,13 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
   related("MarketingSegmentMember", { segment: { companyId: "$companyId" } }),
   direct("MarketingCampaign"),
   related("MarketingCampaignAsset", { campaign: { companyId: "$companyId" } }),
+  direct("CampaignAudience"),
+  related("CampaignAudienceMember", { audience: { companyId: "$companyId" } }),
   direct("AutomationWorkflow"),
   direct("AutomationWorkflowVersion"),
   direct("AutomationRun"),
+  direct("AutomationEventOutbox"),
+  related("AutomationRunAction", { run: { companyId: "$companyId" } }),
   related("ClientFile", { client: { companyId: "$companyId" } }),
   direct("ProjectTemplate"),
   related("ProjectTemplateStep", { template: { companyId: "$companyId" } }),
@@ -201,13 +208,15 @@ const COMPANY_TABLE_SPECS: TableSpec[] = [
 ]
 
 const EXCLUDED_MODELS = [
+  { model: "EmailSignature", reason: "Signatures personnelles : exclues de l’export de société. La sauvegarde native de la base les conserve." },
+  { model: "EmailDraft", reason: "Brouillons privés à leur auteur : exclus de l’export de société. La sauvegarde native chiffrée de la base les conserve." },
   { model: "Account", reason: "Jetons OAuth exclus pour éviter de réactiver des accès externes lors d’une reprise." },
   { model: "Session", reason: "Sessions actives exclues volontairement pour des raisons de sécurité." },
   { model: "VerificationToken", reason: "Jetons de connexion à usage unique exclus volontairement pour des raisons de sécurité." },
   { model: "PasswordResetToken", reason: "Jetons de réinitialisation exclus volontairement pour des raisons de sécurité." },
   { model: "MfaRecoveryCode", reason: "Codes de secours hachés exclus volontairement pour des raisons de sécurité." },
   { model: "ClientPortalAccess", reason: "Liens d'accès porteurs exclus ; ils doivent être réémis après une reprise." },
-  { model: "Notification", reason: "Le schéma actuel ne porte pas de companyId ; une extraction multi-tenant sûre est impossible." },
+  { model: "Notification", reason: "Notifications personnelles exclues de l'export d'entreprise ; les anciennes lignes sans société ne sont pas réattribuées." },
   { model: "ApiKey", reason: "Clés personnelles non rattachées à une entreprise et exclues volontairement." },
   { model: "EmailLog", reason: "Journal global sans companyId : export inter-entreprises interdit." },
   { model: "EReportingBatch", reason: "Lot global sans companyId : export inter-entreprises interdit." },
@@ -228,6 +237,7 @@ const FILE_FIELDS: Record<string, Array<{ field: string; size?: string; sha256?:
   ProjectFile: [{ field: "url", size: "size", sha256: "sha256" }],
   InterventionFile: [{ field: "url", size: "size", sha256: "sha256" }],
   Invoice: [{ field: "pdfUrl", sha256: "pdfHash" }],
+  Contract: [{ field: "pdfUrl", sha256: "pdfHash" }],
   ExpenseFile: [{ field: "url", size: "size", sha256: "sha256" }],
   DocumentManifest: [{ field: "storageKey", size: "size", sha256: "sha256", reader: "MIGRATION" }],
   EInvoiceLog: [{ field: "xmlUrl" }],
@@ -238,6 +248,7 @@ const DATE_FIELDS = new Set([
   "happenedAt", "startDate", "endDate", "plannedStartAt", "dueDate", "validUntil", "date", "signedAt",
   "nextGenDate", "periodStart", "periodEnd", "scheduledDate", "recurrenceEnd", "resolvedAt",
   "domainExpiresAt", "lockedAt", "sentAt", "importedAt", "lastUsed", "validFrom",
+  "archiveNextAttemptAt",
 ])
 
 function normalizeRecord(record: Record<string, any>, omitted: string[] = []): any {
@@ -295,6 +306,11 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
   const tables: ReversibilityTable[] = []
   let totalRows = 0
   let totalBytes = 0
+  const accountBatch = (batch: readonly unknown[]) => {
+    totalRows += batch.length
+    totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
+    if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+  }
   for (const spec of COMPANY_TABLE_SPECS) {
     const delegate = database[spec.delegate]
     if (!delegate?.findMany) throw new Error(`Modèle Prisma indisponible pour l’export : ${spec.model}`)
@@ -302,9 +318,7 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
     for (let skip = 0; ; skip += 250) {
       const orderBy: Array<Record<string, string>> = spec.model === "MaintenanceContractEquipment" ? [{ contractId: "asc" }, { equipmentId: "asc" }] : spec.model === "AgencyMembership" ? [{ agencyId: "asc" }, { membershipId: "asc" }] : [{ id: "asc" }]
       const batch = await delegate.findMany({ where: spec.where(companyId), take: 250, skip, orderBy })
-      totalRows += batch.length
-      totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
-      if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+      accountBatch(batch)
       rows.push(...batch)
       if (batch.length < 250) break
     }
@@ -316,10 +330,16 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
 
   const byModel = new Map(tables.map((table) => [table.model, table]))
   if (!byModel.get("Company")?.rows.length) throw new Error("Entreprise introuvable pour l’export")
-  const memberships = byModel.get("Membership")?.rows ?? []
-  const userIds = new Set<string>([userId])
-  for (const row of memberships) if (typeof row.userId === "string") userIds.add(row.userId)
-  const users = await client.user.findMany({ where: { id: { in: [...userIds] } } })
+  // In this same serializable snapshot, membership selects the exported users
+  // without placing an unbounded list of their identifiers in every query.
+  const userScope = { OR: [{ id: userId }, { memberships: { some: { companyId } } }] }
+  const users = []
+  for (let skip = 0; ; skip += 250) {
+    const batch = await client.user.findMany({ where: userScope, orderBy: { id: "asc" }, take: 250, skip })
+    accountBatch(batch)
+    users.push(...batch)
+    if (batch.length < 250) break
+  }
   tables.splice(1, 0, {
     model: "User",
     rows: sortRows(users.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
@@ -330,13 +350,14 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
     for (const row of table.rows) if (typeof row.id === "string") resourceIds.add(row.id)
   }
   const scopedAuditLogs = []
-  for (let skip = 0; ; skip += 250) {
-    const batch = await client.auditLog.findMany({ where: { userId: { in: [...userIds] }, resourceId: { in: [...resourceIds] } }, orderBy: { id: "asc" }, take: 250, skip })
-    totalRows += batch.length
-    totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
-    if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
-    scopedAuditLogs.push(...batch)
-    if (batch.length < 250) break
+  const resources = [...resourceIds]
+  for (let offset = 0; offset < resources.length; offset += 250) {
+    for (let skip = 0; ; skip += 250) {
+      const batch = await client.auditLog.findMany({ where: { user: userScope, resourceId: { in: resources.slice(offset, offset + 250) } }, orderBy: { id: "asc" }, take: 250, skip })
+      accountBatch(batch)
+      scopedAuditLogs.push(...batch)
+      if (batch.length < 250) break
+    }
   }
   tables.push({
     model: "AuditLog",
@@ -550,6 +571,9 @@ function validateLegacyPayload(input: unknown, companyId: string): asserts input
     throw new Error("Cette sauvegarde appartient à une autre entreprise")
   }
   if (!Array.isArray(payload.localFiles)) throw new Error("Inventaire de fichiers absent")
+  if (payload.notifications !== undefined && (!Array.isArray(payload.notifications) || payload.notifications.length > 0)) {
+    throw new Error("Restauration v2 refusée : les notifications de cette ancienne sauvegarde n’ont pas de société vérifiable. Utilisez une reprise contrôlée.")
+  }
 }
 
 async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) {
@@ -572,16 +596,25 @@ async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) 
 }
 
 const LEGACY_UNREPRESENTED_TABLES = [
+  "EmailSendQuotaPolicy", "EmailSendQuotaState", "EmailSendQuotaCharge",
+  "CampaignAudience", "CampaignAudienceMember",
   "Agency", "AgencyMembership", "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
   "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
   "InventoryItem", "StockMovement", "StockTransfer", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
   "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "ServiceTicketNote", "ServiceDiagnosticGuide", "ServiceTicketDiagnostic", "CustomerHealthRule", "CustomerHealthSnapshot", "KnowledgeArticle", "SatisfactionSurvey", "SatisfactionRequest", "SavedView", "CrmPropertyDefinition", "CrmPropertyValue", "CrmPropertyHistory", "FieldIntervention", "InterventionReservation",
   "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
   "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
-  "EmailSequenceEnrollment", "EmailSequenceTask", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "EmailSuppression", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "MarketingCampaign", "MarketingCampaignAsset", "AutomationWorkflow", "AutomationWorkflowVersion", "AutomationRun",
+  "EmailSequenceEnrollment", "EmailSequenceTask", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "EmailSuppression", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "MarketingCampaign", "MarketingCampaignAsset", "AutomationWorkflow", "AutomationWorkflowVersion", "AutomationRun", "AutomationEventOutbox", "AutomationRunAction",
 ]
 
 async function assertLegacyRestoreIsSafe(companyId: string) {
+  // Other authors' drafts and signatures cannot be read through Prisma. These
+  // internal aggregates only check whether a legacy restore would erase them;
+  // neither content nor recipient addresses are read or returned.
+  const drafts = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS "count" FROM "EmailDraft" WHERE "companyId" = ${companyId}`
+  if (Number(drafts[0]?.count ?? 0) > 0) throw new Error("Restauration v2 refusée : les brouillons personnels sont absents de cette ancienne sauvegarde. Utilisez une reprise contrôlée.")
+  const signatures = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS "count" FROM "EmailSignature" WHERE "companyId" = ${companyId}`
+  if (Number(signatures[0]?.count ?? 0) > 0) throw new Error("Restauration v2 refusée : les signatures personnelles sont absentes de cette ancienne sauvegarde. Utilisez une reprise contrôlée.")
   const specsByModel = new Map(COMPANY_TABLE_SPECS.map((spec) => [spec.model, spec]))
   const database = prisma as unknown as Record<string, {
     count: (args: { where: Record<string, unknown> }) => Promise<number>
@@ -719,7 +752,6 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       await tx.service.deleteMany({ where: { companyId } })
       await tx.serviceCategory.deleteMany({ where: { companyId } })
       await tx.relanceConfig.deleteMany({ where: { companyId } })
-      await tx.notification.deleteMany({ where: { userId } })
       await tx.auditLog.deleteMany({ where: { userId } })
       await tx.apiKey.deleteMany({ where: { userId } })
 
@@ -802,7 +834,6 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       if (deliveries.length) await tx.webhookDelivery.createMany({ data: deliveries.map((row: any) => normalizeRecord(row, ["endpoint"])) })
       if (c.relanceConfig) await tx.relanceConfig.create({ data: normalizeRecord(c.relanceConfig, ["company"]) as any })
       if ((c.bankTransactions ?? []).length) await tx.bankTransaction.createMany({ data: c.bankTransactions.map((row: any) => normalizeRecord(row, ["company", "matchedPayment", "matchedExpense"])) })
-      if (payload.notifications.length) await tx.notification.createMany({ data: payload.notifications.map((row: any) => normalizeRecord(row, ["user"])) as any })
       if (payload.auditLogs.length) await tx.auditLog.createMany({ data: payload.auditLogs.map((row: any) => normalizeRecord(row, ["user"])) as any })
       if (payload.apiKeys.length) await tx.apiKey.createMany({ data: payload.apiKeys.map((row: any) => normalizeRecord(row, ["user"])) as any })
     }, { timeout: 60_000, maxWait: 10_000 })

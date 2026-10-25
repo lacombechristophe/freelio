@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { InvoiceActions } from "../invoice-actions"
 import { E_INVOICE_STATUS_LABELS, INVOICE_STATUS_LABELS } from "@/lib/invoice-labels"
+import { isIssuedInvoice } from "@/lib/finance/issued-invoice"
 
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -36,6 +37,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const invoice = await getInvoiceById(id)
   if (!invoice) notFound()
 
+  const readOnly = isIssuedInvoice(invoice)
   const unpaid = invoice.totalTtcCents - invoice.paidAmountCents
   const pdfDocument: PdfDocument = {
     kind: "FACTURE",
@@ -137,6 +139,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           Avoir lié à <Link className="font-medium text-foreground hover:underline" href={`/dashboard/factures/${invoice.originalInvoice.id}`}>{invoice.originalInvoice.number}</Link>
         </div>
       )}
+      {invoice.unavailableRelations.originalInvoice && <p className="text-sm text-muted-foreground">Facture source : Référence liée indisponible</p>}
 
       <RecordSummary label="Montants de la facture" items={[
         { label: "Total HT", value: formatEuro(invoice.totalHtCents) },
@@ -150,7 +153,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         documentId={invoice.id}
         documentNumber={invoice.number}
         defaultTemplate={invoice.company.pdfTemplate}
-        readOnly={Boolean(invoice.lockedAt || ["SENT", "OVERDUE", "PAID"].includes(invoice.status))}
+        readOnly={readOnly}
+        archiveUnavailable={readOnly && !(invoice.issuedDocument && invoice.pdfUrl && invoice.pdfHash)}
         document={pdfDocument}
       />
 

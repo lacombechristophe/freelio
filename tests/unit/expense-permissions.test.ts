@@ -24,7 +24,7 @@ it("denies expense reads to a technician before reading financial data", async (
 it("allows a viewer to read the current company's expenses", async () => {
   state.role = "VIEWER"
   await expect(getExpenses()).resolves.toEqual([])
-  expect(prisma.expense.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId: "synthetic-company" } }))
+  expect(prisma.expense.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ companyId: "synthetic-company" }) }))
 })
 
 it.each([

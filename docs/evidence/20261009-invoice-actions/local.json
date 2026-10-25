@@ -1,0 +1,106 @@
+{
+  "schema": "freelio.invoice-action-scope.v1",
+  "phase": "local",
+  "source": [
+    {
+      "file": "src/actions/factures/index.ts",
+      "sha256": "752d1dc25320a1e937eef0768e26de6229dce9ba60257cb7fa46c75d0bcc9460"
+    },
+    {
+      "file": "src/lib/finance/invoice-reminder-sender.ts",
+      "sha256": "f22218f432b05446032ba42d8bbb496dddfe0971bd887b682f23e42867eb250a"
+    },
+    {
+      "file": "tests/unit/invoice-action-scope.integration.test.ts",
+      "sha256": "8fac1cb04564d0993d385ef06f2bcf4cea769869a9042c14be62fdd3a2eaaba0"
+    },
+    {
+      "file": "tests/unit/invoice-reminder-command.integration.test.ts",
+      "sha256": "d743763329500438aea75e4731a0af958fd592d1bc60cf05ba83ecd568f7f50a"
+    },
+    {
+      "file": "tests/unit/commercial-read-permissions.test.ts",
+      "sha256": "da2ea910a03e42ff32f11d3a7848ff811eaeec21ea4ce122edc823d9f283e1bb"
+    }
+  ],
+  "database": "SQLite, isolated fictitious recipe",
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 9.052
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 25.426
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.169
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 174.362
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 81.582
+    }
+  ],
+  "unit": {
+    "total": 1472,
+    "passed": 1472,
+    "failed": 0,
+    "skipped": 0,
+    "files": 178,
+    "reportSha256": "aec57666811f62f31ba40c40fef78d0abeaa97890648541e63e91ab24c160ddf"
+  },
+  "focused": [
+    {
+      "file": "document-read-scope.integration.test.ts",
+      "passed": 33,
+      "failed": 0
+    },
+    {
+      "file": "invoice-action-scope.integration.test.ts",
+      "passed": 34,
+      "failed": 0
+    },
+    {
+      "file": "invoice-payment-concurrency.integration.test.ts",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "file": "invoice-reminder-command.integration.test.ts",
+      "passed": 9,
+      "failed": 0
+    }
+  ],
+  "build": {
+    "exitCode": 0,
+    "reportSha256": "4f1e133c3161d16d91ac7854ca8357ac23620098758d666b90987cd3f424cccc"
+  },
+  "publication": {
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1136,
+    "historyBlobsChecked": 3282,
+    "placeholdersExcluded": 1,
+    "findings": []
+  },
+  "firstFullSuite": {
+    "passed": 1471,
+    "failed": 1,
+    "reason": "Existing mock expected only companyId; its assertion now also requires the client company predicate."
+  },
+  "limits": [
+    "Invoice archive generation and external email transport are simulated in the focused suites.",
+    "No PostgreSQL or browser result attributed to the local recipe.",
+    "Refunds, credit-note contention and other operation chains remain separate."
+  ],
+  "sourceCommit": "e13d3d7f925b41bf5951441decafb4c83bbbe999"
+}

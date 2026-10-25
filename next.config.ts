@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["@prisma/client"],
   outputFileTracingIncludes: {
+    "/api/health/ready": ["./prisma/postgresql/migrations/**/migration.sql"],
     "/api/pdf/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
     "/api/portal/documents/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
     "/dashboard/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],

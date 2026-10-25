@@ -1,0 +1,77 @@
+{
+  "schema": "freelio.stock-reservation-concurrency.v1",
+  "sourceBase": "de24513b51ef547201121318242660aa07c98a41",
+  "businessChanged": false,
+  "test": {
+    "file": "tests/unit/stock-reservation-concurrency.integration.test.ts",
+    "sha256": "52213b322860fafd77159f8b74c35e3504a7a23e5df65d6ebb053b8af972ec17"
+  },
+  "database": "isolated fictitious SQLite",
+  "passed": 12,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "keeps two concurrent 5-unit reservations within ten available units",
+      "status": "passed"
+    },
+    {
+      "name": "keeps two concurrent 6-unit reservations within ten available units",
+      "status": "passed"
+    },
+    {
+      "name": "keeps two concurrent 10-unit reservations within ten available units",
+      "status": "passed"
+    },
+    {
+      "name": "performs only one terminal operation when release races on a reservation",
+      "status": "passed"
+    },
+    {
+      "name": "performs only one terminal operation when consume races on a reservation",
+      "status": "passed"
+    },
+    {
+      "name": "performs only one terminal operation when mixed races on a reservation",
+      "status": "passed"
+    },
+    {
+      "name": "releases stock for a new reservation without changing physical quantity",
+      "status": "passed"
+    },
+    {
+      "name": "rolls back a reservation and movement when stock is insufficient",
+      "status": "passed"
+    },
+    {
+      "name": "rejects a second terminal operation without changing balances",
+      "status": "passed"
+    },
+    {
+      "name": "refuses an unassigned warehouse and project",
+      "status": "passed"
+    },
+    {
+      "name": "refuses reservation writes for Viewer",
+      "status": "passed"
+    },
+    {
+      "name": "refuses reservations in the public demo",
+      "status": "passed"
+    }
+  ],
+  "checks": {
+    "types": 0,
+    "eslint": 0,
+    "oxlint": 0
+  },
+  "firstExecution": {
+    "passed": 11,
+    "failed": 1,
+    "reason": "Incorrect test matcher equality; toEqual now checks the accepted terminal status."
+  },
+  "limits": [
+    "Real SQL and actions; session and Next cache simulated.",
+    "PostgreSQL real-read barrier awaits candidate CI.",
+    "No production load or multi-process SQLite test."
+  ]
+}

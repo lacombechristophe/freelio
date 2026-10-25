@@ -1,0 +1,20 @@
+{
+  "baseCommit": "6e01927eef1392c7515a6f248dc779ad787a7e0e",
+  "database": "isolated SQLite",
+  "passed": 23,
+  "failed": 0,
+  "suites": [
+    {
+      "file": "build-memory.test.ts",
+      "passed": 2,
+      "status": "passed"
+    },
+    {
+      "file": "supplier-history.integration.test.ts",
+      "passed": 21,
+      "status": "passed"
+    }
+  ],
+  "postgresQualified": false,
+  "individualTestTimeoutChanged": false
+}

@@ -1,14 +1,20 @@
 import { Activity, Calculator, CircleDollarSign, Receipt, Repeat2, TriangleAlert, Wallet } from "lucide-react"
 
 import { getWorkspaceOverview } from "@/actions/workspaces"
+import { resolveAuthContext } from "@/lib/auth-wrapper"
+import { hasPermission } from "@/lib/permissions"
+import { WorkspaceAccessRequired } from "@/app/dashboard/_components/workspace-access-required"
 import { formatWorkspaceDate, formatWorkspaceEuro, WorkspaceHub } from "@/app/dashboard/_components/workspace-hub"
 import { WorkspaceDistributionPanel, WorkspaceTrendPanel } from "@/app/dashboard/_components/workspace-insights"
 import { OnboardingRequired } from "@/components/shared/onboarding-required"
 import { INVOICE_STATUS_LABELS } from "@/lib/invoice-labels"
 
 export default async function RevenueWorkspacePage() {
+  const context = await resolveAuthContext()
+  if (context && !hasPermission(context.role, "finance.read")) return <WorkspaceAccessRequired title="Accès Finance requis" />
   const data = await getWorkspaceOverview("REVENUE")
   if (!data) return <OnboardingRequired title="Configurez votre espace" description="Créez le profil entreprise avant de piloter les revenus." />
+  if (data.outstandingCents === null || data.overdueInvoices === null || data.paymentsLast90DaysCents === null) return <WorkspaceAccessRequired title="Accès Finance requis" />
   const now = new Date()
   const aging = [
     { label: "À échoir", min: Number.NEGATIVE_INFINITY, max: 0 },

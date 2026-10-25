@@ -1,0 +1,40 @@
+{
+  "source": {
+    "sourceCommit": "2b05e5f6d425542971285f13170fbcb44bb6f1bb",
+    "action": "createPurchaseOrder",
+    "matchesPublishedAction": true,
+    "sha256": "5d683c7e29935770a46da9f840af7587baf5af19a04dccc2d80ae8083f32301c"
+  },
+  "database": "isolated SQLite",
+  "total": 5,
+  "passed": 1,
+  "failed": 4,
+  "cases": [
+    {
+      "name": "Purchase creation relation and stale-preparation diagnostic creates a coherent control draft",
+      "status": "passed",
+      "unexpectedlyCreatedDraft": false
+    },
+    {
+      "name": "Purchase creation relation and stale-preparation diagnostic refuses an own project attached to a foreign client before creating a draft",
+      "status": "failed",
+      "unexpectedlyCreatedDraft": true
+    },
+    {
+      "name": "Purchase creation relation and stale-preparation diagnostic refuses a completed project absent from the active selector",
+      "status": "failed",
+      "unexpectedlyCreatedDraft": true
+    },
+    {
+      "name": "Purchase creation relation and stale-preparation diagnostic rechecks a project whose client changed during number preparation",
+      "status": "failed",
+      "unexpectedlyCreatedDraft": true
+    },
+    {
+      "name": "Purchase creation relation and stale-preparation diagnostic rechecks a product deactivated during number preparation",
+      "status": "failed",
+      "unexpectedlyCreatedDraft": true
+    }
+  ],
+  "interleaving": "Deterministic real SQL changes at number preparation; not a simultaneous network-concurrency test"
+}

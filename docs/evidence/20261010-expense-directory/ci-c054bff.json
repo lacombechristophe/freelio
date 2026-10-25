@@ -1,0 +1,270 @@
+{
+  "schema": "freelio.qualified-baseline.v1",
+  "candidate": "c054bffa01667ab91e04a61429aed87dec6847f0",
+  "sourceIdentity": {
+    "observedAt": "2026-10-10T12:58:06.467Z",
+    "candidate": "c054bffa01667ab91e04a61429aed87dec6847f0",
+    "testedMerge": "01706dd02ca28ada072aff237cb790c36fc4298b",
+    "method": "Identical Git tree entries outside docs/: mode, type, blob SHA and path",
+    "entries": 977,
+    "sha256": "d0567388eff169387d0f27369239b7ffcf26b25a3dff27c0500fe4cf54ae9e67",
+    "identical": true
+  },
+  "runs": [
+    {
+      "event": "push",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38053501905",
+      "conclusion": "success",
+      "testedCommit": "c054bffa01667ab91e04a61429aed87dec6847f0",
+      "parents": [
+        "61d7331d2b165994148066c307ec290ea4cb8f2f"
+      ],
+      "attempts": [
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114217207625,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 114217207811,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114217207857,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  194 passed (194)",
+        "Tests  1707 passed (1707)",
+        "Test Files  194 passed (194)",
+        "Tests  1707 passed (1707)"
+      ],
+      "postgres": {
+        "artifactId": 11669748271,
+        "reportSha256": "3214ed51a119e0be0e731044586ffad4729744cc49ba79051e74ff8cc88f8fb2",
+        "passed": 1706,
+        "failed": 0,
+        "skipped": 1
+      },
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "311 passed (22.3m)"
+        ],
+        "skippedCases": [
+          "-  149 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  213 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  214 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  216 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  217 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  218 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  219 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  220 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  221 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  222 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  223 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  224 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  225 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  226 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  227 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  228 [mobile] › tests/e2e/critical-flows.spec.ts:1604:5 › creates and signs in a production account with a password",
+          "-  276 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  313 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  323 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ]
+      },
+      "linux": {
+        "artifactId": 11670861874,
+        "reportSha256": "5c90b9a11c3ac3c2e428334252cbddc20cbd0f4b09f8873bcd97976ba5e07502",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    },
+    {
+      "event": "pull_request",
+      "run": "https://github.com/lacombechristophe/freelio/actions/runs/38053504697",
+      "conclusion": "success",
+      "testedCommit": "01706dd02ca28ada072aff237cb790c36fc4298b",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "c054bffa01667ab91e04a61429aed87dec6847f0"
+      ],
+      "attempts": [
+        {
+          "name": "Image Linux et Chromium",
+          "id": 114217215148,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 114217215307,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 114217215328,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  194 passed (194)",
+        "Tests  1707 passed (1707)",
+        "Test Files  194 passed (194)",
+        "Tests  1707 passed (1707)"
+      ],
+      "postgres": {
+        "artifactId": 11670787134,
+        "reportSha256": "0872defe3f5ad49e905470a1650146de1dc8bba75c7d7e40197eeade0d543933",
+        "passed": 1706,
+        "failed": 0,
+        "skipped": 1
+      },
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "311 passed (23.7m)"
+        ],
+        "skippedCases": [
+          "-  149 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  213 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  214 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  216 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  217 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  218 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  219 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  220 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  221 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  222 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  223 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  224 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  225 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  226 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  227 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  228 [mobile] › tests/e2e/critical-flows.spec.ts:1604:5 › creates and signs in a production account with a password",
+          "-  276 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  313 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  323 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ]
+      },
+      "linux": {
+        "artifactId": 11669977917,
+        "reportSha256": "d46ec6d4bfac7042c9d0f54b88f70f1032086cc960854519edb3a0842780399f",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ],
+        "runtimeImages": [
+          {
+            "kind": "postgres",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/postgres@sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "tag": "18.6-bookworm",
+            "digest": "sha256:afc7e2d441324c0388fa80c3d24f733b4194a4eb7f47dd8ee2b08eb1a24a647c",
+            "imageId": "sha256:2e182ed2ff8f5d0835353864264437a26dffc542a9a6c677ec495aa54e491627"
+          },
+          {
+            "kind": "redis",
+            "attempts": [
+              {
+                "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+                "attempt": 1,
+                "outcome": "available"
+              }
+            ],
+            "reference": "public.ecr.aws/docker/library/redis@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "tag": "7.4-bookworm",
+            "digest": "sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85",
+            "imageId": "sha256:d24fb73aa9caa76060b48f711af3831f1e95286c745da622c00419ed864cd291"
+          }
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ]
+    }
+  ],
+  "limits": [
+    "This baseline precedes the expense directory implementation and does not qualify it.",
+    "Historical exclusions remain explicit; real providers, load and recovery are separate."
+  ]
+}

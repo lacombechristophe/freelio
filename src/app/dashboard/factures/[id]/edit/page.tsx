@@ -1,15 +1,13 @@
 import { notFound } from "next/navigation"
 import { getInvoiceById } from "@/actions/factures"
-import { getClientsMinimal } from "@/actions/clients"
 import { getBillingSettings } from "@/actions/settings"
 import { InvoiceForm } from "../../invoice-form"
 import { PageHeader } from "@/components/shared/page-header"
 
 export default async function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [invoice, clients, billingSettings] = await Promise.all([
+  const [invoice, billingSettings] = await Promise.all([
     getInvoiceById(id),
-    getClientsMinimal(),
     getBillingSettings(),
   ])
   if (!invoice) notFound()
@@ -42,7 +40,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
           dueDate: invoice.dueDate,
         }}
         initialLines={initialLines}
-        clients={clients ?? []}
+        initialClient={{ id: invoice.client.id, name: invoice.client.name }}
         isTvaApplicable={billingSettings?.isTvaApplicable ?? true}
       />
     </div>

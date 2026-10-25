@@ -51,7 +51,7 @@ try {
     await fs.mkdir(path.dirname(target), { recursive: true })
     await fs.copyFile(origin, target)
   }
-  // Reuse installed dependencies; neither install nor regenerate them here.
+  // Reuse dependencies; generate the application client inside this demo copy.
   const modules = path.join(runtime, "node_modules")
   if (!(await fs.lstat(modules).catch(() => null))) await fs.symlink(path.join(source, "node_modules"), modules, process.platform === "win32" ? "junction" : "dir")
   const baseURL = `http://127.0.0.1:${port}`
@@ -93,7 +93,8 @@ try {
       if (code !== 0 && code !== null) throw new Error(`La commande de démo a échoué (${code})`)
     } finally { process.removeListener("SIGINT", stop) }
   }
-  await run(path.join(modules, "prisma", "build", "index.js"), ["db", "push", "--skip-generate", "--schema", "prisma/schema.prisma"])
+  await run(path.join(runtime, "scripts", "sync-prisma-schemas.mjs"))
+  await run(path.join(modules, "prisma", "build", "index.js"), ["db", "push", "--schema", "prisma/schema.prisma"])
   if (resumeIndex < 0) await run(path.join(modules, "tsx", "dist", "cli.mjs"), [path.join(runtime, "scripts", "seed-demo.mjs")])
   console.log(`Démo locale : ${baseURL}\nDossier : ${runtime}\nIdentifiants fictifs : ${accessFile}\nArrêt : Ctrl+C. Aucun .env ni donnée du projet utilisés.`)
   if (!args.includes("--prepare")) {

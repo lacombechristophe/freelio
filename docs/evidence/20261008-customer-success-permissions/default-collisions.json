@@ -1,0 +1,53 @@
+{
+  "schema": "freelio.health-default-collision.v1",
+  "engine": "SQLite",
+  "baseline": "81aa8462a2f0fbca7eb06b4f555de2a42d8a6ef3",
+  "test": "tests/unit/customer-success-permissions.integration.test.ts",
+  "selector": "default-name collisions",
+  "testSha256": "f4bb23843f9b4204197f33c38eb51e839f377790840f75aae89bd9e29aa211b9",
+  "beforeSourceSha256": "015df4423192ebcce21e36125d8eff0c9afb1cf0e5263f4f52b30c1079d7313e",
+  "afterSourceSha256": "eae619864a6d27f4c9a852785d39aa8140015de84a22b5deb60d8754bee0a3eb",
+  "reports": [
+    {
+      "phase": "before",
+      "reportSha256": "82de03db34f9d2bc2dbd279c98bef234f581a5f378277d6658ea412e7aea5340",
+      "cases": [
+        {
+          "name": "customer-success financial permissions on real SQL preserves ACTIVE financial rules in default-name collisions for Service",
+          "status": "failed"
+        },
+        {
+          "name": "customer-success financial permissions on real SQL preserves ARCHIVED financial rules in default-name collisions for Service",
+          "status": "failed"
+        },
+        {
+          "name": "customer-success financial permissions on real SQL keeps authorized Owner updates available in default-name collisions",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "phase": "after",
+      "reportSha256": "a5d01812936805fab15b8d168cf1393480f182aad68b800bb0e6ebee0085cd18",
+      "cases": [
+        {
+          "name": "customer-success financial permissions on real SQL preserves ACTIVE financial rules in default-name collisions for Service",
+          "status": "passed"
+        },
+        {
+          "name": "customer-success financial permissions on real SQL preserves ARCHIVED financial rules in default-name collisions for Service",
+          "status": "passed"
+        },
+        {
+          "name": "customer-success financial permissions on real SQL keeps authorized Owner updates available in default-name collisions",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Only three selected collision cases; the other 26 cases were excluded by the selector, without adding skips to the suite.",
+    "Real memberships, actions, DAL and SQL; session/cache simulated; fictitious data cleaned.",
+    "No PostgreSQL concurrency or browser qualification is attributed to this local comparison."
+  ]
+}

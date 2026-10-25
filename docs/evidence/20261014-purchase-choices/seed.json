@@ -1,0 +1,26 @@
+{
+  "database": "isolated SQLite functional.db",
+  "fixtures": [
+    {
+      "surface": "desktop",
+      "products": 501,
+      "projects": 301,
+      "productPages": 21,
+      "projectPages": 13,
+      "purchasePriceCents": 789,
+      "relationsCoherent": true,
+      "passwordVerified": true
+    },
+    {
+      "surface": "mobile",
+      "products": 501,
+      "projects": 301,
+      "productPages": 21,
+      "projectPages": 13,
+      "purchasePriceCents": 789,
+      "relationsCoherent": true,
+      "passwordVerified": true
+    }
+  ],
+  "remainingCompanies": 0
+}

@@ -1,0 +1,33 @@
+{
+  "candidate": "369f41369fe2084dacba09188d2c9d8020eadef8",
+  "deployment": 6971581863,
+  "observedAt": "2026-10-09T22:13:40.260Z",
+  "method": "GET through existing automation access; CLI native arguments",
+  "observations": [
+    {
+      "route": "/api/health/live",
+      "cliExit": 0,
+      "http": "200 application/json",
+      "payload": {
+        "status": "ok"
+      },
+      "bodySha256": "a29ee2b15c494311c52521766e44af56a3ad2248e7a8ab465e5206463c13d288",
+      "tokenCreationReported": false
+    },
+    {
+      "route": "/api/health/ready",
+      "cliExit": 0,
+      "http": "503 application/json",
+      "payload": {
+        "status": "not_ready",
+        "database": "ok",
+        "configuration": "error"
+      },
+      "bodySha256": "060b067287470164968a60eab435dc1c216e7bd37530a784a1990916ac46c984",
+      "tokenCreationReported": false
+    }
+  ],
+  "limits": [
+    "Process configuration and SELECT 1 only; no schema, login, business or supplier qualification"
+  ]
+}

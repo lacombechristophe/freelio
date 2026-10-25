@@ -1,7 +1,10 @@
 name: Vérification CRM
 
 on:
+  # PRs run the complete matrix; repeat it on main after integration, rather
+  # than running identical push and PR jobs for every candidate update.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -43,7 +46,13 @@ jobs:
           retention-days: 14
   quality-and-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Each surface owns its database. Leave room for the build, browser install
+    # and exhaustive route audit; individual browser actions have bounded waits.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, mobile]
     env:
       DATABASE_URL: file:./e2e-ci.db
       AUTH_SECRET: ci-auth-secret-longer-than-thirty-two-characters
@@ -52,7 +61,7 @@ jobs:
       ENCRYPTION_KEY: ci-encryption-secret-longer-than-thirty-two-characters
       LEAD_HASH_SALT: ci-lead-hash-salt-longer-than-thirty-two-characters
       SCHEDULER_CRON_SECRET: ci-scheduler-secret-longer-than-thirty-two-characters
-      PUBLIC_LEAD_COMPANY_ID: e2e-company
+      PUBLIC_LEAD_COMPANY_ID: ce2ecompany000000000000001
       LEAD_ALLOWED_ORIGINS: https://example.test
       E2E_USER_EMAIL: qa-crm@example.com
       PUBLIC_APP_URL: http://127.0.0.1:3000
@@ -79,19 +88,23 @@ jobs:
       - name: Installer les dépendances
         run: npm ci --no-audit --fund=false
 
-      - name: Auditer les dépendances
-        run: npm audit --audit-level=moderate
+      - name: Auditer les dépendances de production
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Préparer la base E2E isolée
         run: |
           npm run db:bootstrap:sqlite
           node scripts/seed-e2e.mjs
 
-      - name: Vérifier types, lint, tests et build
-        run: npm run verify
-
-      - name: Mesurer la couverture métier critique
-        run: npm run test:coverage
+      # Coverage executes the complete SQL suite; running test:unit as well
+      # duplicated it and left too little time for Chromium and evidence uploads.
+      - name: Vérifier types, lint, tests, couverture et build
+        run: |
+          npm run db:prepare:dev
+          npm run typecheck
+          npm run lint
+          npm run test:coverage
+          npm run build
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
@@ -100,28 +113,35 @@ jobs:
         run: node scripts/seed-ui-redesign.mjs
 
       - name: Exécuter les parcours critiques
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+
+      # Keep the complete security gate while retaining functional evidence
+      # when a development-only advisory has no upstream patch yet.
+      - name: Auditer toutes les dépendances
+        if: always()
+        run: npm audit --audit-level=moderate
 
       - name: Publier les traces en cas d’échec
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
+          # Complete screenshots and traces remain available for diagnosis.
+          # Successful runs publish only their compact JSON reports below.
           retention-days: 7
 
       - name: Publier les rapports de recette UI
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ui-audit-reports
+          name: ui-audit-reports-${{ matrix.project }}
           path: |
-            test-results/full-ui-audit/
-            test-results/task-usability/
+            test-results/**/*.json
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
 
       - name: Relier les résultats au commit testé
         if: always()
@@ -134,7 +154,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: verification-sqlite-${{ github.sha }}
+          name: verification-sqlite-${{ github.sha }}-${{ matrix.project }}
           path: |
             test-results/tested-commit.txt
             test-results/node-version.txt
@@ -147,7 +167,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:18.6
+        image: docker.io/library/postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
         env:
           POSTGRES_USER: crm
           POSTGRES_PASSWORD: crm
@@ -187,6 +207,12 @@ jobs:
 
       - name: Appliquer les migrations PostgreSQL
         run: npm run db:deploy:postgres
+
+      - name: Exercer un fuseau PostgreSQL non UTC
+        run: |
+          node node_modules/prisma/build/index.js db execute --stdin <<'SQL'
+          ALTER DATABASE crm_test SET timezone TO 'Europe/Paris';
+          SQL
 
       - name: Exécuter les tests unitaires sur PostgreSQL
         run: npm run test:unit -- --reporter=default --reporter=json --outputFile=test-results/unit-postgres.json

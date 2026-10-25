@@ -1,0 +1,22 @@
+{
+  "schema": "freelio.github-actions-budget-observation.v1",
+  "date": "2026-10-22",
+  "source": "https://github.com/settings/billing/budgets",
+  "method": "Read-only authenticated Chrome accessibility observation through cua_repl",
+  "account": "lacombechristophe",
+  "accountType": "personal",
+  "scope": "Account",
+  "product": "Actions",
+  "spentUsd": 0,
+  "budgetUsd": 0,
+  "utilizationPercent": 100,
+  "status": "Usage blocked",
+  "visibleRow": "Account lacombechristophe · Actions | $0.00 / $0.00 spent | 100 % | Usage blocked",
+  "settingsChanged": false,
+  "conclusion": "The account-wide Actions budget is zero and the displayed status blocks budgeted usage. The prior missing-budget-evidence gate is satisfied.",
+  "limits": [
+    "This observation does not prove remaining included minutes or artifact capacity",
+    "A new workflow can still be blocked by exhausted included usage or artifact quotas",
+    "This is a dated observation of Actions, not a guarantee about other products or later account changes"
+  ]
+}

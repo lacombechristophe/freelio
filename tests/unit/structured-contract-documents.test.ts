@@ -30,11 +30,19 @@ describe("structured contract documents", () => {
       indexationRate: 5,
       frequency: "ANNUAL",
       noticeDays: 90,
+      tvaRate: 20,
+      invoiceDueDays: 30,
     })
 
     expect(html).toContain("ENT-2026-001")
     expect(html).toContain("252,00 €")
+    expect(html).toContain("240,00 € HT")
+    expect(html).toContain("252,00 € HT")
+    expect(html).not.toContain("TTC")
     expect(html).toContain("90 jours")
+    expect(html).toContain("Fréquence : Annuelle")
+    expect(html).toContain("TVA applicable : 20 %")
+    expect(html).toContain("Délai de paiement : 30 jours")
     expect(html).toContain("signature électronique")
   })
 })

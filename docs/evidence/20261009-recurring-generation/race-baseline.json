@@ -1,0 +1,88 @@
+{
+  "schema": "freelio.recurring-occurrence-race-baseline.v1",
+  "reference": "470966acea6b1ac6e2c32fe062d4d575052a3c93",
+  "passed": 12,
+  "failed": 1,
+  "total": 13,
+  "suiteErrors": [],
+  "cases": [
+    {
+      "name": "generates a coherent draft, occurrence and audit without issuing the invoice",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "does not generate twice for the same scheduled date",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "reports a second worker committing after the initial read as skipped",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { examined: 1, generated: 1, …(3) } to match object { generated: +0, skipped: 1, …(1) }"
+      ]
+    },
+    {
+      "name": "rejects a local plan referencing a foreign client before writing a draft",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects a project from another company before writing a draft",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects a project belonging to another client in the same company",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects an explicit audit author who is not a member of the company",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "keeps a coherent plan without a project supported",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects a suspended preferred author without falling back to another member",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects a preferred author whose role is outside the worker author policy",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "reports a nonexistent stored project without writing a partial occurrence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "preserves the shared author policy for coherent maintenance visits",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "name": "rejects a foreign explicit author for maintenance without writing a visit",
+      "status": "passed",
+      "failure": []
+    }
+  ],
+  "reproducerSha256": "f298656972553e643623b090af7c80f61090dfde6ad439fcfe79d75dc645aa48",
+  "interleaving": [
+    "First worker reads no occurrence.",
+    "A second real worker completes the same scheduled date before the first transaction begins.",
+    "The first transaction finds the committed occurrence and writes nothing, but its old summary increments generated."
+  ],
+  "limits": [
+    "Real SQLite and both production worker calls; a spy gates one initial read to place the second call between the two checks.",
+    "This is one controlled interleaving, not simultaneous multi-process load or SIGKILL recovery.",
+    "One invoice, occurrence and audit remain; the defect is an incorrect processing summary, not a demonstrated duplicate invoice."
+  ]
+}

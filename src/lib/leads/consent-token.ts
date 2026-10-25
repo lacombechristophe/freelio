@@ -64,3 +64,26 @@ export async function verifyConsentWithdrawalToken(token: string, secretOverride
     return null
   }
 }
+
+export type ManualMarketingWithdrawalToken = {
+  purpose: "MANUAL_MARKETING_WITHDRAWAL"
+  companyId: string
+  consentId: string
+  addressHash: string
+}
+
+export async function createManualMarketingWithdrawalToken(payload: Omit<ManualMarketingWithdrawalToken, "purpose">, secretOverride?: string) {
+  // Stable signed capability: no address, message content or hidden recipient.
+  // Keeping it valid allows withdrawal from old messages after re-subscription.
+  return new SignJWT({ ...payload, purpose: "MANUAL_MARKETING_WITHDRAWAL" })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" }).setIssuer(ISSUER)
+    .setAudience("manual-marketing-withdrawal").sign(consentSecret(secretOverride))
+}
+
+export async function verifyManualMarketingWithdrawalToken(token: string, secretOverride?: string): Promise<ManualMarketingWithdrawalToken | null> {
+  try {
+    const { payload } = await jwtVerify(token, consentSecret(secretOverride), { algorithms: ["HS256"], issuer: ISSUER, audience: "manual-marketing-withdrawal" })
+    if (payload.purpose !== "MANUAL_MARKETING_WITHDRAWAL" || typeof payload.companyId !== "string" || !payload.companyId || typeof payload.consentId !== "string" || !payload.consentId || typeof payload.addressHash !== "string" || !/^[a-f0-9]{64}$/.test(payload.addressHash)) return null
+    return { purpose: payload.purpose, companyId: payload.companyId, consentId: payload.consentId, addressHash: payload.addressHash }
+  } catch { return null }
+}

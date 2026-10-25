@@ -1,0 +1,22 @@
+{
+  "baseline": "c689a50f47515013544d4b9614dc12221db12db5",
+  "restored": [
+    "src/lib/communications/email-provider.ts",
+    "src/lib/communications/provider-credentials.ts"
+  ],
+  "filter": "keeps an explicit (platform|BYOK) sender",
+  "http": "simulated",
+  "reportSha256": "f0de9f9a00803159777667c5182336cb071be1fbb510fdeeea2df607ea3c3974",
+  "total": 12,
+  "passed": 1,
+  "failed": 1,
+  "pending": 10,
+  "files": 1,
+  "failures": [
+    {
+      "file": "email-send-quota-transport.integration.test.ts",
+      "title": "keeps an explicit platform sender on platform credentials when a BYOK mailbox exists",
+      "failure": "AssertionError: expected 'Bearer re_fictional_only' to be 'Bearer re_platform_fixture' // Object.is equality"
+    }
+  ]
+}

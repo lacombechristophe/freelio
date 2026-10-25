@@ -11,9 +11,11 @@ type Artifact = { id: string; number: string; status: string }
 
 type QuoteFulfillmentCardProps = {
   accepted: boolean
-  order: (Artifact & { billingStatus: string; invoices: Array<Artifact & { type: string }> }) | null
+  order: (Artifact & { billingStatus: string | null; invoices: Array<Artifact & { type: string }> }) | null
   project: ({ id: string; name: string; purchaseOrders: Artifact[] }) | null
   contract: Artifact | null
+  canReadFinance: boolean
+  unavailableRelations: { project: boolean; customerOrder: boolean; generatedContract: boolean }
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -30,7 +32,7 @@ function statusLabel(status: string) {
   return STATUS_LABELS[status] ?? status.replaceAll("_", " ").toLocaleLowerCase("fr-FR")
 }
 
-function Step({ done, icon: Icon, title, detail, href }: { done: boolean; icon: ElementType; title: string; detail: string; href?: string }) {
+function Step({ done, icon: Icon, title, detail, href }: { done: boolean | null; icon: ElementType; title: string; detail: string; href?: string }) {
   const content = (
     <div className={cn("group flex h-full min-w-0 gap-3 rounded-xl border p-4", done ? "border-success/25 bg-success/5" : "bg-muted/25")}>
       <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", done ? "bg-success text-white" : "bg-background text-muted-foreground ring-1 ring-border")}>
@@ -39,7 +41,7 @@ function Step({ done, icon: Icon, title, detail, href }: { done: boolean; icon: 
       <span className="min-w-0">
         <span className="flex items-center gap-2 text-sm font-semibold">
           {title}
-          <Badge variant={done ? "secondary" : "outline"} className="shrink-0 text-[10px]">{done ? "Prêt" : "À faire"}</Badge>
+          {done !== null && <Badge variant={done ? "secondary" : "outline"} className="shrink-0 text-[10px]">{done ? "Prêt" : "À faire"}</Badge>}
         </span>
         <span className="mt-1 block break-words text-xs leading-5 text-muted-foreground">{detail}</span>
       </span>
@@ -49,7 +51,7 @@ function Step({ done, icon: Icon, title, detail, href }: { done: boolean; icon: 
   return href ? <Link href={href} className="rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/30">{content}</Link> : content
 }
 
-export function QuoteFulfillmentCard({ accepted, order, project, contract }: QuoteFulfillmentCardProps) {
+export function QuoteFulfillmentCard({ accepted, order, project, contract, canReadFinance, unavailableRelations }: QuoteFulfillmentCardProps) {
   const invoices = order?.invoices ?? []
   const purchaseOrders = project?.purchaseOrders ?? []
 
@@ -67,11 +69,11 @@ export function QuoteFulfillmentCard({ accepted, order, project, contract }: Quo
       <CardContent className="space-y-5 p-5">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <Step done={accepted} icon={CircleDashed} title="Accord client" detail={accepted ? "Accord enregistré et statut figé." : "Enregistrez l’accord avant toute commande."} />
-          <Step done={Boolean(order)} icon={ClipboardList} title="Commande client" detail={order ? `${order.number} · ${statusLabel(order.billingStatus)}` : "Reprendra les lignes et les totaux du devis."} href={order ? "/dashboard/operations?tab=orders" : undefined} />
-          <Step done={Boolean(project)} icon={Wrench} title="Chantier" detail={project ? project.name : "Créé avec la commande pour planifier la pose."} href={project ? `/dashboard/projets/${project.id}` : undefined} />
-          <Step done={Boolean(contract)} icon={ScrollText} title="Contrat" detail={contract ? `${contract.number} · ${statusLabel(contract.status)}` : "Fourniture, pose, réception, garanties et sécurité."} href={contract ? `/dashboard/contrats/${contract.id}` : undefined} />
-          <Step done={purchaseOrders.length > 0} icon={PackageCheck} title="Approvisionnement" detail={purchaseOrders.length ? `${purchaseOrders.length} commande${purchaseOrders.length > 1 ? "s" : ""} fournisseur rattachée${purchaseOrders.length > 1 ? "s" : ""}.` : "À préparer selon le matériel et le fabricant."} href={project ? "/dashboard/operations?tab=stock" : undefined} />
-          <Step done={invoices.length > 0} icon={FileText} title="Facturation" detail={invoices.length ? `${invoices.length} facture${invoices.length > 1 ? "s" : ""} liée${invoices.length > 1 ? "s" : ""} à la commande.` : "Acompte puis solde, sans double facturation."} href={order ? "/dashboard/operations?tab=orders" : undefined} />
+          <Step done={unavailableRelations.customerOrder ? null : Boolean(order)} icon={ClipboardList} title="Commande client" detail={unavailableRelations.customerOrder ? "Référence liée indisponible" : order ? `${order.number} · ${order.billingStatus === null ? "Accès Finance requis" : statusLabel(order.billingStatus)}` : "Reprendra les lignes et les totaux du devis."} href={order ? "/dashboard/operations?tab=orders" : undefined} />
+          <Step done={unavailableRelations.project ? null : Boolean(project)} icon={Wrench} title="Chantier" detail={unavailableRelations.project ? "Référence liée indisponible" : project ? project.name : "Créé avec la commande pour planifier la pose."} href={project ? `/dashboard/projets/${project.id}` : undefined} />
+          <Step done={unavailableRelations.generatedContract ? null : Boolean(contract)} icon={ScrollText} title="Contrat" detail={unavailableRelations.generatedContract ? "Référence liée indisponible" : contract ? `${contract.number} · ${statusLabel(contract.status)}` : "Fourniture, pose, réception, garanties et sécurité."} href={contract ? `/dashboard/contrats/${contract.id}` : undefined} />
+          <Step done={unavailableRelations.project ? null : purchaseOrders.length > 0} icon={PackageCheck} title="Approvisionnement" detail={unavailableRelations.project ? "Référence liée indisponible" : purchaseOrders.length ? `${purchaseOrders.length} commande${purchaseOrders.length > 1 ? "s" : ""} fournisseur rattachée${purchaseOrders.length > 1 ? "s" : ""}.` : "À préparer selon le matériel et le fabricant."} href={project ? "/dashboard/operations?tab=stock" : undefined} />
+          <Step done={!canReadFinance || unavailableRelations.customerOrder ? null : invoices.length > 0} icon={FileText} title="Facturation" detail={!canReadFinance ? "Accès Finance requis" : unavailableRelations.customerOrder ? "Référence liée indisponible" : invoices.length ? `${invoices.length} facture${invoices.length > 1 ? "s" : ""} liée${invoices.length > 1 ? "s" : ""} à la commande.` : "Acompte puis solde, sans double facturation."} href={canReadFinance && order ? "/dashboard/operations?tab=orders" : undefined} />
         </div>
         {accepted && order ? (
           <div className="flex flex-col gap-3 rounded-xl border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">

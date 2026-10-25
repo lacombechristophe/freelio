@@ -36,7 +36,19 @@ function imageType(bytes: Buffer) {
   throw new Error("PDF_IMAGE_TYPE_INVALID")
 }
 
-export async function fetchPublicPdfImage(source: string, redirects = 0): Promise<Buffer> {
+async function abortableLookup(hostname: string, signal?: AbortSignal) {
+  signal?.throwIfAborted()
+  const pending = lookup(hostname, { all: true, verbatim: true })
+  if (!signal) return pending
+  return new Promise<Awaited<typeof pending>>((resolve, reject) => {
+    const abort = () => reject(signal.reason)
+    signal.addEventListener("abort", abort, { once: true })
+    pending.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort))
+  })
+}
+
+export async function fetchPublicPdfImage(source: string, redirects = 0, signal?: AbortSignal): Promise<Buffer> {
+  signal?.throwIfAborted()
   const url = new URL(source)
   if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443") || redirects > 3) {
     throw new Error("PDF_IMAGE_URL_REFUSED")
@@ -44,7 +56,8 @@ export async function fetchPublicPdfImage(source: string, redirects = 0): Promis
   const hostname = url.hostname.replace(/^\[|\]$/g, "")
   const addresses = isIP(hostname)
     ? [{ address: hostname, family: isIP(hostname) }]
-    : await lookup(hostname, { all: true, verbatim: true })
+    : await abortableLookup(hostname, signal)
+  signal?.throwIfAborted()
   if (!addresses.length || addresses.some(({ address }) => !isPublicImageAddress(address))) {
     throw new Error("PDF_IMAGE_DESTINATION_REFUSED")
   }
@@ -55,11 +68,12 @@ export async function fetchPublicPdfImage(source: string, redirects = 0): Promis
       family: selected.family, autoSelectFamily: false,
       lookup: (_hostname, _options, callback) => callback(null, selected.address, selected.family),
       timeout: 8_000,
+      signal,
     }
     const request = get(url, options, response => {
       if ([301, 302, 303, 307, 308].includes(response.statusCode ?? 0) && response.headers.location) {
         response.resume()
-        fetchPublicPdfImage(new URL(response.headers.location, url).href, redirects + 1).then(resolve, reject)
+        fetchPublicPdfImage(new URL(response.headers.location, url).href, redirects + 1, signal).then(resolve, reject)
         return
       }
       if (response.statusCode !== 200) {
@@ -89,11 +103,12 @@ export async function fetchPublicPdfImage(source: string, redirects = 0): Promis
   })
 }
 
-export async function inlineSafePdfImages(html: string) {
+export async function inlineSafePdfImages(html: string, signal?: AbortSignal, embedded = new Map<string, string>()) {
+  signal?.throwIfAborted()
   const images = [...html.matchAll(/(<img\b[^>]*?\bsrc=)(["'])([^"']+)\2/gi)]
   if (images.length > 20) throw new Error("PDF_IMAGE_LIMIT")
-  const embedded = new Map<string, string>()
   for (const image of images) {
+    signal?.throwIfAborted()
     const source = image[3].replaceAll("&amp;", "&")
     if (source.startsWith("data:")) continue
     if (!embedded.has(source)) {
@@ -102,9 +117,9 @@ export async function inlineSafePdfImages(html: string) {
         const publicRoot = path.resolve(process.cwd(), "public")
         const imagePath = path.resolve(publicRoot, "." + source)
         if (!imagePath.toLowerCase().startsWith((publicRoot + path.sep).toLowerCase())) throw new Error("PDF_IMAGE_PATH_REFUSED")
-        bytes = await readFile(imagePath)
+        bytes = await readFile(imagePath, { signal })
       } else {
-        bytes = await fetchPublicPdfImage(source)
+        bytes = await fetchPublicPdfImage(source, 0, signal)
       }
       if (bytes.length > MAX_IMAGE_BYTES) throw new Error("PDF_IMAGE_TOO_LARGE")
       embedded.set(source, `data:${imageType(bytes)};base64,${bytes.toString("base64")}`)

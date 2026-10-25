@@ -1,0 +1,40 @@
+{
+  "schema": "freelio.operations-list-volume-baseline.v1",
+  "source": "0b6b8b3b820d4228d9380a9a1d8682b825fa4e26",
+  "test": "probe.test-source.txt",
+  "rowsPerList": 151,
+  "passed": 2,
+  "failed": 4,
+  "pending": 0,
+  "cases": [
+    {
+      "title": "includes the oldest of 151 customer orders",
+      "status": "failed"
+    },
+    {
+      "title": "returns all 151 orders to the current unpaged screen",
+      "status": "failed"
+    },
+    {
+      "title": "includes the latest customer order",
+      "status": "passed"
+    },
+    {
+      "title": "includes the oldest of 151 active reservations",
+      "status": "failed"
+    },
+    {
+      "title": "returns all 151 active reservations to the current unpaged screen",
+      "status": "failed"
+    },
+    {
+      "title": "includes the latest active reservation",
+      "status": "passed"
+    }
+  ],
+  "limits": [
+    "Diagnostic of the current unpaged screen, not a requirement to fetch every row at startup.",
+    "Coherent fictitious records inserted through SQL; no reservation creation or movement qualification claimed.",
+    "Real SQL, DAL and reader; session and Next cache simulated."
+  ]
+}

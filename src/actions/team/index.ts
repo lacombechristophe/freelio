@@ -10,6 +10,8 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { assertWithinPlanLimit } from "@/lib/billing/subscription"
+import { Prisma } from "@/generated/prisma/client"
+import { lockCompanyOwnership } from "@/lib/auth/company-ownership"
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254)
 const roleSchema = z.enum(COMPANY_ROLES)
@@ -136,29 +138,35 @@ export async function updateTeamMemberRole(memberId: string, nextRole: CompanyRo
     const parsed = z.object({ memberId: memberIdSchema, nextRole: roleSchema }).safeParse({ memberId, nextRole })
     if (!parsed.success) return { success: false as const, error: "Membre ou rôle invalide." }
 
-    const member = await prisma.membership.findFirst({
-      where: { id: parsed.data.memberId, companyId },
-      select: { id: true, role: true },
-    })
-    if (!member) return { success: false as const, error: "Membre introuvable." }
-
-    const currentRole = normalizeCompanyRole(member.role)
-    if (!canAssignRole(actorRole, currentRole) || !canAssignRole(actorRole, parsed.data.nextRole)) {
-      return { success: false as const, error: "Vous ne pouvez pas modifier ce rôle." }
-    }
-
-    if (member.id === membershipId && currentRole === "OWNER" && parsed.data.nextRole !== "OWNER") {
-      const otherOwners = await prisma.membership.count({
-        where: { companyId, role: "OWNER", status: "ACTIVE", id: { not: member.id } },
+    const result = await prisma.$transaction(async tx => {
+      await lockCompanyOwnership(tx, companyId)
+      const member = await tx.membership.findFirst({
+        where: { id: parsed.data.memberId, companyId },
+        select: { id: true, role: true, status: true },
       })
-      if (otherOwners === 0) {
-        return { success: false as const, error: "Nommez un autre propriétaire avant de modifier votre rôle." }
-      }
-    }
+      if (!member) return { success: false as const, error: "Membre introuvable." }
 
-    await prisma.membership.update({ where: { id: member.id }, data: { role: parsed.data.nextRole } })
+      const currentRole = normalizeCompanyRole(member.role)
+      if (!canAssignRole(actorRole, currentRole) || !canAssignRole(actorRole, parsed.data.nextRole)) {
+        return { success: false as const, error: "Vous ne pouvez pas modifier ce rôle." }
+      }
+
+      if (member.status === "ACTIVE" && currentRole === "OWNER" && parsed.data.nextRole !== "OWNER") {
+        const otherOwners = await tx.membership.count({
+          where: { companyId, role: "OWNER", status: "ACTIVE", id: { not: member.id } },
+        })
+        if (otherOwners === 0) {
+          return { success: false as const, error: "Nommez un autre propriétaire avant de modifier votre rôle." }
+        }
+      }
+
+      const actor = await tx.membership.findFirst({ where: { id: membershipId, companyId, role: actorRole, status: "ACTIVE" }, select: { id: true } })
+      if (!actor) return { success: false as const, error: "Vos droits ont changé ; actualisez l’équipe." }
+      await tx.membership.update({ where: { id: member.id }, data: { role: parsed.data.nextRole } })
+      return { success: true as const }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
     revalidatePath("/dashboard/equipe")
-    return { success: true as const }
+    return result
   }, "members.manage")
 }
 
@@ -221,7 +229,7 @@ export async function deactivateTeamMember(memberId: string) {
 
     const member = await prisma.membership.findFirst({
       where: { id: parsedId.data, companyId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, userId: true },
     })
     if (!member) return { success: false as const, error: "Membre introuvable." }
 
@@ -230,18 +238,27 @@ export async function deactivateTeamMember(memberId: string) {
       return { success: false as const, error: "Vous ne pouvez pas désactiver ce membre." }
     }
 
-    if (memberRole === "OWNER") {
-      const ownerCount = await prisma.membership.count({
-        where: { companyId, role: "OWNER", status: "ACTIVE" },
-      })
-      if (ownerCount <= 1) {
+    const result = await prisma.$transaction(async (tx) => {
+      await lockCompanyOwnership(tx, companyId)
+      const current = await tx.membership.findFirst({ where: { id: member.id, companyId, role: member.role }, select: { id: true } })
+      if (!current) return { success: false as const, error: "Le membre a changé ; actualisez l’équipe." }
+      if (memberRole === "OWNER" && await tx.membership.count({ where: { companyId, role: "OWNER", status: "ACTIVE" } }) <= 1) {
         return { success: false as const, error: "Le dernier propriétaire ne peut pas être désactivé." }
       }
-    }
-
-    await prisma.membership.update({ where: { id: member.id }, data: { status: "INACTIVE" } })
+      const actor = await tx.membership.findFirst({ where: { id: membershipId, companyId, role: actorRole, status: "ACTIVE" }, select: { id: true } })
+      if (!actor) return { success: false as const, error: "Vos droits ont changé ; actualisez l’équipe." }
+      await tx.membership.update({ where: { id: member.id }, data: { status: "INACTIVE" } })
+      // A revoked workspace member must not leave usable provider credentials
+      // or an in-flight authorization capable of reconnecting their mailboxes.
+      await tx.communicationChannel.updateMany({ where: { companyId, ownerUserId: member.userId }, data: {
+        status: "PENDING", credentialsEncrypted: null, oauthNonceHash: null, oauthAttemptId: null, oauthExpiresAt: null, oauthStartedByUserId: null,
+        config: { mode: "DISCONNECTED" }, lastSyncAt: null, lastError: "Déconnectée de Freelio ; l’accès fournisseur reste à révoquer",
+      } })
+      return { success: true as const }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
     revalidatePath("/dashboard/equipe")
-    return { success: true as const }
+    revalidatePath("/dashboard/communications")
+    return result
   }, "members.manage")
 }
 
@@ -293,7 +310,14 @@ export async function acceptTeamInvitation(token: string) {
     return { success: false as const, error: `Connectez-vous avec ${invitation.email}.` }
   }
 
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    await lockCompanyOwnership(tx, invitation.companyId)
+    await tx.$executeRaw`UPDATE "User" SET "id" = "id" WHERE "id" = ${session.user!.id!}`
+    const currentUser = await tx.user.findUnique({ where: { id: session.user!.id! }, select: { email: true } })
+    if (!currentUser?.email || currentUser.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      return { success: false as const, error: "Votre compte a changé ; reconnectez-vous avant d’accepter cette invitation." }
+    }
+    const existing = await tx.membership.findUnique({ where: { companyId_userId: { companyId: invitation.companyId, userId: session.user!.id! } }, select: { role: true, status: true } })
     const claimed = await tx.companyInvitation.updateMany({
       where: { id: invitation.id, acceptedAt: null, expiresAt: { gt: new Date() } },
       data: { acceptedAt: new Date() },
@@ -302,7 +326,8 @@ export async function acceptTeamInvitation(token: string) {
 
     await tx.membership.upsert({
       where: { companyId_userId: { companyId: invitation.companyId, userId: session.user!.id! } },
-      update: { role: invitation.role, status: "ACTIVE" },
+      // Invitations grant access; they must not overwrite an active member's role.
+      update: { role: existing?.status === "ACTIVE" ? existing.role : invitation.role, status: "ACTIVE" },
       create: {
         companyId: invitation.companyId,
         userId: session.user!.id!,
@@ -314,7 +339,9 @@ export async function acceptTeamInvitation(token: string) {
       where: { id: session.user!.id! },
       data: { companyId: invitation.companyId },
     })
-  })
+    return { success: true as const }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+  if (!result.success) return result
 
   redirect("/dashboard")
 }

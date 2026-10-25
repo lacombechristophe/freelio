@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { createExpense, updateExpense } from "@/actions/depenses"
+import { createExpense, getExpenseProjectChoices, updateExpense } from "@/actions/depenses"
+import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { cn } from "@/lib/utils"
 
 type Expense = {
@@ -36,22 +37,26 @@ type Expense = {
 }
 
 const CATEGORIES = ["Fournitures", "Matériel", "Sous-traitance", "Déplacement", "Repas", "Logiciel", "Formation", "Autre"]
+type ProjectChoices = Awaited<ReturnType<typeof getExpenseProjectChoices>>
 
 export function ExpenseFormDialog({
   expense,
   open,
   onOpenChange,
-  projects,
 }: {
   expense?: Expense
   open: boolean
   onOpenChange: (o: boolean) => void
-  projects: Array<{ id: string; name: string; clientId: string }>
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
   const [fileAttached, setFileAttached] = React.useState<string | null>(null)
   const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null)
+  const [projectSearch, setProjectSearch] = React.useState("")
+  const [projectPage, setProjectPage] = React.useState(1)
+  const [projectRevision, setProjectRevision] = React.useState(0)
+  const [loadingProjects, startProjectTransition] = React.useTransition()
+  const [choices, setChoices] = React.useState<{ key: string; data: ProjectChoices | null; error: boolean } | null>(null)
   
   const [form, setForm] = React.useState({
     label: expense?.label ?? "",
@@ -67,6 +72,9 @@ export function ExpenseFormDialog({
 
   React.useEffect(() => {
     if (open) {
+      setProjectSearch("")
+      setProjectPage(1)
+      setProjectRevision(value => value + 1)
       if (expense) {
         setForm({
           label: expense.label,
@@ -93,6 +101,32 @@ export function ExpenseFormDialog({
     }
   }, [open, expense])
 
+  const projectKey = JSON.stringify([form.projectId, projectSearch, projectPage, projectRevision])
+  const freshProjects = choices?.key === projectKey
+  React.useEffect(() => {
+    if (!open || freshProjects) return
+    let current = true
+    const timer = setTimeout(() => startProjectTransition(async () => {
+      try {
+        const data = await getExpenseProjectChoices({ selectedId: form.projectId || undefined, search: projectSearch, page: projectPage })
+        if (form.projectId && !data.selected) throw new Error("Chantier indisponible")
+        if (current) {
+          setProjectPage(data.page)
+          setChoices({ key: JSON.stringify([form.projectId, projectSearch, data.page, projectRevision]), data, error: false })
+        }
+      } catch {
+        if (current) setChoices(previous => ({ key: projectKey, data: previous?.data ?? null, error: true }))
+      }
+    }), 200)
+    return () => { current = false; clearTimeout(timer) }
+  }, [open, freshProjects, projectKey, form.projectId, projectSearch, projectPage, projectRevision])
+  const projectsBusy = loadingProjects || !freshProjects
+  const projectsError = freshProjects && Boolean(choices?.error)
+  const selectedProject = choices?.data?.selected?.id === form.projectId ? choices.data.selected : choices?.data?.items.find(item => item.id === form.projectId)
+  const projectOptions = freshProjects && !projectsError ? choices?.data?.items ?? [] : []
+  const projects = selectedProject && !projectOptions.some(item => item.id === selectedProject.id) ? [selectedProject, ...projectOptions] : projectOptions
+  const canSave = !pending && !projectsBusy && !projectsError && (!form.projectId || Boolean(selectedProject))
+
   const onDrop = React.useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return
@@ -113,6 +147,7 @@ export function ExpenseFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!canSave) return
     setPending(true)
     try {
       const payload = {
@@ -123,7 +158,7 @@ export function ExpenseFormDialog({
         date: form.date,
         category: form.category,
         projectId: form.projectId,
-        clientId: projects.find((project) => project.id === form.projectId)?.clientId ?? "",
+        clientId: selectedProject?.clientId ?? (form.projectId || expense?.projectId ? "" : expense?.clientId ?? ""),
       }
       if (expense) {
         await updateExpense(expense.id, payload)
@@ -260,22 +295,24 @@ export function ExpenseFormDialog({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Projet lié</Label>
+            <Label htmlFor="expense-project" className="text-xs font-semibold">Projet lié</Label>
+            <Input aria-label="Rechercher un chantier" placeholder="Rechercher un chantier…" value={projectSearch} maxLength={200} disabled={pending} onChange={event => { setProjectSearch(event.target.value); setProjectPage(1) }} />
             <Select
               value={form.projectId || "none"}
               onValueChange={(value) => setForm({ ...form, projectId: value === "none" ? "" : value ?? "" })}
               disabled={pending}
             >
-              <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="expense-project" className="w-full bg-background"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Aucun projet</SelectItem>
                 {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <DirectoryPagination total={choices?.data?.total ?? 0} page={freshProjects ? choices?.data?.page ?? projectPage : projectPage} pending={projectsBusy} error={projectsError} onPage={setProjectPage} onRetry={() => setProjectRevision(value => value + 1)} />
           </div>
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" disabled={pending} />}>Annuler</DialogClose>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={!canSave}>
               {pending ? "Enregistrement…" : expense ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>

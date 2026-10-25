@@ -1,0 +1,136 @@
+import { randomUUID } from "node:crypto"
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+
+const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
+vi.mock("server-only", () => ({}))
+vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+import prisma from "@/lib/prisma"
+import {
+  createProjectAcceptanceItem, createProjectMilestone, deleteProjectAcceptanceItem, deleteProjectMilestone,
+  getProjectById, updateProjectAcceptanceStatus, updateProjectMilestonePlanning, updateProjectMilestoneStatus,
+  upsertProjectTechnicalProfile,
+} from "@/actions/projets"
+
+describe.sequential("Project workspace integrity on isolated SQL", () => {
+  let foreignCompanyId: string, foreignUserId: string, foreignMembershipId: string, clientId: string, foreignClientId: string
+  let projectId: string, milestoneId: string, acceptanceId: string
+  const planning = () => ({ plannedStartAt: "2030-02-20", dueDate: "2030-02-21", durationDays: 1, dependsOnId: "", assignedMembershipId: "" })
+  const operations = [
+    { name: "create milestone", call: () => createProjectMilestone(projectId, { title: "Fictitious additional milestone" }) },
+    { name: "change milestone status", call: () => updateProjectMilestoneStatus(milestoneId, "DONE") },
+    { name: "plan milestone", call: () => updateProjectMilestonePlanning(milestoneId, planning()) },
+    { name: "delete milestone", call: () => deleteProjectMilestone(milestoneId) },
+    { name: "create acceptance", call: () => createProjectAcceptanceItem(projectId, { title: "Fictitious additional control" }) },
+    { name: "change acceptance status", call: () => updateProjectAcceptanceStatus(acceptanceId, "DONE") },
+    { name: "delete acceptance", call: () => deleteProjectAcceptanceItem(acceptanceId) },
+    { name: "save technical profile", call: () => upsertProjectTechnicalProfile(projectId, { surveyStatus: "SURVEYED", surveyedAt: "2030-02-20" }) },
+  ]
+  beforeAll(async () => {
+    session.companyId = (await prisma.company.create({ data: { name: "Fictitious workspace integrity" } })).id
+    foreignCompanyId = (await prisma.company.create({ data: { name: "Fictitious foreign workspace" } })).id
+    session.userId = (await prisma.user.create({ data: { email: `workspace-${randomUUID()}@example.test` } })).id
+    foreignUserId = (await prisma.user.create({ data: { email: `foreign-workspace-${randomUUID()}@example.test`, name: "FOREIGN-MEMBER-SECRET" } })).id
+    await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
+    foreignMembershipId = (await prisma.membership.create({ data: { companyId: foreignCompanyId, userId: foreignUserId, role: "OWNER", status: "ACTIVE" } })).id
+    clientId = (await prisma.client.create({ data: { companyId: session.companyId, name: "Fictitious own client" } })).id
+    foreignClientId = (await prisma.client.create({ data: { companyId: foreignCompanyId, name: "Fictitious foreign client" } })).id
+  })
+  beforeEach(async () => {
+    projectId = (await prisma.project.create({ data: { companyId: session.companyId, clientId, name: "Fictitious workspace project" } })).id
+    milestoneId = (await prisma.projectMilestone.create({ data: { projectId, title: "Fictitious original milestone" } })).id
+    acceptanceId = (await prisma.projectAcceptanceItem.create({ data: { projectId, title: "Fictitious original control" } })).id
+  })
+  async function dropTrigger() {
+    if (process.env.DATABASE_URL?.startsWith("file:")) await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS "fictional_workspace_audit_failure"')
+    else {
+      await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS "fictional_workspace_audit_failure" ON "AuditLog"')
+      await prisma.$executeRawUnsafe('DROP FUNCTION IF EXISTS fictional_workspace_audit_failure()')
+    }
+  }
+  afterEach(async () => {
+    vi.unstubAllEnvs(); vi.restoreAllMocks(); await dropTrigger()
+    await prisma.project.deleteMany({ where: { companyId: { in: [session.companyId, foreignCompanyId] } } })
+    await prisma.projectTemplate.deleteMany({ where: { companyId: { in: [session.companyId, foreignCompanyId] } } })
+    await prisma.auditLog.deleteMany({ where: { userId: session.userId } })
+  })
+  afterAll(async () => {
+    await prisma.client.deleteMany({ where: { companyId: { in: [session.companyId, foreignCompanyId] } } })
+    await prisma.company.deleteMany({ where: { id: { in: [session.companyId, foreignCompanyId] } } })
+    await prisma.user.deleteMany({ where: { id: { in: [session.userId, foreignUserId] } } })
+  })
+  async function snapshot() {
+    return {
+      project: await prisma.project.findUniqueOrThrow({ where: { id: projectId } }),
+      milestones: await prisma.projectMilestone.findMany({ where: { projectId }, orderBy: { id: "asc" } }),
+      acceptance: await prisma.projectAcceptanceItem.findMany({ where: { projectId }, orderBy: { id: "asc" } }),
+      profile: await prisma.projectTechnicalProfile.findUnique({ where: { projectId } }),
+    }
+  }
+  async function failAudit() {
+    if (process.env.DATABASE_URL?.startsWith("file:")) await prisma.$executeRawUnsafe(`CREATE TRIGGER "fictional_workspace_audit_failure" BEFORE INSERT ON "AuditLog" WHEN NEW."userId" = '${session.userId}' BEGIN SELECT RAISE(ABORT, 'Fictitious workspace audit failure'); END`)
+    else {
+      await prisma.$executeRawUnsafe(`CREATE FUNCTION fictional_workspace_audit_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."userId" = '${session.userId}' THEN RAISE EXCEPTION 'Fictitious workspace audit failure'; END IF; RETURN NEW; END; $$`)
+      await prisma.$executeRawUnsafe('CREATE TRIGGER "fictional_workspace_audit_failure" BEFORE INSERT ON "AuditLog" FOR EACH ROW EXECUTE FUNCTION fictional_workspace_audit_failure()')
+    }
+  }
+  for (const operation of operations) {
+    it(`refuses to ${operation.name} through a project linked to a foreign client`, async () => {
+      await prisma.project.update({ where: { id: projectId }, data: { clientId: foreignClientId } })
+      const before = await snapshot()
+      await expect(operation.call()).rejects.toThrow()
+      expect(await snapshot()).toEqual(before)
+      expect(await prisma.auditLog.count({ where: { userId: session.userId } })).toBe(0)
+    })
+    it(`rolls back ${operation.name} if its audit cannot be inserted`, async () => {
+      const before = await snapshot()
+      await failAudit()
+      await expect(operation.call()).rejects.toThrow()
+      expect(await snapshot()).toEqual(before)
+    })
+  }
+  it("does not disclose a foreign dependency in the project reader", async () => {
+    const foreignProject = await prisma.project.create({ data: { companyId: foreignCompanyId, clientId: foreignClientId, name: "FOREIGN-PROJECT-SECRET" } })
+    const dependency = await prisma.projectMilestone.create({ data: { projectId: foreignProject.id, title: "FOREIGN-DEPENDENCY-SECRET" } })
+    await prisma.projectMilestone.update({ where: { id: milestoneId }, data: { dependsOnId: dependency.id } })
+    const result = JSON.stringify(await getProjectById(projectId))
+    expect(result).not.toContain("FOREIGN-DEPENDENCY-SECRET")
+    expect(result).not.toContain(dependency.id)
+  })
+  it("does not disclose a foreign assignee in the project reader", async () => {
+    await prisma.projectMilestone.update({ where: { id: milestoneId }, data: { assignedMembershipId: foreignMembershipId } })
+    const result = JSON.stringify(await getProjectById(projectId))
+    expect(result).not.toContain("FOREIGN-MEMBER-SECRET")
+    expect(result).not.toContain(foreignMembershipId)
+  })
+  it("does not disclose a foreign template on an own project", async () => {
+    const template = await prisma.projectTemplate.create({ data: { companyId: foreignCompanyId, name: "FOREIGN-TEMPLATE-SECRET" } })
+    await prisma.project.update({ where: { id: projectId }, data: { projectTemplateId: template.id } })
+    expect(await getProjectById(projectId)).toBeNull()
+  })
+  it("validates the milestone status at runtime", async () => {
+    const before = await snapshot()
+    await expect(updateProjectMilestoneStatus(milestoneId, "UNKNOWN" as "DONE")).rejects.toThrow()
+    expect(await snapshot()).toEqual(before)
+  })
+  it("validates the acceptance status at runtime", async () => {
+    const before = await snapshot()
+    await expect(updateProjectAcceptanceStatus(acceptanceId, "UNKNOWN" as "DONE")).rejects.toThrow()
+    expect(await snapshot()).toEqual(before)
+  })
+  it("rejects an impossible milestone date without normalizing it", async () => {
+    const before = await snapshot()
+    await expect(createProjectMilestone(projectId, { title: "Fictitious invalid day", dueDate: "2030-02-31" })).rejects.toThrow()
+    expect(await snapshot()).toEqual(before)
+  })
+  it("rejects an impossible acceptance date without normalizing it", async () => {
+    const before = await snapshot()
+    await expect(createProjectAcceptanceItem(projectId, { title: "Fictitious invalid control", dueDate: "2030-02-31" })).rejects.toThrow()
+    expect(await snapshot()).toEqual(before)
+  })
+  it("rejects an impossible survey date without normalizing it", async () => {
+    const before = await snapshot()
+    await expect(upsertProjectTechnicalProfile(projectId, { surveyedAt: "2030-02-31" })).rejects.toThrow()
+    expect(await snapshot()).toEqual(before)
+  })
+})

@@ -1,0 +1,513 @@
+{
+  "schema": "freelio.qualified-ci.v1",
+  "candidate": "ae88e4709523fb1c73fdba737798fc914a824ea8",
+  "sourceIdentity": {
+    "method": "Git tree entries for tracked files outside docs/",
+    "entries": 934,
+    "sha256": "3ecfcd058b4e34221c001343307fdcfe2b91ca40243782d896712c5808f80f39"
+  },
+  "sourceComparison": {
+    "merge": "69cf85b525ac8e3dac2206c4dfb57ae332ca9fe7",
+    "parents": [
+      "0e9109483cb596dd760bb755c50a831952bdf8ab",
+      "ae88e4709523fb1c73fdba737798fc914a824ea8"
+    ],
+    "candidateEntries": 934,
+    "mergeEntries": 934,
+    "differencesOutsideDocs": 0
+  },
+  "runs": [
+    {
+      "event": "push",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/37897664616",
+      "conclusion": "success",
+      "testedCommit": "ae88e4709523fb1c73fdba737798fc914a824ea8",
+      "parents": [
+        "0687a6fe4d6672ad7aa1c1360bbae5473072d874"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113712624323,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113712624453,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-and-e2e",
+          "id": 113712624515,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  176 passed (176)",
+        "Tests  1410 passed (1410)",
+        "Test Files  176 passed (176)",
+        "Tests  1410 passed (1410)"
+      ],
+      "postgres": {
+        "artifactId": 11601550963,
+        "reportSha256": "591442564687f9aae1a5cdf1af7b2528b32d8df4ab7df76538956568330c207a",
+        "passed": 1409,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "auth-context-module-reload.integration.test.ts",
+            "status": "passed",
+            "cases": 8
+          },
+          {
+            "file": "auth-context.integration.test.ts",
+            "status": "passed",
+            "cases": 7
+          },
+          {
+            "file": "catalogue-pagination.integration.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "client-mutation-response.integration.test.ts",
+            "status": "passed",
+            "cases": 22
+          },
+          {
+            "file": "client-profile-finance.integration.test.ts",
+            "status": "passed",
+            "cases": 21
+          },
+          {
+            "file": "contact-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 36
+          },
+          {
+            "file": "document-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 33
+          },
+          {
+            "file": "operations-assets.integration.test.ts",
+            "status": "passed",
+            "cases": 20
+          },
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 23
+          },
+          {
+            "file": "recurring-generation.integration.test.ts",
+            "status": "passed",
+            "cases": 13
+          },
+          {
+            "file": "service-analytics-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 40
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "status": "passed",
+            "cases": 58
+          },
+          {
+            "file": "shared-health-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 65
+          },
+          {
+            "file": "workspace-access.integration.test.ts",
+            "status": "passed",
+            "cases": 31
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11601146195,
+        "reportSha256": "7b41395fdf0fd015f602b4b6618c7eafb4990e22ffb9c1eaef4a8e54c3284b0d",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "269 passed (20.5m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          },
+          {
+            "file": "catalogue-volume",
+            "passed": 6
+          },
+          {
+            "file": "document-relations",
+            "passed": 6
+          },
+          {
+            "file": "recurring-invoices",
+            "passed": 0
+          }
+        ],
+        "taskCases": [
+          "✓  122 [desktop] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.7s)",
+          "✓  123 [desktop] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (976ms)",
+          "✓  124 [desktop] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (2.1s)",
+          "✓  125 [desktop] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (679ms)",
+          "✓  126 [desktop] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (1.0s)",
+          "✓  127 [desktop] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation (1.1s)",
+          "✓  129 [desktop] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (1.1s)",
+          "✓  130 [desktop] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (1.5s)",
+          "✓  131 [desktop] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (848ms)",
+          "✓  132 [desktop] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (1.1s)",
+          "✓  133 [desktop] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (12.9s)",
+          "✓  134 [desktop] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (4.6s)",
+          "✓  135 [desktop] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (4.3s)",
+          "✓  136 [desktop] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.8s)",
+          "✓  266 [mobile] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.6s)",
+          "✓  267 [mobile] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (910ms)",
+          "✓  268 [mobile] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (2.2s)",
+          "✓  269 [mobile] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (706ms)",
+          "✓  270 [mobile] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (1.2s)",
+          "✓  272 [mobile] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture (2.1s)",
+          "✓  273 [mobile] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (1.1s)",
+          "✓  274 [mobile] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (1.4s)",
+          "✓  275 [mobile] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (755ms)",
+          "✓  276 [mobile] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (1.1s)",
+          "✓  277 [mobile] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (17.1s)",
+          "✓  278 [mobile] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (5.6s)",
+          "✓  279 [mobile] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (4.6s)",
+          "✓  280 [mobile] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.2s)"
+        ],
+        "exclusions": [
+          "-  128 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  192 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  193 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  195 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  196 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  197 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  198 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  199 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  200 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  201 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  202 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  203 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  204 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  205 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  206 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  207 [mobile] › tests/e2e/critical-flows.spec.ts:1601:5 › creates and signs in a production account with a password",
+          "-  234 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  271 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  281 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ]
+      },
+      "artifacts": [
+        {
+          "id": 11602411358,
+          "name": "ui-audit-reports",
+          "bytes": 161379619
+        },
+        {
+          "id": 11602321443,
+          "name": "verification-sqlite-ae88e4709523fb1c73fdba737798fc914a824ea8",
+          "bytes": 1005
+        },
+        {
+          "id": 11601550963,
+          "name": "verification-postgres-ae88e4709523fb1c73fdba737798fc914a824ea8",
+          "bytes": 63450
+        },
+        {
+          "id": 11601146195,
+          "name": "container-runtime-ae88e4709523fb1c73fdba737798fc914a824ea8",
+          "bytes": 1609
+        }
+      ]
+    },
+    {
+      "event": "pull_request",
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/37897668228",
+      "conclusion": "success",
+      "testedCommit": "69cf85b525ac8e3dac2206c4dfb57ae332ca9fe7",
+      "parents": [
+        "0e9109483cb596dd760bb755c50a831952bdf8ab",
+        "ae88e4709523fb1c73fdba737798fc914a824ea8"
+      ],
+      "node": "v24.21.0",
+      "jobs": [
+        {
+          "name": "quality-and-e2e",
+          "id": 113712635312,
+          "conclusion": "success"
+        },
+        {
+          "name": "Image Linux et Chromium",
+          "id": 113712635565,
+          "conclusion": "success"
+        },
+        {
+          "name": "Intégration PostgreSQL",
+          "id": 113712635733,
+          "conclusion": "success"
+        }
+      ],
+      "sqlite": [
+        "Test Files  176 passed (176)",
+        "Tests  1410 passed (1410)",
+        "Test Files  176 passed (176)",
+        "Tests  1410 passed (1410)"
+      ],
+      "postgres": {
+        "artifactId": 11600862642,
+        "reportSha256": "b1572b50abbb5a2543bb8558bffc938e413bf2ee418daa7ffc72532ea0d82cec",
+        "passed": 1409,
+        "failed": 0,
+        "skipped": 1,
+        "focused": [
+          {
+            "file": "auth-context-module-reload.integration.test.ts",
+            "status": "passed",
+            "cases": 8
+          },
+          {
+            "file": "auth-context.integration.test.ts",
+            "status": "passed",
+            "cases": 7
+          },
+          {
+            "file": "catalogue-pagination.integration.test.ts",
+            "status": "passed",
+            "cases": 17
+          },
+          {
+            "file": "client-mutation-response.integration.test.ts",
+            "status": "passed",
+            "cases": 22
+          },
+          {
+            "file": "client-profile-finance.integration.test.ts",
+            "status": "passed",
+            "cases": 21
+          },
+          {
+            "file": "contact-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 36
+          },
+          {
+            "file": "document-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 33
+          },
+          {
+            "file": "operations-assets.integration.test.ts",
+            "status": "passed",
+            "cases": 20
+          },
+          {
+            "file": "opportunity-read-scope.integration.test.ts",
+            "status": "passed",
+            "cases": 23
+          },
+          {
+            "file": "recurring-generation.integration.test.ts",
+            "status": "passed",
+            "cases": 13
+          },
+          {
+            "file": "service-analytics-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 40
+          },
+          {
+            "file": "shared-client-readers.integration.test.ts",
+            "status": "passed",
+            "cases": 58
+          },
+          {
+            "file": "shared-health-permissions.integration.test.ts",
+            "status": "passed",
+            "cases": 65
+          },
+          {
+            "file": "workspace-access.integration.test.ts",
+            "status": "passed",
+            "cases": 31
+          }
+        ]
+      },
+      "linux": {
+        "artifactId": 11600812765,
+        "reportSha256": "b9990981540dd34449b90d5b488d0d4a91a27b7fe9c22d248d3d609e865da700",
+        "success": true,
+        "checks": [
+          "Configuration de production vide refusée avant écoute",
+          "Toutes les migrations du dépôt sur PostgreSQL Linux neuf",
+          "Données fictives créées par Prisma Linux",
+          "Serveur Linux et sondes live/ready avec SQL réel",
+          "Serveur arrêté sur SIGTERM sans kill forcé (code Next.js 143)",
+          "Worker BullMQ connecté à Redis, PDF de devis terminé",
+          "Worker arrêté proprement sur SIGTERM",
+          "Capture signée fictive, archive PDF privée et rejeu stable sous utilisateur Linux",
+          "PDF Chromium hors réseau sous utilisateur runtime"
+        ],
+        "exclusions": [
+          "Disponibilité réelle R2/Upstash",
+          "TLS, reverse proxy et réseau hébergé",
+          "Reprise après interruption d’un job actif",
+          "Validation SaaS commerciale"
+        ]
+      },
+      "audits": [
+        "found 0 vulnerabilities",
+        "found 0 vulnerabilities"
+      ],
+      "browser": {
+        "totals": [
+          "19 skipped",
+          "269 passed (20.9m)"
+        ],
+        "focused": [
+          {
+            "file": "contact-history-permissions",
+            "passed": 16
+          },
+          {
+            "file": "project-reader-permissions",
+            "passed": 14
+          },
+          {
+            "file": "opportunity-permissions",
+            "passed": 8
+          },
+          {
+            "file": "catalogue-volume",
+            "passed": 6
+          },
+          {
+            "file": "document-relations",
+            "passed": 6
+          },
+          {
+            "file": "recurring-invoices",
+            "passed": 0
+          }
+        ],
+        "taskCases": [
+          "✓  122 [desktop] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.7s)",
+          "✓  123 [desktop] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (1.1s)",
+          "✓  124 [desktop] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (2.1s)",
+          "✓  125 [desktop] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (682ms)",
+          "✓  126 [desktop] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (1.2s)",
+          "✓  127 [desktop] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation (1.2s)",
+          "✓  129 [desktop] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (1.0s)",
+          "✓  130 [desktop] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (1.4s)",
+          "✓  131 [desktop] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (843ms)",
+          "✓  132 [desktop] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (1.2s)",
+          "✓  133 [desktop] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (12.8s)",
+          "✓  134 [desktop] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (4.6s)",
+          "✓  135 [desktop] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (4.1s)",
+          "✓  136 [desktop] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.8s)",
+          "✓  266 [mobile] › tests/e2e/task-usability.spec.ts:30:5 › les états vides et leur action restent lisibles sans défilement latéral (1.5s)",
+          "✓  267 [mobile] › tests/e2e/task-usability.spec.ts:41:5 › l’enregistrement d’une vue ne gêne pas la consultation (899ms)",
+          "✓  268 [mobile] › tests/e2e/task-usability.spec.ts:56:5 › les bibliothèques SAV restent prioritaires et conservent le brouillon replié (2.1s)",
+          "✓  269 [mobile] › tests/e2e/task-usability.spec.ts:86:5 › les aides restent lisibles hors des cartes et se ferment avec Échap (717ms)",
+          "✓  270 [mobile] › tests/e2e/task-usability.spec.ts:108:5 › la satisfaction présente les réponses avant la configuration (1.1s)",
+          "✓  272 [mobile] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture (1.8s)",
+          "✓  273 [mobile] › tests/e2e/task-usability.spec.ts:170:5 › la messagerie donne accès aux échanges avant les statistiques (986ms)",
+          "✓  274 [mobile] › tests/e2e/task-usability.spec.ts:192:5 › les actions métier précèdent les analyses dans les espaces de suivi (1.5s)",
+          "✓  275 [mobile] › tests/e2e/task-usability.spec.ts:199:5 › un canevas de devis est facultatif et préserve les lignes déjà saisies (762ms)",
+          "✓  276 [mobile] › tests/e2e/task-usability.spec.ts:216:5 › le filtre Tous du SAV inclut réellement les statuts clos (1.1s)",
+          "✓  277 [mobile] › tests/e2e/task-usability.spec.ts:232:5 › preuves des onglets secondaires et de la création produit (16.9s)",
+          "✓  278 [mobile] › tests/e2e/task-usability.spec.ts:279:5 › les fiches client et documents gardent une synthèse compacte et lisible (4.5s)",
+          "✓  279 [mobile] › tests/e2e/task-usability.spec.ts:316:5 › les contrôles documentaires restent indicatifs et la mise en page est progressive (5.5s)",
+          "✓  280 [mobile] › tests/e2e/task-usability.spec.ts:372:5 › un doublon de modèle est expliqué sans perdre le contenu saisi (2.7s)"
+        ],
+        "exclusions": [
+          "-  128 [desktop] › tests/e2e/task-usability.spec.ts:147:5 › la navigation mobile garde le focus et le restitue à la fermeture",
+          "-  192 [mobile] › tests/e2e/critical-flows.spec.ts:418:5 › multiple sales pipelines keep their stages and opportunities isolated",
+          "-  193 [mobile] › tests/e2e/critical-flows.spec.ts:455:5 › configurable CRM properties use business presets and retain a visible history",
+          "-  195 [mobile] › tests/e2e/critical-flows.spec.ts:670:5 › publishes service knowledge and records a secure satisfaction response",
+          "-  196 [mobile] › tests/e2e/critical-flows.spec.ts:689:5 › configures a product, its options and its bill of materials into a quote",
+          "-  197 [mobile] › tests/e2e/critical-flows.spec.ts:747:5 › creates a reusable project plan and enforces milestone dependencies",
+          "-  198 [mobile] › tests/e2e/critical-flows.spec.ts:795:5 › runs the supplier approval, receipt issue and return workflow",
+          "-  199 [mobile] › tests/e2e/critical-flows.spec.ts:889:5 › field workspace installs and reloads from its bounded offline cache",
+          "-  200 [mobile] › tests/e2e/critical-flows.spec.ts:915:5 › configures an email sequence and a lead automation",
+          "-  201 [mobile] › tests/e2e/critical-flows.spec.ts:1075:5 › plans a multichannel marketing campaign and links its sequence",
+          "-  202 [mobile] › tests/e2e/critical-flows.spec.ts:1141:5 › lead, consent withdrawal, order, billing and reserved stock flow",
+          "-  203 [mobile] › tests/e2e/critical-flows.spec.ts:1268:5 › field report and maintenance contract flow",
+          "-  204 [mobile] › tests/e2e/critical-flows.spec.ts:1476:5 › creates a structured amendment without altering the signed source contract",
+          "-  205 [mobile] › tests/e2e/critical-flows.spec.ts:1534:5 › scores prospects and exposes the communication center",
+          "-  206 [mobile] › tests/e2e/critical-flows.spec.ts:1551:5 › shares a revocable client portal with messages and appointments",
+          "-  207 [mobile] › tests/e2e/critical-flows.spec.ts:1601:5 › creates and signs in a production account with a password",
+          "-  234 [mobile] › tests/e2e/redesign-completion.spec.ts:3:5 › les gabarits restent contenus aux largeurs de recette",
+          "-  271 [mobile] › tests/e2e/task-usability.spec.ts:132:5 › un favori invisible n’intercepte pas un clic sur la navigation",
+          "-  281 [mobile] › tests/e2e/visual-direction.spec.ts:29:5 › le nouveau shell et les cockpits métier restent cohérents"
+        ]
+      },
+      "artifacts": [
+        {
+          "id": 11602356419,
+          "name": "ui-audit-reports",
+          "bytes": 161398346
+        },
+        {
+          "id": 11602351621,
+          "name": "verification-sqlite-69cf85b525ac8e3dac2206c4dfb57ae332ca9fe7",
+          "bytes": 1005
+        },
+        {
+          "id": 11600862642,
+          "name": "verification-postgres-69cf85b525ac8e3dac2206c4dfb57ae332ca9fe7",
+          "bytes": 63480
+        },
+        {
+          "id": 11600812765,
+          "name": "container-runtime-69cf85b525ac8e3dac2206c4dfb57ae332ca9fe7",
+          "bytes": 1608
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Fictitious fixtures, real SQLite/PostgreSQL and compiled browser application. No real provider, commercial certification or hosted load qualification.",
+    "The nineteen historical browser exclusions and native SQLite-only PostgreSQL exclusion remain explicit.",
+    "This evidence qualifies its candidate and tested merge only; later worker or document changes require their own source reference."
+  ]
+}

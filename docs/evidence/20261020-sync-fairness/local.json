@@ -1,0 +1,361 @@
+{
+  "schema": "freelio.sync-fairness-local.v1",
+  "observedAt": "2026-10-20T14:05:33.807Z",
+  "codeCommit": "d6d523145a8f05b62e5bf1be8d205715f02f9de5",
+  "source": {
+    "observedAt": "2026-10-20T13:56:57.950Z",
+    "commit": "d6d523145a8f05b62e5bf1be8d205715f02f9de5",
+    "filesCompared": 1152,
+    "mismatches": [],
+    "gitTreeRecordsSha256": "d1401db0766efb4bd5ade1fb5fa1c3cd6fc6267366081801a7b584c46e26f4b6",
+    "normalization": "Exact Git blob first; CRLF-to-LF comparison if needed",
+    "excluded": [
+      "docs/**",
+      "CONTRIBUTING.md",
+      ".env and .env.*"
+    ],
+    "limits": [
+      "Compares recipe source with Git, not runtime behavior",
+      "Dependencies and generated output are outside this source identity"
+    ]
+  },
+  "initialFailures": {
+    "retained": "baseline.json",
+    "codeCommit": "1dd29efceb0a0799ecc847053b4521c8dc7c0315",
+    "failed": 2,
+    "passed": 0
+  },
+  "firstCandidate": {
+    "codeCommit": "9835e0b5d7acef4a538d525a38c8e16cbb8ad7a5",
+    "focused": {
+      "file": "Freelio-sync-fairness-expanded-20261020.json",
+      "sha256": "4a4e6e60eebf2a7050709fd4957b3a680746a3f9fd177d2790c90cd40c9e2f27",
+      "success": true,
+      "total": 47,
+      "passed": 47,
+      "failed": 0,
+      "pending": 0,
+      "files": 5,
+      "suites": [
+        {
+          "file": "automation-processing.test.ts",
+          "passed": 5,
+          "failed": 0
+        },
+        {
+          "file": "oauth-mail-reconciliation.integration.test.ts",
+          "passed": 26,
+          "failed": 0
+        },
+        {
+          "file": "oauth-sync-pagination.integration.test.ts",
+          "passed": 5,
+          "failed": 0
+        },
+        {
+          "file": "sync-fairness-provider.integration.test.ts",
+          "passed": 2,
+          "failed": 0
+        },
+        {
+          "file": "sync-fairness.integration.test.ts",
+          "passed": 9,
+          "failed": 0
+        }
+      ]
+    },
+    "full": {
+      "file": "full-sqlite-sync-fairness-20261020.json",
+      "sha256": "e18cdc7e49fd63a5cc6177262c76a682d0e0cf55b113b60f8cdb06f7a44f71e4",
+      "success": true,
+      "total": 2896,
+      "passed": 2896,
+      "failed": 0,
+      "pending": 0,
+      "files": 250
+    }
+  },
+  "monitorDiagnostic": {
+    "file": "Freelio-sync-monitor-before-20261020.json",
+    "sha256": "348a5cc1a2eaa7b8fb196ddcf74640b0e8952111a81fdd9c95400d08c3392b9d",
+    "success": false,
+    "total": 4,
+    "passed": 3,
+    "failed": 1,
+    "pending": 0,
+    "files": 1,
+    "suites": [
+      {
+        "file": "communication-sync-processor.integration.test.ts",
+        "passed": 3,
+        "failed": 1
+      }
+    ]
+  },
+  "focused": {
+    "file": "Freelio-sync-monitor-fixed-20261020.json",
+    "sha256": "0bc3ab586c0fdeddcb94d19f940789673c593faaf44b5a15802015a9dac734fa",
+    "success": true,
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "pending": 0,
+    "files": 4,
+    "suites": [
+      {
+        "file": "automation-processing.test.ts",
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "file": "communication-sync-processor.integration.test.ts",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "file": "sync-fairness-provider.integration.test.ts",
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "file": "sync-fairness.integration.test.ts",
+        "passed": 9,
+        "failed": 0
+      }
+    ]
+  },
+  "priorHttpCandidate": {
+    "codeCommit": "689159e77ed5966084223e3571f707d30561e6e6",
+    "full": {
+      "file": "full-sqlite-sync-monitor-20261020.json",
+      "sha256": "c0fe358b62be06191c7c9a6b23a87e1b5354529734cec698979c1d95b9336d21",
+      "success": false,
+      "total": 2900,
+      "passed": 2899,
+      "failed": 1,
+      "pending": 0,
+      "files": 251
+    },
+    "timeoutLog": {
+      "file": "Freelio-full-sqlite-sync-monitor-20261020.log",
+      "sha256": "47959b4c4dc93308a186b8f0348f33e6a32335bfcc731c1bf0ffcec041a793db"
+    },
+    "interpretation": "One historical author normalization test timed out at its existing 5000ms limit. No assertion failure or timeout setting change. Root cause is not established."
+  },
+  "isolatedRecovery": {
+    "file": "Freelio-sync-monitor-recovery-20261020.json",
+    "sha256": "dac4f46ef5a219e351f2b5aee1d8b50cc546104164f1f16d97f86db9b0fc5ead",
+    "success": true,
+    "total": 18,
+    "passed": 18,
+    "failed": 0,
+    "pending": 0,
+    "files": 1,
+    "suites": [
+      {
+        "file": "manual-email-recovery.integration.test.ts",
+        "passed": 18,
+        "failed": 0
+      }
+    ]
+  },
+  "finalFullRunWithoutConcurrentBuildOrHistoryScan": true,
+  "full": {
+    "file": "full-sqlite-sync-monitor-final-20261020.json",
+    "sha256": "072ff346bf381e33fb3a8b0ed0a1714dac5208422554bf2194f64e965c483439",
+    "success": true,
+    "total": 2900,
+    "passed": 2900,
+    "failed": 0,
+    "pending": 0,
+    "files": 251
+  },
+  "checks": {
+    "build": {
+      "file": "Freelio-sync-monitor-build-20261020.log",
+      "sha256": "1b2b1c3fd9543947532dcc900d8ad2b844e676355d46c3512d4b00998d26ca5e",
+      "exitCode": 0,
+      "staticPages": 76
+    },
+    "eslint": {
+      "file": "Freelio-sync-monitor-eslint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "oxlint": {
+      "file": "Freelio-sync-monitor-oxlint-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    },
+    "types": {
+      "file": "Freelio-sync-monitor-types-20261020.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exitCode": 0
+    }
+  },
+  "checkSourceEquivalence": {
+    "compiledCodeCommit": "689159e77ed5966084223e3571f707d30561e6e6",
+    "currentCommit": "d6d523145a8f05b62e5bf1be8d205715f02f9de5",
+    "changedPaths": [
+      ".github/workflows/production-processors.yml",
+      "docs/contrat-rotation-synchronisations.md"
+    ],
+    "runtimeSchemaTestsDependenciesAndBuildConfigurationUnchanged": true,
+    "workflowCheckedSeparately": "workflow.json"
+  },
+  "scheduler": {
+    "ordering": [
+      "NULL cursor first",
+      "ascending scheduling cursor",
+      "stable channel ID"
+    ],
+    "cursorIsSuccessTimestamp": false,
+    "cursorAdvancedBeforeWorker": true,
+    "maximumBatchSize": 25,
+    "stopStartingChannelsAfterMs": 180000,
+    "processorLeasePassedBy": [
+      "HTTP sync processor",
+      "worker"
+    ],
+    "historicalSuccessesChanged": false,
+    "unknownHistoricalAttemptsBackfilled": false,
+    "obsoleteUnusedMailSchedulerRemoved": true
+  },
+  "schemaChange": {
+    "field": "CommunicationChannel.syncAttemptCursor",
+    "nullable": true,
+    "index": "CommunicationChannel_sync_attempt_idx",
+    "upgrade": {
+      "success": true,
+      "engine": "SQLite",
+      "preservedRows": 4,
+      "historicalChannels": 3,
+      "previousSchemaSha256": "c64bc4e17f4c9d96e811378ac33f4b231eb3cb4ff48513bf72d85821ea310818",
+      "schemaSha256": "2c6290f2e94d2159fb0228ed3c3ca25f500cc9fe35ff857474290d5b4a90635c",
+      "newCursorsDefaultToNull": true,
+      "successesCredentialsCheckpointsAndErrorsPreserved": true,
+      "foreignKeyErrors": 0,
+      "sqliteQueueIndexUsed": true,
+      "postgresDiffMatchesMigration": true,
+      "postgresMigrationExecuted": false
+    }
+  },
+  "dependencyAudit": {
+    "inheritedFrom": "../20261020-native-conversations/local.json",
+    "sameLockfile": true,
+    "lockfileSha256": "0aa5f905da5df448892debe9030f1aae63244b304a7cecdf91383a661ad35514",
+    "audits": {
+      "full": {
+        "file": "Freelio-communication-access-audit-full-20261020.json",
+        "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        }
+      },
+      "production": {
+        "file": "Freelio-communication-access-audit-production-20261020.json",
+        "sha256": "4d79086aa6d0514a94a76292cb2ae536f425784ef6e231870e529d18517488ca",
+        "exitCode": 0,
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        }
+      }
+    }
+  },
+  "coverage": {
+    "modules": 6,
+    "summary": {
+      "lines": {
+        "total": 436,
+        "covered": 386,
+        "skipped": 0,
+        "pct": 88.53
+      },
+      "statements": {
+        "total": 546,
+        "covered": 467,
+        "skipped": 0,
+        "pct": 85.53
+      },
+      "functions": {
+        "total": 115,
+        "covered": 103,
+        "skipped": 0,
+        "pct": 89.56
+      },
+      "branches": {
+        "total": 722,
+        "covered": 484,
+        "skipped": 0,
+        "pct": 67.03
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "thresholds": {
+      "statements": 75,
+      "branches": 50,
+      "functions": 70,
+      "lines": 75
+    }
+  },
+  "browserSelection": {
+    "observedAt": "2026-10-20T13:57:01.183Z",
+    "baseline": "d6d523145a8f05b62e5bf1be8d205715f02f9de5",
+    "all": 454,
+    "desktop": 227,
+    "mobile": 227,
+    "identicalCaseUnion": true,
+    "failFast": false,
+    "jobTimeoutMinutes": 45,
+    "isolatedRunnersAndDatabases": true,
+    "artifactNames": [
+      "playwright-report-${{ matrix.project }}",
+      "ui-audit-reports-${{ matrix.project }}",
+      "verification-sqlite-${{ github.sha }}-${{ matrix.project }}"
+    ],
+    "workflowSha256": "56f4f411de19a45363af2353b124281df08ff1a93c581c9a3254d57e55e6b9bb",
+    "limits": [
+      "Listing only; does not execute application or browser",
+      "Union compares current complete selection to the two current project selections, not historical run outcomes"
+    ]
+  },
+  "publication": {
+    "historyThroughCommit": "689159e77ed5966084223e3571f707d30561e6e6",
+    "schema": "freelio.publication-scan.v1",
+    "filesChecked": 1708,
+    "historyBlobsChecked": 4341,
+    "placeholdersExcluded": 1,
+    "findings": [],
+    "currentCommit": "d6d523145a8f05b62e5bf1be8d205715f02f9de5",
+    "currentSnapshot": {
+      "schema": "freelio.publication-scan.v1",
+      "filesChecked": 1708,
+      "historyBlobsChecked": 0,
+      "placeholdersExcluded": 0,
+      "findings": []
+    }
+  },
+  "limits": [
+    "Real SQLite selection, claims, transactions, workers and encrypted checkpoints; provider HTTP simulated in two provider-worker cases. Scheduler boundary cases substitute the two capability workers explicitly.",
+    "The inter-channel start budget does not instantly interrupt an already engaged provider call.",
+    "Finite eligible connection set; no provider-specific sending quotas or production latency/load guarantee.",
+    "PostgreSQL migration matches offline schema diff, but live PostgreSQL execution is unqualified. Browser selection only, not execution.",
+    "No push, new CI, deployment, original data access, real provider connection/send, R2, local server, Docker or paid action. GitHub Actions zero spending budget remains unverified."
+  ]
+}

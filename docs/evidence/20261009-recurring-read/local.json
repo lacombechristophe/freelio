@@ -1,0 +1,66 @@
+{
+  "schema": "freelio.local-qualification.v1",
+  "reference": "565986ec3dcbc30a5875957931aa01277ed2ee63",
+  "engine": "SQLite",
+  "node": "v24.15.0",
+  "sourceIdentity": {
+    "entries": 941,
+    "sha256": "e8b24848ac826bfdfe8197cbda984d00c51b08720840c4ad8be7cc7e8dbc567a",
+    "method": "Git entries outside docs/"
+  },
+  "fullSuite": {
+    "passed": 1436,
+    "files": 177,
+    "seconds": 188.76,
+    "logSha256": "60ebbf0df8c033da02cb76d2a10ff8b125202712166f82d5ee3ccd0797cc8626"
+  },
+  "targeted": {
+    "passed": 72,
+    "failed": 0,
+    "reportSha256": "cc93feb925733ee78938928d62b14bf0f88660ec5ed230208a99d6957b409db7",
+    "files": [
+      {
+        "file": "document-read-scope.integration.test.ts",
+        "cases": 33,
+        "status": "passed"
+      },
+      {
+        "file": "recurring-generation.integration.test.ts",
+        "cases": 13,
+        "status": "passed"
+      },
+      {
+        "file": "recurring-read-scope.integration.test.ts",
+        "cases": 26,
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": {
+    "types": true,
+    "eslint": true,
+    "oxlint": true,
+    "buildPages": 75
+  },
+  "logs": {
+    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eslint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "oxlint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build": "78459d29e32bf19f32dc8db8b2b5ce019c468bd4333b161f29c11473660c72e0"
+  },
+  "discovery": {
+    "cases": 296,
+    "files": 51,
+    "logSha256": "047c389c09638859023980603e09ae18605823f9b636224f5d16a44662cdc958",
+    "executed": false
+  },
+  "migration": {
+    "sqliteExecuted": true,
+    "logSha256": "b38c2ebbb09bf6cba0e1483fe989e40b86a18730aad2fb454ce1a9f7cf77a18f",
+    "replayedBackfill": "The targeted test executes the tracked SQLite UPDATE twice on valid, foreign, missing and inconsistent historical references."
+  },
+  "limits": [
+    "Isolated fictitious data only. No real provider, invoice issuance or hosted load qualification.",
+    "Browser discovery and fixture creation do not constitute browser execution. PostgreSQL and compiled browser results need their own CI reference."
+  ]
+}

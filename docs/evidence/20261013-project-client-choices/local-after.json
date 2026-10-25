@@ -1,0 +1,139 @@
+{
+  "schema": "freelio.project-client-choice-local.v1",
+  "sourceBase": "12d3aa7fb64ff19d70257c89edc4f0230537440f",
+  "scope": "Working copy of the approved project client selector; complete coverage suite run alone in isolated SQLite.",
+  "exitCode": 0,
+  "passed": 2056,
+  "failed": 0,
+  "skipped": 0,
+  "files": 208,
+  "focused": {
+    "file": "tests/unit/project-client-choices.integration.test.ts",
+    "status": "passed",
+    "cases": [
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection reaches the 1001st client without duplicates or financial fields",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection searches the whole company case-insensitively and trims the query",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps the selected client separately when a page or search hides it",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection clamps an obsolete page and keeps equal-name ties stable",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for OWNER",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for ADMIN",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for SALES",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for OPERATIONS",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for SERVICE",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for ACCOUNTING",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps company-shared clients minimal for VIEWER",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection returns no selected client once it has been deleted",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rechecks active membership before reading choices",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":0} before the choice transaction",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":1.5} before the choice transaction",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"page\":100001} before the choice transaction",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"search\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"} before the choice transaction",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"selectedId\":\"\"} before the choice transaction",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection rejects malformed input {\"companyId\":\"foreign\"} before the choice transaction",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for OWNER",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for ADMIN",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for OPERATIONS",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection creates and edits a project with the last client for TECHNICIAN",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection revalidates a foreign choice during creation without a project or audit",
+        "status": "passed"
+      },
+      {
+        "title": "Project client choices cover the full company with a minimal SQL projection keeps reads available but blocks writes in the public demo",
+        "status": "passed"
+      }
+    ]
+  },
+  "checks": {
+    "typescript": "passed",
+    "eslint": "passed",
+    "oxlint": "passed",
+    "productionBuild": "passed",
+    "playwrightDiscovery": "4 cases on desktop/mobile; execution pending CI"
+  },
+  "coverage": {
+    "scope": "Only the six configured modules, not all source code.",
+    "statements": 82.6,
+    "branches": 58.17,
+    "functions": 84.34,
+    "lines": 86
+  },
+  "limits": [
+    "Auth/cache mocked in SQL suites; actions and transactions real.",
+    "Compiled browser, PostgreSQL and Linux qualification still required for the new commit.",
+    "The template usage counter remains a separate proposal without visible approval."
+  ]
+}

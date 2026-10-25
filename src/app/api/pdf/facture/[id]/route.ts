@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params
 
     const invoice = await prisma.invoice.findFirst({
-      where: { id, companyId },
+      where: { id, companyId, client: { companyId } },
       include: {
         client: true,
         company: true,

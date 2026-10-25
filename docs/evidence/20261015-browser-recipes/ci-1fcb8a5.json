@@ -1,0 +1,344 @@
+{
+  "candidate": "1fcb8a5a06a71a9a378e53e0a6b3b57ed5cf5571",
+  "observedAt": "2026-10-15T11:42:51.981Z",
+  "fullyQualified": false,
+  "evidenceBasis": "Résumés des reporters dans les journaux des jobs et métadonnées des endpoints GitHub attempts/1 ; aucun JSON natif de résultat reconstitué.",
+  "runs": [
+    {
+      "event": "push",
+      "id": 38637975566,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566",
+      "attempt": 1,
+      "startedAt": "2026-10-14T21:09:06Z",
+      "completedAt": "2026-10-14T21:40:35Z",
+      "conclusion": "failure",
+      "quality": [
+        {
+          "project": "desktop",
+          "id": 116105925651,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566/job/116105925651",
+          "startedAt": "2026-10-14T21:09:09Z",
+          "completedAt": "2026-10-14T21:40:34Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2360,
+            "failed": 0,
+            "files": 222
+          },
+          "browser": {
+            "planned": 215,
+            "complete": true,
+            "passed": 214,
+            "failed": 0,
+            "skipped": 1,
+            "failures": []
+          },
+          "audits": {
+            "productionVulnerabilities": 0,
+            "allDependenciesVulnerabilities": 0
+          },
+          "log": {
+            "bytes": 171639,
+            "sha256": "00de91a782b4877658d9721173529fc7bb391cd4b83582489e319cb52fa91047"
+          },
+          "detailedReportsUploaded": false
+        },
+        {
+          "project": "mobile",
+          "id": 116105925511,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566/job/116105925511",
+          "startedAt": "2026-10-14T21:09:09Z",
+          "completedAt": "2026-10-14T21:35:38Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Exécuter les parcours critiques",
+            "Publier les traces en cas d’échec",
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2360,
+            "failed": 0,
+            "files": 222
+          },
+          "browser": {
+            "planned": 215,
+            "complete": true,
+            "passed": 195,
+            "failed": 2,
+            "skipped": 18,
+            "failures": [
+              {
+                "file": "tests/e2e/full-ui-audit.spec.ts",
+                "title": "audit UI exhaustif des routes authentifiées",
+                "symptom": "Console HTTP 409 dans l’aperçu d’une facture historique sans archive.",
+                "consoleEvents": 2
+              },
+              {
+                "file": "tests/e2e/supplier-management.spec.ts",
+                "title": "keeps an off-page supplier choice while searching a purchase or product form",
+                "symptom": "Le sélecteur « 1 résultat » de la fenêtre Produit correspond à deux éléments : Fournisseur et Produit parent."
+              }
+            ]
+          },
+          "audits": {
+            "productionVulnerabilities": 0,
+            "allDependenciesVulnerabilities": 0
+          },
+          "log": {
+            "bytes": 182186,
+            "sha256": "e98b368d099fadd094ee2722f56a83577ff698fad5318ca3fa737819a3ac5dcd"
+          },
+          "detailedReportsUploaded": false
+        }
+      ],
+      "postgres": {
+        "id": 116105925460,
+        "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566/job/116105925460",
+        "startedAt": "2026-10-14T21:09:09Z",
+        "completedAt": "2026-10-14T21:15:14Z",
+        "conclusion": "failure",
+        "failedSteps": [
+          "Publier les preuves PostgreSQL"
+        ],
+        "passed": 2359,
+        "failed": 0,
+        "skipped": 1,
+        "files": {
+          "passed": 221,
+          "skipped": 1,
+          "total": 222
+        },
+        "skippedScope": "tests/unit/demo-native-backup.integration.test.ts : sauvegarde native SQLite",
+        "log": {
+          "bytes": 460759,
+          "sha256": "f8af08e432add16273c24df517bae8183e18c1e0d7833766e9db029ff1a18b73"
+        },
+        "detailedReportUploaded": false
+      },
+      "linux": {
+        "id": 116105925377,
+        "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566/job/116105925377",
+        "startedAt": "2026-10-14T21:09:09Z",
+        "completedAt": "2026-10-14T21:09:18Z",
+        "conclusion": "failure",
+        "failedSteps": [
+          "Construire l’image sans secrets"
+        ],
+        "buildCompleted": false,
+        "verificationExecuted": false,
+        "checksPassed": 0,
+        "failureCategory": "base-image-registry-http-429-before-build",
+        "log": {
+          "bytes": 17963,
+          "sha256": "d76211a2c6ba971cb55b62c6040ada7a3fa38d1196677c09e6c99a73158b9e5c"
+        },
+        "detailedReportUploaded": false
+      }
+    },
+    {
+      "event": "pull_request",
+      "id": 38637983101,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637983101",
+      "attempt": 1,
+      "startedAt": "2026-10-14T21:09:09Z",
+      "completedAt": "2026-10-14T21:39:04Z",
+      "conclusion": "failure",
+      "quality": [
+        {
+          "project": "desktop",
+          "id": 116105951561,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637983101/job/116105951561",
+          "startedAt": "2026-10-14T21:09:13Z",
+          "completedAt": "2026-10-14T21:39:03Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2360,
+            "failed": 0,
+            "files": 222
+          },
+          "browser": {
+            "planned": 215,
+            "complete": true,
+            "passed": 214,
+            "failed": 0,
+            "skipped": 1,
+            "failures": []
+          },
+          "audits": {
+            "productionVulnerabilities": 0,
+            "allDependenciesVulnerabilities": 0
+          },
+          "log": {
+            "bytes": 181141,
+            "sha256": "33bab7f269dda0575a5cd6fa89ba521413efc0a857b40455e034af59ac5d62c2"
+          },
+          "detailedReportsUploaded": false
+        },
+        {
+          "project": "mobile",
+          "id": 116105951954,
+          "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637983101/job/116105951954",
+          "startedAt": "2026-10-14T21:09:12Z",
+          "completedAt": "2026-10-14T21:34:57Z",
+          "conclusion": "failure",
+          "failedSteps": [
+            "Exécuter les parcours critiques",
+            "Publier les traces en cas d’échec",
+            "Publier les rapports de recette UI",
+            "Publier les preuves SQLite et la couverture"
+          ],
+          "typesLintCoverageAndBuildPassed": true,
+          "sqlite": {
+            "passed": 2360,
+            "failed": 0,
+            "files": 222
+          },
+          "browser": {
+            "planned": 215,
+            "complete": true,
+            "passed": 195,
+            "failed": 2,
+            "skipped": 18,
+            "failures": [
+              {
+                "file": "tests/e2e/full-ui-audit.spec.ts",
+                "title": "audit UI exhaustif des routes authentifiées",
+                "symptom": "Console HTTP 409 dans l’aperçu d’une facture historique sans archive.",
+                "consoleEvents": 1
+              },
+              {
+                "file": "tests/e2e/supplier-management.spec.ts",
+                "title": "keeps an off-page supplier choice while searching a purchase or product form",
+                "symptom": "Le sélecteur « 1 résultat » de la fenêtre Produit correspond à deux éléments : Fournisseur et Produit parent."
+              }
+            ]
+          },
+          "audits": {
+            "productionVulnerabilities": 0,
+            "allDependenciesVulnerabilities": 0
+          },
+          "log": {
+            "bytes": 181710,
+            "sha256": "8232160ca7cc39b6a5ad9012accffb5a023f8db9798dc8bcb9fdea7b5fba4cda"
+          },
+          "detailedReportsUploaded": false
+        }
+      ],
+      "postgres": {
+        "id": 116105952220,
+        "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637983101/job/116105952220",
+        "startedAt": "2026-10-14T21:09:13Z",
+        "completedAt": "2026-10-14T21:13:29Z",
+        "conclusion": "failure",
+        "failedSteps": [
+          "Publier les preuves PostgreSQL"
+        ],
+        "passed": 2359,
+        "failed": 0,
+        "skipped": 1,
+        "files": {
+          "passed": 221,
+          "skipped": 1,
+          "total": 222
+        },
+        "skippedScope": "tests/unit/demo-native-backup.integration.test.ts : sauvegarde native SQLite",
+        "log": {
+          "bytes": 437660,
+          "sha256": "4b42ee150d8310045d01c17032e2bf8eabc6384a473edeb2cb9a1274a0d108b3"
+        },
+        "detailedReportUploaded": false
+      },
+      "linux": {
+        "id": 116105951882,
+        "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637983101/job/116105951882",
+        "startedAt": "2026-10-14T21:09:13Z",
+        "completedAt": "2026-10-14T21:13:35Z",
+        "conclusion": "failure",
+        "failedSteps": [
+          "Run actions/upload-artifact@v7"
+        ],
+        "buildCompleted": true,
+        "verificationExecuted": true,
+        "checksPassed": 9,
+        "failureCategory": "artifact-storage-quota",
+        "log": {
+          "bytes": 156661,
+          "sha256": "edc10284ab0d4804815f02909da6dcfd306e26518619204b6e018cecaa4e8d5d"
+        },
+        "detailedReportUploaded": false
+      }
+    }
+  ],
+  "selectiveRerun": {
+    "event": "push",
+    "id": 38637975566,
+    "attempt": 2,
+    "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566/attempts/2",
+    "startedAt": "2026-10-15T11:32:58Z",
+    "completedAt": "2026-10-15T11:33:12Z",
+    "conclusion": "failure",
+    "linux": {
+      "id": 116398909119,
+      "url": "https://github.com/lacombechristophe/freelio/actions/runs/38637975566/job/116398909119",
+      "startedAt": "2026-10-15T11:33:02Z",
+      "completedAt": "2026-10-15T11:33:11Z",
+      "conclusion": "failure",
+      "failedSteps": [
+        "Construire l’image sans secrets"
+      ],
+      "buildCompleted": false,
+      "verificationExecuted": false,
+      "failureCategory": "base-image-registry-http-429-before-build",
+      "log": {
+        "bytes": 18096,
+        "sha256": "32c0f941f00f0f5cfbd0359877981b8e514d64cc1e6eb67fc522781a9faedd68"
+      }
+    },
+    "carriedResults": [
+      {
+        "name": "Intégration PostgreSQL",
+        "originalJobId": 116105925460,
+        "reportedJobId": 116398911486,
+        "startedAt": "2026-10-14T21:09:09Z",
+        "completedAt": "2026-10-14T21:15:14Z",
+        "reexecuted": false
+      },
+      {
+        "name": "quality-and-e2e (desktop)",
+        "originalJobId": 116105925651,
+        "reportedJobId": 116398911883,
+        "startedAt": "2026-10-14T21:09:09Z",
+        "completedAt": "2026-10-14T21:40:34Z",
+        "reexecuted": false
+      },
+      {
+        "name": "quality-and-e2e (mobile)",
+        "originalJobId": 116105925511,
+        "reportedJobId": 116398949224,
+        "startedAt": "2026-10-14T21:09:09Z",
+        "completedAt": "2026-10-14T21:35:38Z",
+        "reexecuted": false
+      }
+    ]
+  },
+  "limits": [
+    "Les deux workflows restent en échec : deux parcours mobiles échouent, les rapports ne sont pas téléversés et l’image Linux push n’est pas construite.",
+    "Les exclusions navigateur sont les comptes natifs du reporter line (1 desktop et 18 mobile). Leur liste détaillée n’est pas disponible dans ces journaux et n’est pas reconstruite.",
+    "Les empreintes portent sur les octets des journaux téléchargés. Les JSON natifs PostgreSQL, Linux, SQLite, couverture et UI ainsi que les traces ne sont pas disponibles à cause du quota GitHub.",
+    "Les compteurs SQL et les audits sont propres à chaque job ; leur répétition ne constitue pas de nouveaux cas de test.",
+    "La tentative 2 réexécute seulement Linux. Les autres IDs exposés par GitHub reportent les résultats de la tentative 1 aux mêmes horodatages.",
+    "Aucun résultat de correctif ultérieur n’est attribué à ce candidat."
+  ]
+}

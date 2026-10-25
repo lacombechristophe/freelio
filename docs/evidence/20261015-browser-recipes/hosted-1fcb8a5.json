@@ -1,0 +1,55 @@
+{
+  "candidate": "1fcb8a5a06a71a9a378e53e0a6b3b57ed5cf5571",
+  "observedAt": "2026-10-14T21:20:28.395Z",
+  "deployment": {
+    "id": "dpl_Eg1PvD2Aa1DyjP5imNzgTaRK1VoE",
+    "url": "https://freelio-7yjar52p6-hyhyhyhyhytest-8931s-projects.vercel.app",
+    "state": "READY",
+    "createdAt": 1792012145944
+  },
+  "command": "playwright test --config playwright.hosted.config.ts",
+  "exitCode": 0,
+  "durationMs": 255298.606,
+  "projects": [
+    {
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 144477,
+      "visitedRoutes": 49,
+      "javascriptErrors": 0,
+      "retries": 0,
+      "skipped": 0
+    },
+    {
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 107687,
+      "visitedRoutes": 49,
+      "javascriptErrors": 0,
+      "retries": 0,
+      "skipped": 0
+    }
+  ],
+  "harnessIdentity": [
+    {
+      "file": "playwright.hosted.config.ts",
+      "gitBlob": "b750febd5668cd2f61f1b2f9c6cd34779c2857db",
+      "sha256WithLf": "0c438a37729db2b5f0da783186e0cffae0f1744a123fdaf1a59339e4abc71016",
+      "matchesCandidate": true
+    },
+    {
+      "file": "tests/hosted/readonly-demo.spec.ts",
+      "gitBlob": "86bca539851e9c1adca353d0f270de0277acfa19",
+      "sha256WithLf": "a70dca86048aa93f4ef2704c3bc3fb96d1bac7d898f0c0ffa613b647f63e6849",
+      "matchesCandidate": true
+    }
+  ],
+  "aliasVerifiedAfter": {
+    "observedAt": "2026-10-15T11:33:29.806Z",
+    "deploymentId": "dpl_Eg1PvD2Aa1DyjP5imNzgTaRK1VoE"
+  },
+  "limits": [
+    "Démonstration fictive en lecture seule, sans stockage persistant. Les 49 lectures par format ne qualifient pas tous les parcours métier.",
+    "Aucun envoi fournisseur, abonnement, serveur local ni écriture métier dans cette recette. Le succès hébergé ne remplace pas les résultats CI en échec."
+  ]
+}

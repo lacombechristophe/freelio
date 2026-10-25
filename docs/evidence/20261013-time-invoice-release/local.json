@@ -1,0 +1,179 @@
+{
+  "schema": "freelio.time-invoice-release.local.v1",
+  "passed": 1980,
+  "failed": 0,
+  "files": 205,
+  "focused": [
+    {
+      "title": "deletes the draft, releases its time and writes one audit for ACCOUNTING",
+      "status": "passed"
+    },
+    {
+      "title": "deletes the draft, releases its time and writes one audit for OWNER",
+      "status": "passed"
+    },
+    {
+      "title": "deletes the draft, releases its time and writes one audit for ADMIN",
+      "status": "passed"
+    },
+    {
+      "title": "denies SALES before a business transaction",
+      "status": "passed"
+    },
+    {
+      "title": "denies SERVICE before a business transaction",
+      "status": "passed"
+    },
+    {
+      "title": "denies OPERATIONS before a business transaction",
+      "status": "passed"
+    },
+    {
+      "title": "denies TECHNICIAN before a business transaction",
+      "status": "passed"
+    },
+    {
+      "title": "denies VIEWER before a business transaction",
+      "status": "passed"
+    },
+    {
+      "title": "deletes a coherent draft without times",
+      "status": "passed"
+    },
+    {
+      "title": "preserves the SENT document and its allocations",
+      "status": "passed"
+    },
+    {
+      "title": "preserves the PAID document and its allocations",
+      "status": "passed"
+    },
+    {
+      "title": "preserves the OVERDUE document and its allocations",
+      "status": "passed"
+    },
+    {
+      "title": "preserves the CANCELLED document and its allocations",
+      "status": "passed"
+    },
+    {
+      "title": "preserves the locked draft document and its allocations",
+      "status": "passed"
+    },
+    {
+      "title": "refuses the draft's foreign invoice reference",
+      "status": "passed"
+    },
+    {
+      "title": "refuses the draft's foreign client reference",
+      "status": "passed"
+    },
+    {
+      "title": "refuses the draft's foreign project reference",
+      "status": "passed"
+    },
+    {
+      "title": "refuses the draft's different project client reference",
+      "status": "passed"
+    },
+    {
+      "title": "refuses the draft's unassigned agency reference",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the partial release when a linked time has a foreign company",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the partial release when a linked time has a different client",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the partial release when a linked time has a different project",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the partial release when a linked time has a unassigned agency",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the document, lines and allocations after a release outage",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the document, lines and allocations after a delete outage",
+      "status": "passed"
+    },
+    {
+      "title": "rolls back the document, lines and allocations after a audit outage",
+      "status": "passed"
+    },
+    {
+      "title": "preserves an issued state committed after the request starts",
+      "status": "passed"
+    },
+    {
+      "title": "denies a direct detach with missing capability",
+      "status": "passed"
+    },
+    {
+      "title": "denies a direct detach with wrong target",
+      "status": "passed"
+    },
+    {
+      "title": "denies a direct detach with extra field",
+      "status": "passed"
+    },
+    {
+      "title": "denies a direct detach with claim instead",
+      "status": "passed"
+    },
+    {
+      "title": "denies a direct detach with read action",
+      "status": "passed"
+    },
+    {
+      "title": "keeps the count exception limited to the exact draft and write action",
+      "status": "passed"
+    },
+    {
+      "title": "rejects invalid or filter-shaped identifiers before a transaction: ",
+      "status": "passed"
+    },
+    {
+      "title": "rejects invalid or filter-shaped identifiers before a transaction: { not: '' }",
+      "status": "passed"
+    },
+    {
+      "title": "blocks the public read-only demo before a transaction",
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "name": "types",
+      "exitCode": 0,
+      "seconds": 28.613
+    },
+    {
+      "name": "eslint",
+      "exitCode": 0,
+      "seconds": 27.298
+    },
+    {
+      "name": "oxlint",
+      "exitCode": 0,
+      "seconds": 0.203
+    },
+    {
+      "name": "unit",
+      "exitCode": 0,
+      "seconds": 231.555
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "seconds": 73.939
+    }
+  ]
+}
