@@ -75,6 +75,15 @@ export async function withAuth<T>(
   permission?: Permission,
 ): Promise<T> {
   if (permission && !permission.endsWith(".read")) assertDemoMutationAllowed()
+  return runAuthenticated(action, permission, false)
+}
+
+/** Management-only screens may consult data without acquiring write intent. */
+export async function withReadAuth<T>(action: (context: AuthContext) => Promise<T>, permission: Permission): Promise<T> {
+  return runAuthenticated(action, permission, true)
+}
+
+async function runAuthenticated<T>(action: (context: AuthContext) => Promise<T>, permission: Permission | undefined, readOnlyAction: boolean): Promise<T> {
   const context = await resolveAuthContext()
 
   // Dashboard callers already handle the pre-onboarding state through redirects.
@@ -85,5 +94,5 @@ export async function withAuth<T>(
   }
 
   // Lazy Prisma promises must execute before leaving the authorization context.
-  return requestContext.run({ ...context, actionPermission: permission }, async () => await action(context))
+  return requestContext.run({ ...context, actionPermission: permission, ...(readOnlyAction ? { readOnlyAction: true } : {}) }, async () => await action(context))
 }

@@ -81,7 +81,6 @@ async function assertReferences(companyId: string, clientId: string, ownerMember
 
 export async function getPipeline(requestedPipelineId?: string) {
   return withAuth(async ({ companyId }) => {
-    const defaultPipeline = await ensurePipeline(companyId)
     const [availablePipelines, members] = await Promise.all([
       prisma.pipeline.findMany({
         where: { companyId },
@@ -100,6 +99,12 @@ export async function getPipeline(requestedPipelineId?: string) {
         orderBy: { createdAt: "asc" },
       }),
     ])
+    const defaultPipeline = availablePipelines[0]
+    if (!defaultPipeline) return {
+      id: "", name: "Cycle de vente", isDefault: false, stages: DEFAULT_PIPELINE_STAGES,
+      pipelines: [], opportunities: [],
+      members: members.map((member) => ({ id: member.id, name: member.user.name || member.user.email || "Commercial" })),
+    }
     const requestedId = id.safeParse(requestedPipelineId).success ? requestedPipelineId : null
     const selectedId = availablePipelines.some((pipeline) => pipeline.id === requestedId)
       ? requestedId!

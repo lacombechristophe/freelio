@@ -4,9 +4,9 @@ import { z } from "zod"
 import { Prisma } from "@/generated/prisma/client"
 import { hasPermission } from "@/lib/permissions"
 import { recurringScope, recurringSearch, recurringPageSize } from "@/lib/finance/recurring-scope"
+import { getContext, requestContext } from "@/lib/context"
 import prisma from "@/lib/prisma"
 import { withAuth } from "@/lib/auth-wrapper"
-import { requestContext } from "@/lib/context"
 import { revalidatePath } from "next/cache"
 import { logAction } from "@/lib/audit"
 import { CreditNoteSchema, InvoiceSchema, PaymentSchema, RecurringInvoiceSchema, ReminderSchema } from "@/lib/validations"
@@ -809,10 +809,15 @@ export async function getRecurringInvoices(input: unknown = {}) {
     return prisma.$transaction(async tx => {
       const scope = recurringScope(context)
       const search = recurringSearch(query.search)
-      const counts = await tx.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`SELECT COUNT(*) AS total ${scope} ${search}`)
+      const request = getContext()
+      if (!request || request.companyId !== context.companyId || request.actionPermission !== "finance.read") throw new Error("Accès Finance requis")
+      const read = <T>(statement: Prisma.Sql) => requestContext.run({ ...request, recurringInvoiceReadSql: statement.sql }, async () => {
+        return await tx.$queryRaw<T>(statement)
+      })
+      const counts = await read<Array<{ total: bigint }>>(Prisma.sql`SELECT COUNT(*) AS total ${scope} ${search}`)
       const total = Number(counts[0]?.total ?? 0)
       const page = Math.min(query.page, Math.max(1, Math.ceil(total / recurringPageSize)))
-      const ids = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT r."id" ${scope} ${search} ORDER BY r."isActive" DESC, r."nextGenDate" ASC, r."id" ASC LIMIT ${recurringPageSize} OFFSET ${(page - 1) * recurringPageSize}`)
+      const ids = await read<Array<{ id: string }>>(Prisma.sql`SELECT r."id" ${scope} ${search} ORDER BY r."isActive" DESC, r."nextGenDate" ASC, r."id" ASC LIMIT ${recurringPageSize} OFFSET ${(page - 1) * recurringPageSize}`)
       const items = await tx.recurringInvoice.findMany({
         where: { companyId: context.companyId, id: { in: ids.map(row => row.id) } },
         select: { id: true, label: true, frequency: true, nextGenDate: true, lastGenDate: true, isActive: true, client: { select: { id: true, name: true } }, _count: { select: { occurrences: true } } },

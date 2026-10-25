@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, withReadAuth } from "@/lib/auth-wrapper"
 import prisma from "@/lib/prisma"
 import { assertWithinPlanLimit } from "@/lib/billing/subscription"
 
@@ -47,7 +47,7 @@ export async function getActiveAgencies() {
 }
 
 export async function getAgencyManagement() {
-  return withAuth(async ({ companyId }) => {
+  return withReadAuth(async ({ companyId }) => {
     const [agencies, memberships, warehouses] = await Promise.all([
       prisma.agency.findMany({
         where: { companyId },

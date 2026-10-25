@@ -9,12 +9,15 @@ export type RequestContext = {
   role: CompanyRole
   agencyIds: AgencyAccess
   actionPermission?: Permission
+  readOnlyAction?: boolean
   timeInvoiceClaimId?: string
   timeInvoiceReleaseId?: string
   oauthCredentialRefreshChannelId?: string
   quoteOrderCreation?: { quoteId: string; clientId: string }
   maintenanceRenewalSettings?: { contractId: string; expectedUpdatedAt: string }
   operationsProjectReadSql?: string
+  campaignAttributionReadSql?: string
+  recurringInvoiceReadSql?: string
 }
 
 const globalForContext = globalThis as typeof globalThis & {

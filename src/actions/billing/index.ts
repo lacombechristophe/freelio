@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { z } from "zod"
 
 import { withAuth } from "@/lib/auth-wrapper"
-import { BILLING_PLANS, billingConfigurationIssues, stripePriceId } from "@/lib/billing/plans"
+import { BILLING_PLANS, billingConfigurationIssues, normalizeBillingPlan, stripePriceId } from "@/lib/billing/plans"
 import { getEntitlements } from "@/lib/billing/subscription"
 import { stripeClient } from "@/lib/billing/stripe"
 import prisma from "@/lib/prisma"
@@ -19,20 +19,20 @@ function applicationUrl() {
 
 export async function getBillingOverview() {
   return withAuth(async ({ companyId }) => {
-    const [entitlement, activeMembers, pendingInvitations, agencies] = await Promise.all([
-      getEntitlements(companyId),
+    const [subscription, activeMembers, pendingInvitations, agencies] = await Promise.all([
+      prisma.saasSubscription.findUnique({ where: { companyId } }),
       prisma.membership.count({ where: { companyId, status: "ACTIVE" } }),
       prisma.companyInvitation.count({ where: { companyId, acceptedAt: null, expiresAt: { gt: new Date() } } }),
       prisma.agency.count({ where: { companyId, active: true } }),
     ])
     const configurationIssues = billingConfigurationIssues()
     return {
-      plan: entitlement.plan,
-      status: entitlement.subscription.status,
-      cancelAtPeriodEnd: entitlement.subscription.cancelAtPeriodEnd,
-      currentPeriodEnd: entitlement.subscription.currentPeriodEnd?.toISOString() ?? null,
-      trialEndsAt: entitlement.subscription.trialEndsAt?.toISOString() ?? null,
-      hasStripeCustomer: Boolean(entitlement.subscription.stripeCustomerId),
+      plan: normalizeBillingPlan(subscription?.plan ?? "ALPHA"),
+      status: subscription?.status ?? "ACTIVE",
+      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+      currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
+      trialEndsAt: subscription?.trialEndsAt?.toISOString() ?? null,
+      hasStripeCustomer: Boolean(subscription?.stripeCustomerId),
       configured: configurationIssues.length === 0,
       usage: { seats: activeMembers + pendingInvitations, agencies },
       plans: BILLING_PLANS,

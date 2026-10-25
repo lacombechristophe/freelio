@@ -113,20 +113,26 @@ const prismaClientSingleton = () => {
   return createDatabaseClient().$extends({
     query: {
       async $allOperations({ model, operation, args, query }) {
+        if (!model && getContext()?.readOnlyAction) throw new Error("READ_ONLY_ACTION")
         if (!model && isPublicReadOnlyDemo()) {
           // Raw SQL can mutate even through $queryRaw. Only connectivity,
-          // exact metadata probes and the scoped project selector are admitted.
+          // exact metadata probes and statement-local business reads are admitted.
           const rawArgs = args as { sql?: string } | unknown[]
           const sql = !Array.isArray(rawArgs) && rawArgs && "sql" in rawArgs ? rawArgs.sql : Array.isArray(rawArgs) && Array.isArray(rawArgs[0]) ? rawArgs[0].join("") : undefined
           const context = getContext()
           const projectRead = operation === "$queryRaw" && typeof sql === "string" && context?.actionPermission === "operations.read"
             && context.operationsProjectReadSql === sql
-          if (!projectRead && !isReadinessMetadataQuery(operation, sql) && (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1")) assertDemoMutationAllowed()
+          const campaignRead = operation === "$queryRaw" && typeof sql === "string" && context?.actionPermission === "automation.read"
+            && context.campaignAttributionReadSql === sql
+          const recurringRead = operation === "$queryRaw" && typeof sql === "string" && context?.actionPermission === "finance.read"
+            && context.recurringInvoiceReadSql === sql
+          if (!projectRead && !campaignRead && !recurringRead && !isReadinessMetadataQuery(operation, sql) && (operation !== "$queryRaw" || sql?.trim().toUpperCase() !== "SELECT 1")) assertDemoMutationAllowed()
         }
         return query(args)
       },
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
+          if (MUTATION_OPERATIONS.has(operation) && getContext()?.readOnlyAction) throw new Error("READ_ONLY_ACTION")
           if (MUTATION_OPERATIONS.has(operation) && !(model === "AuditLog" && operation === "create")) assertDemoMutationAllowed()
           const context = getContext()
           // Prisma exposes a union of every model operation here. The operation

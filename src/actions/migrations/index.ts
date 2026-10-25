@@ -5,7 +5,7 @@ import { Prisma } from "@/generated/prisma/client"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, withReadAuth } from "@/lib/auth-wrapper"
 import { decrypt, encrypt } from "@/lib/crypto"
 import { DEFAULT_PIPELINE_STAGES } from "@/lib/pipeline-rules"
 import {
@@ -112,7 +112,7 @@ function extrabatConfig(value: Prisma.JsonValue | null): ExtrabatConnectionConfi
 }
 
 export async function getMigrationDashboard() {
-  return withAuth(async ({ companyId }) => {
+  return withReadAuth(async ({ companyId }) => {
     const [connections, runs] = await Promise.all([
       prisma.dataSourceConnection.findMany({
         where: { companyId },

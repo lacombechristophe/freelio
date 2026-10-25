@@ -78,7 +78,7 @@ export function OpportunityFormDialog({
     setPending(true)
     try {
       const payload = {
-        pipelineId,
+        pipelineId: pipelineId || undefined,
         title: form.title,
         clientId: form.clientId,
         status: form.status,

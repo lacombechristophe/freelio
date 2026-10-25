@@ -49,17 +49,17 @@ export function PipelineSettingsDialog({
 }) {
   const router = useRouter()
   const confirm = useConfirm()
-  const [mode, setMode] = React.useState<"edit" | "create">("edit")
+  const [mode, setMode] = React.useState<"edit" | "create">(pipeline.id ? "edit" : "create")
   const [name, setName] = React.useState(pipeline.name)
   const [stages, setStages] = React.useState<Stage[]>(pipeline.stages)
   const [pending, setPending] = React.useState(false)
   const currentSummary = pipeline.pipelines.find((item) => item.id === pipeline.id)
 
   const reset = React.useCallback(() => {
-    setMode("edit")
+    setMode(pipeline.id ? "edit" : "create")
     setName(pipeline.name)
     setStages(pipeline.stages)
-  }, [pipeline.name, pipeline.stages])
+  }, [pipeline.id, pipeline.name, pipeline.stages])
 
   React.useEffect(() => {
     if (open) reset()
