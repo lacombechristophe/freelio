@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { toast } from "sonner"
+import { useTheme } from "next-themes"
 import { ChevronDown, CircleHelp, LogOut, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { clearFieldOfflineData } from "@/lib/field/offline"
@@ -12,12 +13,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
 export function UserMenu({ email, name, companyName }: { email?: string | null; name?: string | null; companyName?: string | null }) {
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const initials = (name || email || "F")
     .split(/[\s@._-]+/)
     .filter(Boolean)
@@ -56,6 +60,13 @@ export function UserMenu({ email, name, companyName }: { email?: string | null; 
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}><Settings />Paramètres</DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/dashboard/help")}><CircleHelp />Aide</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Apparence</DropdownMenuLabel>
+        <DropdownMenuRadioGroup aria-label="Apparence" value={theme ?? "light"} onValueChange={setTheme}>
+          <DropdownMenuRadioItem value="light">Clair</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Sombre</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">Système</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem demoMutation={false} variant="destructive" onClick={handleLogout}>
           <LogOut />Déconnexion
