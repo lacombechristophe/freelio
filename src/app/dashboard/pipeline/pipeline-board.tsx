@@ -91,14 +91,14 @@ function usePipelineScroll() {
     ))
   }, [])
 
-  const scrollTo = React.useCallback((left: number) => {
+  const scrollTo = React.useCallback((left: number, immediate = false) => {
     const viewport = viewportRef.current
     if (!viewport) return
 
     const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
     targetRef.current = clamp(left, 0, maxScroll)
 
-    if (reducedMotionRef.current) {
+    if (immediate || reducedMotionRef.current) {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
       frameRef.current = null
       viewport.scrollLeft = targetRef.current
@@ -108,7 +108,8 @@ function usePipelineScroll() {
 
     if (frameRef.current !== null) return
 
-    const animate = () => {
+    let previousTime = performance.now()
+    const animate = (time: number) => {
       const activeViewport = viewportRef.current
       if (!activeViewport) {
         frameRef.current = null
@@ -123,20 +124,24 @@ function usePipelineScroll() {
         return
       }
 
-      activeViewport.scrollLeft += distance * 0.22
+      // Preserve the existing 60 Hz response at any display refresh rate.
+      const elapsed = Math.max(0, time - previousTime)
+      previousTime = time
+      const progress = 1 - Math.pow(0.78, elapsed / (1000 / 60))
+      activeViewport.scrollLeft += distance * progress
       frameRef.current = requestAnimationFrame(animate)
     }
 
     frameRef.current = requestAnimationFrame(animate)
   }, [updateScrollState])
 
-  const scrollByViewport = React.useCallback((direction: -1 | 1) => {
+  const scrollByViewport = React.useCallback((direction: -1 | 1, immediate = false) => {
     const viewport = viewportRef.current
     if (!viewport) return
 
     const distance = Math.max(280, viewport.clientWidth * 0.72)
     const start = frameRef.current === null ? viewport.scrollLeft : targetRef.current
-    scrollTo(start + direction * distance)
+    scrollTo(start + direction * distance, immediate)
   }, [scrollTo])
 
   React.useEffect(() => {
@@ -146,13 +151,28 @@ function usePipelineScroll() {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
     const syncMotionPreference = () => {
       reducedMotionRef.current = motionQuery.matches
+      if (motionQuery.matches && frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current)
+        frameRef.current = null
+        viewport.scrollLeft = targetRef.current
+        updateScrollState()
+      }
+    }
+    const stopAnimation = () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+      targetRef.current = viewport.scrollLeft
     }
     const handleScroll = () => {
       if (frameRef.current === null) targetRef.current = viewport.scrollLeft
       updateScrollState()
     }
     const handleWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      if (event.ctrlKey) return
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+        stopAnimation()
+        return
+      }
 
       const unit = event.deltaMode === 1
         ? 20
@@ -177,19 +197,19 @@ function usePipelineScroll() {
 
       if (event.key === "ArrowLeft" || event.key === "PageUp") {
         event.preventDefault()
-        scrollByViewport(-1)
+        scrollByViewport(-1, true)
       }
       if (event.key === "ArrowRight" || event.key === "PageDown") {
         event.preventDefault()
-        scrollByViewport(1)
+        scrollByViewport(1, true)
       }
       if (event.key === "Home") {
         event.preventDefault()
-        scrollTo(0)
+        scrollTo(0, true)
       }
       if (event.key === "End") {
         event.preventDefault()
-        scrollTo(viewport.scrollWidth)
+        scrollTo(viewport.scrollWidth, true)
       }
     }
 
@@ -208,6 +228,7 @@ function usePipelineScroll() {
 
     resizeObserver.observe(viewport)
     viewport.addEventListener("wheel", handleWheel, { passive: false })
+    viewport.addEventListener("pointerdown", stopAnimation)
     viewport.addEventListener("scroll", handleScroll, { passive: true })
     viewport.addEventListener("keydown", handleKeyDown)
     motionQuery.addEventListener("change", syncMotionPreference)
@@ -216,6 +237,7 @@ function usePipelineScroll() {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
       resizeObserver.disconnect()
       viewport.removeEventListener("wheel", handleWheel)
+      viewport.removeEventListener("pointerdown", stopAnimation)
       viewport.removeEventListener("scroll", handleScroll)
       viewport.removeEventListener("keydown", handleKeyDown)
       motionQuery.removeEventListener("change", syncMotionPreference)
