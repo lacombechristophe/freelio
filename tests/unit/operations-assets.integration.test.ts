@@ -48,19 +48,20 @@ describe.sequential("complete site and equipment directories on real SQL", () =>
     await prisma.company.deleteMany({ where: { id: where.companyId } })
     await prisma.user.delete({ where: { id: session.userId } })
   })
-  it("paginates all 201 sites and 301 equipment items with stable complete boundaries", async () => {
-    for (const [load, total] of [[getCustomerSiteDirectory, 201], [getEquipmentDirectory, 301]] as const) {
-      const seen = new Set<string>()
-      for (let page = 1; page <= Math.ceil(total / 25); page++) {
-        const result = await load({ page })
-        expect(result.total).toBe(total)
-        expect(result.page).toBe(page)
-        expect(result.items.length).toBeLessThanOrEqual(25)
-        for (const row of result.items) { expect(seen.has(row.id)).toBe(false); seen.add(row.id) }
-      }
-      expect(seen.size).toBe(total)
-      expect((await load({ page: 999 })).page).toBe(Math.ceil(total / 25))
+  it.each([
+    { name: "sites", load: getCustomerSiteDirectory, total: 201 },
+    { name: "equipment items", load: getEquipmentDirectory, total: 301 },
+  ])("paginates all $total $name with stable complete boundaries", async ({ load, total }) => {
+    const seen = new Set<string>()
+    for (let page = 1; page <= Math.ceil(total / 25); page++) {
+      const result = await load({ page })
+      expect(result.total).toBe(total)
+      expect(result.page).toBe(page)
+      expect(result.items.length).toBeLessThanOrEqual(25)
+      for (const row of result.items) { expect(seen.has(row.id)).toBe(false); seen.add(row.id) }
     }
+    expect(seen.size).toBe(total)
+    expect((await load({ page: 999 })).page).toBe(Math.ceil(total / 25))
   })
   it.each(["site 200", "address 200"])("finds the oldest site through %s", async search => {
     const data = await getCustomerSiteDirectory({ search, page: 999 })
