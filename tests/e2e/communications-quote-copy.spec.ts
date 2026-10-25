@@ -1,3 +1,4 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("selects a current quote revision, refuses an edit at the same version and retains its generated private copy", async ({ page, context }, testInfo) => {
@@ -8,7 +9,7 @@ test("selects a current quote revision, refuses an edit at the same version and 
   await expect(page.getByLabel("Destinataire", { exact: true }).locator("option")).toHaveCount(2)
   await page.getByLabel("Destinataire", { exact: true }).selectOption("cuiqarecipient000000000550")
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Preserved fictional current quote mail</p>")
+  await (await emailHtmlField(page)).fill("<p>Preserved fictional current quote mail</p>")
   await page.getByRole("button", { name: "Joindre un document CRM", exact: true }).click()
   const picker = page.getByRole("dialog", { name: "Joindre un document CRM", exact: true })
   await expect(picker.getByLabel("Source du document").locator('option[value="QUOTE_COPY"]')).toBeEnabled()
@@ -32,7 +33,7 @@ test("selects a current quote revision, refuses an edit at the same version and 
   await picker.getByRole("button", { name: "Ajouter au brouillon", exact: true }).click()
   await expect(picker.getByRole("status")).toContainText("modifiés")
   await picker.getByRole("button", { name: "Annuler", exact: true }).click()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue("<p>Preserved fictional current quote mail</p>")
+  await expect((await emailHtmlField(page))).toHaveValue("<p>Preserved fictional current quote mail</p>")
   await page.getByRole("button", { name: "Joindre un document CRM", exact: true }).click()
   await expect(picker.getByLabel("Source du document").locator('option[value="QUOTE_COPY"]')).toBeEnabled()
   await picker.getByLabel("Source du document").selectOption("QUOTE_COPY")

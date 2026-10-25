@@ -2,6 +2,7 @@
 
 import { RemoteMessageState } from "./remote-message-state"
 import * as React from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { Activity, Archive, ArrowLeft, CheckCircle2, ChevronRight, Eye, Forward, Inbox, Info, KeyRound, LockKeyhole, Mail, MailCheck, MailOpen, MousePointerClick, PlugZap, RefreshCw, Reply, Send, Settings2, Unplug, XCircle } from "lucide-react"
 import { toast } from "sonner"
@@ -31,9 +32,11 @@ import { HelpTip } from "@/components/ui/help-tip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { isReadOnlyDemo } from "@/lib/demo-mode"
+
+const EmailComposer = dynamic(() => import("./email-composer").then(module => module.EmailComposer), { ssr: false, loading: () => <p role="status" className="text-sm text-muted-foreground">Chargement de l’éditeur…</p> })
+
 
 type CommunicationData = {
   company: { id: string; name: string; email: string | null }
@@ -479,7 +482,7 @@ export function CommunicationCenter({ initialData, initialTab = "inbox" }: { ini
             <div className="space-y-1.5"><Label htmlFor="email-cc">CC</Label><Input id="email-cc" value={cc} disabled={purpose === "MARKETING"} onChange={event => setCc(event.target.value)} maxLength={5100} placeholder="Adresses séparées par une virgule" /></div>
             <div className="space-y-1.5"><Label htmlFor="email-bcc">CCI</Label><Input id="email-bcc" value={bcc} disabled={purpose === "MARKETING"} onChange={event => setBcc(event.target.value)} maxLength={5100} placeholder="Adresses cachées, séparées par une virgule" /></div>
             <div className="space-y-1.5"><Label htmlFor="email-subject">Objet</Label><Input id="email-subject" name="subject" autoComplete="off" value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={2} maxLength={180} /></div>
-            <div className="space-y-1.5"><div className="flex items-center justify-between"><Label htmlFor="email-html">Contenu HTML</Label><span className="text-xs text-muted-foreground">Balises simples autorisées</span></div><Textarea id="email-html" name="bodyHtml" value={bodyHtml} onChange={(event) => setBodyHtml(event.target.value)} rows={14} required minLength={10} maxLength={100000} className="font-mono text-xs" /></div>
+            <EmailComposer value={bodyHtml} onChange={setBodyHtml} disabled={isPending || !canWrite || Boolean(draft?.scheduledAt || draft?.archivedAt)} />
             <SignatureEditor key={`${initialData.company.id}:${initialData.signatureOwnerId}`} initialValue={initialData.signature} onInsert={text => setBodyHtml(insertEmailSignature(bodyHtml, text))} />
             <div className="space-y-2">
               <input ref={attachmentInput} type="file" accept="application/pdf,image/png,image/jpeg" aria-label="Choisir une pièce jointe" className="hidden" onChange={event => {

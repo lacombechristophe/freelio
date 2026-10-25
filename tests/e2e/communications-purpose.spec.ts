@@ -1,3 +1,4 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test, type Page } from "@playwright/test"
 
 function row(page: Page, subject: string) { return page.locator("div.border-b").filter({ has: page.getByText(subject, { exact: true }) }) }
@@ -18,7 +19,7 @@ test("preserves explicit marketing purpose through autosave, personal preview, s
   await page.goto("/dashboard/communications?tab=compose")
   await recipient(page, 549)
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Fictional marketing purpose content</p>")
+  await (await emailHtmlField(page)).fill("<p>Fictional marketing purpose content</p>")
   await page.getByLabel("CC", { exact: true }).fill("copy@example.test")
   await page.getByLabel("Finalité", { exact: true }).selectOption("MARKETING")
   await expect(page.getByLabel("Finalité", { exact: true })).toHaveValue("SERVICE")
@@ -65,7 +66,7 @@ test("explains missing proof while preserving typing and requires a decision on 
   await page.goto("/dashboard/communications?tab=compose")
   await recipient(page, 550)
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Keep this refused fictional composition</p>")
+  await (await emailHtmlField(page)).fill("<p>Keep this refused fictional composition</p>")
   await page.getByLabel("Finalité", { exact: true }).selectOption("MARKETING")
   await page.getByRole("button", { name: "Vérifier l’aperçu", exact: true }).click()
   await expect(page.getByText(/Prospection refusée : aucune preuve de consentement/)).toBeVisible()
@@ -75,7 +76,7 @@ test("explains missing proof while preserving typing and requires a decision on 
   // A complete debounce period must not replace a refused send with saved success.
   await page.waitForTimeout(1200)
   await expect(page.getByRole("status").filter({ hasText: "preuve de consentement" })).toBeVisible()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue("<p>Keep this refused fictional composition</p>")
+  await expect((await emailHtmlField(page))).toHaveValue("<p>Keep this refused fictional composition</p>")
   await expect(page.getByText("E-mail envoyé et ajouté à l’historique.", { exact: true })).toHaveCount(0)
   await remove(page, subject)
   await row(page, `UIQA Historical purpose ${info.project.name}`).getByRole("button", { name: "Rouvrir", exact: true }).click()
@@ -84,5 +85,5 @@ test("explains missing proof while preserving typing and requires a decision on 
   await confirmation.getByRole("button", { name: "Remplacer", exact: true }).click()
   await expect(page.getByLabel("Finalité", { exact: true })).toHaveValue("")
   await expect(page.getByRole("button", { name: "Envoyer maintenant", exact: true })).toBeDisabled()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue("<p>Historical fictional purpose remains unknown</p>")
+  await expect((await emailHtmlField(page))).toHaveValue("<p>Historical fictional purpose remains unknown</p>")
 })

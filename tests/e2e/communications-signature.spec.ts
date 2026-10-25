@@ -1,3 +1,4 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("inserts a saved personal signature on request, preserves old drafts and previews the plain alternative", async ({ page, context }, testInfo) => {
@@ -6,13 +7,13 @@ test("inserts a saved personal signature on request, preserves old drafts and pr
   const signature = 'Équipe <img src=x onerror=alert(1)> & "Fiction"\nLigne privée'
   await page.goto("/dashboard/communications?tab=compose")
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill(body)
+  await (await emailHtmlField(page)).fill(body)
   await page.getByRole("button", { name: "Enregistrer le brouillon", exact: true }).click()
   await expect(page.getByRole("status").filter({ hasText: "Brouillon enregistré" })).toContainText("version 1")
   await page.getByLabel("Signature personnelle", { exact: true }).fill(signature)
   await page.getByRole("button", { name: "Enregistrer ma signature", exact: true }).click()
   await expect(page.getByText("Signature personnelle enregistrée.").last()).toBeVisible()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue(body)
+  await expect((await emailHtmlField(page))).toHaveValue(body)
   await page.getByRole("button", { name: "Vérifier l’aperçu", exact: true }).click()
   const preview = page.getByRole("dialog", { name: "Aperçu avant envoi", exact: true })
   await preview.getByRole("button", { name: "Version texte", exact: true }).click()
@@ -20,7 +21,7 @@ test("inserts a saved personal signature on request, preserves old drafts and pr
   await expect(preview.getByRole("region", { name: "Version texte de l’e-mail" })).not.toContainText("Ligne privée")
   await page.keyboard.press("Escape")
   await page.getByRole("button", { name: "Insérer ma signature", exact: true }).click()
-  const inserted = await page.getByLabel("Contenu HTML", { exact: true }).inputValue()
+  const inserted = await (await emailHtmlField(page)).inputValue()
   expect(inserted.startsWith(body)).toBe(true)
   expect(inserted).toContain("&lt;img"); expect(inserted).not.toContain("<img")
   await page.getByRole("button", { name: "Enregistrer le brouillon", exact: true }).click()
@@ -44,7 +45,7 @@ test("inserts a saved personal signature on request, preserves old drafts and pr
   await page.getByRole("tab", { name: "Brouillons", exact: true }).click()
   const row = page.locator("div.border-b").filter({ has: page.getByText(subject, { exact: true }) })
   await row.getByRole("button", { name: "Rouvrir", exact: true }).click()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue(inserted)
+  await expect((await emailHtmlField(page))).toHaveValue(inserted)
   await page.getByRole("button", { name: "Vérifier l’aperçu", exact: true }).click()
   await expect(preview.getByRole("button", { name: "Version texte", exact: true })).toHaveAttribute("aria-pressed", "false")
   await expect(page.frameLocator('iframe[title="Aperçu final"]').locator("img")).toHaveCount(0)

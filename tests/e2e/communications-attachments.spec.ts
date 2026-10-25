@@ -1,10 +1,11 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("retains a private attachment after reload and refuses stale-tab removal", async ({ page, context }, testInfo) => {
   const subject = `UIQA Attached draft ${testInfo.project.name} ${Date.now()}`
   await page.goto("/dashboard/communications?tab=compose")
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Fictional attachment draft</p>")
+  await (await emailHtmlField(page)).fill("<p>Fictional attachment draft</p>")
   const chooser = page.waitForEvent("filechooser")
   await page.getByRole("button", { name: "Joindre un fichier", exact: true }).click()
   await (await chooser).setFiles({ name: "fiction.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-fictional attachment only") })
@@ -23,7 +24,7 @@ test("retains a private attachment after reload and refuses stale-tab removal", 
   await expect(other.getByRole("button", { name: "Retirer fiction.pdf", exact: true })).toHaveCount(0)
   await page.getByRole("button", { name: "Retirer fiction.pdf", exact: true }).click()
   await expect(page.getByRole("status").filter({ hasText: "Conflit" })).toBeVisible()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue("<p>Fictional attachment draft</p>")
+  await expect((await emailHtmlField(page))).toHaveValue("<p>Fictional attachment draft</p>")
   await other.getByRole("tab", { name: "Brouillons", exact: true }).click()
   await other.locator("div.border-b").filter({ has: other.getByText(subject, { exact: true }) }).getByRole("button", { name: "Supprimer", exact: true }).click()
   await other.getByRole("dialog", { name: "Supprimer ce brouillon ?" }).getByRole("button", { name: "Supprimer", exact: true }).click()

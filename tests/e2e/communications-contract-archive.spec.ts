@@ -1,3 +1,4 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("paginates signed contract archives and preserves a private copy in a draft without sending", async ({ page }, testInfo) => {
@@ -7,7 +8,7 @@ test("paginates signed contract archives and preserves a private copy in a draft
   await expect(page.getByLabel("Destinataire", { exact: true }).locator("option")).toHaveCount(2)
   await page.getByLabel("Destinataire", { exact: true }).selectOption("cuiqarecipient000000000550")
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Fictional signed contract attachment</p>")
+  await (await emailHtmlField(page)).fill("<p>Fictional signed contract attachment</p>")
   await page.getByRole("button", { name: "Joindre un document CRM", exact: true }).click()
   const picker = page.getByRole("dialog", { name: "Joindre un document CRM", exact: true })
   await expect(picker.getByLabel("Source du document").locator('option[value="SIGNED_CONTRACT"]')).toBeEnabled()
@@ -27,7 +28,7 @@ test("paginates signed contract archives and preserves a private copy in a draft
   const row = page.locator("div.border-b").filter({ has: page.getByText(subject, { exact: true }) })
   await row.getByRole("button", { name: "Rouvrir", exact: true }).click()
   await expect(page.getByRole("button", { name: "Retirer UIQA-CRM-CONTRACT-030.pdf", exact: true })).toBeVisible()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue("<p>Fictional signed contract attachment</p>")
+  await expect((await emailHtmlField(page))).toHaveValue("<p>Fictional signed contract attachment</p>")
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth))
   await expect(page.getByText("E-mail envoyé et ajouté à l’historique.", { exact: true })).toHaveCount(0)
   await page.getByRole("tab", { name: "Brouillons", exact: true }).click()

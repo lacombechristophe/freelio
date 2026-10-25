@@ -1,7 +1,9 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("forwards the selected older message into a new draft, resets copies and files, and leaves recipient and send manual", async ({ page }, testInfo) => {
   const previousSubject = `UIQA Forward predecessor ${testInfo.project.name} ${Date.now()}`
+  const forwardedSubject = `Tr: UIQA Reply all paginated ${testInfo.project.name} ${Date.now()}`
   const saves: string[] = []
   page.on("request", request => {
     const body = request.postData() || ""
@@ -35,7 +37,7 @@ test("forwards the selected older message into a new draft, resets copies and fi
   await expect(page.getByLabel("CCI", { exact: true })).toHaveValue("")
   await expect(page.getByLabel("Expéditeur", { exact: true })).not.toHaveValue("cuiqareplysecondmailbox00")
   await expect(page.getByRole("button", { name: "Retirer previous-fiction.pdf", exact: true })).toHaveCount(0)
-  const body = page.getByLabel("Contenu HTML", { exact: true })
+  const body = (await emailHtmlField(page))
   await expect(body).toHaveValue(/De : recipient550@example.test/)
   await expect(body).toHaveValue(/Date : 2020-01-01T00:00:00.000Z/)
   await expect(body).toHaveValue(/Incoming copies outside the displayed page/)
@@ -46,11 +48,13 @@ test("forwards the selected older message into a new draft, resets copies and fi
   expect(saves[0]).toContain('"threadId":""')
   expect(saves[0]).toContain('"contactId":""')
   expect(saves[0]).toContain('"attachmentIds":[]')
+  await page.getByLabel("Objet", { exact: true }).fill(forwardedSubject)
+  await page.getByRole("button", { name: "Enregistrer le brouillon", exact: true }).click()
   await page.reload()
   await page.getByRole("tab", { name: "Brouillons", exact: true }).click()
-  const row = page.locator("div.border-b").filter({ has: page.getByText("Tr: UIQA Reply all paginated", { exact: true }) })
+  const row = page.locator("div.border-b").filter({ has: page.getByText(forwardedSubject, { exact: true }) })
   await row.getByRole("button", { name: "Rouvrir", exact: true }).click()
-  await expect(body).toHaveValue(quotedText)
+  await expect((await emailHtmlField(page))).toHaveValue(quotedText)
   await expect(page.getByLabel("Destinataire", { exact: true })).toHaveValue("")
   await expect(page.getByLabel("CC", { exact: true })).toHaveValue("")
   await expect(page.getByLabel("CCI", { exact: true })).toHaveValue("")
@@ -62,7 +66,7 @@ test("forwards the selected older message into a new draft, resets copies and fi
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth))
   await page.getByRole("button", { name: "Enregistrer le brouillon", exact: true }).click()
   await page.getByRole("tab", { name: "Brouillons", exact: true }).click()
-  for (const subject of ["Tr: UIQA Reply all paginated", previousSubject]) {
+  for (const subject of [forwardedSubject, previousSubject]) {
     const draft = page.locator("div.border-b").filter({ has: page.getByText(subject, { exact: true }) })
     await draft.getByRole("button", { name: "Supprimer", exact: true }).click()
     await page.getByRole("dialog", { name: "Supprimer ce brouillon ?" }).getByRole("button", { name: "Supprimer", exact: true }).click()

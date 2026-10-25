@@ -1,3 +1,4 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("paginates and searches recipient CRM files, privately retains a file and archived invoice after reload, and leaves send manual", async ({ page }, testInfo) => {
@@ -8,7 +9,7 @@ test("paginates and searches recipient CRM files, privately retains a file and a
   await expect(page.getByLabel("Destinataire", { exact: true }).locator("option")).toHaveCount(2)
   await page.getByLabel("Destinataire", { exact: true }).selectOption("cuiqarecipient000000000550")
   await page.getByLabel("Objet", { exact: true }).fill(subject)
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Fictional CRM document composition</p>")
+  await (await emailHtmlField(page)).fill("<p>Fictional CRM document composition</p>")
   await page.getByRole("button", { name: "Joindre un document CRM", exact: true }).click()
   const picker = page.getByRole("dialog", { name: "Joindre un document CRM", exact: true })
   await expect(picker.getByLabel("Document CRM", { exact: true }).locator("option")).toHaveCount(26)
@@ -27,7 +28,7 @@ test("paginates and searches recipient CRM files, privately retains a file and a
   await picker.getByLabel("Document CRM", { exact: true }).selectOption("cuiqacrminvoicearchive000")
   await picker.getByRole("button", { name: "Ajouter au brouillon", exact: true }).click()
   await expect(page.getByRole("button", { name: "Retirer UIQA-CRM-ARCHIVE.pdf", exact: true })).toBeVisible()
-  await expect(page.getByLabel("Contenu HTML", { exact: true })).toHaveValue("<p>Fictional CRM document composition</p>")
+  await expect((await emailHtmlField(page))).toHaveValue("<p>Fictional CRM document composition</p>")
   await page.reload()
   await page.getByRole("tab", { name: "Brouillons", exact: true }).click()
   const row = page.locator("div.border-b").filter({ has: page.getByText(subject, { exact: true }) })
