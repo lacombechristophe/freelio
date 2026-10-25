@@ -1,25 +1,10 @@
 import { expect, test } from "@playwright/test"
-
-const routes = [
-  "/dashboard/clients", "/dashboard/devis", "/dashboard/factures", "/dashboard/depenses",
-  "/dashboard/crm", "/dashboard/sales", "/dashboard/revenue", "/dashboard/marketing/overview", "/dashboard/service",
-  "/dashboard/contacts", "/dashboard/leads", "/dashboard/pipeline", "/dashboard/projets", "/dashboard/contrats",
-  "/dashboard/communications", "/dashboard/communications?tab=compose", "/dashboard/communications?tab=drafts",
-  "/dashboard/communications?tab=recovery", "/dashboard/communications?tab=integrations",
-  "/dashboard/marketing", "/dashboard/campagnes", "/dashboard/automatisations", "/dashboard/catalogue",
-  "/dashboard/operations", "/dashboard/operations?tab=orders", "/dashboard/operations?tab=assets",
-  "/dashboard/operations?tab=planning", "/dashboard/operations?tab=maintenance", "/dashboard/operations/fournisseurs",
-  "/dashboard/comptabilite", "/dashboard/comptabilite/banque", "/dashboard/factures/recurrentes",
-  "/dashboard/factures/temps-non-facture", "/dashboard/organisation", "/dashboard/temps",
-  "/dashboard/service/help-desk", "/dashboard/service/customer-success", "/dashboard/service/analytics",
-  "/dashboard/service/diagnostics", "/dashboard/service/macros", "/dashboard/service/connaissance",
-  "/dashboard/service/satisfaction", "/dashboard/reports", "/dashboard/notifications", "/dashboard/equipe",
-  "/dashboard/settings", "/dashboard/settings/properties", "/dashboard/settings/agencies", "/dashboard/help",
-]
+import { assertHostedModule, hostedModules } from "./page-contract"
 
 test("the hosted fictitious demo renders its modules and refuses writes", async ({ page, context, baseURL }, info) => {
   const errors: Array<{ route: string; message: string }> = []
   const visited: string[] = []
+  const failures: Array<{ route: string; message: string }> = []
   page.on("pageerror", error => errors.push({ route: new URL(page.url()).pathname + new URL(page.url()).search, message: error.message }))
   await context.route("**/*", route => new URL(route.request().url()).origin === baseURL ? route.continue() : route.abort())
   for (const route of ["/api/health/live", "/api/health/ready"]) expect((await context.request.get(route)).status()).toBe(200)
@@ -37,12 +22,15 @@ test("the hosted fictitious demo renders its modules and refuses writes", async 
   await page.waitForURL(url => url.pathname === "/dashboard")
   await expect(page.getByText("Démonstration en lecture seule — données fictives", { exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Export de réversibilité", exact: true })).toBeDisabled()
-  for (const route of routes) {
+  for (const [route, heading, ...tabs] of hostedModules) {
     await test.step(route, async () => {
-      expect((await page.goto(route))?.status()).toBe(200)
-      await expect(page.locator("#dashboard-main")).toBeVisible()
-      await expect(page.getByText("Application error", { exact: false })).toHaveCount(0)
-      visited.push(route)
+      try {
+        expect((await page.goto(route))?.status()).toBe(200)
+        await assertHostedModule(page, heading, tabs[0])
+        visited.push(route)
+      } catch (error) {
+        failures.push({ route, message: (error instanceof Error ? error.message : "Page non qualifiée").slice(0, 2000) })
+      }
     })
   }
   for (const [route, document, prefix] of [["devis", "devis", "DEMO-DEV-"], ["factures", "facture", "DEMO-FACT-"]]) {
@@ -65,6 +53,7 @@ test("the hosted fictitious demo renders its modules and refuses writes", async 
   await page.getByRole("menuitem", { name: "Déconnexion", exact: true }).click()
   await page.waitForURL(url => url.pathname === "/auth/login")
   // Credentials and protection headers are never attached to the report.
-  await info.attach("hosted-readonly-summary", { body: JSON.stringify({ project: info.project.name, visited, pageErrors: errors }, null, 2), contentType: "application/json" })
+  await info.attach("hosted-readonly-summary", { body: JSON.stringify({ project: info.project.name, visited, failures, pageErrors: errors }, null, 2), contentType: "application/json" })
+  expect(failures).toEqual([])
   expect(errors).toEqual([])
 })
