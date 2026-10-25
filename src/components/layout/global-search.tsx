@@ -14,6 +14,7 @@ type Result = { id: string; label: string; type: string; href: string }
 
 export function GlobalSearch() {
   const router = useRouter()
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
   const [results, setResults] = React.useState<Result[]>([])
@@ -57,17 +58,18 @@ export function GlobalSearch() {
   return (
     <>
       <button
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         aria-label="Ouvrir la recherche globale"
-        className="ml-auto flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:border-input hover:bg-muted sm:ml-0 sm:w-full sm:max-w-[460px] sm:justify-start sm:px-3 dark:bg-background"
+        className="ml-auto flex size-11 shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:border-input hover:bg-muted sm:ml-0 sm:h-9 sm:w-full sm:min-w-0 sm:max-w-[460px] sm:shrink sm:justify-start sm:px-3 dark:bg-background"
       >
-        <Search className="size-4" />
+        <Search className="size-4 shrink-0" />
         <span className="hidden truncate sm:inline">Rechercher dans Freelio…</span>
-        <kbd className="ml-auto hidden rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">Ctrl K</kbd>
+        <kbd className="ml-auto hidden shrink-0 rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">Ctrl K</kbd>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false}>
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false} finalFocus={triggerRef}>
           <DialogTitle className="sr-only">Recherche globale</DialogTitle>
           <div className="flex items-center border-b px-4">
             <Search className="h-4 w-4 text-muted-foreground" />

@@ -122,9 +122,9 @@ export function ClientFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Type *</Label>
+              <Label htmlFor="client-type">Type *</Label>
               <Select value={form.type} onValueChange={(value) => setForm({ ...form, type: value ?? "ENTERPRISE" })}>
-                <SelectTrigger>
+                <SelectTrigger id="client-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

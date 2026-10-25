@@ -281,13 +281,13 @@ export function ExpenseFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Catégorie *</Label>
+              <Label htmlFor="expense-category" className="text-xs font-semibold">Catégorie *</Label>
               <Select 
                 value={form.category} 
                 onValueChange={(v) => setForm({ ...form, category: v ?? "Fournitures" })}
                 disabled={pending}
               >
-                <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="expense-category" className="bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-popover text-popover-foreground">
                   {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
