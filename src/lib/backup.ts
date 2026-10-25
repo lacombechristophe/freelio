@@ -306,6 +306,11 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
   const tables: ReversibilityTable[] = []
   let totalRows = 0
   let totalBytes = 0
+  const accountBatch = (batch: readonly unknown[]) => {
+    totalRows += batch.length
+    totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
+    if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+  }
   for (const spec of COMPANY_TABLE_SPECS) {
     const delegate = database[spec.delegate]
     if (!delegate?.findMany) throw new Error(`Modèle Prisma indisponible pour l’export : ${spec.model}`)
@@ -313,9 +318,7 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
     for (let skip = 0; ; skip += 250) {
       const orderBy: Array<Record<string, string>> = spec.model === "MaintenanceContractEquipment" ? [{ contractId: "asc" }, { equipmentId: "asc" }] : spec.model === "AgencyMembership" ? [{ agencyId: "asc" }, { membershipId: "asc" }] : [{ id: "asc" }]
       const batch = await delegate.findMany({ where: spec.where(companyId), take: 250, skip, orderBy })
-      totalRows += batch.length
-      totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
-      if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
+      accountBatch(batch)
       rows.push(...batch)
       if (batch.length < 250) break
     }
@@ -327,10 +330,16 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
 
   const byModel = new Map(tables.map((table) => [table.model, table]))
   if (!byModel.get("Company")?.rows.length) throw new Error("Entreprise introuvable pour l’export")
-  const memberships = byModel.get("Membership")?.rows ?? []
-  const userIds = new Set<string>([userId])
-  for (const row of memberships) if (typeof row.userId === "string") userIds.add(row.userId)
-  const users = await client.user.findMany({ where: { id: { in: [...userIds] } } })
+  // In this same serializable snapshot, membership selects the exported users
+  // without placing an unbounded list of their identifiers in every query.
+  const userScope = { OR: [{ id: userId }, { memberships: { some: { companyId } } }] }
+  const users = []
+  for (let skip = 0; ; skip += 250) {
+    const batch = await client.user.findMany({ where: userScope, orderBy: { id: "asc" }, take: 250, skip })
+    accountBatch(batch)
+    users.push(...batch)
+    if (batch.length < 250) break
+  }
   tables.splice(1, 0, {
     model: "User",
     rows: sortRows(users.map((row) => redactSensitiveExportValues(row) as Record<string, unknown>)),
@@ -341,13 +350,14 @@ async function collectCompanyTables(userId: string, companyId: string, client: P
     for (const row of table.rows) if (typeof row.id === "string") resourceIds.add(row.id)
   }
   const scopedAuditLogs = []
-  for (let skip = 0; ; skip += 250) {
-    const batch = await client.auditLog.findMany({ where: { userId: { in: [...userIds] }, resourceId: { in: [...resourceIds] } }, orderBy: { id: "asc" }, take: 250, skip })
-    totalRows += batch.length
-    totalBytes += Buffer.byteLength(JSON.stringify(batch), "utf8")
-    if (totalRows > MAX_EXPORT_ROWS || totalBytes > MAX_EXPORT_TABLE_BYTES) throw new Error("Export logique trop volumineux : utiliser la sauvegarde native de la base")
-    scopedAuditLogs.push(...batch)
-    if (batch.length < 250) break
+  const resources = [...resourceIds]
+  for (let offset = 0; offset < resources.length; offset += 250) {
+    for (let skip = 0; ; skip += 250) {
+      const batch = await client.auditLog.findMany({ where: { user: userScope, resourceId: { in: resources.slice(offset, offset + 250) } }, orderBy: { id: "asc" }, take: 250, skip })
+      accountBatch(batch)
+      scopedAuditLogs.push(...batch)
+      if (batch.length < 250) break
+    }
   }
   tables.push({
     model: "AuditLog",
