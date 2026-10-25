@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { FormError } from "@/components/shared/form-error"
 import {
   Dialog,
   DialogClose,
@@ -63,6 +64,7 @@ export function ProjectFormDialog({
   const router = useRouter()
   const defaultAgencyId = agencies.find(agency => agency.isDefault)?.id ?? ""
   const [pending, setPending] = React.useState(false)
+  const [formError, setFormError] = React.useState("")
   const [clientSearch, setClientSearch] = React.useState("")
   const [clientPage, setClientPage] = React.useState(1)
   const [clientRevision, setClientRevision] = React.useState(0)
@@ -84,6 +86,7 @@ export function ProjectFormDialog({
 
   React.useEffect(() => {
     if (open) {
+      setFormError("")
       setClientSearch("")
       setClientPage(1)
       setClientRevision(value => value + 1)
@@ -135,6 +138,7 @@ export function ProjectFormDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSave) return
+    setFormError("")
     setPending(true)
     try {
       const payload = {
@@ -159,7 +163,7 @@ export function ProjectFormDialog({
       onOpenChange(false)
       router.refresh()
     } catch (err: any) {
-      toast.error(err?.message ?? "Erreur lors de l'enregistrement.")
+      setFormError(err?.message ?? "Erreur lors de l'enregistrement.")
     } finally {
       setPending(false)
     }
@@ -172,6 +176,7 @@ export function ProjectFormDialog({
           <DialogTitle>{project ? "Éditer le projet" : "Nouveau projet"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <FormError message={formError} />
           <div className="space-y-1.5">
             <Label>Client *</Label>
             <Input aria-label="Rechercher un client" placeholder="Rechercher un client…" value={clientSearch} maxLength={200} disabled={pending} onChange={event => { setClientSearch(event.target.value); setClientPage(1) }} />
