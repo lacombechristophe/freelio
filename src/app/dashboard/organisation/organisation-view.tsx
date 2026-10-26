@@ -272,6 +272,12 @@ export function OrganisationView({ data }: { data: OrganisationData }) {
   const [goalDialogOpen, setGoalDialogOpen] = React.useState(false)
   const [pendingKey, setPendingKey] = React.useState<string | null>(null)
 
+  React.useEffect(() => {
+    if (window.location.hash === "#objectifs") {
+      document.getElementById("objectifs")?.scrollIntoView({ block: "start", behavior: "instant" })
+    }
+  }, [])
+
   const todayKey = dateKey(data.periods.todayStart, data.timeZone)
   const weekStart = React.useMemo(() => new Date(`${dateKey(data.periods.weekStart, data.timeZone)}T00:00:00.000Z`), [data.periods.weekStart, data.timeZone])
   const weekDays = React.useMemo(() => {

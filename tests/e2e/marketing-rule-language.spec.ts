@@ -30,5 +30,10 @@ for (const [path, id] of [
   test(`le raccourci ${path} atteint sa section`, async ({ page }) => {
     await page.goto(path)
     await expect(page.locator(`#${id}`)).toBeInViewport()
+    if (id === "objectifs") {
+      await page.locator("#dashboard-main").evaluate(element => { element.scrollTop = 0 })
+      await page.reload()
+      await expect(page.locator(`#${id}`)).toBeInViewport()
+    }
   })
 }
