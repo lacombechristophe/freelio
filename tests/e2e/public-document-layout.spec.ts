@@ -60,13 +60,21 @@ test("valid public documents retain contrast and readable long text in both them
       await expect(locator).toBeVisible()
       const overflow = await locator.evaluate(element => {
         const style = getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        let clippedByAncestor = false
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+          const bounds = parent.getBoundingClientRect()
+          const overflow = getComputedStyle(parent)
+          if (["hidden", "clip"].includes(overflow.overflowX) && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1)) clippedByAncestor = true
+        }
         return {
           horizontal: element.scrollWidth > element.clientWidth + 1,
           // Font ink may extend beyond its line box without being clipped.
           clippedVertically: ["hidden", "clip"].includes(style.overflowY) && element.scrollHeight > element.clientHeight + 1,
+          clippedByAncestor,
         }
       })
-      expect(overflow).toEqual({ horizontal: false, clippedVertically: false })
+      expect(overflow).toEqual({ horizontal: false, clippedVertically: false, clippedByAncestor: false })
       const ratio = await contrast(locator)
       expect(ratio).toBeGreaterThanOrEqual(4.5)
       return ratio
@@ -99,6 +107,8 @@ test("valid public documents retain contrast and readable long text in both them
           } else if (surface === "signature") {
             await expect(publicPage.locator("canvas")).toBeVisible()
             await expect(publicPage.getByLabel("Nom complet du signataire")).toBeEditable()
+            await readable(publicPage.locator('label[for="agreedToClauses"]'))
+            await readable(publicPage.locator('label[for="agreedToElectronicSign"]'))
             await expect(publicPage.getByRole("button", { name: "Signer électroniquement", exact: true })).toBeEnabled()
           } else {
             const score = publicPage.getByRole("button", { name: "10", exact: true })

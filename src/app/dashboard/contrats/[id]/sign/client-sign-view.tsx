@@ -219,7 +219,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSign} className="space-y-4">
+            <form onSubmit={handleSign} className="space-y-4 [&_label]:min-w-0 [&_label]:[overflow-wrap:anywhere]">
               <div className="space-y-1.5">
                 <Label htmlFor="signerName" className="text-xs font-semibold">Nom complet du signataire *</Label>
                 <Input
