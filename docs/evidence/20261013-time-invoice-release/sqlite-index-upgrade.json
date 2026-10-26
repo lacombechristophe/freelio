@@ -1,9 +1,0 @@
-{
-  "schema": "freelio.time-invoice-index-upgrade.v1",
-  "beforeIndex": false,
-  "afterIndex": true,
-  "historicalTimePreserved": true,
-  "legacyReferencePreserved": true,
-  "queryUsesIndex": true,
-  "rowDigest": "8f41228a2f5513a119f11c7bddc7f6a65c4d3730e518a6674360a25dc9651b0f"
-}

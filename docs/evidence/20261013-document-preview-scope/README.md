@@ -1,7 +1,0 @@
-# Périmètre du client dans les aperçus documentaires
-
-Le diagnostic [avant correction](before.json) reproduit quatre réponses HTTP 200 contenant les coordonnées d'un client d'une autre société : facture et devis, avec Owner et avec le rôle métier correspondant. Deux contrôles cohérents restent accessibles. Le [reproducteur](reproducer.test.ts.txt) utilise les routes réelles et une base fictive ; session et cache sont simulés, la génération binaire ne doit pas être appelée dans ce diagnostic HTML.
-
-Les deux routes ajoutent le filtre `client.companyId` au filtre de société du document. Une relation incohérente reçoit le refus HTTP 404 existant avant rendu, génération binaire ou lecture d'une archive. Ce correctif complète l'introuvabilité déjà approuvée dans le [contrat des lecteurs partagés](../../contrat-lecteurs-client-partages.md).
-
-Les [résultats locaux](local.json) comptent 2 009 tests / 206 fichiers, dont 29 cas ciblés : huit rôles, document cohérent ou étranger, retrait d'agence, session suspendue, téléchargement et archive. Types, ESLint, Oxlint et build passent. Les 29 cas PostgreSQL et les deux parcours compilés ordinateur/mobile réussissent dans les deux CI vertes de a055d65 ; les [rapports](../20261013-candidate/ci-a055d65.json) relient leur exécution au code testé. Ils vérifient les aperçus cohérents et les refus HTML/binaire. Aucun fournisseur, document réel ou donnée de production n'est utilisé.

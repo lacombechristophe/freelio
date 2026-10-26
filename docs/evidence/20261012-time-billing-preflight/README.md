@@ -1,7 +1,0 @@
-# Préparation périmée et rôle Comptabilité
-
-Les sept [cas diagnostiques](before.json) s'exécutent sur la vraie SQLite de recette, sans serveur local. Cinq constatent une facture fondée sur la durée, la facturabilité, la description, la TVA ou le préfixe antérieurs. Les trois premiers coordonnent une vraie édition Temps après lecture de préparation ; TVA et préfixe sont modifiés réellement en SQL. Un sixième constate le refus de Comptabilité au rattachement des temps, malgré Finance en écriture et une agence accessible. Le dernier contrôle le parcours Owner cohérent.
-
-Le [reproducteur](reproducer.test.ts.txt) simule session/cache, conserve les actions et transactions réelles, puis supprime ses propres données fictives. Sa réussite constate les défauts. Le rattachement limité de [Comptabilité](../../contrat-facturation-temps-comptabilite.md) est approuvé ; les [snapshots](../../contrat-facturation-temps-perimes.md) restent proposés.
-
-L'[investigation élargie](expanded-before.json) et son [reproducteur](expanded-reproducer.test.ts.txt) ajoutent deux défauts : deux minutes à 100 €/h produisent 3,00 € regroupés ou 4,00 € détaillés pour un aperçu de 3,33 € ; Comptabilité ne peut pas supprimer son brouillon issu de temps. Ces neuf réussites diagnostiques ne prouvent pas leur correction. Le calcul exact est approuvé séparément ; le détachement lors de suppression reste soumis à son accord distinct.

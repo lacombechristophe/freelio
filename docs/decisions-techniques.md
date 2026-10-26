@@ -1,87 +1,59 @@
-# Décisions techniques — Freelio
+# Décisions techniques
 
-Référence initiale : 1er octobre 2026 ; compléments datés dans chaque décision. Ce registre accompagne le [plan CTO](plan-vitrine-cto-20260930.md), le [suivi du socle](execution-cto-20261001.md) et la [recette de complétude](completude-recette-20261003.md). Une décision conservée provisoirement n’est pas une validation du support à long terme. La [livraison du 25 octobre](livraison-demo-20261025.md) identifie séparément le code fusionné, sa qualification et le runtime déployé.
+Ce registre décrit les choix présents dans le code. Les versions exactes sont fixées par `package-lock.json` ; leur qualification appartient à la CI du commit livré. Les anciennes décisions et leurs amendements restent dans les [archives](history.md).
 
-## D01 — Monolithe modulaire avec processus séparés
+## D01 — Monolithe modulaire
 
-**Décision retenue.** Conserver Next.js, React et TypeScript. Les actions orchestrent des règles de domaine, des autorisations et des transactions SQL ; les documents et tâches utiles peuvent s’exécuter dans un worker séparé. Le rendu PDF interactif reste aujourd’hui principalement synchrone.
+Next.js porte les écrans et les points d’entrée. Les actions orchestrent les autorisations, les règles de domaine et les transactions. Un worker Node.js distinct traite les travaux BullMQ.
 
-Une réécriture en microservices ou un changement de framework aurait un coût sans besoin d’isolation mesuré. La séparation web/worker répond déjà aux durées d’exécution différentes. Réexaminer une extraction après une mesure de charge ou un besoin de déploiement indépendant. Retour arrière : livraisons par module et versions d’image, sans migration simultanée de toute la stack.
+Ce découpage évite les coûts de coordination de services distribués pour une application développée et exploitée comme un ensemble. Une extraction de service demanderait un besoin mesuré de charge, d’isolation ou de déploiement indépendant. Certains modules restent volumineux ; leur séparation doit suivre les cas d’usage, avec conservation des invariants et tests de non-régression.
 
-## D02 — PostgreSQL pour les environnements partagés
+## D02 — PostgreSQL et SQLite
 
-**Décision retenue et partiellement qualifiée.** PostgreSQL sert de référence d’intégration et de future préproduction. SQLite reste disponible pour la démo locale isolée. Les extensions Prisma, transactions et migrations doivent être vérifiées sur chaque moteur annoncé.
+PostgreSQL est le moteur des environnements partagés. SQLite sert à la démo locale isolée et à une partie de la recette. Prisma 7 utilise des pilotes explicites, `adapter-pg` et `adapter-better-sqlite3`. Les migrations PostgreSQL sont versionnées ; `db push` ne sert pas à faire évoluer une base partagée.
 
-La recette native utilise PostgreSQL 18.3, sur une instance créée pour les tests. La recette conteneur a aussi exécuté les quarante-trois migrations et un client Prisma réel sur PostgreSQL Linux 18.6. Ces preuves sur bases neuves ne couvrent pas encore une mise à niveau d’une base commerciale existante.
+Les deux moteurs sont testés séparément. Une suite réussie sur une base neuve ne prouve pas la mise à niveau d’une base existante. Les traitements sensibles conservent transactions, revendications conditionnelles et reprises bornées. Une restauration exige également les fichiers et les clés de chiffrement nécessaires.
 
-Le rôle de migration et le rôle de l’application sont distincts. La démo publique de recette utilise un rôle sans privilèges d’administration, avec SELECT et seulement INSERT sur AuditLog. L’isolation entre entreprises reste contrôlée par les permissions et le DAL : ce rôle SQL de démonstration n’est pas une politique RLS par tenant.
+## D03 — Autorisation à chaque frontière
 
-## D03 — Node 24 et dépendances verrouillées
+Le tenant est la société ; les agences limitent certains dossiers opérationnels. Les droits de domaine s’ajoutent à ce périmètre. Le navigateur ne décide ni du `companyId`, ni de la visibilité d’une relation.
 
-**Décision retenue.** Aligner le lanceur local, package.json, CI et image sur Node 24.x. Le candidat du 8 octobre verrouille Next et @next/env à 16.3.8, correctif minimal des nouveaux avis. La configuration ESLint Next 16.3.6 est ensuite remplacée par les mêmes plugins ESLint et les règles Next d’Oxlint 1.87.0, avec une règle officielle conservée sous MIT : [politique et entretien](../tooling/lint/README.md). Les versions et dépendances transitives sont inscrites dans le lockfile. Les [audits du nouveau lockfile et de son installation](evidence/20261008-lint-policy/README.md) donnent zéro alerte en production et dans l’audit complet. Les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json) confirment ensuite ces audits à zéro. La [qualification Next](qualification-next-20261008.md) distingue les recettes successives et le runtime déployé.
+Les lecteurs et mutations vérifient la cohérence des références, pas seulement l’objet racine. Les mesures financières ou globales inaccessibles sont exclues côté serveur. Des contextes internes bornés permettent des opérations Finance précises sur des temps sans accorder un droit général Opérations.
 
-L’audit npm ne prouve pas l’absence de vulnérabilités applicatives. Les mises à jour proposées par Dependabot restent soumises à revue et recette. Les changements majeurs ne sont pas regroupés avec les correctifs métier.
+Le profil public ajoute une interdiction des écritures et des effets fournisseur. Une lecture administrative utilise `withReadAuth` sans diminuer la permission requise. Le rôle SQL de la démo hébergée est un lecteur ; la maintenance utilise un rôle distinct.
 
-## D04 — Prisma 7 avec pilotes explicites
+## D04 — Auth.js et identités fournisseur
 
-**Décision du candidat du 25 octobre.** Passer de Prisma 6.12 à 7.10.1, sans modifier Auth.js. Le client est généré dans l'application ; une fabrique fournit l'adaptateur PostgreSQL ou SQLite, avec un pool borné et les anciennes dates SQLite en millisecondes. Le manifeste de modèles utilisé pour les droits mail et la disponibilité est produit à la génération.
+Auth.js 5 reste une dépendance beta. Mots de passe, MFA, sessions et memberships font l’objet de tests d’accès. Le remplacement de cette dépendance demanderait une recette dédiée de compatibilité des comptes et sessions.
 
-La [qualification locale](evidence/20261025-prisma7/README.md) couvre les deux suites SQL, les archives, le rôle lecteur, la récupération native et l'image Linux. Les modèles métier et les 74 migrations conservent leur contenu. La CI et la qualification hébergée restent distinctes. Le candidat `916d8e0`, son lockfile et ses preuves sont conservés comme référence précédente ; la relecture de dates écrites par Prisma 7 est testée avec Prisma 6, sans revendiquer un retour arrière hébergé complet.
+Les boîtes Google/Microsoft et Resend sont des connexions métier distinctes de la connexion à Freelio. Elles conservent leurs capacités, propriétaire, visibilité et états de synchronisation. Leur comportement réel dépend des comptes et consentements fournisseur, non qualifiés par les transports fictifs.
 
-## D05 — Auth.js conservé pendant la stabilisation
+## D05 — Documents figés et calculs partagés
 
-**Décision provisoire.** Conserver Auth.js pour les mots de passe, sessions et permissions existants. La dépendance reste en série beta 5 ; cette limite est explicite. La démo publique accepte uniquement le compte fictif prévu et son mot de passe ; les liens magiques et inscriptions y sont refusés côté serveur.
+Le moteur commercial calcule les montants en centimes, avec arrondi par ligne et répartition déterministe des remises. Les temps sont facturés depuis les secondes exactes. L’aperçu partage ce calcul et le serveur recontrôle les données avant de créer le document.
 
-Une migration vers Better Auth ou une autre solution nécessite une preuve d’équivalence : mots de passe, MFA et codes de secours, sessions, révocation, memberships, CSRF et droits. Aucune supériorité n’est déduite du seul nom du fournisseur. Condition de décision : maintenance actuelle vérifiée, essai borné sur une copie et comparaison des risques. Retour arrière : pas de conversion irréversible des identifiants avant validation.
+L’émission d’une facture conserve son archive ; le Studio ne la reconstitue pas depuis les coordonnées actuelles. Les nouveaux liens de contrat figent le contenu présenté. Une archive historique manquante est signalée. Les copies actuelles de devis restent distinguées des originaux envoyés ou acceptés.
 
-## D06 — Démo publique en lecture seule
+Puppeteer et pdf-lib sont conservés. Le rendu bloque JavaScript et les ressources réseau arbitraires. Chromium fonctionne encore sans sandbox : les restrictions applicatives et l’utilisateur non root ne constituent pas une preuve d’isolation système complète. Les empreintes techniques ne valent pas une certification de signature ou Factur-X.
 
-**Décision approuvée par le propriétaire.** La découverte publique partage un jeu de données fictives consultable. Le serveur bloque les mutations, les routes sensibles et les fournisseurs ; l’interface désactive les commandes approuvées. Un visiteur conserve sa session et ses préférences locales, mais ne modifie pas les dossiers. Le flag NEXT_PUBLIC n’est jamais une autorisation serveur.
+## D06 — Envois durables et reprise explicite
 
-La copie locale reste modifiable. Une future recette privée sur invitation doit utiliser des tenants, identifiants, quotas et durées propres ; elle n’est pas livrée implicitement par ce mode public. Aucun reset global de données partagées n’est nécessaire pour une démo publique immuable. Des logs de consultation peuvent être ajoutés ; leur rétention et leur volume doivent être bornés dans l’hébergement final.
+Les séquences, campagnes et scénarios utilisent une trace SQL durable, des versions, des baux et des commandes idempotentes. Une attente survit au redémarrage. L’inscription d’une audience vérifiée progresse par lots et conserve son rapport.
 
-## D07 — BullMQ/Redis et traitements périodiques
+Une acceptation fournisseur peut précéder une panne locale. Le système ne promet donc pas un « exactement une fois » de bout en bout. Un résultat incertain bloque la relance ; une preuve corrélée permet de réparer l’historique sans nouvel envoi. Un classement motivé conserve la trace et interdit la relance de la commande.
 
-**Décision retenue, exploitation partiellement qualifiée.** Conserver la file documentaire et les processeurs périodiques. Centraliser URL/TLS/identifiants Redis et distinguer retries de production et de consommation. Prévoir une politique Redis sans éviction. La recette Linux a consommé un véritable job documentaire et arrêté le worker sur SIGTERM. La fermeture attend les travaux en cours, avec un délai de grâce de trente secondes. La reprise après SIGKILL et TLS Redis hébergé restent à qualifier. La file documentaire n’est pas branchée aux commandes interactives courantes, qui rendent principalement les PDF en synchronisation.
+La finalité des nouveaux messages est explicite. Service permet CC/CCI ; Prospection est limitée à un destinataire avec preuve active liée à l’adresse et retrait individuel. Les anciens booléens ne sont pas transformés en preuves de consentement.
 
-Les leases SQL empêchent les démarrages concurrents pendant leur durée. Dans le candidat L2, le lease générique est renouvelé à un tiers de sa durée, avec revendication de propriétaire et signal d’annulation après perte. Les mutations sensibles doivent encore appeler `assertOwned` aux frontières de commit : un lease n’annule pas à lui seul une requête SQL ou un appel fournisseur. Les générations de copies de devis et d’archives de contrats utilisent une durée de soixante secondes et un signal Chromium de quarante-cinq secondes. Les leases d’import et de sauvegarde disposent de leurs propres mécanismes. L’ordonnanceur GitHub est désactivé par défaut ; son activation exige une URL et des secrets propres à l’environnement. Un seul responsable opérationnel doit décider quels déclencheurs sont actifs.
+## D07 — Fichiers et tâches de fond
 
-## D08 — Documents et récupération
+Le stockage est local en développement et R2 privé dans le profil de production modifiable. La démo publique désactive le stockage persistant, conformément au budget retenu. Elle garde PostgreSQL et le limiteur Upstash, sans envoi réel ni worker métier actif.
 
-**Décision retenue, runtime partiellement qualifié.** Conserver Puppeteer et pdf-lib. Désactiver JavaScript et les ressources réseau arbitraires lors du rendu ; résoudre et contrôler les images côté serveur. Conserver le PDF, le XML et les données documentaires lors de l’émission, avec empreinte et chiffrement. Les factures émises affichent leur archive dans le Studio.
+Redis/BullMQ est une file de travail, pas une source de vérité. Une exploitation modifiable doit qualifier sa durabilité, les quotas, les alertes, la reprise après arrêt et la récupération conjointe de SQL, fichiers et clés.
 
-Chrome s’exécute encore sans sandbox ; utilisateur non root et filtrage applicatif ne prouvent pas une isolation système suffisante. Les huit contrôles Linux du socle, dont PDF hors réseau et devis par le worker, ont passé la CI des références consignées dans la recette. Le nouvel archivage de contrats possède sa propre recette Linux ; ses résultats sont distincts et doivent être reliés au candidat. La récupération locale du socle a restauré PostgreSQL, fichiers et archive chiffrée dans une cible neuve. R2, coffre des clés, restauration après perte d’un fournisseur, RPO/RTO hébergés et rollback réel restent à qualifier.
+## D08 — Maintenance et livraison
 
-Les nouveaux liens de contrat figent contenu compilé, coordonnées et ressources. La signature soumet l’empreinte présentée, puis conserve une capture signée et une demande durable de PDF ; les historiques sans capture ne sont pas reconstruits comme originaux. Les [invariants et limites](contrat-archives-contrats-crm.md) distinguent intégrité technique, PDF archivé, identité et certification. Les copies actuelles de devis restent explicitement distinctes d’une archive envoyée/acceptée.
+Les changements sont livrés par branche et PR, après les contrôles du [guide de test](testing.md). La production est reliée à une révision et un artefact ; une ancienne CI ne qualifie pas les changements suivants.
 
-## D09 — Publication et coût d’exploitation
+ESLint et Oxlint portent une politique explicite et testée. Les avis de dépendances restent bloquants au seuil configuré ; une mise à jour majeure n’est pas adoptée sur le seul critère de nouveauté. Les [notices](dependances-et-licences.md) et les limites des outils sont conservées.
 
-**Décision ouverte.** Préparer une image Node complète avec Chromium et un processus worker séparé si utilisé. Choisir l’hébergeur, la région, le domaine, les services et le budget après qualification de l’image. Aucun abonnement, fournisseur ou déploiement n’est créé par ce registre.
-
-Le propriétaire a fixé un budget de 0 € pour l’instant. La [démo en lecture seule livrée début octobre](livraison-demo-vercel-20261003.md) possède sa qualification datée. Le candidat de complétude dispose depuis le 10 octobre d'une preview de branche distincte de la production : PostgreSQL fictif, rôle lecteur, Upstash configuré par le propriétaire, stockage persistant désactivé après son refus de R2. Les [résultats et défauts de cette preview](qualification-demo-sans-stockage-20261010.md) restent liés au commit testé. Un palier gratuit ne sera pas présenté comme un runtime disponible et récupérable tant que ses limitations ne sont pas qualifiées.
-
-Le dépôt contient aussi des changements de présentation antérieurs à cette stabilisation. La référence de livraison doit être revue par lots et reliée à la CI avant partage. Le propriétaire a choisi le 9 octobre de conserver pour l’instant l’absence de licence de redistribution du code propre. Le dépôt est privé lors du contrôle du 21 octobre ; aucune visibilité n’a été modifiée pendant cette qualification. Une présentation privée peut montrer les preuves locales en annonçant précisément leur portée.
-
-## D10 — Finalité explicite des courriels manuels
-
-Décision approuvée le 6 octobre : Service conserve CC/CCI ; Prospection se limite à un destinataire avec preuve active liée à l’adresse exacte, lien personnel et retrait. La finalité est conservée dans brouillons, programmation et commande ; les historiques restent nullables sans classement inventé. Le serveur exige une décision pour un nouvel envoi et relit le consentement avant dispatch. La réparation d’une acceptation distante conserve sa capture et ne renvoie pas le mail. La fenêtre SQL/fournisseur ne permet pas de rappeler une transmission déjà acceptée. [Contrat et recette](contrat-finalite-courriels.md).
-
-Actualisation D03 au 6 octobre : `48f8643` corrige les nouvelles alertes de production et retire un CLI non utilisé. L’audit courant donne zéro alerte de production et cinq hautes de développement ; sa CI reste bloquée sur le contrôle complet. L’inventaire exact et les qualifications sont conservés dans `evidence/20261006-candidate/`.
-
-## D11 — Reprise humaine sans nouvel effet fournisseur
-
-Lot visible approuvé le 6 octobre : commandes personnelles paginées, contrôle GET-only, réparation SQL après preuve corrélée et classement motivé/confirmé bloquant toute relance. La décision conserve le brouillon original, sa commande et l’audit ; inconnu reste inconnu. Les identités historiques sont normalisées uniquement depuis un payload valide et une appartenance vérifiée, par maintenance explicite sans plafond total. La migration ne devine aucun auteur. Le bail partagé avec le transport, la révision et le CAS protègent les commits ; les preuves tardives ne réactivent pas une commande classée. Un message importé n’est rattaché que si sa correspondance est exacte et qu’aucune autre commande ne l’occupe. La qualification HTTP est fictive et les limites de rapprochement sont explicites dans le [contrat de reprise](contrat-reprise-humaine-courriels.md).
-
-## D12 — Édition versionnée et audience verrouillée des campagnes
-
-Le premier sous-lot visible et la pagination des séquences rattachées sont approuvés. Conserver le monolithe et des transactions SQL : révision explicite par campagne/livrable, saisie liée à sa version d’ouverture, vérification des références société/membres et listes de 25 avec agrégats complets. Inscription et édition revendiquent la même ligne ; une première inscription fige segment/rattachements, même après retrait ultérieur des inscriptions. Les inscriptions historiques PostgreSQL produisent un verrou à partir de leur premier enrolledAt, sans consentement inventé. Un échec de batch reste un échec ; ce sous-lot ne prétend pas fournir la future commande d’activation durable. Le [contrat Campagnes](contrat-campagnes-activation.md) conserve les sous-lots et leurs recettes séparés.
-
-## D13 — Périmètre relationnel des factures récurrentes
-
-Décision approuvée le 9 octobre. Le chantier d’une récurrence était conservé dans son JSON de facture ; le DAL ne pouvait pas le traiter comme une relation d’agence. Le candidat ajoute une relation nullable et reprend uniquement les références historiques de même société et même client. Un modèle incohérent reste inaccessible ; l’absence de chantier ne reçoit pas une agence inventée.
-
-Le lecteur compare aussi le client du chantier avec celui de la ligne par SQL paramétré. Prisma ne permet pas cette égalité entre les deux lignes dans son filtre relationnel. Ce contrôle intervient avant comptage et pagination, avec le périmètre du site d’entretien quand il existe. Il a deux variantes limitées pour les expressions JSON et de recherche SQLite/PostgreSQL ; la même suite d’intégration doit passer sur les deux moteurs.
-
-Owner/Admin conservent les modèles historiques sans chantier ni entretien. Un rôle limité aux agences exige au moins un rattachement accessible et, si les deux sont présents, l’accès aux deux. À la création, le chantier est obligatoire pour ces rôles. Le worker vérifie la concordance JSON/relation et les références d’entretien avant génération. La nouvelle colonne est additive ; elle ne réécrit ni factures existantes, ni échéances, ni contenu historique incohérent. Une ancienne version applicative ne doit pas reprendre les écritures sur ce modèle sans procédure de compatibilité.
-
-Les [tests et résultats](qualification-factures-recurrentes-20261009.md) couvrent droits, volumes, migration rejouée et refus de génération. Cette décision ne qualifie pas une mise à niveau commerciale avec trafic, ni une concurrence multi-processus.
+Le budget courant est de 0 €. La démonstration en lecture seule sert à présenter le projet ; le stockage durable, les fournisseurs réels, la charge et la récupération hébergée restent des étapes distinctes avant un usage commercial.
