@@ -20,6 +20,8 @@ Configurer ensuite les secrets de développement à partir de [.env.example](.en
 
 Partir d’un état Git identifié. Lire AGENTS.md et les guides de la version Next installée avant de modifier ses conventions. Créer une branche `codex/…` ou suivre la convention demandée pour la contribution. Garder les corrections métier séparées des changements de présentation.
 
+Choisir un nom court qui décrit le changement, par exemple `codex/pdf-timeouts` ou `codex/import-actions`. Retirer les branches de travail fusionnées après vérification de leurs commits ; conserver les références de retour arrière utiles et l’historique des PR.
+
 Définir un résultat vérifiable : scénario déclencheur, comportement attendu, portée entreprise/agence/rôle et comportement d’échec. Appliquer les corrections nécessaires dans le périmètre confié. Faire trancher les coûts, publications irréversibles, changements de direction et compromis métier incertains par le propriétaire. Ne pas élargir le lot au passage.
 
 ## Vérifier
