@@ -1,0 +1,20 @@
+{
+  "snapshotSha256": "1ae33703d2a83ee9086081fa6bf4f062bc25e53d64431c92b4e94ccce1694f93",
+  "image": "postgres:18.6-bookworm",
+  "network": "none",
+  "portsPublished": false,
+  "liveDatabaseAccessed": false,
+  "checks": [
+    "Original native snapshot restored transactionally, with valid constraints and indexes",
+    "Second native dump/restore preserves every table row fingerprint"
+  ],
+  "success": true,
+  "imageId": "sha256:3725f4e2499eef5134592b3b4ab79a543ed7f8e533b05b5b637af926630f6650",
+  "tables": 144,
+  "rows": 314,
+  "invalidConstraints": 0,
+  "invalidIndexes": 0,
+  "roundtripMatches": true,
+  "containerRemoved": true,
+  "scope": "Local native restore of the pre-enrichment fictitious snapshot; no hosted restore, failover or RTO qualification."
+}

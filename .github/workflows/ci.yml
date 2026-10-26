@@ -130,7 +130,7 @@ jobs:
             playwright-report/
             test-results/
           # Complete screenshots and traces remain available for diagnosis.
-          # Successful runs publish only their compact JSON reports below.
+          # Successful runs publish compact reports and selected public-state views below.
           retention-days: 7
 
       - name: Publier les rapports de recette UI
@@ -140,6 +140,7 @@ jobs:
           name: ui-audit-reports-${{ matrix.project }}
           path: |
             test-results/**/*.json
+            test-results/public-document-layout/**/*.jpg
           if-no-files-found: ignore
           retention-days: 7
 

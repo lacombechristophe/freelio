@@ -185,12 +185,12 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 gap-8 items-start lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
       {/* Scrollable contract viewer */}
-      <div className="lg:col-span-7 space-y-4">
+      <div className="min-w-0 space-y-4">
         <Card className="border border-border bg-card">
           <CardHeader className="pb-3 border-b border-border/40">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-mono text-xs font-bold text-primary">{contract.number}</span>
               <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
                 <FileText className="h-3.5 w-3.5" />
@@ -199,27 +199,27 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
             </div>
             <CardTitle className="text-lg font-black tracking-tight pt-1">{contract.title}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-5 max-h-[500px] overflow-y-auto prose prose-invert prose-sm leading-relaxed max-w-none text-muted-foreground select-none">
+          <CardContent className="pt-5 max-h-[500px] overflow-y-auto prose prose-sm leading-relaxed max-w-none text-muted-foreground select-none dark:prose-invert">
             {/* HTML rendered cleanly safely */}
             <div 
               dangerouslySetInnerHTML={{ __html: contract.content }} 
-              className="space-y-4 text-sm font-sans"
+              className="space-y-4 text-sm font-sans [overflow-wrap:anywhere] [&_img]:h-auto [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
             />
           </CardContent>
         </Card>
       </div>
 
       {/* Signature and identification panel */}
-      <div className="lg:col-span-5">
+      <div className="min-w-0">
         <Card className="bg-card border border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <CardTitle className="text-sm font-bold flex flex-wrap items-center gap-2">
               <Scale className="h-4 w-4 text-primary" />
               Signer le document
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSign} className="space-y-4">
+            <form onSubmit={handleSign} className="space-y-4 [&_label]:min-w-0 [&_label]:[overflow-wrap:anywhere]">
               <div className="space-y-1.5">
                 <Label htmlFor="signerName" className="text-xs font-semibold">Nom complet du signataire *</Label>
                 <Input
@@ -249,7 +249,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
 
               {/* Draw canvas zone */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label className="text-xs font-semibold">Signature manuscrite (Dessinez au doigt ou à la souris) *</Label>
                   <button
                     type="button"
@@ -308,7 +308,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
               </div>
 
               {/* Submit button */}
-              <Button type="submit" disabled={pending} className="w-full mt-3 bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-2.5">
+              <Button type="submit" disabled={pending} className="h-auto min-h-9 w-full mt-3 whitespace-normal [overflow-wrap:anywhere] bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-2.5">
                 {pending ? "Scellage cryptographique en cours…" : "Signer électroniquement"}
               </Button>
             </form>

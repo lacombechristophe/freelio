@@ -1,5 +1,7 @@
 "use client"
 
+import { COMPANY_ROLE_LABELS as ROLE_LABELS } from "@/lib/company-role-labels"
+
 import { useState, useTransition } from "react"
 import { Check, Clock3, Copy, Euro, Route, Save, ShieldCheck, UserMinus, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
@@ -31,16 +33,6 @@ const ASSIGNABLE_ROLES: Array<{ value: CompanyRole; label: string }> = [
   { value: "VIEWER", label: "Lecture seule" },
 ]
 
-const ROLE_LABELS: Record<CompanyRole, string> = {
-  OWNER: "Propriétaire",
-  ADMIN: "Administrateur",
-  SALES: "Commercial",
-  OPERATIONS: "Planification",
-  TECHNICIAN: "Technicien",
-  SERVICE: "SAV",
-  ACCOUNTING: "Comptabilité",
-  VIEWER: "Lecture seule",
-}
 
 type TeamData = Awaited<ReturnType<typeof import("@/actions/team").getTeamOverview>>
 

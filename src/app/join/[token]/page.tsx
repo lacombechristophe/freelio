@@ -1,5 +1,6 @@
 import { acceptTeamInvitation, getInvitationPreview } from "@/actions/team"
 import { auth } from "@/auth"
+import { COMPANY_ROLE_LABELS } from "@/lib/company-role-labels"
 import { AppBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,15 +40,15 @@ export default async function JoinTeamPage({ params }: { params: Promise<{ token
   return (
     <main className="min-h-screen bg-background px-5 py-8">
       <div className="mx-auto w-full max-w-xl">
-        <AppBrand href="/" brand={{ name: invitation.companyName, logo: invitation.companyLogo, brandColor: invitation.companyBrandColor }} />
+        <AppBrand href="/" className="max-w-full" brand={{ name: invitation.companyName, logo: invitation.companyLogo, brandColor: invitation.companyBrandColor }} />
         <Card className="mt-10">
           <CardHeader>
             <div className="mb-2 grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><ShieldCheck className="size-5" /></div>
             <CardTitle>Rejoindre {invitation.companyName}</CardTitle>
-            <CardDescription>Votre accès sera configuré avec le rôle « {invitation.role} ».</CardDescription>
+            <CardDescription>Votre accès sera configuré avec le rôle « {COMPANY_ROLE_LABELS[invitation.role]} ».</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-6 text-muted-foreground">
+            <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
               Invitation destinée à <strong className="text-foreground">{invitation.email}</strong>.
             </p>
             {!emailMatches ? (
@@ -58,7 +59,7 @@ export default async function JoinTeamPage({ params }: { params: Promise<{ token
           </CardContent>
           <CardFooter>
             <form action={acceptAction} className="w-full">
-              <Button type="submit" className="w-full" disabled={!emailMatches}>Accepter l'invitation</Button>
+              <Button type="submit" className="h-auto min-h-9 w-full whitespace-normal" disabled={!emailMatches}>Accepter l'invitation</Button>
             </form>
           </CardFooter>
         </Card>

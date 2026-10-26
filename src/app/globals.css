@@ -136,7 +136,9 @@
     --popover: #ffffff;
     --popover-foreground: #171717;
     --primary: #1463e5;
+    --portal-theme-primary: var(--primary);
     --primary-hover: #0f51be;
+    --theme-primary-hover: var(--primary-hover);
     --primary-foreground: #ffffff;
     --secondary: #f5f5f5;
     --secondary-foreground: #262626;
