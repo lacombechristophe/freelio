@@ -23,13 +23,17 @@ test("valid public documents retain contrast and readable long text in both them
   let clientId: string | undefined
   let articleId: string | undefined
   let contractId: string | undefined
-  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } })
+  const context = await browser.newContext({
+    baseURL, storageState: { cookies: [], origins: [] },
+    isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch,
+    userAgent: info.project.use.userAgent, timezoneId: "Pacific/Kiritimati",
+  })
   try {
     await mkdir(output, { recursive: true })
     await database.company.update({ where: { id: company.id }, data: { name: "👩🏽‍💻 Atelier des Bassins — Installation et maintenance des piscines et équipements extérieurs", logo: "/missing-public-layout-logo.png", serviceTimezone: "America/New_York" } })
     clientId = (await database.client.create({ data: { companyId: company.id, name: "Résidence Les Amandiers — exemple fictif", address: "7 rue des Essais, 44000 Nantes" } })).id
     await database.contact.create({ data: { clientId, firstName: "Camille", lastName: "Démonstration", email: "public-layout@example.test", isPrimary: true } })
-    articleId = (await database.knowledgeArticle.create({ data: { companyId: company.id, title, slug: tag, summary: "Une fiche fictive de préparation, sans intervention réelle.", category, bodyHtml, status: "PUBLISHED", visibility: "PORTAL", updatedAt: new Date("2026-10-25T23:30:00Z") } })).id
+    articleId = (await database.knowledgeArticle.create({ data: { companyId: company.id, title, slug: tag, summary: "Une fiche fictive de préparation, sans intervention réelle.", category, bodyHtml, status: "PUBLISHED", visibility: "PORTAL", updatedAt: new Date("2026-10-26T01:30:00Z") } })).id
     contractId = (await database.contract.create({ data: { companyId: company.id, clientId, number: `PUBLIC-${info.project.name}`, title: contractTitle, content: bodyHtml, status: "DRAFT" } })).id
     await database.clientPortalAccess.create({ data: { companyId: company.id, clientId, label: tag, tokenHash: createHash("sha256").update(token).digest("hex"), expiresAt: new Date(Date.now() + 3_600_000) } })
 
