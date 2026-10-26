@@ -86,6 +86,7 @@ test("all onboarding steps remain readable without completing company setup", as
       await page.evaluate(value => localStorage.setItem("theme", value), theme)
       await page.goto("/onboarding")
       await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${theme}\\b`))
+      expect(await page.locator("main").evaluate(element => getComputedStyle(element).colorScheme)).toBe(theme)
       await page.getByLabel("Nom commercial / Raison sociale").fill("Atelier des Bassins — préparation fictive")
       await page.getByLabel("Prénom & Nom").fill("Camille Démonstration")
       await page.getByLabel("SIRET", { exact: true }).fill("99999999900024")
@@ -95,6 +96,13 @@ test("all onboarding steps remain readable without completing company setup", as
         if (step === 5) await page.getByLabel("Nom du client (optionnel)").fill("Résidence Les Amandiers — exemple fictif")
         for (const width of [320, 1440]) {
           await page.setViewportSize({ width, height: 900 })
+          const advance = page.getByRole("button", { name: step < 5 ? "Continuer" : "Terminer", exact: true })
+          if (!info.project.use.isMobile) await advance.hover()
+          await expect.poll(() => advance.evaluate(element => {
+            element.getBoundingClientRect()
+            return element.getAnimations().filter(animation => animation.playState === "running").length
+          })).toBe(0)
+          expect(await contrast(advance)).toBeGreaterThanOrEqual(4.5)
           await capture(page, page.locator('[data-slot="card-title"]').first(), output, `${theme}-step-${step}-${width}`)
           const label = page.locator("label:visible").first()
           if (await label.count()) expect(await contrast(label)).toBeGreaterThanOrEqual(4.5)

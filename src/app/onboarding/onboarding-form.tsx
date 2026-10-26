@@ -163,7 +163,7 @@ export function OnboardingForm() {
   const ActiveStepIcon = activeStep.icon
 
   return (
-    <main className="marketing-surface min-h-screen bg-background text-foreground">
+    <main className="marketing-surface min-h-screen bg-background text-foreground dark:[--primary-hover:var(--theme-primary-hover)] dark:[color-scheme:dark]">
       <header className="flex h-16 items-center border-b border-border bg-card px-5 sm:px-8 lg:px-10">
         <AppBrand href="/" />
         <span className="ml-auto rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">Configuration initiale</span>
