@@ -28,6 +28,7 @@ Les horodatages des composants clients du dashboard reçoivent le fuseau de la s
 | Dates Terrain dans le fuseau de la société, même avec un navigateur éloigné | `tests/e2e/field-timezone.spec.ts` |
 | Horodatages de la société et dates civiles avec un navigateur dans un autre fuseau | `tests/e2e/company-time-zone.spec.ts` |
 | Portail avec documents longs à 320 px et refus des relations étrangères | `tests/e2e/portal-relations.spec.ts` |
+| Portail, article publié et formulaire de signature valides : thèmes, noms longs, logo absent et texte agrandi | `tests/e2e/public-document-layout.spec.ts` |
 | Vocabulaire Marketing et destinations des raccourcis | `tests/e2e/marketing-rule-language.spec.ts`, `tests/unit/dashboard-navigation.test.ts` |
 | Rédaction simple et compatibilité HTML | `tests/e2e/communications-simple-editor.spec.ts` et suites `communications-*` |
 | Logo indisponible, graphèmes, fenêtre courte et contrastes ciblés | `tests/e2e/visual-edge-cases.spec.ts`, `tests/unit/initials.test.ts` |
@@ -46,5 +47,7 @@ Cette recette interdit les requêtes du navigateur vers une autre origine, véri
 ## Portée et limites
 
 Le contrôle automatisé des pages inspecte un échantillon de données et d’états. Un résultat sans constat ne constitue ni une certification WCAG ni une validation de chaque modale, thème, combinaison de droits et contenu long. Le zoom réel à 200/400 %, Safari iPhone et Chrome Android physiques restent à vérifier ; une taille de viewport ne remplace pas ces essais.
+
+La recette des documents publics utilise les routes réelles et des données SQL jetables. Elle prépare un lien de signature sans signer ni envoyer de message, puis vérifie les deux thèmes, 320/1440 px et une taille racine de texte de 16/32/64 px. Cet agrandissement du texte ne remplace pas le zoom du navigateur. Les quelques captures JPEG publiées en CI excluent les écrans de connexion et les liens porteurs ; le rapport ne contient que les mesures de rendu.
 
 Les trois dossiers fictifs et leur visite guidée nécessitent l’enrichissement additif décrit dans le [guide de démonstration](demo-local.md). Une prévisualisation ne vaut pas application sur la base hébergée. Aucun fournisseur, migration ou nouveau paquet n’est nécessaire pour ces corrections.

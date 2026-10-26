@@ -190,7 +190,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
       <div className="lg:col-span-7 space-y-4">
         <Card className="border border-border bg-card">
           <CardHeader className="pb-3 border-b border-border/40">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-mono text-xs font-bold text-primary">{contract.number}</span>
               <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
                 <FileText className="h-3.5 w-3.5" />
@@ -199,11 +199,11 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
             </div>
             <CardTitle className="text-lg font-black tracking-tight pt-1">{contract.title}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-5 max-h-[500px] overflow-y-auto prose prose-invert prose-sm leading-relaxed max-w-none text-muted-foreground select-none">
+          <CardContent className="pt-5 max-h-[500px] overflow-y-auto prose prose-sm leading-relaxed max-w-none text-muted-foreground select-none dark:prose-invert">
             {/* HTML rendered cleanly safely */}
             <div 
               dangerouslySetInnerHTML={{ __html: contract.content }} 
-              className="space-y-4 text-sm font-sans"
+              className="space-y-4 text-sm font-sans [overflow-wrap:anywhere] [&_img]:h-auto [&_img]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
             />
           </CardContent>
         </Card>
@@ -308,7 +308,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
               </div>
 
               {/* Submit button */}
-              <Button type="submit" disabled={pending} className="w-full mt-3 bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-2.5">
+              <Button type="submit" disabled={pending} className="h-auto min-h-9 w-full mt-3 whitespace-normal bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-2.5">
                 {pending ? "Scellage cryptographique en cours…" : "Signer électroniquement"}
               </Button>
             </form>
