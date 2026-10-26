@@ -31,7 +31,7 @@ Les horodatages des composants clients du dashboard reçoivent le fuseau de la s
 | Vocabulaire Marketing et destinations des raccourcis | `tests/e2e/marketing-rule-language.spec.ts`, `tests/unit/dashboard-navigation.test.ts` |
 | Rédaction simple et compatibilité HTML | `tests/e2e/communications-simple-editor.spec.ts` et suites `communications-*` |
 | Logo indisponible, graphèmes, fenêtre courte et contrastes ciblés | `tests/e2e/visual-edge-cases.spec.ts`, `tests/unit/initials.test.ts` |
-| Ajout fictif idempotent et relations cohérentes | `tests/unit/demo-stories.integration.test.ts` |
+| Ajout fictif idempotent, relations cohérentes et parcours des trois dossiers hébergés | `tests/unit/demo-stories.integration.test.ts`, `tests/hosted/demo-stories.spec.ts` |
 
 Utiliser une base de recette isolée et préparée : les suites SQL et E2E créent leurs propres données. Les [instructions de développement](../README.md#vérifications-et-preuves) décrivent les commandes générales. L’audit étendu du dashboard utilise les fixtures de `seed-ui-redesign.mjs` et `E2E_FULL_UI_AUDIT=true` ; il parcourt aussi les conteneurs défilants. Une route dynamique absente du jeu de données est signalée dans le rapport, sans être comptée comme vérifiée.
 
