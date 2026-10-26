@@ -163,18 +163,18 @@ export function OnboardingForm() {
   const ActiveStepIcon = activeStep.icon
 
   return (
-    <main className="marketing-surface min-h-screen bg-freelio-canvas text-freelio-ink">
-      <header className="flex h-16 items-center border-b border-freelio-line bg-white px-5 sm:px-8 lg:px-10">
+    <main className="marketing-surface min-h-screen bg-background text-foreground">
+      <header className="flex h-16 items-center border-b border-border bg-card px-5 sm:px-8 lg:px-10">
         <AppBrand href="/" />
-        <span className="ml-auto rounded-md bg-freelio-accent-soft px-2.5 py-1 text-xs font-semibold text-freelio-accent">Configuration initiale</span>
+        <span className="ml-auto rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">Configuration initiale</span>
       </header>
 
       <div className="mx-auto grid w-full max-w-[1120px] gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[300px_minmax(0,720px)] lg:gap-14 lg:px-10 lg:py-12">
         <aside className="hidden lg:block">
           <div className="sticky top-10">
-            <p className="text-xs font-semibold uppercase text-freelio-accent">Premiers réglages</p>
+            <p className="text-xs font-semibold uppercase text-primary">Premiers réglages</p>
             <h1 className="marketing-display mt-4 text-[36px] font-semibold leading-[1.05]">Un espace prêt pour vos ventes et vos chantiers.</h1>
-            <p className="mt-4 text-sm leading-6 text-freelio-muted">Ces informations alimentent automatiquement vos documents. Vous pourrez tout modifier plus tard.</p>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">Ces informations alimentent automatiquement vos documents. Vous pourrez tout modifier plus tard.</p>
 
             <ol className="mt-9 space-y-1" aria-label="Étapes de configuration">
               {STEP_DETAILS.map(({ title, description, icon: Icon }, index) => {
@@ -183,12 +183,12 @@ export function OnboardingForm() {
                 const isComplete = number < step
                 return (
                   <li key={title} className="relative">
-                    {index < STEP_DETAILS.length - 1 && <span className="absolute left-5 top-10 h-[calc(100%-16px)] w-px bg-freelio-line" />}
-                    <div className={cn("relative flex gap-3 rounded-xl p-2.5", isCurrent && "bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] ring-1 ring-freelio-line")}>
-                      <span className={cn("grid size-10 shrink-0 place-items-center rounded-[10px] border text-xs font-semibold", isComplete ? "border-freelio-success bg-freelio-success text-white" : isCurrent ? "border-freelio-accent bg-freelio-accent text-white" : "border-freelio-line bg-white text-freelio-muted")}>
+                    {index < STEP_DETAILS.length - 1 && <span className="absolute left-5 top-10 h-[calc(100%-16px)] w-px bg-border" />}
+                    <div className={cn("relative flex gap-3 rounded-xl p-2.5", isCurrent && "bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] ring-1 ring-border")}>
+                      <span className={cn("grid size-10 shrink-0 place-items-center rounded-[10px] border text-xs font-semibold", isComplete ? "border-freelio-success bg-freelio-success text-white" : isCurrent ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground")}>
                         {isComplete ? <Check className="size-4" /> : <Icon className="size-4" />}
                       </span>
-                      <div className="pt-0.5"><p className={cn("text-sm font-semibold", !isCurrent && !isComplete && "text-freelio-muted")}>{title}</p><p className="mt-0.5 text-xs leading-5 text-freelio-muted">{description}</p></div>
+                      <div className="pt-0.5"><p className={cn("text-sm font-semibold", !isCurrent && !isComplete && "text-muted-foreground")}>{title}</p><p className="mt-0.5 text-xs leading-5 text-muted-foreground">{description}</p></div>
                     </div>
                   </li>
                 )
@@ -199,17 +199,17 @@ export function OnboardingForm() {
 
         <section className="min-w-0">
           <div className="mb-6 lg:hidden">
-            <p className="text-xs font-semibold uppercase text-freelio-accent">Étape {step} sur {TOTAL_STEPS}</p>
+            <p className="text-xs font-semibold uppercase text-primary">Étape {step} sur {TOTAL_STEPS}</p>
             <h1 className="marketing-display mt-3 text-3xl font-semibold leading-tight">{activeStep.title}</h1>
-            <p className="mt-2 text-sm text-freelio-muted">{activeStep.description}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{activeStep.description}</p>
           </div>
 
           <div className="mb-5 space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-freelio-ink">Progression</span>
-              <span className="text-freelio-muted">{Math.round(progressValue)} %</span>
+              <span className="font-semibold text-foreground">Progression</span>
+              <span className="text-muted-foreground">{Math.round(progressValue)} %</span>
             </div>
-            <Progress value={progressValue} className="h-1.5 bg-freelio-line" />
+            <Progress value={progressValue} className="h-1.5 bg-border" />
           </div>
 
           <Form {...form}>
@@ -217,10 +217,10 @@ export function OnboardingForm() {
             onSubmit={(event) => event.preventDefault()} 
             className="space-y-6"
           >
-            <Card className="border-freelio-line bg-white shadow-freelio-panel">
-              <CardHeader className="border-b border-freelio-line pb-5">
+            <Card className="border-border bg-card shadow-freelio-panel">
+              <CardHeader className="border-b border-border pb-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-[10px] bg-freelio-accent-soft text-freelio-accent">
+                  <div className="flex size-10 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
                     <ActiveStepIcon className="size-5" />
                   </div>
                   <div>
@@ -452,7 +452,7 @@ export function OnboardingForm() {
                           "flex flex-col items-stretch gap-3 rounded-xl border p-3 text-left outline-none transition-[border-color,background-color,box-shadow,transform] focus-visible:ring-3 focus-visible:ring-ring/25 active:scale-[0.99]",
                           selectedPdfTemplate === template.value 
                             ? "border-primary bg-primary/5 shadow-[0_0_0_2px_rgba(11,99,246,0.12)]" 
-                            : "border-freelio-line hover:border-freelio-line-strong hover:bg-freelio-canvas"
+                            : "border-border hover:border-input hover:bg-background"
                         )}
                       >
                         <div className={cn("relative h-28 w-full overflow-hidden rounded-lg border border-freelio-line bg-white p-3", template.value === "PROFESSIONAL" && "bg-[#fbfcfe]")}>
@@ -462,7 +462,7 @@ export function OnboardingForm() {
                           <div className="absolute inset-x-3 bottom-3 grid grid-cols-3 gap-1"><span className="h-5 rounded bg-freelio-surface-2" /><span className="h-5 rounded bg-freelio-surface-2" /><span className="h-5 rounded bg-freelio-surface-2" /></div>
                         </div>
                         <span className="text-sm font-semibold">{template.label}</span>
-                        <span className="text-xs leading-5 text-freelio-muted">{template.description}</span>
+                        <span className="text-xs leading-5 text-muted-foreground">{template.description}</span>
                       </button>
                     ))}
                   </div>
@@ -486,7 +486,7 @@ export function OnboardingForm() {
                 </div>
               </CardContent>
 
-              <CardFooter className="justify-between border-t border-freelio-line bg-freelio-canvas/70 px-5 py-4">
+              <CardFooter className="justify-between border-t border-border bg-muted/70 px-5 py-4">
                 <Button 
                   type="button" 
                   variant="ghost" 
@@ -511,7 +511,7 @@ export function OnboardingForm() {
                 ) : (
                   <Button 
                     type="button" 
-                    className="gap-2 bg-freelio-success hover:bg-[#13744b]"
+                    className="gap-2 bg-freelio-success text-white hover:bg-[#13744b]"
                     disabled={isSubmitting}
                     onClick={() => {
                       void form.handleSubmit(onSubmit, onInvalidSubmit)()

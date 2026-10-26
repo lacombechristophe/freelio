@@ -67,7 +67,7 @@ export function AppBrand({
           <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-[9px] text-sm font-semibold text-white" style={{ backgroundColor: color }}>
             {initialGlyph(name)}
           </span>
-          {!compact ? <span className={cn("truncate text-sm font-semibold", inverted ? "text-white" : "text-foreground")}>{name}</span> : null}
+          {!compact ? <span className={cn("truncate text-sm font-semibold", inverted ? "text-white" : "text-inherit")}>{name}</span> : null}
         </>
       )}
     </Link>
