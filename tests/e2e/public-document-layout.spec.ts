@@ -21,6 +21,8 @@ test("valid public documents retain contrast and readable long text in both them
   const feedbackToken = randomBytes(32).toString("base64url")
   const feedbackQuestion = "Comment évaluez-vous la préparation et le suivi de votre intervention de démonstration ?"
   const followUpQuestion = "Quels points faudrait-il améliorer avant la prochaine intervention de démonstration ?"
+  const customerMessage = "Je confirme les informations du dossier fictif : https://documentation.example.test/equipements/filtration/preparation-de-la-visite-de-demonstration"
+  const teamMessage = "La visite fictive permettra de vérifier ensemble les informations du dossier."
   const output = path.resolve("test-results", "public-document-layout", info.project.name)
   const checks: Array<{ surface: string; theme: string; width: number; textSize: number; headingContrast: number; bodyContrast: number }> = []
   let clientId: string | undefined
@@ -41,6 +43,10 @@ test("valid public documents retain contrast and readable long text in both them
     await database.company.update({ where: { id: company.id }, data: { name: "👩🏽‍💻 Atelier des Bassins — Installation et maintenance des piscines et équipements extérieurs", logo: "/missing-public-layout-logo.png", serviceTimezone: "America/New_York" } })
     clientId = (await database.client.create({ data: { companyId: company.id, name: "Résidence Les Amandiers — exemple fictif", address: "7 rue des Essais, 44000 Nantes" } })).id
     await database.contact.create({ data: { clientId, firstName: "Camille", lastName: "Démonstration", email: "public-layout@example.test", isPrimary: true } })
+    await database.clientPortalMessage.createMany({ data: [
+      { companyId: company.id, clientId, direction: "CUSTOMER", authorName: "Camille Démonstration", body: customerMessage, createdAt: new Date("2026-10-26T01:30:00Z") },
+      { companyId: company.id, clientId, direction: "TEAM", authorName: "Atelier des Bassins", body: teamMessage, createdAt: new Date("2026-10-26T02:30:00Z") },
+    ] })
     siteId = (await database.customerSite.create({ data: { companyId: company.id, clientId, label: "Site fictif des Amandiers", address1: "7 rue des Essais" } })).id
     projectId = (await database.project.create({ data: { companyId: company.id, clientId, siteId, name: "Préparation fictive du bassin", milestones: { create: { title: "Contrôle de filtration fictif", dueDate: milestoneDay } } } })).id
     await database.fieldIntervention.create({ data: { companyId: company.id, siteId, projectId, title: "Visite fictive de préparation", scheduledStart: visitAt } })
@@ -100,6 +106,14 @@ test("valid public documents retain contrast and readable long text in both them
       const milestone = publicPage.getByText(/^Prochaine étape :/)
       await expect(milestone).toContainText(new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(milestoneDay))
       await readable(milestone)
+      await readable(publicPage.getByRole("heading", { name: "Messages", exact: true }))
+      await readable(publicPage.getByRole("heading", { name: "Rendez-vous", exact: true }))
+      await readable(publicPage.getByText(customerMessage, { exact: true }))
+      await readable(publicPage.getByText(teamMessage, { exact: true }))
+      await readable(publicPage.locator('label[for="preferred-start"]'))
+      await expect(publicPage.getByLabel("Créneau souhaité", { exact: true })).toBeEditable()
+      await expect(publicPage.getByRole("button", { name: "Envoyer le message", exact: true })).toBeDisabled()
+      await expect(publicPage.getByRole("button", { name: "Envoyer la demande", exact: true })).toBeDisabled()
       await assertWidth()
       await capture(`portal-${theme}-320`)
       for (const [surface, route, headingText, bodyText] of [["article", `/portal/aide/${articleId}`, title, `Référence fictive : ${reference}`], ["signature", signingUrl, contractTitle, `Référence fictive : ${reference}`], ["feedback", `/feedback/${feedbackToken}`, feedbackQuestion, followUpQuestion]]) {
@@ -141,6 +155,8 @@ test("valid public documents retain contrast and readable long text in both them
     expect(await database.contractSignature.count({ where: { contractId } })).toBe(0)
     expect((await database.contract.findUniqueOrThrow({ where: { id: contractId } })).status).toBe("SENT")
     expect(await database.satisfactionRequest.findUniqueOrThrow({ where: { id: feedback.id }, select: { status: true, score: true } })).toEqual({ status: "PENDING", score: null })
+    expect(await database.clientPortalMessage.count({ where: { clientId } })).toBe(2)
+    expect(await database.clientPortalAppointmentRequest.count({ where: { clientId } })).toBe(0)
   } finally {
     await writeFile(path.join(output, "report.json"), JSON.stringify({ project: info.project.name, checks, scope: "Fictitious valid routes; text enlargement is not browser zoom", signatureSubmitted: false, feedbackSubmitted: false, providerCalled: false }, null, 2))
     await context.close()
@@ -156,6 +172,7 @@ test("valid public documents retain contrast and readable long text in both them
     if (siteId) await database.customerSite.delete({ where: { id: siteId } })
     if (clientId) {
       await database.clientPortalAccess.deleteMany({ where: { clientId } })
+      await database.clientPortalMessage.deleteMany({ where: { clientId } })
       await database.contact.deleteMany({ where: { clientId } })
       await database.client.delete({ where: { id: clientId } })
     }
