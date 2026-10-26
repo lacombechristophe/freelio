@@ -21,7 +21,7 @@ function formatEuro(cents: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value))
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value))
 }
 
 function cents(form: FormData, name: string) {

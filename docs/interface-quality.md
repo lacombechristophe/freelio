@@ -12,6 +12,8 @@ La recherche globale conserve uniquement le résultat de la requête actuelle, y
 
 L’éditeur d’e-mail simple accepte la mise en forme qu’il sait représenter. Un ancien HTML plus riche reste en mode avancé ; le montage et le changement de mode ne déclenchent ni conversion destructive ni sauvegarde. Un brouillon programmé doit aussi figer le `contenteditable`, indépendamment du `fieldset`.
 
+Les horodatages des composants clients du dashboard reçoivent le fuseau de la société depuis le layout authentifié. Les dates calendaires de temps, de banque, de validité ou d’échéance conservent leur jour enregistré ; elles ne doivent pas être converties comme des horodatages. Les copies Terrain transportent leur fuseau pour rester cohérentes hors ligne.
+
 ## Tests de régression
 
 | Comportement | Recette |
@@ -24,6 +26,7 @@ L’éditeur d’e-mail simple accepte la mise en forme qu’il sait représente
 | Thème clair, sombre, système et CSP | `tests/e2e/theme-preferences.spec.ts`, `visual-edge-cases.spec.ts` |
 | Préférence de mouvement et défilement du Pipeline | `tests/e2e/motion-preferences.spec.ts` |
 | Dates Terrain dans le fuseau de la société, même avec un navigateur éloigné | `tests/e2e/field-timezone.spec.ts` |
+| Horodatages de la société et dates civiles avec un navigateur dans un autre fuseau | `tests/e2e/company-time-zone.spec.ts` |
 | Portail avec documents longs à 320 px et refus des relations étrangères | `tests/e2e/portal-relations.spec.ts` |
 | Vocabulaire Marketing et destinations des raccourcis | `tests/e2e/marketing-rule-language.spec.ts`, `tests/unit/dashboard-navigation.test.ts` |
 | Rédaction simple et compatibilité HTML | `tests/e2e/communications-simple-editor.spec.ts` et suites `communications-*` |

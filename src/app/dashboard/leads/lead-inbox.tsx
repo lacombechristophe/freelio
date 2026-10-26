@@ -1,13 +1,13 @@
 "use client"
 
-import { initialGlyph } from "@/lib/initials"
-
 import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowUpRight, CheckCircle2, Clock3, Copy, Mail, MapPin, MoreHorizontal, Phone, Search, ShieldCheck, UserRoundSearch } from "lucide-react"
 import { toast } from "sonner"
 
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
+import { initialGlyph } from "@/lib/initials"
 import { createLeadMarketingWithdrawalLink, getLeadDashboard, updateLeadStatus, withdrawLeadMarketingConsent } from "@/actions/leads"
 import { DirectoryPagination } from "@/components/shared/directory-pagination"
 import { isReadOnlyDemo } from "@/lib/demo-mode"
@@ -37,11 +37,12 @@ const STATUS_LABELS: Record<string, string> = {
 
 const statusOptions = Object.entries(STATUS_LABELS)
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+function formatDate(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value))
 }
 
 export function LeadInbox({ initialData }: { initialData: LeadData }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [filter, setFilter] = useState("ACTIVE")
@@ -146,7 +147,7 @@ export function LeadInbox({ initialData }: { initialData: LeadData }) {
               <TableCell className="min-w-56"><div className="space-y-1 text-xs">{lead.email ? <a href={`mailto:${lead.email}`} className="flex items-center gap-2 hover:text-primary"><Mail className="size-3.5 text-muted-foreground" />{lead.email}</a> : null}{lead.phone ? <a href={`tel:${lead.phone}`} className="flex items-center gap-2 hover:text-primary"><Phone className="size-3.5 text-muted-foreground" />{lead.phone}</a> : null}{lead.postalCode || lead.city ? <span className="flex items-center gap-2 text-muted-foreground"><MapPin className="size-3.5" />{[lead.postalCode, lead.city].filter(Boolean).join(" ")}</span> : null}</div></TableCell>
               <TableCell><div className="flex items-center gap-2"><Badge variant={lead.score >= 60 ? "default" : "outline"}>{lead.score} pts</Badge><span className="text-xs text-muted-foreground">{lead.source}</span></div></TableCell>
               <TableCell><span className="inline-flex items-center gap-1.5 text-xs"><ShieldCheck className="size-3.5 text-muted-foreground" />{lead.marketingOptIn ? "Marketing accepté" : "Service uniquement"}</span></TableCell>
-              <TableCell className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{formatDate(lead.createdAt, timeZone)}</TableCell>
               <TableCell><Select value={lead.status} disabled={mutationDisabled} onValueChange={(value) => value && execute(() => updateLeadStatus(lead.id, value), "Statut du prospect actualisé.")}><SelectTrigger aria-label={`Statut de ${lead.firstName} ${lead.lastName}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></TableCell>
               <TableCell>{leadActions(lead)}</TableCell>
             </TableRow>)}</TableBody>

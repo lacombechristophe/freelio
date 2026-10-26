@@ -36,8 +36,8 @@ type PortalMessage = {
   readAt: string | null
   createdAt: string
 }
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+function formatDate(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value))
 }
 
 function getAccessState(access: PortalAccess) {
@@ -68,7 +68,6 @@ export function ClientPortalPanel({
   const [validityDays, setValidityDays] = React.useState("30")
   const [oneTimeUrl, setOneTimeUrl] = React.useState("")
   const [reply, setReply] = React.useState("")
-
 
   function run(task: () => Promise<void>) {
     startTransition(() => {
@@ -148,7 +147,7 @@ export function ClientPortalPanel({
               return <div key={access.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm font-medium">{access.label || `${access.contact?.firstName ?? ""} ${access.contact?.lastName ?? ""}`.trim() || "Accès client"}</p><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${state.className}`}>{state.label}</span></div>
-                  <p className="mt-1 text-xs text-muted-foreground">Expire le {formatDate(access.expiresAt)}{access.lastUsedAt ? ` · consulté le ${formatDate(access.lastUsedAt)}` : " · jamais consulté"}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Expire le {formatDate(access.expiresAt, timeZone)}{access.lastUsedAt ? ` · consulté le ${formatDate(access.lastUsedAt, timeZone)}` : " · jamais consulté"}</p>
                 </div>
                 {!access.revokedAt && new Date(access.expiresAt) > new Date() && <Button variant="ghost" size="icon" aria-label="Révoquer l’accès" disabled={isPending} onClick={() => run(async () => { await revokeClientPortalAccess(access.id); toast.success("Accès révoqué."); router.refresh() })}><X /></Button>}
               </div>
@@ -162,7 +161,7 @@ export function ClientPortalPanel({
             <div className="mt-3 max-h-[340px] space-y-3 overflow-y-auto rounded-xl border bg-muted/20 p-3">
               {messages.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Aucun message échangé.</p> : messages.map((message) => (
                 <div key={message.id} className={`max-w-[88%] rounded-xl px-3 py-2 ${message.direction === "TEAM" ? "ml-auto bg-primary text-primary-foreground" : "border bg-card"}`}>
-                  <div className="flex items-center justify-between gap-3 text-[11px] opacity-75"><span>{message.authorName}</span><time>{formatDate(message.createdAt)}</time></div>
+                  <div className="flex items-center justify-between gap-3 text-[11px] opacity-75"><span>{message.authorName}</span><time>{formatDate(message.createdAt, timeZone)}</time></div>
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-5">{message.body}</p>
                 </div>
               ))}

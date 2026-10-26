@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { GitMerge, Loader2, RotateCcw, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
 
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
 import { mergeServiceTickets, unmergeServiceTicket } from "@/actions/operations"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,9 +15,9 @@ import { HelpTip } from "@/components/ui/help-tip"
 
 type TicketDetail = NonNullable<Awaited<ReturnType<typeof import("@/actions/operations").getServiceTicketDetail>>>
 
-function date(value: Date | string | null) {
+function date(value: Date | string | null, timeZone: string) {
   if (!value) return "Date inconnue"
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value))
 }
 
 export function TicketDuplicateManager({
@@ -32,6 +33,7 @@ export function TicketDuplicateManager({
   mergedTickets: TicketDetail["mergedTickets"]
   mergedInto: TicketDetail["mergedInto"]
 }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
@@ -78,7 +80,7 @@ export function TicketDuplicateManager({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <Link href={`/dashboard/service/tickets/${ticket.id}`} className="text-sm font-semibold hover:text-primary hover:underline">{ticket.number} · {ticket.title}</Link>
-              <p className="mt-1 text-xs text-muted-foreground">Fusionné le {date(ticket.mergedAt)} · {ticket.conversationCount} conversation(s) · {ticket.noteCount} note(s) · {ticket.interventionCount} intervention(s)</p>
+              <p className="mt-1 text-xs text-muted-foreground">Fusionné le {date(ticket.mergedAt, timeZone)} · {ticket.conversationCount} conversation(s) · {ticket.noteCount} note(s) · {ticket.interventionCount} intervention(s)</p>
             </div>
             <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => restore(ticket.id)}>{pending ? <Loader2 className="animate-spin" /> : <RotateCcw />}Restaurer</Button>
           </div>
@@ -97,7 +99,7 @@ export function TicketDuplicateManager({
                 <Link href={`/dashboard/service/tickets/${candidate.id}`} className="text-sm font-semibold hover:text-primary hover:underline">{candidate.number} · {candidate.title}</Link>
                 <Badge variant={candidate.score >= 75 ? "default" : "outline"}>{candidate.score}% · {candidate.confidence.replace("_", " ").toLocaleLowerCase("fr-FR")}</Badge>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">{candidate.status} · reçu le {date(candidate.requestedAt)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{candidate.status} · reçu le {date(candidate.requestedAt, timeZone)}</p>
               <p className="mt-2 text-xs leading-5">Indices : {candidate.reasons.join(" · ")}.</p>
             </div>
           </div>

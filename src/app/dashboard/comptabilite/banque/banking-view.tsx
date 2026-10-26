@@ -221,7 +221,7 @@ export function BankingView({ data }: { data: NonNullable<DashboardData> }) {
             {loading ? <TableRow><TableCell colSpan={5} className="py-14 text-center text-muted-foreground">{historyError || "Chargement…"}</TableCell></TableRow> : history.transactions.length === 0 ? <TableRow><TableCell colSpan={5} className="py-14 text-center text-muted-foreground">Aucune transaction importée.</TableCell></TableRow> : history.transactions.map((transaction) => {
               const matched = transaction.matchedPayment?.invoice.number ?? transaction.matchedExpense?.label ?? (transaction.matchedPaymentId || transaction.matchedExpenseId ? "Rapprochée" : null)
               return <TableRow key={transaction.id}>
-                <TableCell className="text-xs">{new Date(transaction.date).toLocaleDateString("fr-FR")}</TableCell>
+                <TableCell className="text-xs">{new Date(transaction.date).toLocaleDateString("fr-FR", { timeZone: "UTC" })}</TableCell>
                 <TableCell><div className="max-w-sm truncate font-medium">{transaction.label}</div><div className="text-xs text-muted-foreground">{transaction.reference}</div></TableCell>
                 <TableCell className={transaction.amountCents > 0 ? "font-bold text-success" : "font-bold text-danger"}>{formatEuro(transaction.amountCents)}</TableCell>
                 <TableCell>{matched ? <Badge className="gap-1"><Check /> {matched}</Badge> : <Badge variant="outline">À rapprocher</Badge>}</TableCell>
