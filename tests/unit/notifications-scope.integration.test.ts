@@ -78,7 +78,7 @@ describe.sequential("Personal notifications stay within the active workspace", (
   })
   it("refuses to import old unattributed messages before touching existing history", async () => {
     await expect(restoreBackupPayload({ schema: LEGACY_BACKUP_SCHEMA, company: { id: companyA }, localFiles: [],
-      notifications: [{ id: "fictional imported notification", userId: session.userId, title: "Unverifiable origin" }] }, session.userId, companyA)).rejects.toThrow("société vérifiable")
+      notifications: [{ id: "fictional imported notification", userId: session.userId, title: "Unverifiable origin" }] }, session.userId, companyA)).rejects.toThrow("reprise contrôlée")
     expect(await db.notification.count({ where: { userId: session.userId } })).toBe(3)
     expect(await db.auditLog.count({ where: { userId: session.userId } })).toBe(0)
   })

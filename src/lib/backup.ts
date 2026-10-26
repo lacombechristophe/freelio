@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash, randomUUID } from "node:crypto"
-import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import {
   assembleReversibilityExport,
@@ -28,25 +28,12 @@ const MAX_EXPORT_TABLE_BYTES = 16 * 1024 * 1024
 const MAX_EXPORT_FILE_BYTES = 32 * 1024 * 1024
 const MAX_EXPORT_ROWS = 50_000
 const backupsRoot = path.resolve(process.cwd(), "data", "backups")
-const restoreRoot = path.resolve(process.cwd(), "data", "restore-staging")
 
 type LocalFileBackup = {
   path: string
   size: number
   sha256: string
   contentBase64: string
-}
-
-type LegacyBackupPayload = {
-  schema: typeof LEGACY_BACKUP_SCHEMA
-  exportedAt: string
-  warning: string
-  user: Record<string, any>
-  company: Record<string, any>
-  notifications: Array<Record<string, any>>
-  auditLogs: Array<Record<string, any>>
-  apiKeys: Array<Record<string, any>>
-  localFiles: LocalFileBackup[]
 }
 
 type BackupPayload = ReversibilityExport
@@ -241,26 +228,6 @@ const FILE_FIELDS: Record<string, Array<{ field: string; size?: string; sha256?:
   ExpenseFile: [{ field: "url", size: "size", sha256: "sha256" }],
   DocumentManifest: [{ field: "storageKey", size: "size", sha256: "sha256", reader: "MIGRATION" }],
   EInvoiceLog: [{ field: "xmlUrl" }],
-}
-
-const DATE_FIELDS = new Set([
-  "createdAt", "updatedAt", "emailVerified", "expires", "lastBackupAt", "nextActionAt",
-  "happenedAt", "startDate", "endDate", "plannedStartAt", "dueDate", "validUntil", "date", "signedAt",
-  "nextGenDate", "periodStart", "periodEnd", "scheduledDate", "recurrenceEnd", "resolvedAt",
-  "domainExpiresAt", "lockedAt", "sentAt", "importedAt", "lastUsed", "validFrom",
-  "archiveNextAttemptAt",
-])
-
-function normalizeRecord(record: Record<string, any>, omitted: string[] = []): any {
-  const omittedSet = new Set(omitted)
-  return Object.fromEntries(
-    Object.entries(record)
-      .filter(([key]) => !omittedSet.has(key))
-      .map(([key, value]) => [
-        key,
-        DATE_FIELDS.has(key) && typeof value === "string" ? new Date(value) : value,
-      ])
-  )
 }
 
 async function walkFiles(directory: string): Promise<string[]> {
@@ -563,121 +530,8 @@ export async function writeLocalBackup(payload: BackupPayload, label = "auto") {
   return destination
 }
 
-function validateLegacyPayload(input: unknown, companyId: string): asserts input is LegacyBackupPayload {
-  if (!input || typeof input !== "object") throw new Error("Sauvegarde invalide")
-  const payload = input as Partial<LegacyBackupPayload>
-  if (payload.schema !== LEGACY_BACKUP_SCHEMA) throw new Error("Version de sauvegarde non prise en charge")
-  if (!payload.company || payload.company.id !== companyId) {
-    throw new Error("Cette sauvegarde appartient à une autre entreprise")
-  }
-  if (!Array.isArray(payload.localFiles)) throw new Error("Inventaire de fichiers absent")
-  if (payload.notifications !== undefined && (!Array.isArray(payload.notifications) || payload.notifications.length > 0)) {
-    throw new Error("Restauration v2 refusée : les notifications de cette ancienne sauvegarde n’ont pas de société vérifiable. Utilisez une reprise contrôlée.")
-  }
-}
-
-async function stageLocalFiles(payload: LegacyBackupPayload, companyId: string) {
-  const stage = path.resolve(restoreRoot, randomUUID())
-  await mkdir(stage, { recursive: true })
-  for (const file of payload.localFiles) {
-    const normalized = path.normalize(file.path)
-    if (!normalized.startsWith(`${companyId}${path.sep}`)) throw new Error("Fichier hors entreprise")
-    const destination = path.resolve(stage, normalized)
-    if (!destination.startsWith(`${stage}${path.sep}`)) throw new Error("Chemin de restauration invalide")
-    const content = Buffer.from(file.contentBase64, "base64")
-    if (content.length !== file.size) throw new Error(`Taille invalide pour ${file.path}`)
-    if (createHash("sha256").update(content).digest("hex") !== file.sha256) {
-      throw new Error(`Empreinte invalide pour ${file.path}`)
-    }
-    await mkdir(path.dirname(destination), { recursive: true })
-    await writeFile(destination, content, { flag: "wx" })
-  }
-  return stage
-}
-
-const LEGACY_UNREPRESENTED_TABLES = [
-  "EmailSendQuotaPolicy", "EmailSendQuotaState", "EmailSendQuotaCharge",
-  "CampaignAudience", "CampaignAudienceMember",
-  "Agency", "AgencyMembership", "LeadCapture", "MarketingConsent", "ClientPortalAccess", "ClientPortalMessage", "ClientPortalAppointmentRequest", "CustomerSite", "Supplier", "Product", "ProjectTemplate", "ProjectTemplateStep", "ProductOptionGroup",
-  "ProductOptionValue", "ProductComponent", "ProductPrice", "Warehouse",
-  "InventoryItem", "StockMovement", "StockTransfer", "PurchaseOrder", "PurchaseIssue", "SupplierReturn", "CustomerOrder", "DeliveryNote",
-  "GoodsReceipt", "StockReservation", "Equipment", "ServiceTicket", "ServiceTicketNote", "ServiceDiagnosticGuide", "ServiceTicketDiagnostic", "CustomerHealthRule", "CustomerHealthSnapshot", "KnowledgeArticle", "SatisfactionSurvey", "SatisfactionRequest", "SavedView", "CrmPropertyDefinition", "CrmPropertyValue", "CrmPropertyHistory", "FieldIntervention", "InterventionReservation",
-  "MaintenanceContract", "DataSourceConnection", "MigrationRun", "SourceRecord", "ExternalIdMap",
-  "DocumentManifest", "ContractSigningToken", "EmailTemplate", "EmailSequence", "EmailSequenceStep",
-  "EmailSequenceEnrollment", "EmailSequenceTask", "EmailDelivery", "EmailThread", "EmailMessage", "EmailEvent", "EmailSuppression", "CommunicationChannel", "LeadScoringRule", "MarketingSegment", "MarketingSegmentMember", "MarketingCampaign", "MarketingCampaignAsset", "AutomationWorkflow", "AutomationWorkflowVersion", "AutomationRun", "AutomationEventOutbox", "AutomationRunAction",
-]
-
-async function assertLegacyRestoreIsSafe(companyId: string) {
-  // Other authors' drafts and signatures cannot be read through Prisma. These
-  // internal aggregates only check whether a legacy restore would erase them;
-  // neither content nor recipient addresses are read or returned.
-  const drafts = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS "count" FROM "EmailDraft" WHERE "companyId" = ${companyId}`
-  if (Number(drafts[0]?.count ?? 0) > 0) throw new Error("Restauration v2 refusée : les brouillons personnels sont absents de cette ancienne sauvegarde. Utilisez une reprise contrôlée.")
-  const signatures = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS "count" FROM "EmailSignature" WHERE "companyId" = ${companyId}`
-  if (Number(signatures[0]?.count ?? 0) > 0) throw new Error("Restauration v2 refusée : les signatures personnelles sont absentes de cette ancienne sauvegarde. Utilisez une reprise contrôlée.")
-  const specsByModel = new Map(COMPANY_TABLE_SPECS.map((spec) => [spec.model, spec]))
-  const database = prisma as unknown as Record<string, {
-    count: (args: { where: Record<string, unknown> }) => Promise<number>
-  }>
-  for (const model of LEGACY_UNREPRESENTED_TABLES) {
-    const spec = specsByModel.get(model)
-    if (!spec) continue
-    const count = await database[spec.delegate].count({ where: spec.where(companyId) })
-    if (count > 0) {
-      throw new Error(
-        `Restauration v2 refusée : ${count} enregistrement(s) ${model} ne figurent pas dans cette ancienne sauvegarde. Exportez d’abord les données actuelles et utilisez une reprise contrôlée.`
-      )
-    }
-  }
-}
-
-async function activateStagedLocalFiles(stage: string, companyId: string) {
-  const filesRoot = localFilesRoot()
-  const current = path.resolve(filesRoot, companyId)
-  const staged = path.resolve(stage, companyId)
-  const displacedRoot = path.resolve(restoreRoot, randomUUID())
-  const displaced = path.resolve(displacedRoot, companyId)
-  if (!current.startsWith(`${filesRoot}${path.sep}`)
-    || !staged.startsWith(`${stage}${path.sep}`)
-    || !displaced.startsWith(`${displacedRoot}${path.sep}`)) {
-    throw new Error("Répertoire de restauration invalide")
-  }
-  await mkdir(staged, { recursive: true })
-  await mkdir(displacedRoot, { recursive: true })
-  let previousFilesMoved = false
-  try {
-    await rename(current, displaced)
-    previousFilesMoved = true
-  } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error
-  }
-  try {
-    await mkdir(filesRoot, { recursive: true })
-    await rename(staged, current)
-  } catch (error) {
-    if (previousFilesMoved) await rename(displaced, current)
-    await rm(displacedRoot, { recursive: true, force: true })
-    throw error
-  }
-  return {
-    async commit() {
-      await rm(displacedRoot, { recursive: true, force: true })
-      await rm(stage, { recursive: true, force: true })
-    },
-    async rollback() {
-      await rm(current, { recursive: true, force: true })
-      if (previousFilesMoved) await rename(displaced, current)
-      await rm(displacedRoot, { recursive: true, force: true })
-      await rm(stage, { recursive: true, force: true })
-    },
-  }
-}
-
-function nestedRows<T extends Record<string, any>>(parents: T[], key: string) {
-  return parents.flatMap((parent) => Array.isArray(parent[key]) ? parent[key] : [])
-}
-
-export async function restoreBackupPayload(input: unknown, userId: string, companyId: string) {
+/** Legacy archives require an isolated import; this entry point never rewrites live data. */
+export async function restoreBackupPayload(input: unknown, _userId: string, companyId: string) {
   if (input && typeof input === "object" && (input as { schema?: unknown }).schema === BACKUP_SCHEMA) {
     const verification = verifyReversibilityExport(input)
     if (!verification.ok) throw new Error(`Export de réversibilité invalide : ${verification.errors.join(" ")}`)
@@ -687,163 +541,11 @@ export async function restoreBackupPayload(input: unknown, userId: string, compa
       `Export de réversibilité ${verification.status === "COMPLETE" ? "complet" : "partiel"} et manifeste vérifié. La restauration automatique n’est pas proposée : utilisez une reprise logique contrôlée adaptée à la version du schéma.`
     )
   }
-  validateLegacyPayload(input, companyId)
-  const payload = input
-  await assertLegacyRestoreIsSafe(companyId)
-  const safety = await buildBackupPayload(userId, companyId)
-  await writeLocalBackup(safety, "before-restore")
-  const stage = await stageLocalFiles(payload, companyId)
-  const fileSwap = await activateStagedLocalFiles(stage, companyId)
-  const c = payload.company
-
-  const clients = c.clients ?? []
-  const projects = c.projects ?? []
-  const quotes = c.quotes ?? []
-  const quoteVersions = nestedRows(quotes, "versions")
-  const quoteSections = nestedRows(quoteVersions, "sections")
-  const invoices = c.invoices ?? []
-  const recurring = c.recurring ?? []
-  const contracts = c.contracts ?? []
-  const contractTemplates = c.contractTemplates ?? []
-  const expenses = c.expenses ?? []
-  const pipelines = c.pipelines ?? []
-  const opportunities = nestedRows(pipelines, "opportunities")
-  const webhooks = c.webhooks ?? []
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.bankTransaction.deleteMany({ where: { companyId } })
-      await tx.webhookDelivery.deleteMany({ where: { endpoint: { companyId } } })
-      await tx.webhookEndpoint.deleteMany({ where: { companyId } })
-      await tx.opportunityActivity.deleteMany({ where: { opportunity: { pipeline: { companyId } } } })
-      await tx.opportunity.deleteMany({ where: { pipeline: { companyId } } })
-      await tx.pipeline.deleteMany({ where: { companyId } })
-      await tx.organisationTask.deleteMany({ where: { companyId } })
-      await tx.organisationGoal.deleteMany({ where: { companyId } })
-      await tx.contractSignature.deleteMany({ where: { contract: { companyId } } })
-      await tx.contractAmendmentChange.deleteMany({ where: { contract: { companyId } } })
-      await tx.contractClause.deleteMany({ where: { template: { companyId } } })
-      await tx.contract.deleteMany({ where: { companyId } })
-      await tx.contractTemplate.deleteMany({ where: { companyId } })
-      await tx.recurringInvoiceOccurrence.deleteMany({ where: { recurring: { companyId } } })
-      await tx.recurringInvoice.deleteMany({ where: { companyId } })
-      await tx.invoiceReminder.deleteMany({ where: { companyId } })
-      await tx.eInvoiceLog.deleteMany({ where: { invoice: { companyId } } })
-      await tx.creditNote.deleteMany({ where: { invoice: { companyId } } })
-      await tx.invoicePayment.deleteMany({ where: { invoice: { companyId } } })
-      await tx.invoiceLine.deleteMany({ where: { invoice: { companyId } } })
-      await tx.invoice.deleteMany({ where: { companyId } })
-      await tx.quoteLine.deleteMany({ where: { section: { version: { quote: { companyId } } } } })
-      await tx.quoteSection.deleteMany({ where: { version: { quote: { companyId } } } })
-      await tx.quoteVersion.deleteMany({ where: { quote: { companyId } } })
-      await tx.quote.deleteMany({ where: { companyId } })
-      await tx.expenseFile.deleteMany({ where: { expense: { companyId } } })
-      await tx.expense.deleteMany({ where: { companyId } })
-      await tx.projectAcceptanceItem.deleteMany({ where: { project: { companyId } } })
-      await tx.projectTechnicalProfile.deleteMany({ where: { project: { companyId } } })
-      await tx.projectFile.deleteMany({ where: { project: { companyId } } })
-      await tx.projectMilestone.deleteMany({ where: { project: { companyId } } })
-      await tx.timeEntry.deleteMany({ where: { project: { companyId } } })
-      await tx.project.deleteMany({ where: { companyId } })
-      await tx.clientActivity.deleteMany({ where: { client: { companyId } } })
-      await tx.contact.deleteMany({ where: { client: { companyId } } })
-      await tx.clientFile.deleteMany({ where: { client: { companyId } } })
-      await tx.client.deleteMany({ where: { companyId } })
-      await tx.service.deleteMany({ where: { companyId } })
-      await tx.serviceCategory.deleteMany({ where: { companyId } })
-      await tx.relanceConfig.deleteMany({ where: { companyId } })
-      await tx.auditLog.deleteMany({ where: { userId } })
-      await tx.apiKey.deleteMany({ where: { userId } })
-
-      await tx.company.update({
-        where: { id: companyId },
-        data: normalizeRecord(c, [
-          "id", "user", "clients", "serviceCats", "services", "projects", "quotes", "invoices",
-          "recurring", "contracts", "contractTemplates", "expenses", "pipelines", "organisationGoals",
-          "organisationTasks", "webhooks", "relanceConfig", "bankTransactions", "invoiceReminders",
-        ]),
-      })
-      await tx.user.update({
-        where: { id: userId },
-        data: normalizeRecord(payload.user, ["id", "companyId", "createdAt", "updatedAt"]),
-      })
-
-      if (clients.length) await tx.client.createMany({ data: clients.map((row: any) => normalizeRecord(row, ["contacts", "activities", "files", "projects", "quotes", "invoices", "opportunities", "contracts", "organisationTasks", "recurringInvoices", "expenses"])) })
-      const contacts = nestedRows(clients, "contacts")
-      const clientActivities = nestedRows(clients, "activities")
-      const clientFiles = nestedRows(clients, "files")
-      if (contacts.length) await tx.contact.createMany({ data: contacts.map((row: any) => normalizeRecord(row)) })
-      if (clientActivities.length) await tx.clientActivity.createMany({ data: clientActivities.map((row: any) => normalizeRecord(row)) })
-      if (clientFiles.length) await tx.clientFile.createMany({ data: clientFiles.map((row: any) => normalizeRecord(row)) })
-
-      if ((c.serviceCats ?? []).length) await tx.serviceCategory.createMany({ data: c.serviceCats.map((row: any) => normalizeRecord(row, ["services"])) })
-      if ((c.services ?? []).length) await tx.service.createMany({ data: c.services.map((row: any) => normalizeRecord(row, ["category", "company"])) })
-      if (projects.length) await tx.project.createMany({ data: projects.map((row: any) => normalizeRecord(row, ["milestones", "files", "timeEntries", "quotes", "invoices", "organisationTasks", "expenses", "technicalProfile", "acceptanceItems", "client", "company"])) })
-      const milestones = nestedRows(projects, "milestones")
-      const projectFiles = nestedRows(projects, "files")
-      const timeEntries = nestedRows(projects, "timeEntries")
-      const technicalProfiles = projects.flatMap((row: any) => row.technicalProfile ? [row.technicalProfile] : [])
-      const acceptanceItems = nestedRows(projects, "acceptanceItems")
-      if (milestones.length) await tx.projectMilestone.createMany({ data: milestones.map((row: any) => normalizeRecord(row)) })
-      if (projectFiles.length) await tx.projectFile.createMany({ data: projectFiles.map((row: any) => normalizeRecord(row)) })
-      if (timeEntries.length) await tx.timeEntry.createMany({ data: timeEntries.map((row: any) => normalizeRecord(row)) })
-      if (technicalProfiles.length) await tx.projectTechnicalProfile.createMany({ data: technicalProfiles.map((row: any) => normalizeRecord(row)) })
-      if (acceptanceItems.length) await tx.projectAcceptanceItem.createMany({ data: acceptanceItems.map((row: any) => normalizeRecord(row)) })
-
-      if (quotes.length) await tx.quote.createMany({ data: quotes.map((row: any) => normalizeRecord(row, ["versions", "company", "client", "project"])) })
-      if (quoteVersions.length) await tx.quoteVersion.createMany({ data: quoteVersions.map((row: any) => normalizeRecord(row, ["sections", "quote"])) })
-      if (quoteSections.length) await tx.quoteSection.createMany({ data: quoteSections.map((row: any) => normalizeRecord(row, ["lines", "version"])) })
-      const quoteLines = nestedRows(quoteSections, "lines")
-      if (quoteLines.length) await tx.quoteLine.createMany({ data: quoteLines.map((row: any) => normalizeRecord(row, ["section"])) })
-
-      if (invoices.length) await tx.invoice.createMany({ data: invoices.map((row: any) => normalizeRecord(row, ["lines", "payments", "creditNotes", "facturXLog", "reminders", "company", "client", "project"])) })
-      const invoiceLines = nestedRows(invoices, "lines")
-      const payments = nestedRows(invoices, "payments")
-      const creditNotes = nestedRows(invoices, "creditNotes")
-      const invoiceLogs = invoices.flatMap((row: any) => row.facturXLog ? [row.facturXLog] : [])
-      const reminders = nestedRows(invoices, "reminders")
-      if (invoiceLines.length) await tx.invoiceLine.createMany({ data: invoiceLines.map((row: any) => normalizeRecord(row, ["invoice"])) })
-      if (payments.length) await tx.invoicePayment.createMany({ data: payments.map((row: any) => normalizeRecord(row, ["invoice", "bankTransaction"])) })
-      if (creditNotes.length) await tx.creditNote.createMany({ data: creditNotes.map((row: any) => normalizeRecord(row, ["invoice"])) })
-      if (invoiceLogs.length) await tx.eInvoiceLog.createMany({ data: invoiceLogs.map((row: any) => normalizeRecord(row, ["invoice"])) })
-      if (reminders.length) await tx.invoiceReminder.createMany({ data: reminders.map((row: any) => normalizeRecord(row, ["invoice", "company"])) })
-
-      if (recurring.length) await tx.recurringInvoice.createMany({ data: recurring.map((row: any) => normalizeRecord(row, ["occurrences", "company", "client"])) })
-      const occurrences = nestedRows(recurring, "occurrences")
-      if (occurrences.length) await tx.recurringInvoiceOccurrence.createMany({ data: occurrences.map((row: any) => normalizeRecord(row, ["recurring"])) })
-      if (contractTemplates.length) await tx.contractTemplate.createMany({ data: contractTemplates.map((row: any) => normalizeRecord(row, ["clauses", "company"])) })
-      const clauses = nestedRows(contractTemplates, "clauses")
-      if (clauses.length) await tx.contractClause.createMany({ data: clauses.map((row: any) => normalizeRecord(row, ["template"])) })
-      if (contracts.length) await tx.contract.createMany({ data: contracts.map((row: any) => normalizeRecord(row, ["signatures", "changes", "amendments", "parentContract", "maintenanceContract", "company", "client"])) })
-      const signatures = nestedRows(contracts, "signatures")
-      if (signatures.length) await tx.contractSignature.createMany({ data: signatures.map((row: any) => normalizeRecord(row, ["contract"])) })
-      const amendmentChanges = nestedRows(contracts, "changes")
-      if (amendmentChanges.length) await tx.contractAmendmentChange.createMany({ data: amendmentChanges.map((row: any) => normalizeRecord(row, ["contract"])) })
-
-      if (expenses.length) await tx.expense.createMany({ data: expenses.map((row: any) => normalizeRecord(row, ["files", "company", "client", "project", "bankTransaction"])) })
-      const expenseFiles = nestedRows(expenses, "files")
-      if (expenseFiles.length) await tx.expenseFile.createMany({ data: expenseFiles.map((row: any) => normalizeRecord(row, ["expense"])) })
-      if (pipelines.length) await tx.pipeline.createMany({ data: pipelines.map((row: any) => normalizeRecord(row, ["opportunities", "company"])) })
-      if (opportunities.length) await tx.opportunity.createMany({ data: opportunities.map((row: any) => normalizeRecord(row, ["activities", "pipeline", "client"])) })
-      const opportunityActivities = nestedRows(opportunities, "activities")
-      if (opportunityActivities.length) await tx.opportunityActivity.createMany({ data: opportunityActivities.map((row: any) => normalizeRecord(row, ["opportunity"])) })
-      if ((c.organisationGoals ?? []).length) await tx.organisationGoal.createMany({ data: c.organisationGoals.map((row: any) => normalizeRecord(row, ["tasks", "company"])) })
-      if ((c.organisationTasks ?? []).length) await tx.organisationTask.createMany({ data: c.organisationTasks.map((row: any) => normalizeRecord(row, ["company", "client", "project", "goal"])) })
-      if (webhooks.length) await tx.webhookEndpoint.createMany({ data: webhooks.map((row: any) => normalizeRecord(row, ["deliveries", "company"])) })
-      const deliveries = nestedRows(webhooks, "deliveries")
-      if (deliveries.length) await tx.webhookDelivery.createMany({ data: deliveries.map((row: any) => normalizeRecord(row, ["endpoint"])) })
-      if (c.relanceConfig) await tx.relanceConfig.create({ data: normalizeRecord(c.relanceConfig, ["company"]) as any })
-      if ((c.bankTransactions ?? []).length) await tx.bankTransaction.createMany({ data: c.bankTransactions.map((row: any) => normalizeRecord(row, ["company", "matchedPayment", "matchedExpense"])) })
-      if (payload.auditLogs.length) await tx.auditLog.createMany({ data: payload.auditLogs.map((row: any) => normalizeRecord(row, ["user"])) as any })
-      if (payload.apiKeys.length) await tx.apiKey.createMany({ data: payload.apiKeys.map((row: any) => normalizeRecord(row, ["user"])) as any })
-    }, { timeout: 60_000, maxWait: 10_000 })
-
-    await fileSwap.commit()
-    return { ok: true, restoredAt: new Date().toISOString() }
-  } catch (error) {
-    await fileSwap.rollback()
-    throw error
-  }
+  if (!input || typeof input !== "object") throw new Error("Sauvegarde invalide")
+  const payload = input as { schema?: unknown; company?: { id?: unknown } }
+  if (payload.schema !== LEGACY_BACKUP_SCHEMA) throw new Error("Version de sauvegarde non prise en charge")
+  if (payload.company?.id !== companyId) throw new Error("Cette sauvegarde appartient à une autre entreprise")
+  throw new Error("Restauration v2 refusée : les relations de cet ancien format ne sont pas vérifiables avec le schéma actuel. Utilisez une reprise contrôlée dans un environnement isolé.")
 }
 
 export { BACKUP_SCHEMA, LEGACY_BACKUP_SCHEMA, verifyReversibilityExport }

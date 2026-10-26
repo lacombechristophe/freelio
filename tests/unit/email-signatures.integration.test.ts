@@ -75,7 +75,7 @@ describe.sequential("personal signatures on SQL", () => {
     expect(JSON.stringify(backup)).not.toContain("Private signature sentinel")
     expect(backup.tables.some(table => table.model === "EmailSignature")).toBe(false)
     expect(backup.manifest.excludedModels.some(model => model.model === "EmailSignature")).toBe(true)
-    await expect(restoreBackupPayload({ schema: "freelio.local-backup.v2", company: { id: f.companyId }, localFiles: [] }, f.authorId, f.companyId)).rejects.toThrow("signatures personnelles")
+    await expect(restoreBackupPayload({ schema: "freelio.local-backup.v2", company: { id: f.companyId }, localFiles: [] }, f.authorId, f.companyId)).rejects.toThrow("reprise contrôlée")
   })
   it("allows reading but refuses signature writes in the public demo", async () => {
     const f = await fixture(), saved = await saveEmailSignature(f.companyId, f.authorId, { text: "Fictitious signature", version: null })

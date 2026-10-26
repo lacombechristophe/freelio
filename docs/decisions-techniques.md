@@ -12,7 +12,7 @@ Ce découpage évite les coûts de coordination de services distribués pour une
 
 PostgreSQL est le moteur des environnements partagés. SQLite sert à la démo locale isolée et à une partie de la recette. Prisma 7 utilise des pilotes explicites, `adapter-pg` et `adapter-better-sqlite3`. Les migrations PostgreSQL sont versionnées ; `db push` ne sert pas à faire évoluer une base partagée.
 
-Les deux moteurs sont testés séparément. Une suite réussie sur une base neuve ne prouve pas la mise à niveau d’une base existante. Les traitements sensibles conservent transactions, revendications conditionnelles et reprises bornées. Une restauration exige également les fichiers et les clés de chiffrement nécessaires.
+Les deux moteurs sont testés séparément. Une suite réussie sur une base neuve ne prouve pas la mise à niveau d’une base existante. Les traitements sensibles conservent transactions, revendications conditionnelles et reprises bornées. Une restauration exige également les fichiers et les clés de chiffrement nécessaires. Les exports logiques se reprennent dans un environnement isolé. La restauration automatique de l’ancien format v2 est refusée : son graphe non typé ne permet pas de vérifier toutes les relations de la version actuelle avant réinjection.
 
 ## D03 — Autorisation à chaque frontière
 
