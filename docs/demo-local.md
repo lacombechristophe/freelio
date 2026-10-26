@@ -1,8 +1,6 @@
 # Utiliser la démonstration locale Freelio
 
-Cette démonstration contient exclusivement des données fictives. Elle est prévue pour explorer le projet sur cet ordinateur ; elle n’ouvre pas un service commercial. Les textes visibles de démonstration sont activés uniquement dans ce mode. Les couleurs, boutons et dispositions existants sont conservés.
-
-L’intégration Gemini a été retirée du projet avec accord explicite : SDK, actions d’analyse, configuration, compteur et ligne des paramètres. Les dépenses restent saisies manuellement et leurs justificatifs restent conservés. Le bouton de dépôt est nommé « Joindre un justificatif », conformément au lot visible approuvé.
+Cette démonstration contient exclusivement des données fictives. Elle est prévue pour explorer le projet sur cet ordinateur ; elle n’ouvre pas un service commercial. Les textes de démonstration sont activés uniquement dans ce mode. Les dépenses sont saisies manuellement et leurs justificatifs sont conservés localement.
 
 ## Créer une démo
 
@@ -71,4 +69,4 @@ node scripts/verify-demo.mjs "C:\chemin\vers\le\dossier-demo"
 
 Cette recette se connecte au compte fictif, vérifie les pages principales, les textes de démonstration, les PDF et les accès anonymes, crée puis modifie un devis fictif et rapproche ses montants en centimes avec la base. Elle contrôle aussi le lien d’évitement au clavier et la navigation mobile. Elle écrit un rapport et des captures dans `verification`. Les devis de recette restent dans cette base fictive. Ce contrôle ciblé ne constitue pas un audit d’accessibilité complet ni un benchmark de production.
 
-Les contrôles locaux ont été réalisés avec Node 24.15.0. Node 24 est désormais la version déclarée du projet, de la CI et des images. Les services fournisseur, PostgreSQL, la CI distante et un déploiement public ne font pas partie de cette recette SQLite ; les validations supplémentaires sont consignées dans le suivi CTO.
+Node 24 est la version déclarée du projet, de la CI et des images. Les services fournisseur, PostgreSQL et le déploiement public ne font pas partie de cette recette SQLite ; leur qualification suit le [guide de test](testing.md).

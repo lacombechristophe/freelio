@@ -1,6 +1,21 @@
 # Frontières d’architecture métier
 
-Ce document fixe les invariants à préserver à mesure que le CRM/ERP piscine s’étend. Les écrans et Server Actions orchestrent les cas d’usage ; ils ne doivent pas devenir les propriétaires des règles financières ou des invariants multi-tenant.
+Ce document fixe les invariants du CRM/ERP. Les écrans et Server Actions orchestrent les cas d’usage ; ils ne doivent pas devenir les propriétaires des règles financières ou des invariants multi-tenant.
+
+## Organisation du code
+
+| Emplacement | Responsabilité |
+| --- | --- |
+| `src/app`, `src/components` | Routes, composition des écrans et interactions |
+| `src/actions` | Cas d’usage authentifiés, validation et transactions |
+| `src/lib/finance`, `src/lib/operations`, `src/lib/communications`, `src/lib/automations` | Calculs, lecteurs et règles métier réutilisables |
+| `src/lib/auth-wrapper.ts`, `src/lib/prisma.ts` | Contexte d’autorisation et contrôle des accès aux données |
+| `prisma` | Schémas et migrations SQL versionnées |
+| `tests/unit`, `tests/e2e`, `tests/hosted` | Règles pures/SQL, parcours locaux et lecture de la démo hébergée |
+
+Les actions Opérations gardent un point d’entrée compatible dans `src/actions/operations/index.ts`. Les implémentations sont séparées en lectures, catalogue, achats, commandes, stock et service. Seuls les modules de points d’entrée portent `use server` ; schémas et auxiliaires partagés restent des modules ordinaires.
+
+Organisation conserve l’état et les mutations dans sa vue principale. Les types, libellés/formats, cartes et dialogues sont séparés dans le même dossier. Ce découpage n’ajoute pas de couche générique entre les composants et les cas d’usage.
 
 ## 1. Calcul commercial et facturation
 
@@ -18,9 +33,9 @@ Les composants d’interface peuvent afficher des simulations, mais le résultat
 
 La facturation des temps construit ses lignes depuis les secondes enregistrées, sans arrondir les heures avant le calcul monétaire. Aperçu et action utilisent `time-invoice-lines.ts` ; chaque ligne est ensuite arrondie au centime par le moteur commercial. Les quantités affichées dans les nouveaux PDF sont arrondies à six décimales au maximum ; elles ne remplacent pas les secondes comme base du calcul. Le serveur recontrôle les temps et les paramètres financiers dans la transaction Serializable avant de créer le brouillon.
 
-Le chargement fournit aussi une version signée des valeurs affichées pour chaque temps (`time-invoice-version.ts`). L'action vérifie ces versions avant le calcul : elle refuse ainsi une modification terminée avant le clic, puis conserve le recontrôle transactionnel pour les modifications pendant la préparation. Le marqueur est lié à la société et à l'utilisateur, sans être une autorisation ; les droits courants restent obligatoires. Le refus ne revalide pas la page et garde le formulaire intact. Le [contrat](contrat-facturation-temps-apercu-perime.md) décrit le rechargement requis et l'effet d'une rotation d'`AUTH_SECRET`.
+Le chargement fournit aussi une version signée des valeurs affichées pour chaque temps (`time-invoice-version.ts`). L'action vérifie ces versions avant le calcul : elle refuse ainsi une modification terminée avant le clic, puis conserve le recontrôle transactionnel pour les modifications pendant la préparation. Le marqueur est lié à la société et à l'utilisateur, sans être une autorisation ; les droits courants restent obligatoires. Le refus ne revalide pas la page et garde le formulaire intact. Le [contrat](https://github.com/lacombechristophe/freelio/blob/f992e9b3c667293d9c3cead1bed3f312d907d2b6/docs/contrat-facturation-temps-apercu-perime.md) décrit le rechargement requis et l'effet d'une rotation d'`AUTH_SECRET`.
 
-Un rôle Finance peut rattacher les temps accessibles au seul brouillon créé par cette action, puis libérer les temps du brouillon qu'il supprime. Le contexte interne borne ces exceptions à `invoiceId` et à l'identifiant du document. Les autres écritures Temps exigent Opérations. À la suppression, un compte privé des liens exacts détecte les associations historiques incohérentes, puis les écritures restent filtrées par société, client, chantier et agence. Une différence de comptes annule suppression, libération et audit ; aucun détail de temps étranger n'est renvoyé. `invoiceId` reste un ancien champ sans FK : son index améliore la lecture, mais ne répare pas cette dette référentielle. Les [preuves et limites](evidence/20261013-time-invoice-release/README.md) décrivent cette autorisation restreinte.
+Un rôle Finance peut rattacher les temps accessibles au seul brouillon créé par cette action, puis libérer les temps du brouillon qu'il supprime. Le contexte interne borne ces exceptions à `invoiceId` et à l'identifiant du document. Les autres écritures Temps exigent Opérations. À la suppression, un compte privé des liens exacts détecte les associations historiques incohérentes, puis les écritures restent filtrées par société, client, chantier et agence. Une différence de comptes annule suppression, libération et audit ; aucun détail de temps étranger n'est renvoyé. `invoiceId` reste un ancien champ sans FK : son index améliore la lecture, mais ne répare pas cette dette référentielle. Les [preuves et limites](https://github.com/lacombechristophe/freelio/blob/f992e9b3c667293d9c3cead1bed3f312d907d2b6/docs/evidence/20261013-time-invoice-release/README.md) décrivent cette autorisation restreinte.
 
 ## 2. Entreprise, agence et dépôt
 

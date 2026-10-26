@@ -1,69 +1,52 @@
-# Freelio — application métier full stack
+# Freelio
 
-Freelio est un CRM/ERP de démonstration pour une entreprise d’installation et de services : relation client, devis, facturation, projets, stocks et interventions. Le projet sert de cas d’étude pour présenter une démarche de développement freelance : conception métier, isolation des entreprises, transactions, documents, tests et exploitation.
+[![CI](https://github.com/lacombechristophe/freelio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lacombechristophe/freelio/actions/workflows/ci.yml)
 
-Le périmètre courant utilise des données fictives. Le projet ne revendique pas une certification Factur-X, une conformité réglementaire globale, un SLA ni une validation exhaustive. Les capacités et limites sont décrites dans la [matrice de couverture](docs/coverage-and-external-dependencies.md).
+CRM/ERP de démonstration pour une entreprise d’installation et de services : clients, devis, facturation, chantiers, stocks et SAV. Le projet présente un développement métier complet, avec isolation des sociétés et agences, droits par domaine, transactions SQL et documents archivés.
 
-La [démo principale](https://freelio-eight.vercel.app) est hébergée en lecture seule. La [livraison du 25 octobre](docs/livraison-demo-20261025.md) identifie le main qualifié, les contrôles CI, la recette du domaine et les limites d’exploitation. Les identifiants fictifs se transmettent séparément du dépôt.
+**[Ouvrir la démonstration](https://freelio-eight.vercel.app)** · [Architecture](docs/architecture-domain-boundaries.md) · [Tests](docs/testing.md) · [Documentation](docs/README.md)
 
-La [vérification de l’interface](docs/interface-quality.md) décrit les contrats de navigation, lecture seule, clavier et rédaction, leurs tests de régression et les limites de la recette visuelle.
+La démo hébergée utilise des données fictives et fonctionne en lecture seule. Les identifiants du compte fictif se transmettent séparément. Les intégrations mail/OAuth et le stockage persistant sont désactivés dans ce profil.
 
 ## Parcours de référence
 
-1. Client → devis versionné → facture et archive → règlement fictif.
-2. Équipement → ticket SAV → planification → intervention → justificatif et rapport.
-3. Import fictif → simulation → reprise → rapprochement → export et récupération.
+- Vente : client → devis versionné → facture → archive → règlement fictif.
+- Service : équipement → ticket SAV → planification → intervention → rapport.
+- Reprise : import fictif → simulation → rapprochement → export → récupération.
 
-Chaque parcours doit être relié à des tests, à une version et à ses limites. Un compteur de tests seul ne garantit pas la couverture métier.
+Les [capacités et limites](docs/coverage-and-external-dependencies.md) distinguent le code disponible, la démonstration et les validations nécessaires avant un usage réel.
 
-## Stack et frontières
+## Stack
 
-| Élément | Choix actuel |
+| Couche | Choix |
 | --- | --- |
 | Application | Next.js 16, React 19, TypeScript strict |
-| Données | Prisma 7 et pilotes explicites ; PostgreSQL pour l’environnement partagé, SQLite pour la démo locale |
-| Accès | Auth.js, mots de passe, MFA, memberships et droits par domaine |
-| Documents | Puppeteer/Chromium, pdf-lib et XML Factur-X ; aucune certification globale |
-| Travaux de fond | BullMQ/Redis TCP ; Upstash REST pour la limitation distribuée |
-| Fichiers | Local en développement ; R2 privé en production modifiable ; stockage désactivé possible en démo publique |
-| Vérification | Vitest, intégrations SQL, Playwright et GitHub Actions |
+| Données | Prisma 7 ; PostgreSQL en environnement partagé, SQLite en démo locale |
+| Accès | Auth.js, mots de passe, MFA, memberships et permissions par domaine |
+| Documents | Puppeteer/Chromium, pdf-lib, archives chiffrées et empreintes |
+| Traitements | Worker Node.js, BullMQ/Redis TCP ; Upstash REST pour le limiteur distribué |
+| Vérification | Vitest, intégrations SQL, Playwright, GitHub Actions |
 
-L’architecture est un monolithe modulaire avec un processus worker séparé. Les règles financières ne dépendent pas du rendu des écrans. Les clients sont partagés au niveau entreprise ; les dossiers opérationnels peuvent être bornés aux agences. Voir les [frontières métier](docs/architecture-domain-boundaries.md).
+Le monolithe conserve les règles métier dans `src/lib`, les cas d’usage dans `src/actions` et les écrans dans `src/app`. Le worker dispose de son propre processus. Les [décisions techniques](docs/decisions-techniques.md) expliquent les compromis.
 
-## Démo locale isolée
+## Démarrage
 
-Prérequis : Node **24.x**, npm et les dépendances installées. Le postinstall d’une installation neuve génère Prisma et nécessite une DATABASE_URL de développement. Une installation avec `npm ci --ignore-scripts` demande une préparation explicite du binaire `better-sqlite3` pour SQLite, par exemple avec `npm rebuild better-sqlite3` ; aucune installation n'est effectuée par le lanceur.
+Prérequis : **Node.js 24.x** et npm. Définir une `DATABASE_URL` locale, par exemple `file:./dev.db`, pour la génération Prisma à l’installation. Les commandes suivantes installent les dépendances puis préparent une démo isolée à partir de données fictives :
 
-Depuis le dépôt avec ses dépendances disponibles :
-
-```powershell
+```sh
+npm ci
 npm run demo
 ```
 
-Le lanceur crée une nouvelle copie dans le répertoire temporaire, une SQLite neuve et un compte fictif avec mot de passe. Il ne copie aucun .env ni donnée métier du dépôt. Le terminal affiche l’adresse locale et le chemin privé des identifiants, sans afficher les secrets. Les dépendances sont réutilisées ; le client Prisma et ses métadonnées sont générés dans la copie.
+Si les scripts d’installation sont désactivés, préparer explicitement le binaire `better-sqlite3` avant d’utiliser SQLite. Le lanceur ne procède à aucune installation.
 
-La démo locale est distincte de la démo hébergée en lecture seule. Son garde-fou Node refuse les connexions fournisseur mais permet les téléchargements publics de polices. Voir le [guide de démarrage, reprise, sauvegarde et restauration](docs/demo-local.md). La qualification Vercel et ses limites sont consignées dans le [compte rendu de livraison](docs/livraison-demo-vercel-20261003.md).
+`npm run demo` crée une copie temporaire, sa base et un compte fictif. Il affiche le chemin privé des identifiants ; il ne copie ni `.env` ni données du dépôt. Le [guide local](docs/demo-local.md) décrit les modes préparation, reprise, sauvegarde et restauration.
 
-## Développement avec PostgreSQL
-
-Docker Compose prépare uniquement PostgreSQL et Redis de développement, exposés sur l’interface locale :
-
-```powershell
-docker compose up -d --wait
-$env:DATABASE_URL = "postgresql://freelio_dev:local-only-freelio-development@127.0.0.1:55432/freelio_dev?schema=public"
-$env:REDIS_URL = "redis://127.0.0.1:56379/0"
-npm ci
-npm run db:deploy:postgres
-npm run dev
-```
-
-Les identifiants de Compose sont publics et réservés à ces services locaux. Le développement normal charge aussi les variables locales ; configurer des secrets propres au développement à partir de [.env.example](.env.example). Ne pas copier une base existante pour créer les fixtures.
-
-Utiliser les migrations versionnées pour PostgreSQL ; aucun db push sur une base partagée. Les volumes persistent après `docker compose down` ; l’option -v les détruirait et n’est pas une commande de reprise.
+Pour développer sur PostgreSQL, suivre le [guide de contribution](CONTRIBUTING.md#développement-avec-postgresql). Le Compose fournit uniquement PostgreSQL et Redis sur l’interface locale.
 
 ## Vérifications et preuves
 
-```powershell
+```sh
 npm run typecheck
 npm run lint
 npm run test:unit
@@ -71,47 +54,14 @@ npm run build
 npm run test:e2e
 ```
 
-Les tests d’intégration et fixtures écrivent et suppriment des données : utiliser exclusivement une base isolée. `npm run verify` prépare la base configurée avant les contrôles ; il n’est pas destiné à un environnement partagé. Les E2E nécessitent leur propre jeu de données ; leur réussite ne se déduit pas d’un build.
+Les tests SQL et navigateur exigent une **base isolée** ; ils créent et suppriment leurs propres fixtures. `npm run verify` prépare la base configurée avant les contrôles. Le [guide de test](docs/testing.md) précise les profils, les prérequis et les limites de couverture.
 
-Les [résultats courants](docs/completude-recette-20261003.md) distinguent le candidat local, la tête distante de la PR #8 et les contrôles exécutés sur chaque version. La [carte des preuves](docs/carte-des-preuves.md) relie les risques à leurs tests et limites. Une ancienne CI ou preview ne qualifie pas les changements locaux suivants ; la [recette hébergée sans stockage](docs/qualification-demo-sans-stockage-20261010.md) reste une référence datée. La branche main et la production restent des références distinctes.
+La CI exécute SQLite avec les parcours desktop/mobile, PostgreSQL et le runtime Linux avec Chromium. Chaque résultat appartient au commit testé. L’en-tête `X-Freelio-Revision` de `/api/health/ready` identifie le code servi ; un build réussi ne suffit pas à qualifier un déploiement.
 
-La [livraison sur main et le domaine principal](docs/livraison-demo-20261025.md) est qualifiée séparément de l’ancien alias de candidat. Les [preuves de cet alias](docs/evidence/20261025-public-demo/README.md) restent attachées à `745c51d` ; les [reçus de main](docs/evidence/20261025-main-release/README.md) identifient la fusion, la CI après fusion et la consultation du domaine principal. L’en-tête `X-Freelio-Revision` permet d’observer la version servie. Chaque résultat reste lié à son code et à son environnement.
+## Exploitation et maintenance
 
-Les [preuves du socle](docs/execution-cto-20261001.md), la [recette locale historique](docs/evidence/20261002/README.md) et le [journal des compléments](docs/journal-recettes-completude-20261003.md) restent datés et conservés. Leurs résultats ne qualifient pas une version ultérieure.
+Le [runbook](docs/production-runbook.md) couvre les processus, migrations, sauvegardes et incidents. Une exploitation modifiable nécessite une infrastructure et des comptes fournisseur qualifiés. La démo actuelle n’offre ni SLA, ni certification Factur-X ou WCAG, ni engagement de récupération hébergée.
 
-Le [reçu CI de `745c51d`](docs/evidence/20261025-public-demo/ci-745c51d.json) valide quatre jobs : les suites SQL, les parcours ordinateur/mobile et le runtime Linux. Le [passage à Prisma 7](docs/evidence/20261025-prisma7/README.md) et les [lectures des annuaires](docs/evidence/20261025-asset-directories/README.md) conservent leurs diagnostics et limites. Une recette antérieure ne qualifie pas automatiquement les changements suivants.
+Les [archives de qualification](docs/history.md) conservent les anciennes décisions, incidents et recettes à leurs révisions d’origine. Elles sont séparées des guides courants pour éviter de présenter un ancien résultat comme une validation actuelle.
 
-## Image et exploitation
-
-```powershell
-docker build -t freelio:local-review .
-node scripts/verify-container-runtime.mjs freelio:local-review
-```
-
-Le Dockerfile prépare le client PostgreSQL et le build sans migrer une base réelle. Il inclut Chromium, utilise un utilisateur non root et tini. Secrets et données locales sont exclus du contexte de build. Les variables NEXT_PUBLIC sont définies au build ; les secrets serveur se fournissent au runtime.
-
-La recette crée uniquement des conteneurs fictifs nommés de manière unique, sur un réseau Docker interne, puis les retire. Elle vérifie le refus d’une configuration vide, les migrations sur PostgreSQL neuf, Prisma Linux, un job BullMQ/Redis produisant un PDF, l’arrêt du worker, une archive de contrat depuis une signature synthétique avec rejeu stable, et un PDF Chromium hors réseau. Son résultat doit être contrôlé sur le commit exact ; la présence du script ne prouve pas son succès. Elle conserve un rapport dans un nouveau dossier temporaire. Elle ne charge aucun .env du projet. L’image utilise OpenSSL 3 aussi lors de la génération Prisma.
-
-La génération PDF actuelle désactive la sandbox Chrome : non-root et conteneur ne suffisent pas à attester une isolation complète. Vérifier les restrictions du rendu, les ressources, le réseau et les processus dans le runtime cible.
-
-Web : `npm start`. Worker : `npm run worker`. Migrations : étape de release dédiée, jamais simultanément dans chaque replica. Le runtime de production modifiable exige PostgreSQL, les secrets dédiés, R2 et le limiteur distribué ; construire une image ne remplace pas cette configuration. La [démo publique sans stockage](docs/qualification-demo-sans-stockage-20261010.md) conserve PostgreSQL et Upstash, refuse tous les accès persistants aux fichiers et calcule les PDF de brouillons à la demande. Voir le [runbook](docs/production-runbook.md).
-
-## Documentation et collaboration
-
-- [Plan de préparation à la revue CTO](docs/plan-vitrine-cto-20260930.md)
-- [Audit et plan de complétude fonctionnelle — 2 octobre 2026](docs/plan-completude-fonctionnelle-20261002.md)
-- [Livraison de la démo hébergée — 3 octobre 2026](docs/livraison-demo-vercel-20261003.md)
-- [État d’exécution et preuves](docs/execution-cto-20261001.md)
-- [Architecture métier](docs/architecture-domain-boundaries.md)
-- [Décisions techniques et limites](docs/decisions-techniques.md)
-- [Dépendances et licences](docs/dependances-et-licences.md)
-- [Carte des risques et tests](docs/carte-des-preuves.md)
-- [Guide de revue CTO](docs/revue-cto.md)
-- [Guide de contribution](CONTRIBUTING.md)
-- [Couverture et limites](docs/coverage-and-external-dependencies.md)
-- [Exploitation et récupération](docs/production-runbook.md)
-- [Démo locale](docs/demo-local.md)
-
-Les rapports d’audit et de déploiement sont historiques et datés. Les changements se présentent par lots cohérents, avec leur validation et leur périmètre. Aucun ancien lien de déploiement n’est présenté ici comme une démo courante vérifiée.
-
-Ne jamais publier les .env, bases, identifiants de démo, pièces ou sauvegardes. À la demande du propriétaire, le code propre reste sans licence de redistribution. Les licences des dépendances et assets sont distinctes ; leur [inventaire](docs/dependances-et-licences.md) précise les notices à examiner.
+Ne publier aucun `.env`, identifiant, cookie, fichier métier ou sauvegarde. Le code propre reste sans licence de redistribution, selon le choix du propriétaire. Les [notices des dépendances](docs/dependances-et-licences.md) restent distinctes.

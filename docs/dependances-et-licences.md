@@ -1,41 +1,23 @@
-# Inventaire des dépendances et licences
+# Dépendances et licences
 
-Le candidat du 25 octobre utilise Prisma 7.10.1 et ses adaptateurs explicites. Son [inventaire daté](evidence/20261025-prisma7/dependencies.json) contient 1 027 entrées du lockfile ; l'audit local ne signale aucun avis connu. Les [preuves](evidence/20261025-prisma7/README.md) distinguent cette qualification de la CI précédente. Le dépôt est désormais public ; le choix de conserver le code propre sans licence de redistribution reste inchangé. Les paragraphes suivants conservent les contrôles historiques et leurs versions.
+`package-lock.json` fixe les versions installées. La CI audite séparément les dépendances de production et l’ensemble du lockfile. Ces contrôles observent les avis connus au moment de leur exécution ; ils ne certifient pas le code applicatif ou les composants système.
 
-## Maintenance après la livraison du 25 octobre
+## Inventaire reproductible
 
-Les [quatre jobs de main](evidence/20261025-main-release/ci.json) passent, y compris les audits npm de production et complet. Les alertes de dépendances GitHub sont ensuite activées ; leur [observation datée](evidence/20261025-main-release/maintenance.json) ne signale aucune alerte ouverte. Les audits et le graphe de dépendances restent des observations limitées aux avis et données disponibles.
+```sh
+node scripts/inventory-dependencies.mjs
+```
 
-| Proposition examinée | Résultat et décision |
-| --- | --- |
-| [Vitest 5, PR #5](https://github.com/lacombechristophe/freelio/pull/5) | L’installation échoue : `@vitest/coverage-v8@4.1.12` exige Vitest `4.1.12`, tandis que la PR propose `5.0.5`. Le moteur et les paquets `@vitest/*` sont désormais groupés dans Dependabot, y compris pour les changements majeurs. Le lockfile qualifié reste inchangé ; aucun `--force` ou `--legacy-peer-deps` n’est utilisé. |
-| [Lot de maintenance, PR #12](https://github.com/lacombechristophe/freelio/pull/12) | La proposition de 35 mises à jour échoue sur 28 erreurs de lint et trois assertions de politique. Elle n’est pas fusionnée. L’adoption des nouvelles règles nécessite une revue explicite ; les règles et assertions existantes restent conservées. |
-| [ioredis 6, PR #4](https://github.com/lacombechristophe/freelio/pull/4) et [framer-motion 14, PR #6](https://github.com/lacombechristophe/freelio/pull/6) | Leur CI individuelle passe. Ces changements majeurs gardent une revue séparée ; ils ne sont pas ajoutés à une livraison documentaire sur le seul critère de nouveauté. |
+Le rapport JSON contient l’empreinte SHA-256 du lockfile, les paquets, leurs métadonnées de licence et les éléments à examiner manuellement. Les déclarations npm ne couvrent pas à elles seules Debian, Chromium, les images de services, les polices ou les assets.
 
-Le [groupement Dependabot](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#groups) conserve les limites de PR et la fréquence hebdomadaire. Les propositions restent soumises aux quatre contrôles de main. Cette configuration n’installe ni ne met à jour de paquet à elle seule.
+Le code propre reste sans licence de redistribution selon le choix du propriétaire. Les licences des bibliothèques et assets restent distinctes ; leur présence ne donne pas au projet une licence unique. Conserver leurs notices lors d’une distribution.
 
-## Contrôles historiques
+## Maintenance
 
-Le 21 octobre, un nouvel audit du candidat signale des avis Vite dans l’outillage de test. Après sa mise à jour, un second audit signale aussi Vitest. Le correctif `4a7a241` fixe Vite à 8.3.3 et relève Vitest ainsi que son module de couverture à 4.1.12. Les [preuves de l’outillage](evidence/20261021-test-toolchain/README.md) conservent les audits avant/après et le périmètre installé : 27 paquets de développement changent, aucun paquet de production. Les audits locaux production et complet du lockfile corrigé sont à zéro ; aucune nouvelle CI ne qualifie encore ce code. Ce résultat daté ne garantit pas l’absence de futurs avis.
+Dependabot prépare des propositions hebdomadaires. Les paquets Vitest et `@vitest/*` évoluent ensemble pour conserver leurs contraintes de versions. Chaque mise à jour garde une revue et les mêmes contrôles de qualité ; aucune option `--force`, exclusion d’audit ou baisse de seuil n’est une procédure de qualification.
 
-Les [deux CI de 0f45087](evidence/20261009-recurring-read/ci-0f45087.json), alors sans alerte, sont une référence historique. Les résultats ci-dessous conservent les anciens lockfiles, leurs alertes et leurs corrections.
+La politique [ESLint/Oxlint](../tooling/lint/README.md) conserve des règles résolues et des cas de contrôle. La règle Next locale dérivée d’une source officielle garde sa [licence MIT](../tooling/lint/NEXT-LICENSE.md). Une évolution de Next ou du moteur de lint doit vérifier ces cas et les écarts de comportement.
 
-Le lockfile est la référence des versions réellement installées. `node scripts/inventory-dependencies.mjs` produit un inventaire JSON reproductible, avec SHA-256 du lockfile, métadonnées de licence, dépendances de développement et éléments à examiner manuellement. Les métadonnées npm ne constituent pas une validation des droits de redistribution.
+Auth.js est encore en série 5 beta. Les versions et adaptateurs Prisma sont coordonnés dans le lockfile. Les changements majeurs demandent une recette de compatibilité, même lorsqu’un audit de sécurité est vert.
 
-Au contrôle du 1er octobre 2026, 1 039 entrées possèdent une licence déclarée ; aucune n’est sans métadonnée. Certaines déclarent LGPL, MPL ou CC-BY : conserver et examiner les textes/attributions applicables avant distribution. Ne pas présenter l’ensemble comme exclusivement MIT. Les composants système de Debian/Chromium, les images de services, les polices et les assets ne sont pas couverts par le lockfile.
-
-L’audit npm du même lockfile, répété le 2 octobre 2026, ne signale aucune vulnérabilité connue. Les [métadonnées conservées](evidence/20261002/dependencies.json) identifient le lockfile et les licences à examiner. Ce résultat ne couvre ni le code applicatif ni les paquets Debian ; la CI répète l’audit et Dependabot prépare les mises à jour à revoir.
-
-État distinct du candidat au 5 octobre : les CI récentes trouvent huit alertes hautes de développement et aucune alerte de production. L’avis [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), revérifié ce jour, indique aucune version corrigée pour braces. Le contrôle complet reste bloquant, sans exclusion ni seuil abaissé. Les résultats exacts et les versions du code sont consignés dans la [recette récente](completude-recette-20261003.md) ; le résultat historique ci-dessus ne qualifie pas le lockfile courant.
-
-Le dépôt est privé lors du contrôle du 21 octobre 2026. Le propriétaire a choisi le 9 octobre de conserver pour l’instant l’absence de licence de redistribution du code propre ; ce choix reste appliqué. L’inventaire n’autorise pas implicitement une publication open source. Les notices de bibliothèques et la provenance des assets doivent accompagner un partage public. La qualification d’un service Redis managé inclut les conditions de son fournisseur et de la version utilisée ; le conteneur Redis de recette n’est pas une décision d’hébergement.
-
-La livraison Vercel du 2 octobre ajoute `@sparticuz/chromium` 152.0.0, déclaré MIT. Son binaire Chromium et ses composants demandent leur propre examen de notices ; la métadonnée npm ne suffit pas. Le [nouvel inventaire](evidence/20261002-hosted/dependencies.json) identifie ce lockfile ; l'inventaire précédent reste une preuve historique.
-
-Prisma 6.12 était le choix provisoire du registre initial ; la [décision D04](decisions-techniques.md#d04--prisma-7-avec-pilotes-explicites) décrit son remplacement dans le candidat. Auth.js reste en série 5 beta, avec ses limites explicites. Sa migration est séparée de celle de l'ORM ; les références de documentation ne constituent pas un engagement de maintenance contractuelle.
-
-Au 6 octobre, le correctif ciblé `48f8643` remplace les trois dépendances de production signalées ce jour (sharp, fast-copy, source-map-js) et supprime le CLI shadcn inutilisé. [Inventaire et audits du lockfile exact](evidence/20261006-candidate/README.md) : 863 entrées, 40 métadonnées à examiner, aucune licence inconnue ; zéro alerte de production et cinq alertes hautes de développement. Les deux CI exactes passent la recette fonctionnelle et échouent uniquement sur l’audit complet. Les huit alertes citées au 5 octobre restent une preuve historique, sans qualification du lockfile actuel.
-
-Le 8 octobre, de nouveaux avis signalent aussi Next.js 16.3.6. Le candidat passe à 16.3.8, première version corrigée des six avis examinés : [qualification et sources](qualification-next-20261008.md). Les audits du lockfile et de l’installation de recette donnent zéro alerte de production et cinq hautes de développement. Le [nouvel inventaire](evidence/20261008-next-studios/README.md) conserve 863 entrées, 40 métadonnées à examiner et aucune licence inconnue. Aucun seuil d’audit n’est réduit ; le candidat n’est pas implicitement déployé.
-
-La séparation des règles ESLint/Next retire ensuite cette chaîne de développement : [inventaire et audits](evidence/20261008-lint-policy/README.md), 864 paquets, 40 métadonnées à examiner, zéro licence inconnue et zéro alerte locale sur le lockfile et l’installation physique. Oxlint 1.87.0 est déclaré MIT. Une seule règle officielle Next est conservée hors npm ; sa [licence et provenance](../tooling/lint/README.md) sont versionnées avec le fichier. Cette notice ne choisit aucune licence pour le code propre de Freelio. La qualification CI du candidat demeure nécessaire.
+Les [anciens inventaires et incidents de maintenance](history.md#dépendances-et-incidents) conservent leurs versions, erreurs et décisions. Ils ne qualifient pas le lockfile d’une livraison ultérieure.

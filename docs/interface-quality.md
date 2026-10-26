@@ -47,7 +47,9 @@ Cette recette interdit les requêtes du navigateur vers une autre origine, véri
 
 ## Portée et limites
 
-Le contrôle automatisé des pages inspecte un échantillon de données et d’états. Un résultat sans constat ne constitue ni une certification WCAG ni une validation de chaque modale, thème, combinaison de droits et contenu long. Le zoom réel à 200/400 %, Safari iPhone et Chrome Android physiques restent à vérifier ; une taille de viewport ne remplace pas ces essais.
+Le contrôle automatisé des pages inspecte un échantillon de données et d’états. Un résultat sans constat ne constitue ni une certification WCAG ni une validation de chaque modale, thème, combinaison de droits et contenu long. Safari iPhone et Chrome Android physiques restent à vérifier ; une taille de viewport ne remplace pas ces essais.
+
+Le 26 octobre, le zoom natif de Chrome à 200/400 % a été contrôlé sur onze surfaces de la démo `f992e9b`, en thème clair : cockpit, clients, communications, organisation, devis, contrats, catalogue, trois dossiers de référence et aide. Les vingt-deux passages et quatre interactions de recherche/menu n’ont reproduit aucun débordement global ou contrôle inaccessible. Les tableaux gardent leur défilement local. Ce contrôle ne couvre pas tous les thèmes, largeurs, rôles et dialogues ; ses captures et mesures restent dans la livraison locale, hors du dépôt.
 
 La recette des documents publics utilise les routes réelles et des données SQL jetables. Elle prépare un lien de signature sans signer ni envoyer de message, puis vérifie les deux thèmes, 320/1440 px et une taille racine de texte de 16/32/64 px. Le questionnaire permet de choisir une note sans soumettre de réponse. L’invitation n’est jamais acceptée et la configuration initiale s’arrête avant la création de société. Ces deux parcours supplémentaires couvrent les deux thèmes à 320/1440 px. Cet agrandissement du texte ne remplace pas le zoom du navigateur. Les quelques captures JPEG publiées en CI excluent les écrans de connexion et les liens porteurs ; les rapports ne contiennent que les mesures de rendu et les étapes parcourues.
 

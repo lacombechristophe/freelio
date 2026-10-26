@@ -18,7 +18,7 @@ L’annulation est une transition, sans suppression. Elle exige un motif et une 
 
 La suite SQL [purchase-draft-lifecycle.integration.test.ts](../tests/unit/purchase-draft-lifecycle.integration.test.ts) utilise les vraies actions et SQLite, avec authentification/cache simulés. Elle couvre les états, les droits, les références étrangères, les validations, deux éditeurs concurrents et le rollback après refus réel d’une insertion d’audit par un trigger SQL fictif. Les [tests de création](../tests/unit/purchase-creation-integrity.integration.test.ts) et de [choix](../tests/unit/purchase-choices.integration.test.ts) restent distincts.
 
-Le [scénario navigateur](../tests/e2e/purchase-creation-integrity.spec.ts) prépare création, édition, refus d’une ancienne révision avec saisie conservée et annulation motivée sur desktop et mobile. Sa présence ou sa sélection ne prouve pas son exécution. Les résultats du candidat doivent être reliés au [registre de qualification](completude-recette-20261003.md).
+Le [scénario navigateur](../tests/e2e/purchase-creation-integrity.spec.ts) prépare création, édition, refus d’une ancienne révision avec saisie conservée et annulation motivée sur desktop et mobile. Sa présence ou sa sélection ne prouve pas son exécution. Les résultats du candidat doivent être reliés au [registre de qualification](https://github.com/lacombechristophe/freelio/blob/f992e9b3c667293d9c3cead1bed3f312d907d2b6/docs/completude-recette-20261003.md).
 
 ## Historique et synthèse
 
@@ -34,7 +34,7 @@ Les quatre transitions partagent le périmètre des lecteurs : société, fourni
 
 La version préparée couvre aussi les lignes. La transaction relit cette version et les références, puis revendique l’état et la date de modification avant de créer l’audit. Une réception terminée pendant la préparation de l’accusé reste réceptionnée ; une modification de ligne qui ne touche pas le parent est également détectée. Des traces de réception, d’anomalie ou de retour contredisant l’état empêchent ces transitions. Un échec de l’audit annule la transition. L’accusé exige un jour canonique `YYYY-MM-DD`, sans normalisation d’un jour impossible.
 
-Les suites [historique complet](../tests/unit/purchase-directory.integration.test.ts) et [transitions](../tests/unit/purchase-transitions.integration.test.ts) couvrent ces règles avec SQL réel. Les intercalages déterministes placent une modification SQL achevée entre préparation et transaction ; ils ne représentent pas une mesure de charge ni une qualification de concurrence native PostgreSQL. Les [preuves du complément](evidence/20261021-purchase-workflow/README.md) distinguent les diagnostics initiaux, la suite complète et les parcours non exécutés.
+Les suites [historique complet](../tests/unit/purchase-directory.integration.test.ts) et [transitions](../tests/unit/purchase-transitions.integration.test.ts) couvrent ces règles avec SQL réel. Les intercalages déterministes placent une modification SQL achevée entre préparation et transaction ; ils ne représentent pas une mesure de charge ni une qualification de concurrence native PostgreSQL. Les [preuves du complément](https://github.com/lacombechristophe/freelio/blob/f992e9b3c667293d9c3cead1bed3f312d907d2b6/docs/evidence/20261021-purchase-workflow/README.md) distinguent les diagnostics initiaux, la suite complète et les parcours non exécutés.
 
 ## Réceptions, contrôles et retours
 

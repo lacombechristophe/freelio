@@ -1,6 +1,20 @@
 # Contribuer à Freelio
 
-Le projet est une application de démonstration. Travailler avec des données fictives et des secrets propres à la recette. Le [README](README.md) décrit les prérequis ; le [suivi CTO](docs/execution-cto-20261001.md) indique les preuves réellement obtenues.
+Le projet est une application de démonstration. Travailler avec des données fictives et des secrets propres à la recette. Le [README](README.md) décrit les prérequis ; le [guide de test](docs/testing.md) précise les contrôles attendus. Les anciens résultats restent dans les [archives](docs/history.md).
+
+## Développement avec PostgreSQL
+
+Docker Compose prépare PostgreSQL et Redis de développement sur l’interface locale :
+
+```powershell
+docker compose up -d --wait
+$env:DATABASE_URL = "postgresql://freelio_dev:local-only-freelio-development@127.0.0.1:55432/freelio_dev?schema=public"
+$env:REDIS_URL = "redis://127.0.0.1:56379/0"
+npm ci
+npm run db:deploy:postgres
+```
+
+Configurer ensuite les secrets de développement à partir de [.env.example](.env.example), puis lancer `npm run dev`. Les identifiants Compose sont publics et réservés à ces services locaux. Ne pas copier une base existante pour créer les fixtures. Les volumes persistent après `docker compose down` ; l’option `-v` les détruirait et ne sert pas à reprendre le développement.
 
 ## Préparer un changement
 
