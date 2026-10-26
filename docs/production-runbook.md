@@ -1,6 +1,6 @@
 # Runbook de production — Freelio CRM/ERP
 
-Date de référence initiale : 24 août 2026. Mise à jour de cadrage : 9 octobre 2026.
+Procédure pour un profil modifiable ; les contrôles de livraison suivent le [guide de qualification](testing.md). Les références de recettes datées restent dans les [archives](history.md).
 Propriétaire opérationnel à nommer : responsable de production de l’entreprise cliente
 Périmètre : application Next.js, PostgreSQL, R2, Resend, Redis/BullMQ et Upstash.
 

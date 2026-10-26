@@ -16,7 +16,7 @@ L’annulation est une transition, sans suppression. Elle exige un motif et une 
 
 ## Vérification
 
-La suite SQL [purchase-draft-lifecycle.integration.test.ts](../tests/unit/purchase-draft-lifecycle.integration.test.ts) utilise les vraies actions et SQLite, avec authentification/cache simulés. Elle couvre les états, les droits, les références étrangères, les validations, deux éditeurs concurrents et le rollback après refus réel d’une insertion d’audit par un trigger SQL fictif. Les [tests de création](../tests/unit/purchase-creation-integrity.integration.test.ts) et de [choix](../tests/unit/purchase-choices.integration.test.ts) restent distincts.
+La suite SQL [purchase-draft-lifecycle.integration.test.ts](../tests/unit/purchase-draft-lifecycle.integration.test.ts) utilise les vraies actions, avec authentification/cache simulés. La CI l’exécute sur SQLite et PostgreSQL. Elle couvre les états, les droits, les références étrangères, les validations, deux éditeurs concurrents et le rollback après refus réel d’une insertion d’audit par un trigger SQL fictif. Les [tests de création](../tests/unit/purchase-creation-integrity.integration.test.ts) et de [choix](../tests/unit/purchase-choices.integration.test.ts) restent distincts.
 
 Le [scénario navigateur](../tests/e2e/purchase-creation-integrity.spec.ts) prépare création, édition, refus d’une ancienne révision avec saisie conservée et annulation motivée sur desktop et mobile. Sa présence ou sa sélection ne prouve pas son exécution. Les résultats du candidat doivent être reliés au [registre de qualification](https://github.com/lacombechristophe/freelio/blob/f992e9b3c667293d9c3cead1bed3f312d907d2b6/docs/completude-recette-20261003.md).
 
