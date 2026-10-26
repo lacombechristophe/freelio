@@ -68,7 +68,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return new NextResponse(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" } })
     }
 
-    const pdf = await generatePdfFromHtml(html)
+    const pdf = await generatePdfFromHtml(html, { signal: request.signal })
     await logAction({
       userId: context.userId,
       action: "GENERATE_PDF",

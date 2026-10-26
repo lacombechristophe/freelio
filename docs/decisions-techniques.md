@@ -36,6 +36,8 @@ L’émission d’une facture conserve son archive ; le Studio ne la reconstitue
 
 Puppeteer et pdf-lib sont conservés. Le rendu bloque JavaScript et les ressources réseau arbitraires. Chromium fonctionne encore sans sandbox : les restrictions applicatives et l’utilisateur non root ne constituent pas une preuve d’isolation système complète. Les empreintes techniques ne valent pas une certification de signature ou Factur-X.
 
+Un signal interne de 45 secondes borne l’attente de préparation et de rendu, même lorsqu’aucun appelant ne fournit d’annulation. Il est combiné au signal de la requête HTTP. L’annulation arrête l’attente des opérations de fichiers/DNS non annulables et ferme le navigateur lancé ; elle ne garantit pas l’arrêt immédiat d’une opération système déjà engagée.
+
 ## D06 — Envois durables et reprise explicite
 
 Les séquences, campagnes et scénarios utilisent une trace SQL durable, des versions, des baux et des commandes idempotentes. Une attente survit au redémarrage. L’inscription d’une audience vérifiée progresse par lots et conserve son rapport.

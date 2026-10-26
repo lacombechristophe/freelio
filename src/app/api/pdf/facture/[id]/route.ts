@@ -96,7 +96,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       })
     }
 
-    let pdf = await generatePdfFromHtml(html)
+    let pdf = await generatePdfFromHtml(html, { signal: req.signal })
 
     // Generate and embed Factur-X XML metadata
     try {

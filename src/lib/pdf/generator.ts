@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { PDF_FONT_FILES } from "@/lib/pdf/typography"
 import { inlineSafePdfImages } from "@/lib/pdf/images"
+import { waitForPdfWork } from "@/lib/pdf/abort"
 
 let embeddedFontSources: Promise<Map<string, string>> | null = null
 
@@ -33,17 +34,19 @@ export async function inlinePdfFonts(html: string, required = false) {
 }
 
 export async function generatePdfFromHtml(html: string, options: { signal?: AbortSignal } = {}) {
-  options.signal?.throwIfAborted()
-  const printableHtml = await inlineSafePdfImages(await inlinePdfFonts(html), options.signal)
-  options.signal?.throwIfAborted()
+  const deadline = AbortSignal.timeout(45_000)
+  const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline
+  signal.throwIfAborted()
+  const printableHtml = await inlineSafePdfImages(await waitForPdfWork(inlinePdfFonts(html), signal), signal)
+  signal.throwIfAborted()
   const chromium = process.env.VERCEL === "1" && !process.env.PUPPETEER_EXECUTABLE_PATH
     ? (await import("@sparticuz/chromium")).default
     : null
   const browser = await puppeteer.launch({
-    ...(options.signal ? { signal: options.signal } : {}),
+    signal,
     headless: chromium ? "shell" : true,
     pipe: true,
-    ...(chromium ? { executablePath: await chromium.executablePath() } : {}),
+    ...(chromium ? { executablePath: await waitForPdfWork(chromium.executablePath(), signal) } : {}),
     args: [...(chromium?.args ?? ["--no-sandbox", "--disable-setuid-sandbox"]), "--disable-background-networking"],
   })
 

@@ -43,7 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         if (!await prisma.contract.count({ where: { ...contractSnapshotWhere(snapshot), status: "SENT", updatedAt: link!.contractRevision! } })) throw new Error("CONTRACT_CHANGED")
         const html = previewContractSnapshot(snapshot)
         if (new URL(req.url).searchParams.get("screen") === "1") return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" } })
-        const pdf = await generatePdfFromHtml(html, { signal: AbortSignal.timeout(45_000) })
+        const pdf = await generatePdfFromHtml(html, { signal: req.signal })
         return new NextResponse(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${contract.number.replace(/[^A-Za-z0-9._-]/g, "_")}.pdf"`, "Cache-Control": "private, no-store" } })
       } catch {
         return NextResponse.json({ error: "Le lien de signature ou son aperçu doit être renouvelé" }, { status: 409, headers: { "Cache-Control": "private, no-store" } })
@@ -114,7 +114,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       })
     }
 
-    const pdf = await generatePdfFromHtml(html)
+    const pdf = await generatePdfFromHtml(html, { signal: req.signal })
 
     await logAction({
       userId,

@@ -88,7 +88,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       })
     }
 
-    const pdf = await generatePdfFromHtml(html)
+    const pdf = await generatePdfFromHtml(html, { signal: req.signal })
 
     await logAction({
       userId,

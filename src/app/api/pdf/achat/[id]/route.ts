@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const html = renderPurchaseOrderHtml({ ...order, approver: order.approvedByMembership?.user.name || order.approvedByMembership?.user.email })
     if (new URL(request.url).searchParams.get("screen") === "1")
       return new NextResponse(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" } })
-    const pdf = await generatePdfFromHtml(html)
+    const pdf = await generatePdfFromHtml(html, { signal: request.signal })
     await logAction({ userId: context.userId, action: "GENERATE_PDF", resource: "PURCHASE_ORDER", resourceId: order.id, payload: { number: order.number } })
     return new NextResponse(new Uint8Array(pdf), {
       headers: { "content-type": "application/pdf", "content-disposition": `inline; filename="${order.number}.pdf"`, "cache-control": "private, no-store" },

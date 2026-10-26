@@ -5,6 +5,7 @@ import { get, type RequestOptions } from "node:https"
 import { BlockList, isIP } from "node:net"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
+import { waitForPdfWork } from "@/lib/pdf/abort"
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 const blocked = new BlockList()
@@ -40,11 +41,7 @@ async function abortableLookup(hostname: string, signal?: AbortSignal) {
   signal?.throwIfAborted()
   const pending = lookup(hostname, { all: true, verbatim: true })
   if (!signal) return pending
-  return new Promise<Awaited<typeof pending>>((resolve, reject) => {
-    const abort = () => reject(signal.reason)
-    signal.addEventListener("abort", abort, { once: true })
-    pending.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort))
-  })
+  return waitForPdfWork(pending, signal)
 }
 
 export async function fetchPublicPdfImage(source: string, redirects = 0, signal?: AbortSignal): Promise<Buffer> {
