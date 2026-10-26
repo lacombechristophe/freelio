@@ -185,9 +185,9 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 gap-8 items-start lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
       {/* Scrollable contract viewer */}
-      <div className="lg:col-span-7 space-y-4">
+      <div className="min-w-0 space-y-4">
         <Card className="border border-border bg-card">
           <CardHeader className="pb-3 border-b border-border/40">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -210,10 +210,10 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
       </div>
 
       {/* Signature and identification panel */}
-      <div className="lg:col-span-5">
+      <div className="min-w-0">
         <Card className="bg-card border border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <CardTitle className="text-sm font-bold flex flex-wrap items-center gap-2">
               <Scale className="h-4 w-4 text-primary" />
               Signer le document
             </CardTitle>
@@ -249,7 +249,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
 
               {/* Draw canvas zone */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label className="text-xs font-semibold">Signature manuscrite (Dessinez au doigt ou à la souris) *</Label>
                   <button
                     type="button"
@@ -308,7 +308,7 @@ export function ClientSignView({ token, contract }: ClientSignViewProps) {
               </div>
 
               {/* Submit button */}
-              <Button type="submit" disabled={pending} className="h-auto min-h-9 w-full mt-3 whitespace-normal bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-2.5">
+              <Button type="submit" disabled={pending} className="h-auto min-h-9 w-full mt-3 whitespace-normal [overflow-wrap:anywhere] bg-primary hover:bg-primary/95 text-primary-foreground font-bold py-2.5">
                 {pending ? "Scellage cryptographique en cours…" : "Signer électroniquement"}
               </Button>
             </form>
