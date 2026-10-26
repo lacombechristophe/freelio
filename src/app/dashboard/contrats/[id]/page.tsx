@@ -1,8 +1,9 @@
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, FileDown, GitBranch, Pencil, Plus, RefreshCw } from "lucide-react"
 import { compileContractContent, getContractById } from "@/actions/contrats"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { sanitizeContractHtml } from "@/lib/contracts/html"
@@ -95,14 +96,10 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
             <FileDown className="h-4 w-4" /> PDF
           </a>
           {contract.status !== "SIGNED" && contract.kind === "STANDARD" && (
-            <Link href={`/dashboard/contrats/${contract.id}/edit`} className={buttonVariants({ variant: "outline" })}>
-              <Pencil className="h-4 w-4" /> Éditer
-            </Link>
+            isReadOnlyDemo ? <Button variant="outline" disabled aria-describedby="demo-notice"><Pencil className="h-4 w-4" /> Éditer</Button> : <Link href={`/dashboard/contrats/${contract.id}/edit`} className={buttonVariants({ variant: "outline" })}><Pencil className="h-4 w-4" /> Éditer</Link>
           )}
           {contract.status === "SIGNED" && contract.kind !== "MAINTENANCE_RENEWAL" && (
-            <Link href={`/dashboard/contrats/${contract.id}/amend`} className={buttonVariants({ variant: "outline" })}>
-              <Plus className="h-4 w-4" /> Créer un avenant
-            </Link>
+            isReadOnlyDemo ? <Button variant="outline" disabled aria-describedby="demo-notice"><Plus className="h-4 w-4" /> Créer un avenant</Button> : <Link href={`/dashboard/contrats/${contract.id}/amend`} className={buttonVariants({ variant: "outline" })}><Plus className="h-4 w-4" /> Créer un avenant</Link>
           )}
           <ContractStatusActions contractId={contract.id} status={contract.status} kind={contract.kind} />
         </div>

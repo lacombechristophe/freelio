@@ -1548,7 +1548,7 @@ test("creates a structured amendment without altering the signed source contract
 })
 
 test("scores prospects and exposes the communication center", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "Le scoring est recalculé une seule fois ; les pages restent vérifiées au build responsive.")
+  test.skip(testInfo.project.name !== "desktop", "Le scoring est recalculé une seule fois, dans la recette desktop.")
   await assertHealthy(page, "/dashboard/marketing", "Qualification & segments")
   await page.getByRole("button", { name: "Tout recalculer" }).click()
   await expect(page.getByText("Qualification et segments actualisés.")).toBeVisible()
@@ -1565,7 +1565,7 @@ test("scores prospects and exposes the communication center", async ({ page }, t
 })
 
 test("shares a revocable client portal with messages and appointments", async ({ page, browser }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "Le portail est muté une seule fois ; sa route publique est responsive par construction et build.")
+  test.skip(testInfo.project.name !== "desktop", "Le portail est muté une seule fois, dans la recette desktop.")
   const reference = `QA ${Date.now()}`
   const message = `Bonjour, pouvez-vous confirmer la prochaine étape du dossier ${reference} ?`
   const appointment = `Point de suivi ${reference}`

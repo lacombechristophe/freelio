@@ -8,7 +8,6 @@ import {
   motion,
   useMotionValueEvent,
   useMotionValue,
-  useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
@@ -44,7 +43,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react"
-import { Children, useCallback, useEffect, useRef, useState } from "react"
+import { Children, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
@@ -96,24 +95,56 @@ const sidebarItems = [
   { icon: BarChart3, label: "Rapports" },
 ]
 
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+  media.addEventListener("change", onChange)
+  return () => media.removeEventListener("change", onChange)
+}
+
+function reducedMotionSnapshot() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+}
+
 function useMarketingReducedMotion() {
-  const motionPreference = useReducedMotion()
-  const [mediaPreference, setMediaPreference] = useState(false)
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const updatePreference = () => setMediaPreference(media.matches)
-    updatePreference()
-    media.addEventListener("change", updatePreference)
-    return () => media.removeEventListener("change", updatePreference)
-  }, [])
-
-  return Boolean(motionPreference || mediaPreference)
+  // Keep the first hydrated render identical to the server.
+  return useSyncExternalStore(subscribeReducedMotion, reducedMotionSnapshot, () => false)
 }
 
 export function MarketingScrollProgress() {
+  const reduceMotion = useMarketingReducedMotion()
+  return reduceMotion ? <ReducedMotionScrollProgress /> : <AnimatedScrollProgress />
+}
+
+const progressBarClassName = "fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-freelio-accent"
+
+function ReducedMotionScrollProgress() {
+  const barRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const updateProgress = () => {
+      const scroller = document.scrollingElement ?? document.documentElement
+      const maximum = scroller.scrollHeight - scroller.clientHeight
+      const progress = maximum > 0 ? Math.max(0, Math.min(1, scroller.scrollTop / maximum)) : 0
+      if (barRef.current) barRef.current.style.transform = `scaleX(${progress})`
+    }
+    updateProgress()
+    window.addEventListener("scroll", updateProgress, { passive: true })
+    window.addEventListener("resize", updateProgress)
+    const observer = new ResizeObserver(updateProgress)
+    observer.observe(document.body)
+    return () => {
+      window.removeEventListener("scroll", updateProgress)
+      window.removeEventListener("resize", updateProgress)
+      observer.disconnect()
+    }
+  }, [])
+
+  return <div ref={barRef} aria-hidden data-slot="marketing-scroll-progress" className={progressBarClassName} style={{ transform: "scaleX(0)" }} />
+}
+
+function AnimatedScrollProgress() {
   const { scrollYProgress } = useScroll()
-  const scaleX = useSpring(scrollYProgress, {
+  const smoothProgress = useSpring(scrollYProgress, {
     stiffness: 150,
     damping: 32,
     restDelta: 0.001,
@@ -122,14 +153,16 @@ export function MarketingScrollProgress() {
   return (
     <motion.div
       aria-hidden
-      className="fixed inset-x-0 top-0 z-50 h-0.5 origin-left bg-freelio-accent"
-      style={{ scaleX }}
+      data-slot="marketing-scroll-progress"
+      className={progressBarClassName}
+      style={{ scaleX: smoothProgress }}
     />
   )
 }
 
 export function MarketingDesktopNav() {
   const pathname = usePathname()
+  const reduceMotion = useMarketingReducedMotion()
 
   return (
     <nav className="hidden items-center gap-6 md:flex" aria-label="Navigation principale">
@@ -146,14 +179,16 @@ export function MarketingDesktopNav() {
             )}
           >
             {item.label}
-            {active && (
+            {active && (reduceMotion ? (
+              <span aria-hidden className="absolute inset-x-1 bottom-1 h-0.5 rounded-full bg-freelio-accent" />
+            ) : (
               <motion.span
                 layoutId="marketing-active-nav"
                 aria-hidden
                 className="absolute inset-x-1 bottom-1 h-0.5 origin-center rounded-full bg-freelio-accent"
                 transition={{ type: "spring", duration: 0.35, bounce: 0 }}
               />
-            )}
+            ))}
           </Link>
         )
       })}
@@ -202,6 +237,7 @@ export function SectionReveal({ children, className, delay = 0 }: { children: Re
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
+  const reduceMotion = useMarketingReducedMotion()
   const pathname = usePathname()
   const rootRef = useRef<HTMLDivElement | null>(null)
 
@@ -229,7 +265,7 @@ export function MobileNav() {
         aria-expanded={open}
         aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
         onClick={() => setOpen((value) => !value)}
-        className="grid size-11 place-items-center rounded-md border border-freelio-line bg-white text-freelio-ink transition-[background-color,border-color,transform] hover:bg-freelio-surface-2 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent"
+        className="grid size-11 place-items-center rounded-md border border-freelio-line bg-white text-freelio-ink transition-[background-color,border-color,transform] hover:bg-freelio-surface-2 active:scale-[0.96] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent"
       >
         {open ? <X className="size-4" /> : <Menu className="size-4" />}
       </button>
@@ -238,10 +274,10 @@ export function MobileNav() {
         {open && (
           <motion.div
             id="marketing-mobile-nav"
-            initial={{ opacity: 0, y: -8 }}
+            initial={reduceMotion ? false : { opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ type: "spring", duration: 0.3, bounce: 0 }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
+            transition={reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.3, bounce: 0 }}
             className="absolute inset-x-4 top-[68px] z-10 origin-top overflow-hidden rounded-freelio-frame border border-freelio-line bg-white p-3 shadow-freelio-panel"
           >
             <nav className="divide-y divide-freelio-line" aria-label="Navigation mobile">
@@ -261,10 +297,10 @@ export function MobileNav() {
             <Link
               href="/auth/login"
               onClick={() => setOpen(false)}
-              className="group mt-3 flex h-11 items-center justify-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-freelio-accent-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2"
+              className="group mt-3 flex h-11 items-center justify-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-freelio-accent-hover active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2"
             >
               {DEMO_ENTRY_LABEL}
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:translate-x-0" />
             </Link>
           </motion.div>
         )}
@@ -404,8 +440,9 @@ function RouteDrawing({ reduceMotion }: { reduceMotion: boolean }) {
         strokeLinecap="round"
         strokeDasharray="3 18"
         opacity={reduceMotion ? 0 : 0.38}
-        animate={reduceMotion ? undefined : { strokeDashoffset: [0, -42] }}
-        transition={{ duration: 1.9, repeat: Infinity, ease: "linear" }}
+        initial={{ strokeDashoffset: 0 }}
+        animate={reduceMotion ? { strokeDashoffset: 0 } : { strokeDashoffset: [0, -42] }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 1.9, repeat: Infinity, ease: "linear" }}
       />
       {[205, 358, 604, 900, 1170, 1320].map((cx, index) => {
         const coordinates = [

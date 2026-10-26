@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { logAction } from "@/lib/audit"
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, withReadAuth } from "@/lib/auth-wrapper"
 import {
   CRM_PROPERTY_PRESETS,
   crmObjectTypeSchema,
@@ -70,7 +70,7 @@ function definitionOutput<T extends { options: unknown; createdAt: Date; updated
 }
 
 export async function getCrmPropertyDefinitions(objectType?: string, includeArchived = false) {
-  return withAuth(async ({ companyId }) => {
+  return withReadAuth(async ({ companyId }) => {
     const parsedObjectType = objectType ? crmObjectTypeSchema.parse(objectType) : undefined
     const definitions = await prisma.crmPropertyDefinition.findMany({
       where: {

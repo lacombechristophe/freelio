@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowUpRight, LoaderCircle, Search, SearchX } from "lucide-react"
+import { AlertCircle, ArrowUpRight, LoaderCircle, Search, SearchX } from "lucide-react"
 import {
   Dialog, DialogContent, DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { globalSearch } from "@/actions/search"
 import { cn } from "@/lib/utils"
 
@@ -14,10 +15,13 @@ type Result = { id: string; label: string; type: string; href: string }
 
 export function GlobalSearch() {
   const router = useRouter()
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState("")
   const [results, setResults] = React.useState<Result[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState(false)
+  const [revision, retry] = React.useReducer(value => value + 1, 0)
 
   // Cmd+K / Ctrl+K
   React.useEffect(() => {
@@ -32,21 +36,27 @@ export function GlobalSearch() {
   }, [])
 
   React.useEffect(() => {
-    if (!query || query.length < 2) {
+    if (!open || query.trim().length < 2) {
       setResults([])
+      setLoading(false)
+      setError(false)
       return
     }
+    let current = true
     setLoading(true)
+    setError(false)
     const t = setTimeout(async () => {
       try {
         const r = await globalSearch(query)
-        setResults((r ?? []) as Result[])
+        if (current) setResults((r ?? []) as Result[])
+      } catch {
+        if (current) { setResults([]); setError(true) }
       } finally {
-        setLoading(false)
+        if (current) setLoading(false)
       }
     }, 200)
-    return () => clearTimeout(t)
-  }, [query])
+    return () => { current = false; clearTimeout(t) }
+  }, [open, query, revision])
 
   function goto(href: string) {
     setOpen(false)
@@ -57,19 +67,20 @@ export function GlobalSearch() {
   return (
     <>
       <button
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         aria-label="Ouvrir la recherche globale"
-        className="ml-auto flex h-9 w-9 items-center justify-center gap-2 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:border-input hover:bg-muted sm:ml-0 sm:w-full sm:max-w-[460px] sm:justify-start sm:px-3 dark:bg-background"
+        className="ml-auto flex size-11 shrink-0 items-center justify-center gap-2 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:border-input hover:bg-muted sm:ml-0 sm:h-9 sm:w-full sm:min-w-0 sm:max-w-[460px] sm:shrink sm:justify-start sm:px-3 dark:bg-background"
       >
-        <Search className="size-4" />
+        <Search className="size-4 shrink-0" />
         <span className="hidden truncate sm:inline">Rechercher dans Freelio…</span>
-        <kbd className="ml-auto hidden rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">Ctrl K</kbd>
+        <kbd className="ml-auto hidden shrink-0 rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">Ctrl K</kbd>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false}>
+        <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false} finalFocus={triggerRef} animated={false}>
           <DialogTitle className="sr-only">Recherche globale</DialogTitle>
-          <div className="flex items-center border-b px-4">
+          <div className="flex shrink-0 items-center border-b px-4">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
               autoFocus
@@ -81,11 +92,13 @@ export function GlobalSearch() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <div className="max-h-[420px] min-h-36 overflow-y-auto p-2" aria-live="polite" aria-busy={loading}>
-            {query.length < 2 ? (
+          <div className="max-h-[420px] min-h-0 overflow-y-auto p-2" aria-live="polite" aria-busy={loading}>
+            {query.trim().length < 2 ? (
               <div className="grid min-h-32 place-items-center px-4 text-center"><div><Search className="mx-auto mb-3 size-5 text-muted-foreground" /><p className="text-sm font-medium">Recherchez dans tout l’espace</p><p className="mt-1 text-xs text-muted-foreground">Clients, contacts, documents, tickets, équipements et campagnes.</p></div></div>
             ) : loading ? (
               <div className="grid min-h-32 place-items-center"><LoaderCircle className="size-5 animate-spin text-primary" /><span className="sr-only">Recherche en cours</span></div>
+            ) : error ? (
+              <div role="alert" className="grid min-h-32 place-items-center px-4 text-center"><div><AlertCircle className="mx-auto mb-3 size-5 text-danger" /><p className="text-sm font-medium">La recherche n’a pas abouti</p><p className="mt-1 text-xs text-muted-foreground">Votre saisie est conservée. Réessayez dans un instant.</p><Button type="button" variant="outline" size="sm" className="mt-3" onClick={retry}>Réessayer</Button></div></div>
             ) : results.length === 0 ? (
               <div className="grid min-h-32 place-items-center px-4 text-center"><div><SearchX className="mx-auto mb-3 size-5 text-muted-foreground" /><p className="text-sm font-medium">Aucun résultat</p><p className="mt-1 text-xs text-muted-foreground">Essayez un nom, un numéro ou un terme plus court.</p></div></div>
             ) : (

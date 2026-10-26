@@ -23,10 +23,12 @@ try {
   page.setDefaultTimeout(30_000)
   page.on("pageerror", error => report.pageErrors.push(error.message))
   for (const [route, method] of [["/api/automations/process", "GET"], ["/api/integrations/email/oauth/start", "GET"], ["/api/backup/export", "GET"], ["/api/public/leads", "POST"], ["/auth/register", "GET"], ["/dashboard/devis/new", "GET"], ["/api/future-route", "POST"]]) {
-    const response = await context.request.fetch(route, { method })
-    assert.equal(response.status(), 403, `${method} ${route}`)
+    const response = await context.request.fetch(route, { method, maxRedirects: 0 })
+    const explanation = method === "GET" && !route.startsWith("/api/")
+    assert.equal(response.status(), explanation ? 307 : 403, `${method} ${route}`)
+    if (explanation) assert.equal(new URL(response.headers().location, baseURL).pathname, "/demo/lecture-seule")
   }
-  report.checks.push("Hidden, mutation and unknown entry points return 403 before authentication")
+  report.checks.push("Forbidden pages redirect to the read-only explanation; API and mutation entry points return 403 before authentication")
   await page.goto("/")
   await expect(page.getByRole("link", { name: "Ouvrir la démonstration", exact: true }).first()).toHaveAttribute("href", "/auth/login")
   await page.goto("/auth/login")

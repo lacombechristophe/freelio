@@ -6,6 +6,8 @@ Le périmètre courant utilise des données fictives. Le projet ne revendique pa
 
 La [démo principale](https://freelio-eight.vercel.app) est hébergée en lecture seule. La [livraison du 25 octobre](docs/livraison-demo-20261025.md) identifie le main qualifié, les contrôles CI, la recette du domaine et les limites d’exploitation. Les identifiants fictifs se transmettent séparément du dépôt.
 
+La [vérification de l’interface](docs/interface-quality.md) décrit les contrats de navigation, lecture seule, clavier et rédaction, leurs tests de régression et les limites de la recette visuelle.
+
 ## Parcours de référence
 
 1. Client → devis versionné → facture et archive → règlement fictif.

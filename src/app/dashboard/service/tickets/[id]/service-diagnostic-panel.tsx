@@ -6,6 +6,7 @@ import { CheckCircle2, ClipboardCheck, Loader2, ShieldAlert, Sparkles } from "lu
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
 import { completeServiceTicketDiagnostic } from "@/actions/service-diagnostics"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -24,11 +25,12 @@ const warrantyLabels: Record<string, string> = {
   NOT_APPLICABLE: "Garantie non applicable",
 }
 
-function date(value: Date | string) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+function date(value: Date | string, timeZone: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value))
 }
 
 export function ServiceDiagnosticPanel({ ticket, readOnly }: { ticket: Ticket; readOnly: boolean }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const suggestedGuide = ticket.diagnosticGuides.find((guide) => guide.suggested)
   const [guideId, setGuideId] = useState(suggestedGuide?.id || ticket.diagnosticGuides[0]?.id || "")
@@ -144,7 +146,7 @@ export function ServiceDiagnosticPanel({ ticket, readOnly }: { ticket: Ticket; r
             <span className="text-sm font-semibold">{diagnostic.guideName}</span>
             <Badge variant="outline">{warrantyLabels[diagnostic.warrantyStatus] || diagnostic.warrantyStatus}</Badge>
             {diagnostic.mergedFrom && <Link href={`/dashboard/service/tickets/${diagnostic.mergedFrom.id}`} className="text-[11px] font-medium text-primary underline">via {diagnostic.mergedFrom.number}</Link>}
-            <span className="ml-auto text-[11px] text-muted-foreground">{date(diagnostic.completedAt)} · {diagnostic.performedBy}</span>
+            <span className="ml-auto text-[11px] text-muted-foreground">{date(diagnostic.completedAt, timeZone)} · {diagnostic.performedBy}</span>
           </summary>
           <div className="space-y-3 border-t bg-muted/10 px-4 py-3 text-sm">
             <div><p className="text-xs font-semibold text-muted-foreground">Symptôme</p><p className="mt-1">{diagnostic.symptom}</p></div>

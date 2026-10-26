@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { FormError } from "@/components/shared/form-error"
 import { uploadResourceFile } from "@/lib/client-file-upload"
 import { useDropzone } from "react-dropzone"
 import { UploadCloud, FileText } from "lucide-react"
@@ -50,6 +51,7 @@ export function ExpenseFormDialog({
 }) {
   const router = useRouter()
   const [pending, setPending] = React.useState(false)
+  const [formError, setFormError] = React.useState("")
   const [fileAttached, setFileAttached] = React.useState<string | null>(null)
   const [attachmentFile, setAttachmentFile] = React.useState<File | null>(null)
   const [projectSearch, setProjectSearch] = React.useState("")
@@ -72,6 +74,7 @@ export function ExpenseFormDialog({
 
   React.useEffect(() => {
     if (open) {
+      setFormError("")
       setProjectSearch("")
       setProjectPage(1)
       setProjectRevision(value => value + 1)
@@ -148,6 +151,7 @@ export function ExpenseFormDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSave) return
+    setFormError("")
     setPending(true)
     try {
       const payload = {
@@ -175,7 +179,7 @@ export function ExpenseFormDialog({
       onOpenChange(false)
       router.refresh()
     } catch (err: any) {
-      toast.error(err?.message ?? "Erreur.")
+      setFormError(err?.message ?? "Erreur.")
     } finally {
       setPending(false)
     }
@@ -215,6 +219,7 @@ export function ExpenseFormDialog({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <FormError message={formError} />
           <div className="space-y-1.5">
             <Label htmlFor="label" className="text-xs font-semibold">Libellé *</Label>
             <Input
@@ -281,13 +286,13 @@ export function ExpenseFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Catégorie *</Label>
+              <Label htmlFor="expense-category" className="text-xs font-semibold">Catégorie *</Label>
               <Select 
                 value={form.category} 
                 onValueChange={(v) => setForm({ ...form, category: v ?? "Fournitures" })}
                 disabled={pending}
               >
-                <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="expense-category" className="bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-popover text-popover-foreground">
                   {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>

@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Building2, MapPin, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
+import { FormError } from "@/components/shared/form-error"
 
 import { createClient, updateClient } from "@/actions/clients"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,7 @@ export function ClientFormDialog({
   const setOpen = onOpenChange ?? setInternalOpen
 
   const [pending, setPending] = React.useState(false)
+  const [formError, setFormError] = React.useState("")
   const [form, setForm] = React.useState({
     name: client?.name ?? "",
     type: client?.type ?? "ENTERPRISE",
@@ -63,6 +65,7 @@ export function ClientFormDialog({
 
   React.useEffect(() => {
     if (!open) return
+    setFormError("")
     setForm({
       name: client?.name ?? "",
       type: client?.type ?? "ENTERPRISE",
@@ -74,6 +77,7 @@ export function ClientFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setFormError("")
     setPending(true)
     try {
       if (client) {
@@ -86,7 +90,7 @@ export function ClientFormDialog({
       setOpen(false)
       router.refresh()
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Erreur lors de l'enregistrement.")
+      setFormError(error instanceof Error ? error.message : "Erreur lors de l'enregistrement.")
     } finally {
       setPending(false)
     }
@@ -104,6 +108,7 @@ export function ClientFormDialog({
           <DialogDescription>Créez le dossier de référence qui reliera contacts, bassin, devis, chantier, factures et SAV.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
+          <FormError message={formError} />
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <Building2 className="size-4 text-primary" />
@@ -122,9 +127,9 @@ export function ClientFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Type *</Label>
+              <Label htmlFor="client-type">Type *</Label>
               <Select value={form.type} onValueChange={(value) => setForm({ ...form, type: value ?? "ENTERPRISE" })}>
-                <SelectTrigger>
+                <SelectTrigger id="client-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

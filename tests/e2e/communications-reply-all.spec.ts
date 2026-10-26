@@ -1,3 +1,4 @@
+import { emailHtmlField } from "./helpers/email-composer"
 import { expect, test } from "@playwright/test"
 
 test("prepares all visible incoming recipients beyond the message page, keeps copies editable and leaves send manual", async ({ page }) => {
@@ -16,7 +17,7 @@ test("prepares all visible incoming recipients beyond the message page, keeps co
   await expect(page.getByLabel("CCI", { exact: true })).toHaveValue("")
   await expect(page.getByRole("tab", { name: "Nouvel e-mail", exact: true })).toHaveAttribute("aria-selected", "true")
   await page.getByLabel("CC", { exact: true }).fill("chosen@example.test")
-  await page.getByLabel("Contenu HTML", { exact: true }).fill("<p>Fictional editable reply-all draft</p>")
+  await (await emailHtmlField(page)).fill("<p>Fictional editable reply-all draft</p>")
   await expect(page.getByRole("status").filter({ hasText: "Brouillon enregistré" })).toContainText("version 1")
   await expect(page.getByRole("button", { name: "Envoyer maintenant", exact: true })).toBeEnabled()
   await expect(page.getByText("E-mail envoyé et ajouté à l’historique.", { exact: true })).toHaveCount(0)

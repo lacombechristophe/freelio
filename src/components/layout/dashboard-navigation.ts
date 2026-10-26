@@ -169,9 +169,9 @@ const originalNavGroups: DashboardNavGroup[] = [
     description: "Pilotage, objectifs et rentabilité",
     items: [
       { name: "Tableaux de bord", href: "/dashboard/reports", icon: BarChart3, description: "Indicateurs transverses" },
-      { name: "Objectifs", href: "/dashboard/organisation", icon: Target, description: "Priorités et progression", activeMatch: false },
-      { name: "Prévisions commerciales", href: "/dashboard/pipeline", icon: ChartNoAxesCombined, description: "Prévisions pondérées", activeMatch: false },
-      { name: "Exports", href: "/dashboard/comptabilite", icon: ClipboardList, description: "Comptabilité et données", activeMatch: false },
+      { name: "Objectifs", href: "/dashboard/organisation#objectifs", icon: Target, description: "Priorités et progression", activeMatch: false },
+      { name: "Prévisions commerciales", href: "/dashboard/pipeline#previsions", icon: ChartNoAxesCombined, description: "Prévisions pondérées", activeMatch: false },
+      { name: "Exports", href: "/dashboard/comptabilite#export-comptable", icon: ClipboardList, description: "Comptabilité et données", activeMatch: false },
     ],
   },
 ]
@@ -195,14 +195,14 @@ export const dashboardUtilityItems: DashboardNavItem[] = [
 ]
 
 export function navigationPath(href: string) {
-  return href.split("?")[0]
+  return href.split(/[?#]/)[0]
 }
 
 function matchesNavigationItem(pathname: string, item: DashboardNavItem, currentQuery: string) {
   if (item.activeMatch === false) return false
   if (item.activePaths?.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return true
   const path = navigationPath(item.href)
-  const itemQuery = item.href.split("?")[1]
+  const itemQuery = item.href.split("#")[0].split("?")[1]
   if (itemQuery) {
     if (pathname !== path) return false
     const expected = new URLSearchParams(itemQuery)

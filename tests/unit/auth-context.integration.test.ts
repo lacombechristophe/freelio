@@ -5,7 +5,7 @@ const session = vi.hoisted(() => ({ userId: "", companyId: "" }))
 vi.mock("server-only", () => ({}))
 vi.mock("@/auth", () => ({ auth: async () => ({ user: { id: session.userId }, companyId: session.companyId }) }))
 import prisma from "@/lib/prisma"
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, withReadAuth } from "@/lib/auth-wrapper"
 
 describe.sequential("lazy Prisma promises retain their authorization context", () => {
   let clientId: string, foreignClientId: string, foreignCompanyId: string, membershipId: string
@@ -51,5 +51,10 @@ describe.sequential("lazy Prisma promises retain their authorization context", (
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER" } })
     await expect(withAuth(() => prisma.client.update({ where: { id: foreignClientId }, data: { nextActionLabel: "Foreign update" } }), "crm.write")).rejects.toMatchObject({ code: "P2025" })
     expect((await prisma.client.findUniqueOrThrow({ where: { id: foreignClientId } })).nextActionLabel).toBeNull()
+  })
+  it("prevents management reads from writing, even outside the public demo", async () => {
+    await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER" } })
+    await expect(withReadAuth(() => prisma.company.update({ where: { id: session.companyId }, data: { name: "Forbidden read mutation" } }), "company.manage")).rejects.toThrow("READ_ONLY_ACTION")
+    await expect(withReadAuth(() => prisma.$transaction(tx => tx.$executeRawUnsafe('UPDATE "Company" SET "name" = \'Forbidden read mutation\' WHERE 1=0')), "company.manage")).rejects.toThrow("READ_ONLY_ACTION")
   })
 })

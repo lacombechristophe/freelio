@@ -42,4 +42,13 @@ describe("dashboard navigation", () => {
       expect(existsSync(pagePath), `${item.name} points to missing ${pagePath}`).toBe(true)
     }
   })
+
+  it("resolves anchored shortcuts to their canonical page without mixing hash and query", () => {
+    expect(navigationPath("/dashboard/organisation#objectifs")).toBe("/dashboard/organisation")
+    const planning = allItems.find(item => item.href === "/dashboard/operations?tab=planning")!
+    expect(navigationItemIsActive("/dashboard/operations", { ...planning, href: "/dashboard/operations?tab=planning#week" }, "tab=planning")).toBe(true)
+    expect(allItems.find(item => item.name === "Objectifs")?.href).toBe("/dashboard/organisation#objectifs")
+    expect(allItems.find(item => item.name === "Prévisions commerciales")?.href).toBe("/dashboard/pipeline#previsions")
+    expect(allItems.find(item => item.name === "Exports")?.href).toBe("/dashboard/comptabilite#export-comptable")
+  })
 })

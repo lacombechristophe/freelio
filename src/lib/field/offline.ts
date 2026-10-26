@@ -17,6 +17,8 @@ export type FieldAssignment = {
 export type FieldSnapshot = {
   companyId: string
   companyName: string
+  // Older offline snapshots do not include a time zone.
+  timeZone?: string
   cachedAt: string
   expiresAt: string
   assignments: FieldAssignment[]

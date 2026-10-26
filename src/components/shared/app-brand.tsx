@@ -1,6 +1,11 @@
+"use client"
+
+import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 
 import { cn } from "@/lib/utils"
+import { initialGlyph } from "@/lib/initials"
 
 export type WorkspaceBrand = {
   name: string
@@ -36,6 +41,7 @@ export function AppBrand({
   const name = brand.name.trim() || DEFAULT_BRAND.name
   const color = safeColor(brand.brandColor)
   const logo = safeLogo(brand.logo)
+  const [failedLogo, setFailedLogo] = useState<string | null>(null)
 
   return (
     <Link
@@ -46,16 +52,20 @@ export function AppBrand({
         className,
       )}
     >
-      {logo && !compact ? (
-        <span
-          aria-hidden="true"
-          className="h-9 w-40 max-w-[40vw] bg-contain bg-left bg-no-repeat"
-          style={{ backgroundImage: `url(${JSON.stringify(logo)})` }}
+      {logo && failedLogo !== logo && !compact ? (
+        <Image
+          src={logo}
+          alt=""
+          width={160}
+          height={36}
+          unoptimized
+          className="h-9 w-40 max-w-[40vw] object-contain object-left"
+          onError={() => setFailedLogo(logo)}
         />
       ) : (
         <>
           <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-[9px] text-sm font-semibold text-white" style={{ backgroundColor: color }}>
-            {name.charAt(0).toUpperCase()}
+            {initialGlyph(name)}
           </span>
           {!compact ? <span className={cn("truncate text-sm font-semibold", inverted ? "text-white" : "text-foreground")}>{name}</span> : null}
         </>

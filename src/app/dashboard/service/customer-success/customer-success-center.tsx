@@ -35,7 +35,7 @@ const operatorLabels: Record<string, string> = { GTE: "supérieur ou égal à", 
 
 function date(value: Date | string | null) {
   if (!value) return "Non planifié"
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value))
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value))
 }
 
 function dateInput(value: Date | string | null) {

@@ -12,6 +12,7 @@ import {
   updateTeamMemberWorkSettings,
   updateTeamMemberRole,
 } from "@/actions/team"
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,6 +45,7 @@ const ROLE_LABELS: Record<CompanyRole, string> = {
 type TeamData = Awaited<ReturnType<typeof import("@/actions/team").getTeamOverview>>
 
 export function TeamClient({ initialData }: { initialData: TeamData }) {
+  const timeZone = useCompanyTimeZone()
   const [isPending, startTransition] = useTransition()
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<CompanyRole>("SALES")
@@ -188,7 +190,7 @@ export function TeamClient({ initialData }: { initialData: TeamData }) {
               <div key={invitation.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{invitation.email}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{ROLE_LABELS[invitation.role]} · expire le {new Intl.DateTimeFormat("fr-FR").format(new Date(invitation.expiresAt))}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{ROLE_LABELS[invitation.role]} · expire le {new Intl.DateTimeFormat("fr-FR", { timeZone }).format(new Date(invitation.expiresAt))}</p>
                 </div>
                 <Button
                   variant="ghost"

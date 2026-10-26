@@ -43,18 +43,21 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  animated = true,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  animated?: boolean
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={animated ? undefined : "duration-0 data-open:animate-none data-closed:animate-none"} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto overscroll-contain rounded-xl border-0 bg-popover p-5 text-sm text-popover-foreground shadow-[0_24px_80px_rgba(7,24,47,0.24),0_2px_8px_rgba(7,24,47,0.12)] duration-180 outline-none sm:max-w-sm sm:p-6 motion-reduce:duration-0 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.975] data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-[0.985]",
-          className
+          className,
+          !animated && "duration-0 data-open:animate-none data-closed:animate-none"
         )}
         {...props}
       >

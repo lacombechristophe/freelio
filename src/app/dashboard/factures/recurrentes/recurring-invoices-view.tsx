@@ -201,7 +201,7 @@ export function RecurringInvoicesView({ initial }: { initial: Result }) {
                 <TableCell className="font-medium">{item.label}</TableCell>
                 <TableCell>{item.client.name}</TableCell>
                 <TableCell><Badge variant="secondary">{FREQUENCY_LABELS[item.frequency] ?? item.frequency}</Badge></TableCell>
-                <TableCell>{new Date(item.nextGenDate).toLocaleDateString("fr-FR")}</TableCell>
+                <TableCell>{new Date(item.nextGenDate).toLocaleDateString("fr-FR", { timeZone: "UTC" })}</TableCell>
                 <TableCell>{item._count.occurrences}</TableCell>
                 <TableCell>
                   <Switch disabled={!canMutate || pending} aria-label={`${item.isActive ? "Désactiver" : "Activer"} la récurrence ${item.label}`} checked={item.isActive} onCheckedChange={(checked) => toggle(item, checked)} />

@@ -42,7 +42,7 @@ export async function Shell({ children, brand }: ShellProps) {
       <RouteDocumentTitle />
       <a
         href="#dashboard-main"
-        className="sr-only fixed left-4 top-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only"
+        className="fixed left-4 top-4 z-[100] -translate-y-24 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         Aller au contenu
       </a>
@@ -54,7 +54,7 @@ export async function Shell({ children, brand }: ShellProps) {
         <header className="relative z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 sm:px-5 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <MobileSidebar brand={brand} />
-            <AppBrand brand={brand} className="lg:hidden" />
+            <AppBrand brand={brand} className="min-w-0 flex-1 sm:flex-none lg:hidden" />
             <GlobalSearch />
           </div>
 
@@ -77,7 +77,7 @@ export async function Shell({ children, brand }: ShellProps) {
 
         <main id="dashboard-main" className="relative flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[1680px]">
-            {isDemoMode ? <p className="mb-3 text-xs text-muted-foreground">{DEMO_NOTICE}</p> : null}
+            {isDemoMode ? <p id="demo-notice" className="mb-3 text-xs text-muted-foreground">{DEMO_NOTICE}</p> : null}
             <AppPageTransition>{children}</AppPageTransition>
           </div>
         </main>

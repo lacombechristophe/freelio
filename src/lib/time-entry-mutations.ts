@@ -4,13 +4,13 @@ import prisma, { type TransactionClient } from "@/lib/prisma"
 import { AuthorizationError, withAuth, type AuthContext } from "@/lib/auth-wrapper"
 import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 import { isTransactionConflict } from "@/lib/transaction-conflicts"
+import { consumedTimeBudgetCents } from "@/lib/time-budget"
 
 export class TimeEntryError extends Error {}
 
-// Consumed budgets use the existing estimate of 500 € for an eight-hour day.
 export async function recomputeProjectConsumed(tx: TransactionClient, projectId: string) {
   const sum = await tx.timeEntry.aggregate({ where: { projectId, isBillable: true }, _sum: { durationSec: true } })
-  const consumedCents = Math.round(((sum._sum.durationSec ?? 0) / 3600) * 6250)
+  const consumedCents = consumedTimeBudgetCents(sum._sum.durationSec ?? 0)
   await tx.project.update({ where: { id: projectId }, data: { consumedCents } })
 }
 

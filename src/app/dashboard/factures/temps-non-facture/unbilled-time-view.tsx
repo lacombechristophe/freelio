@@ -14,6 +14,8 @@ import {
   Timer,
 } from "lucide-react"
 
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
+import { calendarDayKey, shiftCalendarDay } from "@/lib/calendar-days"
 import { createInvoiceFromTimeEntries } from "@/actions/factures"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -44,20 +46,6 @@ type UnbilledTimeData = {
   }>
 }
 
-function inputDate(date: Date) {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-")
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
-}
-
 function formatDuration(seconds: number) {
   const totalMinutes = Math.round(seconds / 60)
   const h = Math.floor(totalMinutes / 60)
@@ -70,6 +58,7 @@ function formatDate(value: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   })
 }
 
@@ -88,12 +77,13 @@ function centsToEuroInput(cents: number) {
 }
 
 export function UnbilledTimeView({ data }: { data: UnbilledTimeData }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set())
   const [clientFilter, setClientFilter] = React.useState("ALL")
   const [projectFilter, setProjectFilter] = React.useState("ALL")
   const [hourlyRate, setHourlyRate] = React.useState(centsToEuroInput(data.defaultHourlyRateCents))
-  const [dueDate, setDueDate] = React.useState(inputDate(addDays(new Date(), 30)))
+  const [dueDate, setDueDate] = React.useState(() => shiftCalendarDay(calendarDayKey(new Date(), timeZone), 30))
   const [object, setObject] = React.useState("")
   const [lineMode, setLineMode] = React.useState<"GROUP_BY_PROJECT" | "DETAIL">("GROUP_BY_PROJECT")
   const [pending, setPending] = React.useState(false)

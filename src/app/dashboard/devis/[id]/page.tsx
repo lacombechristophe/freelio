@@ -1,8 +1,9 @@
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Pencil, FileDown } from "lucide-react"
 import { getQuoteById } from "@/actions/devis"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DocumentStudio } from "@/components/shared/document-studio"
@@ -113,11 +114,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             </Button>
           </a>
           {quote.status === "DRAFT" && (
-            <Link href={`/dashboard/devis/${quote.id}/edit`}>
-              <Button variant="outline" className="gap-2">
-                <Pencil className="h-4 w-4" /> Éditer
-              </Button>
-            </Link>
+            isReadOnlyDemo ? <Button variant="outline" className="gap-2" disabled aria-describedby="demo-notice"><Pencil className="h-4 w-4" /> Éditer</Button> : <Link href={`/dashboard/devis/${quote.id}/edit`} className={buttonVariants({ variant: "outline", className: "gap-2" })}><Pencil className="h-4 w-4" /> Éditer</Link>
           )}
           <QuoteStatusActions quoteId={quote.id} orderConversionRevision={quote.orderConversionRevision} contractConversionRevision={quote.contractConversionRevision} contractId={quote.generatedContract?.id} canPrepareOrder={quote.canPrepareOrder} status={quote.status} hasOrder={Boolean(quote.customerOrder)} hasContract={Boolean(quote.generatedContract)} unavailableRelations={quote.unavailableRelations} />
         </div>

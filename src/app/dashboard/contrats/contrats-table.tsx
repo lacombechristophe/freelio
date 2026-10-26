@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Plus, Search, MoreHorizontal, FileSignature, Clock, CheckCircle2, Calendar, Eye, Trash2 } from "lucide-react"
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -38,12 +39,13 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Erreur."
 }
 
-function formatDate(d: Date | string | null | undefined) {
+function formatDate(d: Date | string | null | undefined, timeZone = "UTC") {
   if (!d) return "—"
-  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone })
 }
 
 export function ContratsTable({ contracts }: { contracts: Contract[] }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const confirmDialog = useConfirm()
   const [search, setSearch] = React.useState("")
@@ -168,7 +170,7 @@ export function ContratsTable({ contracts }: { contracts: Contract[] }) {
                         </Link>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(contract.createdAt)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{formatDate(contract.createdAt, timeZone)}</TableCell>
                     <TableCell className="text-xs font-medium">{formatDate(contract.validUntil)}</TableCell>
                     <TableCell>
                       <Badge className={cn("gap-1.5 px-2 py-0.5 rounded-full text-xs uppercase font-bold border", status.class)}>

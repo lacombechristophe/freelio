@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { PageHeader } from "@/components/shared/page-header"
 import { EmptyState as GuidedEmptyState } from "@/components/shared/empty-state"
 import { isReadOnlyDemo } from "@/lib/demo-mode"
+import { DemoTour } from "@/components/demo/demo-tour"
 
 export const revalidate = 60
 
@@ -112,6 +113,7 @@ export default async function DashboardPage() {
         }
       />
 
+      <DemoTour />
       <div className="workspace-metrics grid overflow-hidden rounded-lg border bg-card gap-px min-[380px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Euro}

@@ -132,7 +132,10 @@ describe.sequential("Communications dashboard on real SQL", () => {
     expect(html).toContain("Consultation seule")
     for (const label of ["Clore", "Archiver", "Prendre en charge", "Répondre", "Répondre à tous", "Transférer"]) expect(control(html, label)).toMatch(/\sdisabled(?:=|\s|>)/)
     for (const label of ["Rechercher", "Aperçu HTML"]) expect(control(html, label)).not.toMatch(/\sdisabled(?:=|\s|>)/)
-    expect(await render("compose")).toMatch(/<fieldset\b[^>]*\sdisabled[^>]*>[\s\S]*id="email-html"/)
+    const compose = await render("compose")
+    expect(compose).toMatch(/<fieldset\b[^>]*\sdisabled[^>]*>[\s\S]*id="email-subject"/)
+    // The rich editor is browser-only; its editability is checked after hydration in communications-access.spec.ts.
+    expect(compose).toContain("Chargement de l’éditeur…")
   })
   it("keeps Sales composition available without offering company integration writes", async () => {
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "SALES" } })

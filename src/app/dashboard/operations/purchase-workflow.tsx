@@ -30,7 +30,7 @@ function money(cents: number) {
 }
 
 function date(value: Date | string | null) {
-  return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value)) : "—"
+  return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value)) : "—"
 }
 
 export function PurchaseWorkflow({ data, agencyId }: { data: Pick<OperationsData, "generatedAt" | "warehouses" | "canApprovePurchases" | "canManagePurchases">; agencyId: string }) {

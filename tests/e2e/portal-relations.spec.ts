@@ -22,6 +22,9 @@ test("Compiled portal rejects incoherent links and rechecks an existing session"
   }
   await page.goto(`/portal/access/${token("own")}`)
   await expect(page.getByRole("heading", { name: "Votre dossier en un coup d’œil" })).toBeVisible()
+  await page.setViewportSize({ width: 320, height: 800 })
+  await expect(page.getByRole("link").filter({ hasText: `FICTIONAL-PORTAL-${info.project.name}` })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
   const ownLink = await database.clientPortalAccess.findUniqueOrThrow({ where: { id: `cportalrelationown${info.project.name}` } })
   expect(ownLink.lastUsedAt).not.toBeNull()
   const invalidLink = await database.clientPortalAccess.findUniqueOrThrow({ where: { id: `cportalrelationforeignclient${info.project.name}` } })

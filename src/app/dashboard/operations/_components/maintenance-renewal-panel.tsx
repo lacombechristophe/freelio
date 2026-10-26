@@ -26,7 +26,7 @@ function money(cents: number) {
 }
 
 function date(value: Date | string | null) {
-  return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value)) : "Non définie"
+  return value ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value)) : "Non définie"
 }
 
 export function MaintenanceRenewalPanel({ contract, onOpenChange, onSaved }: { contract: Contract; onOpenChange?: (open: boolean) => void; onSaved?: () => void }) {

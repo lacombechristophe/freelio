@@ -2,6 +2,7 @@ import "server-only"
 import { Prisma } from "@/generated/prisma/client"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { getContext, requestContext } from "@/lib/context"
 import { campaignPageSchema, CampaignManagementError } from "./campaign-management"
 
 export async function campaignDashboard(companyId: string, input: unknown = {}) {
@@ -23,7 +24,13 @@ export async function campaignDashboard(companyId: string, input: unknown = {}) 
     ])
     // Match Prisma's contains/LIKE semantics using bound parameters only.
     const pattern = `%${query.search}%`
-    const attributed = await tx.$queryRaw<Array<{ total: bigint | number }>>(Prisma.sql`SELECT COUNT(*) AS total FROM "LeadCapture" l WHERE l."companyId" = ${companyId} AND EXISTS (SELECT 1 FROM "MarketingCampaign" c WHERE c."companyId" = ${companyId} AND c."status" <> 'ARCHIVED' AND c."utmCampaign" = l."utmCampaign" AND (c."name" LIKE ${pattern} OR c."objective" LIKE ${pattern}))`)
+    const attributionQuery = Prisma.sql`SELECT COUNT(*) AS total FROM "LeadCapture" l WHERE l."companyId" = ${companyId} AND EXISTS (SELECT 1 FROM "MarketingCampaign" c WHERE c."companyId" = ${companyId} AND c."status" <> 'ARCHIVED' AND c."utmCampaign" = l."utmCampaign" AND (c."name" LIKE ${pattern} OR c."objective" LIKE ${pattern}))`
+    const context = getContext()
+    // Only this parameterized SELECT is admitted, for the duration of its read.
+    const readAttribution = async () => await tx.$queryRaw<Array<{ total: bigint | number }>>(attributionQuery)
+    const attributed = context?.companyId === companyId && context.actionPermission === "automation.read"
+      ? await requestContext.run({ ...context, campaignAttributionReadSql: attributionQuery.sql }, readAttribution)
+      : await readAttribution()
     const rows = await Promise.all(campaigns.map(async campaign => {
       const [stats, readyAssets, attributedLeads, engaged, activeSequenceCount] = await Promise.all([
         tx.emailDelivery.groupBy({ by: ["status"], where: { companyId, sequence: { campaignId: campaign.id } }, _count: { _all: true } }),

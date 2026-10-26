@@ -6,6 +6,7 @@ import { Braces, History, Pencil, Settings2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
 import { updateRecordCrmProperties } from "@/actions/crm-properties"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -85,6 +86,7 @@ export function RecordPropertiesPanel({
   recordId: string
   data: RecordCrmPropertiesData
 }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const [editOpen, setEditOpen] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
@@ -166,7 +168,7 @@ export function RecordPropertiesPanel({
         <DialogContent className="sm:max-w-xl">
           <DialogHeader><DialogTitle>Historique des propriétés</DialogTitle><DialogDescription>Les 50 dernières modifications, classées de la plus récente à la plus ancienne.</DialogDescription></DialogHeader>
           <div className="divide-y overflow-hidden rounded-lg border">
-            {data.history.map((entry) => <div key={entry.id} className="p-3.5"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{entry.propertyLabel}</strong><time className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.createdAt))}</time></div><p className="mt-1.5 text-xs text-muted-foreground"><span className="line-through">{historyValue(entry.previousValue)}</span><span className="mx-2">→</span><span className="font-medium text-foreground">{historyValue(entry.nextValue)}</span></p><p className="mt-1 text-[11px] text-muted-foreground">Par {entry.changedBy}</p></div>)}
+            {data.history.map((entry) => <div key={entry.id} className="p-3.5"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{entry.propertyLabel}</strong><time className="text-xs text-muted-foreground">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(entry.createdAt))}</time></div><p className="mt-1.5 text-xs text-muted-foreground"><span className="line-through">{historyValue(entry.previousValue)}</span><span className="mx-2">→</span><span className="font-medium text-foreground">{historyValue(entry.nextValue)}</span></p><p className="mt-1 text-[11px] text-muted-foreground">Par {entry.changedBy}</p></div>)}
           </div>
         </DialogContent>
       </Dialog>

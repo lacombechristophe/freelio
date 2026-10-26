@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   BellRing, Building2, FileText, CreditCard, Headphones, User, Zap, Trash2, Database, Download, Save, Check, MapPinned, ShieldCheck, Mail, HardDrive, Braces
 } from "lucide-react"
+import { useCompanyTimeZone } from "@/components/layout/company-time-zone"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -86,6 +87,7 @@ function getErrorMessage(error: unknown, fallback = "Erreur.") {
 }
 
 export function SettingsClient({ company, user }: { company: Company; user: User }) {
+  const timeZone = useCompanyTimeZone()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -578,7 +580,7 @@ export function SettingsClient({ company, user }: { company: Company; user: User
             </div>
             <Separator />
             <div className="rounded-lg border border-border bg-muted/40 p-4 text-xs leading-5 text-muted-foreground">
-              <p className="font-semibold text-foreground">Sauvegarde durable : {company.lastBackupAt ? `dernière archive le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(company.lastBackupAt))}` : "aucune archive confirmée"}</p>
+              <p className="font-semibold text-foreground">Sauvegarde durable : {company.lastBackupAt ? `dernière archive le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(company.lastBackupAt))}` : "aucune archive confirmée"}</p>
               <p className="mt-1">Le traitement planifié compresse, chiffre puis stocke l’export logique dans R2. La restauration complète s&apos;effectue dans un environnement isolé, en complément des sauvegardes PostgreSQL natives.</p>
             </div>
             <Separator />

@@ -1,7 +1,7 @@
 "use server"
 
 import { auth } from "@/auth"
-import { withAuth } from "@/lib/auth-wrapper"
+import { withAuth, withReadAuth } from "@/lib/auth-wrapper"
 import { canAssignRole, COMPANY_ROLES, normalizeCompanyRole, type CompanyRole } from "@/lib/permissions"
 import prisma from "@/lib/prisma"
 import { serviceRoutingTags } from "@/lib/operations/service-routing"
@@ -19,7 +19,7 @@ const memberIdSchema = z.string().cuid()
 const invitationTokenSchema = z.string().min(32).max(128)
 
 export async function getTeamOverview() {
-  return withAuth(async ({ companyId, role }) => {
+  return withReadAuth(async ({ companyId, role }) => {
     const [members, invitations] = await Promise.all([
       prisma.membership.findMany({
         where: { companyId },

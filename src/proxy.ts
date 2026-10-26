@@ -32,6 +32,8 @@ function buildStrictCsp(nonce: string): string {
   const themeBootstrapHashes = [
     "'sha256-HugGj5oR7f2UGBbrPIOJua5vPpKBIJj8354Z6gsKoUQ='",
     "'sha256-TiyWB4YB4NUrUHDJSqaW0w0OtUb7i0Tddwwo6j0O07c='",
+    "'sha256-UnthrFpGFotkvMOTp/ghVMSXoZZj9Y6epaMsaBAbUtg='",
+    "'sha256-J9cZHZf5nVZbsm7Pqxc8RsURv1AIXkMgbhfrZvoOs/A='",
   ].join(" ")
 
   return `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'nonce-${nonce}' ${themeBootstrapHashes} 'strict-dynamic'${developmentEval} https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:; connect-src 'self'${r2ConnectOrigin}; frame-ancestors 'none';${upgradeInsecureRequests}`
@@ -57,6 +59,11 @@ const protectedProxy = auth((request: NextAuthRequest, event: NextFetchEvent) =>
 
 export default function proxy(request: NextRequest, event: NextFetchEvent) {
   if (isPublicReadOnlyDemo() && !publicDemoRequestAllowed(request.nextUrl.pathname, request.method)) {
+    if (!request.nextUrl.pathname.startsWith("/api/") && ["GET", "HEAD"].includes(request.method)) {
+      const response = NextResponse.redirect(new URL("/demo/lecture-seule", request.url))
+      response.headers.set("Cache-Control", "no-store")
+      return response
+    }
     return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403, headers: { "Cache-Control": "no-store" } })
   }
   if (!requiresStrictCsp(request.nextUrl.pathname)) return NextResponse.next()
