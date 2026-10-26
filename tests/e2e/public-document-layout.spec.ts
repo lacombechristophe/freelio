@@ -143,6 +143,10 @@ test("valid public documents retain contrast and readable long text in both them
             await expect(publicPage.getByRole("button", { name: "Envoyer ma réponse", exact: true })).toBeDisabled()
             await score.click()
             await expect(score).toHaveAttribute("aria-pressed", "true")
+            await expect.poll(() => score.evaluate(element => {
+              element.getBoundingClientRect()
+              return element.getAnimations().filter(animation => animation.playState === "running").length
+            })).toBe(0)
             await expect.poll(() => contrast(score)).toBeGreaterThanOrEqual(4.5)
             await expect(publicPage.getByRole("button", { name: "Envoyer ma réponse", exact: true })).toBeEnabled()
           }
