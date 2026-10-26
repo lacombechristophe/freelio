@@ -16,6 +16,8 @@ Le code propre reste sans licence de redistribution selon le choix du propriéta
 
 Dependabot prépare des propositions hebdomadaires. Les paquets Vitest et `@vitest/*` évoluent ensemble pour conserver leurs contraintes de versions. Chaque mise à jour garde une revue et les mêmes contrôles de qualité ; aucune option `--force`, exclusion d’audit ou baisse de seuil n’est une procédure de qualification.
 
+Les actions GitHub sont référencées par leur SHA complet, vérifié dans le dépôt officiel, avec la version lisible en commentaire. Dependabot suit aussi ces références. Lors d’une mise à jour, examiner le changement amont et conserver les permissions minimales ; un tag majeur seul ne fixe pas le code exécuté par la CI.
+
 La politique [ESLint/Oxlint](../tooling/lint/README.md) conserve des règles résolues et des cas de contrôle. La règle Next locale dérivée d’une source officielle garde sa [licence MIT](../tooling/lint/NEXT-LICENSE.md). Une évolution de Next ou du moteur de lint doit vérifier ces cas et les écarts de comportement.
 
 Auth.js est encore en série 5 beta. Les versions et adaptateurs Prisma sont coordonnés dans le lockfile. Les changements majeurs demandent une recette de compatibilité, même lorsqu’un audit de sécurité est vert.
