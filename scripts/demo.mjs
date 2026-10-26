@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url"
 import { randomBytes } from "node:crypto"
 import { execFileSync, spawn } from "node:child_process"
 import { acquireDemoLock } from "./demo-lock.mjs"
+import { assertDemoDependencies } from "./demo-runtime.mjs"
 
 const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const args = process.argv.slice(2)
@@ -14,6 +15,7 @@ const portIndex = args.indexOf("--port")
 const port = portIndex >= 0 ? Number(args[portIndex + 1]) : 54177
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("Port local invalide")
 if (Number(process.versions.node.split(".")[0]) !== 24) throw new Error("Node 24.x requis")
+await assertDemoDependencies(source)
 await fs.access(path.join(source, "node_modules", "next", "dist", "bin", "next"))
 await new Promise((resolve, reject) => {
   const probe = net.createServer()
