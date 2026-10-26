@@ -18,10 +18,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic"
 
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(value)
-}
-
 function formatEuro(cents: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100)
 }
@@ -88,6 +84,8 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   ])
 
   const upcoming = interventions.filter((item) => item.scheduledStart >= now && !["CANCELLED", "COMPLETED"].includes(item.status))
+  const formatDateTime = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: company.serviceTimezone })
+  const formatCalendarDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" })
   const outstandingCents = invoices.filter((invoice) => ["SENT", "OVERDUE"].includes(invoice.status)).reduce((sum, invoice) => sum + Math.max(0, invoice.totalTtcCents - invoice.paidAmountCents), 0)
   const activeProjects = projects.filter((project) => project.status !== "COMPLETED")
   const contactName = access.contact ? `${access.contact.firstName} ${access.contact.lastName}`.trim() : access.client.name
@@ -110,7 +108,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
 
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dossiers actifs</span><FolderKanban className="size-4 text-primary" /></div><p className="mt-4 text-3xl font-semibold tabular-nums">{activeProjects.length}</p><p className="mt-1 text-xs text-muted-foreground">projet{activeProjects.length === 1 ? "" : "s"} en cours</p></div>
-          <div className="rounded-2xl border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochaine visite</span><CalendarDays className="size-4 text-primary" /></div><p className="mt-4 text-lg font-semibold">{upcoming[0] ? formatDate(upcoming[0].scheduledStart) : "Aucune planifiée"}</p><p className="mt-1 text-xs text-muted-foreground">{upcoming[0]?.title ?? "Vous pouvez proposer un rendez-vous"}</p></div>
+          <div className="rounded-2xl border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prochaine visite</span><CalendarDays className="size-4 text-primary" /></div><p className="mt-4 text-lg font-semibold">{upcoming[0] ? formatDateTime.format(upcoming[0].scheduledStart) : "Aucune planifiée"}</p><p className="mt-1 text-xs text-muted-foreground">{upcoming[0]?.title ?? "Vous pouvez proposer un rendez-vous"}</p></div>
           <div className="rounded-2xl border bg-card p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reste à régler</span><ReceiptText className="size-4 text-primary" /></div><p className="mt-4 text-3xl font-semibold tabular-nums">{formatEuro(outstandingCents)}</p><p className="mt-1 text-xs text-muted-foreground">selon les factures émises</p></div>
         </section>
 
@@ -125,7 +123,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                 return <article key={project.id} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{project.name}</h3>{project.description && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{project.description}</p>}</div><Badge variant="secondary">{projectLabels[project.status] ?? project.status}</Badge></div>
                   <div className="mt-4 flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} /></div><span className="text-xs font-semibold tabular-nums">{progress}%</span></div>
-                  {next && <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="size-3.5" />Prochaine étape : <span className="font-medium text-foreground">{next.title}</span>{next.dueDate ? ` · ${formatDate(next.dueDate)}` : ""}</p>}
+                  {next && <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><Clock3 className="size-3.5 shrink-0" />Prochaine étape : <span className="font-medium text-foreground">{next.title}</span>{next.dueDate ? ` · ${formatCalendarDate.format(next.dueDate)}` : ""}</p>}
                 </article>
               })}
             </div>
@@ -134,7 +132,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
           <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="size-5" /></span><div><h2 className="font-semibold">Visites et interventions</h2><p className="text-sm text-muted-foreground">Planning communiqué par l’équipe.</p></div></div>
             <div className="mt-5 space-y-3">
-              {interventions.length === 0 ? <p className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">Aucune intervention récente ou planifiée.</p> : interventions.map((item) => <article key={item.id} className="rounded-xl border p-3.5"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(item.scheduledStart)}</p><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{item.site.label}{item.site.city ? ` · ${item.site.city}` : ""}</p></div>{item.status === "COMPLETED" ? <CheckCircle2 className="size-5 text-emerald-600" /> : <Badge variant="outline">{item.status}</Badge>}</div></article>)}
+              {interventions.length === 0 ? <p className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">Aucune intervention récente ou planifiée.</p> : interventions.map((item) => <article key={item.id} className="rounded-xl border p-3.5"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{formatDateTime.format(item.scheduledStart)}</p><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3" />{item.site.label}{item.site.city ? ` · ${item.site.city}` : ""}</p></div>{item.status === "COMPLETED" ? <CheckCircle2 className="size-5 text-emerald-600" /> : <Badge variant="outline">{item.status}</Badge>}</div></article>)}
             </div>
           </div>
         </section>

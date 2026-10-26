@@ -27,6 +27,10 @@ test("valid public documents retain contrast and readable long text in both them
   let articleId: string | undefined
   let contractId: string | undefined
   let surveyId: string | undefined
+  let siteId: string | undefined
+  let projectId: string | undefined
+  const visitAt = new Date("2099-10-26T01:30:00Z")
+  const milestoneDay = new Date("2099-10-26T00:00:00Z")
   const context = await browser.newContext({
     baseURL, storageState: { cookies: [], origins: [] },
     isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch,
@@ -37,6 +41,9 @@ test("valid public documents retain contrast and readable long text in both them
     await database.company.update({ where: { id: company.id }, data: { name: "👩🏽‍💻 Atelier des Bassins — Installation et maintenance des piscines et équipements extérieurs", logo: "/missing-public-layout-logo.png", serviceTimezone: "America/New_York" } })
     clientId = (await database.client.create({ data: { companyId: company.id, name: "Résidence Les Amandiers — exemple fictif", address: "7 rue des Essais, 44000 Nantes" } })).id
     await database.contact.create({ data: { clientId, firstName: "Camille", lastName: "Démonstration", email: "public-layout@example.test", isPrimary: true } })
+    siteId = (await database.customerSite.create({ data: { companyId: company.id, clientId, label: "Site fictif des Amandiers", address1: "7 rue des Essais" } })).id
+    projectId = (await database.project.create({ data: { companyId: company.id, clientId, siteId, name: "Préparation fictive du bassin", milestones: { create: { title: "Contrôle de filtration fictif", dueDate: milestoneDay } } } })).id
+    await database.fieldIntervention.create({ data: { companyId: company.id, siteId, projectId, title: "Visite fictive de préparation", scheduledStart: visitAt } })
     articleId = (await database.knowledgeArticle.create({ data: { companyId: company.id, title, slug: tag, summary: "Une fiche fictive de préparation, sans intervention réelle.", category, bodyHtml, status: "PUBLISHED", visibility: "PORTAL", updatedAt: new Date("2026-10-26T01:30:00Z") } })).id
     contractId = (await database.contract.create({ data: { companyId: company.id, clientId, number: `PUBLIC-${info.project.name}`, title: contractTitle, content: bodyHtml, status: "DRAFT" } })).id
     await database.clientPortalAccess.create({ data: { companyId: company.id, clientId, label: tag, tokenHash: createHash("sha256").update(token).digest("hex"), expiresAt: new Date(Date.now() + 3_600_000) } })
@@ -89,6 +96,10 @@ test("valid public documents retain contrast and readable long text in both them
       await expect(publicPage.locator("header").getByText("👩🏽‍💻", { exact: true })).toBeVisible()
       await expect(publicPage.locator("a button")).toHaveCount(0)
       await readable(publicPage.getByText("Bonjour Résidence Les Amandiers — exemple fictif", { exact: true }))
+      await expect(publicPage.getByText(new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(visitAt), { exact: true })).toHaveCount(2)
+      const milestone = publicPage.getByText(/^Prochaine étape :/)
+      await expect(milestone).toContainText(new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeZone: "UTC" }).format(milestoneDay))
+      await readable(milestone)
       await assertWidth()
       await capture(`portal-${theme}-320`)
       for (const [surface, route, headingText, bodyText] of [["article", `/portal/aide/${articleId}`, title, `Référence fictive : ${reference}`], ["signature", signingUrl, contractTitle, `Référence fictive : ${reference}`], ["feedback", `/feedback/${feedbackToken}`, feedbackQuestion, followUpQuestion]]) {
@@ -140,6 +151,9 @@ test("valid public documents retain contrast and readable long text in both them
     }
     if (articleId) await database.knowledgeArticle.delete({ where: { id: articleId } })
     if (surveyId) await database.satisfactionSurvey.delete({ where: { id: surveyId } })
+    if (siteId) await database.fieldIntervention.deleteMany({ where: { siteId } })
+    if (projectId) await database.project.delete({ where: { id: projectId } })
+    if (siteId) await database.customerSite.delete({ where: { id: siteId } })
     if (clientId) {
       await database.clientPortalAccess.deleteMany({ where: { clientId } })
       await database.contact.deleteMany({ where: { clientId } })
