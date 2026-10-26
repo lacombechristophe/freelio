@@ -32,8 +32,12 @@ test("company timestamps hydrate consistently while time-entry dates keep their 
     page.on("pageerror", error => errors.push(error.message))
     await page.goto("/dashboard/leads")
     await page.getByRole("textbox", { name: "Rechercher un prospect", exact: true }).fill(tag)
-    const lead = page.getByRole("row").filter({ hasText: `${tag} Fictif` })
-    await expect(lead).toContainText(dateTime)
+    if (info.project.use.isMobile) {
+      // The compact card has no received-date column; its hydration is still checked below.
+      await expect(page.getByRole("article").filter({ hasText: `${tag} Fictif` })).toBeVisible()
+    } else {
+      await expect(page.getByRole("row").filter({ hasText: `${tag} Fictif` })).toContainText(dateTime)
+    }
 
     await page.goto("/dashboard/communications")
     await page.getByLabel("Recherche", { exact: true }).fill(tag)
