@@ -4,7 +4,7 @@
 
 CRM/ERP de démonstration pour une entreprise d’installation et de services : clients, devis, facturation, chantiers, stocks et SAV. Le projet présente un développement métier complet, avec isolation des sociétés et agences, droits par domaine, transactions SQL et documents archivés.
 
-**[Ouvrir la démonstration](https://freelio-eight.vercel.app)** · [Architecture](docs/architecture-domain-boundaries.md) · [Tests](docs/testing.md) · [Documentation](docs/README.md)
+**[Ouvrir la démonstration](https://freelio-eight.vercel.app)** · [Revue technique](docs/technical-review.md) · [Architecture](docs/architecture-domain-boundaries.md) · [Tests](docs/testing.md) · [Documentation](docs/README.md)
 
 La démo hébergée utilise des données fictives et fonctionne en lecture seule. Les identifiants du compte fictif se transmettent séparément. Les intégrations mail/OAuth et le stockage persistant sont désactivés dans ce profil.
 

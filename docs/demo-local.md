@@ -12,6 +12,8 @@ npm run demo
 
 Le lanceur crée un dossier distinct sous `%TEMP%\Freelio-local-demo`, copie le code courant, prépare une SQLite neuve et crée une entreprise fictive avec six clients, six devis, six factures brouillons, six interventions, trois produits et un dépôt. Il ne copie aucun `.env`, aucune base existante ni les fichiers métier du projet. Il réutilise les dépendances installées ; le client Prisma et ses métadonnées sont générés uniquement dans la copie. Si l'installation a désactivé les scripts npm, préparer explicitement le binaire `better-sqlite3` avant cette première exécution.
 
+Avant de préparer les fichiers ou la base, le lanceur compare les versions installées de Next, React, Prisma, du pilote SQLite et de tsx avec le lockfile. Un checkout mis à jour avec un ancien `node_modules` est refusé avec la liste des paquets à remettre à niveau. Exécuter alors `npm ci` à la racine, puis relancer la démo ; le lanceur n’installe rien automatiquement. Ce contrôle de manifestes ne vérifie pas le binaire natif SQLite ni toutes les dépendances transitives.
+
 Trois dossiers supplémentaires relient une vente à décider, un chantier avec jalons et temps, et un SAV avec équipement et intervention. Le cockpit propose leur parcours de visite. Conversations, brouillon, segment, règle et scénario inactif complètent ces exemples. Aucun fournisseur n’est connecté ; toutes les factures restent brouillons et aucun consentement de prospection réel n’est créé.
 
 Les dates sont fixées à la préparation, sans déplacement automatique lors des visites. Pour une recette reproductible, définir `DEMO_REFERENCE_DATE` au format `AAAA-MM-JJ` avant la préparation.

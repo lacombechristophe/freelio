@@ -2,6 +2,7 @@
 
 ## Comprendre le projet
 
+- [Parcours de revue technique](technical-review.md)
 - [Frontières métier et organisation du code](architecture-domain-boundaries.md)
 - [Décisions techniques](decisions-techniques.md)
 - [Capacités, dépendances externes et limites](coverage-and-external-dependencies.md)
@@ -10,6 +11,7 @@
 
 ## Développer et exploiter
 
+- [Signaler un problème de sécurité](../SECURITY.md)
 - [Contribution](../CONTRIBUTING.md)
 - [Démo locale, sauvegarde et restauration](demo-local.md)
 - [Exploitation, déploiement et incidents](production-runbook.md)
