@@ -4,6 +4,12 @@ test("logout discards late authenticated page responses", async ({ page, context
   await page.goto("/dashboard")
   await expect(page.locator("html[data-app-hydrated='true']")).toHaveCount(1)
   await page.locator("html").evaluate(element => element.setAttribute("data-logout-origin-document", "true"))
+  for (const method of ["GET", "HEAD"]) {
+    const response = await context.request.fetch("/dashboard", { method, maxRedirects: 0 })
+    expect(response.status()).toBe(200)
+    expect(response.headersArray().filter(header => header.name.toLowerCase() === "set-cookie" && /^(?:__Secure-)?authjs\.session-token(?:\.\d+)?=/.test(header.value))).toEqual([])
+  }
+  expect((await (await context.request.get("/api/auth/session")).json()).user).toBeTruthy()
 
   let release!: () => void
   const held = new Promise<void>(resolve => { release = resolve })
@@ -12,11 +18,15 @@ test("logout discards late authenticated page responses", async ({ page, context
   let finished!: () => void
   const responseFinished = new Promise<void>(resolve => { finished = resolve })
   const probe = "/dashboard/catalogue?logout-probe=1"
-  let responseRenewsSession = false
+  let responseStatus: number | undefined
+  let responsePath: string | undefined
+  let responseRenewsSession = true
   let responseError: unknown
   await page.route("**/dashboard/catalogue?logout-probe=1", async route => {
     try {
       const response = await route.fetch()
+      responseStatus = response.status()
+      responsePath = new URL(response.url()).pathname
       responseRenewsSession = response.headersArray().some(header =>
         header.name.toLowerCase() === "set-cookie" && /^(?:__Secure-)?authjs\.session-token(?:\.\d+)?=/.test(header.value),
       )
@@ -36,7 +46,9 @@ test("logout discards late authenticated page responses", async ({ page, context
       void fetch(path, { headers: { RSC: "1", "Next-Router-Prefetch": "1" } }).catch(() => {})
     }, probe)
     await authenticatedResponse
-    expect(responseRenewsSession).toBe(true)
+    expect(responseStatus).toBe(200)
+    expect(responsePath).toBe("/dashboard/catalogue")
+    expect(responseRenewsSession).toBe(false)
     let documentNavigation = false
     page.on("request", request => {
       if (request.isNavigationRequest() && request.resourceType() === "document" && new URL(request.url()).pathname === "/auth/login") documentNavigation = true

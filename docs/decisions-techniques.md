@@ -28,6 +28,8 @@ Auth.js 5 reste une dépendance beta. Mots de passe, MFA, sessions et membership
 
 La démonstration publique possède un accès visiteur distinct, disponible uniquement avec le mode lecture seule et ses deux indicateurs de build. L’identité est choisie côté serveur, sans création de compte ni mot de passe dans le navigateur. Le callback POST conserve le contrôle CSRF d’Auth.js et un quota séparé. Le JWT visiteur reste lié à l’identité, à sa société et à sa version de session ; il est invalidé si le mode, le membership ou cette association changent. Il ne peut donc pas devenir une session modifiable par retrait du mode démo. Le parcours privé et la démo locale gardent leur connexion existante.
 
+Les lectures GET/HEAD des pages protégées vérifient la session sans en réémettre le cookie : une réponse préchargée tardive ne peut ainsi la rétablir après déconnexion. Ce filtre conserve les effacements de session invalide et les autres cookies ; une rotation découpée est supprimée en entier. Les opérations Auth.js sous `/api/auth` restent responsables de la connexion, du renouvellement explicite et de la déconnexion. Consulter une page ne repousse donc plus l’expiration du JWT. Next16 masquant les en-têtes RSC dans Proxy, cette règle couvre aussi les lectures HTML et HEAD ordinaires. La déconnexion quitte également le document pour abandonner ses requêtes et son cache de navigation.
+
 Les boîtes Google/Microsoft et Resend sont des connexions métier distinctes de la connexion à Freelio. Elles conservent leurs capacités, propriétaire, visibilité et états de synchronisation. Leur comportement réel dépend des comptes et consentements fournisseur, non qualifiés par les transports fictifs.
 
 ## D05 — Documents figés et calculs partagés

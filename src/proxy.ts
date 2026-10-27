@@ -2,6 +2,7 @@ import NextAuth, { type NextAuthRequest } from "next-auth"
 import { NextResponse } from "next/server"
 import type { NextRequest, NextFetchEvent } from "next/server"
 import { authConfig } from "./auth.config"
+import { preventPageSessionRefresh } from "./lib/auth/page-session-refresh"
 import { DEMO_READ_ONLY_MESSAGE, isPublicReadOnlyDemo, publicDemoRequestAllowed } from "./lib/demo-policy"
 
 const { auth } = NextAuth(authConfig)
@@ -57,7 +58,7 @@ const protectedProxy = auth((request: NextAuthRequest, event: NextFetchEvent) =>
   return response
 })
 
-export default function proxy(request: NextRequest, event: NextFetchEvent) {
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   if (isPublicReadOnlyDemo() && !publicDemoRequestAllowed(request.nextUrl.pathname, request.method)) {
     if (!request.nextUrl.pathname.startsWith("/api/") && ["GET", "HEAD"].includes(request.method)) {
       const response = NextResponse.redirect(new URL("/demo/lecture-seule", request.url))
@@ -67,7 +68,9 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.json({ error: DEMO_READ_ONLY_MESSAGE }, { status: 403, headers: { "Cache-Control": "no-store" } })
   }
   if (!requiresStrictCsp(request.nextUrl.pathname)) return NextResponse.next()
-  return protectedProxy(request, event)
+  const response = await protectedProxy(request, event)
+  if (response) preventPageSessionRefresh(request.method, response.headers)
+  return response
 }
 
 export const config = {
