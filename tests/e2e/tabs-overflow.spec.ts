@@ -36,6 +36,7 @@ async function reachLastTab(list: Locator, scroller: Locator = list) {
     const button = await last.boundingBox()
     return Boolean(viewport && button && button.x >= viewport.x - 1 && button.x + button.width <= viewport.x + viewport.width + 1)
   }).toBe(true)
+  await expect(last).toBeFocused()
   expect(await last.evaluate(element => element.matches(":focus-visible"))).toBe(true)
   return last
 }
@@ -56,7 +57,14 @@ for (const route of ["communications", "settings", "operations", "catalogue"]) {
 
 test("les onglets soulignés conservent leur indicateur et la navigation clavier", async ({ page }, info) => {
   const list = await openTabs(page, "/dashboard/automatisations", info.project.name === "mobile" ? 390 : 1440)
+  // Keep a cold section load observable without delaying the initial page.
+  await page.route("**/_next/static/chunks/*.js", async route => {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    await route.continue()
+  })
   const last = await reachLastTab(list, list.locator(".."))
+  await expect(page.getByRole("textbox", { name: "Rechercher dans le journal", exact: true })).toBeVisible()
+  await expect(last).toBeFocused()
   await expect.poll(() => last.evaluate(element => getComputedStyle(element, "::after").opacity)).toBe("1")
   const indicator = await last.evaluate(element => {
     const style = getComputedStyle(element, "::after")

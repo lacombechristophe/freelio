@@ -10,10 +10,15 @@ import { AutomationOverview } from "@/app/dashboard/automatisations/automation-o
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-const SequenceStudio = dynamic(() => import("@/app/dashboard/automatisations/sequence-studio").then((module) => module.SequenceStudio))
-const TemplateStudio = dynamic(() => import("@/app/dashboard/automatisations/template-studio").then((module) => module.TemplateStudio))
-const WorkflowStudio = dynamic(() => import("@/app/dashboard/automatisations/workflow-studio").then((module) => module.WorkflowStudio))
-const DeliveryJournal = dynamic(() => import("@/app/dashboard/automatisations/delivery-journal").then((module) => module.DeliveryJournal))
+function SectionLoading() {
+  return <p role="status" className="text-sm text-muted-foreground">Chargement…</p>
+}
+
+// Keep loading inside the panel so the focused tab remains visible.
+const SequenceStudio = dynamic(() => import("@/app/dashboard/automatisations/sequence-studio").then((module) => module.SequenceStudio), { loading: SectionLoading })
+const TemplateStudio = dynamic(() => import("@/app/dashboard/automatisations/template-studio").then((module) => module.TemplateStudio), { loading: SectionLoading })
+const WorkflowStudio = dynamic(() => import("@/app/dashboard/automatisations/workflow-studio").then((module) => module.WorkflowStudio), { loading: SectionLoading })
+const DeliveryJournal = dynamic(() => import("@/app/dashboard/automatisations/delivery-journal").then((module) => module.DeliveryJournal), { loading: SectionLoading })
 
 const navigation: NavigationItem[] = [
   { value: "overview", label: "Vue d’ensemble", icon: LayoutDashboard },
