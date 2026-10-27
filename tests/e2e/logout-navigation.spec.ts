@@ -48,8 +48,9 @@ test("logout abandons pending authenticated page responses", async ({ page, cont
     await page.getByRole("menuitem", { name: "Déconnexion", exact: true }).click()
     await page.waitForURL(url => url.pathname === "/auth/login")
     await expect(page.locator("#dashboard-main")).toHaveCount(0)
-    expect((await abandonedResponse).failure()?.errorText).toContain("ERR_ABORTED")
+    // Finish the intercepted response before observing its browser cancellation.
     release()
+    expect((await abandonedResponse).failure()?.errorText).toContain("ERR_ABORTED")
     await responseFinished
     expect(responseError).toBeUndefined()
     expect(documentNavigation).toBe(true)
