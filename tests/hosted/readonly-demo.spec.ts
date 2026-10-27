@@ -55,7 +55,9 @@ test("the hosted fictitious demo renders its modules and refuses writes", async 
       await page.getByRole("button", { name: "Fermer la navigation", exact: true }).click()
     }
     await page.getByRole("button", { name: "Ouvrir le menu du compte" }).click()
+    const signedOutDocument = page.waitForRequest(request => request.isNavigationRequest() && request.resourceType() === "document" && new URL(request.url()).pathname === "/")
     await page.getByRole("menuitem", { name: "Déconnexion", exact: true }).click()
+    await signedOutDocument
     await page.waitForURL(url => url.pathname === "/")
     await expect(page.locator("#dashboard-main")).toHaveCount(0)
     const signedOutSession = await context.request.get("/api/auth/session")

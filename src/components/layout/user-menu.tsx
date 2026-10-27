@@ -29,9 +29,8 @@ export function UserMenu({ email, name, companyName }: { email?: string | null; 
   async function handleLogout() {
     try {
       await clearFieldOfflineData()
-      await signOut({ redirect: false })
-      toast.success("Déconnexion réussie.")
-      router.push(isReadOnlyDemo ? "/" : "/auth/login")
+      // Leave the document so pending authenticated prefetches cannot restore its session.
+      await signOut({ redirectTo: isReadOnlyDemo ? "/" : "/auth/login" })
     } catch {
       toast.error("Erreur lors de la déconnexion.")
     }
