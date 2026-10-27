@@ -35,7 +35,7 @@ import {
   WorkflowStory,
 } from "@/components/marketing/marketing-motion"
 import { cn } from "@/lib/utils"
-import { DEMO_ENTRY_LABEL, isDemoMode, isReadOnlyDemo } from "@/lib/demo-mode"
+import { DEMO_ENTRY_HREF, DEMO_ENTRY_LABEL, isDemoMode, isReadOnlyDemo } from "@/lib/demo-mode"
 
 const shell = "mx-auto w-full max-w-[1380px] px-5 sm:px-8 lg:px-10"
 
@@ -54,7 +54,7 @@ const pricingPlans = [
     cadence: "pendant la phase privée",
     description: isDemoMode ? "Pour explorer Freelio avec des dossiers piscine fictifs et découvrir le fonctionnement du produit." : "Pour tester Freelio sur vos dossiers piscine réels et participer à la construction du produit.",
     cta: isReadOnlyDemo ? DEMO_ENTRY_LABEL : "Rejoindre l’alpha",
-    href: "/auth/login",
+    href: DEMO_ENTRY_HREF,
     features: ["Prospects et clients", "Devis et factures", "Chantiers et SAV", "Support produit direct"],
   },
   {
@@ -63,7 +63,7 @@ const pricingPlans = [
     cadence: "par mois HT, tarif indicatif",
     description: "Le cockpit complet d’une entreprise de piscine qui relie commerce, terrain, service et paiement.",
     cta: isReadOnlyDemo ? DEMO_ENTRY_LABEL : "Commencer gratuitement",
-    href: "/auth/login",
+    href: DEMO_ENTRY_HREF,
     featured: true,
     features: ["Tout Alpha", "Stocks et achats", "Entretien et parc installé", "Automatisations et relances"],
   },
@@ -73,7 +73,7 @@ const pricingPlans = [
     cadence: "par mois HT, tarif indicatif",
     description: "Pour les équipes qui partagent plusieurs agences, dépôts, secteurs de pose et files SAV.",
     cta: isReadOnlyDemo ? DEMO_ENTRY_LABEL : "Demander un accès",
-    href: "/auth/login",
+    href: DEMO_ENTRY_HREF,
     features: ["Tout Atelier", "Multi-agences et dépôts", "Droits avancés", "Support prioritaire"],
   },
 ]
@@ -135,8 +135,8 @@ function Header() {
         <MarketingDesktopNav />
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link href="/auth/login" className="flex min-h-11 items-center rounded-md px-2 text-sm font-medium text-freelio-muted transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-4">Se connecter</Link>
-          <Link href="/auth/login" className="group inline-flex h-11 items-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white shadow-[0_2px_6px_rgba(11,99,246,0.2)] transition-[background-color,transform,box-shadow] hover:bg-freelio-accent-hover hover:shadow-[0_4px_8px_rgba(11,99,246,0.22)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2">
+          <Link href={DEMO_ENTRY_HREF} className="flex min-h-11 items-center rounded-md px-2 text-sm font-medium text-freelio-muted transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-4">Se connecter</Link>
+          <Link href={DEMO_ENTRY_HREF} className="group inline-flex h-11 items-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white shadow-[0_2px_6px_rgba(11,99,246,0.2)] transition-[background-color,transform,box-shadow] hover:bg-freelio-accent-hover hover:shadow-[0_4px_8px_rgba(11,99,246,0.22)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2">
             {DEMO_ENTRY_LABEL}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
@@ -179,7 +179,7 @@ function Hero() {
         <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-freelio-muted sm:text-lg sm:leading-8">Prospects, devis, chantiers, stocks, SAV, entretien et trésorerie avancent dans un seul dossier client.</p>
 
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-          <PrimaryLink href="/auth/login">{DEMO_ENTRY_LABEL}</PrimaryLink>
+          <PrimaryLink href={DEMO_ENTRY_HREF}>{DEMO_ENTRY_LABEL}</PrimaryLink>
           <SecondaryLink href="#workflow">Voir comment ça marche</SecondaryLink>
         </div>
         <p className="mt-4 flex items-center justify-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire · Données exportables · Factur-X vérifiable</p>
@@ -504,7 +504,7 @@ function FinalCTA() {
               <h2 className="marketing-display relative mt-7 max-w-xl text-[42px] font-semibold leading-[1.02] sm:text-[54px]">{isDemoMode ? "Explorez un chantier fictif." : "Commencez avec un chantier réel."}</h2>
               <p className="relative mt-5 max-w-lg text-base leading-7 text-white/75">{isReadOnlyDemo ? "Explorez les dossiers fictifs et suivez leurs devis, chantiers, interventions et règlements dans un même fil." : "Importez un prospect, créez son devis et suivez le chantier, la pose et le paiement dans un même fil."}</p>
               <div className="relative mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link href="/auth/login" className="group inline-flex h-12 items-center justify-center gap-3 rounded-md bg-white px-5 text-sm font-semibold text-freelio-ink shadow-[0_2px_6px_rgba(16,24,40,0.12)] transition-[background-color,transform,box-shadow] hover:bg-freelio-surface-2 hover:shadow-[0_4px_8px_rgba(16,24,40,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-freelio-accent">{isReadOnlyDemo ? "Ouvrir la démonstration" : "Créer mon espace"}<ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
+                <Link href={DEMO_ENTRY_HREF} className="group inline-flex h-12 items-center justify-center gap-3 rounded-md bg-white px-5 text-sm font-semibold text-freelio-ink shadow-[0_2px_6px_rgba(16,24,40,0.12)] transition-[background-color,transform,box-shadow] hover:bg-freelio-surface-2 hover:shadow-[0_4px_8px_rgba(16,24,40,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-freelio-accent">{isReadOnlyDemo ? "Ouvrir la démonstration" : "Créer mon espace"}<ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" /></Link>
                 <Link href="/fonctionnalites" className="inline-flex h-12 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Voir le produit<ChevronRight className="size-4" /></Link>
               </div>
               <p className="relative mt-8 flex items-center gap-2 text-xs text-white/65"><ShieldCheck className="size-4" />Sans carte bancaire · Données exportables à tout moment</p>
@@ -677,7 +677,7 @@ function PublicPageHero({ eyebrow, title, text, icon: Icon, variant, secondaryHr
       <div className={cn(shell, "relative z-10")}>
         <div className="grid gap-8 lg:grid-cols-12 lg:items-end lg:gap-12">
           <HeroIntroMotion className="lg:col-span-8"><div className="flex items-center gap-2 text-xs font-semibold text-freelio-accent"><span className="grid size-8 place-items-center rounded-md bg-freelio-accent-soft"><Icon className="size-4" /></span>{eyebrow}</div><h1 className="marketing-display mt-6 max-w-5xl text-[46px] font-bold leading-[0.98] text-freelio-ink sm:text-[66px]">{title}</h1></HeroIntroMotion>
-          <HeroIntroMotion className="lg:col-span-4" delay={0.14}><p className="max-w-lg text-base leading-7 text-freelio-muted">{text}</p><div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row"><PrimaryLink href="/auth/login">{DEMO_ENTRY_LABEL}</PrimaryLink><SecondaryLink href={secondaryHref}>{secondaryLabel}</SecondaryLink></div><p className="mt-4 flex items-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire pendant l’alpha.</p></HeroIntroMotion>
+          <HeroIntroMotion className="lg:col-span-4" delay={0.14}><p className="max-w-lg text-base leading-7 text-freelio-muted">{text}</p><div className="mt-7 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row"><PrimaryLink href={DEMO_ENTRY_HREF}>{DEMO_ENTRY_LABEL}</PrimaryLink><SecondaryLink href={secondaryHref}>{secondaryLabel}</SecondaryLink></div><p className="mt-4 flex items-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire pendant l’alpha.</p></HeroIntroMotion>
         </div>
         <div className="mt-8 sm:mt-12"><RouteHeroVisual variant={variant} /></div>
       </div>
@@ -698,7 +698,7 @@ function Footer() {
     <footer className="border-t border-freelio-line bg-freelio-surface-2 py-10">
       <div className={cn(shell, "grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end")}>
         <div><div className="flex items-center gap-2.5"><LogoMark /><span className="marketing-display text-lg font-bold text-freelio-ink">Freelio</span></div><p className="mt-4 max-w-lg text-sm leading-6 text-freelio-muted">CRM & ERP métier pour piscinistes. Freelio relie vos ventes, chantiers, stocks, interventions et revenus sans remplacer votre expert-comptable.</p></div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-freelio-muted">{navItems.map((item) => <Link key={item.href} href={item.href} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">{item.label}</Link>)}<Link href="/confidentialite" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Confidentialité</Link><Link href="/conditions" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Conditions</Link><Link href="/auth/login" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Connexion</Link></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-freelio-muted">{navItems.map((item) => <Link key={item.href} href={item.href} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">{item.label}</Link>)}<Link href="/confidentialite" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Confidentialité</Link><Link href="/conditions" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Conditions</Link><Link href={DEMO_ENTRY_HREF} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 transition-colors hover:text-freelio-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent">Connexion</Link></div>
       </div>
       <div className={cn(shell, "mt-8 flex flex-col gap-3 border-t border-freelio-line pt-5 text-xs text-freelio-muted sm:flex-row sm:items-center sm:justify-between")}><span>© 2026 Freelio. Produit en phase alpha.</span><span className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-freelio-success shadow-[0_0_0_4px_var(--color-freelio-success-soft)]" />Alpha privée en cours</span></div>
     </footer>

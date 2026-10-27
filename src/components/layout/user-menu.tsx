@@ -8,6 +8,7 @@ import { useTheme } from "next-themes"
 import { initials } from "@/lib/initials"
 import { ChevronDown, CircleHelp, LogOut, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { isReadOnlyDemo } from "@/lib/demo-mode"
 import { clearFieldOfflineData } from "@/lib/field/offline"
 import {
   DropdownMenu,
@@ -30,7 +31,7 @@ export function UserMenu({ email, name, companyName }: { email?: string | null; 
       await clearFieldOfflineData()
       await signOut({ redirect: false })
       toast.success("Déconnexion réussie.")
-      router.push("/auth/login")
+      router.push(isReadOnlyDemo ? "/" : "/auth/login")
     } catch {
       toast.error("Erreur lors de la déconnexion.")
     }

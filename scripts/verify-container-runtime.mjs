@@ -113,6 +113,31 @@ try {
   const pdf = docker(["run", "--rm", "--network", "none", image, "node", "--conditions=react-server", "--import", "tsx", "scripts/verify-runtime-pdf.mjs"])
   report.pdf = JSON.parse(pdf.split("\n").findLast(line => line.startsWith("{")))
   report.checks.push("PDF Chromium hors réseau sous utilisateur runtime")
+  // Exercise the real Auth.js callback with the existing fictional account and a
+  // SELECT-only role. This image has private UI build flags: the public CTA is
+  // qualified separately on the deployed public build.
+  const reader = "freelio_demo_visitor"
+  docker(["exec", prefix + "-postgres", "psql", "-U", "recipe", "-d", database, "-v", "ON_ERROR_STOP=1", "-c",
+    "CREATE ROLE " + reader + " LOGIN PASSWORD '" + password + "'; GRANT CONNECT ON DATABASE " + database + " TO " + reader + "; GRANT USAGE ON SCHEMA public TO " + reader + "; GRANT SELECT ON ALL TABLES IN SCHEMA public TO " + reader + ";"])
+  const demoWeb = prefix + "-demo"
+  docker(["run", "--detach", "--name", demoWeb, "--network", prefix, "--env-file", environmentFile,
+    "--env", "DATABASE_URL=postgresql://" + reader + ":" + password + "@" + prefix + "-postgres:5432/" + database + "?schema=public",
+    "--env", "DEMO_ACCESS_MODE=readonly", "--env", "NEXT_PUBLIC_DEMO_MODE=true", "--env", "NEXT_PUBLIC_DEMO_READ_ONLY=true",
+    "--env", "FILE_STORAGE_DRIVER=disabled", "--env", "MIGRATION_STORAGE_DRIVER=disabled",
+    "--env", "AUTH_URL=http://127.0.0.1:3000", "--env", "AUTH_TRUST_HOST=true",
+    "--env", "GITHUB_ACTIONS=true", "--env", "E2E_ENABLE_CREDENTIALS_AUTH=true",
+    "--env", "UPSTASH_REDIS_REST_URL=", "--env", "UPSTASH_REDIS_REST_TOKEN=",
+    image, "node", "node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"])
+  containers.push(demoWeb)
+  let demoHealthy = false
+  for (let attempt = 0; attempt < 30; attempt++) {
+    if (docker(["exec", demoWeb, "node", "-e", "fetch('http://127.0.0.1:3000/api/health/live').then(r=>{if(r.status!==200)process.exitCode=1}).catch(()=>process.exitCode=1)"], true) !== undefined) { demoHealthy = true; break }
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+  assert(demoHealthy, "The isolated demonstration server must start")
+  const demoProbe = docker(["exec", demoWeb, "node", "scripts/verify-runtime-demo-access.mjs"])
+  report.publicDemoAccess = JSON.parse(demoProbe.split("\n").findLast(line => line.startsWith("{")))
+  report.checks.push("Accès visiteur Auth.js sans mot de passe avec rôle SQL lecteur, CSRF et déconnexion")
   report.success = true
   report.exclusions = ["Disponibilité réelle R2/Upstash", "TLS, reverse proxy et réseau hébergé", "Reprise après interruption d’un job actif", "Validation SaaS commerciale"]
 } finally {

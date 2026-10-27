@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test"
 import { assertHostedModule, hostedModules } from "./page-contract"
+import { openHostedDemo } from "./demo-entry"
 
 test("the hosted fictitious demo renders its modules and refuses writes", async ({ page, context, baseURL }, info) => {
   const errors: Array<{ route: string; message: string }> = []
   const visited: string[] = []
   const failures: Array<{ route: string; message: string }> = []
+  let demoEntry: Awaited<ReturnType<typeof openHostedDemo>> | undefined
   page.on("pageerror", error => errors.push({ route: new URL(page.url()).pathname + new URL(page.url()).search, message: error.message }))
   await context.route("**/*", route => new URL(route.request().url()).origin === baseURL ? route.continue() : route.abort())
   try {
@@ -13,16 +15,12 @@ test("the hosted fictitious demo renders its modules and refuses writes", async 
     expect((await context.request.get("/api/automations/process")).status()).toBe(403)
     expect((await context.request.get("/api/integrations/email/oauth/start")).status()).toBe(403)
     expect((await context.request.get("/api/backup/export")).status()).toBe(403)
+    expect((await context.request.get("/api/auth/callback/demo", { maxRedirects: 0 })).status()).toBe(403)
     const blockedNavigation = await context.request.get("/dashboard/devis/new", { maxRedirects: 0 })
     expect(blockedNavigation.status()).toBe(307)
     expect(new URL(blockedNavigation.headers().location, baseURL).pathname).toBe("/demo/lecture-seule")
 
-    await page.goto("/auth/login")
-    await expect(page.getByRole("button", { name: "Utiliser un lien de connexion", exact: true })).toBeDisabled()
-    await page.getByLabel("Adresse e-mail professionnelle").fill(process.env.HOSTED_DEMO_EMAIL!)
-    await page.getByLabel("Mot de passe", { exact: true }).fill(process.env.HOSTED_DEMO_PASSWORD!)
-    await page.getByRole("button", { name: "Se connecter", exact: true }).click()
-    await page.waitForURL(url => url.pathname === "/dashboard")
+    demoEntry = await openHostedDemo(page, baseURL)
     await expect(page.getByText("Démonstration en lecture seule — données fictives", { exact: true })).toBeVisible()
     await expect(page.getByRole("button", { name: "Export de réversibilité", exact: true })).toBeDisabled()
     for (const [route, heading, ...tabs] of hostedModules) {
@@ -58,11 +56,19 @@ test("the hosted fictitious demo renders its modules and refuses writes", async 
     }
     await page.getByRole("button", { name: "Ouvrir le menu du compte" }).click()
     await page.getByRole("menuitem", { name: "Déconnexion", exact: true }).click()
-    await page.waitForURL(url => url.pathname === "/auth/login")
+    await page.waitForURL(url => url.pathname === "/")
+    await expect(page.locator("#dashboard-main")).toHaveCount(0)
+    const signedOutSession = await context.request.get("/api/auth/session")
+    expect(signedOutSession.status()).toBe(200)
+    expect(await signedOutSession.json()).toBeNull()
+    expect((await page.goto("/auth/login"))?.status()).toBe(200)
+    await expect(page.locator('input[type="email"], input[type="password"]')).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Ouvrir la démonstration", exact: true })).toBeEnabled()
+    expect(new URL(page.url()).pathname).toBe("/auth/login")
     expect(failures).toEqual([])
     expect(errors).toEqual([])
   } finally {
     // Credentials and protection headers are never attached to the report.
-    await info.attach("hosted-readonly-summary", { body: JSON.stringify({ project: info.project.name, visited, failures, pageErrors: errors }, null, 2), contentType: "application/json" })
+    await info.attach("hosted-readonly-summary", { body: JSON.stringify({ project: info.project.name, demoEntry, visited, failures, pageErrors: errors }, null, 2), contentType: "application/json" })
   }
 })

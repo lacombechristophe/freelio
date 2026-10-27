@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { DEMO_ENTRY_LABEL, DEMO_INVOICE_LINES, DEMO_QUOTE_LINES, isDemoMode } from "@/lib/demo-mode"
+import { DEMO_ENTRY_HREF, DEMO_ENTRY_LABEL, DEMO_INVOICE_LINES, DEMO_QUOTE_LINES, isDemoMode } from "@/lib/demo-mode"
 import { usePathname } from "next/navigation"
 import {
   AnimatePresence,
@@ -295,7 +295,7 @@ export function MobileNav() {
               ))}
             </nav>
             <Link
-              href="/auth/login"
+              href={DEMO_ENTRY_HREF}
               onClick={() => setOpen(false)}
               className="group mt-3 flex h-11 items-center justify-center gap-2 rounded-md bg-freelio-accent px-4 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-freelio-accent-hover active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-freelio-accent focus-visible:ring-offset-2"
             >

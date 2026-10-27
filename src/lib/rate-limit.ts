@@ -96,6 +96,14 @@ export const authRateLimit = createRateLimit({
   prefix: "@crm/auth",
 })
 
+// Public visitor sessions have their own quota, independent of private login attempts.
+export const demoAccessRateLimit = createRateLimit({
+  limit: 20,
+  window: "15 m",
+  windowMs: 15 * 60 * 1000,
+  prefix: "@crm/demo-access",
+})
+
 export const passwordResetRateLimit = createRateLimit({
   limit: 5,
   window: "1 h",

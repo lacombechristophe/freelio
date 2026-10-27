@@ -19,7 +19,7 @@ Les contrats détaillés et les régressions associées restent accessibles dans
 
 ## Démonstration hébergée
 
-La démo utilise PostgreSQL avec un rôle lecteur et Upstash pour le limiteur distribué. Elle interdit les mutations, les processeurs et les connexions fournisseur côté serveur. Aucun bucket R2 n’est configuré. Les PDF de brouillons sont calculés à la demande ; une archive absente n’est pas reconstruite comme un original.
+La démo utilise PostgreSQL avec un rôle lecteur et Upstash pour le limiteur distribué. L’entrée ouvre une session visiteur au compte fictif, sans demander d’identifiants. Elle interdit les mutations, les processeurs et les connexions fournisseur côté serveur. Aucun bucket R2 n’est configuré. Les PDF de brouillons sont calculés à la demande ; une archive absente n’est pas reconstruite comme un original.
 
 Les comptes fournisseur, e-mails et calendriers montrés par les fixtures ne prouvent pas qu’une boîte réelle est connectée. Le profil de démonstration ne doit recevoir aucune donnée réelle. La démo locale isolée permet des mutations fictives avec ses propres données et fichiers.
 

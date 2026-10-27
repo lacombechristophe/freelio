@@ -45,7 +45,7 @@ Après les contrôles de la révision candidate puis de main, promouvoir l’art
 npx --no-install playwright test --config=playwright.hosted.config.ts
 ```
 
-Cette recette reçoit `PLAYWRIGHT_BASE_URL`, `HOSTED_DEMO_EMAIL` et `HOSTED_DEMO_PASSWORD` par environnement privé. Elle contrôle les modules, les trois dossiers de référence, les PDF, les refus et la déconnexion, sans publier les identifiants ou traces d’authentification. Ne jamais ajouter de secret au dépôt pour rendre un test autonome.
+Cette recette reçoit uniquement `PLAYWRIGHT_BASE_URL` et ouvre le véritable accès visiteur depuis l’accueil, sans identifiants. Elle contrôle les modules, les trois dossiers de référence, les PDF, les refus et la déconnexion, sans publier les identifiants ou traces d’authentification. Ne jamais ajouter de secret au dépôt pour rendre un test autonome.
 
 ## Lire les preuves
 

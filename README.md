@@ -6,7 +6,7 @@ CRM/ERP de démonstration pour une entreprise d’installation et de services : 
 
 **[Ouvrir la démonstration](https://freelio-eight.vercel.app)** · [Revue technique](docs/technical-review.md) · [Architecture](docs/architecture-domain-boundaries.md) · [Tests](docs/testing.md) · [Documentation](docs/README.md)
 
-La démo hébergée utilise des données fictives et fonctionne en lecture seule. Les identifiants du compte fictif se transmettent séparément. Les intégrations mail/OAuth et le stockage persistant sont désactivés dans ce profil.
+La démo hébergée utilise des données fictives et fonctionne en lecture seule. Le bouton « Ouvrir la démonstration » ouvre une session visiteur sur le compte fictif, sans mot de passe. Les intégrations mail/OAuth et le stockage persistant sont désactivés dans ce profil.
 
 ## Parcours de référence
 

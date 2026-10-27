@@ -14,6 +14,7 @@ export function assertDemoMutationAllowed(environment: Environment = process.env
 export function publicDemoRequestAllowed(pathname: string, method: string) {
   if (pathname === "/auth/login") return method === "GET" || method === "POST"
   if (pathname.startsWith("/auth/")) return false
+  if (pathname === "/api/auth/callback/demo") return method === "POST"
   if (pathname.startsWith("/api/auth/")) {
     return ["/api/auth/csrf", "/api/auth/session", "/api/auth/providers", "/api/auth/callback/credentials", "/api/auth/signout", "/api/auth/error"].includes(pathname)
       && ["GET", "POST"].includes(method)

@@ -2,7 +2,6 @@ import { defineConfig } from "@playwright/test"
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL
 if (!baseURL || new URL(baseURL).protocol !== "https:") throw new Error("An explicit HTTPS demonstration URL is required")
-if (!process.env.HOSTED_DEMO_EMAIL || !process.env.HOSTED_DEMO_PASSWORD) throw new Error("Fictitious demonstration credentials are required")
 
 export default defineConfig({
   testDir: "./tests/hosted",

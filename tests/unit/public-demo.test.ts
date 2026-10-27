@@ -15,6 +15,14 @@ describe("public demonstration boundary", () => {
     expect(publicDemoRequestAllowed("/auth/login", "POST")).toBe(true)
     expect(publicDemoRequestAllowed("/api/auth/callback/resend", "GET")).toBe(false)
   })
+  it("allows only the visitor callback POST without widening other authentication entry points", () => {
+    expect(publicDemoRequestAllowed("/api/auth/callback/demo", "POST")).toBe(true)
+    for (const method of ["GET", "HEAD", "PUT", "DELETE"]) expect(publicDemoRequestAllowed("/api/auth/callback/demo", method)).toBe(false)
+    expect(publicDemoRequestAllowed("/api/auth/callback/demo/other", "POST")).toBe(false)
+    expect(publicDemoRequestAllowed("/api/auth/callback/resend", "POST")).toBe(false)
+    expect(publicDemoRequestAllowed("/demo", "GET")).toBe(true)
+    expect(publicDemoRequestAllowed("/demo", "POST")).toBe(false)
+  })
   it("requires matching public build flags and refuses business provider keys without reflecting values", () => {
     const env = { DEMO_ACCESS_MODE: "readonly", NEXT_PUBLIC_DEMO_MODE: "true", NEXT_PUBLIC_DEMO_READ_ONLY: "true" }
     expect(publicDemoConfigurationIssues(env)).toEqual([])

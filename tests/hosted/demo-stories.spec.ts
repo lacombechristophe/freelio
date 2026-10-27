@@ -1,16 +1,14 @@
 import { expect, test } from "@playwright/test"
+import { openHostedDemo } from "./demo-entry"
 
 test("the demonstration tour opens three coherent fictitious dossiers", async ({ page, context, baseURL }, info) => {
   const errors: Array<{ route: string; message: string }> = []
   const visited: Array<{ route: string; heading: string | null }> = []
+  let demoEntry: Awaited<ReturnType<typeof openHostedDemo>> | undefined
   page.on("pageerror", error => errors.push({ route: new URL(page.url()).pathname, message: error.message }))
   await context.route("**/*", route => new URL(route.request().url()).origin === baseURL ? route.continue() : route.abort())
   try {
-    await page.goto("/auth/login")
-    await page.getByLabel("Adresse e-mail professionnelle").fill(process.env.HOSTED_DEMO_EMAIL!)
-    await page.getByLabel("Mot de passe", { exact: true }).fill(process.env.HOSTED_DEMO_PASSWORD!)
-    await page.getByRole("button", { name: "Se connecter", exact: true }).click()
-    await page.waitForURL(url => url.pathname === "/dashboard")
+    demoEntry = await openHostedDemo(page, baseURL)
 
     const tour = page.getByRole("region", { name: "Explorer trois dossiers fictifs", exact: true })
     await expect(tour).toBeVisible()
@@ -36,7 +34,7 @@ test("the demonstration tour opens three coherent fictitious dossiers", async ({
     expect(errors).toEqual([])
   } finally {
     await info.attach("synthetic-dossiers-summary", {
-      body: JSON.stringify({ project: info.project.name, visited, pageErrors: errors, writesRequested: false }, null, 2),
+      body: JSON.stringify({ project: info.project.name, demoEntry, visited, pageErrors: errors, writesRequested: false }, null, 2),
       contentType: "application/json",
     })
   }

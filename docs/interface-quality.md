@@ -37,7 +37,7 @@ Les horodatages des composants clients du dashboard reçoivent le fuseau de la s
 
 Utiliser une base de recette isolée et préparée : les suites SQL et E2E créent leurs propres données. Les [instructions de développement](../README.md#vérifications-et-preuves) décrivent les commandes générales. L’audit étendu du dashboard utilise les fixtures de `seed-ui-redesign.mjs` et `E2E_FULL_UI_AUDIT=true` ; il parcourt aussi les conteneurs défilants. Une route dynamique absente du jeu de données est signalée dans le rapport, sans être comptée comme vérifiée.
 
-Pour une instance HTTPS en lecture seule, fournir `PLAYWRIGHT_BASE_URL`, `HOSTED_DEMO_EMAIL` et `HOSTED_DEMO_PASSWORD` dans l’environnement, puis exécuter :
+Pour une instance HTTPS en lecture seule, fournir `PLAYWRIGHT_BASE_URL` dans l’environnement, puis exécuter :
 
 ```powershell
 npx --no-install playwright test --config=playwright.hosted.config.ts

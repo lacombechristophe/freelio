@@ -9,10 +9,11 @@ import { MagicLinkEmail } from "@/emails/MagicLinkEmail"
 import { render } from "@react-email/render"
 import { verifyPassword } from "@/lib/auth/password"
 import { verifyAndConsumeSecondFactor } from "@/lib/auth/mfa"
-import { authRateLimit } from "@/lib/rate-limit"
+import { authRateLimit, demoAccessRateLimit } from "@/lib/rate-limit"
 import logger from "@/lib/logger"
 import { DEMO_ACCOUNT_EMAIL, isDemoMode } from "@/lib/demo-mode"
 import { isPublicReadOnlyDemo } from "@/lib/demo-policy"
+import { publicDemoAccessEnabled, readPublicDemoUser } from "@/lib/auth/public-demo"
 
 const emailFrom = process.env.EMAIL_FROM?.trim() || "CRM <noreply@example.invalid>"
 const ciCredentialsAuth = process.env.GITHUB_ACTIONS === "true" && process.env.E2E_ENABLE_CREDENTIALS_AUTH === "true" && Boolean(process.env.E2E_USER_EMAIL)
@@ -35,6 +36,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
+    ...(publicDemoAccessEnabled() ? [Credentials({
+      id: "demo",
+      name: "Démonstration en lecture seule",
+      credentials: {},
+      async authorize(_credentials, request) {
+        if (!publicDemoAccessEnabled()) return null
+        try {
+          const limit = await demoAccessRateLimit.limit("visitor:" + requestAddress(request))
+          if (!limit.success) return null
+          const user = await readPublicDemoUser()
+          if (!user) return null
+          return { id: user.id, email: user.email, name: user.name, image: user.image }
+        } catch {
+          logger.warn({ event: "demo_access_failed" }, "Public demo access unavailable")
+          return null
+        }
+      },
+    })] : []),
     ...(magicLinkAuthEnabled
       ? [
           Resend({
@@ -140,7 +159,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const security = await prisma.user.findUnique({ where: { email: user.email }, select: { mfaEnabledAt: true } })
       return !security?.mfaEnabledAt
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      if (account?.provider === "demo" || token.publicDemoVisitor === true) {
+        const initial = account?.provider === "demo"
+        const demoUser = await readPublicDemoUser()
+        if (!demoUser || (initial ? user?.id !== demoUser.id : token.sub !== demoUser.id
+          || token.demoCompanyId !== demoUser.companyId || token.sessionVersion !== demoUser.sessionVersion)) {
+          token.publicDemoVisitor = true
+          token.sessionInvalid = true
+          delete token.sub
+          token.companyId = null
+          return token
+        }
+        token.publicDemoVisitor = true
+        token.demoCompanyId = demoUser.companyId
+        token.sub = demoUser.id
+        token.companyId = demoUser.companyId
+        token.sessionVersion = demoUser.sessionVersion
+        return token
+      }
       if (user) {
         token.sub = user.id
         const dbUser = await prisma.user.findUnique({

@@ -26,6 +26,8 @@ Le profil public ajoute une interdiction des écritures et des effets fournisseu
 
 Auth.js 5 reste une dépendance beta. Mots de passe, MFA, sessions et memberships font l’objet de tests d’accès. Le remplacement de cette dépendance demanderait une recette dédiée de compatibilité des comptes et sessions.
 
+La démonstration publique possède un accès visiteur distinct, disponible uniquement avec le mode lecture seule et ses deux indicateurs de build. L’identité est choisie côté serveur, sans création de compte ni mot de passe dans le navigateur. Le callback POST conserve le contrôle CSRF d’Auth.js et un quota séparé. Le JWT visiteur reste lié à l’identité, à sa société et à sa version de session ; il est invalidé si le mode, le membership ou cette association changent. Il ne peut donc pas devenir une session modifiable par retrait du mode démo. Le parcours privé et la démo locale gardent leur connexion existante.
+
 Les boîtes Google/Microsoft et Resend sont des connexions métier distinctes de la connexion à Freelio. Elles conservent leurs capacités, propriétaire, visibilité et états de synchronisation. Leur comportement réel dépend des comptes et consentements fournisseur, non qualifiés par les transports fictifs.
 
 ## D05 — Documents figés et calculs partagés

@@ -22,6 +22,7 @@ import { AppBrand } from "@/components/shared/app-brand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { DemoEntry } from "@/components/shared/demo-entry"
 import { isReadOnlyDemo } from "@/lib/demo-mode"
 import { DEMO_READ_ONLY_MESSAGE } from "@/lib/demo-policy"
 
@@ -171,6 +172,7 @@ function LoginContent() {
 }
 
 export default function LoginPage() {
+  if (isReadOnlyDemo) return <DemoEntry />
   return (
     <React.Suspense fallback={<main className="min-h-screen bg-white" />}>
       <LoginContent />

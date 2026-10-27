@@ -22,7 +22,7 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.resetModules() })
 
 describe("Distributed rate-limit decisions", () => {
-  it.each(["authRateLimit", "passwordResetRateLimit", "apiRateLimit", "signatureRateLimit", "leadRateLimit", "consentRateLimit", "portalRateLimit", "automationProcessRateLimit"] as const)("refuses %s when the SDK permits a timed-out check", async name => {
+  it.each(["authRateLimit", "demoAccessRateLimit", "passwordResetRateLimit", "apiRateLimit", "signatureRateLimit", "leadRateLimit", "consentRateLimit", "portalRateLimit", "automationProcessRateLimit"] as const)("refuses %s when the SDK permits a timed-out check", async name => {
     sdk.check.mockResolvedValue({ ...allowed, reason: "timeout", limit: 0, remaining: 0, reset: 0 })
     const limiter = (await load())[name]
     expect(await limiter.limit("fictional-recipient")).toMatchObject({ success: false, remaining: 0 })
