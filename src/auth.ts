@@ -119,11 +119,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null
           return user
         } catch (error) {
+          const errorName = error instanceof Error ? error.name : undefined
+          const errorCode = typeof error === "object" && error !== null && "code" in error ? error.code : undefined
           logger.warn(
             {
               event: "credentials_authorization_failed",
-              errorName: error instanceof Error ? error.name : "UnknownError",
-              errorMessage: error instanceof Error ? error.message : "Unknown authentication error",
+              errorName: typeof errorName === "string" && /^(Error|TypeError|RangeError|PrismaClient(KnownRequest|UnknownRequest|Initialization|Validation)Error)$/.test(errorName) ? errorName : "unclassified",
+              errorCode: typeof errorCode === "string" && /^(P\d{4}|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN)$/.test(errorCode) ? errorCode : "unclassified",
             },
             "Credentials authorization failed before identity verification completed",
           )
