@@ -17,6 +17,8 @@ export async function openHostedDemo(page: Page, baseURL: string | undefined) {
   page.on("framenavigated", onNavigation)
   page.on("request", onRequest)
   try {
+    expect((await page.request.get("/demo", { maxRedirects: 0 })).status()).toBe(200)
+    expect(await (await page.request.get("/api/auth/session")).json()).toBeNull()
     expect((await page.goto("/"))?.status()).toBe(200)
     await expect(page.locator('input[type="email"], input[type="password"]')).toHaveCount(0)
     const entry = page.getByRole("link", { name: "Ouvrir la démonstration", exact: true }).first()
