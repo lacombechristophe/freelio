@@ -54,3 +54,11 @@ Le [workflow courant](https://github.com/lacombechristophe/freelio/actions/workf
 Une mise à niveau doit être testée depuis la version précédente en plus d’une base vide. Un changement financier exige des cas d’arrondi et de concurrence ; un changement de droits, des contrôles société/agence/rôle et l’absence de fuite dans le payload complet. Un refactoring conserve l’API publique, les frontières serveur/client et les comportements couverts.
 
 La recette automatisée n’établit ni conformité réglementaire, ni délivrabilité réelle, ni charge de production, ni récupération complète de l’hébergeur. Les contrôles d’interface et leurs limites sont détaillés [séparément](interface-quality.md).
+
+## Installation et mise à niveau
+
+Le profil desktop exécute aussi `node --import tsx scripts/verify-demo-setup.mjs` : préparation réelle d’une démo temporaire, date de référence commune, reprise conservant une édition et refus d’une date impossible. Aucun serveur applicatif n’est lancé par ce contrôle ; il réutilise les dépendances installées par `npm ci` et ne publie pas les identifiants créés.
+
+Le job PostgreSQL exécute `node --import tsx scripts/verify-postgres-upgrade.mjs` avec `RECIPE_ISOLATED=true` avant la recette courante. Ce contrôle exige le service local de CI, crée sa propre base, applique les migrations jusqu’au 23 octobre, ajoute cinq enregistrements liés puis applique les migrations suivantes. Il compare les valeurs existantes, le journal Prisma, les empreintes SQL et les index. Sa base temporaire est supprimée ; la base indiquée dans `DATABASE_URL` n’est pas migrée par ce script.
+
+Les rapports `demo-setup.json` et `postgres-upgrade.json` rejoignent les preuves SQLite/PostgreSQL du commit. Ce scénario de mise à niveau vise un point historique précis ; il ne qualifie pas toutes les versions ni une migration de données réelles.

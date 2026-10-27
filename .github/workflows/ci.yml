@@ -106,6 +106,10 @@ jobs:
           npm run test:coverage
           npm run build
 
+      - name: Préparer puis reprendre une démo isolée
+        if: matrix.project == 'desktop'
+        run: node --import tsx scripts/verify-demo-setup.mjs
+
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
 
@@ -160,6 +164,7 @@ jobs:
             test-results/tested-commit.txt
             test-results/node-version.txt
             coverage/
+            test-results/demo-setup.json
           retention-days: 14
 
   postgres-integration:
@@ -206,6 +211,11 @@ jobs:
       - name: Générer le client PostgreSQL
         run: npm run db:generate
 
+      - name: Vérifier une mise à niveau PostgreSQL sur données existantes
+        env:
+          RECIPE_ISOLATED: "true"
+        run: node --import tsx scripts/verify-postgres-upgrade.mjs
+
       - name: Appliquer les migrations PostgreSQL
         run: npm run db:deploy:postgres
 
@@ -232,6 +242,7 @@ jobs:
           name: verification-postgres-${{ github.sha }}
           path: |
             test-results/unit-postgres.json
+            test-results/postgres-upgrade.json
             test-results/tested-commit.txt
             test-results/node-version.txt
           retention-days: 14
