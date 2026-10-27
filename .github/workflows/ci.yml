@@ -26,11 +26,13 @@ jobs:
         with:
           node-version: 24
       - name: Construire l’image sans secrets
-        run: docker build --tag freelio:ci .
+        run: |
+          docker build --tag freelio:ci .
+          docker build --tag freelio:ci-demo --build-arg NEXT_PUBLIC_DEMO_MODE=true --build-arg NEXT_PUBLIC_DEMO_READ_ONLY=true --build-arg DEMO_ACCESS_MODE=readonly .
       - name: Vérifier migrations, Prisma Linux, Redis, worker et PDF
         env:
           TMPDIR: ${{ runner.temp }}
-        run: node scripts/verify-container-runtime.mjs freelio:ci
+        run: node scripts/verify-container-runtime.mjs freelio:ci freelio:ci-demo
       - name: Conserver l’identité de l’image et du commit
         run: |
           mkdir -p test-results

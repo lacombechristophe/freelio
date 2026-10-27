@@ -8,7 +8,8 @@ import { pullRuntimeImage } from "./runtime-images.mjs"
 
 // Creates only uniquely named containers and a private network. Never loads .env.
 const image = process.argv[2]
-if (!image || image.startsWith("-")) throw Error("Usage : node scripts/verify-container-runtime.mjs IMAGE_LOCALE")
+const demoImage = process.argv[3]
+if (!image || image.startsWith("-") || !demoImage || demoImage.startsWith("-")) throw Error("Usage : node scripts/verify-container-runtime.mjs IMAGE_LOCALE IMAGE_DEMO")
 const suffix = randomBytes(8).toString("hex")
 const prefix = `freelio-recipe-${suffix}`
 const database = `freelio_demo_linux_${suffix}`
@@ -114,8 +115,8 @@ try {
   report.pdf = JSON.parse(pdf.split("\n").findLast(line => line.startsWith("{")))
   report.checks.push("PDF Chromium hors réseau sous utilisateur runtime")
   // Exercise the real Auth.js callback with the existing fictional account and a
-  // SELECT-only role. This image has private UI build flags: the public CTA is
-  // qualified separately on the deployed public build.
+  // SELECT-only role and the separately compiled public demonstration image.
+  report.demoImageId = docker(["image", "inspect", demoImage, "--format", "{{.Id}}"])
   const reader = "freelio_demo_visitor"
   docker(["exec", prefix + "-postgres", "psql", "-U", "recipe", "-d", database, "-v", "ON_ERROR_STOP=1", "-c",
     "CREATE ROLE " + reader + " LOGIN PASSWORD '" + password + "'; GRANT CONNECT ON DATABASE " + database + " TO " + reader + "; GRANT USAGE ON SCHEMA public TO " + reader + "; GRANT SELECT ON ALL TABLES IN SCHEMA public TO " + reader + ";"])
@@ -127,7 +128,7 @@ try {
     "--env", "AUTH_URL=http://127.0.0.1:3000", "--env", "AUTH_TRUST_HOST=true",
     "--env", "GITHUB_ACTIONS=true", "--env", "E2E_ENABLE_CREDENTIALS_AUTH=true",
     "--env", "UPSTASH_REDIS_REST_URL=", "--env", "UPSTASH_REDIS_REST_TOKEN=",
-    image, "node", "node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"])
+    demoImage, "node", "node_modules/next/dist/bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"])
   containers.push(demoWeb)
   let demoHealthy = false
   for (let attempt = 0; attempt < 30; attempt++) {

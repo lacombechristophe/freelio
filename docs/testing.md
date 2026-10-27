@@ -35,7 +35,7 @@ Les E2E utilisent le serveur compilé avec `E2E_USE_PRODUCTION_SERVER=true` et l
 
 Les deux suites SQLite ne sont pas additionnées. Le seuil de couverture porte sur les six modules déterministes de `vitest.config.mts`, pas sur toute l’application. Les flux UI et transports fictifs ont leurs propres suites. Les durées, exclusions et résultats restent attachés au commit et au rapport de chaque job.
 
-Pour vérifier l’image hors CI : `node scripts/verify-container-runtime.mjs IMAGE`. Ce script crée des conteneurs fictifs dédiés sur un réseau interne et conserve son rapport ; il n’utilise aucun `.env` du projet.
+Pour vérifier l’image hors CI : `node scripts/verify-container-runtime.mjs IMAGE IMAGE_DEMO`. La seconde image doit être compilée avec les deux indicateurs publics de démonstration et DEMO_ACCESS_MODE=readonly, comme dans le workflow. Ce script crée des conteneurs fictifs dédiés sur un réseau interne et conserve son rapport ; il n’utilise aucun `.env` du projet.
 
 ## Qualification hébergée
 
