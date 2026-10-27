@@ -15,6 +15,8 @@ Ce document fixe les invariants du CRM/ERP. Les écrans et Server Actions orches
 
 Les actions Opérations gardent un point d’entrée compatible dans `src/actions/operations/index.ts`. Les implémentations sont séparées en lectures, catalogue, achats, commandes, stock et service. Seuls les modules de points d’entrée portent `use server` ; schémas et auxiliaires partagés restent des modules ordinaires.
 
+Les actions d’import conservent leur point d’entrée dans `src/actions/migrations/index.ts`. Connexions fournisseur, captures, analyse/simulation, application et vérification ont leurs modules ; les schémas et auxiliaires partagés restent ordinaires. L’application garde une transaction par enregistrement et sa reprise sans doublon. Ce découpage ne rend pas l’ensemble d’un import atomique.
+
 Organisation conserve l’état et les mutations dans sa vue principale. Les types, libellés/formats, cartes et dialogues sont séparés dans le même dossier. Ce découpage n’ajoute pas de couche générique entre les composants et les cas d’usage.
 
 ## 1. Calcul commercial et facturation
