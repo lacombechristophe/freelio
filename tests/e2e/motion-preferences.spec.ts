@@ -77,7 +77,12 @@ test("la progression de lecture suit le scroll sans ressort en mode réduit", as
   await expect.poll(() => bar.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m11)).toBeGreaterThan(0)
 
   const progress = await page.evaluate(async () => {
-    window.scrollTo(0, 1000)
+    // RAF callbacks can precede delivery of the native scroll event in CI.
+    // Keep the same three-frame response budget, starting at that event.
+    await new Promise<void>(resolve => {
+      window.addEventListener("scroll", () => resolve(), { once: true })
+      window.scrollTo(0, 1000)
+    })
     for (let frame = 0; frame < 3; frame++) await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
     const bar = document.querySelector('[data-slot="marketing-scroll-progress"]')
     if (!bar) throw new Error("La progression de lecture est absente")
@@ -92,6 +97,8 @@ test("la progression de lecture suit le scroll sans ressort en mode réduit", as
     }
   })
   await info.attach("reduced-scroll-response", { body: JSON.stringify(progress), contentType: "application/json" })
+  expect(progress.maximum).toBeGreaterThan(1000)
+  expect(progress.scrollY).toBe(1000)
   expect(progress.expected).toBeGreaterThan(0)
   expect(progress.actual).toBeCloseTo(progress.expected, 3)
 })
