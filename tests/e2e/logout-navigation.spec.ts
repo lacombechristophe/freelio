@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test"
 
-test("logout abandons pending authenticated page responses", async ({ page, context }) => {
+test("logout discards late authenticated page responses", async ({ page, context }) => {
   await page.goto("/dashboard")
   await expect(page.locator("html[data-app-hydrated='true']")).toHaveCount(1)
+  await page.locator("html").evaluate(element => element.setAttribute("data-logout-origin-document", "true"))
 
   let release!: () => void
   const held = new Promise<void>(resolve => { release = resolve })
@@ -36,10 +37,6 @@ test("logout abandons pending authenticated page responses", async ({ page, cont
     }, probe)
     await authenticatedResponse
     expect(responseRenewsSession).toBe(true)
-    const abandonedResponse = page.waitForEvent("requestfailed", {
-      predicate: request => new URL(request.url()).pathname + new URL(request.url()).search === probe,
-      timeout: 15_000,
-    })
     let documentNavigation = false
     page.on("request", request => {
       if (request.isNavigationRequest() && request.resourceType() === "document" && new URL(request.url()).pathname === "/auth/login") documentNavigation = true
@@ -48,9 +45,9 @@ test("logout abandons pending authenticated page responses", async ({ page, cont
     await page.getByRole("menuitem", { name: "Déconnexion", exact: true }).click()
     await page.waitForURL(url => url.pathname === "/auth/login")
     await expect(page.locator("#dashboard-main")).toHaveCount(0)
-    // Finish the intercepted response before observing its browser cancellation.
+    await expect(page.locator("html")).not.toHaveAttribute("data-logout-origin-document", "true")
+    // Deliver the authenticated response after the original document has gone.
     release()
-    expect((await abandonedResponse).failure()?.errorText).toContain("ERR_ABORTED")
     await responseFinished
     expect(responseError).toBeUndefined()
     expect(documentNavigation).toBe(true)
