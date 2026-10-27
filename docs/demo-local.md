@@ -16,7 +16,7 @@ Avant de préparer les fichiers ou la base, le lanceur compare les versions inst
 
 Trois dossiers supplémentaires relient une vente à décider, un chantier avec jalons et temps, et un SAV avec équipement et intervention. Le cockpit propose leur parcours de visite. Conversations, brouillon, segment, règle et scénario inactif complètent ces exemples. Aucun fournisseur n’est connecté ; toutes les factures restent brouillons et aucun consentement de prospection réel n’est créé.
 
-Les dates sont fixées à la préparation, sans déplacement automatique lors des visites. Pour une recette reproductible, définir `DEMO_REFERENCE_DATE` au format `AAAA-MM-JJ` avant la préparation.
+Les dates sont fixées à la préparation, sans déplacement automatique lors des visites. Pour une recette reproductible, définir `DEMO_REFERENCE_DATE` au format `AAAA-MM-JJ` avant la préparation. Les exemples initiaux et les dossiers liés utilisent alors cette même date, à midi UTC ; une date impossible est refusée avant le peuplement. Sans cette variable, la préparation utilise la date courante.
 
 Le terminal affiche l’adresse locale, par défaut `http://127.0.0.1:54177`, le dossier créé et le chemin `demo-access.json`. Ce fichier contient l’adresse du compte fictif, son mot de passe aléatoire et les clés propres à cette démo. Ouvrir ce fichier localement pour se connecter ; conserver ce fichier privé avec les sauvegardes. Le terminal n’affiche pas les secrets. La connexion exige le mot de passe, y compris en développement.
 

@@ -63,6 +63,7 @@ try {
     AUTH_SECRET: access.authSecret, ENCRYPTION_KEY: access.encryptionKey, AUTH_URL: baseURL, NEXTAUTH_URL: baseURL,
     PUBLIC_APP_URL: baseURL, FILE_STORAGE_DRIVER: "local", NEXT_PUBLIC_DEMO_MODE: "true",
     DEMO_PASSWORD: access.password, NEXT_TELEMETRY_DISABLED: "1", CHECKPOINT_DISABLE: "1",
+    DEMO_REFERENCE_DATE: process.env.DEMO_REFERENCE_DATE,
     PRISMA_HIDE_UPDATE_MESSAGE: "1", PUPPETEER_CACHE_DIR: path.join(os.homedir(), ".cache", "puppeteer"),
     NODE_OPTIONS: `--require ${JSON.stringify(path.join(runtime, "scripts", "demo-network.cjs"))}`,
   }

@@ -12,6 +12,8 @@ if (process.env.NODE_ENV === "production" || (!dedicatedPostgres && (!databasePa
 const enrich = process.argv.includes("--enrich")
 const apply = process.argv.includes("--apply")
 const referenceDate = process.env.DEMO_REFERENCE_DATE || new Date().toISOString().slice(0, 10)
+const reference = new Date(`${referenceDate}T12:00:00Z`)
+if (!/^\d{4}-\d{2}-\d{2}$/.test(referenceDate) || Number.isNaN(reference.getTime()) || reference.toISOString().slice(0, 10) !== referenceDate) throw new Error("Date de référence invalide")
 if (!enrich && (!process.env.DEMO_PASSWORD || process.env.DEMO_PASSWORD.length < 12)) throw new Error("DEMO_PASSWORD doit contenir au moins 12 caractères")
 const prisma = createDatabaseClient()
 const email = "direction@atelier-des-bassins.example.test"
@@ -23,7 +25,7 @@ try {
   } else {
     if (existing) throw new Error("Le compte de démonstration existe déjà ; aucune donnée modifiée")
     const passwordHash = await hashPassword(process.env.DEMO_PASSWORD)
-    const today = new Date()
+    const today = process.env.DEMO_REFERENCE_DATE ? reference : new Date()
     const day = offset => new Date(today.getTime() + offset * 86_400_000)
     const result = await prisma.$transaction(async tx => {
       // Deliberately fictitious VAT identifier; taxable example invoices need a seller identifier.
@@ -49,9 +51,9 @@ try {
         const project = await tx.project.create({ data: { companyId: company.id, clientId: client.id, agencyId: agency.id, siteId: site.id, name: `${product.label} — dossier fictif`, status: "ACTIVE", startDate: day(index - 2) } })
         const ht = product.salePriceCents
         const vat = Math.round(ht * 0.2)
-        await tx.quote.create({ data: { companyId: company.id, clientId: client.id, projectId: project.id, number: `DEMO-DEV-${today.getFullYear()}-${index + 1}`, object: product.label, status: index % 2 ? "SENT" : "DRAFT", date: day(-index), validUntil: day(30), versions: { create: { version: 1, totalHtCents: ht, totalTvaCents: vat, totalTtcCents: ht + vat, sections: { create: { title: "Prestation fictive", lines: { create: { label: product.label, quantity: 1, unitPriceCents: ht, tvaRate: 20 } } } } } } } })
+        await tx.quote.create({ data: { companyId: company.id, clientId: client.id, projectId: project.id, number: `DEMO-DEV-${today.getUTCFullYear()}-${index + 1}`, object: product.label, status: index % 2 ? "SENT" : "DRAFT", date: day(-index), validUntil: day(30), versions: { create: { version: 1, totalHtCents: ht, totalTvaCents: vat, totalTtcCents: ht + vat, sections: { create: { title: "Prestation fictive", lines: { create: { label: product.label, quantity: 1, unitPriceCents: ht, tvaRate: 20 } } } } } } } })
         // Invoices stay draft until the normal issuance flow creates their immutable archive.
-        await tx.invoice.create({ data: { companyId: company.id, clientId: client.id, projectId: project.id, number: `DEMO-FACT-${today.getFullYear()}-${index + 1}`, object: product.label, status: "DRAFT", date: today, dueDate: day(30), totalHtCents: ht, totalTvaCents: vat, totalTtcCents: ht + vat, lines: { create: { label: product.label, quantity: 1, unitPriceCents: ht, tvaRate: 20 } } } })
+        await tx.invoice.create({ data: { companyId: company.id, clientId: client.id, projectId: project.id, number: `DEMO-FACT-${today.getUTCFullYear()}-${index + 1}`, object: product.label, status: "DRAFT", date: today, dueDate: day(30), totalHtCents: ht, totalTvaCents: vat, totalTtcCents: ht + vat, lines: { create: { label: product.label, quantity: 1, unitPriceCents: ht, tvaRate: 20 } } } })
         const ticket = await tx.serviceTicket.create({ data: { companyId: company.id, clientId: client.id, siteId: site.id, number: `DEMO-SAV-${index + 1}`, title: index % 2 ? "Contrôle de filtration" : "Préparation de la mise en service", description: "Dossier de démonstration : données fictives, aucune demande réelle", status: "PLANNED", priority: index === 4 ? "HIGH" : "NORMAL", assignedMembershipId: membership.id, dueAt: day(index + 1) } })
         await tx.fieldIntervention.create({ data: { companyId: company.id, ticketId: ticket.id, projectId: project.id, siteId: site.id, assignedMembershipId: membership.id, title: ticket.title, type: "MAINTENANCE", status: "PLANNED", scheduledStart: day(index + 1), scheduledEnd: new Date(day(index + 1).getTime() + 90 * 60_000) } })
       }
