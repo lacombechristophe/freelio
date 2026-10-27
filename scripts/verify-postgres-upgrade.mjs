@@ -84,7 +84,7 @@ try {
   target = createDatabaseClient(targetUrl.href)
   // Explicit old-schema columns model existing records; no current Prisma model
   // writes are used before the upgrade, so later columns cannot hide a backfill bug.
-  await target.$executeRawUnsafe('INSERT INTO "Company" ("id", "name", "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP)', "upgrade-company", "Fictional upgrade company")
+  await target.$executeRawUnsafe('INSERT INTO "Company" ("id", "name") VALUES ($1, $2)', "upgrade-company", "Fictional upgrade company")
   await target.$executeRawUnsafe('INSERT INTO "Client" ("id", "companyId", "name", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)', "upgrade-client", "upgrade-company", "Fictional upgrade client")
   await target.$executeRawUnsafe('INSERT INTO "CustomerSite" ("id", "companyId", "clientId", "label", "address1", "updatedAt") VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)', "upgrade-site", "upgrade-company", "upgrade-client", "Fictional upgrade site", "Fictional recipe address")
   await target.$executeRawUnsafe('INSERT INTO "Equipment" ("id", "companyId", "siteId", "label", "updatedAt") VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)', "upgrade-equipment", "upgrade-company", "upgrade-site", "Fictional upgrade equipment")
