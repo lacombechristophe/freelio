@@ -41,8 +41,7 @@ const logger = pino({
 export default logger
 
 /**
- * Standard log helper to include userId and action metadata
- * compliant with L868.
+ * Log a named application event with structured metadata.
  */
 export function logEvent(action: string, metadata: Record<string, unknown>) {
   logger.info({

@@ -18,3 +18,16 @@ La démonstration publique utilise exclusivement des données fictives, un accè
 - Les tests SQL, navigateur et transports fictifs ne sont ni un audit de sécurité indépendant, ni une qualification de fournisseurs réels.
 
 Les [décisions techniques](docs/decisions-techniques.md), les [capacités et limites](docs/coverage-and-external-dependencies.md) et le [runbook](docs/production-runbook.md) précisent le périmètre. Une vulnérabilité reproduite n’est pas considérée comme résolue parce que sa limitation figure dans ces documents.
+
+## Contrôles à examiner
+
+| Frontière | Règle | Régressions représentatives |
+| --- | --- | --- |
+| Session et rôle | Relire l’adhésion active et les droits avant le cas d’usage | [Contexte](tests/unit/auth-context.integration.test.ts), [MFA](tests/unit/mfa.test.ts) |
+| Société et relations | Exclure les références étrangères et les mesures interdites du payload | [Classification des modèles](tests/unit/tenant-scope.test.ts), [Fiches Opérations](tests/unit/operations-details-relations.integration.test.ts) |
+| Données privées | Conserver l’auteur et le périmètre des signatures et notifications | [Signatures](tests/unit/email-signatures.integration.test.ts), [Notifications](tests/unit/notifications-scope.integration.test.ts) |
+| Fournisseurs | Vérifier l’état OAuth et ne pas relancer un envoi incertain | [Callback](tests/unit/oauth-callback.integration.test.ts), [Reprise manuelle](tests/unit/manual-email-recovery.integration.test.ts) |
+| Rendu PDF | Refuser les destinations réseau interdites et borner l’attente | [Images](tests/unit/pdf-image-security.test.ts), [Annulation](tests/unit/pdf-deadline.test.ts) |
+| Sauvegardes | Vérifier le manifeste et refuser la réinjection automatique du format v2 | [Intégrité](tests/unit/backup-integrity.test.ts), [Relations historiques](tests/unit/legacy-backup-scope.integration.test.ts) |
+
+Cette sélection aide une revue ciblée avec [OWASP ASVS 5.0](https://asvs.owasp.org/). Elle ne couvre pas toutes ses exigences et n’attribue aucun niveau de conformité. Une restauration logique exige un environnement isolé et un contrôle des relations ; l’ancien indicateur web ne rend pas le graphe v2 fiable.
