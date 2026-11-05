@@ -139,7 +139,7 @@ function ReducedMotionScrollProgress() {
     }
   }, [])
 
-  return <div ref={barRef} aria-hidden data-slot="marketing-scroll-progress" className={progressBarClassName} style={{ transform: "scaleX(0)" }} />
+  return <div ref={barRef} aria-hidden data-slot="marketing-scroll-progress" data-motion="reduced" className={progressBarClassName} style={{ transform: "scaleX(0)" }} />
 }
 
 function AnimatedScrollProgress() {
@@ -154,6 +154,7 @@ function AnimatedScrollProgress() {
     <motion.div
       aria-hidden
       data-slot="marketing-scroll-progress"
+      data-motion="animated"
       className={progressBarClassName}
       style={{ scaleX: smoothProgress }}
     />

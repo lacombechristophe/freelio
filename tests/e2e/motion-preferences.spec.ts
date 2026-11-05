@@ -72,6 +72,7 @@ test("la progression de lecture suit le scroll sans ressort en mode réduit", as
   await expect(page.locator("html[data-app-hydrated='true']")).toHaveCount(1)
   const bar = page.locator('[data-slot="marketing-scroll-progress"]')
   await expect(bar).toHaveCount(1)
+  await expect(bar).toHaveAttribute("data-motion", "reduced")
 
   // Finish the warm-up scroll before listening for the measured displacement.
   // A positive bar alone can come from its initial effect or ResizeObserver.
@@ -94,11 +95,11 @@ test("la progression de lecture suit le scroll sans ressort en mode réduit", as
 
   const progress = await page.evaluate(async () => {
     // Start the three-frame budget at the native event for the target position.
-    const atEvent = await new Promise<{ scrollY: number; trusted: boolean }>(resolve => {
+    const atEvent = await new Promise<{ scrollY: number; trusted: boolean; motion: string | null }>(resolve => {
       const onScroll = (event: Event) => {
         if (!event.isTrusted || scrollY !== 1000) return
         window.removeEventListener("scroll", onScroll)
-        resolve({ scrollY, trusted: event.isTrusted })
+        resolve({ scrollY, trusted: event.isTrusted, motion: document.querySelector('[data-slot="marketing-scroll-progress"]')?.getAttribute("data-motion") ?? null })
       }
       window.addEventListener("scroll", onScroll)
       window.scrollTo(0, 1000)
@@ -118,7 +119,7 @@ test("la progression de lecture suit le scroll sans ressort en mode réduit", as
     }
   })
   await info.attach("reduced-scroll-response", { body: JSON.stringify(progress), contentType: "application/json" })
-  expect(progress.atEvent).toEqual({ scrollY: 1000, trusted: true })
+  expect(progress.atEvent).toEqual({ scrollY: 1000, trusted: true, motion: "reduced" })
   expect(progress.maximum).toBeGreaterThan(1000)
   expect(progress.scrollY).toBe(1000)
   expect(progress.expected).toBeGreaterThan(0)
