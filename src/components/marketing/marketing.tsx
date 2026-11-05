@@ -24,6 +24,7 @@ import {
 import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
+import { MarketingCapabilities } from "@/components/marketing/marketing-capabilities"
 import {
   HeroProductScene,
   HeroIntroMotion,
@@ -102,8 +103,10 @@ const faqs = [
     answer: "Oui. Les clients, documents, temps, paiements et pièces associées sont conçus pour rester exportables. Votre historique ne doit pas devenir une dépendance.",
   },
   {
-    question: "À qui s’adresse l’alpha ?",
-    answer: "Aux piscinistes français qui veulent tester un flux complet, du premier contact jusqu’au chantier, au SAV et au paiement.",
+    question: isReadOnlyDemo ? "Que peut-on faire dans la démonstration ?" : "À qui s’adresse l’alpha ?",
+    answer: isReadOnlyDemo
+      ? "La démonstration ouvre directement une session visiteur, sans identifiants. Vous pouvez consulter les dossiers fictifs, leurs documents et les différents modules. Les modifications, les envois et les connexions à des services externes sont désactivés. N’y importez pas de données réelles."
+      : "Aux piscinistes français qui veulent tester un flux complet, du premier contact jusqu’au chantier, au SAV et au paiement.",
   },
   {
     question: "Une carte bancaire est-elle demandée ?",
@@ -154,6 +157,7 @@ export function MarketingHome() {
       <ProofRail />
       <WorkflowStory />
       <ValueSystem />
+      <MarketingCapabilities />
       <ComplianceSection />
       <PricingSection compact />
       <FAQSection compact />
@@ -183,6 +187,7 @@ function Hero() {
           <SecondaryLink href="#workflow">Voir comment ça marche</SecondaryLink>
         </div>
         <p className="mt-4 flex items-center justify-center gap-2 text-xs text-freelio-muted"><ShieldCheck className="size-4 text-freelio-success" />Sans carte bancaire · Données exportables · Factur-X vérifiable</p>
+        {isReadOnlyDemo && <p className="mt-3 text-xs leading-5 text-freelio-muted">Accès direct sans identifiants · Données fictives · Lecture seule</p>}
       </HeroIntroMotion>
 
       <div className="relative z-10 mt-6 overflow-hidden sm:mt-9 lg:-mt-16">
