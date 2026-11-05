@@ -22,4 +22,10 @@ La politique [ESLint/Oxlint](../tooling/lint/README.md) conserve des règles ré
 
 Auth.js est encore en série 5 beta. Les versions et adaptateurs Prisma sont coordonnés dans le lockfile. Les changements majeurs demandent une recette de compatibilité, même lorsqu’un audit de sécurité est vert.
 
+## Avis suivis au 5 novembre 2026
+
+L’avis modéré [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) affecte `minimatch` de la version 7 à 11.0.0. Le correctif 11.0.1 est imposé uniquement sous `@typescript-eslint/typescript-estree`, qui utilisait 10.2.5. Les autres consommateurs de `minimatch` restent sur leur version. Cet override de l’outillage doit être réexaminé quand la chaîne TypeScript-ESLint fournit une version corrigée ; les contrôles ESLint/Oxlint et leurs cas de politique restent obligatoires.
+
+L’avis faible [GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4) reste ouvert sur `deepmerge@4.3.1`, apporté par `@react-email/render@2.0.6 → html-to-text@9.0.5`, sans version corrigée publiée à cette date. Dans les appels examinés de `email-content.ts` et `email-preflight.ts`, le HTML peut provenir d’un utilisateur, mais les options fusionnées sont définies par le code de l’application. Aucun chemin permettant à l’utilisateur de fournir ces objets d’options n’a été identifié. Cette revue statique ne démontre pas une absence universelle d’exploitabilité. Le seuil d’audit reste inchangé ; les avis faibles sont signalés, sans présenter l’audit comme exempt de vulnérabilité.
+
 Les [anciens inventaires et incidents de maintenance](history.md#dépendances-et-incidents) conservent leurs versions, erreurs et décisions. Ils ne qualifient pas le lockfile d’une livraison ultérieure.
