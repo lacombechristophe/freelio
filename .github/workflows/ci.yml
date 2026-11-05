@@ -230,6 +230,21 @@ jobs:
       - name: Exécuter les tests unitaires sur PostgreSQL
         run: npm run test:unit -- --reporter=default --reporter=json --outputFile=test-results/unit-postgres.json
 
+      - name: Relever les verrous et transactions après un échec PostgreSQL
+        if: failure()
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          mkdir -p test-results
+          docker exec -i "$POSTGRES_CONTAINER" psql -X -U crm -d crm_test -P pager=off > test-results/postgres-failure-state.txt <<'SQL'
+          SELECT name, setting FROM pg_settings
+          WHERE name IN ('max_connections', 'max_pred_locks_per_transaction', 'max_pred_locks_per_relation', 'statement_timeout') ORDER BY name;
+          SELECT locktype, mode, count(*) FROM pg_locks WHERE mode = 'SIReadLock' GROUP BY locktype, mode;
+          SELECT state, wait_event_type, wait_event, count(*), max(clock_timestamp() - xact_start) AS oldest_transaction
+          FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()
+          GROUP BY state, wait_event_type, wait_event;
+          SQL
+
       - name: Relier les résultats PostgreSQL au commit testé
         if: always()
         run: |
@@ -245,6 +260,7 @@ jobs:
           path: |
             test-results/unit-postgres.json
             test-results/postgres-upgrade.json
+            test-results/postgres-failure-state.txt
             test-results/tested-commit.txt
             test-results/node-version.txt
           retention-days: 14

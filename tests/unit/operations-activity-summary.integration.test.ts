@@ -9,10 +9,19 @@ import prisma from "@/lib/prisma"
 import { getOperationsActivitySummary as summary, getOperationsDashboard } from "@/actions/operations"
 import { readOperationsActivity } from "@/lib/operations/activity-summary"
 
+const pendingFixtureWork = new Set<Promise<unknown>>()
+async function trackFixtureWork<T>(work: () => Promise<T>) {
+  const pending = work()
+  pendingFixtureWork.add(pending)
+  try { return await pending } finally { pendingFixtureWork.delete(pending) }
+}
+const settleFixtureWork = () => Promise.allSettled([...pendingFixtureWork])
+afterAll(async () => { await settleFixtureWork(); await prisma.$disconnect() }, 30_000)
+
 describe.sequential("Operations activity totals do not depend on preview caches", () => {
   let agencyId: string, clientId: string, siteId: string
   let data: Awaited<ReturnType<typeof getOperationsDashboard>>
-  beforeAll(async () => {
+  beforeAll(() => trackFixtureWork(async () => {
     session.companyId = (await prisma.company.create({ data: { name: "Fictional activity summary", serviceTimezone: "Europe/Paris" } })).id
     session.userId = (await prisma.user.create({ data: { email: `activity-summary-${randomUUID()}@example.test` } })).id
     await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })
@@ -30,9 +39,14 @@ describe.sequential("Operations activity totals do not depend on preview caches"
       { companyId: session.companyId, siteId, title: "Due fictional intervention", scheduledStart: new Date("2001-01-01T12:00:00Z") },
       { companyId: session.companyId, siteId, title: "Other due fictional intervention", scheduledStart: new Date("2001-01-02T12:00:00Z") },
     ] })
-    data = await getOperationsDashboard()
-  })
+  }), 30_000) // Fixture preparation has its own budget; the dashboard read keeps the default hook timeout.
+  beforeAll(() => trackFixtureWork(async () => {
+    const started = performance.now()
+    try { data = await getOperationsDashboard() }
+    finally { console.info("ACTIVITY_DASHBOARD_OBSERVATION", JSON.stringify({ readMs: Math.round(performance.now() - started) })) }
+  }))
   afterAll(async () => {
+    await settleFixtureWork()
     await prisma.fieldIntervention.deleteMany({ where: { companyId: session.companyId } })
     await prisma.serviceTicket.deleteMany({ where: { companyId: session.companyId } })
     await prisma.project.deleteMany({ where: { companyId: session.companyId } })
@@ -40,7 +54,7 @@ describe.sequential("Operations activity totals do not depend on preview caches"
     await prisma.client.deleteMany({ where: { companyId: session.companyId } })
     await prisma.company.delete({ where: { id: session.companyId } })
     await prisma.user.delete({ where: { id: session.userId } })
-  })
+  }, 30_000)
   const activity = () => data.activity
   it("counts open SAV beyond 200 closed tickets", () => expect(activity().openTickets).toBe(2))
   it("counts future interventions beyond 200 historical interventions", () => expect(activity().comingInterventions).toBe(2))
@@ -65,7 +79,8 @@ describe.sequential("Operations activity boundaries, permissions and volume on r
   let membershipId: string, agencyId: string, otherAgencyId: string, inactiveAgencyId: string
   let foreignCompanyId: string, foreignAgencyId: string, siteId: string
   let clientId: string, foreignClientId: string
-  beforeAll(async () => {
+  let volumeCancelled = false
+  beforeAll(() => trackFixtureWork(async () => {
     session.companyId = (await prisma.company.create({ data: { name: "Fictional scoped activity", serviceTimezone: "Europe/Paris" } })).id
     session.userId = (await prisma.user.create({ data: { email: `scoped-activity-${randomUUID()}@example.test` } })).id
     membershipId = (await prisma.membership.create({ data: { companyId: session.companyId, userId: session.userId, role: "OWNER", status: "ACTIVE" } })).id
@@ -87,8 +102,10 @@ describe.sequential("Operations activity boundaries, permissions and volume on r
     await prisma.serviceTicket.create({ data: { companyId: session.companyId, clientId, number: "NO-SITE", title: "Fictional ticket without site", description: "Fictional description" } })
     await prisma.serviceTicket.create({ data: { companyId: session.companyId, clientId, siteId, number: "MERGED", title: "Merged fictional ticket", description: "Fictional description", status: "MERGED" } })
     await prisma.project.create({ data: { companyId: session.companyId, clientId, agencyId, name: "Completed fictional project", status: "COMPLETED" } })
-  })
+  }), 30_000) // Only fixture creation; assertions and product transaction deadlines are unchanged.
   afterEach(async () => {
+    volumeCancelled = true
+    await settleFixtureWork()
     vi.useRealTimers(); vi.unstubAllEnvs(); session.authenticated = true
     await prisma.membership.update({ where: { id: membershipId }, data: { role: "OWNER", status: "ACTIVE" } })
     if (!await prisma.agencyMembership.findUnique({ where: { agencyId_membershipId: { agencyId, membershipId } } })) {
@@ -104,6 +121,7 @@ describe.sequential("Operations activity boundaries, permissions and volume on r
     await prisma.fieldIntervention.deleteMany({ where: { companyId: session.companyId, title: { startsWith: "EXTRA-" } } })
   }, 30_000) // Fixture teardown only; the activity query keeps the normal test timeout.
   afterAll(async () => {
+    await settleFixtureWork()
     const companyId = { in: [session.companyId, foreignCompanyId] }
     await prisma.fieldIntervention.deleteMany({ where: { companyId } })
     await prisma.serviceTicket.deleteMany({ where: { companyId } })
@@ -112,7 +130,7 @@ describe.sequential("Operations activity boundaries, permissions and volume on r
     await prisma.client.deleteMany({ where: { companyId } })
     await prisma.company.deleteMany({ where: { id: companyId } })
     await prisma.user.delete({ where: { id: session.userId } })
-  })
+  }, 30_000)
   it("includes coherent unassigned tickets in the company total but excludes merged and foreign records", async () => {
     expect(await summary()).toMatchObject({ openTickets: 3, comingInterventions: 2, dueInterventions: 0 })
   })
@@ -170,16 +188,27 @@ describe.sequential("Operations activity boundaries, permissions and volume on r
     expect(await summary({ agencyId })).toMatchObject({ comingInterventions: 3, dueInterventions: 2 })
   })
   it("counts 10001 extra open tickets while returning only six previews", async () => {
+    volumeCancelled = false
     const started = performance.now()
-    await prisma.serviceTicket.createMany({ data: Array.from({ length: 10001 }, (_, index) => ({ companyId: session.companyId, clientId, siteId, number: `EXTRA-${index}`, title: "Fictional volume ticket", description: "Fictional description", priority: "URGENT" })) })
-    const prepared = performance.now()
-    const result = await summary({ agencyId })
-    const readMs = performance.now() - prepared
-    expect(result.openTickets).toBe(10002)
-    expect(result.priorityTickets).toHaveLength(6)
-    expect(result.priorityTickets.every(row => row.priority === "URGENT")).toBe(true)
-    expect(new Set(result.priorityTickets.map(row => row.id)).size).toBe(6)
-    console.info("ACTIVITY_VOLUME_OBSERVATION", JSON.stringify({ rows: 10001, fixtureMs: Math.round(prepared - started), readMs: Math.round(readMs), scope: "One isolated database read, not an SLO or load qualification" }))
+    let prepared: number | undefined
+    await trackFixtureWork(async () => {
+      try {
+        for (let offset = 0; offset < 10001; offset += 250) {
+          if (volumeCancelled) return // A timed-out test must not keep inserting while teardown runs.
+          await prisma.serviceTicket.createMany({ data: Array.from({ length: Math.min(250, 10001 - offset) }, (_, index) => ({ companyId: session.companyId, clientId, siteId, number: `EXTRA-${offset + index}`, title: "Fictional volume ticket", description: "Fictional description", priority: "URGENT" })) })
+        }
+        if (volumeCancelled) return
+        prepared = performance.now()
+        const result = await summary({ agencyId })
+        expect(result.openTickets).toBe(10002)
+        expect(result.priorityTickets).toHaveLength(6)
+        expect(result.priorityTickets.every(row => row.priority === "URGENT")).toBe(true)
+        expect(new Set(result.priorityTickets.map(row => row.id)).size).toBe(6)
+      } finally {
+        const finished = performance.now()
+        console.info("ACTIVITY_VOLUME_OBSERVATION", JSON.stringify({ rows: 10001, phase: prepared === undefined ? "fixture" : "read", cancelled: volumeCancelled, fixtureMs: Math.round((prepared ?? finished) - started), readMs: prepared === undefined ? null : Math.round(finished - prepared), scope: "One isolated database read, not an SLO or load qualification" }))
+      }
+    })
   }, 30_000) // Includes bulk fixture creation; the product's transaction timeout is unchanged.
   it.each([null, "invalid", { agencyId: 5 }, { agencyId: "not-a-cuid" }, { companyId: "forged" }, { agencyId: "" }])("rejects a malformed query %j", async input => {
     await expect(summary(input)).rejects.toThrow()
