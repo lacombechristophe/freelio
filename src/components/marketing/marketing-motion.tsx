@@ -332,8 +332,8 @@ export function HeroProductScene() {
       className="relative mx-auto w-full max-w-[1536px]"
       aria-label="Aperçu du cockpit Freelio et des documents reliés"
       initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={{ duration: 0.48, ease: [0.2, 0, 0, 1], delay: 0.12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.48, ease: [0.2, 0, 0, 1], delay: 0.12 }}
       onPointerMove={(event) => {
         if (reduceMotion || event.pointerType === "touch" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
         const bounds = event.currentTarget.getBoundingClientRect()

@@ -45,6 +45,9 @@ test("le menu public respecte le mouvement réduit dès l’ouverture et après 
   await page.emulateMedia({ reducedMotion: "reduce" })
   await page.goto("/")
   await expect(page.locator("html[data-app-hydrated='true']")).toHaveCount(1)
+  const scene = page.locator('[aria-label="Aperçu du cockpit Freelio et des documents reliés"]')
+  await expect(scene).toHaveCSS("opacity", "1")
+  expect(await scene.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)).toBe(0)
 
   await sampleMenuOpening(page)
   await page.keyboard.press("Escape")
@@ -56,6 +59,8 @@ test("le menu public respecte le mouvement réduit dès l’ouverture et après 
   await expect.poll(() => route.evaluate(element => Number.parseFloat(getComputedStyle(element).strokeDashoffset))).toBeLessThan(0)
   await page.emulateMedia({ reducedMotion: "reduce" })
   await expect.poll(() => route.evaluate(element => Number.parseFloat(getComputedStyle(element).strokeDashoffset))).toBe(0)
+  await expect(scene).toHaveCSS("opacity", "1")
+  expect(await scene.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42)).toBe(0)
   await sampleMenuOpening(page)
   expect(hydrationErrors).toEqual([])
   expect(motionWarnings).toEqual([])
